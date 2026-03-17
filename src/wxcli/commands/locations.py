@@ -1,4 +1,5 @@
 import typer
+from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 
@@ -114,15 +115,36 @@ def update_location(
     typer.echo(f"Updated: {location_id}")
 
 
+@app.command("disable-calling")
+def disable_calling(
+    location_id: str = typer.Argument(help="Location ID to disable calling on"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Disable Webex Calling on a location."""
+    api = get_api(debug=debug)
+    url = api.telephony.location.ep(location_id)
+    api.telephony.location.delete(url=url)
+    typer.echo(f"Disabled calling: {location_id}")
+
+
 @app.command("delete")
 def delete_location(
     location_id: str = typer.Argument(help="Location ID"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a location."""
+    """Delete a location. Automatically disables Webex Calling first if enabled."""
     if not force:
         typer.confirm(f"Delete location {location_id}?", abort=True)
     api = get_api(debug=debug)
-    api.locations.delete(location_id=location_id)
+    try:
+        api.locations.delete(location_id=location_id)
+    except RestError as e:
+        if e.response.status_code == 409 and "being referenced" in e.response.text:
+            typer.echo("Location has Webex Calling enabled — disabling calling first...")
+            url = api.telephony.location.ep(location_id)
+            api.telephony.location.delete(url=url)
+            api.locations.delete(location_id=location_id)
+        else:
+            raise
     typer.echo(f"Deleted: {location_id}")
