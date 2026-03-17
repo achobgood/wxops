@@ -1,0 +1,639 @@
+# Reporting & Analytics
+
+CDR feed, report templates, report generation/download, and call quality/queue/AA statistics for Webex Calling.
+
+## Sources
+
+- `wxc_sdk.cdr` — SDK source for Detailed CDR API (`../wxc_sdk_reference/wxc_sdk/cdr/__init__.py`)
+- `wxc_sdk.reports` — SDK source for Reports API (`../wxc_sdk_reference/wxc_sdk/reports/__init__.py`)
+- [Exploring the Webex Calling Reports and Analytics APIs](https://developer.webex.com/blog/exploring-the-webex-calling-reports-and-analytics-apis)
+- [Webex CDR field reference](https://help.webex.com/en-us/article/nmug598/Reports-for-Your-Cloud-Collaboration-Portfolio)
+
+---
+
+## Required Scopes
+
+| Scope | Purpose |
+|-------|---------|
+| `spark-admin:calling_cdr_read` | Access Detailed Call History (CDR feed/stream). Authenticating user must also have the "Webex Calling Detailed Call History API access" admin role enabled in Control Hub. |
+| `analytics:read_all` | Access Report Templates and Reports APIs. Authenticating user must be a read-only or full administrator. |
+| `spark-admin:locations_read` | Filter CDR queries by location name. |
+
+**License requirement:** The Reports API requires the **Pro Pack for Cisco Webex** license on the organization.
+
+---
+
+## 1. Detailed Call History (CDR) API
+
+### Endpoint
+
+| Property | Value |
+|----------|-------|
+| Base URL (commercial) | `https://analytics-calling.webexapis.com` |
+| Base URL (government) | `https://analytics-calling-gov.webexapis.com` |
+| CDR Feed path | `/v1/cdr_feed` |
+| CDR Stream path | `/v1/cdr_stream` |
+| Method | `GET` |
+
+- **CDR Feed** (`cdr_feed`) — Pull records for a specific time window. Best for batch/historical pulls.
+- **CDR Stream** (`cdr_stream`) — For more up-to-date records. <!-- NEEDS VERIFICATION: exact latency difference vs cdr_feed -->
+
+If the region's servers do not host the organization's data, an **HTTP 451** is returned. The response body contains the correct regional endpoint to use instead.
+
+### Query Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `startTime` | ISO 8601 datetime | Yes | Start of time window (report time = call finish time). Must be between 5 minutes ago and 30 days ago. |
+| `endTime` | ISO 8601 datetime | Yes | End of time window. Must be after `startTime`. |
+| `locations` | comma-separated strings | No | Location names (as shown in Control Hub). Up to 10. |
+| `max` | int | No | Results per page (pagination). |
+
+### Time Range Constraints
+
+- **Oldest data:** 30 days prior to current UTC time.
+- **Newest data:** 5 minutes ago (minimum latency before records appear).
+- **Maximum window per request:** 12 hours (the gap between `startTime` and `endTime`).
+- **Data availability:** A call that ends at 9:46 AM is available starting at 9:51 AM and remains for 30 days.
+- **Data generation lag:** CDR records may take up to 24 hours after call completion to appear.
+
+### Rate Limits
+
+- **1 initial request per minute** per user token.
+- **Up to 10 additional pagination requests per minute** per user token.
+
+### Pagination
+
+The API returns paginated results via the standard `items` key. The SDK method `session.follow_pagination()` handles automatic page traversal.
+
+### SDK Method
+
+```python
+DetailedCDRApi.get_cdr_history(
+    start_time: Union[str, datetime] = None,   # Default: ~48 hours ago
+    end_time: Union[str, datetime] = None,      # Default: ~5 minutes ago
+    locations: list[str] = None,                # Up to 10 location names
+    host: str = 'analytics-calling.webexapis.com',
+    stream: bool = False,                       # True = use cdr_stream instead of cdr_feed
+    **params
+) -> Generator[CDR, None, None]
+```
+
+When `start_time` and `end_time` are omitted, the SDK defaults to a window of approximately 48 hours ago through 5 minutes ago.
+
+**Usage example:**
+
+```python
+from wxc_sdk import WebexSimpleApi
+
+api = WebexSimpleApi(tokens='<access_token>')
+
+# Pull last 2 hours of CDRs
+from datetime import datetime, timedelta, timezone
+end = datetime.now(timezone.utc) - timedelta(minutes=5)
+start = end - timedelta(hours=2)
+
+for cdr in api.cdr.get_cdr_history(start_time=start, end_time=end):
+    print(f"{cdr.start_time} | {cdr.direction} | {cdr.calling_number} -> {cdr.called_number} | {cdr.duration}s")
+```
+
+### CDR Record Fields
+
+The `CDR` model (class `wxc_sdk.cdr.CDR`) contains 55+ fields. Field names arrive from the API in space-separated format (e.g., "Answer time") and are normalized to snake_case by the SDK.
+
+#### Core Call Fields
+
+| SDK Field | Type | Description |
+|-----------|------|-------------|
+| `start_time` | `datetime` | Call start time (UTC). Answer time may be slightly after. |
+| `answer_time` | `datetime` | Time the call was answered (UTC). |
+| `release_time` | `datetime` | Time the call finished (UTC). |
+| `duration` | `int` | Call length in seconds. |
+| `ring_duration` | `int` | Ringing time before answer/timeout, in seconds. |
+| `hold_duration` | `int` | Total hold time in seconds (floor value). |
+| `answered` | `bool` | Whether this call leg was answered. |
+| `answer_indicator` | `str` | `Yes`, `No`, or `Yes-PostRedirection`. |
+| `direction` | `CDRDirection` | `ORIGINATING` or `TERMINATING`. |
+| `call_type` | `CDRCallType` | See enum values below. |
+| `call_outcome` | `str` | `Success`, `Failure`, or `Refusal`. |
+| `call_outcome_reason` | `str` | Detailed reason (e.g., `Normal`, `UserBusy`, `NoAnswer`, `CallRejected`, `UnassignedNumber`, `SIP408`, `AdminCallBlock`, etc.). |
+| `releasing_party` | `str` | `Local`, `Remote`, or `Unknown`. |
+
+#### Number / Identity Fields
+
+| SDK Field | Type | Description |
+|-----------|------|-------------|
+| `calling_number` | `str` | Incoming: calling party number. Outgoing: user's number. |
+| `called_number` | `str` | Incoming: user's number. Outgoing: called party number. |
+| `calling_line_id` | `str` | Incoming: calling party line ID. Outgoing: user's line ID. |
+| `called_line_id` | `str` | Incoming: user's line ID. Outgoing: called party line ID. |
+| `dialed_digits` | `str` | Raw keypad digits before pre-translations. Originating calls only. |
+| `user` | `str` | The user who made or received the call. |
+| `user_number` | `str` | User's E.164 number (or extension if no number assigned). |
+| `user_type` | `CDRUserType` | See enum values below. |
+| `user_uuid` | `str` | Unique user identifier across Cisco products. |
+| `caller_id_number` | `str` | Presentation number based on caller ID settings in Control Hub. |
+| `external_caller_id_number` | `str` | Set when external caller ID is location number or org number (not direct line). |
+| `redirecting_number` | `str` | Last redirecting number (for transferred/forwarded calls). |
+| `redirecting_party_uuid` | `str` | UUID of the last redirecting party. |
+| `original_called_party_uuid` | `str` | UUID of the first redirecting party (alias: `Original Called Party UUID`). |
+
+#### Session / Correlation IDs
+
+| SDK Field | Type | Description |
+|-----------|------|-------------|
+| `call_id` | `str` | SIP Call ID. Share with Cisco TAC for troubleshooting. |
+| `correlation_id` | `str` | Ties together multiple call legs of the same session. |
+| `local_session_id` | `str` | UUID from originating user agent (alias: `local_sessionid`). |
+| `remote_session_id` | `str` | UUID from terminating user agent (alias: `remote_sessionid`). |
+| `final_local_session_id` | `str` | Local Session ID value at call end (alias: `final_local_sessionid`). |
+| `final_remote_session_id` | `str` | Remote Session ID value at call end (alias: `final_remote_sessionid`). |
+| `local_call_id` | `str` | Used with Remote call ID to correlate CDR legs. |
+| `remote_call_id` | `str` | Used with Local call ID to identify remote CDR of a leg. |
+| `network_call_id` | `str` | Same value = same call leg across CDRs. |
+| `related_call_id` | `str` | Call ID of a call created by this call (service activation). |
+| `transfer_related_call_id` | `str` | Call ID of the other party in a transfer. |
+| `interaction_id` | `str` | Correlates CDRs linked by service interaction (e.g., consult + transfer). |
+
+#### Routing / Redirect Fields
+
+| SDK Field | Type | Description |
+|-----------|------|-------------|
+| `original_reason` | `CDROriginalReason` | Why call was originally redirected. |
+| `redirect_reason` | `CDRRedirectReason` | Why call was redirected at this step. |
+| `related_reason` | `CDRRelatedReason` | Service-level reason (transfer, forward, park, pickup, etc.). |
+| `route_group` | `str` | Route group for outbound calls via premises PSTN. Originating records only. |
+| `route_list_calls_overage` | `str` | Number of bursting calls over licensed volume (alias: `Route list calls overage`). |
+
+#### Client / Device Fields
+
+| SDK Field | Type | Description |
+|-----------|------|-------------|
+| `client_type` | `CDRClientType` | See enum values below. |
+| `client_version` | `str` | Client app version. |
+| `os_type` | `str` | Operating system of the app. |
+| `model` | `str` | Device model type. |
+| `device_mac` | `str` | MAC address of the device. |
+| `sub_client_type` | `str` | `MOBILE_NETWORK` for Webex Go calls from mobile. |
+| `device_owner_uuid` | `str` | UUID of device owner (for multi-line/shared line). |
+
+#### Location / Organization Fields
+
+| SDK Field | Type | Description |
+|-----------|------|-------------|
+| `location` | `str` | Location name for the report. |
+| `site_main_number` | `str` | Main number for the user's site. |
+| `site_timezone` | `str` | Offset in minutes from UTC for user's timezone. |
+| `site_uuid` | `str` | Unique site identifier. |
+| `org_uuid` | `str` | Unique organization identifier across Cisco. |
+| `department_id` | `str` | User's department name identifier. |
+| `authorization_code` | `str` | Auth code for Account/Authorization Codes service. |
+| `international_country` | `str` | Country code of dialed number (international calls only). |
+
+#### Trunk Fields
+
+| SDK Field | Type | Description |
+|-----------|------|-------------|
+| `inbound_trunk` | `str` | Inbound trunk (present in both Originating and Terminating records). |
+| `outbound_trunk` | `str` | Outbound trunk (present in both Originating and Terminating records). |
+
+#### PSTN Vendor Fields
+
+| SDK Field | Type | Description |
+|-----------|------|-------------|
+| `pstn_vendor_name` | `str` | PSTN service vendor name for the country. |
+| `pstn_legal_entity` | `str` | Regulated business entity for PSTN. Cisco Calling Plans only. |
+| `pstn_vendor_org_id` | `str` | Cisco Calling plan org UUID (unique across regions). |
+| `pstn_provider_id` | `str` | Immutable Cisco-defined UUID for the PSTN provider. |
+| `external_customer_id` | `str` | External customer identifier. |
+
+#### Recording Fields
+
+| SDK Field | Type | Description |
+|-----------|------|-------------|
+| `call_recording_platform_name` | `str` | Platform name: `DubberRecorder`, `Webex`, `Eleveo`, `ASCTech`, `MiaRec`, `Imagicle`, or `Unknown`. |
+| `call_recording_result` | `str` | `successful`, `failed`, or `successful but not kept`. |
+| `call_recording_trigger` | `str` | `always`, `always-pause-resume`, `on-demand`, or `on-demand-user-start`. |
+
+#### Call Queue / Auto-Attendant Fields
+
+| SDK Field | Type | Description |
+|-----------|------|-------------|
+| `queue_type` | `str` | `Customer Assist` or `Call Queue` (alias: `Queue Type`). |
+| `auto_attendant_key_pressed` | `str` | Last DTMF key pressed by caller (alias: `Auto Attendant Key Pressed`). |
+
+#### Other Fields
+
+| SDK Field | Type | Description |
+|-----------|------|-------------|
+| `report_id` | `str` | Unique ID for deduplication. |
+| `report_time` | `datetime` | Time this CDR record was created (UTC). |
+| `call_transfer_time` | `datetime` | Time the transfer service was invoked (UTC). |
+| `recall_type` | `str` | Indicates call park recall (alias: `Recall Type`). |
+| `answered_elsewhere` | `str` | `Yes` when another agent/user answered (e.g., hunt group simultaneous ring). |
+| `public_calling_ip_address` | `str` | Public IP of calling device (India locations only). |
+| `public_called_ip_address` | `str` | Public IP of called device (India locations only). |
+| `wx_cc_consult_merge_status` | `str` | WxCC consult transfer/conference status: `Yes`, `No`, or `NA`. |
+
+#### Caller Reputation Fields
+
+| SDK Field | Type | Description |
+|-----------|------|-------------|
+| `caller_reputation_score` | `str` | Score from caller reputation provider (0.0 to 5.0). |
+| `caller_reputation_service_result` | `str` | `allow`, `captcha-allow`, `captcha-block`, or `block`. Terminating CDRs only. |
+| `caller_reputation_score_reason` | `str` | Reason for the reputation score, or error details. |
+
+### CDR Enums
+
+#### CDRCallType
+
+| Value | Meaning |
+|-------|---------|
+| `SIP_MEETING` | Meeting call |
+| `SIP_INTERNATIONAL` | International call |
+| `SIP_SHORTCODE` | Short code call |
+| `SIP_INBOUND` | Inbound SIP call |
+| `SIP_EMERGENCY` | Emergency call |
+| `SIP_PREMIUM` | Premium rate call |
+| `SIP_ENTERPRISE` | Enterprise (on-net) call |
+| `SIP_TOLLFREE` | Toll-free call |
+| `SIP_NATIONAL` | National call |
+| `SIP_MOBILE` | Mobile call |
+| `UNKNOWN` | Unknown call type |
+
+#### CDRClientType
+
+| Value | Meaning |
+|-------|---------|
+| `SIP` | SIP device/endpoint |
+| `WXC_CLIENT` | Webex Calling native client |
+| `WXC_THIRD_PARTY` | Third-party client |
+| `TEAMS_WXC_CLIENT` | Teams with Webex Calling client |
+| `WXC_DEVICE` | Webex Calling device |
+| `WXC_SIP_GW` | Webex Calling SIP gateway |
+
+#### CDRDirection
+
+| Value | Meaning |
+|-------|---------|
+| `ORIGINATING` | Outbound call |
+| `TERMINATING` | Inbound call |
+
+#### CDROriginalReason
+
+Values: `Unconditional`, `NoAnswer`, `CallQueue`, `HuntGroup`, `TimeOfDay`, `UserBusy`, `FollowMe`, `Unrecognised`, `Deflection`, `Unavailable`, `Unknown`
+
+#### CDRRedirectReason
+
+Values: `Unconditional`, `NoAnswer`, `CallQueue`, `TimeOfDay`, `UserBusy`, `FollowMe`, `HuntGroup`, `Deflection`, `Unknown`, `Unavailable`
+
+#### CDRRelatedReason
+
+Values: `ConsultativeTransfer`, `CallForwardSelective`, `CallPark`, `CallParkRetrieve`, `CallQueue`, `Unrecognised`, `CallPickup`, `CallForwardAlways`, `CallForwardBusy`, `FaxDeposit`, `HuntGroup`, `PushNotificationRetrieval`, `VoiceXMLScriptTermination`, `CallForwardNoAnswer`, `AnywhereLocation`, `CallRetrieve`, `Deflection`, `DirectedCallPickup`, `CallForwardModeBased`
+
+#### CDRUserType
+
+Values: `AutomatedAttendantVideo`, `Anchor`, `BroadworksAnywhere`, `VoiceMailRetrieval`, `LocalGateway`, `HuntGroup`, `GroupPaging`, `User`, `VoiceMailGroup`, `CallCenterStandard`, `CallCenterPremium`, `VoiceXML`, `RoutePoint`, `VirtualLine`, `Place`
+
+---
+
+## 2. Report Templates API
+
+Report templates define the available report types. You must list templates to get the `templateId` needed to create a report.
+
+### SDK Method
+
+```python
+ReportsApi.list_templates() -> list[ReportTemplate]
+```
+
+**REST equivalent:** `GET https://webexapis.com/v1/report/templates`
+
+### ReportTemplate Model
+
+```python
+class ReportTemplate(ApiModel):
+    id: Optional[int]           # Unique template identifier (API key: "Id")
+    title: Optional[str]        # Template name
+    service: Optional[str]      # Service name (e.g., "Webex Calling")
+    max_days: Optional[int]     # Maximum date range allowed
+    start_date: Optional[date]  # Earliest available data date
+    end_date: Optional[date]    # Latest available data date
+    identifier: Optional[str]   # Template reference key
+    validations: Optional[list[ValidationRules]]  # Required fields for report creation
+```
+
+### Standard Webex Calling Report Templates
+
+| Template Name | Description | Key Metrics |
+|---------------|-------------|-------------|
+| **Detailed Call History** | Comprehensive call log with timestamps, duration, status, parties | All CDR fields (see Section 1) |
+| **Calling Media Quality** | Per-call-leg quality measurements | Latency, jitter, packet loss |
+| **Calling Engagement** | Usage and adoption tracking | Call volume, usage patterns, adoption rates over time |
+| **Calling Quality** | Client-side quality from Webex Calling app | Jitter, latency, packet loss (client perspective) |
+| **Call Queue Stats** | Queue-level performance metrics | Incoming calls, wait times, abandonment rates, handling efficiency |
+| **Call Queue Agent Stats** | Per-agent queue performance | Calls handled, average handle time, service level achievements |
+| **Auto-attendant Stats Summary** | AA call volume and menu usage | Call volume, handling metrics, caller menu selections |
+| **Auto-attendant Business & After-Hours Key Details** | AA interaction patterns by time period | Business hours vs. after-hours key press patterns |
+
+<!-- NEEDS VERIFICATION: exact template IDs for each of the 8 Calling templates — IDs are org-specific or may change. Use list_templates() to discover them at runtime. The blog shows ID 130 for Call Queue Stats as an example. -->
+
+### Usage Example
+
+```python
+templates = api.reports.list_templates()
+calling_templates = [t for t in templates if t.service and 'Calling' in t.service]
+for t in calling_templates:
+    print(f"ID: {t.id} | {t.title} | max {t.max_days} days")
+```
+
+---
+
+## 3. Reports API
+
+Create, list, poll, download, and delete generated reports. Reports are CSV files delivered as ZIP archives.
+
+### Constraints
+
+- **Maximum 50 reports** can exist at any time. Delete old reports to free quota.
+- Each report can be downloaded up to 30 times. <!-- NEEDS VERIFICATION: download count limit -->
+- CSV reports for Webex services are only supported for **North American** organizations. Other regions return blank CSVs for Webex-service reports.
+- Reports are delivered in **ZIP format** (Content-Type: `application/zip` or `application/octet-stream`).
+
+### Create a Report
+
+```python
+ReportsApi.create(
+    template_id: int,           # From list_templates()
+    start_date: date = None,    # Data start date (YYYY-MM-DD)
+    end_date: date = None,      # Data end date (YYYY-MM-DD)
+    site_list: str = None       # Required for site-based templates (Webex Meetings)
+) -> str                        # Returns report ID
+```
+
+**REST equivalent:** `POST https://webexapis.com/v1/reports`
+
+**Request body:**
+```json
+{
+    "templateId": 130,
+    "startDate": "2024-02-01",
+    "endDate": "2024-02-05"
+}
+```
+
+**Response:**
+```json
+{
+    "items": {
+        "Id": "Y2lz...ZA"
+    }
+}
+```
+
+### List Reports
+
+```python
+ReportsApi.list(
+    report_id: str = None,      # Filter by report ID
+    service: str = None,        # Filter by service name
+    template_id: str = None,    # Filter by template ID
+    from_date: date = None,     # Reports created on or after this date
+    to_date: date = None        # Reports created before this date
+) -> Generator[Report, None, None]
+```
+
+**REST equivalent:** `GET https://webexapis.com/v1/reports`
+
+Note: `from_date` and `to_date` must be provided together.
+
+### Get Report Details (Poll Status)
+
+```python
+ReportsApi.details(
+    report_id: str              # Report ID from create()
+) -> Report
+```
+
+**REST equivalent:** `GET https://webexapis.com/v1/reports/{reportId}`
+
+### Report Model
+
+```python
+class Report(ApiModel):
+    id: Optional[str]               # Report identifier (API key: "Id")
+    title: Optional[str]            # Report template name
+    service: Optional[str]          # Service name
+    start_date: Optional[date]      # Data range start
+    end_date: Optional[date]        # Data range end
+    site_list: Optional[str]        # Site (Webex Meetings only)
+    created: Optional[datetime]     # Creation timestamp
+    created_by: Optional[str]       # Creator's user ID
+    schedule_from: Optional[str]    # "api" or "controlHub"
+    status: Optional[str]           # "done" or "In progress"
+    download_domain: Optional[str]  # Download host
+    download_url: Optional[str]     # Full download URL (API key: "downloadURL")
+```
+
+**Status values:**
+- `"done"` — Report is ready for download. `download_url` is populated.
+- `"In progress"` — Report is still generating. Poll again.
+
+### Download a Report
+
+```python
+ReportsApi.download(
+    url: str                    # The download_url from Report details
+) -> Generator[dict, None, None]
+```
+
+The SDK handles:
+1. Authenticated GET request to the download URL
+2. Reading the ZIP archive from the response
+3. Extracting the first CSV file
+4. Skipping the UTF-8 BOM (3 bytes)
+5. Parsing CSV rows into dicts via `csv.DictReader`
+6. Yielding each row as a `dict`
+
+### Delete a Report
+
+```python
+ReportsApi.delete(
+    report_id: str              # Report ID to remove
+)
+```
+
+**REST equivalent:** `DELETE https://webexapis.com/v1/reports/{reportId}`
+
+### CallingCDR — Typed Report Download
+
+For Detailed Call History reports specifically, use `CallingCDR.from_dicts()` to get typed CDR objects instead of raw dicts:
+
+```python
+from wxc_sdk.reports import CallingCDR
+
+# Get the download URL from a completed report
+report = api.reports.details(report_id='<id>')
+assert report.status == 'done'
+
+# Download and parse into typed CDR objects
+cdrs = list(CallingCDR.from_dicts(api.reports.download(url=report.download_url)))
+for cdr in cdrs:
+    print(f"{cdr.start_time} | {cdr.user} | {cdr.duration}s | {cdr.call_outcome}")
+```
+
+`CallingCDR` extends `CDR` — all 55+ fields from Section 1 are available.
+
+---
+
+## 4. Complete Workflow: Generate and Download a Report
+
+```python
+from wxc_sdk import WebexSimpleApi
+from datetime import date
+import time
+
+api = WebexSimpleApi(tokens='<access_token>')
+
+# Step 1: Find the template
+templates = api.reports.list_templates()
+cq_template = next(t for t in templates if t.title and 'Call Queue Stats' in t.title)
+print(f"Using template: {cq_template.id} — {cq_template.title} (max {cq_template.max_days} days)")
+
+# Step 2: Create the report
+report_id = api.reports.create(
+    template_id=cq_template.id,
+    start_date=date(2024, 2, 1),
+    end_date=date(2024, 2, 28)
+)
+print(f"Report created: {report_id}")
+
+# Step 3: Poll until done
+while True:
+    report = api.reports.details(report_id=report_id)
+    print(f"Status: {report.status}")
+    if report.status == 'done':
+        break
+    time.sleep(30)
+
+# Step 4: Download
+rows = list(api.reports.download(url=report.download_url))
+print(f"Downloaded {len(rows)} rows")
+
+# Step 5: Clean up (free the 50-report quota)
+api.reports.delete(report_id=report_id)
+```
+
+---
+
+## 5. CDR Feed vs. Reports API — When to Use Which
+
+| Criteria | CDR Feed API | Reports API |
+|----------|-------------|-------------|
+| **Data freshness** | Near real-time (5-minute delay) | Batch (async generation) |
+| **Time range** | Last 30 days, 12-hour window per request | Depends on template `max_days` |
+| **Output format** | JSON (paginated) | CSV in ZIP archive |
+| **Use case** | Live dashboards, recent call lookup, alerting | Historical analysis, scheduled reports, compliance |
+| **Rate limit** | 1 req/min + 10 pagination/min | Standard Webex API limits |
+| **Scope** | `spark-admin:calling_cdr_read` | `analytics:read_all` |
+| **License** | Admin role required | Pro Pack required |
+| **Data fields** | 55+ CDR fields (JSON) | Varies by template (CSV columns) |
+
+---
+
+## 6. Use Cases
+
+### Call Quality Monitoring
+
+Use the **CDR Feed** for near-real-time monitoring, or the **Calling Media Quality** / **Calling Quality** report templates for historical analysis.
+
+```python
+# Find calls with poor outcomes in the last hour
+from datetime import datetime, timedelta, timezone
+
+end = datetime.now(timezone.utc) - timedelta(minutes=5)
+start = end - timedelta(hours=1)
+
+failed_calls = [
+    cdr for cdr in api.cdr.get_cdr_history(start_time=start, end_time=end)
+    if cdr.call_outcome in ('Failure', 'Refusal')
+]
+for c in failed_calls:
+    print(f"{c.start_time} | {c.user} | {c.call_outcome}: {c.call_outcome_reason}")
+```
+
+### Agent Performance (Call Queue Agent Stats)
+
+Generate a **Call Queue Agent Stats** report:
+
+```python
+agent_template = next(t for t in templates if t.title and 'Agent Stats' in t.title)
+report_id = api.reports.create(
+    template_id=agent_template.id,
+    start_date=date(2024, 2, 1),
+    end_date=date(2024, 2, 28)
+)
+# Poll, download, analyze per-agent metrics
+```
+
+### Queue Analytics (Call Queue Stats)
+
+Generate a **Call Queue Stats** report for queue-level KPIs: incoming call volume, wait times, abandonment rates, handling efficiency.
+
+### Auto-Attendant Analytics
+
+Use **Auto-attendant Stats Summary** for overall AA performance, or **Auto-attendant Business & After-Hours Key Details** to analyze DTMF key press patterns across business hours vs. after-hours.
+
+The CDR field `auto_attendant_key_pressed` is also available in real-time CDR records.
+
+### Billing / Cost Analysis
+
+Filter CDR records by `call_type` to separate international, toll-free, premium, and national calls:
+
+```python
+international = [
+    cdr for cdr in api.cdr.get_cdr_history(start_time=start, end_time=end)
+    if cdr.call_type and cdr.call_type.value == 'SIP_INTERNATIONAL'
+]
+```
+
+PSTN vendor fields (`pstn_vendor_name`, `pstn_legal_entity`, `pstn_provider_id`) provide carrier-level detail for cost attribution.
+
+### Call Recording Audit
+
+Filter by recording fields to audit recording compliance:
+
+```python
+failed_recordings = [
+    cdr for cdr in api.cdr.get_cdr_history(start_time=start, end_time=end)
+    if cdr.call_recording_result == 'failed'
+]
+```
+
+---
+
+## 7. Known API Documentation Bugs (from SDK source)
+
+The SDK source code flags several discrepancies between Webex API documentation and actual behavior:
+
+1. **Report Templates response:** Documentation says `"Template Attributes"` but actual key is `"items"`.
+2. **Report Templates `id` field:** Documentation says `"id"` but actual key is `"Id"`.
+3. **Report Templates missing fields:** `startDate` and `endDate` are not documented but are returned.
+4. **Report Templates validations:** Documentation nests as `"validations"/"validations"` but actual structure is flat `"validations"`.
+5. **List Reports response:** Documentation says `"Report Attributes"` but actual key is `"items"`.
+6. **List Reports `scheduledFrom`:** Documentation says `"scheduledFrom"` but actual key is `"scheduleFrom"`.
+7. **List Reports missing field:** `downloadDomain` is returned but not documented.
+8. **Create Report response:** Actual response is `{"items": {"Id": "..."}}`, not documented structure.
+
+---
+
+## 8. Gotchas
+
+- **Regional routing:** If the CDR endpoint returns HTTP 451, parse the response body for the correct regional endpoint URL and retry.
+- **12-hour window limit:** CDR Feed requests cannot span more than 12 hours. For longer ranges, issue multiple sequential requests.
+- **Empty/NA normalization:** The SDK converts empty strings and `"NA"` values to `None` automatically.
+- **Field name aliasing:** Several CDR fields use non-standard aliases in the API (e.g., `"Route list calls overage"`, `"Original Called Party UUID"`, `"Queue Type"`). The SDK handles these via Pydantic `Field(alias=...)`.
+- **Timezone:** All CDR timestamps are in UTC. The `site_timezone` field provides the offset in minutes if you need to convert to the user's local time.
+- **Report quota:** The 50-report limit is hard. Always delete reports after downloading to avoid hitting the cap.
+- **Pro Pack requirement:** The Reports API (templates, create, list, download, delete) requires the Pro Pack license. The CDR Feed API does not require Pro Pack but does require the admin role to be explicitly enabled.
+- **Async download not implemented:** The SDK's async variant of `ReportsApi.download()` raises `NotImplementedError`. Use the sync API for report downloads.

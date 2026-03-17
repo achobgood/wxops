@@ -1,0 +1,1007 @@
+# Devices API Reference (wxc_sdk)
+
+Three separate API surfaces handle device management in the wxc_sdk. They cover different concerns and live at different SDK paths.
+
+| API | SDK Path | Base Endpoint | Purpose |
+|-----|----------|---------------|---------|
+| **DevicesApi** | `wxc_sdk.devices` | `devices` | Cloud-registered device CRUD, activation codes, MAC provisioning, tags |
+| **DeviceConfigurationsApi** | `wxc_sdk.device_configurations` | `deviceConfigurations` | RoomOS / config-service device-level settings (key-value) |
+| **TelephonyDevicesApi** | `wxc_sdk.telephony.devices` | `telephony/config` | Calling-specific: supported models, members/lines, line key templates, layouts, background images, MAC validation |
+
+Access on a `WebexSimpleApi` instance:
+
+```python
+api.devices                  # DevicesApi
+api.device_configurations    # DeviceConfigurationsApi
+api.telephony.devices        # TelephonyDevicesApi
+```
+
+---
+
+## 1. DevicesApi (Cloud Device CRUD)
+
+**Module:** `wxc_sdk.devices`
+
+Manages cloud-registered Webex RoomOS devices and Webex Calling phones. Devices may be associated with workspaces or persons.
+
+### 1.1 Required Scopes
+
+| Action | Scope |
+|--------|-------|
+| Search / view own devices | `spark:devices_read` |
+| Update / delete own devices | `spark:devices_write` |
+| View all org devices | `spark-admin:devices_read` |
+| Add / update / delete all org devices | `spark-admin:devices_write` |
+| Generate activation code | `spark-admin:devices_write` + one of `identity:placeonetimepassword_create` or `identity:one_time_password` |
+
+> These APIs cannot be used with Cisco 98xx devices that are not yet Webex Aware. Use Webex Control Hub for those.
+
+### 1.2 Data Models
+
+#### `Device`
+
+Primary device record returned by list/details operations.
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `device_id` | `str` | Unique ID (alias `id` in JSON) |
+| `calling_device_id` | `Optional[str]` | ID for Webex Calling APIs |
+| `webex_device_id` | `Optional[str]` | ID for Webex Devices APIs |
+| `display_name` | `str` | Friendly name |
+| `workspace_id` | `Optional[str]` | Associated workspace |
+| `person_id` | `Optional[str]` | Associated person |
+| `org_id` | `str` | Organization |
+| `capabilities` | `list[str]` | e.g. `xapi` |
+| `permissions` | `list[str]` | User permissions for this device |
+| `connection_status` | `Optional[ConnectionStatus]` | See enum below |
+| `product` | `str` | Display-friendly model name |
+| `product_type` | `ProductType` | `phone` or `roomdesk` (alias `type`) |
+| `tags` | `list[str]` | Tags assigned to device |
+| `ip` | `Optional[str]` | Current IP |
+| `active_interface` | `Optional[str]` | Network connectivity type |
+| `mac` | `Optional[str]` | MAC address (colons stripped by validator) |
+| `primary_sip_url` | `Optional[str]` | Primary SIP address |
+| `sip_urls` | `list[Any]` | All SIP addresses |
+| `serial` | `Optional[str]` | Serial number |
+| `software` | `Optional[str]` | OS / version tag |
+| `upgrade_channel` | `Optional[str]` | Upgrade channel assignment |
+| `created` | `Optional[datetime]` | Registration timestamp (ISO 8601) |
+| `location_id` | `Optional[str]` | Location |
+| `workspace_location_id` | `Optional[str]` | Workspace location |
+| `first_seen` | `Optional[datetime]` | First seen timestamp |
+| `last_seen` | `Optional[datetime]` | Last seen timestamp |
+| `managed_by` | `Optional[DeviceManagedBy]` | `CISCO`, `CUSTOMER`, or `PARTNER` |
+| `manufacturer` | `Optional[str]` | 3rd-party devices only |
+| `line_port` | `Optional[str]` | 3rd-party devices only |
+| `outbound_proxy` | `Optional[str]` | 3rd-party devices only |
+| `sip_user_name` | `Optional[str]` | 3rd-party devices only |
+| `device_platform` | `Optional[DevicePlatform]` | Platform enum |
+| `lifecycle` | `Optional[Lifecycle]` | Device lifecycle state |
+| `planned_maintenance` | `Optional[MaintenanceMode]` | Maintenance mode |
+
+#### Enums
+
+**`ProductType`**: `phone`, `roomdesk`
+
+**`ConnectionStatus`**: `connected`, `disconnected`, `connected_with_issues`, `offline_expired`, `activating`, `unknown`, `offline_deep_sleep`
+
+**`Lifecycle`**: `UNKNOWN`, `ACTIVE`, `END_OF_SALE`, `END_OF_MAINTENANCE`, `END_OF_SERVICE`, `UPCOMING_END_OF_SUPPORT`, `END_OF_SUPPORT`
+
+**`TagOp`**: `add`, `remove`, `replace`
+
+#### `ActivationCodeResponse`
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `code` | `str` | The activation code |
+| `expiry_time` | `datetime` | Code expiration |
+
+### 1.3 Methods
+
+#### `list(...) -> Generator[Device, None, None]`
+
+Lists all active Webex devices. Administrators see all org devices. Supports pagination.
+
+```python
+def list(
+    self,
+    person_id: str = None,
+    workspace_id: str = None,
+    location_id: str = None,
+    workspace_location_id: str = None,     # deprecated, prefer location_id
+    display_name: str = None,
+    product: str = None,
+    product_type: ProductType = None,       # roomdesk, phone
+    tag: str = None,                        # comma-separated for logical AND
+    connection_status: ConnectionStatus = None,
+    serial: str = None,
+    software: str = None,
+    upgrade_channel: str = None,
+    error_code: str = None,
+    capability: str = None,
+    permission: str = None,
+    mac: str = None,
+    device_platform: DevicePlatform = None,
+    planned_maintenance: MaintenanceMode = None,
+    org_id: str = None,
+    **params
+) -> Generator[Device, None, None]
+```
+
+#### `details(device_id, org_id=None) -> Device`
+
+Get device details by ID.
+
+```python
+def details(self, device_id: str, org_id: str = None) -> Device
+```
+
+#### `delete(device_id, org_id=None)`
+
+Delete a device by ID.
+
+```python
+def delete(self, device_id: str, org_id: str = None)
+```
+
+#### `modify_device_tags(device_id, op, value=None, org_id=None) -> Device`
+
+Update device tags using JSON Patch syntax. Uses `application/json-patch+json` content type.
+
+```python
+def modify_device_tags(
+    self,
+    device_id: str,
+    op: TagOp,          # add, remove, replace
+    value: List[str] = None,
+    org_id: str = None
+) -> Device
+```
+
+#### `activation_code(workspace_id=None, person_id=None, model=None, org_id=None) -> ActivationCodeResponse`
+
+Generate an activation code for a device in a workspace or for a person.
+
+- Provide **either** `workspace_id` **or** `person_id`, not both.
+- If no `model` is supplied, the code is only accepted on RoomOS devices.
+- For phones, `model` is required (obtain from `telephony.devices.supported_devices()`).
+- Adding a device to a workspace with calling type `none` or `thirdPartySipCalling` resets to `freeCalling`.
+
+```python
+def activation_code(
+    self,
+    workspace_id: str = None,
+    person_id: str = None,
+    model: str = None,
+    org_id: str = None
+) -> ActivationCodeResponse
+```
+
+#### `create_by_mac_address(mac, workspace_id=None, person_id=None, model=None, password=None, org_id=None) -> Optional[Device]`
+
+Create a phone by MAC address in a workspace or for a person.
+
+```python
+def create_by_mac_address(
+    self,
+    mac: str,
+    workspace_id: str = None,
+    person_id: str = None,
+    model: str = None,
+    password: str = None,       # required for 3rd-party devices
+    org_id: str = None
+) -> Optional[Device]
+```
+
+### 1.4 Sub-APIs
+
+**`DevicesApi.settings_jobs`** (`DeviceSettingsJobsApi`) -- handles bulk device settings jobs. <!-- NEEDS VERIFICATION --> Exact methods not documented in this source; refer to `wxc_sdk.telephony.jobs.DeviceSettingsJobsApi`.
+
+---
+
+## 2. DeviceConfigurationsApi (RoomOS / Config-Service Settings)
+
+**Module:** `wxc_sdk.device_configurations`
+
+Manages key-value configurations on Webex Rooms devices and other devices that use the configuration service. This is for RoomOS-level settings (e.g., `Conference.MaxReceiveCallRate`, `Audio.Ultrasound.*`), not Webex Calling phone settings.
+
+### 2.1 Required Scopes
+
+| Action | Scope |
+|--------|-------|
+| View configurations | `spark-admin:devices_read` |
+| Add / update / delete configurations | `spark-admin:devices_write` + `spark-admin:devices_read` |
+
+### 2.2 Data Models
+
+#### `DeviceConfigurationResponse`
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `device_id` | `str` | Device the configs belong to |
+| `items` | `dict[str, DeviceConfiguration]` | Key = config path, value = config object |
+
+#### `DeviceConfiguration`
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `value` | `Optional[Any]` | Current effective value |
+| `source` | `Literal['default', 'configured']` | Where the current value comes from |
+| `sources` | `DeviceConfigurationSources` | Default and configured source details |
+| `value_space` | `Any` | JSON Schema describing valid values |
+
+#### `DeviceConfigurationSources`
+
+| Field | Type |
+|-------|------|
+| `default` | `DeviceConfigurationSource` |
+| `configured` | `DeviceConfigurationSource` |
+
+#### `DeviceConfigurationSource`
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `value` | `Any` | Value at this source level |
+| `editability` | `DeviceConfigurationSourceEditability` | Whether this source is editable |
+| `level` | `str` | Configuration level |
+| `enforced` | `Optional[bool]` | Whether enforced |
+
+#### `DeviceConfigurationSourceEditability`
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `is_editable` | `bool` | Always `False` for `default` source |
+| `reason` | `Optional[str]` | `NOT_AUTHORIZED` or `CONFIG_MANAGED_BY_DIFFERENT_AUTHORITY` |
+
+#### `DeviceConfigurationOperation` (NamedTuple)
+
+Used to build update payloads.
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `op` | `Literal['remove', 'replace']` | `remove` reverts to default; `replace` sets configured value |
+| `key` | `str` | Configuration key path |
+| `value` | `Optional[Any]` | Required for `replace`, ignored for `remove` |
+
+### 2.3 Methods
+
+#### `list(device_id, key=None) -> DeviceConfigurationResponse`
+
+List all configurations for a device. Optionally filter by key pattern.
+
+```python
+def list(self, device_id: str, key: str = None) -> DeviceConfigurationResponse
+```
+
+**Key filtering syntax:**
+- **Absolute:** `Conference.MaxReceiveCallRate` -- single config
+- **Wildcard:** `Audio.Ultrasound.*` -- all matching configs
+- **Range:** `FacilityService.Service[1].Name` (first only), `FacilityService.Service[*].Name` (all), `FacilityService.Service[1..3].Name` (range), `FacilityService.Service[2..n].Name` (from index 2 onward)
+
+#### `update(device_id, operations) -> DeviceConfigurationResponse`
+
+Update configurations. Uses JSON Patch (`application/json-patch+json`).
+
+```python
+def update(
+    self,
+    device_id: str,
+    operations: List[DeviceConfigurationOperation]
+) -> DeviceConfigurationResponse
+```
+
+**Example:**
+
+```python
+from wxc_sdk.device_configurations import DeviceConfigurationOperation
+
+# Set a configuration value
+ops = [
+    DeviceConfigurationOperation(op='replace', key='Conference.MaxReceiveCallRate', value=6000),
+    DeviceConfigurationOperation(op='remove', key='Audio.Ultrasound.MaxVolume'),  # revert to default
+]
+result = api.device_configurations.update(device_id='DEVICE_ID', operations=ops)
+```
+
+---
+
+## 3. TelephonyDevicesApi (Webex Calling Device Management)
+
+**Module:** `wxc_sdk.telephony.devices`
+
+Handles Calling-specific device operations: supported device catalog, device members/lines, line key templates, device layouts, background images, MAC validation, and per-person/per-workspace device settings.
+
+### 3.1 Required Scopes
+
+| Action | Scope |
+|--------|-------|
+| Read telephony device config | `spark-admin:telephony_config_read` |
+| Write telephony device config | `spark-admin:telephony_config_write` |
+
+### 3.2 Data Models
+
+#### Device Catalog
+
+**`SupportedDevice`** -- a single device model from the catalog:
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `model` | `str` | Model identifier |
+| `display_name` | `str` | Display name |
+| `family_display_name` | `Optional[str]` | Device family |
+| `device_type` | `DeviceType` | Alias `type` in JSON |
+| `manufacturer` | `DeviceManufacturer` | `CISCO` or `THIRD_PARTY` |
+| `managed_by` | `DeviceManagedBy` | `CISCO`, `CUSTOMER`, or `PARTNER` |
+| `supported_for` | `list[UserType]` | Where supported (people, places) |
+| `onboarding_method` | `list[OnboardingMethod]` | `MAC_ADDRESS`, `ACTIVATION_CODE`, `NONE` |
+| `allow_configure_layout_enabled` | `bool` | Layout configuration support |
+| `number_of_line_ports` | `int` | Port/line count |
+| `kem_support_enabled` | `bool` | Key Expansion Module support |
+| `kem_module_count` | `Optional[int]` | Max KEM modules |
+| `kem_module_type` | `Optional[list[str]]` | KEM types supported |
+| `number_of_line_key_buttons` | `Optional[int]` | Line key button count |
+| `touch_screen_phone` | `Optional[bool]` | Touch screen support |
+| `t38_enabled` | `Optional[bool]` | T.38 fax support |
+| `device_settings_configuration` | `Optional[DeviceSettingsConfiguration]` | Config mode |
+| `supports_log_collection` | `Optional[SupportsLogCollection]` | `NONE`, `CISCO_PRT`, `CISCO_ROOMOS` |
+
+**`SupportedDevices`** -- wrapper:
+
+| Field | Type |
+|-------|------|
+| `upgrade_channel_list` | `Optional[list[str]]` -- `STABLE`, `STABLE_DELAY`, `PREVIEW`, `BETA`, `TESTING` |
+| `devices` | `Optional[list[SupportedDevice]]` |
+
+#### Device Enums
+
+**`DeviceManufacturer`**: `CISCO`, `THIRD_PARTY`
+
+**`DeviceManagedBy`**: `CISCO`, `CUSTOMER`, `PARTNER`
+
+**`OnboardingMethod`**: `MAC_ADDRESS`, `ACTIVATION_CODE`, `NONE`
+
+**`DeviceSettingsConfiguration`**: `WEBEX_CALLING_DEVICE_CONFIGURATION`, `WEBEX_DEVICE_CONFIGURATION`, `WEBEX_CALLING_DYNAMIC_DEVICE_CONFIGURATION`, `NONE`
+
+**`ActivationState`**: `activating`, `activated`, `deactivated`
+
+#### Device Details (Telephony)
+
+**`TelephonyDeviceDetails`**:
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `manufacturer` | `Optional[str]` | |
+| `managed_by` | `Optional[str]` | |
+| `id` | `Optional[str]` | |
+| `ip` | `Optional[str]` | |
+| `mac` | `Optional[str]` | |
+| `model` | `Optional[str]` | |
+| `activation_state` | `Optional[ActivationState]` | Only for activation-code devices |
+| `description` | `Optional[list[str]]` | Tags (comma-separated) |
+| `owner` | `Optional[TelephonyDeviceOwner]` | `line_port`, `sip_user_name` |
+| `proxy` | `Optional[TelephonyDeviceProxy]` | `outbound_proxy` |
+
+#### Members & Lines
+
+**`DeviceMember`** (extends `MemberCommon`):
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `member_id` | `str` | Alias `id` |
+| `member_type` | `UserType` | Default `people` |
+| `first_name` | `Optional[str]` | |
+| `last_name` | `Optional[str]` | |
+| `phone_number` | `Optional[str]` | |
+| `extension` | `Optional[str]` | |
+| `line_type` | `PrimaryOrShared` | Default `primary` |
+| `primary_owner` | `bool` | Is this the device owner? |
+| `port` | `int` | Port number (default 1) |
+| `line_weight` | `int` | Number of lines for this member |
+| `line_label` | `Optional[str]` | |
+| `host_ip` | `Optional[str]` | Registration host IP |
+| `remote_ip` | `Optional[str]` | Registration remote IP |
+| `hotline_enabled` | `bool` | Auto-dial predefined number |
+| `hotline_destination` | `Optional[str]` | Required if hotline enabled |
+| `t38_fax_compression_enabled` | `Optional[bool]` | ATA devices only |
+| `allow_call_decline_enabled` | `Optional[bool]` | Decline on all endpoints or just current |
+
+**`DeviceMembersResponse`**:
+
+| Field | Type |
+|-------|------|
+| `model` | `str` |
+| `members` | `list[DeviceMember]` (sorted by port) |
+| `max_line_count` | `int` |
+
+**`AvailableMember`** -- extends `MemberCommon`, no additional fields.
+
+#### MAC Validation
+
+**`MACState`**: `AVAILABLE`, `UNAVAILABLE`, `DUPLICATE_IN_LIST`, `INVALID`
+
+**`MACStatus`**:
+
+| Field | Type |
+|-------|------|
+| `mac` | `str` |
+| `state` | `MACState` |
+| `error_code` | `Optional[int]` |
+| `message` | `Optional[str]` |
+
+**`MACValidationResponse`**:
+
+| Field | Type |
+|-------|------|
+| `status` | `ValidationStatus` |
+| `mac_status` | `Optional[list[MACStatus]]` |
+
+#### Line Key Templates & Programmable Line Keys
+
+**`LineKeyType`**: `PRIMARY_LINE`, `SHARED_LINE`, `MONITOR`, `CALL_PARK_EXTENSION`, `SPEED_DIAL`, `OPEN`, `CLOSED`, `MODE_MANAGEMENT`
+
+**`ProgrammableLineKey`**:
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `line_key_index` | `Optional[int]` | Starting from 1 (leftmost key) |
+| `line_key_type` | `Optional[LineKeyType]` | Action for this key |
+| `line_key_label` | `Optional[str]` | Only for `SPEED_DIAL` |
+| `line_key_value` | `Optional[str]` | Only for `SPEED_DIAL` (phone number, ext, or SIP URI) |
+| `shared_line_index` | `Optional[int]` | Only for `SHARED_LINE` |
+
+Helper: `ProgrammableLineKey.standard_plk_list(lines=10)` returns a list with key 1 as `PRIMARY_LINE` and the rest as `OPEN`.
+
+**`LineKeyTemplate`**:
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `id` | `Optional[str]` | Template ID |
+| `template_name` | `Optional[str]` | |
+| `device_model` | `Optional[str]` | |
+| `display_name` | `Optional[str]` | Alias `modelDisplayName` |
+| `user_reorder_enabled` | `Optional[bool]` | |
+| `line_keys` | `Optional[list[ProgrammableLineKey]]` | |
+
+#### Device Layout
+
+**`LayoutMode`**: `DEFAULT`, `CUSTOM`
+
+**`KemModuleType`**: `KEM_14_KEYS`, `KEM_18_KEYS`, `KEM_20_KEYS`
+
+**`KemKey`**:
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `kem_module_index` | `Optional[int]` | Module index (from 1) |
+| `kem_key_index` | `Optional[int]` | Key index (from 1) |
+| `kem_key_type` | `Optional[LineKeyType]` | Action |
+| `kem_key_label` | `Optional[str]` | Only for `SPEED_DIAL` |
+| `kem_key_value` | `Optional[str]` | Only for `SPEED_DIAL` |
+| `shared_line_index` | `Optional[int]` | Only for `SHARED_LINE` |
+
+**`DeviceLayout`**:
+
+| Field | Type |
+|-------|------|
+| `layout_mode` | `Optional[LayoutMode]` |
+| `user_reorder_enabled` | `Optional[bool]` |
+| `line_keys` | `Optional[list[ProgrammableLineKey]]` |
+| `kem_module_type` | `Optional[KemModuleType]` |
+| `kem_keys` | `Optional[list[KemKey]]` |
+
+#### Device Settings (Compression)
+
+**`DeviceSettings`**:
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `compression` | `Optional[bool]` | `True` = minimize data use (`ON`), `False` = ignore (`OFF`) |
+
+#### Background Images
+
+**`BackgroundImage`**: `background_image_url`, `file_name`, `count`
+
+**`BackgroundImages`**: `background_images` (list), `count`
+
+**`DeleteImageRequestObject`**: `file_name`, `force_delete` (bool)
+
+#### User Device Count
+
+**`UserDeviceCount`**: `total_device_count`, `applications_count`
+
+### 3.3 Methods
+
+#### Supported Device Catalog
+
+```python
+def supported_devices(
+    self,
+    allow_configure_layout_enabled: bool = None,
+    type_: str = None,       # e.g. 'MPP', 'not:MPP'
+    org_id: str = None
+) -> SupportedDevices
+```
+
+Scope: `spark-admin:telephony_config_read`
+
+#### Telephony Device Details
+
+```python
+def details(self, device_id: str, org_id: str = None) -> TelephonyDeviceDetails
+```
+
+Retrieves third-party device management info (line_port, sip_user_name, outbound_proxy). Not supported for FedRAMP.
+
+Scope: `spark-admin:telephony_config_read`
+
+#### Update Third-Party Device
+
+```python
+def update_third_party_device(
+    self, device_id: str, sip_password: str, org_id: str = None
+)
+```
+
+Modify a 3rd-party device's SIP password. Not supported for FedRAMP.
+
+Scope: `spark-admin:telephony_config_write`
+
+#### Device Members
+
+```python
+def members(self, device_id: str, org_id: str = None) -> DeviceMembersResponse
+
+def update_members(
+    self,
+    device_id: str,
+    members: list[Union[DeviceMember, AvailableMember]] = None,
+    org_id: str = None
+)
+
+def available_members(
+    self,
+    device_id: str,
+    location_id: str = None,
+    member_name: str = None,
+    phone_number: str = None,
+    extension: str = None,
+    usage_type: UsageType = None,   # DEVICE_OWNER or SHARED_LINE
+    order: str = None,              # 'lname' or 'fname'
+    org_id: str = None,
+    **params
+) -> Generator[AvailableMember, None, None]
+
+def get_count_of_members(
+    self,
+    device_id: str,
+    member_name: str = None,
+    phone_number: str = None,
+    location_id: str = None,
+    extension: str = None,
+    usage_type: UsageType = None,
+    org_id: str = None
+) -> int
+
+def get_count_of_available_members(
+    self,
+    member_name: str = None,
+    phone_number: str = None,
+    location_id: str = None,
+    extension: str = None,
+    usage_type: UsageType = None,
+    exclude_virtual_line: bool = None,
+    device_location_id: str = None,
+    org_id: str = None
+) -> int
+```
+
+Note: `update_members` auto-assigns port indices sequentially. If the members list is empty/omitted, all members except the primary user are removed.
+
+#### Apply Changes
+
+```python
+def apply_changes(self, device_id: str, org_id: str = None)
+```
+
+Issues request to the device to download and apply configuration changes.
+
+Scope: `spark-admin:telephony_config_write`
+
+#### Device-Level Calling Settings
+
+```python
+def device_settings(
+    self, device_id: str, device_model: str = None, org_id: str = None
+) -> DeviceCustomization
+
+def update_device_settings(
+    self, device_id: str, device_model: str,
+    customization: DeviceCustomization, org_id: str = None
+)
+```
+
+Lists/updates MPP and ATA device-level settings. DECT devices are not supported. After updating, call `apply_changes()` to push to the device.
+
+**Example:**
+
+```python
+# Get device settings
+settings = api.telephony.devices.device_settings(
+    device_id=target_device.device_id,
+    device_model=target_device.model
+)
+
+# Modify a setting and enable customization
+settings.customizations.mpp.display_name_format = DisplayNameSelection.person_last_then_first_name
+settings.custom_enabled = True
+
+# Push update
+api.telephony.devices.update_device_settings(
+    device_id=target_device.device_id,
+    device_model=target_device.model,
+    customization=settings
+)
+
+# Apply to the physical device
+api.telephony.devices.apply_changes(device_id=target_device.device_id)
+```
+
+#### Person / Workspace Device Settings (Compression)
+
+```python
+def get_person_device_settings(self, person_id: str, org_id: str = None) -> DeviceSettings
+def update_person_device_settings(self, person_id: str, settings: DeviceSettings, org_id: str = None)
+def get_workspace_device_settings(self, workspace_id: str, org_id: str = None) -> DeviceSettings
+def update_workspace_device_settings(self, workspace_id: str, settings: DeviceSettings, org_id: str = None)
+```
+
+Manage compression setting (`ON`/`OFF`) for a person's or workspace's devices.
+
+#### MAC Validation
+
+```python
+def validate_macs(self, macs: list[str], org_id: str = None) -> MACValidationResponse
+```
+
+Validate a list of MAC addresses. Returns per-MAC status (`AVAILABLE`, `UNAVAILABLE`, `DUPLICATE_IN_LIST`, `INVALID`).
+
+Scope: `spark-admin:telephony_config_write`
+
+#### Line Key Templates (PLK)
+
+```python
+def create_line_key_template(self, template: LineKeyTemplate, org_id: str = None) -> str
+def list_line_key_templates(self, org_id: str = None) -> list[LineKeyTemplate]
+def line_key_template_details(self, template_id: str, org_id: str = None) -> LineKeyTemplate
+def modify_line_key_template(self, template: LineKeyTemplate, org_id: str = None)
+def delete_line_key_template(self, template_id: str, org_id: str = None)
+
+def preview_apply_line_key_template(
+    self,
+    action: ApplyLineKeyTemplateAction,     # APPLY_TEMPLATE or factory reset
+    template_id: str = None,                # required for APPLY_TEMPLATE
+    location_ids: list[str] = None,
+    exclude_devices_with_custom_layout: bool = None,
+    include_device_tags: list[str] = None,
+    exclude_device_tags: list[str] = None,
+    advisory_types: LineKeyTemplateAdvisoryTypes = None,
+    org_id: str = None
+) -> int    # returns device count that would be affected
+```
+
+#### Device Layout
+
+```python
+def get_device_layout(self, device_id: str, org_id: str = None) -> DeviceLayout
+def modify_device_layout(self, device_id: str, layout: DeviceLayout, org_id: str = None)
+```
+
+Customize PLK and KEM mappings per device.
+
+#### Background Images
+
+```python
+def list_background_images(self, org_id: str = None) -> BackgroundImages
+def upload_background_image(
+    self,
+    device_id: str,
+    file: Union[BufferedReader, str],    # path or open file handle (binary mode)
+    file_name: str = None,               # required if passing a reader
+    org_id: str = None
+) -> BackgroundImage
+def delete_background_images(
+    self,
+    background_images: list[DeleteImageRequestObject],
+    org_id: str = None
+) -> DeleteDeviceBackgroundImagesResponse
+```
+
+- Max 100 images per org.
+- Upload max 625 KB, `.jpeg` or `.png` only.
+- Max 10 images per delete request.
+- `force_delete=True` clears references from devices/locations/org that use the deleted image.
+
+#### User Device Count
+
+```python
+def user_devices_count(self, person_id: str, org_id: str = None) -> UserDeviceCount
+```
+
+Returns total device count and application count. Useful for checking device limits (e.g., standard calling license = 1 physical device).
+
+### 3.4 Dynamic Settings Sub-API
+
+**Module:** `wxc_sdk.telephony.devices.dynamic_settings`
+
+Access: `api.telephony.devices.dynamic_settings`
+
+Manages dynamic device settings using a tag-based system with hierarchical inheritance (system default -> regional default -> organization -> location -> device).
+
+#### Dynamic Settings Data Models
+
+**`SettingsType`**: `TABS`, `GROUPS`, `ALL`
+
+**`SettingsGroup`**: `path`, `friendly_name`, `tab`, `family_or_model_display_name`, `tags` (list of `DeviceSettingsGroupTag`)
+
+**`DeviceTag`** (validation schema):
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `family_or_model_display_name` | `Optional[str]` | |
+| `tag` | `Optional[str]` | Unique setting identifier |
+| `friendly_name` | `Optional[str]` | Correlates with UI |
+| `tooltip` | `Optional[str]` | |
+| `alert` | `Optional[str]` | |
+| `level` | `Optional[list[str]]` | Levels where configurable |
+| `validation_rule` | `Optional[ValidationRule]` | Type, min/max, regex, enum values |
+
+**`ValidationRule`**:
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `type` | `Optional[str]` | `string`, `integer`, `boolean`, `enum`, `password`, `network` |
+| `values` | `Optional[list[str]]` | For `enum` / `boolean` types |
+| `min` | `Optional[int]` | Numeric minimum |
+| `max_` | `Optional[int]` | Numeric maximum |
+| `increment` | `Optional[int]` | Numeric step |
+| `regex` | `Optional[str]` | String validation pattern |
+| `max_length` | `Optional[int]` | String max length |
+| `validation_hint` | `Optional[str]` | User-facing hint |
+
+**`DevicePutItem`** (for updates):
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `tag` | `Optional[str]` | Setting identifier |
+| `action` | `Optional[SetOrClear]` | `SET` or `CLEAR` |
+| `value` | `Optional[str]` | Required when action is `SET` |
+
+**`ParentLevel`**: `SYSTEM_DEFAULT`, `REGIONAL_DEFAULT`, `ORGANIZATION`, `LOCATION`
+
+**`DeviceDynamicTag`**: `family_or_model_display_name`, `tag`, `value`, `parent_value`, `parent_level`
+
+**`DeviceDynamicSettings`**: `tags` (list of `DeviceDynamicTag`), `last_update_time`, `update_in_progress`
+
+#### Dynamic Settings Methods
+
+```python
+def get_settings_groups(
+    self,
+    family_or_model_display_name: str = None,
+    include_settings_type: SettingsType = None,   # default ALL
+    org_id: str = None
+) -> DynamicSettingsGroups
+
+def get_validation_schema(
+    self,
+    family_or_model_display_name: str = None,
+    org_id: str = None
+) -> list[DeviceTag]
+
+def update_specified_settings_for_the_device(
+    self,
+    device_id: str,
+    tags: list[DevicePutItem] = None,
+    org_id: str = None
+)
+
+def get_customer_device_settings(
+    self,
+    family_or_model_display_name: str,
+    tags: list[str] = None,
+    org_id: str = None
+) -> DeviceDynamicSettings
+
+def get_device_settings(
+    self,
+    device_id: str,
+    tags: list[str] = None,
+    org_id: str = None
+) -> DeviceDynamicSettings
+
+def get_location_device_settings(
+    self,
+    location_id: str,
+    family_or_model_display_name: str,
+    tags: list[str] = None,
+    org_id: str = None
+) -> DeviceDynamicSettings
+```
+
+---
+
+## 4. Code Examples
+
+### 4.1 List Room Devices and Their Workspaces
+
+From `examples/room_devices.py` -- uses async API to correlate devices with workspaces, locations, and phone numbers.
+
+```python
+import asyncio
+from wxc_sdk.as_api import AsWebexSimpleApi
+from wxc_sdk.devices import Device
+
+async def list_room_devices(tokens):
+    async with AsWebexSimpleApi(tokens=tokens) as api:
+        # Get workspaces, numbers, and room/desk devices concurrently
+        workspaces, numbers, devices = await asyncio.gather(
+            api.workspaces.list(),
+            api.telephony.phone_numbers(owner_type=OwnerType.place),
+            api.devices.list(product_type='roomdesk'),
+        )
+
+        # Filter to workspace-associated devices only
+        devices = [d for d in devices if d.workspace_id is not None]
+
+        for device in devices:
+            print(f'{device.display_name} - {device.product} ({device.connection_status})')
+```
+
+### 4.2 Find Calling Users Without Devices
+
+From `examples/users_wo_devices.py` -- identifies calling users who have no physical device assigned.
+
+```python
+import asyncio
+from wxc_sdk.as_api import AsWebexSimpleApi
+
+async def find_users_without_devices(tokens):
+    async with AsWebexSimpleApi(tokens=tokens) as api:
+        # Get calling users (those with a location_id)
+        calling_users = [user for user in await api.people.list(calling_data=True)
+                         if user.location_id]
+
+        # Fetch device info for all users concurrently
+        user_device_infos = await asyncio.gather(
+            *[api.person_settings.devices(person_id=user.person_id)
+              for user in calling_users]
+        )
+
+        # Users with no devices at all
+        users_wo_devices = [
+            user for user, info in zip(calling_users, user_device_infos)
+            if not info.devices
+        ]
+
+        print(f'{len(users_wo_devices)} users without devices:')
+        for user in sorted(users_wo_devices, key=lambda u: u.display_name):
+            print(f'  {user.display_name} ({user.emails[0]})')
+```
+
+### 4.3 Create Device by MAC Address
+
+```python
+device = api.devices.create_by_mac_address(
+    mac='AABBCCDDEEFF',
+    workspace_id='WORKSPACE_ID',
+    model='DMS Cisco 8845',
+    password='sip_password_here'   # only for 3rd-party devices
+)
+if device:
+    print(f'Created: {device.display_name} ({device.device_id})')
+```
+
+### 4.4 Generate Activation Code
+
+```python
+# For a RoomOS device (no model needed)
+response = api.devices.activation_code(workspace_id='WORKSPACE_ID')
+print(f'Code: {response.code}, Expires: {response.expiry_time}')
+
+# For a phone (model required)
+supported = api.telephony.devices.supported_devices()
+phone_model = next(d.model for d in supported.devices if 'Cisco 8845' in d.display_name)
+response = api.devices.activation_code(workspace_id='WORKSPACE_ID', model=phone_model)
+```
+
+### 4.5 Manage Device Tags
+
+```python
+from wxc_sdk.devices import TagOp
+
+# Add tags
+device = api.devices.modify_device_tags(
+    device_id='DEVICE_ID',
+    op=TagOp.add,
+    value=['floor-3', 'conference-room']
+)
+
+# Replace all tags
+device = api.devices.modify_device_tags(
+    device_id='DEVICE_ID',
+    op=TagOp.replace,
+    value=['new-tag-set']
+)
+
+# Remove all tags
+device = api.devices.modify_device_tags(
+    device_id='DEVICE_ID',
+    op=TagOp.remove
+)
+```
+
+### 4.6 Validate MAC Addresses
+
+```python
+result = api.telephony.devices.validate_macs(
+    macs=['AABBCCDDEEFF', '112233445566', 'INVALID']
+)
+for mac_status in result.mac_status:
+    print(f'{mac_status.mac}: {mac_status.state}')
+    # AABBCCDDEEFF: AVAILABLE
+    # 112233445566: UNAVAILABLE
+    # INVALID: INVALID
+```
+
+### 4.7 Manage Device Members (Lines)
+
+```python
+# Get current members
+response = api.telephony.devices.members(device_id='DEVICE_ID')
+print(f'Model: {response.model}, Max lines: {response.max_line_count}')
+for member in response.members:
+    print(f'  Port {member.port}: {member.first_name} {member.last_name} '
+          f'({"primary" if member.primary_owner else "shared"})')
+
+# Search available members
+available = list(api.telephony.devices.available_members(
+    device_id='DEVICE_ID',
+    usage_type=UsageType.SHARED_LINE
+))
+
+# Update members: add a shared line appearance
+existing = response.members
+existing.append(DeviceMember.from_available(available[0]))
+api.telephony.devices.update_members(device_id='DEVICE_ID', members=existing)
+```
+
+### 4.8 Update Device Layout with Line Key Template
+
+```python
+# List available templates
+templates = api.telephony.devices.list_line_key_templates()
+for t in templates:
+    print(f'{t.template_name} ({t.device_model})')
+
+# Preview how many devices would be affected
+count = api.telephony.devices.preview_apply_line_key_template(
+    action=ApplyLineKeyTemplateAction.APPLY_TEMPLATE,
+    template_id=templates[0].id
+)
+print(f'{count} devices would be affected')
+```
+
+---
+
+## 5. API Relationship Summary
+
+```
+WebexSimpleApi
+  .devices                          -> DevicesApi           (cloud CRUD, tags, activation)
+  .device_configurations            -> DeviceConfigurationsApi (RoomOS key-value configs)
+  .telephony.devices                -> TelephonyDevicesApi  (calling-specific management)
+     .dynamic_settings              -> DevicesDynamicSettingsApi (tag-based dynamic config)
+     .settings_jobs                 -> DeviceSettingsJobsApi (bulk jobs, via DevicesApi)
+```
+
+**Key distinction:** `DevicesApi` handles the device as a cloud entity (create, delete, activate, tag). `DeviceConfigurationsApi` handles RoomOS-level configs. `TelephonyDevicesApi` handles everything Webex Calling needs: line assignments, phone layouts, supported models, and calling-specific settings.
