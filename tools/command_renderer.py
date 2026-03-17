@@ -53,11 +53,28 @@ def _render_error_handler(indent: str = "    ") -> str:
 {indent}    raise typer.Exit(1)'''
 
 
+PYTHON_KEYWORDS = {
+    "list", "type", "id", "format", "input", "print", "open", "set", "map", "filter",
+    "from", "import", "class", "def", "return", "yield", "for", "while", "if", "else",
+    "elif", "try", "except", "finally", "with", "as", "pass", "break", "continue",
+    "and", "or", "not", "in", "is", "lambda", "global", "nonlocal", "del", "raise",
+    "assert", "True", "False", "None", "async", "await",
+}
+
 def _safe_func_name(command_name: str) -> str:
     name = command_name.replace("-", "_")
-    if name in ("list", "type", "id", "format", "input", "print", "open", "set", "map", "filter"):
+    if name in PYTHON_KEYWORDS:
         return f"cmd_{name}"
     return name
+
+def _safe_param_name(name: str) -> str:
+    snake = name.replace("-", "_")
+    if snake in PYTHON_KEYWORDS:
+        return f"{snake}_param"
+    return snake
+
+def _escape_help(text: str) -> str:
+    return text.replace("\\", "\\\\").replace('"', '\\"').replace("\n", " ").strip()
 
 
 def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
@@ -69,8 +86,8 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
         params.append(f'    {param}: str = typer.Argument(help="{var}"),')
 
     for qp in ep.query_params:
-        param = qp.python_name.replace("-", "_")
-        params.append(f'    {param}: str = typer.Option(None, "--{qp.python_name}", help="{qp.description[:60]}"),')
+        param = _safe_param_name(qp.python_name)
+        params.append(f'    {param}: str = typer.Option(None, "--{qp.python_name}", help="{_escape_help(qp.description[:60])}"),')
 
     params.append('    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),')
     params.append('    limit: int = typer.Option(50, "--limit", help="Max results"),')
@@ -82,7 +99,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
     param_build = []
     param_build.append("    params = {}")
     for qp in ep.query_params:
-        param = qp.python_name.replace("-", "_")
+        param = _safe_param_name(qp.python_name)
         param_build.append(f'    if {param} is not None:\n        params["{qp.name}"] = {param}')
     param_build.append('    if limit > 0:\n        params["max"] = limit')
     param_build.append('    if offset > 0:\n        params["start"] = offset')
@@ -151,12 +168,12 @@ def _render_create_command(ep: Endpoint) -> str:
         params.append(f'    {param}: str = typer.Argument(help="{var}"),')
 
     for bf in ep.body_fields:
-        param = bf.python_name.replace("-", "_")
+        param = _safe_param_name(bf.python_name)
         if bf.field_type == "object" or bf.field_type == "array":
             continue
         if bf.required:
             if bf.field_type == "bool":
-                params.append(f'    {param}: bool = typer.Option(..., "--{bf.python_name}", help="{bf.description[:60]}"),')
+                params.append(f'    {param}: bool = typer.Option(..., "--{bf.python_name}", help="{_escape_help(bf.description[:60])}"),')
             else:
                 help_text = bf.description[:60]
                 if bf.enum_example:
@@ -164,7 +181,7 @@ def _render_create_command(ep: Endpoint) -> str:
                 params.append(f'    {param}: str = typer.Option(..., "--{bf.python_name}", help="{help_text}"),')
         else:
             if bf.field_type == "bool":
-                params.append(f'    {param}: bool = typer.Option(None, "--{bf.python_name}/--no-{bf.python_name}", help="{bf.description[:60]}"),')
+                params.append(f'    {param}: bool = typer.Option(None, "--{bf.python_name}/--no-{bf.python_name}", help="{_escape_help(bf.description[:60])}"),')
             else:
                 help_text = bf.description[:60]
                 if bf.enum_example:
@@ -178,7 +195,7 @@ def _render_create_command(ep: Endpoint) -> str:
 
     body_build = ["    if json_body:", "        body = json.loads(json_body)", "    else:", "        body = {}"]
     for bf in ep.body_fields:
-        param = bf.python_name.replace("-", "_")
+        param = _safe_param_name(bf.python_name)
         if bf.field_type in ("object", "array"):
             if bf.default is not None:
                 body_build.append(f"        body.setdefault({bf.name!r}, {bf.default!r})")
@@ -216,11 +233,11 @@ def _render_update_command(ep: Endpoint) -> str:
         params.append(f'    {param}: str = typer.Argument(help="{var}"),')
 
     for bf in ep.body_fields:
-        param = bf.python_name.replace("-", "_")
+        param = _safe_param_name(bf.python_name)
         if bf.field_type in ("object", "array"):
             continue
         if bf.field_type == "bool":
-            params.append(f'    {param}: bool = typer.Option(None, "--{bf.python_name}/--no-{bf.python_name}", help="{bf.description[:60]}"),')
+            params.append(f'    {param}: bool = typer.Option(None, "--{bf.python_name}/--no-{bf.python_name}", help="{_escape_help(bf.description[:60])}"),')
         else:
             help_text = bf.description[:60]
             if bf.enum_example:
@@ -234,7 +251,7 @@ def _render_update_command(ep: Endpoint) -> str:
 
     body_build = ["    if json_body:", "        body = json.loads(json_body)", "    else:", "        body = {}"]
     for bf in ep.body_fields:
-        param = bf.python_name.replace("-", "_")
+        param = _safe_param_name(bf.python_name)
         if bf.field_type in ("object", "array"):
             continue
         body_build.append(f'        if {param} is not None:\n            body["{bf.name}"] = {param}')
@@ -295,7 +312,7 @@ def _render_action_command(ep: Endpoint) -> str:
         params.append(f'    {param}: str = typer.Argument(help="{var}"),')
 
     for bf in ep.body_fields:
-        param = bf.python_name.replace("-", "_")
+        param = _safe_param_name(bf.python_name)
         if bf.field_type in ("object", "array"):
             continue
         help_text = bf.description[:60]
@@ -310,7 +327,7 @@ def _render_action_command(ep: Endpoint) -> str:
 
     body_build = ["    if json_body:", "        body = json.loads(json_body)", "    else:", "        body = {}"]
     for bf in ep.body_fields:
-        param = bf.python_name.replace("-", "_")
+        param = _safe_param_name(bf.python_name)
         if bf.field_type in ("object", "array"):
             continue
         body_build.append(f'        if {param} is not None:\n            body["{bf.name}"] = {param}')

@@ -1,0 +1,606 @@
+import json
+import typer
+from wxc_sdk.rest import RestError
+from wxcli.auth import get_api
+from wxcli.output import print_table, print_json
+
+
+app = typer.Typer(help="Manage Webex Calling call-recording.")
+
+
+@app.command("show")
+def show(
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Call Recording Settings."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/callRecording"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
+
+
+
+@app.command("update")
+def update(
+    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help=""),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update Call Recording Settings."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/callRecording"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if enabled is not None:
+            body["enabled"] = enabled
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("show-terms-of-service")
+def show_terms_of_service(
+    vendor_id: str = typer.Argument(help="vendorId"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Call Recording Terms Of Service Settings."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/callRecording/vendors/{vendor_id}/termsOfService"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
+
+
+
+@app.command("update-terms-of-service")
+def update_terms_of_service(
+    vendor_id: str = typer.Argument(help="vendorId"),
+    terms_of_service_enabled: bool = typer.Option(None, "--terms-of-service-enabled/--no-terms-of-service-enabled", help=""),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update Call Recording Terms Of Service Settings."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/callRecording/vendors/{vendor_id}/termsOfService"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if terms_of_service_enabled is not None:
+            body["termsOfServiceEnabled"] = terms_of_service_enabled
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("list")
+def cmd_list(
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(50, "--limit", help="Max results"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get details for the organization Compliance Announcement Setting."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/callRecording/complianceAnnouncement"
+    params = {}
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("complianceAnnouncement", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+
+
+
+@app.command("update-compliance-announcement")
+def update_compliance_announcement(
+    inbound_p_s_t_n_calls_enabled: bool = typer.Option(None, "--inbound-p-s-t-n-calls-enabled/--no-inbound-p-s-t-n-calls-enabled", help=""),
+    outbound_p_s_t_n_calls_enabled: bool = typer.Option(None, "--outbound-p-s-t-n-calls-enabled/--no-outbound-p-s-t-n-calls-enabled", help=""),
+    outbound_p_s_t_n_calls_delay_enabled: bool = typer.Option(None, "--outbound-p-s-t-n-calls-delay-enabled/--no-outbound-p-s-t-n-calls-delay-enabled", help=""),
+    delay_in_seconds: str = typer.Option(None, "--delay-in-seconds", help=""),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update the organization Compliance Announcement."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/callRecording/complianceAnnouncement"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if inbound_p_s_t_n_calls_enabled is not None:
+            body["inboundPSTNCallsEnabled"] = inbound_p_s_t_n_calls_enabled
+        if outbound_p_s_t_n_calls_enabled is not None:
+            body["outboundPSTNCallsEnabled"] = outbound_p_s_t_n_calls_enabled
+        if outbound_p_s_t_n_calls_delay_enabled is not None:
+            body["outboundPSTNCallsDelayEnabled"] = outbound_p_s_t_n_calls_delay_enabled
+        if delay_in_seconds is not None:
+            body["delayInSeconds"] = delay_in_seconds
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("list-compliance-announcement")
+def list_compliance_announcement(
+    location_id: str = typer.Argument(help="locationId"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(50, "--limit", help="Max results"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get details for the Location Compliance Announcement Setting."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callRecording/complianceAnnouncement"
+    params = {}
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("complianceAnnouncement", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+
+
+
+@app.command("update-compliance-announcement")
+def update_compliance_announcement(
+    location_id: str = typer.Argument(help="locationId"),
+    inbound_p_s_t_n_calls_enabled: bool = typer.Option(None, "--inbound-p-s-t-n-calls-enabled/--no-inbound-p-s-t-n-calls-enabled", help=""),
+    use_org_settings_enabled: bool = typer.Option(None, "--use-org-settings-enabled/--no-use-org-settings-enabled", help=""),
+    outbound_p_s_t_n_calls_enabled: bool = typer.Option(None, "--outbound-p-s-t-n-calls-enabled/--no-outbound-p-s-t-n-calls-enabled", help=""),
+    outbound_p_s_t_n_calls_delay_enabled: bool = typer.Option(None, "--outbound-p-s-t-n-calls-delay-enabled/--no-outbound-p-s-t-n-calls-delay-enabled", help=""),
+    delay_in_seconds: str = typer.Option(None, "--delay-in-seconds", help=""),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update the Location Compliance Announcement."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callRecording/complianceAnnouncement"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if inbound_p_s_t_n_calls_enabled is not None:
+            body["inboundPSTNCallsEnabled"] = inbound_p_s_t_n_calls_enabled
+        if use_org_settings_enabled is not None:
+            body["useOrgSettingsEnabled"] = use_org_settings_enabled
+        if outbound_p_s_t_n_calls_enabled is not None:
+            body["outboundPSTNCallsEnabled"] = outbound_p_s_t_n_calls_enabled
+        if outbound_p_s_t_n_calls_delay_enabled is not None:
+            body["outboundPSTNCallsDelayEnabled"] = outbound_p_s_t_n_calls_delay_enabled
+        if delay_in_seconds is not None:
+            body["delayInSeconds"] = delay_in_seconds
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("list-regions")
+def list_regions(
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(50, "--limit", help="Max results"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Call Recording Regions."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/callRecording/regions"
+    params = {}
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("regions", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+
+
+
+@app.command("list-vendor-users")
+def list_vendor_users(
+    max: str = typer.Option(None, "--max", help="Limit the number of vendor users returned to this maximum co"),
+    start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
+    standard_user_only: str = typer.Option(None, "--standard-user-only", help="If true, results only include Webex Calling standard users."),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(50, "--limit", help="Max results"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Call Recording Vendor Users."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/callRecording/vendorUsers"
+    params = {}
+    if max is not None:
+        params["max"] = max
+    if start is not None:
+        params["start"] = start
+    if standard_user_only is not None:
+        params["standardUserOnly"] = standard_user_only
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("vendorUsers", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+
+
+
+@app.command("update-vendor")
+def update_vendor(
+    location_id: str = typer.Argument(help="locationId"),
+    id_param: str = typer.Option(None, "--id", help=""),
+    org_default_enabled: bool = typer.Option(None, "--org-default-enabled/--no-org-default-enabled", help=""),
+    storage_region: str = typer.Option(None, "--storage-region", help=""),
+    org_storage_region_enabled: bool = typer.Option(None, "--org-storage-region-enabled/--no-org-storage-region-enabled", help=""),
+    failure_behavior: str = typer.Option(None, "--failure-behavior", help="e.g. PROCEED_CALL_WITH_ANNOUNCEMENT"),
+    org_failure_behavior_enabled: bool = typer.Option(None, "--org-failure-behavior-enabled/--no-org-failure-behavior-enabled", help=""),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Set Call Recording Vendor for a Location."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callRecording/vendor"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if id_param is not None:
+            body["id"] = id_param
+        if org_default_enabled is not None:
+            body["orgDefaultEnabled"] = org_default_enabled
+        if storage_region is not None:
+            body["storageRegion"] = storage_region
+        if org_storage_region_enabled is not None:
+            body["orgStorageRegionEnabled"] = org_storage_region_enabled
+        if failure_behavior is not None:
+            body["failureBehavior"] = failure_behavior
+        if org_failure_behavior_enabled is not None:
+            body["orgFailureBehaviorEnabled"] = org_failure_behavior_enabled
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("list-vendors")
+def list_vendors(
+    location_id: str = typer.Argument(help="locationId"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(50, "--limit", help="Max results"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Location Call Recording Vendors."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callRecording/vendors"
+    params = {}
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("vendors", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+
+
+
+@app.command("list-vendor-users")
+def list_vendor_users(
+    location_id: str = typer.Argument(help="locationId"),
+    max: str = typer.Option(None, "--max", help="Limit the number of vendor users returned to this maximum co"),
+    start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
+    standard_user_only: str = typer.Option(None, "--standard-user-only", help="If true, results only include Webex Calling standard users."),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(50, "--limit", help="Max results"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Call Recording Vendor Users for a Location."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callRecording/vendorUsers"
+    params = {}
+    if max is not None:
+        params["max"] = max
+    if start is not None:
+        params["start"] = start
+    if standard_user_only is not None:
+        params["standardUserOnly"] = standard_user_only
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("vendorUsers", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+
+
+
+@app.command("list-call-recording")
+def list_call_recording(
+    max: str = typer.Option(None, "--max", help="Limit the number of jobs returned to this maximum count. The"),
+    start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(50, "--limit", help="Max results"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """List Call Recording Jobs."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/jobs/callRecording"
+    params = {}
+    if max is not None:
+        params["max"] = max
+    if start is not None:
+        params["start"] = start
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("callRecording", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+
+
+
+@app.command("show-call-recording")
+def show_call_recording(
+    job_id: str = typer.Argument(help="jobId"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get the Job Status of a Call Recording Job."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/jobs/callRecording/{job_id}"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
+
+
+
+@app.command("list-errors")
+def list_errors(
+    job_id: str = typer.Argument(help="jobId"),
+    max: str = typer.Option(None, "--max", help="Limit the number of errors returned to this maximum count. T"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(50, "--limit", help="Max results"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Job Errors for a Call Recording Job."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/jobs/callRecording/{job_id}/errors"
+    params = {}
+    if max is not None:
+        params["max"] = max
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("errors", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+
+
+
+@app.command("list-vendors")
+def list_vendors(
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(50, "--limit", help="Max results"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Organization Call Recording Vendors."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/callRecording/vendors"
+    params = {}
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("vendors", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+
+
+
+@app.command("update-vendor")
+def update_vendor(
+    vendor_id: str = typer.Option(None, "--vendor-id", help=""),
+    storage_region: str = typer.Option(None, "--storage-region", help=""),
+    failure_behavior: str = typer.Option(None, "--failure-behavior", help="e.g. PROCEED_CALL_WITH_ANNOUNCEMENT"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Set Organization Call Recording Vendor."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/callRecording/vendor"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if vendor_id is not None:
+            body["vendorId"] = vendor_id
+        if storage_region is not None:
+            body["storageRegion"] = storage_region
+        if failure_behavior is not None:
+            body["failureBehavior"] = failure_behavior
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
