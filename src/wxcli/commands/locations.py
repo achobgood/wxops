@@ -89,6 +89,9 @@ def enable_calling(
     """Enable Webex Calling on a location."""
     api = get_api(debug=debug)
     location = api.locations.details(location_id=location_id)
+    # API requires announcement_language but details endpoint may return None
+    if not location.announcement_language:
+        location.announcement_language = (location.preferred_language or "en_US").lower()
     api.telephony.location.enable_for_calling(location=location)
     typer.echo(f"Enabled calling: {location_id} ({location.name})")
 
