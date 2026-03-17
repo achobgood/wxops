@@ -197,6 +197,8 @@ Update outgoing calling permissions. The `drop_call_types` parameter excludes sp
 
 ### Methods — Transfer Numbers (`OutgoingPermissionsApi.transfer_numbers`)
 
+> **Scope note:** The SDK docstrings list `workspaces_read/write` scopes for Transfer Numbers. These scopes are confirmed for workspace entities. For person-level access, `spark-admin:people_read/write` may also work but this has not been verified. See the [Scope Summary](#scope-summary) footnote.
+
 #### `read`
 
 ```python
@@ -216,6 +218,8 @@ def configure(self, entity_id: str, settings: AutoTransferNumbers, org_id: str =
 ### Methods — Access Codes (`OutgoingPermissionsApi.access_codes`)
 
 > Not available for locations — use the telephony-level access codes API.
+
+> **Scope note:** The SDK docstrings list `workspaces_read/write` scopes for Access Codes. These scopes are confirmed for workspace entities. For person-level access, `spark-admin:people_read/write` may also work but this has not been verified. See the [Scope Summary](#scope-summary) footnote.
 
 #### `read`
 
@@ -683,7 +687,7 @@ Controls Connected Line Identification Privacy on redirected calls.
 **API class:** `CallPolicyApi` (extends `PersonSettingsApiChild`)
 - Feature path segment: `callPolicies`
 
-> **Important:** This API is only available for **professional licensed workspaces**. <!-- NEEDS VERIFICATION: Whether this also applies to persons or only workspaces -->
+> **Important:** This API is only available for **professional licensed workspaces**. The scopes shown (`workspaces_read/write`) are workspace-specific; for person-level use, `people_read/write` may apply instead, but this has not been verified. <!-- NEEDS VERIFICATION: Whether this also applies to persons or only workspaces -->
 
 ### Data Models
 
@@ -808,3 +812,9 @@ settings = FeatureAccessSettings(
 
 api.person_settings.feature_access.update(person_id, settings)
 ```
+
+---
+
+## See Also
+
+- **[Location Call Settings — Advanced](location-call-settings-advanced.md)** — Location-level supervisor settings and related administrative controls

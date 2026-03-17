@@ -795,3 +795,10 @@ Retrieves all locations from the Bifrost API and **enriches** the corresponding 
 | **Service App lifecycle** | `applications` | Create, authorize, token exchange, secret rotation for Service Applications. |
 | **Wholesale provisioning** | `wholesale` | Partner-level customer and subscriber management. |
 | **Bifrost location enrichment** | `bifrost` | Internal location config not exposed publicly. |
+
+---
+
+## See Also
+
+- [emergency-services.md](emergency-services.md) — wxc_sdk emergency services APIs for comparison with wxcadm's RedSky integration
+- [wxcadm-locations.md](wxcadm-locations.md) — wxcadm location management including `enhanced_emergency_calling` and `set_enhanced_emergency_calling()` which interact with RedSky

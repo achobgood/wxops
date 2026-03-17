@@ -812,6 +812,41 @@ Lists numbers available to be assigned as the voicemail group's fax message phon
 | `direct_line_caller_id_name` | `DirectLineCallerIdName` | No | Replaces deprecated first/last name |
 | `dial_by_name` | `str` | No | Name for dial-by-name directory |
 
+#### `VoicemailMessageStorage`
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `storage_type` | `StorageType` | `INTERNAL` (Webex-hosted) or `EXTERNAL` (external server) |
+| `external_email` | `str` | Email address for external storage delivery |
+
+#### `VoicemailNotifications`
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `enabled` | `bool` | Whether notifications are sent |
+| `destination` | `str` | Email address or phone number for notifications |
+
+#### `VoicemailFax`
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `enabled` | `bool` | Whether fax reception is enabled |
+| `phone_number` | `str` | Dedicated fax phone number |
+
+#### `VoicemailTransferToNumber`
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `enabled` | `bool` | Whether transfer-to-number is enabled |
+| `destination` | `str` | Number to transfer to when the caller presses 0 |
+
+#### `VoicemailCopyOfMessage`
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `enabled` | `bool` | Whether email copies of voicemail are sent |
+| `email_id` | `str` | Email address to receive message copies |
+
 The `VoicemailGroupDetail.create()` factory sets these defaults:
 - `message_storage`: `StorageType.internal`
 - `notifications`: disabled
@@ -1133,7 +1168,21 @@ Returns queues that are not yet assigned to this wrap-up reason and can be added
 | `UserType` | Paging | Enum for person vs. workspace |
 | `DirectLineCallerIdName` | Paging, Voicemail Groups | Caller ID name settings (replaces deprecated first/last name) |
 | `AvailableNumber` | Paging, Voicemail Groups | Available phone number for assignment |
-| `CallRecordingSetting` | CX Essentials (Queue Recording) | Full call recording configuration |
+| `CallRecordingSetting` | CX Essentials (Queue Recording) | Full call recording configuration (see fields below) |
+
+#### `CallRecordingSetting` Fields
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `enabled` | `bool` | Enable/disable call recording for the queue |
+| `record` | `str` | Recording mode: `Always`, `Never`, or `Always with Pause/Resume` |
+| `record_voicemail_enabled` | `bool` | Whether voicemail messages are recorded |
+| `start_stop_announcement_enabled` | `bool` | Play recording start/stop announcement to parties |
+| `notification` | `object` | Notification settings (type, threshold) |
+| `repeat` | `object` | Repeat notification settings (enabled, interval) |
+| `service_provider` | `str` | Recording vendor/provider name |
+| `external_group` | `str` | External group tag for recording categorization |
+| `external_identifier` | `str` | External identifier for the recording |
 
 ### Feature-Specific Models
 
@@ -1185,3 +1234,11 @@ CX Essentials ────────── Call Queues (screen pop, recording,
 5. **Voicemail Groups are location-scoped**: Created within a location, but listed org-wide.
 6. **Paging Groups are location-scoped**: Created within a location, but can be listed org-wide.
 7. **ID instability for Call Park and Call Pickup**: The IDs for Call Park and Call Pickup entities change when their names are modified. Always re-fetch the ID after a name change.
+
+---
+
+## See Also
+
+- [Major Call Features](call-features-major.md) -- Auto Attendants, Call Queues, and Hunt Groups (Call Park recall references Hunt Groups; CX Essentials extends Call Queues; Voicemail Groups can be assigned to AA/CQ/HG)
+- [Call Routing & PSTN](call-routing.md) -- dial plans, trunks, and routing chain (Paging Groups and Voicemail Groups with phone numbers participate in call routing)
+- [Provisioning Reference](provisioning.md) -- creating locations and users (all features in this doc are location-scoped and require existing locations)

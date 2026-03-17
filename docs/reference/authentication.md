@@ -322,6 +322,8 @@ scopes = parse_scopes('https://webexapis.com/v1/authorize?...&scope=spark%3Acall
 
 ## wxc_sdk Auth Setup
 
+> **Note:** The async variant `AsWebexSimpleApi` (from `wxc_sdk.as_api`) accepts identical token arguments and initialization patterns. See `wxc-sdk-patterns.md` section 4 for async usage details.
+
 ### Initialization Patterns
 
 The `WebexSimpleApi` class accepts tokens in three forms:
@@ -624,3 +626,10 @@ The SDK masks `Authorization` headers as `Bearer ***` and redacts `access_token`
 | Chatbot responding to messages | Bot Token | Does not expire, but limited calling access |
 | One-off script during development | Personal Access Token or `WEBEX_ACCESS_TOKEN` env var | Use env var to avoid token in source code |
 | CI/CD pipeline | Service App | Store credentials in secrets manager |
+
+---
+
+## See Also
+
+- **`provisioning.md`** — Provisioning-specific scope requirements and end-to-end user/license/location provisioning workflows.
+- **`wxc-sdk-patterns.md`** — SDK code recipes, async auth patterns, and the service app token caching pattern (section 3, Pattern D).

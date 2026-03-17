@@ -186,10 +186,16 @@ The `telephony_calls` resource uses the standard webhook event types (`created`,
 | Webhook `event` | `data.eventType` values | When it fires |
 |-----------------|------------------------|---------------|
 | `created` | `answered` | A call was answered |
-| `updated` | `resumed`, `recording` | A call state changed (resumed from hold, recording state changed) |
-| `deleted` | `disconnected`, `forwarded` | A call ended or was forwarded away |
+| `created` | `alerting` | A call is ringing on the user's devices |
+| `updated` | `connected` | A call transitioned to connected state |
+| `updated` | `held` | The user placed the call on hold |
+| `updated` | `remoteHeld` | The remote party placed the call on hold |
+| `updated` | `resumed` | A held call was resumed |
+| `updated` | `recording` | Recording state changed on the call |
+| `deleted` | `disconnected` | A call ended (hung up) |
+| `deleted` | `forwarded` | A call was forwarded away from the user |
 
-<!-- NEEDS VERIFICATION: The exact mapping of webhook event types (created/updated/deleted) to telephony eventType values may include additional eventType values not listed here. The Webex developer docs should be consulted for the complete list. -->
+<!-- NEEDS VERIFICATION: The exact mapping of webhook event types (created/updated/deleted) to telephony eventType values may include additional eventType values not listed here. The above is based on the CallState enum values documented in call-control.md and observed patterns. Consult the Webex developer docs for the definitive list. -->
 
 ### Event Payload Structure
 
@@ -239,7 +245,7 @@ The `data` object in telephony_calls events corresponds to the SDK's `TelephonyE
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `eventType` | str | Telephony event type: `answered`, `disconnected`, `forwarded`, `resumed`, `recording` |
+| `eventType` | str | Telephony event type: `alerting`, `answered`, `connected`, `held`, `remoteHeld`, `resumed`, `recording`, `disconnected`, `forwarded` |
 | `actorPersonId` | str | Person ID of the actor who triggered the event |
 | `orgId` | str | Organization ID |
 | `eventTimestamp` | datetime | When the event occurred |
@@ -436,7 +442,7 @@ def verify_webhook_signature(request_body: bytes, signature: str, secret: str) -
 
 3. **Read scope required for creation** -- Creating a `telephony_calls` webhook requires `spark:calls_read` scope, not write scope.
 
-4. **`event` field vs `data.eventType`** -- The top-level `event` field is the generic webhook event type (`created`, `updated`, `deleted`). The telephony-specific event type is in `data.eventType` (`answered`, `disconnected`, `forwarded`, `resumed`, `recording`).
+4. **`event` field vs `data.eventType`** -- The top-level `event` field is the generic webhook event type (`created`, `updated`, `deleted`). The telephony-specific event type is in `data.eventType` (`alerting`, `answered`, `connected`, `held`, `remoteHeld`, `resumed`, `recording`, `disconnected`, `forwarded`).
 
 5. **`callId` aliasing** -- In webhook event data, the call identifier field is `callId`. In direct API responses, it is `id`. The SDK's `TelephonyCall` model handles both via the `call_id` property.
 
@@ -449,3 +455,10 @@ def verify_webhook_signature(request_body: bytes, signature: str, secret: str) -
 9. **Event delivery is not guaranteed to be ordered** -- Events may arrive out of order. Use `data.eventTimestamp` and `data.callSessionId` to correlate and order events for the same call session.
 
 10. **One webhook per resource/event combo** -- Creating a duplicate webhook (same resource + event + filter) will create a second webhook, resulting in duplicate event delivery. Always clean up old webhooks before creating new ones.
+
+---
+
+## See Also
+
+- **[call-control.md](call-control.md)** — Call control actions and the `TelephonyCall` data model. `TelephonyEventData` inherits from `TelephonyCall`, so the `remoteParty`, `state`, `personality`, and other call fields documented there apply directly to webhook event data.
+- **[authentication.md](authentication.md)** — Scope definitions and OAuth token management. Creating a `telephony_calls` webhook requires `spark:calls_read` scope; a firehose requires `spark:all`.

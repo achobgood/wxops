@@ -868,3 +868,9 @@ class ForwardingApi:
 | Forwarding | `spark-admin:telephony_config_read` | `spark-admin:telephony_config_write` |
 
 Note that Conference Controls uses **user-level** scopes (`spark:calls_*`), not admin scopes, because it is a runtime call-control API.
+
+---
+
+## See Also
+
+- **[Person Call Settings — Media](person-call-settings-media.md)** — Per-user call recording settings (record mode, notifications, access permissions) that work within the vendor/compliance framework configured here

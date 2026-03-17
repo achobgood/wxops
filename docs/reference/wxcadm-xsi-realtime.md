@@ -921,8 +921,15 @@ while True:
 
 9. **Call IDs are transient.** They only exist while the call is active. Use `attach_call()` promptly after receiving an event.
 
-10. **The `recording()` method has a bug.** The `"pause"` action case is unreachable because it shares an `elif action.lower() == "resume"` condition with the actual resume case. If you need to pause recording, call the XSI API directly. <!-- NEEDS VERIFICATION -->
+10. **The `recording()` method has a bug.** There is a duplicate `elif action.lower() == "resume"` condition in the source -- one maps to `ResumeRecording` (correct) and the other maps to `PauseRecording` (incorrect). Because of the duplicate, `action="pause"` never reaches its intended branch. If you need to pause recording, call the XSI API directly. <!-- NEEDS VERIFICATION -->
 
 11. **SRV lookup dependency.** wxcadm uses the `srvlookup` library to find XSP servers. If DNS SRV records are unreachable, channel creation will fail.
 
 12. **Session cookies.** Each channel uses a `requests.Session` and preserves cookies from the initial streaming POST. This ensures subsequent heartbeats and ACKs hit the correct server instance behind load balancers.
+
+---
+
+## See Also
+
+- [call-control.md](call-control.md) — wxc_sdk call control APIs (REST-based, not XSI) for comparison with wxcadm's XSI call control
+- [webhooks-events.md](webhooks-events.md) — wxc_sdk webhook and event subscription patterns (REST-based alternative to XSI-Events for some use cases)

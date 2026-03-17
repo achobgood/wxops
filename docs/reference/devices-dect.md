@@ -670,3 +670,11 @@ Ends a hot desk session by its unique session ID.
 9. **`DECTNetworkModel` has alternate names.** `dms_cisco_dbs110` and `cisco_dect_110_base` both refer to the same physical hardware (DBS-110). Same for the 210 variants. Choose either enum value.
 
 10. **`list_dect_networks` is org-wide.** Unlike most DECT methods that require `location_id`, `list_dect_networks` searches across the entire org and accepts `location_id` as an optional filter.
+
+---
+
+## See Also
+
+- **[devices-core.md](devices-core.md)** — Cloud device CRUD, activation codes, MAC provisioning, and telephony device settings. DECT devices are excluded from `device_settings` / `update_device_settings` in that API.
+- **[devices-workspaces.md](devices-workspaces.md)** — Workspace management including `HotdeskingStatus` enum and workspace hot desk creation constraints.
+- **[virtual-lines.md](virtual-lines.md)** — Virtual line management. DECT handset Line 2 supports VIRTUAL_LINE member type; see that doc for virtual line CRUD and call settings.

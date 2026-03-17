@@ -572,7 +572,7 @@ CallRecordingSetting(
 CallRecordingApi.read(entity_id: str, org_id: str = None) -> CallRecordingSetting
 ```
 
-- **Scopes:** `spark-admin:people_write` (Note: the source docstring says `people_write` for read -- this may be a documentation error) <!-- NEEDS VERIFICATION: read scope may actually be people_read -->
+- **Scopes:** `spark-admin:people_read` (Note: the SDK source docstring incorrectly says `people_write` for read; this is almost certainly a documentation error -- read operations use `people_read`) <!-- NEEDS VERIFICATION: confirmed likely correct based on pattern; SDK docstring bug -->
 
 #### `configure`
 
@@ -956,3 +956,10 @@ Not all settings apply equally to all entity types:
 | Monitoring | Yes | Yes | -- |
 | Push-to-Talk | Yes | Yes | Yes |
 | Music on Hold | Yes | Yes | Yes |
+
+---
+
+## See Also
+
+- **[Location Call Settings — Core](location-call-settings-core.md)** — Location-level voicemail policies (transcription toggle), org-wide voicemail settings (expiry, forwarding), and location-level call intercept that govern person-level defaults
+- **[Location Call Settings — Advanced](location-call-settings-advanced.md)** — Location/org-level call recording vendor settings that must be configured before per-person recording works

@@ -351,6 +351,27 @@ CallsApi.barge_in(
 
 ---
 
+### Conference (3-Way Merge)
+
+Merge two active calls into a three-way conference call. The user must have two calls (one active, one held) to merge.
+
+```
+POST /v1/telephony/calls/conference
+```
+
+**SDK Signature:**
+```python
+CallsApi.conference(
+    call_id1: str = None,
+    call_id2: str = None,
+    line_owner_id: str = None
+) -> None
+```
+
+If `call_id1` and `call_id2` are omitted, the user must have exactly two calls; they are automatically selected and merged. When specified, both calls are merged into a three-way conference with the user.
+
+---
+
 ### Hangup
 
 Disconnect a call. If used on an unanswered incoming call, the call is rejected and sent to busy.
@@ -750,3 +771,10 @@ result = members_api.dial(
 9. **Mute capability check** -- Always check `muteCapable` in call details before calling `mute` or `unmute`. Not all calls support it.
 
 10. **Call history limit** -- `call_history` returns a maximum of 20 records per type (placed/missed/received).
+
+---
+
+## See Also
+
+- **[webhooks-events.md](webhooks-events.md)** — Real-time call event notifications via webhooks. The `TelephonyEventData` model inherits from `TelephonyCall` documented here; use webhooks for event-driven call control rather than polling `list_calls`.
+- **[person-call-settings-media.md](person-call-settings-media.md)** — Call recording configuration (recording mode, compliance announcements). Recording mode determines which recording control actions are available in this API.

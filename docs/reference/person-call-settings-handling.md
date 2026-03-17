@@ -188,7 +188,7 @@ CallWaitingApi.read(
 
 Returns `True` if call waiting is enabled.
 
-**Scopes:** `spark-admin:people_read`
+**Scopes:** `spark-admin:people_read` or `spark:people_read`
 
 #### Configure
 
@@ -200,7 +200,7 @@ CallWaitingApi.configure(
 ) -> None
 ```
 
-**Scopes:** `spark-admin:people_write`
+**Scopes:** `spark-admin:people_write` or `spark:people_write`
 
 ### Example
 
@@ -791,3 +791,9 @@ Some feature/selector combinations are remapped to different URL bases. For pers
 | `wxc_sdk/person_settings/priority_alert.py` | `PriorityAlertApi`, `PriorityAlert`, `PriorityAlertCriteria` |
 | `wxc_sdk/common/selective.py` | `SelectiveCriteria` base, `SelectiveCrit`, `SelectiveFrom`, `SelectiveScheduleLevel` |
 | `examples/reset_call_forwarding.py` | Bulk reset forwarding example |
+
+---
+
+## See Also
+
+- **[Location Call Settings — Core](location-call-settings-core.md)** — Location-level call forwarding, call intercept, and ECBN settings that serve as defaults for person-level overrides

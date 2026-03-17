@@ -444,6 +444,8 @@ TrunkApi.update(
 
 Note: `name` and `password` are always required for updates.
 
+**Limitation**: You cannot change `trunk_type`, `location_id`, or `device_type` after creation. To change these properties, you must delete and recreate the trunk.
+
 #### Delete Trunk
 
 ```python
@@ -1182,6 +1184,46 @@ class TestCallRoutingResult(ApiModel):
     applied_services: Optional[list[AppliedService]]
 ```
 
+#### `CallSourceInfo`
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `call_source_type` | `CallSourceType` | `ROUTE_LIST`, `DIAL_PATTERN`, `UNKNOWN_EXTENSION`, or `UNKNOWN_NUMBER` |
+| `route_list_name` | `str` | Name of the matched route list (when type is ROUTE_LIST) |
+| `route_list_id` | `str` | ID of the matched route list |
+| `dial_plan_name` | `str` | Name of the matched dial plan (when type is DIAL_PATTERN) |
+| `dial_plan_id` | `str` | ID of the matched dial plan |
+| `dial_pattern` | `str` | The specific pattern that matched |
+
+#### `AppliedService`
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `translation_pattern` | `object` | Translation pattern details if applied (see below) |
+
+Translation pattern sub-object fields:
+- `matching_pattern`: The pattern that matched the dialed number
+- `replacement_pattern`: The replacement pattern applied
+- `matched_number`: The original number that was matched
+- `translated_number`: The resulting number after translation
+
+#### Destination-Specific Models
+
+These models populate the corresponding field on `TestCallRoutingResult` based on the `destination_type`:
+
+| Model | Key Fields | Notes |
+|-------|------------|-------|
+| `HostedUserDestination` | `hosted_user_id`, `last_name`, `first_name`, `extension`, `phone_number`, `location_name` | Person or workspace destination |
+| `HostedFeatureDestination` | `hosted_feature_id`, `name`, `feature_type`, `extension`, `phone_number`, `location_name` | AA, CQ, HG, or other hosted feature |
+| `PbxUserDestination` | `dial_plan_name`, `dial_pattern`, `trunk_name`, `route_group_name` | On-premises PBX user routed via trunk |
+| `PstnNumberDestination` | `trunk_name`, `route_group_name`, `trunk_id`, `route_group_id`, `outside_access_code` | PSTN number routed via trunk/route group |
+| `VirtualExtensionDestination` | `extension`, `first_name`, `last_name`, `phone_number` | Virtual extension destination |
+| `VirtualExtensionRange` | `extension`, `prefix`, `range_name` | Virtual extension range destination |
+| `RouteListDestination` | `route_list_id`, `route_list_name`, `route_group_name`, `trunk_name` | Route list destination |
+| `FeatureAccessCodeDestination` | `code`, `name` | Feature access code destination |
+| `EmergencyDestination` | `is_emergency_callback_number` | Emergency services destination |
+| `TrunkDestination` | `trunk_name`, `trunk_id`, `route_group_name`, `route_group_id` | Used for repair, unknown_extension, unknown_number |
+
 The `applied_services` field returns details about any translation patterns, call intercept rules, or outgoing calling plan permissions that were applied during routing.
 
 ### API Method
@@ -1366,3 +1408,11 @@ Step 6: Route List (optional, Dedicated Instance)
          |
 Step 7: test_call_routing() to validate
 ```
+
+---
+
+## See Also
+
+- [Major Call Features](call-features-major.md) -- Auto Attendants, Call Queues, and Hunt Groups (the `HOSTED_FEATURE` destination type in call routing test results covers these features)
+- [Provisioning Reference](provisioning.md) -- creating locations and users (trunks, route lists, and PSTN connections are all location-scoped)
+- [Devices Reference](devices-core.md) -- device types and device management (relevant to trunk device type selection)

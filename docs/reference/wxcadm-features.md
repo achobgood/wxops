@@ -825,3 +825,10 @@ All list classes (`AutoAttendantList`, `CallQueueList`, `HuntGroupList`, `Pickup
 4. **`Playlist.__getattr__`** -- URL string `"fv1/telephony/..."` is not an f-string; the literal `f` is prepended to the path, causing the API call to fail. The `refresh()` method has the correct URL.
 5. **`ComplianceAnnouncementSettings.push`** -- Location-level endpoint has a double slash: `v1//telephony/config/locations/...`.
 6. **`PickupGroupList`** -- no `refresh()`, `create()`, or `delete()` methods.
+
+---
+
+## See Also
+
+- [call-features-major.md](call-features-major.md) — wxc_sdk auto attendant, call queue, and hunt group APIs for comparison
+- [call-features-additional.md](call-features-additional.md) — wxc_sdk pickup group, paging group, call park, announcements, and recording APIs

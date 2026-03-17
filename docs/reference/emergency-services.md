@@ -479,3 +479,10 @@ To be fully compliant with Kari's Law and RAY BAUM's Act, an organization should
 - SDK source: `wxc_sdk/person_settings/common.py` (ApiSelector, URL routing for ECBN)
 - U.S. Public Law 115-127 (Kari's Law) -- multi-line telephone system notification requirements
 - RAY BAUM's Act Section 506 -- dispatchable location requirements for 911
+
+---
+
+## See Also
+
+- **[person-call-settings-behavior.md](person-call-settings-behavior.md)** — The ECBNApi is shared between person, workspace, and virtual line settings. That doc covers the same ECBN sub-API from the person-settings perspective, including how ECBN integrates with other call behavior settings.
+- **[virtual-lines.md](virtual-lines.md)** — Virtual lines that can place calls need ECBN configured. The `.ecbn` sub-API is listed in the virtual line call settings table there.

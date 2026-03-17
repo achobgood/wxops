@@ -85,3 +85,31 @@ Items marked `<!-- NEEDS VERIFICATION -->` need confirmation against live API be
 Known bugs found in wxcadm source are documented in the reference docs.
 
 Maintainers: update reference docs when you discover new gotchas or API changes.
+
+## Reference Doc Sync Protocol
+
+This repo contains authoritative reference docs at `docs/reference/` that document every Webex Calling API surface. These docs were built from wxc_sdk and wxcadm source code and serve both the CLI and the playbook agent.
+
+### When you learn something new
+
+Whenever you discover a technical detail through implementation — a gotcha, a correction, an undocumented behavior, a scope requirement, a parameter that works differently than expected — do this:
+
+1. **Check the relevant reference doc first.** Use the See Also links at the bottom of each doc to find related docs. Key docs by area:
+   - Provisioning: `docs/reference/provisioning.md`
+   - Call features (AA/CQ/HG): `docs/reference/call-features-major.md`, `call-features-additional.md`
+   - Person settings: `docs/reference/person-call-settings-*.md` (4 files: handling, media, permissions, behavior)
+   - Location settings: `docs/reference/location-call-settings-*.md` (3 files: core, media, advanced)
+   - Devices: `docs/reference/devices-*.md` (3 files: core, dect, workspaces)
+   - Routing: `docs/reference/call-routing.md`
+   - Auth: `docs/reference/authentication.md`
+   - SDK patterns: `docs/reference/wxc-sdk-patterns.md`
+
+2. **If the reference doc is wrong or incomplete**, update it:
+   - Fix incorrect method signatures, scopes, or data models
+   - Add the gotcha to the doc's Gotchas section (create one if missing)
+   - If you resolved a `<!-- NEEDS VERIFICATION -->` tag, remove it and replace with the verified info
+   - Add a comment: `<!-- Verified via CLI implementation YYYY-MM-DD -->`
+
+3. **If the reference doc is right**, move on — no action needed.
+
+4. **If there's no reference doc for what you found**, add it to the closest doc's Gotchas section with a note about which command surfaced it.

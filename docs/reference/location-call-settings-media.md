@@ -908,3 +908,9 @@ ats.delete_schedule(
 2. Check if a holiday schedule already exists for each location.
 3. Create the schedule with all-day events, or add events to an existing schedule.
 4. Periodically clean up past events and add future ones.
+
+---
+
+## See Also
+
+- **[Call Features — Major](call-features-major.md)** — Auto Attendants, Call Queues, and Hunt Groups that consume schedules for time-based routing

@@ -1031,3 +1031,10 @@ Retrieve ECBN dependencies -- whether this entity is used as a default ECBN by i
 | Mode Management | `spark-admin:telephony_config_read` | `spark-admin:telephony_config_write` |
 | Personal Assistant | `spark-admin:telephony_config_read` | `spark-admin:telephony_config_write` |
 | ECBN | `spark-admin:telephony_config_read` | `spark-admin:telephony_config_write` |
+
+---
+
+## See Also
+
+- **[Emergency Services Reference](emergency-services.md)** — Organization and location-level ECBN configuration, E911 providers, and emergency location management
+- **[Devices — Core Reference](devices-core.md)** — Device management, hoteling host configuration, and shared-line appearance settings at the device level

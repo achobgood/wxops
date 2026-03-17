@@ -52,6 +52,7 @@ Enum defining the calling configuration for a workspace:
 | Value | Enum Member | Description |
 |-------|------------|-------------|
 | `freeCalling` | `CallingType.free` | Free Calling |
+| `hybridCalling` | `CallingType.hybrid` | Hybrid Calling (on-premise CUCM + cloud) |
 | `webexEdgeForDevices` | `CallingType.edge_for_devices` | Webex Edge For Devices |
 | `thirdPartySipCalling` | `CallingType.third_party` | Third-party SIP calling |
 | `webexCalling` | `CallingType.webex` | Webex Calling |
@@ -790,3 +791,11 @@ await api.workspaces.delete_workspace(workspace_id=workspace.workspace_id)
 8. **Device cleanup on workspace delete** — Deleting a workspace deletes all associated devices. Those devices must be reactivated to be reused.
 
 9. **Personalization is one-time** — The Workspace Personalization API is for migrating Edge devices from shared to personal mode. It requires the device to be online and the workspace to have no calendar configured.
+
+---
+
+## See Also
+
+- **[devices-core.md](devices-core.md)** — Device activation codes, MAC provisioning, and telephony device settings (members/lines, line key templates, layouts). Use that API for device-level operations after associating a device with a workspace.
+- **[devices-dect.md](devices-dect.md)** — DECT network and handset management, including DECT workspace associations and hot desking session management.
+- **[emergency-services.md](emergency-services.md)** — Emergency callback number (ECBN) configuration. The `ecbn` sub-API listed in the calling settings table above is documented in detail there.

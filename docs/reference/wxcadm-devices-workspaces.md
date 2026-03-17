@@ -1272,3 +1272,11 @@ vl.refresh_config()
 device = org.devices.get(mac_address="FFEEDDCCBBAA")
 device.members.add(vl, line_type="shared", line_label="Reception")
 ```
+
+---
+
+## See Also
+
+- [devices-core.md](devices-core.md) — wxc_sdk device management APIs (listing, creation, configuration, members)
+- [devices-dect.md](devices-dect.md) — wxc_sdk DECT network management for comparison with wxcadm's `DECTNetworkList`
+- [devices-workspaces.md](devices-workspaces.md) — wxc_sdk workspace device provisioning and workspace call settings

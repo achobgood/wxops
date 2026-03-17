@@ -1005,3 +1005,10 @@ WebexSimpleApi
 ```
 
 **Key distinction:** `DevicesApi` handles the device as a cloud entity (create, delete, activate, tag). `DeviceConfigurationsApi` handles RoomOS-level configs. `TelephonyDevicesApi` handles everything Webex Calling needs: line assignments, phone layouts, supported models, and calling-specific settings.
+
+---
+
+## See Also
+
+- **[devices-dect.md](devices-dect.md)** — DECT network, base station, and handset management. DECT devices are excluded from `device_settings` / `update_device_settings` in this doc; DECT-specific management lives there.
+- **[devices-workspaces.md](devices-workspaces.md)** — Workspace creation and calling settings, including device association with workspaces, activation codes for workspace devices, and workspace-level device compression settings.

@@ -708,8 +708,8 @@ When creating/updating, only `agent_id` is required. Set `weight` or `skill_leve
 | Hold calls in queue | No | Yes | No |
 | Ring agents by policy | No | Yes | Yes |
 | Business/after-hours menus | Yes | Via policies | Via `waiting_enabled` / `no_answer` |
-| Holiday service | Via schedule | Yes (policy API) | No dedicated API <!-- NEEDS VERIFICATION --> |
-| Night service | Via schedule | Yes (policy API) | No dedicated API <!-- NEEDS VERIFICATION --> |
+| Holiday service | Via schedule | Yes (policy API) | Via forwarding rules (schedule-based) |
+| Night service | Via schedule | Yes (policy API) | Via forwarding rules (schedule-based) |
 | Stranded calls handling | N/A | Yes (policy API) | N/A |
 | Forced forward | N/A | Yes (policy API) | N/A |
 | Agent join/unjoin | N/A | Yes | No |
@@ -719,6 +719,16 @@ When creating/updating, only `agent_id` is required. Set `weight` or `skill_leve
 | Comfort/wait messages | N/A | Yes | No |
 | Music on hold | N/A | Yes | No |
 | Max agents (simultaneous) | N/A | 50 | 50 |
-| Max agents (other policies) | N/A | 100-1,000 | 100-1,000 |
+| Max agents (WEIGHTED) | N/A | 100 | 100 |
+| Max agents (CIRCULAR/REGULAR/UNIFORM) | N/A | 1,000 | 1,000 |
 | Shared forwarding API | Yes | Yes | Yes |
 | Announcement file management | Yes | Yes | No |
+
+---
+
+## See Also
+
+- [Provisioning Reference](provisioning.md) -- creating locations and users (prerequisites for all features in this doc)
+- [Additional Call Features](call-features-additional.md) -- Paging Groups, Call Park, Call Pickup, Voicemail Groups, and CX Essentials (Call Park recall uses Hunt Groups; Voicemail Groups can serve as overflow destinations for CQ/HG)
+- [Call Routing & PSTN](call-routing.md) -- dial plans, trunks, and route lists (AA/CQ/HG phone numbers participate in the call routing chain)
+- [Location Call Settings: Media](location-call-settings-media.md) -- schedule management (business hours and holiday schedules used by AA menus and CQ/HG policies)

@@ -1131,3 +1131,11 @@ Retrieve the voice portal passcode rules for a location.
 | Voice portal | `api.telephony.voiceportal.read/update/passcode_rules/available_phone_numbers()` | read/write |
 
 <!-- NEEDS VERIFICATION: The exact attribute names on the top-level telephony API object (e.g., api.telephony.organisation_voicemail vs api.telephony.org_voicemail) should be confirmed against the TelephonyApi class definition in wxc_sdk/telephony/__init__.py -->
+
+---
+
+## See Also
+
+- **[Person Call Settings — Handling](person-call-settings-handling.md)** — Per-user call forwarding overrides and call intercept settings that override location-level defaults
+- **[Person Call Settings — Media](person-call-settings-media.md)** — Per-user voicemail settings, music on hold overrides, and call intercept at the person level
+- **[Person Call Settings — Behavior](person-call-settings-behavior.md)** — Per-user ECBN settings that override the location ECBN default

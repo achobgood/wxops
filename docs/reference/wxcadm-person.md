@@ -1142,6 +1142,33 @@ Accessed via `Person.single_number_reach` property.
 
 ---
 
+## Person Call Settings Coverage
+
+wxcadm covers **19 of the ~34 person call settings** available through the Webex Calling API. The following settings are **not implemented in wxcadm** and require wxc_sdk or direct Webex REST API calls:
+
+| Setting | Notes |
+|---------|-------|
+| Call Waiting | Not exposed |
+| Selective Call Forwarding (rules-based) | Not exposed |
+| Selective Call Acceptance | Not exposed |
+| Selective Call Rejection | Not exposed |
+| Anonymous Call Rejection (REST) | Available via XSI only (`person.xsi.anonymous_call_rejection`), not via REST API |
+| Sequential Ring | Not exposed |
+| Simultaneous Ring | Not exposed |
+| Priority Alert | Not exposed |
+| Incoming Call Notification | Not exposed |
+| Connected Line ID Restriction (COLR) | Not exposed |
+| Calling Line ID Restriction (CLIR) | Not exposed |
+| Music on Hold (person-level) | Not exposed |
+| Receptionist Client | Not exposed |
+| Call Bridge | Not exposed |
+| Agent Join/Unjoin (Call Queue specific) | Not exposed |
+| Executive settings (caller-side) | Executive Assistant is covered; the executive's own settings are not |
+
+For the complete person settings surface, see the wxc_sdk person-call-settings docs linked in [See Also](#see-also) below.
+
+---
+
 ## wxcadm vs wxc_sdk
 
 ### Structural Differences
@@ -1188,3 +1215,12 @@ These features have no direct wxc_sdk equivalent or are significantly more conve
 8. **`PersonList` filter memory** — `refresh()` re-runs with the same filters
 9. **Reverse hunt group/call queue lookups** — `person.hunt_groups` and `person.call_queues` search the org
 10. **`ApplicationLineAssignments`** — manages shared call appearances on the desktop client with `add()`, line labels, hotline, and call decline settings
+
+---
+
+## See Also
+
+- [person-call-settings-handling.md](person-call-settings-handling.md) — wxc_sdk call handling settings (forwarding, call waiting, sequential ring, simultaneous ring, selective forwarding/acceptance/rejection)
+- [person-call-settings-media.md](person-call-settings-media.md) — wxc_sdk media and recording settings (call recording, voicemail, music on hold)
+- [person-call-settings-permissions.md](person-call-settings-permissions.md) — wxc_sdk permissions and screening settings (outgoing permission, incoming permission, caller ID, anonymous call rejection)
+- [person-call-settings-behavior.md](person-call-settings-behavior.md) — wxc_sdk behavior and presence settings (calling behavior, DND, hoteling, barge-in, push-to-talk)

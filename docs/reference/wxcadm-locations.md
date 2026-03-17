@@ -915,3 +915,10 @@ def enable_email_copy(self, email: str) -> VoicemailGroup  # shortcut for update
 5. **Schedule management**: wxcadm exposes `LocationSchedule` objects with `add_holiday()`, `create_event()`, `clone()`, etc. wxc_sdk uses `api.telephony.schedules` with similar but flatter method signatures. <!-- NEEDS VERIFICATION -->
 
 6. **Bulk operations**: wxcadm's `LocationList.webex_calling()` uses a single bulk API call (`v1/telephony/config/locations`) for efficiency (added in v4.3.9). Earlier versions made per-location calls.
+
+---
+
+## See Also
+
+- [provisioning.md](provisioning.md) — wxc_sdk location provisioning patterns (creation, calling enablement, number assignment)
+- [location-call-settings-core.md](location-call-settings-core.md) — wxc_sdk location-level call settings (caller ID, voicemail, music on hold, outgoing permissions)

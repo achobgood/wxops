@@ -616,3 +616,10 @@ class PhoneNumberStatus(ApiModel):
 - SDK source: `wxc_sdk/telephony/virtual_line/__init__.py`
 - SDK source: `wxc_sdk/telephony/virtual_extensions/__init__.py`
 - SDK source: `wxc_sdk/person_settings/common.py` (ApiSelector, URL routing)
+
+---
+
+## See Also
+
+- **[devices-dect.md](devices-dect.md)** — DECT handset Line 2 supports VIRTUAL_LINE member type. Virtual lines can be assigned to DECT handsets as secondary lines.
+- **[emergency-services.md](emergency-services.md)** — Emergency callback number (ECBN) configuration for virtual lines. The `.ecbn` sub-API in the virtual line call settings table is documented in detail there.

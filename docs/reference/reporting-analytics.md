@@ -637,3 +637,10 @@ The SDK source code flags several discrepancies between Webex API documentation 
 - **Report quota:** The 50-report limit is hard. Always delete reports after downloading to avoid hitting the cap.
 - **Pro Pack requirement:** The Reports API (templates, create, list, download, delete) requires the Pro Pack license. The CDR Feed API does not require Pro Pack but does require the admin role to be explicitly enabled.
 - **Async download not implemented:** The SDK's async variant of `ReportsApi.download()` raises `NotImplementedError`. Use the sync API for report downloads.
+
+---
+
+## See Also
+
+- **[authentication.md](authentication.md)** — OAuth scopes and token management. CDR access requires `spark-admin:calling_cdr_read` with an explicit admin role; Reports API requires `analytics:read_all` with Pro Pack.
+- **[call-features-major.md](call-features-major.md)** — Call Queue and Auto Attendant configuration. CDR fields like `queue_type`, `auto_attendant_key_pressed`, and queue-related report templates correspond to features configured there.

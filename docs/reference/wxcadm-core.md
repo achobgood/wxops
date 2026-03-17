@@ -63,6 +63,7 @@ wxcadm.Webex(
 | `client_id` / `client_secret` / `refresh_token` | Needed only if you plan to call `get_new_token()` |
 | `org_id` | Pin `self.org` to a specific org (UUID or full Webex ID accepted) |
 | `auto_refresh_token` | Auto-refresh token when < 30 min from expiry. **Still in development -- do not use.** |
+| `get_xsi` | If True, calls `get_xsi_endpoints()` on the default Org during init, populating `org.xsi` with XSI endpoint URLs. Equivalent to calling `webex.org.get_xsi_endpoints()` after init. See [wxcadm-xsi-realtime.md](wxcadm-xsi-realtime.md) for details. **Note:** This parameter appears in the `Webex.__init__` kwargs and is passed through to Org creation, but is not listed in the explicit constructor signature above -- it is handled via `**kwargs`. |
 | `read_only` | If True, skips `GET /v1/organizations` (which needs admin scope) and discovers the org from `/v1/people/me` instead |
 
 **Init behavior:**
@@ -708,3 +709,10 @@ webex = wxcadm.Webex(
 new_token_info = webex.get_new_token()
 # The Webex instance is updated in-place with the new token
 ```
+
+---
+
+## See Also
+
+- [authentication.md](authentication.md) — wxc_sdk authentication patterns, token management, and Service App flows
+- [wxc-sdk-patterns.md](wxc-sdk-patterns.md) — wxc_sdk architectural patterns and API transport for comparison with wxcadm's `WebexApi`

@@ -1240,3 +1240,10 @@ Sets status to `'active'`. Returns `True` even if already active.
 | User Move Jobs | `v1/telephony/config/jobs/person/moveLocation` |
 | Rebuild Phones Jobs | `v1/telephony/config/jobs/devices/rebuildPhones` |
 | Webhooks | `v1/webhooks` |
+
+---
+
+## See Also
+
+- [call-routing.md](call-routing.md) — wxc_sdk call routing APIs (trunks, route groups, route lists, dial plans, translation patterns)
+- [reporting-analytics.md](reporting-analytics.md) — wxc_sdk reporting and CDR access patterns for comparison with wxcadm's CDR post-processing
