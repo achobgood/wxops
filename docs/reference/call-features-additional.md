@@ -36,7 +36,7 @@ api.telephony.voicemail_groups      # VoicemailGroupsApi
 api.telephony.cx_essentials         # CustomerExperienceEssentialsApi
 ```
 
-<!-- NEEDS VERIFICATION: exact attribute names on api.telephony for callpark, callpark_extension, callpickup -->
+<!-- Verified via CLI implementation 2026-03-17: attribute names api.telephony.callpark, api.telephony.callpark_extension, api.telephony.callpickup confirmed working -->
 
 ---
 
@@ -62,6 +62,8 @@ All APIs accept an optional `org_id` parameter, allowing partner administrators 
 Group Paging allows a person to place a **one-way call or group page** to up to **75 people and/or workspaces** by dialing a number or extension assigned to a specific paging group. The paging service makes a simultaneous call to all assigned targets.
 
 Use cases: overhead announcements, warehouse pages, emergency notifications to a group of phones.
+
+<!-- Verified via CLI implementation 2026-03-17: Paging Group create/update/delete all work as documented. No additional required fields beyond what the SDK model provides. -->
 
 ### SDK API Class
 
@@ -368,6 +370,8 @@ def update_call_park_settings(
 
 #### `RecallHuntGroup`
 
+<!-- Verified via CLI implementation 2026-03-17: Call Park create requires a recall option (e.g., RecallHuntGroup with option=ALERT_PARKING_USER_ONLY). Without recall, the API rejects the create request. -->
+
 | Field | Type | Notes |
 |-------|------|-------|
 | `hunt_group_id` | `str` | Hunt group ID for recall alternate destination |
@@ -516,6 +520,8 @@ Call Park Extensions do not have members. They are simple extension holders assi
 ---
 
 ## Call Pickup
+
+<!-- Verified via CLI implementation 2026-03-17: Call Pickup create/update/delete all work as documented. No additional required fields beyond what the SDK model provides. -->
 
 ### Overview
 
@@ -853,6 +859,8 @@ The `VoicemailGroupDetail.create()` factory sets these defaults:
 - `fax_message`: disabled
 - `transfer_to_number`: disabled
 - `email_copy_of_message`: disabled
+
+<!-- Verified via CLI implementation 2026-03-17: Voicemail Groups create requires all of: name, extension, passcode (6+ digits, no sequential/repeating patterns), languageCode, messageStorage, notifications, faxMessage, transferToNumber, emailCopyOfMessage. The wxc_sdk VoicemailGroupDetail.for_create() method has a bug — missing by_alias=True, which sends snake_case keys instead of camelCase, causing API rejection. Workaround: manually serialize with model_dump(by_alias=True, exclude_none=True). -->
 
 ### Phone Number / Extension Assignment
 

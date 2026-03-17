@@ -672,6 +672,8 @@ def details(
 
 #### `create(...)` — Create a schedule
 
+<!-- Verified via CLI implementation 2026-03-17: Schedule create/update works with just name + schedule_type for holidays type. No issues found — events can be added later via event_create(). -->
+
 ```python
 def create(
     self,
@@ -697,6 +699,8 @@ def update(
 ```
 
 > **Important:** The schedule ID **changes** if the schedule name is modified.
+
+<!-- Verified via CLI implementation 2026-03-17: Schedule IDs are name-derived (base64-encoded from the schedule name). Renaming a schedule changes its ID — the old ID returns 404 after rename. Always re-fetch the ID after a name change. -->
 
 **Required scope:** `spark-admin:telephony_config_write`
 

@@ -606,6 +606,7 @@ class OperatingModesApi:
     # --- Holiday management ---
     def holiday_details(self, mode_id: str, holiday_id: str, org_id: str = None) -> OperatingModeHoliday
     def holiday_create(self, mode_id: str, settings: OperatingModeHoliday, org_id: str = None) -> str  # returns holiday ID
+    # Verified via CLI implementation 2026-03-17: holiday_create requires start_date and end_date (not just date), plus all_day_enabled. Only HOLIDAY type operating modes accept holiday events.
     def holiday_update(self, mode_id: str, holiday_id: str, settings: OperatingModeHoliday, org_id: str = None)
     def holiday_delete(self, mode_id: str, holiday_id: str = None, org_id: str = None)
 
@@ -621,6 +622,7 @@ class OperatingModesApi:
 - **Max 100 operating modes per location** and 100 per org. `available_operating_modes()` returns up to 200 (location + org combined).
 - **Max 150 holidays per operating mode.**
 - The `create()` method requires at least `name`, `type`, and `level` on the `OperatingMode` object. If `level` is LOCATION, `location.id` must be set.
+<!-- Verified via CLI implementation 2026-03-17: Operating Modes create requires level=ORGANIZATION (or LOCATION with location.id). The type field must use the OperatingModeSchedule enum value (e.g., SAME_HOURS_DAILY, not the camelCase string "sameHoursDaily"). For SAME_HOURS_DAILY type, actual DaySchedule hours must be provided in same_hours_daily — the API rejects a create with no schedule data. -->
 - On `create()`, the SDK internally converts `location` to `locationId` and strips `id` from holidays. On `update()`, it additionally strips `type` and `level` (immutable after creation).
 - `call_forward_available_phone_numbers()` lists PSTN numbers available as forwarding destinations for operating modes at a given location.
 - The `list()` result is sorted ascending by operating mode name.

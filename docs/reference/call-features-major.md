@@ -59,6 +59,8 @@ Use an auto attendant when you need an IVR-style front door: "Press 1 for Sales,
 | `direct_line_caller_id_name` | `DirectLineCallerIdName` | No | Not supported in FedRAMP |
 | `dial_by_name` | `str` | No | Not supported in FedRAMP |
 
+<!-- Verified via CLI implementation 2026-03-17: Auto Attendant create requires businessHoursMenu and afterHoursMenu (each with greeting=DEFAULT, extensionEnabled=true, at least one keyConfiguration), AND businessSchedule referencing an existing schedule name. All three are mandatory for a successful create. -->
+
 **Convenience constructor:**
 ```python
 AutoAttendant.create(name="Main Menu",
@@ -186,6 +188,8 @@ CallQueue.create(name="Support Queue",
 ```
 
 #### `CallQueueCallPolicies`
+
+<!-- Verified via CLI implementation 2026-03-17: Call Queue create requires callPolicies with routingType and policy set. Without these, the API returns an error. -->
 
 | Field | Type | Notes |
 |-------|------|-------|
@@ -321,6 +325,8 @@ Agents can be people, workspaces, or virtual lines. The `Agent` model (from `hg_
 | `update_call_queue_settings()` | `update_call_queue_settings(id, settings: list[AgentCallQueueSetting], has_cx_essentials=None, org_id=None)` | Update an agent's join status across multiple queues |
 
 **Known SDK note:** The decoded value of the agent's `id` and the `type` returned are always `PEOPLE`, even for workspaces or virtual lines. This is a known platform issue. <!-- NEEDS VERIFICATION: check if this has been fixed in newer API versions -->
+
+<!-- Verified via CLI implementation 2026-03-17: Call Queue update — sending the full details object back fails because callingLineIdPolicy=CUSTOM with no phone number causes a validation error. Must use a partial CallQueue object with only the changed fields. -->
 
 **Adding/removing agents from a queue** (from examples):
 ```python
@@ -472,6 +478,8 @@ Use a hunt group when calls should ring agents directly without queuing (small t
 | **Delete** | `delete_huntgroup()` | `delete_huntgroup(location_id, huntgroup_id, org_id=None) -> None` |
 
 ### Key Data Models
+
+<!-- Verified via CLI implementation 2026-03-17: Hunt Group create/update/delete all work as documented. No additional required fields beyond what the SDK model provides. -->
 
 #### `HuntGroup` (extends `HGandCQ`)
 
