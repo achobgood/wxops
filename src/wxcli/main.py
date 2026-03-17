@@ -70,3 +70,24 @@ app.add_typer(locations_app, name="locations")
 app.add_typer(users_app, name="users")
 app.add_typer(numbers_app, name="numbers")
 app.add_typer(licenses_app, name="licenses")
+
+# v2: Call features
+from wxcli.commands.schedules import app as schedules_app
+from wxcli.commands.operating_modes import app as operating_modes_app
+from wxcli.commands.auto_attendants import app as auto_attendants_app
+from wxcli.commands.hunt_groups import app as hunt_groups_app
+from wxcli.commands.call_queues import app as call_queues_app
+from wxcli.commands.call_park import app as call_park_app
+from wxcli.commands.call_pickup import app as call_pickup_app
+from wxcli.commands.paging import app as paging_app
+from wxcli.commands.voicemail_groups import app as voicemail_groups_app
+
+app.add_typer(schedules_app, name="schedules")
+app.add_typer(operating_modes_app, name="operating-modes")
+app.add_typer(auto_attendants_app, name="auto-attendants")
+app.add_typer(hunt_groups_app, name="hunt-groups")
+app.add_typer(call_queues_app, name="call-queues")
+app.add_typer(call_park_app, name="call-park")
+app.add_typer(call_pickup_app, name="call-pickup")
+app.add_typer(paging_app, name="paging")
+app.add_typer(voicemail_groups_app, name="voicemail-groups")
