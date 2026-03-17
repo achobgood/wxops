@@ -2,6 +2,8 @@
 
 User, license, and location provisioning for Webex Calling via the `wxc_sdk` Python SDK.
 
+> **Prerequisite:** All examples assume a configured `WebexSimpleApi` instance. See `authentication.md` for token setup.
+
 ---
 
 ## Table of Contents
@@ -28,7 +30,7 @@ User, license, and location provisioning for Webex Calling via the `wxc_sdk` Pyt
 | List/view locations | `spark-admin:locations_read`, `spark-admin:people_read`, or `spark-admin:device_read` |
 | Create/update/delete locations | `spark-admin:locations_write` |
 | Delete organization | `spark-admin:organizations_write` |
-| Enable location for calling | `spark-admin:locations_write` <!-- NEEDS VERIFICATION --> |
+| Enable location for calling | `spark-admin:telephony_config_write` (and likely `spark-admin:locations_write`) |
 
 All provisioning operations require an **administrator auth token**. Non-admin tokens can only read people via `spark:people_read` with email or displayName filters.
 
@@ -758,7 +760,7 @@ You cannot assign a user to a location that does not exist. Create the location 
 
 ### 3. `location_id` is write-once for calling users
 
-You can set `location_id` when you first assign a calling license to a user. After that, `location_id` **cannot be changed** via the People API update. To move a user to a different location, you would need to remove the calling license, re-add it with the new location. <!-- NEEDS VERIFICATION -->
+You can set `location_id` when you first assign a calling license to a user. After that, `location_id` **cannot be changed** via the People API update. To move a user to a different location, you would need to remove the calling license, re-add it with the new location. <!-- NEEDS VERIFICATION — not yet tested via CLI -->
 
 ### 4. License ID assignment requires the full base64-encoded ID
 
@@ -803,3 +805,51 @@ After deleting a user, their phone numbers may not be immediately available for 
 ### 12. Location name length for calling
 
 Locations enabled for Webex Calling must have names of **80 characters or fewer**. The general Locations API allows 256, but calling features and Control Hub enforce the shorter limit.
+
+### 13. `enable_for_calling` requires lowercase language codes
+<!-- Verified via CLI implementation 2026-03-17 -->
+
+The telephony `enable_for_calling` API rejects `en_US` (mixed case) for `announcement_language` with error `Invalid Language Code`. Use `en_us` (all lowercase). The general Locations API stores `preferredLanguage` as `en_US` but the telephony backend expects lowercase.
+
+```python
+location = api.locations.details(location_id=loc_id)
+if not location.announcement_language:
+    location.announcement_language = (location.preferred_language or "en_US").lower()
+api.telephony.location.enable_for_calling(location=location)
+```
+
+### 14. `announcement_language` returns None from details endpoint
+<!-- Verified via CLI implementation 2026-03-17 -->
+
+`LocationsApi.details()` returns `announcement_language = None` even on locations that have it set. This is a Webex API inconsistency. Always set it explicitly before calling `enable_for_calling`.
+
+### 15. Cannot delete calling-enabled locations via API
+<!-- Verified via CLI implementation 2026-03-17 -->
+
+`LocationsApi.delete()` returns `409 Conflict: Location is being referenced, cannot be deleted` for any location with Webex Calling enabled. There is **no API to disable calling on a location** — `wxcadm` confirms: "There is currently no way to delete a Location outside of Control Hub." The `safe_delete_check_before_disabling_calling_location` precheck may return `UNBLOCKED` but the delete still fails due to the telephony reference.
+
+Calling-enabled locations can only be deleted from Control Hub.
+
+### 16. `PeopleApi.create()` takes a `Person` model, not kwargs
+<!-- Verified via CLI implementation 2026-03-17 -->
+
+```python
+from wxc_sdk.people import Person
+person = Person(emails=[email], first_name=first, last_name=last)
+result = api.people.create(settings=person)
+```
+
+Do NOT call `api.people.create(emails=[...], first_name=...)` — this raises `TypeError`.
+
+### 17. `SafeDeleteCheckResponse` uses `location_delete_status`, not `status`
+<!-- Verified via CLI implementation 2026-03-17 -->
+
+The response model field is `location_delete_status` (value: `"UNBLOCKED"` or `"BLOCKED"`), not `status`. The `blocking` field contains a model with `users_in_use_count`, `trunks_in_use_count`, etc.
+
+---
+
+## See Also
+
+- **`authentication.md`** — Token setup, OAuth flows, and scope reference.
+- **`wxc-sdk-patterns.md`** — Async bulk provisioning patterns (recipes 5.3, 5.4), workspace provisioning (recipe 5.12).
+- **`location-call-settings-core.md`** — Location calling enablement and location-level telephony configuration.
