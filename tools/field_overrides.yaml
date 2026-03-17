@@ -1,0 +1,98 @@
+# Known required fields and defaults discovered during v2 live testing
+
+"Features:  Auto Attendant":
+  create:
+    required_fields: [name, extension, businessHoursMenu, afterHoursMenu, businessSchedule]
+    defaults:
+      businessHoursMenu:
+        greeting: DEFAULT
+        extensionEnabled: true
+        keyConfigurations:
+          - key: "0"
+            action: EXIT
+      afterHoursMenu:
+        greeting: DEFAULT
+        extensionEnabled: true
+        keyConfigurations:
+          - key: "0"
+            action: EXIT
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Extension", "extension"]
+      - ["Enabled", "enabled"]
+
+"Features:  Call Queue":
+  create:
+    required_fields: [name, callPolicies]
+    defaults:
+      callPolicies:
+        routingType: PRIORITY_BASED
+        policy: CIRCULAR
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Extension", "extension"]
+      - ["Enabled", "enabled"]
+
+"Features:  Call Park":
+  create:
+    required_fields: [name, recall]
+    defaults:
+      recall:
+        option: ALERT_PARKING_USER_ONLY
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Name", "name"]
+
+"Features:  Hunt Group":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Extension", "extension"]
+      - ["Enabled", "enabled"]
+
+"Features:  Call Pickup":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Name", "name"]
+
+"Features:  Paging Group":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Extension", "extension"]
+      - ["Enabled", "enabled"]
+
+"Call Routing":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Type", "type"]
+
+"DECT Devices Settings":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Model", "model"]
+
+# Global settings
+skip_folders:
+  - "Beta *"
+  - "* (2/2)"
+  - "* Phase2"
+  - "* Phase3"
+  - "* Phase4"
+  - "Call Settings For Me *"
+  - "Read the Contact Center Extensions"
+
+omit_query_params:
+  - orgId

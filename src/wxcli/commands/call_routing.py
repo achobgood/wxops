@@ -1,0 +1,1616 @@
+import json
+import typer
+from wxc_sdk.rest import RestError
+from wxcli.auth import get_api
+from wxcli.output import print_table, print_json
+
+
+app = typer.Typer(help="Manage Webex Calling call-routing.")
+
+
+@app.command("test-call-routing")
+def test_call_routing(
+    originator_id: str = typer.Option(None, "--originator-id", help=""),
+    originator_type: str = typer.Option(None, "--originator-type", help="e.g. PEOPLE"),
+    destination: str = typer.Option(None, "--destination", help=""),
+    originator_number: str = typer.Option(None, "--originator-number", help=""),
+    include_applied_services: str = typer.Option(None, "--include-applied-services", help=""),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Test Call Routing."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/actions/testCallRouting/invoke"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if originator_id is not None:
+            body["originatorId"] = originator_id
+        if originator_type is not None:
+            body["originatorType"] = originator_type
+        if destination is not None:
+            body["destination"] = destination
+        if originator_number is not None:
+            body["originatorNumber"] = originator_number
+        if include_applied_services is not None:
+            body["includeAppliedServices"] = include_applied_services
+    try:
+        result = api.session.rest_post(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
+
+
+
+@app.command("list")
+def cmd_list(
+    trunk_id: str = typer.Argument(help="trunkId"),
+    start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
+    max: str = typer.Option(None, "--max", help="Limit the number of objects returned to this maximum count."),
+    order: str = typer.Option(None, "--order", help="Order the trunks according to the designated fields.  Availa"),
+    name: str = typer.Option(None, "--name", help="Return the list of trunks matching the local gateway names"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(50, "--limit", help="Max results"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Local Gateway Dial Plan Usage for a Trunk."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/trunks/{trunk_id}/usageDialPlan"
+    params = {}
+    if start is not None:
+        params["start"] = start
+    if max is not None:
+        params["max"] = max
+    if order is not None:
+        params["order"] = order
+    if name is not None:
+        params["name"] = name
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("usageDialPlan", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+
+
+
+@app.command("list-usage-pstn-connection")
+def list_usage_pstn_connection(
+    trunk_id: str = typer.Argument(help="trunkId"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(50, "--limit", help="Max results"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Locations Using the Local Gateway as PSTN Connection Routing."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/trunks/{trunk_id}/usagePstnConnection"
+    params = {}
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("usagePstnConnection", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+
+
+
+@app.command("list-usage-route-group")
+def list_usage_route_group(
+    trunk_id: str = typer.Argument(help="trunkId"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(50, "--limit", help="Max results"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Route Groups Using the Local Gateway."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/trunks/{trunk_id}/usageRouteGroup"
+    params = {}
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("usageRouteGroup", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+
+
+
+@app.command("list-usage")
+def list_usage(
+    trunk_id: str = typer.Argument(help="trunkId"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(50, "--limit", help="Max results"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Local Gateway Usage Count."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/trunks/{trunk_id}/usage"
+    params = {}
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("usage", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+
+
+
+@app.command("update")
+def update(
+    dial_plan_id: str = typer.Argument(help="dialPlanId"),
+    delete_all_dial_patterns: bool = typer.Option(None, "--delete-all-dial-patterns/--no-delete-all-dial-patterns", help=""),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Modify Dial Patterns."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/dialPlans/{dial_plan_id}/dialPatterns"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if delete_all_dial_patterns is not None:
+            body["deleteAllDialPatterns"] = delete_all_dial_patterns
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("validate-a-dial")
+def validate_a_dial(
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Validate a Dial Pattern."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/actions/validateDialPatterns/invoke"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+    try:
+        result = api.session.rest_post(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
+
+
+
+@app.command("list-dial-plans")
+def list_dial_plans(
+    dial_plan_name: str = typer.Option(None, "--dial-plan-name", help="Return the list of dial plans matching the dial plan name."),
+    route_group_name: str = typer.Option(None, "--route-group-name", help="Return the list of dial plans matching the Route group name."),
+    trunk_name: str = typer.Option(None, "--trunk-name", help="Return the list of dial plans matching the Trunk name.."),
+    max: str = typer.Option(None, "--max", help="Limit the number of objects returned to this maximum count."),
+    start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
+    order: str = typer.Option(None, "--order", help="Order the dial plans according to the designated fields.  Av"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(50, "--limit", help="Max results"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Read the List of Dial Plans."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/dialPlans"
+    params = {}
+    if dial_plan_name is not None:
+        params["dialPlanName"] = dial_plan_name
+    if route_group_name is not None:
+        params["routeGroupName"] = route_group_name
+    if trunk_name is not None:
+        params["trunkName"] = trunk_name
+    if max is not None:
+        params["max"] = max
+    if start is not None:
+        params["start"] = start
+    if order is not None:
+        params["order"] = order
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("dialPlans", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+
+
+
+@app.command("create")
+def create(
+    name: str = typer.Option(None, "--name", help=""),
+    route_id: str = typer.Option(None, "--route-id", help=""),
+    route_type: str = typer.Option(None, "--route-type", help="e.g. TRUNK"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Create a Dial Plan."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/dialPlans"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if name is not None:
+            body["name"] = name
+        if route_id is not None:
+            body["routeId"] = route_id
+        if route_type is not None:
+            body["routeType"] = route_type
+    try:
+        result = api.session.rest_post(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    else:
+        print_json(result)
+
+
+
+@app.command("show")
+def show(
+    dial_plan_id: str = typer.Argument(help="dialPlanId"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get a Dial Plan."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/dialPlans/{dial_plan_id}"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
+
+
+
+@app.command("update-dial-plans")
+def update_dial_plans(
+    dial_plan_id: str = typer.Argument(help="dialPlanId"),
+    name: str = typer.Option(None, "--name", help=""),
+    route_id: str = typer.Option(None, "--route-id", help=""),
+    route_type: str = typer.Option(None, "--route-type", help="e.g. TRUNK"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Modify a Dial Plan."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/dialPlans/{dial_plan_id}"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if name is not None:
+            body["name"] = name
+        if route_id is not None:
+            body["routeId"] = route_id
+        if route_type is not None:
+            body["routeType"] = route_type
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("delete")
+def delete(
+    dial_plan_id: str = typer.Argument(help="dialPlanId"),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Delete a Dial Plan."""
+    if not force:
+        typer.confirm(f"Delete {dial_plan_id}?", abort=True)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/dialPlans/{dial_plan_id}"
+    try:
+        api.session.rest_delete(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Deleted: {dial_plan_id}")
+
+
+
+@app.command("validate-local-gateway")
+def validate_local_gateway(
+    address: str = typer.Option(None, "--address", help=""),
+    domain: str = typer.Option(None, "--domain", help=""),
+    port: str = typer.Option(None, "--port", help=""),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Validate Local Gateway FQDN and Domain for a Trunk."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/trunks/actions/fqdnValidation/invoke"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if address is not None:
+            body["address"] = address
+        if domain is not None:
+            body["domain"] = domain
+        if port is not None:
+            body["port"] = port
+    try:
+        result = api.session.rest_post(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
+
+
+
+@app.command("list-trunks")
+def list_trunks(
+    name: str = typer.Option(None, "--name", help="Return the list of trunks matching the local gateway names."),
+    location_name: str = typer.Option(None, "--location-name", help="Return the list of trunks matching the location names."),
+    trunk_type: str = typer.Option(None, "--trunk-type", help="Return the list of trunks matching the trunk type."),
+    max: str = typer.Option(None, "--max", help="Limit the number of objects returned to this maximum count."),
+    start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
+    order: str = typer.Option(None, "--order", help="Order the trunks according to the designated fields.  Availa"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(50, "--limit", help="Max results"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Read the List of Trunks."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/trunks"
+    params = {}
+    if name is not None:
+        params["name"] = name
+    if location_name is not None:
+        params["locationName"] = location_name
+    if trunk_type is not None:
+        params["trunkType"] = trunk_type
+    if max is not None:
+        params["max"] = max
+    if start is not None:
+        params["start"] = start
+    if order is not None:
+        params["order"] = order
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("trunks", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+
+
+
+@app.command("create-trunks")
+def create_trunks(
+    name: str = typer.Option(None, "--name", help=""),
+    location_id: str = typer.Option(None, "--location-id", help=""),
+    password: str = typer.Option(None, "--password", help=""),
+    trunk_type: str = typer.Option(None, "--trunk-type", help="e.g. REGISTERING"),
+    dual_identity_support_enabled: bool = typer.Option(None, "--dual-identity-support-enabled/--no-dual-identity-support-enabled", help=""),
+    device_type: str = typer.Option(None, "--device-type", help=""),
+    address: str = typer.Option(None, "--address", help=""),
+    domain: str = typer.Option(None, "--domain", help=""),
+    port: str = typer.Option(None, "--port", help=""),
+    max_concurrent_calls: str = typer.Option(None, "--max-concurrent-calls", help=""),
+    p_charge_info_support_policy: str = typer.Option(None, "--p-charge-info-support-policy", help="e.g. ASSERTED_IDENTITY"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Create a Trunk."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/trunks"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if name is not None:
+            body["name"] = name
+        if location_id is not None:
+            body["locationId"] = location_id
+        if password is not None:
+            body["password"] = password
+        if trunk_type is not None:
+            body["trunkType"] = trunk_type
+        if dual_identity_support_enabled is not None:
+            body["dualIdentitySupportEnabled"] = dual_identity_support_enabled
+        if device_type is not None:
+            body["deviceType"] = device_type
+        if address is not None:
+            body["address"] = address
+        if domain is not None:
+            body["domain"] = domain
+        if port is not None:
+            body["port"] = port
+        if max_concurrent_calls is not None:
+            body["maxConcurrentCalls"] = max_concurrent_calls
+        if p_charge_info_support_policy is not None:
+            body["pChargeInfoSupportPolicy"] = p_charge_info_support_policy
+    try:
+        result = api.session.rest_post(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    else:
+        print_json(result)
+
+
+
+@app.command("show-trunks")
+def show_trunks(
+    trunk_id: str = typer.Argument(help="trunkId"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get a Trunk."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/trunks/{trunk_id}"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
+
+
+
+@app.command("update-trunks")
+def update_trunks(
+    trunk_id: str = typer.Argument(help="trunkId"),
+    name: str = typer.Option(None, "--name", help=""),
+    password: str = typer.Option(None, "--password", help=""),
+    dual_identity_support_enabled: bool = typer.Option(None, "--dual-identity-support-enabled/--no-dual-identity-support-enabled", help=""),
+    max_concurrent_calls: str = typer.Option(None, "--max-concurrent-calls", help=""),
+    p_charge_info_support_policy: str = typer.Option(None, "--p-charge-info-support-policy", help="e.g. ASSERTED_IDENTITY"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Modify a Trunk."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/trunks/{trunk_id}"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if name is not None:
+            body["name"] = name
+        if password is not None:
+            body["password"] = password
+        if dual_identity_support_enabled is not None:
+            body["dualIdentitySupportEnabled"] = dual_identity_support_enabled
+        if max_concurrent_calls is not None:
+            body["maxConcurrentCalls"] = max_concurrent_calls
+        if p_charge_info_support_policy is not None:
+            body["pChargeInfoSupportPolicy"] = p_charge_info_support_policy
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("delete-trunks")
+def delete_trunks(
+    trunk_id: str = typer.Argument(help="trunkId"),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Delete a Trunk."""
+    if not force:
+        typer.confirm(f"Delete {trunk_id}?", abort=True)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/trunks/{trunk_id}"
+    try:
+        api.session.rest_delete(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Deleted: {trunk_id}")
+
+
+
+@app.command("list-trunk-types")
+def list_trunk_types(
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(50, "--limit", help="Max results"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Read the List of Trunk Types."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/trunks/trunkTypes"
+    params = {}
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("trunkTypes", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+
+
+
+@app.command("list-route-groups")
+def list_route_groups(
+    name: str = typer.Option(None, "--name", help="Return the list of route groups matching the Route group nam"),
+    max: str = typer.Option(None, "--max", help="Limit the number of objects returned to this maximum count."),
+    start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
+    order: str = typer.Option(None, "--order", help="Order the route groups according to designated fields.  Avai"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(50, "--limit", help="Max results"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Read the List of Routing Groups."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/routeGroups"
+    params = {}
+    if name is not None:
+        params["name"] = name
+    if max is not None:
+        params["max"] = max
+    if start is not None:
+        params["start"] = start
+    if order is not None:
+        params["order"] = order
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("routeGroups", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+
+
+
+@app.command("create-route-groups")
+def create_route_groups(
+    name: str = typer.Option(None, "--name", help=""),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Create Route Group for a Organization."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/routeGroups"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if name is not None:
+            body["name"] = name
+    try:
+        result = api.session.rest_post(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    else:
+        print_json(result)
+
+
+
+@app.command("show-route-groups")
+def show_route_groups(
+    route_group_id: str = typer.Argument(help="routeGroupId"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Read a Route Group for a Organization."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/routeGroups/{route_group_id}"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
+
+
+
+@app.command("update-route-groups")
+def update_route_groups(
+    route_group_id: str = typer.Argument(help="routeGroupId"),
+    name: str = typer.Option(None, "--name", help=""),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Modify a Route Group for a Organization."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/routeGroups/{route_group_id}"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if name is not None:
+            body["name"] = name
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("delete-route-groups")
+def delete_route_groups(
+    route_group_id: str = typer.Argument(help="routeGroupId"),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Remove a Route Group from an Organization."""
+    if not force:
+        typer.confirm(f"Delete {route_group_id}?", abort=True)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/routeGroups/{route_group_id}"
+    try:
+        api.session.rest_delete(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Deleted: {route_group_id}")
+
+
+
+@app.command("list-usage")
+def list_usage(
+    route_group_id: str = typer.Argument(help="routeGroupId"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(50, "--limit", help="Max results"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Read the Usage of a Routing Group."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/routeGroups/{route_group_id}/usage"
+    params = {}
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("usage", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+
+
+
+@app.command("list-usage-call-to-extension")
+def list_usage_call_to_extension(
+    route_group_id: str = typer.Argument(help="routeGroupId"),
+    location_name: str = typer.Option(None, "--location-name", help="Return the list of locations matching the location name."),
+    max: str = typer.Option(None, "--max", help="Limit the number of objects returned to this maximum count."),
+    start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
+    order: str = typer.Option(None, "--order", help="Order the locations according to designated fields.  Availab"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(50, "--limit", help="Max results"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Read the Call to Extension Locations of a Routing Group."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/routeGroups/{route_group_id}/usageCallToExtension"
+    params = {}
+    if location_name is not None:
+        params["locationName"] = location_name
+    if max is not None:
+        params["max"] = max
+    if start is not None:
+        params["start"] = start
+    if order is not None:
+        params["order"] = order
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("usageCallToExtension", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+
+
+
+@app.command("list-usage-dial-plan")
+def list_usage_dial_plan(
+    route_group_id: str = typer.Argument(help="routeGroupId"),
+    location_name: str = typer.Option(None, "--location-name", help="Return the list of locations matching the location name."),
+    max: str = typer.Option(None, "--max", help="Limit the number of objects returned to this maximum count."),
+    start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
+    order: str = typer.Option(None, "--order", help="Order the locations according to designated fields.  Availab"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(50, "--limit", help="Max results"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Read the Dial Plan Locations of a Routing Group."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/routeGroups/{route_group_id}/usageDialPlan"
+    params = {}
+    if location_name is not None:
+        params["locationName"] = location_name
+    if max is not None:
+        params["max"] = max
+    if start is not None:
+        params["start"] = start
+    if order is not None:
+        params["order"] = order
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("usageDialPlan", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+
+
+
+@app.command("list-usage-pstn-connection")
+def list_usage_pstn_connection(
+    route_group_id: str = typer.Argument(help="routeGroupId"),
+    location_name: str = typer.Option(None, "--location-name", help="Return the list of locations matching the location name."),
+    max: str = typer.Option(None, "--max", help="Limit the number of objects returned to this maximum count."),
+    start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
+    order: str = typer.Option(None, "--order", help="Order the locations according to designated fields.  Availab"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(50, "--limit", help="Max results"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Read the PSTN Connection Locations of a Routing Group."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/routeGroups/{route_group_id}/usagePstnConnection"
+    params = {}
+    if location_name is not None:
+        params["locationName"] = location_name
+    if max is not None:
+        params["max"] = max
+    if start is not None:
+        params["start"] = start
+    if order is not None:
+        params["order"] = order
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("usagePstnConnection", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+
+
+
+@app.command("list-usage-route-list")
+def list_usage_route_list(
+    route_group_id: str = typer.Argument(help="routeGroupId"),
+    name: str = typer.Option(None, "--name", help="Return the list of locations matching the location name."),
+    max: str = typer.Option(None, "--max", help="Limit the number of objects returned to this maximum count."),
+    start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
+    order: str = typer.Option(None, "--order", help="Order the locations according to designated fields.  Availab"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(50, "--limit", help="Max results"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Read the Route Lists of a Routing Group."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/routeGroups/{route_group_id}/usageRouteList"
+    params = {}
+    if name is not None:
+        params["name"] = name
+    if max is not None:
+        params["max"] = max
+    if start is not None:
+        params["start"] = start
+    if order is not None:
+        params["order"] = order
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("usageRouteList", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+
+
+
+@app.command("list-route-lists")
+def list_route_lists(
+    start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
+    max: str = typer.Option(None, "--max", help="Limit the number of objects returned to this maximum count."),
+    order: str = typer.Option(None, "--order", help="Order the Route List according to the designated fields. Ava"),
+    name: str = typer.Option(None, "--name", help="Return the list of Route List matching the route list name."),
+    location_id: str = typer.Option(None, "--location-id", help="Return the list of Route Lists matching the location id."),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(50, "--limit", help="Max results"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Read the List of Route Lists."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/routeLists"
+    params = {}
+    if start is not None:
+        params["start"] = start
+    if max is not None:
+        params["max"] = max
+    if order is not None:
+        params["order"] = order
+    if name is not None:
+        params["name"] = name
+    if location_id is not None:
+        params["locationId"] = location_id
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("routeLists", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+
+
+
+@app.command("create-route-lists")
+def create_route_lists(
+    name: str = typer.Option(None, "--name", help=""),
+    location_id: str = typer.Option(None, "--location-id", help=""),
+    route_group_id: str = typer.Option(None, "--route-group-id", help=""),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Create a Route List."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/routeLists"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if name is not None:
+            body["name"] = name
+        if location_id is not None:
+            body["locationId"] = location_id
+        if route_group_id is not None:
+            body["routeGroupId"] = route_group_id
+    try:
+        result = api.session.rest_post(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    else:
+        print_json(result)
+
+
+
+@app.command("delete-route-lists")
+def delete_route_lists(
+    route_list_id: str = typer.Argument(help="routeListId"),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Delete a Route List."""
+    if not force:
+        typer.confirm(f"Delete {route_list_id}?", abort=True)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/routeLists/{route_list_id}"
+    try:
+        api.session.rest_delete(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Deleted: {route_list_id}")
+
+
+
+@app.command("show-route-lists")
+def show_route_lists(
+    route_list_id: str = typer.Argument(help="routeListId"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get a Route List."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/routeLists/{route_list_id}"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
+
+
+
+@app.command("update-route-lists")
+def update_route_lists(
+    route_list_id: str = typer.Argument(help="routeListId"),
+    name: str = typer.Option(None, "--name", help=""),
+    route_group_id: str = typer.Option(None, "--route-group-id", help=""),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Modify a Route List."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/routeLists/{route_list_id}"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if name is not None:
+            body["name"] = name
+        if route_group_id is not None:
+            body["routeGroupId"] = route_group_id
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("update-numbers")
+def update_numbers(
+    route_list_id: str = typer.Argument(help="routeListId"),
+    delete_all_numbers: bool = typer.Option(None, "--delete-all-numbers/--no-delete-all-numbers", help=""),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Modify Numbers for Route List."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/routeLists/{route_list_id}/numbers"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if delete_all_numbers is not None:
+            body["deleteAllNumbers"] = delete_all_numbers
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("list-numbers")
+def list_numbers(
+    route_list_id: str = typer.Argument(help="routeListId"),
+    start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
+    max: str = typer.Option(None, "--max", help="Limit the number of objects returned to this maximum count."),
+    number: str = typer.Option(None, "--number", help="Number assigned to the route list."),
+    order: str = typer.Option(None, "--order", help="Order the Route Lists according to number, ascending or desc"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(50, "--limit", help="Max results"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Numbers assigned to a Route List."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/routeLists/{route_list_id}/numbers"
+    params = {}
+    if start is not None:
+        params["start"] = start
+    if max is not None:
+        params["max"] = max
+    if number is not None:
+        params["number"] = number
+    if order is not None:
+        params["order"] = order
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("numbers", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+
+
+
+@app.command("list-usage-call-to-extension")
+def list_usage_call_to_extension(
+    trunk_id: str = typer.Argument(help="trunkId"),
+    start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
+    max: str = typer.Option(None, "--max", help="Limit the number of objects returned to this maximum count."),
+    order: str = typer.Option(None, "--order", help="Order the trunks according to the designated fields.  Availa"),
+    name: str = typer.Option(None, "--name", help="Return the list of trunks matching the local gateway names"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(50, "--limit", help="Max results"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Local Gateway Call to On-Premises Extension Usage for a Trunk."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/trunks/{trunk_id}/usageCallToExtension"
+    params = {}
+    if start is not None:
+        params["start"] = start
+    if max is not None:
+        params["max"] = max
+    if order is not None:
+        params["order"] = order
+    if name is not None:
+        params["name"] = name
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("usageCallToExtension", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+
+
+
+@app.command("create-translation-patterns")
+def create_translation_patterns(
+    name: str = typer.Option(None, "--name", help=""),
+    matching_pattern: str = typer.Option(None, "--matching-pattern", help=""),
+    replacement_pattern: str = typer.Option(None, "--replacement-pattern", help=""),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Create a Translation Pattern for an Organization."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/callRouting/translationPatterns"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if name is not None:
+            body["name"] = name
+        if matching_pattern is not None:
+            body["matchingPattern"] = matching_pattern
+        if replacement_pattern is not None:
+            body["replacementPattern"] = replacement_pattern
+    try:
+        result = api.session.rest_post(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    else:
+        print_json(result)
+
+
+
+@app.command("list-translation-patterns")
+def list_translation_patterns(
+    limit_to_location_id: str = typer.Option(None, "--limit-to-location-id", help="When a location ID is passed, then return only the correspon"),
+    limit_to_org_level_enabled: str = typer.Option(None, "--limit-to-org-level-enabled", help="When set to be `true`, then return only the organization-lev"),
+    max: str = typer.Option(None, "--max", help="Limit the number of objects returned to this maximum count."),
+    start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
+    order: str = typer.Option(None, "--order", help="Sort the list of translation patterns according to translati"),
+    name: str = typer.Option(None, "--name", help="Only return translation patterns with the matching `name`."),
+    matching_pattern: str = typer.Option(None, "--matching-pattern", help="Only return translation patterns with the matching `matching"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(50, "--limit", help="Max results"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Retrieve the list of Translation Patterns."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/callRouting/translationPatterns"
+    params = {}
+    if limit_to_location_id is not None:
+        params["limitToLocationId"] = limit_to_location_id
+    if limit_to_org_level_enabled is not None:
+        params["limitToOrgLevelEnabled"] = limit_to_org_level_enabled
+    if max is not None:
+        params["max"] = max
+    if start is not None:
+        params["start"] = start
+    if order is not None:
+        params["order"] = order
+    if name is not None:
+        params["name"] = name
+    if matching_pattern is not None:
+        params["matchingPattern"] = matching_pattern
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("translationPatterns", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+
+
+
+@app.command("show-translation-patterns")
+def show_translation_patterns(
+    translation_id: str = typer.Argument(help="translationId"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Retrieve a specific Translation Pattern for an Organization."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/callRouting/translationPatterns/{translation_id}"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
+
+
+
+@app.command("update-translation-patterns")
+def update_translation_patterns(
+    translation_id: str = typer.Argument(help="translationId"),
+    name: str = typer.Option(None, "--name", help=""),
+    matching_pattern: str = typer.Option(None, "--matching-pattern", help=""),
+    replacement_pattern: str = typer.Option(None, "--replacement-pattern", help=""),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Modify a specific Translation Pattern for an Organization."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/callRouting/translationPatterns/{translation_id}"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if name is not None:
+            body["name"] = name
+        if matching_pattern is not None:
+            body["matchingPattern"] = matching_pattern
+        if replacement_pattern is not None:
+            body["replacementPattern"] = replacement_pattern
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("delete-translation-patterns")
+def delete_translation_patterns(
+    translation_id: str = typer.Argument(help="translationId"),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Delete a specific Translation Pattern."""
+    if not force:
+        typer.confirm(f"Delete {translation_id}?", abort=True)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/callRouting/translationPatterns/{translation_id}"
+    try:
+        api.session.rest_delete(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Deleted: {translation_id}")
+
+
+
+@app.command("create-translation-patterns")
+def create_translation_patterns(
+    location_id: str = typer.Argument(help="locationId"),
+    name: str = typer.Option(None, "--name", help=""),
+    matching_pattern: str = typer.Option(None, "--matching-pattern", help=""),
+    replacement_pattern: str = typer.Option(None, "--replacement-pattern", help=""),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Create a Translation Pattern for a Location."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callRouting/translationPatterns"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if name is not None:
+            body["name"] = name
+        if matching_pattern is not None:
+            body["matchingPattern"] = matching_pattern
+        if replacement_pattern is not None:
+            body["replacementPattern"] = replacement_pattern
+    try:
+        result = api.session.rest_post(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    else:
+        print_json(result)
+
+
+
+@app.command("show-translation-patterns")
+def show_translation_patterns(
+    location_id: str = typer.Argument(help="locationId"),
+    translation_id: str = typer.Argument(help="translationId"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Retrieve a specific Translation Pattern for a Location."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callRouting/translationPatterns/{translation_id}"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
+
+
+
+@app.command("update-translation-patterns")
+def update_translation_patterns(
+    location_id: str = typer.Argument(help="locationId"),
+    translation_id: str = typer.Argument(help="translationId"),
+    name: str = typer.Option(None, "--name", help=""),
+    matching_pattern: str = typer.Option(None, "--matching-pattern", help=""),
+    replacement_pattern: str = typer.Option(None, "--replacement-pattern", help=""),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Modify a specific Translation Pattern for a Location."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callRouting/translationPatterns/{translation_id}"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if name is not None:
+            body["name"] = name
+        if matching_pattern is not None:
+            body["matchingPattern"] = matching_pattern
+        if replacement_pattern is not None:
+            body["replacementPattern"] = replacement_pattern
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("delete-translation-patterns")
+def delete_translation_patterns(
+    location_id: str = typer.Argument(help="locationId"),
+    translation_id: str = typer.Argument(help="translationId"),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Delete a specific Translation Pattern for a Location."""
+    if not force:
+        typer.confirm(f"Delete {translation_id}?", abort=True)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callRouting/translationPatterns/{translation_id}"
+    try:
+        api.session.rest_delete(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Deleted: {translation_id}")
+
+

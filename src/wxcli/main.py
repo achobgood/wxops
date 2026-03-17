@@ -91,3 +91,7 @@ app.add_typer(call_park_app, name="call-park")
 app.add_typer(call_pickup_app, name="call-pickup")
 app.add_typer(paging_app, name="paging")
 app.add_typer(voicemail_groups_app, name="voicemail-groups")
+
+# v3: Auto-generated from Postman collection
+from wxcli.commands.call_routing import app as call_routing_app
+app.add_typer(call_routing_app, name="call-routing")

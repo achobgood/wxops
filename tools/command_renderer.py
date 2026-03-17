@@ -1,0 +1,367 @@
+"""Render Endpoint objects into complete wxcli Typer command .py files."""
+import re
+from tools.postman_parser import Endpoint, EndpointField, camel_to_snake, camel_to_kebab
+
+
+BASE_URL = "https://webexapis.com/v1"
+
+# Existing v2 command modules — generate with _generated suffix to avoid collision
+V2_MODULES = {
+    "auto_attendants", "call_park", "call_pickup", "call_queues",
+    "hunt_groups", "operating_modes", "paging", "schedules",
+    "voicemail_groups", "locations", "users", "numbers", "licenses",
+    "configure",
+}
+
+
+def folder_name_to_module(folder_name: str) -> tuple[str, str]:
+    cleaned = re.sub(r"^Features:\s*", "", folder_name).strip()
+    cleaned = re.sub(r"\s*\(\d+/\d+\)", "", cleaned).strip()
+    slug = re.sub(r"[^a-zA-Z0-9]+", "_", cleaned).strip("_").lower()
+    cli_name = slug.replace("_", "-")
+    return slug, cli_name
+
+
+def _path_var_to_param(var: str) -> str:
+    return camel_to_snake(var)
+
+
+def _render_imports() -> str:
+    return '''import json
+import typer
+from wxc_sdk.rest import RestError
+from wxcli.auth import get_api
+from wxcli.output import print_table, print_json
+'''
+
+
+def _render_url_expr(url_path: str, path_vars: list[str]) -> str:
+    expr = f"{BASE_URL}/{url_path}"
+    for var in path_vars:
+        param = _path_var_to_param(var)
+        expr = expr.replace("{" + var + "}", "{" + param + "}")
+    return expr
+
+
+def _render_error_handler(indent: str = "    ") -> str:
+    return f'''{indent}except RestError as e:
+{indent}    if "25008" in str(e):
+{indent}        typer.echo(f"Error: Missing required field. {{e}}", err=True)
+{indent}        typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+{indent}    else:
+{indent}        typer.echo(f"Error: {{e}}", err=True)
+{indent}    raise typer.Exit(1)'''
+
+
+def _safe_func_name(command_name: str) -> str:
+    name = command_name.replace("-", "_")
+    if name in ("list", "type", "id", "format", "input", "print", "open", "set", "map", "filter"):
+        return f"cmd_{name}"
+    return name
+
+
+def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
+    func_name = _safe_func_name(ep.command_name)
+    params = []
+
+    for var in ep.path_vars:
+        param = _path_var_to_param(var)
+        params.append(f'    {param}: str = typer.Argument(help="{var}"),')
+
+    for qp in ep.query_params:
+        param = qp.python_name.replace("-", "_")
+        params.append(f'    {param}: str = typer.Option(None, "--{qp.python_name}", help="{qp.description[:60]}"),')
+
+    params.append('    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),')
+    params.append('    limit: int = typer.Option(50, "--limit", help="Max results"),')
+    params.append('    offset: int = typer.Option(0, "--offset", help="Start offset"),')
+    params.append('    debug: bool = typer.Option(False, "--debug"),')
+
+    url_expr = _render_url_expr(ep.url_path, ep.path_vars)
+
+    param_build = []
+    param_build.append("    params = {}")
+    for qp in ep.query_params:
+        param = qp.python_name.replace("-", "_")
+        param_build.append(f'    if {param} is not None:\n        params["{qp.name}"] = {param}')
+    param_build.append('    if limit > 0:\n        params["max"] = limit')
+    param_build.append('    if offset > 0:\n        params["start"] = offset')
+
+    list_key = ep.response_list_key or "items"
+
+    columns = folder_overrides.get("list", {}).get("table_columns", None)
+    if columns:
+        col_str = repr([(c[0], c[1]) for c in columns])
+    else:
+        col_str = '[("ID", "id"), ("Name", "name")]'
+
+    lines = [
+        f'@app.command("{ep.command_name}")',
+        f"def {func_name}(",
+        *params,
+        "):",
+        f'    """{ep.name}."""',
+        "    api = get_api(debug=debug)",
+        f'    url = f"{url_expr}"',
+        *param_build,
+        "    try:",
+        "        result = api.session.rest_get(url, params=params)",
+        _render_error_handler("    "),
+        f'    items = result.get("{list_key}", result if isinstance(result, list) else [])',
+        '    if output == "json":',
+        "        print_json(items)",
+        "    else:",
+        f"        print_table(items, columns={col_str}, limit=limit)",
+    ]
+    return "\n".join(lines)
+
+
+def _render_show_command(ep: Endpoint) -> str:
+    func_name = _safe_func_name(ep.command_name)
+    params = []
+    for var in ep.path_vars:
+        param = _path_var_to_param(var)
+        params.append(f'    {param}: str = typer.Argument(help="{var}"),')
+    params.append('    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),')
+    params.append('    debug: bool = typer.Option(False, "--debug"),')
+
+    url_expr = _render_url_expr(ep.url_path, ep.path_vars)
+
+    lines = [
+        f'@app.command("{ep.command_name}")',
+        f"def {func_name}(",
+        *params,
+        "):",
+        f'    """{ep.name}."""',
+        "    api = get_api(debug=debug)",
+        f'    url = f"{url_expr}"',
+        "    try:",
+        "        result = api.session.rest_get(url)",
+        _render_error_handler("    "),
+        "    print_json(result)",
+    ]
+    return "\n".join(lines)
+
+
+def _render_create_command(ep: Endpoint) -> str:
+    func_name = _safe_func_name(ep.command_name)
+    params = []
+    for var in ep.path_vars:
+        param = _path_var_to_param(var)
+        params.append(f'    {param}: str = typer.Argument(help="{var}"),')
+
+    for bf in ep.body_fields:
+        param = bf.python_name.replace("-", "_")
+        if bf.field_type == "object" or bf.field_type == "array":
+            continue
+        if bf.required:
+            if bf.field_type == "bool":
+                params.append(f'    {param}: bool = typer.Option(..., "--{bf.python_name}", help="{bf.description[:60]}"),')
+            else:
+                help_text = bf.description[:60]
+                if bf.enum_example:
+                    help_text = f"e.g. {bf.enum_example}"
+                params.append(f'    {param}: str = typer.Option(..., "--{bf.python_name}", help="{help_text}"),')
+        else:
+            if bf.field_type == "bool":
+                params.append(f'    {param}: bool = typer.Option(None, "--{bf.python_name}/--no-{bf.python_name}", help="{bf.description[:60]}"),')
+            else:
+                help_text = bf.description[:60]
+                if bf.enum_example:
+                    help_text = f"e.g. {bf.enum_example}"
+                params.append(f'    {param}: str = typer.Option(None, "--{bf.python_name}", help="{help_text}"),')
+
+    params.append('    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),')
+    params.append('    debug: bool = typer.Option(False, "--debug"),')
+
+    url_expr = _render_url_expr(ep.url_path, ep.path_vars)
+
+    body_build = ["    if json_body:", "        body = json.loads(json_body)", "    else:", "        body = {}"]
+    for bf in ep.body_fields:
+        param = bf.python_name.replace("-", "_")
+        if bf.field_type in ("object", "array"):
+            if bf.default is not None:
+                body_build.append(f"        body.setdefault({bf.name!r}, {bf.default!r})")
+            continue
+        if bf.field_type == "bool":
+            body_build.append(f'        if {param} is not None:\n            body["{bf.name}"] = {param}')
+        else:
+            body_build.append(f'        if {param} is not None:\n            body["{bf.name}"] = {param}')
+
+    lines = [
+        f'@app.command("{ep.command_name}")',
+        f"def {func_name}(",
+        *params,
+        "):",
+        f'    """{ep.name}."""',
+        "    api = get_api(debug=debug)",
+        f'    url = f"{url_expr}"',
+        *body_build,
+        "    try:",
+        "        result = api.session.rest_post(url, json=body)",
+        _render_error_handler("    "),
+        '    if isinstance(result, dict) and "id" in result:',
+        '        typer.echo(f"Created: {result[\'id\']}")',
+        "    else:",
+        "        print_json(result)",
+    ]
+    return "\n".join(lines)
+
+
+def _render_update_command(ep: Endpoint) -> str:
+    func_name = _safe_func_name(ep.command_name)
+    params = []
+    for var in ep.path_vars:
+        param = _path_var_to_param(var)
+        params.append(f'    {param}: str = typer.Argument(help="{var}"),')
+
+    for bf in ep.body_fields:
+        param = bf.python_name.replace("-", "_")
+        if bf.field_type in ("object", "array"):
+            continue
+        if bf.field_type == "bool":
+            params.append(f'    {param}: bool = typer.Option(None, "--{bf.python_name}/--no-{bf.python_name}", help="{bf.description[:60]}"),')
+        else:
+            help_text = bf.description[:60]
+            if bf.enum_example:
+                help_text = f"e.g. {bf.enum_example}"
+            params.append(f'    {param}: str = typer.Option(None, "--{bf.python_name}", help="{help_text}"),')
+
+    params.append('    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),')
+    params.append('    debug: bool = typer.Option(False, "--debug"),')
+
+    url_expr = _render_url_expr(ep.url_path, ep.path_vars)
+
+    body_build = ["    if json_body:", "        body = json.loads(json_body)", "    else:", "        body = {}"]
+    for bf in ep.body_fields:
+        param = bf.python_name.replace("-", "_")
+        if bf.field_type in ("object", "array"):
+            continue
+        body_build.append(f'        if {param} is not None:\n            body["{bf.name}"] = {param}')
+
+    lines = [
+        f'@app.command("{ep.command_name}")',
+        f"def {func_name}(",
+        *params,
+        "):",
+        f'    """{ep.name}."""',
+        "    api = get_api(debug=debug)",
+        f'    url = f"{url_expr}"',
+        *body_build,
+        "    try:",
+        "        result = api.session.rest_put(url, json=body)",
+        _render_error_handler("    "),
+        '    typer.echo(f"Updated.")',
+    ]
+    return "\n".join(lines)
+
+
+def _render_delete_command(ep: Endpoint) -> str:
+    func_name = _safe_func_name(ep.command_name)
+    params = []
+    for var in ep.path_vars:
+        param = _path_var_to_param(var)
+        params.append(f'    {param}: str = typer.Argument(help="{var}"),')
+    params.append('    force: bool = typer.Option(False, "--force", help="Skip confirmation"),')
+    params.append('    debug: bool = typer.Option(False, "--debug"),')
+
+    url_expr = _render_url_expr(ep.url_path, ep.path_vars)
+
+    id_var = _path_var_to_param(ep.path_vars[-1]) if ep.path_vars else "item"
+
+    lines = [
+        f'@app.command("{ep.command_name}")',
+        f"def {func_name}(",
+        *params,
+        "):",
+        f'    """{ep.name}."""',
+        "    if not force:",
+        f'        typer.confirm(f"Delete {{{id_var}}}?", abort=True)',
+        "    api = get_api(debug=debug)",
+        f'    url = f"{url_expr}"',
+        "    try:",
+        "        api.session.rest_delete(url)",
+        _render_error_handler("    "),
+        f'    typer.echo(f"Deleted: {{{id_var}}}")',
+    ]
+    return "\n".join(lines)
+
+
+def _render_action_command(ep: Endpoint) -> str:
+    func_name = _safe_func_name(ep.command_name)
+    params = []
+    for var in ep.path_vars:
+        param = _path_var_to_param(var)
+        params.append(f'    {param}: str = typer.Argument(help="{var}"),')
+
+    for bf in ep.body_fields:
+        param = bf.python_name.replace("-", "_")
+        if bf.field_type in ("object", "array"):
+            continue
+        help_text = bf.description[:60]
+        if bf.enum_example:
+            help_text = f"e.g. {bf.enum_example}"
+        params.append(f'    {param}: str = typer.Option(None, "--{bf.python_name}", help="{help_text}"),')
+
+    params.append('    json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),')
+    params.append('    debug: bool = typer.Option(False, "--debug"),')
+
+    url_expr = _render_url_expr(ep.url_path, ep.path_vars)
+
+    body_build = ["    if json_body:", "        body = json.loads(json_body)", "    else:", "        body = {}"]
+    for bf in ep.body_fields:
+        param = bf.python_name.replace("-", "_")
+        if bf.field_type in ("object", "array"):
+            continue
+        body_build.append(f'        if {param} is not None:\n            body["{bf.name}"] = {param}')
+
+    lines = [
+        f'@app.command("{ep.command_name}")',
+        f"def {func_name}(",
+        *params,
+        "):",
+        f'    """{ep.name}."""',
+        "    api = get_api(debug=debug)",
+        f'    url = f"{url_expr}"',
+        *body_build,
+        "    try:",
+        "        result = api.session.rest_post(url, json=body)",
+        _render_error_handler("    "),
+        "    print_json(result)",
+    ]
+    return "\n".join(lines)
+
+
+RENDERERS = {
+    "list": _render_list_command,
+    "show": _render_show_command,
+    "create": _render_create_command,
+    "update": _render_update_command,
+    "delete": _render_delete_command,
+    "settings-get": _render_show_command,
+    "settings-update": _render_update_command,
+    "action": _render_action_command,
+}
+
+
+def render_command_file(
+    folder_name: str, endpoints: list[Endpoint], folder_overrides: dict
+) -> str:
+    _, cli_name = folder_name_to_module(folder_name)
+    sections = [
+        _render_imports(),
+        f'app = typer.Typer(help="Manage Webex Calling {cli_name}.")\n',
+    ]
+
+    for ep in endpoints:
+        renderer = RENDERERS.get(ep.command_type)
+        if renderer is None:
+            sections.append(f"# SKIPPED: {ep.name} — unknown command type {ep.command_type}\n")
+            continue
+        if ep.command_type == "list":
+            sections.append(renderer(ep, folder_overrides))
+        else:
+            sections.append(renderer(ep))
+        sections.append("")
+
+    return "\n\n".join(sections) + "\n"
