@@ -1,6 +1,6 @@
 import typer
-from wxc_sdk.telephony.callqueue import CallQueue
-from wxc_sdk.telephony.hg_and_cq import Agent
+from wxc_sdk.telephony.callqueue import CallQueue, CallQueueCallPolicies, CQRoutingType
+from wxc_sdk.telephony.hg_and_cq import Agent, Policy
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 
@@ -62,10 +62,15 @@ def create_queue(
 ):
     """Create a new call queue."""
     api = get_api(debug=debug)
+    call_policies = CallQueueCallPolicies(
+        routing_type=CQRoutingType.priority_based,
+        policy=Policy.circular,
+    )
     settings = CallQueue(
         name=name,
         extension=extension,
         phone_number=phone_number,
+        call_policies=call_policies,
     )
     queue_id = api.telephony.callqueue.create(location_id=location_id, settings=settings)
     typer.echo(f"Created: {queue_id} ({name})")
@@ -83,16 +88,18 @@ def update_queue(
 ):
     """Update a call queue."""
     api = get_api(debug=debug)
-    queue = api.telephony.callqueue.details(location_id=location_id, queue_id=queue_id)
+    # Use partial object to avoid callingLineIdPolicy issue from full details
+    update_fields = {}
     if name is not None:
-        queue.name = name
+        update_fields["name"] = name
     if extension is not None:
-        queue.extension = extension
+        update_fields["extension"] = extension
     if phone_number is not None:
-        queue.phone_number = phone_number
+        update_fields["phone_number"] = phone_number
     if enabled is not None:
-        queue.enabled = enabled
-    api.telephony.callqueue.update(location_id=location_id, queue_id=queue_id, update=queue)
+        update_fields["enabled"] = enabled
+    update = CallQueue(**update_fields)
+    api.telephony.callqueue.update(location_id=location_id, queue_id=queue_id, update=update)
     typer.echo(f"Updated: {queue_id}")
 
 

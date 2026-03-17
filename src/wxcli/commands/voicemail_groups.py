@@ -1,5 +1,7 @@
 import typer
 from wxc_sdk.telephony.voicemail_groups import VoicemailGroupDetail
+from wxc_sdk.common import (VoicemailMessageStorage, StorageType, VoicemailNotifications,
+                             VoicemailFax, VoicemailTransferToNumber, VoicemailCopyOfMessage)
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 
@@ -56,6 +58,8 @@ def create_voicemail_group(
     location_id: str = typer.Option(..., "--location", help="Location ID"),
     name: str = typer.Option(..., "--name", help="Voicemail group name"),
     extension: str = typer.Option(..., "--extension", help="Extension number"),
+    passcode: str = typer.Option(..., "--passcode", help="Voicemail passcode (6+ digits, no repeating)"),
+    language_code: str = typer.Option("en_us", "--language", help="Language code"),
     enabled: bool = typer.Option(True, "--enabled/--disabled", help="Enable voicemail group"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -65,8 +69,22 @@ def create_voicemail_group(
         name=name,
         extension=extension,
         enabled=enabled,
+        passcode=passcode,
+        language_code=language_code,
+        message_storage=VoicemailMessageStorage(storage_type=StorageType.internal),
+        notifications=VoicemailNotifications(enabled=False),
+        fax_message=VoicemailFax(enabled=False),
+        transfer_to_number=VoicemailTransferToNumber(enabled=False),
+        email_copy_of_message=VoicemailCopyOfMessage(enabled=False),
     )
-    vg_id = api.telephony.voicemail_groups.create(location_id=location_id, settings=settings)
+    # Workaround: wxc_sdk for_create() missing by_alias=True, sends snake_case keys
+    body = settings.model_dump(mode='json', exclude_unset=True, by_alias=True,
+        include={'name', 'phone_number', 'extension', 'first_name', 'last_name', 'passcode',
+                 'language_code', 'message_storage', 'notifications', 'fax_message',
+                 'transfer_to_number', 'email_copy_of_message'})
+    url = api.telephony.voicemail_groups.ep(location_id)
+    data = api.telephony.voicemail_groups.post(url=url, json=body)
+    vg_id = data['id']
     typer.echo(f"Created: {vg_id} ({name})")
 
 

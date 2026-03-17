@@ -1,6 +1,6 @@
 import typer
 from typing import Optional
-from wxc_sdk.telephony.callpark import CallPark
+from wxc_sdk.telephony.callpark import CallPark, RecallHuntGroup, CallParkRecall
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 
@@ -61,7 +61,8 @@ def create_callpark(
 ):
     """Create a new call park group for a location."""
     api = get_api(debug=debug)
-    settings = CallPark(name=name)
+    recall = RecallHuntGroup(option=CallParkRecall.parking_user_only)
+    settings = CallPark(name=name, recall=recall)
     callpark_id = api.telephony.callpark.create(
         location_id=location_id,
         settings=settings,

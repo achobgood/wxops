@@ -1,5 +1,10 @@
 import typer
-from wxc_sdk.telephony.operating_modes import OperatingMode, OperatingModeHoliday, OperatingModeSchedule
+from datetime import date as date_type
+from wxc_sdk.telephony.operating_modes import (
+    OperatingMode, OperatingModeHoliday, OperatingModeSchedule,
+    SameHoursDaily, DaySchedule,
+)
+from wxc_sdk.common.schedules import ScheduleLevel
 
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
@@ -57,7 +62,14 @@ def create_operating_mode(
 ):
     """Create a new org-level operating mode."""
     api = get_api(debug=debug)
-    settings = OperatingMode(name=name, type=mode_type)
+    schedule_type = OperatingModeSchedule(mode_type)
+    kwargs = dict(name=name, type=schedule_type, level=ScheduleLevel.organization)
+    if schedule_type == OperatingModeSchedule.same_hours_daily:
+        kwargs["same_hours_daily"] = SameHoursDaily(
+            monday_to_friday=DaySchedule(enabled=True, all_day_enabled=True),
+            saturday_to_sunday=DaySchedule(enabled=False),
+        )
+    settings = OperatingMode(**kwargs)
     mode_id = api.telephony.operating_modes.create(settings=settings)
     typer.echo(f"Created: {mode_id} ({name})")
 
@@ -109,14 +121,20 @@ def available_operating_modes(
 def add_holiday(
     mode_id: str = typer.Argument(help="Operating mode ID"),
     name: str = typer.Option(..., "--name", help="Holiday name"),
-    date: str = typer.Option(..., "--date", help="Holiday date (YYYY-MM-DD)"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results (0 for all)"),
+    start_date: str = typer.Option(..., "--start-date", help="Start date (YYYY-MM-DD)"),
+    end_date: str = typer.Option(None, "--end-date", help="End date (YYYY-MM-DD), defaults to start date"),
+    all_day: bool = typer.Option(True, "--all-day/--no-all-day", help="All day event"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Add a holiday to an operating mode."""
     api = get_api(debug=debug)
-    settings = OperatingModeHoliday(name=name, date=date)
+    end = end_date or start_date
+    settings = OperatingModeHoliday(
+        name=name,
+        start_date=date_type.fromisoformat(start_date),
+        end_date=date_type.fromisoformat(end),
+        all_day_enabled=all_day,
+    )
     holiday_id = api.telephony.operating_modes.holiday_create(mode_id=mode_id, settings=settings)
     typer.echo(f"Created holiday: {holiday_id} ({name})")
 

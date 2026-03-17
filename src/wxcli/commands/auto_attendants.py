@@ -1,5 +1,8 @@
 import typer
-from wxc_sdk.telephony.autoattendant import AutoAttendant
+from wxc_sdk.telephony.autoattendant import (
+    AutoAttendant, AutoAttendantMenu, Greeting,
+    AutoAttendantKeyConfiguration, AutoAttendantAction,
+)
 
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
@@ -70,10 +73,21 @@ def create_auto_attendant(
     """Create a new auto attendant."""
     api = get_api(debug=debug)
 
+    default_key = AutoAttendantKeyConfiguration(
+        key="0",
+        action=AutoAttendantAction.exit,
+    )
+    default_menu = AutoAttendantMenu(
+        greeting=Greeting.default,
+        extension_enabled=True,
+        key_configurations=[default_key],
+    )
     settings = AutoAttendant(
         name=name,
         extension=extension,
         enabled=enabled,
+        business_hours_menu=default_menu,
+        after_hours_menu=default_menu,
     )
     if phone_number:
         settings.phone_number = phone_number
