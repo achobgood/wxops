@@ -115,36 +115,42 @@ def update_location(
     typer.echo(f"Updated: {location_id}")
 
 
-@app.command("disable-calling")
-def disable_calling(
-    location_id: str = typer.Argument(help="Location ID to disable calling on"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Disable Webex Calling on a location."""
-    api = get_api(debug=debug)
-    url = api.telephony.location.ep(location_id)
-    api.telephony.location.delete(url=url)
-    typer.echo(f"Disabled calling: {location_id}")
-
-
 @app.command("delete")
 def delete_location(
     location_id: str = typer.Argument(help="Location ID"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a location. Automatically disables Webex Calling first if enabled."""
+    """Delete a location. Runs precheck for calling-enabled locations."""
+    api = get_api(debug=debug)
+
+    # Run safe-delete precheck for calling locations
+    try:
+        check = api.telephony.location.safe_delete_check_before_disabling_calling_location(
+            location_id=location_id
+        )
+        if check.location_delete_status != "UNBLOCKED":
+            typer.echo(f"Cannot delete: location has active calling resources.", err=True)
+            blocking = check.blocking
+            if blocking:
+                b = blocking.model_dump() if hasattr(blocking, 'model_dump') else blocking
+                typer.echo(f"Blocking: {b}", err=True)
+            typer.echo("Remove users, numbers, and features from this location first.", err=True)
+            raise typer.Exit(1)
+    except RestError:
+        # Precheck fails for non-calling locations — that's fine, proceed
+        pass
+
     if not force:
         typer.confirm(f"Delete location {location_id}?", abort=True)
-    api = get_api(debug=debug)
+
     try:
         api.locations.delete(location_id=location_id)
     except RestError as e:
-        if e.response.status_code == 409 and "being referenced" in e.response.text:
-            typer.echo("Location has Webex Calling enabled — disabling calling first...")
-            url = api.telephony.location.ep(location_id)
-            api.telephony.location.delete(url=url)
-            api.locations.delete(location_id=location_id)
-        else:
-            raise
+        if e.response.status_code == 409 and "being referenced" in str(e):
+            typer.echo("Error: Cannot delete — location has Webex Calling enabled.", err=True)
+            typer.echo("Calling-enabled locations must be deleted from Control Hub.", err=True)
+            typer.echo("(The Webex API does not support disabling calling on a location.)", err=True)
+            raise typer.Exit(1)
+        raise
     typer.echo(f"Deleted: {location_id}")
