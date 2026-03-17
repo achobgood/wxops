@@ -1,0 +1,9 @@
+pyproject.toml
+src/wxcli/__init__.py
+src/wxcli/main.py
+src/wxcli.egg-info/PKG-INFO
+src/wxcli.egg-info/SOURCES.txt
+src/wxcli.egg-info/dependency_links.txt
+src/wxcli.egg-info/entry_points.txt
+src/wxcli.egg-info/requires.txt
+src/wxcli.egg-info/top_level.txt

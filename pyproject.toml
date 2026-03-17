@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wxcli"
+version = "0.1.0"
+description = "Webex Calling CLI — wraps wxc-sdk for terminal-based provisioning"
+requires-python = ">=3.11"
+dependencies = [
+    "typer[all]>=0.9.0",
+    "wxc-sdk>=1.20.0",
+]
+
+[project.scripts]
+wxcli = "wxcli.main:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
