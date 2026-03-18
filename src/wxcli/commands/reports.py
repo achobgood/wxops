@@ -16,7 +16,7 @@ def cmd_list(
     from_param: str = typer.Option(None, "--from", help="List reports that were created on or after this date."),
     to: str = typer.Option(None, "--to", help="List reports that were created before this date."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

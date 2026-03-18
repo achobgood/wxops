@@ -45,8 +45,8 @@ def create(
 
 
 
-@app.command("create-answer")
-def create_answer(
+@app.command("create-answer-calls")
+def create_answer_calls(
     call_id: str = typer.Option(None, "--call-id", help=""),
     endpoint_id: str = typer.Option(None, "--endpoint-id", help=""),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help=""),
@@ -119,8 +119,8 @@ def create_reject(
 
 
 
-@app.command("create-hangup")
-def create_hangup(
+@app.command("create-hangup-calls")
+def create_hangup_calls(
     call_id: str = typer.Option(None, "--call-id", help=""),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help=""),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -731,7 +731,7 @@ def create_barge_in(
 def cmd_list(
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -758,7 +758,7 @@ def cmd_list(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('Call ID', 'callId'), ('Personality', 'personality'), ('State', 'state'), ('Remote Party', 'remoteParty.name')], limit=limit)
 
 
 
@@ -788,7 +788,7 @@ def show(
 def list_history(
     type_param: str = typer.Option(None, "--type", help="The type of call history records to retrieve. If not specifi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -815,7 +815,7 @@ def list_history(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Direction', 'direction'), ('Call Type', 'callType'), ('Start', 'startTime')], limit=limit)
 
 
 
@@ -854,8 +854,8 @@ def create_dial(
 
 
 
-@app.command("create-answer")
-def create_answer(
+@app.command("create-answer-members")
+def create_answer_members(
     member_id: str = typer.Argument(help="memberId"),
     call_id: str = typer.Option(None, "--call-id", help=""),
     endpoint_id: str = typer.Option(None, "--endpoint-id", help=""),
@@ -889,8 +889,8 @@ def create_answer(
 
 
 
-@app.command("create-hangup")
-def create_hangup(
+@app.command("create-hangup-members")
+def create_hangup_members(
     member_id: str = typer.Argument(help="memberId"),
     call_id: str = typer.Option(None, "--call-id", help=""),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -925,7 +925,7 @@ def create_hangup(
 def list_calls(
     member_id: str = typer.Argument(help="memberId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -950,7 +950,7 @@ def list_calls(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('Call ID', 'callId'), ('Personality', 'personality'), ('State', 'state')], limit=limit)
 
 
 

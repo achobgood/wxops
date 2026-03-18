@@ -448,24 +448,17 @@ def update_caller_id(
 
 
 
-@app.command("list")
-def cmd_list(
+@app.command("show-calling-behavior")
+def show_calling_behavior(
     person_id: str = typer.Argument(help="personId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Read Person's Calling Behavior."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/people/{person_id}/features/callingBehavior"
-    params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -473,11 +466,7 @@ def cmd_list(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("callingBehavior", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    print_json(result)
 
 
 
@@ -837,8 +826,8 @@ def update_outgoing_permission(
 
 
 
-@app.command("list-numbers")
-def list_numbers(
+@app.command("list")
+def cmd_list(
     person_id: str = typer.Argument(help="personId"),
     prefer_e164_format: str = typer.Option(None, "--prefer-e164-format", help="Return phone numbers in E.164 format."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
@@ -865,7 +854,7 @@ def list_numbers(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("phoneNumbers", result if isinstance(result, list) else [])
+    items = result.get("numbers", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -1082,7 +1071,7 @@ def list_schedules(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type'), ('Level', 'level')], limit=limit)
 
 
 

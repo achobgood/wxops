@@ -22,7 +22,7 @@ def cmd_list(
     has_extension_assigned: str = typer.Option(None, "--has-extension-assigned", help="If `true`, includes only virtual lines with an extension ass"),
     has_dn_assigned: str = typer.Option(None, "--has-dn-assigned", help="If `true`, includes only virtual lines with an assigned dire"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -291,7 +291,7 @@ def update_virtual_lines(
 def list_number(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -353,7 +353,7 @@ def update_directory_search(
 def list_devices(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -386,7 +386,7 @@ def list_devices(
 def list_dect_networks(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -437,8 +437,8 @@ def show_caller_id(
 
 
 
-@app.command("update-caller-id")
-def update_caller_id(
+@app.command("update-caller-id-virtual-lines")
+def update_caller_id_virtual_lines(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     selected: str = typer.Option(None, "--selected", help="e.g. CUSTOM"),
     custom_number: str = typer.Option(None, "--custom-number", help=""),
@@ -716,7 +716,7 @@ def update_outgoing_permission(
 def list_access_codes(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -830,24 +830,17 @@ def delete_access_codes(
 
 
 
-@app.command("list-auto-transfer-numbers")
-def list_auto_transfer_numbers(
+@app.command("show-auto-transfer-numbers")
+def show_auto_transfer_numbers(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Retrieve Transfer Numbers for a Virtual Line."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/virtualLines/{virtual_line_id}/outgoingPermission/autoTransferNumbers"
-    params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -855,11 +848,7 @@ def list_auto_transfer_numbers(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("autoTransferNumbers", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    print_json(result)
 
 
 
@@ -905,7 +894,7 @@ def update_auto_transfer_numbers(
 def list_digit_patterns(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -975,8 +964,8 @@ def create_digit_patterns(
 
 
 
-@app.command("update-digit-patterns")
-def update_digit_patterns(
+@app.command("update-digit-patterns-outgoing-permission")
+def update_digit_patterns_outgoing_permission(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     use_custom_digit_patterns: bool = typer.Option(None, "--use-custom-digit-patterns/--no-use-custom-digit-patterns", help=""),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -1004,8 +993,8 @@ def update_digit_patterns(
 
 
 
-@app.command("delete-digit-patterns")
-def delete_digit_patterns(
+@app.command("delete-digit-patterns-outgoing-permission")
+def delete_digit_patterns_outgoing_permission(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1051,8 +1040,8 @@ def show_digit_patterns(
 
 
 
-@app.command("update-digit-patterns")
-def update_digit_patterns(
+@app.command("update-digit-patterns-outgoing-permission-1")
+def update_digit_patterns_outgoing_permission_1(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     digit_pattern_id: str = typer.Argument(help="digitPatternId"),
     name: str = typer.Option(None, "--name", help=""),
@@ -1090,8 +1079,8 @@ def update_digit_patterns(
 
 
 
-@app.command("delete-digit-patterns")
-def delete_digit_patterns(
+@app.command("delete-digit-patterns-outgoing-permission-1")
+def delete_digit_patterns_outgoing_permission_1(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     digit_pattern_id: str = typer.Argument(help="digitPatternId"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
@@ -1196,7 +1185,7 @@ def configure_call_intercept(
 def list_available_caller_ids(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1229,7 +1218,7 @@ def list_available_caller_ids(
 def list_caller_id(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1258,8 +1247,8 @@ def list_caller_id(
 
 
 
-@app.command("update-caller-id")
-def update_caller_id(
+@app.command("update-caller-id-agent")
+def update_caller_id_agent(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     selected_caller_id: str = typer.Option(None, "--selected-caller-id", help=""),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -1721,14 +1710,14 @@ def update_privacy(
 
 
 
-@app.command("list-available-numbers")
-def list_available_numbers(
+@app.command("list-available-numbers-fax-message")
+def list_available_numbers_fax_message(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     max: str = typer.Option(None, "--max", help="Limit the number of phone numbers returned to this maximum c"),
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1763,8 +1752,8 @@ def list_available_numbers(
 
 
 
-@app.command("list-available-numbers")
-def list_available_numbers(
+@app.command("list-available-numbers-call-forwarding")
+def list_available_numbers_call_forwarding(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     max: str = typer.Option(None, "--max", help="Limit the number of phone numbers returned to this maximum c"),
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
@@ -1772,7 +1761,7 @@ def list_available_numbers(
     owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
     extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `exten"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1811,14 +1800,14 @@ def list_available_numbers(
 
 
 
-@app.command("list-available-numbers")
-def list_available_numbers(
+@app.command("list-available-numbers-virtual-lines")
+def list_available_numbers_virtual_lines(
     location_id: str = typer.Option(None, "--location-id", help="Return the list of phone numbers for this location within th"),
     max: str = typer.Option(None, "--max", help="Limit the number of phone numbers returned to this maximum c"),
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1855,15 +1844,15 @@ def list_available_numbers(
 
 
 
-@app.command("list-available-numbers")
-def list_available_numbers(
+@app.command("list-available-numbers-emergency-callback-number")
+def list_available_numbers_emergency_callback_number(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     max: str = typer.Option(None, "--max", help="Limit the number of phone numbers returned to this maximum c"),
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
     owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1900,8 +1889,8 @@ def list_available_numbers(
 
 
 
-@app.command("list-available-numbers")
-def list_available_numbers(
+@app.command("list-available-numbers-call-intercept")
+def list_available_numbers_call_intercept(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     max: str = typer.Option(None, "--max", help="Limit the number of phone numbers returned to this maximum c"),
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
@@ -1909,7 +1898,7 @@ def list_available_numbers(
     owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
     extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `exten"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

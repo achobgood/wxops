@@ -212,7 +212,7 @@ def cmd_list(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('Phone Number', 'phoneNumber'), ('Extension', 'extension'), ('State', 'state'), ('Owner Type', 'owner.type'), ('Owner Name', 'owner.firstName')], limit=limit)
 
 
 
@@ -250,7 +250,7 @@ def list_manage_numbers(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Operation', 'operationType'), ('Status', 'latestExecutionStatus')], limit=limit)
 
 
 

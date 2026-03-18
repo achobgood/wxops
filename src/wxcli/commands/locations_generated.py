@@ -14,7 +14,7 @@ def cmd_list(
     id_param: str = typer.Option(None, "--id", help="List locations by ID."),
     max: str = typer.Option(None, "--max", help="Limit the maximum number of location in the response."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -159,7 +159,7 @@ def update(
 def list_floors(
     location_id: str = typer.Argument(help="locationId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

@@ -90,13 +90,31 @@ def parse_body_fields(raw_body: str | None) -> list[EndpointField]:
 
 
 SETTINGS_KEYWORDS = {
+    # General settings patterns
     "settings", "service", "forwarding", "musiconhold", "nightservice",
     "holidayservice", "forcedforward", "strandedcalls", "musicOnHold",
+    # Emergency services (flat singleton responses)
+    "redSky", "emergencyCallbackNumber", "emergencyCallNotification",
+    # Location call settings (flat singletons)
+    "internalDialing", "intercept", "voicePortal", "passcodeRules",
+    "autoTransferNumbers", "voicemail",
+    # Person/workspace call settings (flat singletons)
+    "callingBehavior",
+    # Call recording
+    "complianceAnnouncement",
+    # Device settings
+    "layout",
+    # PSTN
+    "connection",
+    # Misc singletons (scalar/flat dict responses)
+    "complianceStatus", "usage", "count",
 }
 
 SETTINGS_NAME_KEYWORDS = [
     "settings", "service", "forwarding", "music on hold", "night service",
     "holiday service", "forced forward", "stranded calls",
+    "internal dialing", "voice portal", "passcode rules",
+    "auto transfer number", "compliance announcement", "calling behavior",
 ]
 
 
@@ -271,6 +289,8 @@ def load_overrides(path: str | Path) -> dict:
 def apply_overrides(
     fields: list[EndpointField], command_type: str, folder_overrides: dict
 ) -> list[EndpointField]:
+    if not folder_overrides:
+        return fields
     cmd_overrides = folder_overrides.get(command_type, {})
     required = set(cmd_overrides.get("required_fields", []))
     defaults = cmd_overrides.get("defaults", {})
@@ -283,7 +303,17 @@ def apply_overrides(
 
 
 def apply_endpoint_overrides(ep: 'Endpoint', folder_overrides: dict) -> None:
-    """Apply folder-level overrides to an endpoint (e.g. response_list_key)."""
+    """Apply folder-level overrides to an endpoint (e.g. command_type, response_list_key)."""
+    if not folder_overrides:
+        return
+    # Command type overrides (e.g. reclassify list → settings-get for singletons)
+    type_overrides = folder_overrides.get("command_type_overrides", {})
+    if ep.command_name in type_overrides:
+        new_type = type_overrides[ep.command_name]
+        ep.command_type = new_type
+        if new_type in ("settings-get", "show"):
+            ep.response_list_key = None
+    # Response list key overrides
     if ep.command_type == "list":
         keys_map = folder_overrides.get("response_list_keys", {})
         if ep.command_name in keys_map:

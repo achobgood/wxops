@@ -11,7 +11,7 @@ app = typer.Typer(help="Manage Webex Calling call-settings-for-me.")
 @app.command("list")
 def cmd_list(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -86,10 +86,10 @@ def update(
 
 
 
-@app.command("list-available-preferred-answer-endpoints")
-def list_available_preferred_answer_endpoints(
+@app.command("list-available-preferred-answer-endpoints-settings")
+def list_available_preferred_answer_endpoints_settings(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -118,11 +118,11 @@ def list_available_preferred_answer_endpoints(
 
 
 
-@app.command("list-available-preferred-answer-endpoints")
-def list_available_preferred_answer_endpoints(
+@app.command("list-available-preferred-answer-endpoints-secondary-lines")
+def list_available_preferred_answer_endpoints_secondary_lines(
     line_owner_id: str = typer.Argument(help="lineOwnerId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -151,10 +151,10 @@ def list_available_preferred_answer_endpoints(
 
 
 
-@app.command("list-preferred-answer-endpoint")
-def list_preferred_answer_endpoint(
+@app.command("list-preferred-answer-endpoint-settings")
+def list_preferred_answer_endpoint_settings(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -183,8 +183,8 @@ def list_preferred_answer_endpoint(
 
 
 
-@app.command("update-preferred-answer-endpoint")
-def update_preferred_answer_endpoint(
+@app.command("update-preferred-answer-endpoint-settings")
+def update_preferred_answer_endpoint_settings(
     preferred_answer_endpoint_id: str = typer.Option(None, "--preferred-answer-endpoint-id", help=""),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -211,11 +211,11 @@ def update_preferred_answer_endpoint(
 
 
 
-@app.command("list-preferred-answer-endpoint")
-def list_preferred_answer_endpoint(
+@app.command("list-preferred-answer-endpoint-secondary-lines")
+def list_preferred_answer_endpoint_secondary_lines(
     line_owner_id: str = typer.Argument(help="lineOwnerId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -244,8 +244,8 @@ def list_preferred_answer_endpoint(
 
 
 
-@app.command("update-preferred-answer-endpoint")
-def update_preferred_answer_endpoint(
+@app.command("update-preferred-answer-endpoint-secondary-lines")
+def update_preferred_answer_endpoint_secondary_lines(
     line_owner_id: str = typer.Argument(help="lineOwnerId"),
     preferred_answer_endpoint_id: str = typer.Option(None, "--preferred-answer-endpoint-id", help=""),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -322,8 +322,8 @@ def update_webex_go_override(
 
 
 
-@app.command("show-caller-id")
-def show_caller_id(
+@app.command("show-caller-id-settings")
+def show_caller_id_settings(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -343,8 +343,8 @@ def show_caller_id(
 
 
 
-@app.command("update-caller-id")
-def update_caller_id(
+@app.command("update-caller-id-settings")
+def update_caller_id_settings(
     calling_line_id_delivery_blocking_enabled: bool = typer.Option(None, "--calling-line-id-delivery-blocking-enabled/--no-calling-line-id-delivery-blocking-enabled", help=""),
     connected_line_identification_restriction_enabled: bool = typer.Option(None, "--connected-line-identification-restriction-enabled/--no-connected-line-identification-restriction-enabled", help=""),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -374,8 +374,8 @@ def update_caller_id(
 
 
 
-@app.command("show-caller-id")
-def show_caller_id(
+@app.command("show-caller-id-secondary-lines")
+def show_caller_id_secondary_lines(
     lineowner_id: str = typer.Argument(help="lineownerId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -396,8 +396,8 @@ def show_caller_id(
 
 
 
-@app.command("update-caller-id")
-def update_caller_id(
+@app.command("update-caller-id-secondary-lines")
+def update_caller_id_secondary_lines(
     lineowner_id: str = typer.Argument(help="lineownerId"),
     calling_line_id_delivery_blocking_enabled: bool = typer.Option(None, "--calling-line-id-delivery-blocking-enabled/--no-calling-line-id-delivery-blocking-enabled", help=""),
     connected_line_identification_restriction_enabled: bool = typer.Option(None, "--connected-line-identification-restriction-enabled/--no-connected-line-identification-restriction-enabled", help=""),
@@ -428,8 +428,8 @@ def update_caller_id(
 
 
 
-@app.command("show-selected-caller-id")
-def show_selected_caller_id(
+@app.command("show-selected-caller-id-settings")
+def show_selected_caller_id_settings(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -449,8 +449,8 @@ def show_selected_caller_id(
 
 
 
-@app.command("update-selected-caller-id")
-def update_selected_caller_id(
+@app.command("update-selected-caller-id-settings")
+def update_selected_caller_id_settings(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -474,8 +474,8 @@ def update_selected_caller_id(
 
 
 
-@app.command("show-selected-caller-id")
-def show_selected_caller_id(
+@app.command("show-selected-caller-id-secondary-lines")
+def show_selected_caller_id_secondary_lines(
     lineowner_id: str = typer.Argument(help="lineownerId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -496,8 +496,8 @@ def show_selected_caller_id(
 
 
 
-@app.command("update-selected-caller-id")
-def update_selected_caller_id(
+@app.command("update-selected-caller-id-secondary-lines")
+def update_selected_caller_id_secondary_lines(
     lineowner_id: str = typer.Argument(help="lineownerId"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -522,10 +522,10 @@ def update_selected_caller_id(
 
 
 
-@app.command("list-available-caller-ids")
-def list_available_caller_ids(
+@app.command("list-available-caller-ids-settings")
+def list_available_caller_ids_settings(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -554,11 +554,11 @@ def list_available_caller_ids(
 
 
 
-@app.command("list-available-caller-ids")
-def list_available_caller_ids(
+@app.command("list-available-caller-ids-secondary-lines")
+def list_available_caller_ids_secondary_lines(
     lineowner_id: str = typer.Argument(help="lineownerId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -590,7 +590,7 @@ def list_available_caller_ids(
 @app.command("list-endpoints")
 def list_endpoints(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -667,8 +667,8 @@ def update_endpoints(
 
 
 
-@app.command("show-call-recording")
-def show_call_recording(
+@app.command("show-call-recording-settings")
+def show_call_recording_settings(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -688,8 +688,8 @@ def show_call_recording(
 
 
 
-@app.command("show-call-recording")
-def show_call_recording(
+@app.command("show-call-recording-secondary-lines")
+def show_call_recording_secondary_lines(
     lineowner_id: str = typer.Argument(help="lineownerId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -713,7 +713,7 @@ def show_call_recording(
 @app.command("list-me")
 def list_me(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -742,10 +742,10 @@ def list_me(
 
 
 
-@app.command("list-feature-access-code")
-def list_feature_access_code(
+@app.command("list-feature-access-code-settings")
+def list_feature_access_code_settings(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -774,11 +774,11 @@ def list_feature_access_code(
 
 
 
-@app.command("list-feature-access-code")
-def list_feature_access_code(
+@app.command("list-feature-access-code-secondary-lines")
+def list_feature_access_code_secondary_lines(
     lineowner_id: str = typer.Argument(help="lineownerId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -810,7 +810,7 @@ def list_feature_access_code(
 @app.command("list-assigned-assistants")
 def list_assigned_assistants(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -870,7 +870,7 @@ def update_assigned_assistants(
 @app.command("list-available-assistants")
 def list_available_assistants(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -951,8 +951,8 @@ def update_assistant(
 
 
 
-@app.command("show-services")
-def show_services(
+@app.command("show-services-settings")
+def show_services_settings(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -972,8 +972,8 @@ def show_services(
 
 
 
-@app.command("show-services")
-def show_services(
+@app.command("show-services-secondary-lines")
+def show_services_secondary_lines(
     lineowner_id: str = typer.Argument(help="lineownerId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1151,8 +1151,8 @@ def delete(
 
 
 
-@app.command("show-call-forwarding")
-def show_call_forwarding(
+@app.command("show-call-forwarding-settings")
+def show_call_forwarding_settings(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1172,8 +1172,8 @@ def show_call_forwarding(
 
 
 
-@app.command("update-call-forwarding")
-def update_call_forwarding(
+@app.command("update-call-forwarding-settings")
+def update_call_forwarding_settings(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1197,8 +1197,8 @@ def update_call_forwarding(
 
 
 
-@app.command("show-call-forwarding")
-def show_call_forwarding(
+@app.command("show-call-forwarding-secondary-lines")
+def show_call_forwarding_secondary_lines(
     lineowner_id: str = typer.Argument(help="lineownerId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1219,8 +1219,8 @@ def show_call_forwarding(
 
 
 
-@app.command("update-call-forwarding")
-def update_call_forwarding(
+@app.command("update-call-forwarding-secondary-lines")
+def update_call_forwarding_secondary_lines(
     lineowner_id: str = typer.Argument(help="lineownerId"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1245,8 +1245,8 @@ def update_call_forwarding(
 
 
 
-@app.command("show-call-pickup-group")
-def show_call_pickup_group(
+@app.command("show-call-pickup-group-settings")
+def show_call_pickup_group_settings(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1266,8 +1266,8 @@ def show_call_pickup_group(
 
 
 
-@app.command("show-call-pickup-group")
-def show_call_pickup_group(
+@app.command("show-call-pickup-group-secondary-lines")
+def show_call_pickup_group_secondary_lines(
     lineowner_id: str = typer.Argument(help="lineownerId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1288,8 +1288,8 @@ def show_call_pickup_group(
 
 
 
-@app.command("show-call-park")
-def show_call_park(
+@app.command("show-call-park-settings")
+def show_call_park_settings(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1309,8 +1309,8 @@ def show_call_park(
 
 
 
-@app.command("show-call-park")
-def show_call_park(
+@app.command("show-call-park-secondary-lines")
+def show_call_park_secondary_lines(
     lineowner_id: str = typer.Argument(help="lineownerId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1331,8 +1331,8 @@ def show_call_park(
 
 
 
-@app.command("update-voicemail")
-def update_voicemail(
+@app.command("update-voicemail-settings")
+def update_voicemail_settings(
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help=""),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1359,8 +1359,8 @@ def update_voicemail(
 
 
 
-@app.command("show-voicemail")
-def show_voicemail(
+@app.command("show-voicemail-settings")
+def show_voicemail_settings(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1380,8 +1380,8 @@ def show_voicemail(
 
 
 
-@app.command("update-voicemail")
-def update_voicemail(
+@app.command("update-voicemail-secondary-lines")
+def update_voicemail_secondary_lines(
     lineowner_id: str = typer.Argument(help="lineownerId"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help=""),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -1409,8 +1409,8 @@ def update_voicemail(
 
 
 
-@app.command("show-voicemail")
-def show_voicemail(
+@app.command("show-voicemail-secondary-lines")
+def show_voicemail_secondary_lines(
     lineowner_id: str = typer.Argument(help="lineownerId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1550,8 +1550,8 @@ def show_monitoring(
 
 
 
-@app.command("show-queues")
-def show_queues(
+@app.command("show-queues-settings")
+def show_queues_settings(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1571,8 +1571,8 @@ def show_queues(
 
 
 
-@app.command("update-queues")
-def update_queues(
+@app.command("update-queues-settings")
+def update_queues_settings(
     agent_a_c_d_state: str = typer.Option(None, "--agent-a-c-d-state", help="e.g. UNAVAILABLE"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1599,8 +1599,8 @@ def update_queues(
 
 
 
-@app.command("show-queues")
-def show_queues(
+@app.command("show-queues-secondary-lines")
+def show_queues_secondary_lines(
     lineowner_id: str = typer.Argument(help="lineownerId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1621,8 +1621,8 @@ def show_queues(
 
 
 
-@app.command("update-queues")
-def update_queues(
+@app.command("update-queues-secondary-lines")
+def update_queues_secondary_lines(
     lineowner_id: str = typer.Argument(help="lineownerId"),
     agent_a_c_d_state: str = typer.Option(None, "--agent-a-c-d-state", help="e.g. UNAVAILABLE"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),

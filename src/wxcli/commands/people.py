@@ -19,7 +19,7 @@ def cmd_list(
     max: str = typer.Option(None, "--max", help="Limit the maximum number of people in the response. If `call"),
     exclude_status: str = typer.Option(None, "--exclude-status", help="Omit people status/availability to enhance query performance"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -240,7 +240,7 @@ def delete(
 def list_me(
     calling_data: str = typer.Option(None, "--calling-data", help="Include Webex Calling user details in the response."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

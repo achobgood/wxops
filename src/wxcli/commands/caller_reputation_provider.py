@@ -79,7 +79,7 @@ def update(
 def cmd_list(
     organization_id: str = typer.Option(None, "--organization-id", help="Unique identifier for the organization."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -142,7 +142,7 @@ def unlock_caller_reputation(
 def list_providers(
     organization_id: str = typer.Option(None, "--organization-id", help="Unique identifier for the organization."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

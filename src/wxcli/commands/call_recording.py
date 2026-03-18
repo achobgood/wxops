@@ -108,23 +108,16 @@ def update_terms_of_service(
 
 
 
-@app.command("list")
-def cmd_list(
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+@app.command("show-compliance-announcement-call-recording")
+def show_compliance_announcement_call_recording(
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get details for the organization Compliance Announcement Setting."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/callRecording/complianceAnnouncement"
-    params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -132,11 +125,7 @@ def cmd_list(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("complianceAnnouncement", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    print_json(result)
 
 
 
@@ -177,24 +166,17 @@ def update_compliance_announcement_call_recording(
 
 
 
-@app.command("list-compliance-announcement")
-def list_compliance_announcement(
+@app.command("show-compliance-announcement-call-recording-1")
+def show_compliance_announcement_call_recording_1(
     location_id: str = typer.Argument(help="locationId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get details for the Location Compliance Announcement Setting."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callRecording/complianceAnnouncement"
-    params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -202,11 +184,7 @@ def list_compliance_announcement(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("complianceAnnouncement", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    print_json(result)
 
 
 
@@ -251,8 +229,8 @@ def update_compliance_announcement_call_recording_1(
 
 
 
-@app.command("list-regions")
-def list_regions(
+@app.command("list")
+def cmd_list(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -279,7 +257,7 @@ def list_regions(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('Code', 'code'), ('Name', 'name'), ('Default', 'defaultEnabled')], limit=limit)
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 

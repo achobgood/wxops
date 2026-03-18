@@ -8,24 +8,17 @@ from wxcli.output import print_table, print_json
 app = typer.Typer(help="Manage Webex Calling location-call-settings-voicemail.")
 
 
-@app.command("list")
-def cmd_list(
+@app.command("show")
+def show(
     location_id: str = typer.Argument(help="locationId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Location Voicemail."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/voicemail"
-    params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -33,11 +26,7 @@ def cmd_list(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("voicemail", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    print_json(result)
 
 
 
@@ -70,24 +59,17 @@ def update(
 
 
 
-@app.command("list-voice-portal")
-def list_voice_portal(
+@app.command("show-voice-portal")
+def show_voice_portal(
     location_id: str = typer.Argument(help="locationId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get VoicePortal."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/voicePortal"
-    params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -95,11 +77,7 @@ def list_voice_portal(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("voicePortal", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    print_json(result)
 
 
 
@@ -150,24 +128,17 @@ def update_voice_portal(
 
 
 
-@app.command("list-passcode-rules")
-def list_passcode_rules(
+@app.command("show-passcode-rules")
+def show_passcode_rules(
     location_id: str = typer.Argument(help="locationId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get VoicePortal Passcode Rule."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/voicePortal/passcodeRules"
-    params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -175,16 +146,12 @@ def list_passcode_rules(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("passcodeRules", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    print_json(result)
 
 
 
-@app.command("list-voicemail-groups")
-def list_voicemail_groups(
+@app.command("list")
+def cmd_list(
     location_id: str = typer.Option(None, "--location-id", help="Location to which the voicemail group belongs."),
     name: str = typer.Option(None, "--name", help="Search (Contains) based on voicemail group name"),
     phone_number: str = typer.Option(None, "--phone-number", help="Search (Contains) based on number or extension"),
@@ -230,8 +197,8 @@ def list_voicemail_groups(
 
 
 
-@app.command("show")
-def show(
+@app.command("show-voicemail-groups")
+def show_voicemail_groups(
     location_id: str = typer.Argument(help="locationId"),
     voicemail_group_id: str = typer.Argument(help="voicemailGroupId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),

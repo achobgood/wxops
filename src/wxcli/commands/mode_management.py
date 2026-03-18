@@ -11,7 +11,7 @@ app = typer.Typer(help="Manage Webex Calling mode-management.")
 @app.command("list")
 def cmd_list(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -44,7 +44,7 @@ def cmd_list(
 def list_common_modes(
     feature_ids: str = typer.Option(None, "--feature-ids", help="List of feature IDs (comma-separated) for auto attendants, c"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -75,8 +75,8 @@ def list_common_modes(
 
 
 
-@app.command("switch-mode-for")
-def switch_mode_for(
+@app.command("switch-mode-for-invoke")
+def switch_mode_for_invoke(
     operating_mode_name: str = typer.Option(None, "--operating-mode-name", help=""),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
     debug: bool = typer.Option(False, "--debug"),
@@ -129,7 +129,7 @@ def show(
 def list_normal_operation_mode(
     feature_id: str = typer.Argument(help="featureId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -207,8 +207,8 @@ def switch_to_normal(
 
 
 
-@app.command("switch-mode-for")
-def switch_mode_for(
+@app.command("switch-mode-for-invoke-1")
+def switch_mode_for_invoke_1(
     feature_id: str = typer.Argument(help="featureId"),
     operating_mode_id: str = typer.Option(None, "--operating-mode-id", help=""),
     is_manual_switchback_enabled: str = typer.Option(None, "--is-manual-switchback-enabled", help=""),

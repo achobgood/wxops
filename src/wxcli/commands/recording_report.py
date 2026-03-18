@@ -16,7 +16,7 @@ def cmd_list(
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only u"),
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site which the API lists recording audit re"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -61,7 +61,7 @@ def list_access_detail(
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only u"),
     max: str = typer.Option(None, "--max", help="Maximum number of recording audit report details to return i"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -103,7 +103,7 @@ def list_meeting_archive_summaries(
     to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for meeting archive summari"),
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site which the API lists meeting archive su"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

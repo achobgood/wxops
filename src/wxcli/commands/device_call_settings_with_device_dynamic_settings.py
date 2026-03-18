@@ -13,7 +13,7 @@ def cmd_list(
     allow_configure_layout_enabled: str = typer.Option(None, "--allow-configure-layout-enabled", help="List supported devices that allow the user to configure the"),
     type_param: str = typer.Option(None, "--type", help="List supported devices of a specific type. To excluded devic"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -201,8 +201,8 @@ def create(
 
 
 
-@app.command("show-dynamic-device-settings")
-def show_dynamic_device_settings(
+@app.command("show-dynamic-device-settings-devices")
+def show_dynamic_device_settings_devices(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -222,8 +222,8 @@ def show_dynamic_device_settings(
 
 
 
-@app.command("show-dynamic-device-settings")
-def show_dynamic_device_settings(
+@app.command("show-dynamic-device-settings-devices-1")
+def show_dynamic_device_settings_devices_1(
     job_id: str = typer.Argument(help="jobId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),

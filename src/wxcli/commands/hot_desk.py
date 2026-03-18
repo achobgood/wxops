@@ -13,7 +13,7 @@ def cmd_list(
     person_id: str = typer.Option(None, "--person-id", help="List sessions for this person."),
     workspace_id: str = typer.Option(None, "--workspace-id", help="List sessions for this workspace."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

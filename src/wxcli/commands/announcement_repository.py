@@ -19,7 +19,7 @@ def cmd_list(
     media_file_type: str = typer.Option(None, "--media-file-type", help="Return the list of announcement files for this mediaFileType"),
     name: str = typer.Option(None, "--name", help="Return the list of announcement files for this announcement"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -64,23 +64,16 @@ def cmd_list(
 
 
 
-@app.command("list-usage")
-def list_usage(
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+@app.command("show")
+def show(
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Fetch repository usage for announcements for an organization."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/announcements/usage"
-    params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -88,11 +81,7 @@ def list_usage(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("usage", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    print_json(result)
 
 
 
@@ -120,8 +109,8 @@ def delete(
 
 
 
-@app.command("show")
-def show(
+@app.command("show-announcements-config")
+def show_announcements_config(
     announcement_id: str = typer.Argument(help="announcementId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -168,24 +157,17 @@ def update(
 
 
 
-@app.command("list-usage")
-def list_usage(
+@app.command("show-usage")
+def show_usage(
     location_id: str = typer.Argument(help="locationId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Fetch repository usage for announcements in a location."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/announcements/usage"
-    params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -193,11 +175,7 @@ def list_usage(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("usage", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    print_json(result)
 
 
 
@@ -226,8 +204,8 @@ def delete_announcements(
 
 
 
-@app.command("show-announcements")
-def show_announcements(
+@app.command("show-announcements-locations")
+def show_announcements_locations(
     location_id: str = typer.Argument(help="locationId"),
     announcement_id: str = typer.Argument(help="announcementId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),

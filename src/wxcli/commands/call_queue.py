@@ -19,7 +19,7 @@ def cmd_list(
     department_name: str = typer.Option(None, "--department-name", help="Returns only call queues matching the given department name."),
     has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Returns only the list of call queues with Customer Experienc"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -252,7 +252,7 @@ def list_announcements(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -761,14 +761,14 @@ def update_stranded_calls(
 
 
 
-@app.command("list-available-numbers")
-def list_available_numbers(
+@app.command("list-available-numbers-queues")
+def list_available_numbers_queues(
     location_id: str = typer.Argument(help="locationId"),
     max: str = typer.Option(None, "--max", help="Limit the number of phone numbers returned to this maximum c"),
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -803,14 +803,14 @@ def list_available_numbers(
 
 
 
-@app.command("list-available-numbers")
-def list_available_numbers(
+@app.command("list-available-numbers-alternate")
+def list_available_numbers_alternate(
     location_id: str = typer.Argument(help="locationId"),
     max: str = typer.Option(None, "--max", help="Limit the number of phone numbers returned to this maximum c"),
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -845,8 +845,8 @@ def list_available_numbers(
 
 
 
-@app.command("list-available-numbers")
-def list_available_numbers(
+@app.command("list-available-numbers-call-forwarding")
+def list_available_numbers_call_forwarding(
     location_id: str = typer.Argument(help="locationId"),
     max: str = typer.Option(None, "--max", help="Limit the number of phone numbers returned to this maximum c"),
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
@@ -854,7 +854,7 @@ def list_available_numbers(
     owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
     extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `exten"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -893,8 +893,8 @@ def list_available_numbers(
 
 
 
-@app.command("list-available-agents")
-def list_available_agents(
+@app.command("list-available-agents-queues")
+def list_available_agents_queues(
     location_id: str = typer.Option(None, "--location-id", help="The location ID of the call queue. Temporary mandatory query"),
     max: str = typer.Option(None, "--max", help="Limit the number of objects returned to this maximum count."),
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
@@ -902,7 +902,7 @@ def list_available_agents(
     phone_number: str = typer.Option(None, "--phone-number", help="Search based on number or extension."),
     order: str = typer.Option(None, "--order", help="Order the available agents according to the designated field"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -952,7 +952,7 @@ def list_supervisors(
     order: str = typer.Option(None, "--order", help="Sort results alphabetically by supervisor name, in ascending"),
     has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Returns only the list of supervisors with Customer Experienc"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1024,8 +1024,8 @@ def create_supervisors(
 
 
 
-@app.command("delete-supervisors")
-def delete_supervisors(
+@app.command("delete-supervisors-config")
+def delete_supervisors_config(
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1047,8 +1047,8 @@ def delete_supervisors(
 
 
 
-@app.command("delete-supervisors")
-def delete_supervisors(
+@app.command("delete-supervisors-config-1")
+def delete_supervisors_config_1(
     supervisor_id: str = typer.Argument(help="supervisorId"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1128,7 +1128,7 @@ def list_available_supervisors(
     order: str = typer.Option(None, "--order", help="Sort results alphabetically by supervisor name, in ascending"),
     has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Returns only the list of available supervisors with Customer"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1169,8 +1169,8 @@ def list_available_supervisors(
 
 
 
-@app.command("list-available-agents")
-def list_available_agents(
+@app.command("list-available-agents-supervisors")
+def list_available_agents_supervisors(
     max: str = typer.Option(None, "--max", help="Limit the number of objects returned to this maximum count."),
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
     name: str = typer.Option(None, "--name", help="Returns only the agents that match the given name."),
@@ -1178,7 +1178,7 @@ def list_available_agents(
     order: str = typer.Option(None, "--order", help="Sort results alphabetically by supervisor name, in ascending"),
     has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Returns only the list of available agents with Customer Expe"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1231,7 +1231,7 @@ def list_agents(
     has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Returns only the list of call queues with Customer Experienc"),
     order: str = typer.Option(None, "--order", help="Sort results alphabetically by call queue agent's name, in a"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

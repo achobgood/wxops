@@ -16,7 +16,7 @@ def cmd_list(
     name: str = typer.Option(None, "--name", help="Only return hunt groups with the matching name."),
     phone_number: str = typer.Option(None, "--phone-number", help="Only return hunt groups with the matching primary phone numb"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -404,14 +404,14 @@ def delete_selective_rules(
 
 
 
-@app.command("list-available-numbers")
-def list_available_numbers(
+@app.command("list-available-numbers-hunt-groups")
+def list_available_numbers_hunt_groups(
     location_id: str = typer.Argument(help="locationId"),
     max: str = typer.Option(None, "--max", help="Limit the number of phone numbers returned to this maximum c"),
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -446,14 +446,14 @@ def list_available_numbers(
 
 
 
-@app.command("list-available-numbers")
-def list_available_numbers(
+@app.command("list-available-numbers-alternate")
+def list_available_numbers_alternate(
     location_id: str = typer.Argument(help="locationId"),
     max: str = typer.Option(None, "--max", help="Limit the number of phone numbers returned to this maximum c"),
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -488,8 +488,8 @@ def list_available_numbers(
 
 
 
-@app.command("list-available-numbers")
-def list_available_numbers(
+@app.command("list-available-numbers-call-forwarding")
+def list_available_numbers_call_forwarding(
     location_id: str = typer.Argument(help="locationId"),
     max: str = typer.Option(None, "--max", help="Limit the number of phone numbers returned to this maximum c"),
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
@@ -497,7 +497,7 @@ def list_available_numbers(
     owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
     extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `exten"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

@@ -90,7 +90,7 @@ def cmd_list(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Display Name', 'displayName'), ('Type', 'type'), ('Calling', 'calling.type')], limit=limit)
 
 
 

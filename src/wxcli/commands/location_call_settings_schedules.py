@@ -16,7 +16,7 @@ def cmd_list(
     name: str = typer.Option(None, "--name", help="Only return schedules with the matching name."),
     type_param: str = typer.Option(None, "--type", help="Type of the schedule."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

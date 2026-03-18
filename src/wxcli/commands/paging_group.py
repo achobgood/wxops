@@ -16,7 +16,7 @@ def cmd_list(
     name: str = typer.Option(None, "--name", help="Return only paging groups with the matching name."),
     phone_number: str = typer.Option(None, "--phone-number", help="Return only paging groups with matching primary phone number"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -217,7 +217,7 @@ def list_available_numbers(
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

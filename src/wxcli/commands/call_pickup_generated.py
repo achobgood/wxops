@@ -16,7 +16,7 @@ def cmd_list(
     order: str = typer.Option(None, "--order", help="Sort the list of call pickups by name, either ASC or DSC. De"),
     name: str = typer.Option(None, "--name", help="Return the list of call pickups that contains the given name"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -185,7 +185,7 @@ def list_available_users(
     phone_number: str = typer.Option(None, "--phone-number", help="Only return available agents with the matching primary numbe"),
     order: str = typer.Option(None, "--order", help="Order the available agents according to the designated field"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

@@ -31,7 +31,7 @@ def cmd_list(
     device_platform: str = typer.Option(None, "--device-platform", help="List devices with this device platform."),
     planned_maintenance: str = typer.Option(None, "--planned-maintenance", help="List devices with this planned maintenance."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

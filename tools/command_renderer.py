@@ -79,6 +79,7 @@ def _escape_help(text: str) -> str:
 
 def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
     func_name = _safe_func_name(ep.command_name)
+    folder_overrides = folder_overrides or {}
     params = []
 
     for var in ep.path_vars:
@@ -106,11 +107,16 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
 
     list_key = ep.response_list_key or "items"
 
-    columns = folder_overrides.get("list", {}).get("table_columns", None)
-    if columns:
-        col_str = repr([(c[0], c[1]) for c in columns])
+    # Per-command columns take precedence over folder-level list.table_columns
+    per_cmd = folder_overrides.get("table_columns", {}).get(ep.command_name)
+    if per_cmd:
+        col_str = repr([(c[0], c[1]) for c in per_cmd])
     else:
-        col_str = '[("ID", "id"), ("Name", "name")]'
+        columns = folder_overrides.get("list", {}).get("table_columns", None)
+        if columns:
+            col_str = repr([(c[0], c[1]) for c in columns])
+        else:
+            col_str = '[("ID", "id"), ("Name", "name")]'
 
     lines = [
         f'@app.command("{ep.command_name}")',
@@ -181,6 +187,7 @@ def _render_create_id_extraction(folder_overrides: dict | None = None) -> str:
 
 def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -> str:
     func_name = _safe_func_name(ep.command_name)
+    folder_overrides = folder_overrides or {}
     params = []
     for var in ep.path_vars:
         param = _path_var_to_param(var)

@@ -88,23 +88,16 @@ def create(
 
 
 
-@app.command("list")
-def cmd_list(
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+@app.command("show")
+def show(
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Retrieve RedSky Account Details for an Organization."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/redSky"
-    params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -112,16 +105,12 @@ def cmd_list(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("redSky", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    print_json(result)
 
 
 
-@app.command("update-status")
-def update_status(
+@app.command("update-status-red-sky")
+def update_status_red_sky(
     compliance_status: str = typer.Option(None, "--compliance-status", help="e.g. ROUTING_ENABLED"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -148,23 +137,16 @@ def update_status(
 
 
 
-@app.command("list-status")
-def list_status(
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+@app.command("list")
+def cmd_list(
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get the Organization Compliance Status for a RedSky Account."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/redSky/status"
-    params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -172,40 +154,20 @@ def list_status(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("status", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    print_json(result)
 
 
 
-@app.command("list-compliance-status")
-def list_compliance_status(
-    start: str = typer.Option(None, "--start", help="Specifies the offset from the first result that you want to"),
-    max: str = typer.Option(None, "--max", help="Specifies the maximum number of records that you want to fet"),
-    order: str = typer.Option(None, "--order", help="Sort the list of locations in ascending or descending order."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+@app.command("show-compliance-status")
+def show_compliance_status(
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get the Organization Compliance Status and the Location Status List."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/redSky/complianceStatus"
-    params = {}
-    if start is not None:
-        params["start"] = start
-    if max is not None:
-        params["max"] = max
-    if order is not None:
-        params["order"] = order
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -213,11 +175,7 @@ def list_compliance_status(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("complianceStatus", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    print_json(result)
 
 
 
@@ -255,24 +213,17 @@ def login_to_a(
 
 
 
-@app.command("list-red-sky")
-def list_red_sky(
+@app.command("show-red-sky")
+def show_red_sky(
     location_id: str = typer.Argument(help="locationId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get a Location's RedSky Emergency Calling Parameters."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/redSky"
-    params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -280,32 +231,21 @@ def list_red_sky(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("redSky", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    print_json(result)
 
 
 
 @app.command("list-status")
 def list_status(
     location_id: str = typer.Argument(help="locationId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get a Location's RedSky Compliance Status."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/redSky/status"
-    params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -313,16 +253,12 @@ def list_status(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("status", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    print_json(result)
 
 
 
-@app.command("update-status")
-def update_status(
+@app.command("update-status-red-sky-1")
+def update_status_red_sky_1(
     location_id: str = typer.Argument(help="locationId"),
     compliance_status: str = typer.Option(None, "--compliance-status", help="e.g. ROUTING_ENABLED"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -408,23 +344,16 @@ def update_building(
 
 
 
-@app.command("list-emergency-call-notification")
-def list_emergency_call_notification(
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+@app.command("show-emergency-call-notification-config")
+def show_emergency_call_notification_config(
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get an Organization Emergency Call Notification."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/emergencyCallNotification"
-    params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -432,16 +361,12 @@ def list_emergency_call_notification(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("emergencyCallNotification", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    print_json(result)
 
 
 
-@app.command("update-emergency-call-notification")
-def update_emergency_call_notification(
+@app.command("update-emergency-call-notification-config")
+def update_emergency_call_notification_config(
     emergency_call_notification_enabled: bool = typer.Option(None, "--emergency-call-notification-enabled/--no-emergency-call-notification-enabled", help=""),
     allow_email_notification_all_location_enabled: bool = typer.Option(None, "--allow-email-notification-all-location-enabled/--no-allow-email-notification-all-location-enabled", help=""),
     email_address: str = typer.Option(None, "--email-address", help=""),
@@ -474,24 +399,17 @@ def update_emergency_call_notification(
 
 
 
-@app.command("list-emergency-call-notification")
-def list_emergency_call_notification(
+@app.command("show-emergency-call-notification-locations")
+def show_emergency_call_notification_locations(
     location_id: str = typer.Argument(help="locationId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get a Location Emergency Call Notification."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/emergencyCallNotification"
-    params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -499,16 +417,12 @@ def list_emergency_call_notification(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("emergencyCallNotification", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    print_json(result)
 
 
 
-@app.command("update-emergency-call-notification")
-def update_emergency_call_notification(
+@app.command("update-emergency-call-notification-locations")
+def update_emergency_call_notification_locations(
     location_id: str = typer.Argument(help="locationId"),
     emergency_call_notification_enabled: bool = typer.Option(None, "--emergency-call-notification-enabled/--no-emergency-call-notification-enabled", help=""),
     email_address: str = typer.Option(None, "--email-address", help=""),
@@ -539,11 +453,11 @@ def update_emergency_call_notification(
 
 
 
-@app.command("list-dependencies")
-def list_dependencies(
+@app.command("list-dependencies-emergency-callback-number")
+def list_dependencies_emergency_callback_number(
     hunt_group_id: str = typer.Argument(help="huntGroupId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -572,24 +486,17 @@ def list_dependencies(
 
 
 
-@app.command("list-emergency-callback-number")
-def list_emergency_callback_number(
+@app.command("show-emergency-callback-number-people")
+def show_emergency_callback_number_people(
     person_id: str = typer.Argument(help="personId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get a Person's Emergency Callback Number."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/emergencyCallbackNumber"
-    params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -597,16 +504,12 @@ def list_emergency_callback_number(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("emergencyCallbackNumber", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    print_json(result)
 
 
 
-@app.command("update-emergency-callback-number")
-def update_emergency_callback_number(
+@app.command("update-emergency-callback-number-people")
+def update_emergency_callback_number_people(
     person_id: str = typer.Argument(help="personId"),
     selected: str = typer.Option(None, "--selected", help="e.g. DIRECT_LINE"),
     location_member_id: str = typer.Option(None, "--location-member-id", help=""),
@@ -637,11 +540,11 @@ def update_emergency_callback_number(
 
 
 
-@app.command("list-dependencies")
-def list_dependencies(
+@app.command("list-dependencies-emergency-callback-number-1")
+def list_dependencies_emergency_callback_number_1(
     person_id: str = typer.Argument(help="personId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -670,24 +573,17 @@ def list_dependencies(
 
 
 
-@app.command("list-emergency-callback-number")
-def list_emergency_callback_number(
+@app.command("show-emergency-callback-number-workspaces")
+def show_emergency_callback_number_workspaces(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get a Workspace Emergency Callback Number."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/emergencyCallbackNumber"
-    params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -695,16 +591,12 @@ def list_emergency_callback_number(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("emergencyCallbackNumber", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    print_json(result)
 
 
 
-@app.command("update-emergency-callback-number")
-def update_emergency_callback_number(
+@app.command("update-emergency-callback-number-workspaces")
+def update_emergency_callback_number_workspaces(
     workspace_id: str = typer.Argument(help="workspaceId"),
     selected: str = typer.Option(None, "--selected", help="e.g. DIRECT_LINE"),
     location_member_id: str = typer.Option(None, "--location-member-id", help=""),
@@ -735,11 +627,11 @@ def update_emergency_callback_number(
 
 
 
-@app.command("list-dependencies")
-def list_dependencies(
+@app.command("list-dependencies-emergency-callback-number-2")
+def list_dependencies_emergency_callback_number_2(
     workspace_id: str = typer.Argument(help="workspaceId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -768,11 +660,11 @@ def list_dependencies(
 
 
 
-@app.command("list-dependencies")
-def list_dependencies(
+@app.command("list-dependencies-emergency-callback-number-3")
+def list_dependencies_emergency_callback_number_3(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -801,8 +693,8 @@ def list_dependencies(
 
 
 
-@app.command("show")
-def show(
+@app.command("show-emergency-callback-number-virtual-lines")
+def show_emergency_callback_number_virtual_lines(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -823,8 +715,8 @@ def show(
 
 
 
-@app.command("update-emergency-callback-number")
-def update_emergency_callback_number(
+@app.command("update-emergency-callback-number-virtual-lines")
+def update_emergency_callback_number_virtual_lines(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     selected: str = typer.Option(None, "--selected", help="e.g. DIRECT_LINE"),
     location_member_id: str = typer.Option(None, "--location-member-id", help=""),

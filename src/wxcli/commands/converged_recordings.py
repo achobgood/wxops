@@ -21,7 +21,7 @@ def cmd_list(
     location_id: str = typer.Option(None, "--location-id", help="Fetch recordings for users in a particular Webex Calling loc"),
     topic: str = typer.Option(None, "--topic", help="Recording's topic. If specified, the API filters recordings"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -85,7 +85,7 @@ def list_converged_recordings(
     location_id: str = typer.Option(None, "--location-id", help="Fetch recordings for users in a particular Webex Calling loc"),
     topic: str = typer.Option(None, "--topic", help="Recording's topic. If specified, the API filters recordings"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -189,7 +189,7 @@ def list_metadata(
     recording_id: str = typer.Argument(help="recordingId"),
     show_all_types: str = typer.Option(None, "--show-all-types", help="If `showAllTypes` is `true`, all attributes will be shown. I"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

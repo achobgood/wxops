@@ -34,24 +34,17 @@ def generate_example_password(
 
 
 
-@app.command("list")
-def cmd_list(
+@app.command("show")
+def show(
     location_id: str = typer.Argument(help="locationId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Read the Internal Dialing configuration for a location."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/internalDialing"
-    params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -59,11 +52,7 @@ def cmd_list(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("internalDialing", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    print_json(result)
 
 
 
@@ -96,24 +85,17 @@ def update(
 
 
 
-@app.command("list-intercept")
-def list_intercept(
+@app.command("show-intercept")
+def show_intercept(
     location_id: str = typer.Argument(help="locationId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Location Intercept."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/intercept"
-    params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -121,11 +103,7 @@ def list_intercept(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("intercept", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    print_json(result)
 
 
 
@@ -158,8 +136,8 @@ def update_intercept(
 
 
 
-@app.command("list-outgoing-permission")
-def list_outgoing_permission(
+@app.command("list")
+def cmd_list(
     location_id: str = typer.Argument(help="locationId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
@@ -183,11 +161,11 @@ def list_outgoing_permission(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("callingPermissions", result if isinstance(result, list) else [])
+    items = result.get("outgoingPermission", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('Call Type', 'callType'), ('Action', 'action'), ('Transfer', 'transferEnabled')], limit=limit)
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -217,24 +195,17 @@ def update_outgoing_permission(
 
 
 
-@app.command("list-auto-transfer-numbers")
-def list_auto_transfer_numbers(
+@app.command("show-auto-transfer-numbers")
+def show_auto_transfer_numbers(
     location_id: str = typer.Argument(help="locationId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Outgoing Permission Auto Transfer Number."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/outgoingPermission/autoTransferNumbers"
-    params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -242,11 +213,7 @@ def list_auto_transfer_numbers(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("autoTransferNumbers", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    print_json(result)
 
 
 
@@ -495,8 +462,8 @@ def delete_digit_patterns_outgoing_permission(
 
 
 
-@app.command("show")
-def show(
+@app.command("show-digit-patterns")
+def show_digit_patterns(
     location_id: str = typer.Argument(help="locationId"),
     digit_pattern_id: str = typer.Argument(help="digitPatternId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),

@@ -4,6 +4,12 @@
 # Top-level keys are Postman folder names (exact match).
 # Each folder can contain:
 #
+#   command_type_overrides:
+#     <command_name>: <new_type>
+#     Reclassifies a command's type. Use when heuristics get it wrong.
+#     Common fix: "list-foo: settings-get" for singleton GETs misclassified as list.
+#     Supported types: list, show, settings-get, settings-update, create, update, delete, action.
+#
 #   response_list_keys:
 #     <command_name>: <json_key>
 #     Maps a list command name → the JSON key that wraps the array response.
@@ -318,12 +324,19 @@
       - ["Extension", "extension"]
       - ["Phone Number", "phoneNumber"]
 
-# Emergency Services Settings: ALL 12 read endpoints return flat singleton dicts.
-# No overrides needed — they fall through to print_json via fallback. Real fix is
-# reclassifying them as settings-get in the generator.
+# Emergency Services Settings: most read endpoints return flat singleton dicts.
+# The expanded SETTINGS_KEYWORDS catches redSky, emergencyCallbackNumber,
+# emergencyCallNotification, complianceStatus. The "status" endpoints need
+# explicit overrides since "status" is too generic for the keyword set.
+"Emergency Services Settings":
+  command_type_overrides:
+    # GET /redSky/status — "status" is too generic for SETTINGS_KEYWORDS
+    list: settings-get
+    # GET /locations/{id}/redSky/status — same issue
+    list-status: settings-get
 
 "Features: Announcement Repository":
-  # list-usage-announcements and list-usage-announcements-1 return flat singleton dicts (storage stats)
+  # list-usage-announcements and list-usage-announcements-1 are caught by "usage" keyword
 
 "Features: Call Recording":
   response_list_keys:

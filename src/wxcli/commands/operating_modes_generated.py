@@ -17,7 +17,7 @@ def cmd_list(
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
     order: str = typer.Option(None, "--order", help="Sort the list of `operating modes` based on `name`, either a"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -317,7 +317,7 @@ def create_holidays(
 def list_available_operating_modes(
     location_id: str = typer.Argument(help="locationId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -355,7 +355,7 @@ def list_available_numbers(
     owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
     extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `exten"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

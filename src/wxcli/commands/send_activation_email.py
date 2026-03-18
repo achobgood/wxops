@@ -42,7 +42,7 @@ def cmd_list(
     org_id: str = typer.Argument(help="orgId"),
     job_id: str = typer.Argument(help="jobId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -77,7 +77,7 @@ def list_errors(
     job_id: str = typer.Argument(help="jobId"),
     max: str = typer.Option(None, "--max", help="Limit the maximum number of errors in the response."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

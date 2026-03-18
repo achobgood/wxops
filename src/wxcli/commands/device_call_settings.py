@@ -950,24 +950,17 @@ def show_errors(
 
 
 
-@app.command("list-layout")
-def list_layout(
+@app.command("show-layout")
+def show_layout(
     device_id: str = typer.Argument(help="deviceId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Device Layout by Device ID."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/devices/{device_id}/layout"
-    params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -975,11 +968,7 @@ def list_layout(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("layout", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    print_json(result)
 
 
 
@@ -1319,24 +1308,17 @@ def upload_a_device(
 
 
 
-@app.command("list-count-devices")
-def list_count_devices(
+@app.command("show-count-devices")
+def show_count_devices(
     person_id: str = typer.Argument(help="personId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get User Devices Count."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/devices/count"
-    params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1344,47 +1326,21 @@ def list_count_devices(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("count", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    print_json(result)
 
 
 
-@app.command("list-count-available-members")
-def list_count_available_members(
+@app.command("show-count-available-members")
+def show_count_available_members(
     device_id: str = typer.Argument(help="deviceId"),
-    member_name: str = typer.Option(None, "--member-name", help="Search (Contains) numbers based on member name."),
-    phone_number: str = typer.Option(None, "--phone-number", help="Search (Contains) based on number."),
-    location_id: str = typer.Option(None, "--location-id", help="Unique identifier for the location."),
-    extension: str = typer.Option(None, "--extension", help="Search (Contains) based on extension."),
-    usage_type: str = typer.Option(None, "--usage-type", help="Search for members eligible to become the owner of the devic"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Count of Members."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/devices/{device_id}/availableMembers/count"
-    params = {}
-    if member_name is not None:
-        params["memberName"] = member_name
-    if phone_number is not None:
-        params["phoneNumber"] = phone_number
-    if location_id is not None:
-        params["locationId"] = location_id
-    if extension is not None:
-        params["extension"] = extension
-    if usage_type is not None:
-        params["usageType"] = usage_type
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1392,52 +1348,20 @@ def list_count_available_members(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("count", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    print_json(result)
 
 
 
-@app.command("list-count-available-members-1")
-def list_count_available_members_1(
-    member_name: str = typer.Option(None, "--member-name", help="Search (Contains) numbers based on member name."),
-    phone_number: str = typer.Option(None, "--phone-number", help="Search (Contains) based on number."),
-    location_id: str = typer.Option(None, "--location-id", help="Unique identifier for the location."),
-    extension: str = typer.Option(None, "--extension", help="Search (Contains) based on extension."),
-    usage_type: str = typer.Option(None, "--usage-type", help="Search for members eligible to become the owner of the devic"),
-    exclude_virtual_line: str = typer.Option(None, "--exclude-virtual-line", help="If true, filters out virtual lines from the available member"),
-    device_location_id: str = typer.Option(None, "--device-location-id", help="Unique identifier for the device's location. When specified,"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+@app.command("show-count-available-members-1")
+def show_count_available_members_1(
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Count of Available Members."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/devices/availableMembers/count"
-    params = {}
-    if member_name is not None:
-        params["memberName"] = member_name
-    if phone_number is not None:
-        params["phoneNumber"] = phone_number
-    if location_id is not None:
-        params["locationId"] = location_id
-    if extension is not None:
-        params["extension"] = extension
-    if usage_type is not None:
-        params["usageType"] = usage_type
-    if exclude_virtual_line is not None:
-        params["excludeVirtualLine"] = exclude_virtual_line
-    if device_location_id is not None:
-        params["deviceLocationId"] = device_location_id
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1445,10 +1369,6 @@ def list_count_available_members_1(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("count", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    print_json(result)
 
 

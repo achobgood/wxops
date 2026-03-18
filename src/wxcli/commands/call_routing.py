@@ -56,7 +56,7 @@ def cmd_list(
     order: str = typer.Option(None, "--order", help="Order the trunks according to the designated fields.  Availa"),
     name: str = typer.Option(None, "--name", help="Return the list of trunks matching the local gateway names"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -93,11 +93,11 @@ def cmd_list(
 
 
 
-@app.command("list-usage-pstn-connection")
-def list_usage_pstn_connection(
+@app.command("list-usage-pstn-connection-trunks")
+def list_usage_pstn_connection_trunks(
     trunk_id: str = typer.Argument(help="trunkId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -130,7 +130,7 @@ def list_usage_pstn_connection(
 def list_usage_route_group(
     trunk_id: str = typer.Argument(help="trunkId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -159,24 +159,17 @@ def list_usage_route_group(
 
 
 
-@app.command("list-usage")
-def list_usage(
+@app.command("show")
+def show(
     trunk_id: str = typer.Argument(help="trunkId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Local Gateway Usage Count."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/premisePstn/trunks/{trunk_id}/usage"
-    params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -184,11 +177,7 @@ def list_usage(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("usage", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+    print_json(result)
 
 
 
@@ -255,7 +244,7 @@ def list_dial_plans(
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
     order: str = typer.Option(None, "--order", help="Order the dial plans according to the designated fields.  Av"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -333,8 +322,8 @@ def create(
 
 
 
-@app.command("show")
-def show(
+@app.command("show-dial-plans")
+def show_dial_plans(
     dial_plan_id: str = typer.Argument(help="dialPlanId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -457,7 +446,7 @@ def list_trunks(
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
     order: str = typer.Option(None, "--order", help="Order the trunks according to the designated fields.  Availa"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -649,7 +638,7 @@ def delete_trunks(
 @app.command("list-trunk-types")
 def list_trunk_types(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -685,7 +674,7 @@ def list_route_groups(
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
     order: str = typer.Option(None, "--order", help="Order the route groups according to designated fields.  Avai"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -828,24 +817,17 @@ def delete_route_groups(
 
 
 
-@app.command("list-usage")
-def list_usage(
+@app.command("show-usage")
+def show_usage(
     route_group_id: str = typer.Argument(help="routeGroupId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Read the Usage of a Routing Group."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/premisePstn/routeGroups/{route_group_id}/usage"
-    params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -853,23 +835,19 @@ def list_usage(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("usage", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+    print_json(result)
 
 
 
-@app.command("list-usage-call-to-extension")
-def list_usage_call_to_extension(
+@app.command("list-usage-call-to-extension-route-groups")
+def list_usage_call_to_extension_route_groups(
     route_group_id: str = typer.Argument(help="routeGroupId"),
     location_name: str = typer.Option(None, "--location-name", help="Return the list of locations matching the location name."),
     max: str = typer.Option(None, "--max", help="Limit the number of objects returned to this maximum count."),
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
     order: str = typer.Option(None, "--order", help="Order the locations according to designated fields.  Availab"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -914,7 +892,7 @@ def list_usage_dial_plan(
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
     order: str = typer.Option(None, "--order", help="Order the locations according to designated fields.  Availab"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -951,15 +929,15 @@ def list_usage_dial_plan(
 
 
 
-@app.command("list-usage-pstn-connection")
-def list_usage_pstn_connection(
+@app.command("list-usage-pstn-connection-route-groups")
+def list_usage_pstn_connection_route_groups(
     route_group_id: str = typer.Argument(help="routeGroupId"),
     location_name: str = typer.Option(None, "--location-name", help="Return the list of locations matching the location name."),
     max: str = typer.Option(None, "--max", help="Limit the number of objects returned to this maximum count."),
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
     order: str = typer.Option(None, "--order", help="Order the locations according to designated fields.  Availab"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1004,7 +982,7 @@ def list_usage_route_list(
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
     order: str = typer.Option(None, "--order", help="Order the locations according to designated fields.  Availab"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1049,7 +1027,7 @@ def list_route_lists(
     name: str = typer.Option(None, "--name", help="Return the list of Route List matching the route list name."),
     location_id: str = typer.Option(None, "--location-id", help="Return the list of Route Lists matching the location id."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1240,7 +1218,7 @@ def list_numbers(
     number: str = typer.Option(None, "--number", help="Number assigned to the route list."),
     order: str = typer.Option(None, "--order", help="Order the Route Lists according to number, ascending or desc"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1277,15 +1255,15 @@ def list_numbers(
 
 
 
-@app.command("list-usage-call-to-extension")
-def list_usage_call_to_extension(
+@app.command("list-usage-call-to-extension-trunks")
+def list_usage_call_to_extension_trunks(
     trunk_id: str = typer.Argument(help="trunkId"),
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
     max: str = typer.Option(None, "--max", help="Limit the number of objects returned to this maximum count."),
     order: str = typer.Option(None, "--order", help="Order the trunks according to the designated fields.  Availa"),
     name: str = typer.Option(None, "--name", help="Return the list of trunks matching the local gateway names"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1322,8 +1300,8 @@ def list_usage_call_to_extension(
 
 
 
-@app.command("create-translation-patterns")
-def create_translation_patterns(
+@app.command("create-translation-patterns-call-routing")
+def create_translation_patterns_call_routing(
     name: str = typer.Option(None, "--name", help=""),
     matching_pattern: str = typer.Option(None, "--matching-pattern", help=""),
     replacement_pattern: str = typer.Option(None, "--replacement-pattern", help=""),
@@ -1369,7 +1347,7 @@ def list_translation_patterns(
     name: str = typer.Option(None, "--name", help="Only return translation patterns with the matching `name`."),
     matching_pattern: str = typer.Option(None, "--matching-pattern", help="Only return translation patterns with the matching `matching"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1412,8 +1390,8 @@ def list_translation_patterns(
 
 
 
-@app.command("show-translation-patterns")
-def show_translation_patterns(
+@app.command("show-translation-patterns-call-routing")
+def show_translation_patterns_call_routing(
     translation_id: str = typer.Argument(help="translationId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1434,8 +1412,8 @@ def show_translation_patterns(
 
 
 
-@app.command("update-translation-patterns")
-def update_translation_patterns(
+@app.command("update-translation-patterns-call-routing")
+def update_translation_patterns_call_routing(
     translation_id: str = typer.Argument(help="translationId"),
     name: str = typer.Option(None, "--name", help=""),
     matching_pattern: str = typer.Option(None, "--matching-pattern", help=""),
@@ -1469,8 +1447,8 @@ def update_translation_patterns(
 
 
 
-@app.command("delete-translation-patterns")
-def delete_translation_patterns(
+@app.command("delete-translation-patterns-call-routing")
+def delete_translation_patterns_call_routing(
     translation_id: str = typer.Argument(help="translationId"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1493,8 +1471,8 @@ def delete_translation_patterns(
 
 
 
-@app.command("create-translation-patterns")
-def create_translation_patterns(
+@app.command("create-translation-patterns-call-routing-1")
+def create_translation_patterns_call_routing_1(
     location_id: str = typer.Argument(help="locationId"),
     name: str = typer.Option(None, "--name", help=""),
     matching_pattern: str = typer.Option(None, "--matching-pattern", help=""),
@@ -1531,8 +1509,8 @@ def create_translation_patterns(
 
 
 
-@app.command("show-translation-patterns")
-def show_translation_patterns(
+@app.command("show-translation-patterns-call-routing-1")
+def show_translation_patterns_call_routing_1(
     location_id: str = typer.Argument(help="locationId"),
     translation_id: str = typer.Argument(help="translationId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
@@ -1554,8 +1532,8 @@ def show_translation_patterns(
 
 
 
-@app.command("update-translation-patterns")
-def update_translation_patterns(
+@app.command("update-translation-patterns-call-routing-1")
+def update_translation_patterns_call_routing_1(
     location_id: str = typer.Argument(help="locationId"),
     translation_id: str = typer.Argument(help="translationId"),
     name: str = typer.Option(None, "--name", help=""),
@@ -1590,8 +1568,8 @@ def update_translation_patterns(
 
 
 
-@app.command("delete-translation-patterns")
-def delete_translation_patterns(
+@app.command("delete-translation-patterns-call-routing-1")
+def delete_translation_patterns_call_routing_1(
     location_id: str = typer.Argument(help="locationId"),
     translation_id: str = typer.Argument(help="translationId"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
