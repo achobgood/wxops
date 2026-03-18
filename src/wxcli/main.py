@@ -94,4 +94,37 @@ app.add_typer(voicemail_groups_app, name="voicemail-groups")
 
 # v3: Auto-generated from Postman collection
 from wxcli.commands.call_routing import app as call_routing_app
+from wxcli.commands.dect_devices_settings import app as dect_devices_app
+from wxcli.commands.device_call_settings import app as device_call_settings_app
+from wxcli.commands.emergency_services_settings import app as emergency_services_app
+from wxcli.commands.announcement_playlist import app as announcement_playlist_app
+from wxcli.commands.announcement_repository import app as announcement_repository_app
+from wxcli.commands.location_call_settings import app as location_call_settings_app
+from wxcli.commands.location_call_settings_call_handling import app as loc_call_handling_app
+from wxcli.commands.location_call_settings_voicemail import app as loc_voicemail_app
+from wxcli.commands.call_recording import app as call_recording_app
+from wxcli.commands.virtual_extensions import app as virtual_extensions_app
+from wxcli.commands.user_call_settings import app as user_call_settings_app
+from wxcli.commands.numbers_generated import app as numbers_gen_app
+from wxcli.commands.single_number_reach import app as single_number_reach_app
+from wxcli.commands.call_controls import app as call_controls_app
+from wxcli.commands.workspaces import app as workspaces_app
+from wxcli.commands.pstn import app as pstn_app
+
 app.add_typer(call_routing_app, name="call-routing")
+app.add_typer(dect_devices_app, name="dect-devices")
+app.add_typer(device_call_settings_app, name="device-settings")
+app.add_typer(emergency_services_app, name="emergency-services")
+app.add_typer(announcement_playlist_app, name="announcement-playlists")
+app.add_typer(announcement_repository_app, name="announcements")
+app.add_typer(location_call_settings_app, name="location-settings")
+app.add_typer(loc_call_handling_app, name="location-call-handling")
+app.add_typer(loc_voicemail_app, name="location-voicemail")
+app.add_typer(call_recording_app, name="call-recording")
+app.add_typer(virtual_extensions_app, name="virtual-extensions")
+app.add_typer(user_call_settings_app, name="user-settings")
+app.add_typer(numbers_gen_app, name="numbers-manage")
+app.add_typer(single_number_reach_app, name="single-number-reach")
+app.add_typer(call_controls_app, name="call-controls")
+app.add_typer(workspaces_app, name="workspaces")
+app.add_typer(pstn_app, name="pstn")
