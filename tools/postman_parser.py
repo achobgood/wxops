@@ -156,9 +156,42 @@ def _derive_command_name(
         if not seg.startswith(":") and seg.lower() not in (
             "config", "telephony", "locations", "v1", "features",
         ):
-            suffix = camel_to_kebab(seg)
-            return f"{base}-{suffix}"
+            suffix = camel_to_kebab(seg).strip("-")
+            if suffix:
+                return f"{base}-{suffix}"
     return f"{base}-{count}"
+
+
+def _dedup_command_names(endpoints: list) -> None:
+    """Post-process to fix duplicate command names by appending context from path."""
+    from collections import Counter
+    # Pass 1: try to disambiguate with a path segment
+    name_counts = Counter(ep.command_name for ep in endpoints)
+    dupes = {name for name, cnt in name_counts.items() if cnt > 1}
+    if not dupes:
+        return
+    for ep in endpoints:
+        if ep.command_name not in dupes:
+            continue
+        for seg in reversed(ep.raw_path):
+            if seg.startswith(":"):
+                continue
+            candidate = camel_to_kebab(seg).strip("-")
+            if candidate and candidate not in ep.command_name:
+                ep.command_name = f"{ep.command_name}-{candidate}"
+                break
+    # Pass 2: if still duplicated, append numeric suffix
+    name_counts = Counter(ep.command_name for ep in endpoints)
+    dupes = {name for name, cnt in name_counts.items() if cnt > 1}
+    if not dupes:
+        return
+    seen: dict[str, int] = {}
+    for ep in endpoints:
+        if ep.command_name in dupes:
+            n = seen.get(ep.command_name, 0)
+            seen[ep.command_name] = n + 1
+            if n > 0:
+                ep.command_name = f"{ep.command_name}-{n}"
 
 
 def _build_url_path(path: list[str]) -> str:
@@ -249,6 +282,14 @@ def apply_overrides(
     return fields
 
 
+def apply_endpoint_overrides(ep: 'Endpoint', folder_overrides: dict) -> None:
+    """Apply folder-level overrides to an endpoint (e.g. response_list_key)."""
+    if ep.command_type == "list":
+        keys_map = folder_overrides.get("response_list_keys", {})
+        if ep.command_name in keys_map:
+            ep.response_list_key = keys_map[ep.command_name]
+
+
 def parse_folder(
     folder: dict, omit_query_params: list[str] | None = None
 ) -> list[Endpoint]:
@@ -265,4 +306,5 @@ def parse_folder(
             ep.command_type, ep.raw_path, ep.name, seen_types
         )
         endpoints.append(ep)
+    _dedup_command_names(endpoints)
     return endpoints, skipped_uploads

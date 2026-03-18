@@ -5,7 +5,7 @@ import json
 import sys
 from pathlib import Path
 
-from tools.postman_parser import parse_folder, load_overrides, apply_overrides
+from tools.postman_parser import parse_folder, load_overrides, apply_overrides, apply_endpoint_overrides
 from tools.command_renderer import render_command_file, folder_name_to_module, V2_MODULES
 
 
@@ -31,6 +31,7 @@ def generate_folder(folder: dict, overrides: dict, output_dir: Path, dry_run: bo
     folder_ovr = overrides.get(folder_name, {})
     for ep in endpoints:
         ep.body_fields = apply_overrides(ep.body_fields, ep.command_type, folder_ovr)
+        apply_endpoint_overrides(ep, folder_ovr)
 
     required_count = sum(1 for ep in endpoints for f in ep.body_fields if f.required)
     default_count = sum(1 for ep in endpoints for f in ep.body_fields if f.default is not None)

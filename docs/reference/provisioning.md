@@ -1,8 +1,8 @@
 # Provisioning Reference
 
-User, license, and location provisioning for Webex Calling via the `wxc_sdk` Python SDK.
+User, license, and location provisioning for Webex Calling via the `wxc_sdk` Python SDK. Each section includes both typed SDK methods and **Raw HTTP** examples using `api.session.rest_*()`.
 
-> **Prerequisite:** All examples assume a configured `WebexSimpleApi` instance. See `authentication.md` for token setup.
+> **Prerequisite:** All examples assume a configured `WebexSimpleApi` instance. See `authentication.md` for token setup. For the raw HTTP pattern, see `wxc-sdk-patterns.md` section 1.5.
 
 ---
 
@@ -168,6 +168,72 @@ Required roles: Full Administrator, User Administrator, or External Full Adminis
 ```python
 me = api.people.me(calling_data=True)
 ```
+
+### Raw HTTP
+<!-- Updated by playbook session 2026-03-18 -->
+
+All People API operations can be performed via raw HTTP using `api.session.rest_*()`. This is the preferred execution pattern -- wxc_sdk handles auth and session management, while you control the exact request.
+
+```python
+from wxc_sdk import WebexSimpleApi
+from wxc_sdk.rest import RestError
+
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+
+# ── List people ───────────────────────────────────────────────────
+result = api.session.rest_get(f"{BASE}/people", params={
+    "max": 1000,
+    "callingData": "true",          # string "true", not bool
+})
+people = result.get("items", [])
+
+# ── List with filters ────────────────────────────────────────────
+result = api.session.rest_get(f"{BASE}/people", params={
+    "email": "jsmith@example.com",
+    "callingData": "true",
+})
+
+# ── Get person details ───────────────────────────────────────────
+person = api.session.rest_get(f"{BASE}/people/{person_id}", params={
+    "callingData": "true",
+})
+
+# ── Create a person ──────────────────────────────────────────────
+body = {
+    "emails": ["jsmith@example.com"],
+    "displayName": "John Smith",
+    "firstName": "John",
+    "lastName": "Smith",
+    "licenses": [calling_license_id],
+    "locationId": location_id,
+    "extension": "1001",
+    "phoneNumbers": [{"type": "work", "value": "+15551234567"}],
+}
+result = api.session.rest_post(f"{BASE}/people", json=body)
+new_person_id = result["id"]
+
+# ── Update a person (full PUT -- include all fields) ─────────────
+person = api.session.rest_get(f"{BASE}/people/{person_id}", params={
+    "callingData": "true",
+})
+person["extension"] = "2002"
+api.session.rest_put(f"{BASE}/people/{person_id}", json=person)
+
+# ── Delete a person ──────────────────────────────────────────────
+api.session.rest_delete(f"{BASE}/people/{person_id}")
+
+# ── Get current user ─────────────────────────────────────────────
+me = api.session.rest_get(f"{BASE}/people/me", params={
+    "callingData": "true",
+})
+```
+
+**Key differences from typed SDK:**
+- `callingData` is a string `"true"`, not a Python bool
+- Response key for list is `items`, not `people`
+- No auto-pagination -- use `max=1000` for large orgs
+- Update is a raw PUT -- you must include all fields (GET first, modify, PUT back)
 
 ---
 
@@ -337,6 +403,47 @@ api.licenses.assign_licenses_to_users(
 
 You can identify the user by either `email` or `person_id` (at least one required).
 
+### Raw HTTP
+<!-- Updated by playbook session 2026-03-18 -->
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+
+# ── List all licenses ────────────────────────────────────────────
+result = api.session.rest_get(f"{BASE}/licenses", params={"max": 1000})
+licenses = result.get("items", [])
+
+# ── Get license details ──────────────────────────────────────────
+license_detail = api.session.rest_get(f"{BASE}/licenses/{license_id}")
+
+# ── Find calling licenses ────────────────────────────────────────
+calling_licenses = [
+    lic for lic in licenses
+    if "Webex Calling" in lic.get("name", "")
+]
+
+# ── Assign license to user (PATCH) ──────────────────────────────
+# The PATCH endpoint for license assignment:
+body = {
+    "email": "jsmith@example.com",
+    "licenses": [
+        {
+            "id": calling_license_id,
+            "operation": "add",
+            "properties": {
+                "locationId": location_id,
+                "extension": "1001",
+            }
+        }
+    ]
+}
+api.session.rest_post(f"{BASE}/licenses/users", json=body)
+```
+
+**Note:** The Licenses API is read-only for license inventory (list/details). License assignment to users is done via the `/licenses/users` PATCH-style endpoint (implemented as POST). There is no create/update/delete for license definitions themselves.
+
 ---
 
 ## Locations API
@@ -429,14 +536,86 @@ api.locations.delete(location_id='<id>')
 
 Creating a location via the Locations API does **not** automatically enable it for Webex Calling. You must use the separate Location Call Settings API:
 
-<!-- NEEDS VERIFICATION -->
+<!-- Verified via CLI implementation 2026-03-18 -->
 ```python
-# Enable via the telephony location API
-# This is a separate API endpoint, not part of LocationsApi
+# SDK method:
 api.telephony.location.enable_for_calling(location_id='<id>', ...)
+
+# Raw HTTP equivalent:
+api.session.rest_put(
+    f"{BASE}/telephony/config/locations/{loc_id}",
+    json={"announcementLanguage": "en_us"},  # lowercase required
+)
 ```
 
-The `announcement_language` field on the Location model is described as "required when enabling a location for Webex Calling."
+The `announcement_language` field is **required** when enabling a location for Webex Calling. It must be **lowercase** (`en_us`, not `en_US`) -- see gotchas #13 and #14.
+
+### Raw HTTP
+<!-- Updated by playbook session 2026-03-18 -->
+
+```python
+from wxc_sdk import WebexSimpleApi
+from wxc_sdk.rest import RestError
+
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+
+# ── List locations ───────────────────────────────────────────────
+result = api.session.rest_get(f"{BASE}/locations", params={"max": 1000})
+locations = result.get("items", [])
+
+# ── List with name filter ────────────────────────────────────────
+result = api.session.rest_get(f"{BASE}/locations", params={
+    "name": "headquarters",
+    "max": 1000,
+})
+
+# ── Get location details ─────────────────────────────────────────
+location = api.session.rest_get(f"{BASE}/locations/{loc_id}")
+
+# ── Create a location ────────────────────────────────────────────
+body = {
+    "name": "San Jose Office",
+    "timeZone": "America/Los_Angeles",
+    "preferredLanguage": "en_us",
+    "announcementLanguage": "en_us",
+    "address": {
+        "address1": "123 Main St",
+        "city": "San Jose",
+        "state": "CA",
+        "postalCode": "95113",
+        "country": "US",
+    },
+}
+result = api.session.rest_post(f"{BASE}/locations", json=body)
+new_loc_id = result["id"]
+
+# ── Update a location ────────────────────────────────────────────
+location = api.session.rest_get(f"{BASE}/locations/{loc_id}")
+location["name"] = "San Jose HQ"
+api.session.rest_put(f"{BASE}/locations/{loc_id}", json=location)
+
+# ── Delete a location ────────────────────────────────────────────
+# WARNING: Calling-enabled locations return 409 -- see gotcha #15
+api.session.rest_delete(f"{BASE}/locations/{loc_id}")
+
+# ── Enable location for Webex Calling ────────────────────────────
+# This is a SEPARATE telephony endpoint, not the Locations API
+body = {
+    "announcementLanguage": "en_us",  # MUST be lowercase -- see gotcha #13
+}
+api.session.rest_put(
+    f"{BASE}/telephony/config/locations/{loc_id}",
+    json=body,
+)
+```
+
+**Raw HTTP gotchas for locations:**
+- `announcementLanguage` must be **lowercase** (`en_us` not `en_US`) when calling `enable_for_calling` -- the telephony backend rejects mixed case with "Invalid Language Code" (gotcha #13)
+- `announcementLanguage` returns `None` from the locations details endpoint even when set -- always set it explicitly before enabling calling (gotcha #14)
+- Calling-enabled locations **cannot be deleted via API** -- returns `409 Conflict: Location is being referenced, cannot be deleted`. Must use Control Hub (gotcha #15)
+- The `safe_delete_check` response uses field `locationDeleteStatus` (not `status`), with value `"UNBLOCKED"` or `"BLOCKED"` (gotcha #17)
+- The `address` field in raw HTTP is a nested object with `address1`, `city`, `state`, `postalCode`, `country`. The SDK flattens these to top-level kwargs in `locations.create()`.
 
 ### Floors
 
@@ -845,6 +1024,26 @@ Do NOT call `api.people.create(emails=[...], first_name=...)` — this raises `T
 <!-- Verified via CLI implementation 2026-03-17 -->
 
 The response model field is `location_delete_status` (value: `"UNBLOCKED"` or `"BLOCKED"`), not `status`. The `blocking` field contains a model with `users_in_use_count`, `trunks_in_use_count`, etc.
+
+### 18. Numbers list API returns key `phoneNumbers`, not `numbers`
+<!-- Verified via CLI implementation 2026-03-18 -->
+
+`GET /telephony/config/numbers` returns a response body with the key `phoneNumbers`, not `numbers`. Code that looks for `response['numbers']` will get a `KeyError`.
+
+### 19. Workspaces list API returns key `items`, not `workspaces`
+<!-- Verified via CLI implementation 2026-03-18 -->
+
+`GET /workspaces` returns a response body with the key `items`, not `workspaces`. Parse using `response['items']` when working with raw API responses.
+
+### 20. Manage numbers jobs list API returns key `items`, not `manageNumbers`
+<!-- Verified via CLI implementation 2026-03-18 -->
+
+The manage numbers jobs list endpoint returns its results under the key `items`, not `manageNumbers`. This is inconsistent with other telephony job endpoints.
+
+### 21. Manage numbers job body uses `numberList` array, not `phoneNumbers`
+<!-- Verified via CLI implementation 2026-03-18 -->
+
+The manage numbers job creation body expects a `numberList` array where each element contains `locationId` and `numbers`. Do not use `phoneNumbers` as the key -- the API will reject or ignore it.
 
 ---
 

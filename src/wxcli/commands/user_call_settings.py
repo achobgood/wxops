@@ -452,7 +452,7 @@ def update_caller_id(
 def cmd_list(
     person_id: str = typer.Argument(help="personId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -842,7 +842,7 @@ def list_numbers(
     person_id: str = typer.Argument(help="personId"),
     prefer_e164_format: str = typer.Option(None, "--prefer-e164-format", help="Return phone numbers in E.164 format."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -865,7 +865,7 @@ def list_numbers(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("numbers", result if isinstance(result, list) else [])
+    items = result.get("phoneNumbers", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -1049,7 +1049,7 @@ def list_schedules(
     name: str = typer.Option(None, "--name", help="Specifies the case insensitive substring to be matched again"),
     type_param: str = typer.Option(None, "--type", help="Specifies the schedule event type to be matched on the given"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

@@ -29,7 +29,7 @@ def cmd_list(
     planned_maintenance: str = typer.Option(None, "--planned-maintenance", help="List workspaces with given maintenance mode."),
     custom_attribute: str = typer.Option(None, "--custom-attribute", help="List workspaces with given custom attribute key."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -86,7 +86,7 @@ def cmd_list(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("workspaces", result if isinstance(result, list) else [])
+    items = result.get("items", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -155,12 +155,12 @@ def create(
 
 
 
-@app.command("list-")
-def list_(
+@app.command("list-workspaces")
+def list_workspaces(
     workspace_id: str = typer.Argument(help="workspaceId"),
     include_devices: str = typer.Option(None, "--include-devices", help="Flag identifying whether to include the devices associated w"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -272,7 +272,7 @@ def delete(
 def list_capabilities(
     workspace_id: str = typer.Argument(help="workspaceId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

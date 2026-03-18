@@ -151,7 +151,7 @@ def cmd_list(
     included_telephony_types: str = typer.Option(None, "--included-telephony-types", help="Returns the list of phone numbers that are of given `include"),
     service_number: str = typer.Option(None, "--service-number", help="Returns the list of service phone numbers."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -208,7 +208,7 @@ def cmd_list(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("numbers", result if isinstance(result, list) else [])
+    items = result.get("phoneNumbers", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -221,7 +221,7 @@ def list_manage_numbers(
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of jobs. Default"),
     max: str = typer.Option(None, "--max", help="Limit the number of jobs returned to this maximum count. Def"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -246,7 +246,7 @@ def list_manage_numbers(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("manageNumbers", result if isinstance(result, list) else [])
+    items = result.get("items", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -371,7 +371,7 @@ def list_errors(
     start: str = typer.Option(None, "--start", help="Specifies the error offset from the first result that you wa"),
     max: str = typer.Option(None, "--max", help="Specifies the maximum number of records that you want to fet"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

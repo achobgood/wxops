@@ -1,6 +1,7 @@
+<!-- Updated by playbook session 2026-03-18 -->
 # Call Routing & PSTN Reference
 
-Comprehensive reference for Webex Calling dial plans, trunks, route groups, route lists, translation patterns, PSTN configuration, and call routing validation using the `wxc_sdk`.
+Comprehensive reference for Webex Calling dial plans, trunks, route groups, route lists, translation patterns, PSTN configuration, and call routing validation using the `wxc_sdk` and raw HTTP via `api.session`.
 
 ---
 
@@ -21,6 +22,7 @@ Comprehensive reference for Webex Calling dial plans, trunks, route groups, rout
 13. [Call Routing Test](#call-routing-test)
 14. [Phone Number Management](#phone-number-management)
 15. [Data Models Quick Reference](#data-models-quick-reference)
+16. [Common Gotchas](#common-gotchas)
 
 ---
 
@@ -295,6 +297,84 @@ api.telephony.prem_pstn.dial_plan.modify_patterns(
 )
 ```
 
+### Raw HTTP
+<!-- Updated by playbook session 2026-03-18 -->
+
+All dial plan endpoints live under the `/premisePstn/` prefix -- NOT `/dialPlans` at the top level.
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+
+# List dial plans
+plans = api.session.rest_get(f"{BASE}/telephony/config/premisePstn/dialPlans",
+                             params={"max": 1000})
+# plans["dialPlans"] -> list of dicts
+
+# Create dial plan
+result = api.session.rest_post(f"{BASE}/telephony/config/premisePstn/dialPlans", json={
+    "name": "US-Outbound",
+    "routeId": trunk_id,
+    "routeType": "TRUNK",
+    "dialPatterns": ["+1!"]
+})
+# result["id"] -> new dial plan ID
+
+# Get dial plan details
+dp = api.session.rest_get(f"{BASE}/telephony/config/premisePstn/dialPlans/{dial_plan_id}")
+
+# Update dial plan
+api.session.rest_put(f"{BASE}/telephony/config/premisePstn/dialPlans/{dial_plan_id}", json={
+    "name": "US-Outbound-v2",
+    "routeId": trunk_id,
+    "routeType": "TRUNK"
+})
+
+# Delete dial plan
+api.session.rest_delete(f"{BASE}/telephony/config/premisePstn/dialPlans/{dial_plan_id}")
+
+# List dial patterns for a dial plan
+patterns = api.session.rest_get(
+    f"{BASE}/telephony/config/premisePstn/dialPlans/{dial_plan_id}/dialPatterns",
+    params={"max": 1000})
+
+# Modify dial patterns (add/delete)
+api.session.rest_put(
+    f"{BASE}/telephony/config/premisePstn/dialPlans/{dial_plan_id}/dialPatterns", json={
+        "dialPatterns": [
+            {"dialPattern": "+44!", "action": "ADD"},
+            {"dialPattern": "+1!", "action": "DELETE"}
+        ]
+    })
+
+# Delete all dial patterns
+api.session.rest_put(
+    f"{BASE}/telephony/config/premisePstn/dialPlans/{dial_plan_id}/dialPatterns", json={
+        "deleteAllDialPatterns": True
+    })
+
+# Validate dial patterns
+result = api.session.rest_post(
+    f"{BASE}/telephony/config/premisePstn/actions/validateDialPatterns/invoke", json={
+        "dialPatterns": ["+1408!", "+44!", "9XXX"]
+    })
+# result["status"] -> "OK" or "ERRORS"
+```
+
+**URL summary:**
+
+| Operation | Method | URL |
+|-----------|--------|-----|
+| List | GET | `{BASE}/telephony/config/premisePstn/dialPlans` |
+| Create | POST | `{BASE}/telephony/config/premisePstn/dialPlans` |
+| Get | GET | `{BASE}/telephony/config/premisePstn/dialPlans/{id}` |
+| Update | PUT | `{BASE}/telephony/config/premisePstn/dialPlans/{id}` |
+| Delete | DELETE | `{BASE}/telephony/config/premisePstn/dialPlans/{id}` |
+| List patterns | GET | `{BASE}/telephony/config/premisePstn/dialPlans/{id}/dialPatterns` |
+| Modify patterns | PUT | `{BASE}/telephony/config/premisePstn/dialPlans/{id}/dialPatterns` |
+| Validate patterns | POST | `{BASE}/telephony/config/premisePstn/actions/validateDialPatterns/invoke` |
+
 ---
 
 ## Trunks
@@ -519,6 +599,91 @@ print(f"Line/Port: {detail.line_port}")
 print(f"OTG/DTG: {detail.otg_dtg_id}")
 ```
 
+### Raw HTTP
+<!-- Updated by playbook session 2026-03-18 -->
+
+All trunk endpoints live under the `/premisePstn/trunks` prefix.
+
+```python
+BASE = "https://webexapis.com/v1"
+
+# List trunks
+trunks = api.session.rest_get(f"{BASE}/telephony/config/premisePstn/trunks",
+                              params={"max": 1000})
+# trunks["trunks"] -> list of dicts
+
+# Create trunk (registering type)
+result = api.session.rest_post(f"{BASE}/telephony/config/premisePstn/trunks", json={
+    "name": "HQ-LGW-01",
+    "locationId": location_id,
+    "password": "SecurePass123!",
+    "trunkType": "REGISTERING"
+})
+# result["id"] -> new trunk ID
+
+# Create trunk (certificate-based)
+result = api.session.rest_post(f"{BASE}/telephony/config/premisePstn/trunks", json={
+    "name": "HQ-SBC-01",
+    "locationId": location_id,
+    "password": "SecurePass123!",
+    "trunkType": "CERTIFICATE_BASED",
+    "address": "sbc.example.com",
+    "domain": "example.com",
+    "port": 5061,
+    "maxConcurrentCalls": 100
+})
+
+# Get trunk details
+detail = api.session.rest_get(f"{BASE}/telephony/config/premisePstn/trunks/{trunk_id}")
+
+# Update trunk (name + password always required)
+api.session.rest_put(f"{BASE}/telephony/config/premisePstn/trunks/{trunk_id}", json={
+    "name": "HQ-LGW-01-v2",
+    "password": "NewPass456!"
+})
+
+# Delete trunk
+api.session.rest_delete(f"{BASE}/telephony/config/premisePstn/trunks/{trunk_id}")
+
+# List trunk types with device types
+types = api.session.rest_get(f"{BASE}/telephony/config/premisePstn/trunks/trunkTypes")
+# types["trunkTypes"] -> list of dicts
+
+# Validate FQDN and domain (certificate-based)
+api.session.rest_post(
+    f"{BASE}/telephony/config/premisePstn/trunks/actions/fqdnValidation/invoke", json={
+        "address": "sbc.example.com",
+        "domain": "example.com",
+        "port": 5061
+    })
+
+# Trunk usage count
+usage = api.session.rest_get(f"{BASE}/telephony/config/premisePstn/trunks/{trunk_id}/usage")
+
+# Trunk usage details
+api.session.rest_get(f"{BASE}/telephony/config/premisePstn/trunks/{trunk_id}/usageDialPlan")
+api.session.rest_get(f"{BASE}/telephony/config/premisePstn/trunks/{trunk_id}/usagePstnConnection")
+api.session.rest_get(f"{BASE}/telephony/config/premisePstn/trunks/{trunk_id}/usageRouteGroup")
+api.session.rest_get(f"{BASE}/telephony/config/premisePstn/trunks/{trunk_id}/usageCallToExtension")
+```
+
+**URL summary:**
+
+| Operation | Method | URL |
+|-----------|--------|-----|
+| List | GET | `{BASE}/telephony/config/premisePstn/trunks` |
+| Create | POST | `{BASE}/telephony/config/premisePstn/trunks` |
+| Get | GET | `{BASE}/telephony/config/premisePstn/trunks/{id}` |
+| Update | PUT | `{BASE}/telephony/config/premisePstn/trunks/{id}` |
+| Delete | DELETE | `{BASE}/telephony/config/premisePstn/trunks/{id}` |
+| List types | GET | `{BASE}/telephony/config/premisePstn/trunks/trunkTypes` |
+| Validate FQDN | POST | `{BASE}/telephony/config/premisePstn/trunks/actions/fqdnValidation/invoke` |
+| Usage count | GET | `{BASE}/telephony/config/premisePstn/trunks/{id}/usage` |
+| Usage dial plan | GET | `{BASE}/telephony/config/premisePstn/trunks/{id}/usageDialPlan` |
+| Usage PSTN | GET | `{BASE}/telephony/config/premisePstn/trunks/{id}/usagePstnConnection` |
+| Usage route group | GET | `{BASE}/telephony/config/premisePstn/trunks/{id}/usageRouteGroup` |
+| Usage call-to-ext | GET | `{BASE}/telephony/config/premisePstn/trunks/{id}/usageCallToExtension` |
+
 ---
 
 ## Route Groups
@@ -644,6 +809,69 @@ rg_id = api.telephony.prem_pstn.route_group.create(route_group=rg)
 usage = api.telephony.prem_pstn.route_group.usage(rg_id=rg_id)
 print(f"Dial plans: {usage.dial_plan_count}, Route lists: {usage.route_list_count}")
 ```
+
+### Raw HTTP
+<!-- Updated by playbook session 2026-03-18 -->
+
+All route group endpoints live under the `/premisePstn/routeGroups` prefix.
+
+```python
+BASE = "https://webexapis.com/v1"
+
+# List route groups
+groups = api.session.rest_get(f"{BASE}/telephony/config/premisePstn/routeGroups",
+                              params={"max": 1000})
+# groups["routeGroups"] -> list of dicts
+
+# Create route group
+result = api.session.rest_post(f"{BASE}/telephony/config/premisePstn/routeGroups", json={
+    "name": "US-East-RG",
+    "localGateways": [
+        {"trunkId": primary_trunk_id, "priority": 1},
+        {"trunkId": backup_trunk_id, "priority": 2}
+    ]
+})
+# result["id"] -> new route group ID
+
+# Get route group details
+rg = api.session.rest_get(f"{BASE}/telephony/config/premisePstn/routeGroups/{rg_id}")
+
+# Update route group
+api.session.rest_put(f"{BASE}/telephony/config/premisePstn/routeGroups/{rg_id}", json={
+    "name": "US-East-RG-v2",
+    "localGateways": [
+        {"trunkId": primary_trunk_id, "priority": 1}
+    ]
+})
+
+# Delete route group
+api.session.rest_delete(f"{BASE}/telephony/config/premisePstn/routeGroups/{rg_id}")
+
+# Route group usage count
+usage = api.session.rest_get(
+    f"{BASE}/telephony/config/premisePstn/routeGroups/{rg_id}/usage")
+
+# Route group usage details
+api.session.rest_get(f"{BASE}/telephony/config/premisePstn/routeGroups/{rg_id}/usageCallToExtension")
+api.session.rest_get(f"{BASE}/telephony/config/premisePstn/routeGroups/{rg_id}/usageDialPlan")
+api.session.rest_get(f"{BASE}/telephony/config/premisePstn/routeGroups/{rg_id}/usagePstnConnection")
+api.session.rest_get(f"{BASE}/telephony/config/premisePstn/routeGroups/{rg_id}/usageRouteList")
+```
+
+**URL summary:**
+
+| Operation | Method | URL |
+|-----------|--------|-----|
+| List | GET | `{BASE}/telephony/config/premisePstn/routeGroups` |
+| Create | POST | `{BASE}/telephony/config/premisePstn/routeGroups` |
+| Get | GET | `{BASE}/telephony/config/premisePstn/routeGroups/{id}` |
+| Update | PUT | `{BASE}/telephony/config/premisePstn/routeGroups/{id}` |
+| Delete | DELETE | `{BASE}/telephony/config/premisePstn/routeGroups/{id}` |
+| Usage count | GET | `{BASE}/telephony/config/premisePstn/routeGroups/{id}/usage` |
+| Usage call-to-ext | GET | `{BASE}/telephony/config/premisePstn/routeGroups/{id}/usageCallToExtension` |
+| Usage dial plan | GET | `{BASE}/telephony/config/premisePstn/routeGroups/{id}/usageDialPlan` |
+| Usage PSTN | GET | `{BASE}/telephony/config/premisePstn/routeGroups/{id}/usagePstnConnection` |
+| Usage route list | GET | `{BASE}/telephony/config/premisePstn/routeGroups/{id}/usageRouteList` |
 
 ---
 
@@ -796,6 +1024,73 @@ for r in result:
     print(f"{r.number}: {r.number_status} - {r.message}")
 ```
 
+### Raw HTTP
+<!-- Updated by playbook session 2026-03-18 -->
+
+All route list endpoints live under the `/premisePstn/routeLists` prefix.
+
+```python
+BASE = "https://webexapis.com/v1"
+
+# List route lists
+lists = api.session.rest_get(f"{BASE}/telephony/config/premisePstn/routeLists",
+                             params={"max": 1000})
+# lists["routeLists"] -> list of dicts
+
+# Create route list
+result = api.session.rest_post(f"{BASE}/telephony/config/premisePstn/routeLists", json={
+    "name": "US-East-Numbers",
+    "locationId": location_id,
+    "routeGroupId": rg_id
+})
+# result["id"] -> new route list ID
+
+# Get route list details
+rl = api.session.rest_get(f"{BASE}/telephony/config/premisePstn/routeLists/{rl_id}")
+
+# Update route list
+api.session.rest_put(f"{BASE}/telephony/config/premisePstn/routeLists/{rl_id}", json={
+    "name": "US-East-Numbers-v2",
+    "routeGroupId": new_rg_id
+})
+
+# Delete route list
+api.session.rest_delete(f"{BASE}/telephony/config/premisePstn/routeLists/{rl_id}")
+
+# List numbers on route list
+nums = api.session.rest_get(
+    f"{BASE}/telephony/config/premisePstn/routeLists/{rl_id}/numbers",
+    params={"max": 1000})
+# nums["numbers"] -> list of dicts
+
+# Modify numbers on route list (add/delete)
+api.session.rest_put(
+    f"{BASE}/telephony/config/premisePstn/routeLists/{rl_id}/numbers", json={
+        "numbers": [
+            {"number": "+19195551234", "action": "ADD"},
+            {"number": "+19195555678", "action": "ADD"}
+        ]
+    })
+
+# Delete all numbers from route list
+api.session.rest_put(
+    f"{BASE}/telephony/config/premisePstn/routeLists/{rl_id}/numbers", json={
+        "deleteAllNumbers": True
+    })
+```
+
+**URL summary:**
+
+| Operation | Method | URL |
+|-----------|--------|-----|
+| List | GET | `{BASE}/telephony/config/premisePstn/routeLists` |
+| Create | POST | `{BASE}/telephony/config/premisePstn/routeLists` |
+| Get | GET | `{BASE}/telephony/config/premisePstn/routeLists/{id}` |
+| Update | PUT | `{BASE}/telephony/config/premisePstn/routeLists/{id}` |
+| Delete | DELETE | `{BASE}/telephony/config/premisePstn/routeLists/{id}` |
+| List numbers | GET | `{BASE}/telephony/config/premisePstn/routeLists/{id}/numbers` |
+| Modify numbers | PUT | `{BASE}/telephony/config/premisePstn/routeLists/{id}/numbers` |
+
 ---
 
 ## Translation Patterns
@@ -906,6 +1201,82 @@ tp_id_loc = api.telephony.call_routing.tp.create(
 )
 ```
 
+### Raw HTTP
+<!-- Updated by playbook session 2026-03-18 -->
+
+Translation patterns use the `/callRouting/` prefix (NOT `/premisePstn/`). Org-level and location-level have different URL paths.
+
+```python
+BASE = "https://webexapis.com/v1"
+
+# --- Org-level translation patterns ---
+
+# List org-level translation patterns
+tps = api.session.rest_get(
+    f"{BASE}/telephony/config/callRouting/translationPatterns",
+    params={"max": 1000})
+# tps["translationPatterns"] -> list of dicts
+
+# Create org-level translation pattern
+result = api.session.rest_post(
+    f"{BASE}/telephony/config/callRouting/translationPatterns", json={
+        "name": "Strip-9-Prefix",
+        "matchingPattern": "9XXX",
+        "replacementPattern": "XXX"
+    })
+# result["id"] -> new pattern ID
+
+# Get org-level translation pattern
+tp = api.session.rest_get(
+    f"{BASE}/telephony/config/callRouting/translationPatterns/{translation_id}")
+
+# Update org-level translation pattern
+api.session.rest_put(
+    f"{BASE}/telephony/config/callRouting/translationPatterns/{translation_id}", json={
+        "name": "Strip-9-Prefix-v2",
+        "matchingPattern": "9XXX",
+        "replacementPattern": "XXX"
+    })
+
+# Delete org-level translation pattern
+api.session.rest_delete(
+    f"{BASE}/telephony/config/callRouting/translationPatterns/{translation_id}")
+
+# --- Location-level translation patterns ---
+
+# Create location-level translation pattern
+result = api.session.rest_post(
+    f"{BASE}/telephony/config/locations/{location_id}/callRouting/translationPatterns", json={
+        "name": "Local-Rewrite",
+        "matchingPattern": "+1919555XXXX",
+        "replacementPattern": "+19196660000"
+    })
+
+# Get/update/delete location-level: same pattern with /locations/{location_id}/ prefix
+api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{location_id}/callRouting/translationPatterns/{translation_id}")
+api.session.rest_put(
+    f"{BASE}/telephony/config/locations/{location_id}/callRouting/translationPatterns/{translation_id}",
+    json={...})
+api.session.rest_delete(
+    f"{BASE}/telephony/config/locations/{location_id}/callRouting/translationPatterns/{translation_id}")
+```
+
+**URL summary:**
+
+| Operation | Method | URL |
+|-----------|--------|-----|
+| List (org) | GET | `{BASE}/telephony/config/callRouting/translationPatterns` |
+| Create (org) | POST | `{BASE}/telephony/config/callRouting/translationPatterns` |
+| Get (org) | GET | `{BASE}/telephony/config/callRouting/translationPatterns/{id}` |
+| Update (org) | PUT | `{BASE}/telephony/config/callRouting/translationPatterns/{id}` |
+| Delete (org) | DELETE | `{BASE}/telephony/config/callRouting/translationPatterns/{id}` |
+| List (location) | GET | `{BASE}/telephony/config/locations/{locId}/callRouting/translationPatterns` |
+| Create (location) | POST | `{BASE}/telephony/config/locations/{locId}/callRouting/translationPatterns` |
+| Get (location) | GET | `{BASE}/telephony/config/locations/{locId}/callRouting/translationPatterns/{id}` |
+| Update (location) | PUT | `{BASE}/telephony/config/locations/{locId}/callRouting/translationPatterns/{id}` |
+| Delete (location) | DELETE | `{BASE}/telephony/config/locations/{locId}/callRouting/translationPatterns/{id}` |
+
 ---
 
 ## PSTN Configuration
@@ -999,6 +1370,74 @@ print(f"Connection: {current.pstn_connection_type}")
 print(f"Route: {current.route_type} -> {current.route_id}")
 ```
 
+### Raw HTTP
+<!-- Updated by playbook session 2026-03-18 -->
+
+PSTN endpoints use the `/telephony/pstn/` prefix (NOT `/premisePstn/` and NOT `/telephony/config/`).
+
+```python
+BASE = "https://webexapis.com/v1"
+
+# List PSTN connection options for a location
+options = api.session.rest_get(
+    f"{BASE}/telephony/pstn/locations/{location_id}/connectionOptions",
+    params={"max": 1000})
+# options["connectionOptions"] -> list of dicts
+
+# Read current PSTN connection for a location
+conn = api.session.rest_get(
+    f"{BASE}/telephony/pstn/locations/{location_id}/connection")
+
+# Setup/update PSTN connection for a location (local gateway)
+api.session.rest_put(
+    f"{BASE}/telephony/pstn/locations/{location_id}/connection", json={
+        "premiseRouteType": "TRUNK",
+        "premiseRouteId": trunk_id
+    })
+
+# Setup/update PSTN connection (non-integrated CCP)
+api.session.rest_put(
+    f"{BASE}/telephony/pstn/locations/{location_id}/connection", json={
+        "id": ccp_provider_id
+    })
+
+# Emergency address lookup
+result = api.session.rest_post(
+    f"{BASE}/telephony/pstn/locations/{location_id}/emergencyAddress/lookup", json={
+        "address1": "123 Main St",
+        "city": "Raleigh",
+        "state": "NC",
+        "postalCode": "27601",
+        "country": "US"
+    })
+
+# Add emergency address to location
+api.session.rest_post(
+    f"{BASE}/telephony/pstn/locations/{location_id}/emergencyAddress", json={
+        "address1": "123 Main St",
+        "city": "Raleigh",
+        "state": "NC",
+        "postalCode": "27601",
+        "country": "US"
+    })
+
+# Update emergency address for a phone number
+api.session.rest_put(
+    f"{BASE}/telephony/pstn/numbers/{phone_number}/emergencyAddress", json={...})
+```
+
+**URL summary:**
+
+| Operation | Method | URL |
+|-----------|--------|-----|
+| List connection options | GET | `{BASE}/telephony/pstn/locations/{locId}/connectionOptions` |
+| Read connection | GET | `{BASE}/telephony/pstn/locations/{locId}/connection` |
+| Setup connection | PUT | `{BASE}/telephony/pstn/locations/{locId}/connection` |
+| Emergency lookup | POST | `{BASE}/telephony/pstn/locations/{locId}/emergencyAddress/lookup` |
+| Add emergency addr | POST | `{BASE}/telephony/pstn/locations/{locId}/emergencyAddress` |
+| Update emergency addr (location) | PUT | `{BASE}/telephony/pstn/locations/{locId}/emergencyAddresses/{addrId}` |
+| Update emergency addr (number) | PUT | `{BASE}/telephony/pstn/numbers/{phoneNumber}/emergencyAddress` |
+
 ---
 
 ## Premises PSTN
@@ -1090,6 +1529,29 @@ api.telephony.pnc.update(
 )
 ```
 
+### Raw HTTP
+<!-- Updated by playbook session 2026-03-18 -->
+
+```python
+BASE = "https://webexapis.com/v1"
+
+# Read PNC setting for a location
+pnc = api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{location_id}/privateNetworkConnect")
+# pnc["networkConnectionType"] -> "PUBLIC_INTERNET" or "PRIVATE_NETWORK"
+
+# Update PNC setting
+api.session.rest_put(
+    f"{BASE}/telephony/config/locations/{location_id}/privateNetworkConnect", json={
+        "networkConnectionType": "PRIVATE_NETWORK"
+    })
+```
+
+| Operation | Method | URL |
+|-----------|--------|-----|
+| Read PNC | GET | `{BASE}/telephony/config/locations/{locId}/privateNetworkConnect` |
+| Update PNC | PUT | `{BASE}/telephony/config/locations/{locId}/privateNetworkConnect` |
+
 ---
 
 ## Route Choices
@@ -1127,6 +1589,22 @@ for route in api.telephony.route_choices():
 for route in api.telephony.route_choices(trunk_name='HQ'):
     print(f"Trunk: {route.name}")
 ```
+
+### Raw HTTP
+<!-- Updated by playbook session 2026-03-18 -->
+
+```python
+BASE = "https://webexapis.com/v1"
+
+# List all available route choices (trunks + route groups)
+choices = api.session.rest_get(f"{BASE}/telephony/config/premisePstn/routeChoices",
+                               params={"max": 1000})
+# choices["routeIdentities"] -> list of dicts with id, name, type
+```
+
+| Operation | Method | URL |
+|-----------|--------|-----|
+| List route choices | GET | `{BASE}/telephony/config/premisePstn/routeChoices` |
 
 ---
 
@@ -1284,6 +1762,42 @@ if result.call_source_info:
         print(f"Dial plan: {csi.dial_plan_name}, Pattern: {csi.dial_pattern}")
 ```
 
+### Raw HTTP
+<!-- Updated by playbook session 2026-03-18 -->
+
+Test call routing uses an action endpoint under `/telephony/config/` (NOT `/premisePstn/`).
+
+```python
+BASE = "https://webexapis.com/v1"
+
+# Test call routing (POST, not GET)
+result = api.session.rest_post(
+    f"{BASE}/telephony/config/actions/testCallRouting/invoke", json={
+        "originatorId": person_id,
+        "originatorType": "PEOPLE",
+        "destination": "+19195551234",
+        "includeAppliedServices": True
+    })
+# result["destinationType"] -> "HOSTED_AGENT", "PSTN_NUMBER", etc.
+# result["routingAddress"] -> the resolved routing address
+# result["isRejected"] -> boolean
+
+# Test from trunk (inbound from PSTN)
+result = api.session.rest_post(
+    f"{BASE}/telephony/config/actions/testCallRouting/invoke", json={
+        "originatorId": trunk_id,
+        "originatorType": "TRUNK",
+        "destination": "+19195551234",
+        "originatorNumber": "+14085559999"
+    })
+```
+
+**Note:** The `originatorType` value in raw HTTP may be `"USER"` or `"PEOPLE"` depending on context. The wxc_sdk sends `"USER"` on the wire. The Postman collection uses `"PEOPLE"`. Both are accepted by the API. <!-- NEEDS VERIFICATION -->
+
+| Operation | Method | URL |
+|-----------|--------|-----|
+| Test call routing | POST | `{BASE}/telephony/config/actions/testCallRouting/invoke` |
+
 ---
 
 ## Phone Number Management
@@ -1359,6 +1873,29 @@ for num in api.telephony.phone_numbers(location_id=location_id, available=False)
     print(f"{num.phone_number} ext:{num.extension} -> {owner_name}")
 ```
 
+### Raw HTTP
+<!-- Updated by playbook session 2026-03-18 -->
+
+```python
+BASE = "https://webexapis.com/v1"
+
+# List phone numbers (no auto-pagination -- use max=1000)
+numbers = api.session.rest_get(f"{BASE}/telephony/config/numbers",
+                               params={"max": 1000, "locationId": location_id})
+# numbers["phoneNumbers"] -> list of dicts
+
+# Validate phone numbers
+result = api.session.rest_post(f"{BASE}/telephony/config/actions/validateNumbers/invoke",
+                               json={"phoneNumbers": ["+19195551234", "+19195555678"]})
+# result["status"] -> "OK" or "ERRORS"
+# result["phoneNumbers"] -> list of validation status dicts
+```
+
+| Operation | Method | URL |
+|-----------|--------|-----|
+| List numbers | GET | `{BASE}/telephony/config/numbers` |
+| Validate numbers | POST | `{BASE}/telephony/config/actions/validateNumbers/invoke` |
+
 ---
 
 ## Data Models Quick Reference
@@ -1408,6 +1945,30 @@ Step 6: Route List (optional, Dedicated Instance)
          |
 Step 7: test_call_routing() to validate
 ```
+
+---
+
+## Common Gotchas
+
+### 0. Raw HTTP URLs require the `/premisePstn/` prefix for routing resources
+<!-- Updated by playbook session 2026-03-18 -->
+
+Dial plans, trunks, route groups, and route lists all live under `telephony/config/premisePstn/` -- NOT under `telephony/config/dialPlans` or similar. Translation patterns use a different prefix: `telephony/config/callRouting/translationPatterns`. PSTN connection uses yet another: `telephony/pstn/locations/`. Test call routing uses `telephony/config/actions/testCallRouting/invoke`. Getting any of these prefixes wrong returns 404.
+
+### 1. Translation pattern replacement must use fully specified digits
+<!-- Verified via CLI implementation 2026-03-18 -->
+
+E.164-formatted translation pattern replacement strings cannot contain `X` wildcards. For example, `+1919666XXXX` is rejected — use `+19196660000` instead. Note: `X` wildcards ARE valid in non-E.164 replacement patterns for digit manipulation (e.g., replacing `9XXX` with `XXX` to strip a prefix).
+
+### 2. Dial plans require an existing trunk or route group
+<!-- Verified via CLI implementation 2026-03-18 -->
+
+You cannot create a standalone dial plan without a route choice. The dial plan must reference an existing trunk or route group as its route choice at creation time.
+
+### 3. Test Call Routing requires a calling-enabled user's originatorId
+<!-- Verified via CLI implementation 2026-03-18 -->
+
+The `test_call_routing` API requires the `originatorId` to be a valid calling-enabled user. Passing a non-calling user's ID returns `404 "Originator not found"`. Always verify the user has a Webex Calling license and location assigned before using them as an originator.
 
 ---
 

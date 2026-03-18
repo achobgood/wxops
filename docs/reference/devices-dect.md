@@ -1,3 +1,5 @@
+<!-- Updated by playbook session 2026-03-18 -->
+
 # DECT Devices & Hot Desking Reference
 
 DECT network management (networks, base stations, handsets, line assignment) and hot desk session management via the `wxc_sdk` Python SDK.
@@ -18,7 +20,8 @@ DECT network management (networks, base stations, handsets, line assignment) and
 8. [Serviceability Password](#serviceability-password)
 9. [Hot Desking](#hot-desking)
 10. [Data Models](#data-models)
-11. [Common Gotchas](#common-gotchas)
+11. [Raw HTTP](#raw-http)
+12. [Common Gotchas](#common-gotchas)
 
 ---
 
@@ -649,6 +652,268 @@ Ends a hot desk session by its unique session ID.
 
 ---
 
+## Raw HTTP
+
+All examples use:
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+```
+
+No auto-pagination -- pass `max=1000` explicitly. All responses are JSON dicts. Errors raise `RestError`.
+
+### DECT Networks
+
+#### Create a DECT network
+
+```python
+body = {
+    "name": "Building A DECT",
+    "model": "DMS Cisco DBS210",
+    "defaultAccessCodeEnabled": True,
+    "defaultAccessCode": "1234",
+    "displayName": "Bldg A"  # max 11 chars
+}
+result = api.session.rest_post(f"{BASE}/telephony/config/locations/{location_id}/dectNetworks", json=body)
+network_id = result.get("dectNetworkId")  # NOTE: key is "dectNetworkId", not "id"
+```
+
+#### List DECT networks (org-wide)
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/dectNetworks", params={
+    "max": 1000,
+    "name": "Building A",      # optional filter
+    "locationId": location_id,  # optional filter
+})
+networks = result.get("dectNetworks", [])
+# Each: {id, name, displayName, model, defaultAccessCodeEnabled, numberOfBaseStations, numberOfHandsetsAssigned, numberOfLines, location: {id, name}}
+```
+
+#### Get DECT network details
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/locations/{location_id}/dectNetworks/{network_id}")
+# Returns full DECTNetworkDetail object
+```
+
+#### Update a DECT network
+
+```python
+body = {
+    "name": "Building A DECT Updated",
+    "defaultAccessCodeEnabled": True,
+    "defaultAccessCode": "5678",
+    "displayName": "Bldg A v2"
+}
+api.session.rest_put(f"{BASE}/telephony/config/locations/{location_id}/dectNetworks/{network_id}", json=body)
+```
+
+#### Delete a DECT network
+
+```python
+api.session.rest_delete(f"{BASE}/telephony/config/locations/{location_id}/dectNetworks/{network_id}")
+```
+
+### Base Stations
+
+#### Create base stations (bulk by MAC)
+
+```python
+body = {"baseStationMacs": ["AABBCCDDEEFF", "112233445566"]}
+result = api.session.rest_post(
+    f"{BASE}/telephony/config/locations/{location_id}/dectNetworks/{network_id}/baseStations",
+    json=body
+)
+# Returns list of results: [{mac, result: {status, id}}, ...]
+```
+
+#### List base stations
+
+```python
+result = api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{location_id}/dectNetworks/{network_id}/baseStations"
+)
+stations = result.get("baseStations", [])
+# Each: {id, mac, numberOfLinesRegistered}
+```
+
+#### Get base station details
+
+```python
+result = api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{location_id}/dectNetworks/{network_id}/baseStations/{base_station_id}"
+)
+# Returns: {id, mac, handsets: [{id, displayName, accessCode, lines: [...]}]}
+```
+
+#### Delete a specific base station
+
+```python
+api.session.rest_delete(
+    f"{BASE}/telephony/config/locations/{location_id}/dectNetworks/{network_id}/baseStations/{base_station_id}"
+)
+```
+
+#### Delete all base stations in a network
+
+```python
+api.session.rest_delete(
+    f"{BASE}/telephony/config/locations/{location_id}/dectNetworks/{network_id}/baseStations"
+)
+```
+
+### Handsets
+
+#### Add a single handset
+
+```python
+body = {
+    "line1MemberId": person_id,
+    "line2MemberId": virtual_line_id,  # optional
+    "customDisplayName": "Reception"   # 1-16 chars, required
+}
+api.session.rest_post(
+    f"{BASE}/telephony/config/locations/{location_id}/dectNetworks/{network_id}/handsets",
+    json=body
+)
+```
+
+#### Add handsets in bulk (up to 50)
+
+```python
+body = {
+    "items": [
+        {"line1MemberId": person_id_1, "customDisplayName": "User 1"},
+        {"line1MemberId": person_id_2, "line2MemberId": vl_id, "customDisplayName": "User 2"}
+    ]
+}
+result = api.session.rest_post(
+    f"{BASE}/telephony/config/locations/{location_id}/dectNetworks/{network_id}/handsets/bulk",
+    json=body
+)
+# Returns per-item results: [{customDisplayName, result: {status, error: {message, errorCode}}}]
+```
+
+#### List handsets
+
+```python
+result = api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{location_id}/dectNetworks/{network_id}/handsets",
+    params={
+        "basestationId": base_station_id,  # optional filter
+        "memberId": person_id,             # optional filter
+    }
+)
+handsets = result.get("handsets", [])
+# Also: result["numberOfHandsetsAssigned"], result["numberOfLinesAssigned"]
+```
+
+#### Get handset details
+
+```python
+result = api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{location_id}/dectNetworks/{network_id}/handsets/{handset_id}"
+)
+# Returns: {id, index, defaultDisplayName, customDisplayName, baseStationId, mac, accessCode, primaryEnabled, lines: [...]}
+```
+
+#### Update handset
+
+```python
+body = {
+    "line1MemberId": new_person_id,
+    "customDisplayName": "Updated Name",
+    "line2MemberId": new_vl_id  # optional
+}
+api.session.rest_put(
+    f"{BASE}/telephony/config/locations/{location_id}/dectNetworks/{network_id}/handsets/{handset_id}",
+    json=body
+)
+```
+
+#### Delete a single handset
+
+```python
+api.session.rest_delete(
+    f"{BASE}/telephony/config/locations/{location_id}/dectNetworks/{network_id}/handsets/{handset_id}"
+)
+```
+
+#### Delete multiple handsets
+
+```python
+body = {
+    "handsetIds": [handset_id_1, handset_id_2],
+    "deleteAll": False  # set True to delete all handsets (ignores handsetIds)
+}
+api.session.rest_delete(
+    f"{BASE}/telephony/config/locations/{location_id}/dectNetworks/{network_id}/handsets/",
+    json=body
+)
+```
+
+### Association Queries
+
+```python
+# DECT networks for a person
+result = api.session.rest_get(f"{BASE}/telephony/config/people/{person_id}/dectNetworks")
+networks = result.get("dectNetworks", [])
+
+# DECT networks for a workspace
+result = api.session.rest_get(f"{BASE}/telephony/config/workspaces/{workspace_id}/dectNetworks")
+networks = result.get("dectNetworks", [])
+```
+
+### Available Members
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/devices/availableMembers", params={
+    "max": 1000,
+    "memberName": "Jane",
+    "locationId": location_id,
+    "excludeVirtualLine": True,  # virtual lines can't be line 1
+})
+members = result.get("members", [])
+# Each: {id, firstName, lastName, phoneNumber, extension, memberType}
+```
+
+### Serviceability Password
+
+```python
+# Generate and enable password (WARNING: may reboot entire DECT network)
+result = api.session.rest_post(
+    f"{BASE}/telephony/config/locations/{location_id}/dectNetworks/{network_id}/serviceabilityPassword/actions/generate/invoke"
+)
+password = result.get("password")  # 16-character string
+
+# Get password status
+result = api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{location_id}/dectNetworks/{network_id}/serviceabilityPassword"
+)
+enabled = result.get("enabled")  # bool
+
+# Update password status (WARNING: may reboot entire DECT network)
+api.session.rest_put(
+    f"{BASE}/telephony/config/locations/{location_id}/dectNetworks/{network_id}/serviceabilityPassword",
+    json={"enabled": False}
+)
+```
+
+### Raw HTTP Gotchas
+
+1. **`dectNetworkId` not `id` in create response.** The create network response returns `{"dectNetworkId": "..."}`, not `{"id": "..."}`. Parse accordingly.
+2. **`list_dect_networks` is org-wide.** The list endpoint is `GET /telephony/config/dectNetworks` (no location in path). Pass `locationId` as a query param to filter.
+3. **90-second cooldown on handset changes.** Adding or removing handsets within 90 seconds may leave base stations out of sync until rebooted.
+4. **Bulk handset add uses `/handsets/bulk`**, not `/handsets`. The single-add endpoint is `POST /handsets` (no `/bulk` suffix).
+5. **Delete multiple handsets uses trailing slash.** The URL is `.../handsets/` (with trailing slash), taking a JSON body with `handsetIds` array.
+6. **Serviceability password operations can reboot the network.** Both generating a new password and toggling enabled status trigger a network-wide reboot.
+7. **No API for auto-generated access codes.** When `defaultAccessCodeEnabled` is `false`, per-handset codes are auto-generated but cannot be retrieved via API.
+
+---
+
 ## Common Gotchas
 
 1. **Adding a DECT handset to a person with a Webex Calling Standard license disables Webex Calling** across their mobile, tablet, desktop, and browser applications. Deleting the handset re-enables it.
@@ -670,6 +935,10 @@ Ends a hot desk session by its unique session ID.
 9. **`DECTNetworkModel` has alternate names.** `dms_cisco_dbs110` and `cisco_dect_110_base` both refer to the same physical hardware (DBS-110). Same for the 210 variants. Choose either enum value.
 
 10. **`list_dect_networks` is org-wide.** Unlike most DECT methods that require `location_id`, `list_dect_networks` searches across the entire org and accepts `location_id` as an optional filter.
+
+11. **DECT network create returns `dectNetworkId`, not `id`, in response body.**
+<!-- Verified via CLI implementation 2026-03-18 -->
+The `create_dect_network` API response body returns the new network's identifier under the key `dectNetworkId`, not `id`. Code that parses the raw JSON response as `response['id']` will get a `KeyError`. The wxc_sdk method handles this internally and returns the ID as a string.
 
 ---
 

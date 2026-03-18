@@ -45,7 +45,9 @@ def create(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if isinstance(result, dict) and "dectNetworkId" in result:
+        typer.echo(f"Created: {result['dectNetworkId']}")
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     else:
         print_json(result)
@@ -57,7 +59,7 @@ def cmd_list(
     name: str = typer.Option(None, "--name", help="List of DECT networks with this name."),
     location_id: str = typer.Option(None, "--location-id", help="List of DECT networks at this location."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -200,7 +202,9 @@ def create_base_stations(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if isinstance(result, dict) and "dectNetworkId" in result:
+        typer.echo(f"Created: {result['dectNetworkId']}")
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     else:
         print_json(result)
@@ -212,7 +216,7 @@ def list_base_stations(
     location_id: str = typer.Argument(help="locationId"),
     dect_network_id: str = typer.Argument(help="dectNetworkId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -241,8 +245,8 @@ def list_base_stations(
 
 
 
-@app.command("delete-base-stations")
-def delete_base_stations(
+@app.command("delete-base-stations-dect-networks")
+def delete_base_stations_dect_networks(
     location_id: str = typer.Argument(help="locationId"),
     dect_network_id: str = typer.Argument(help="dectNetworkId"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
@@ -290,8 +294,8 @@ def show_base_stations(
 
 
 
-@app.command("delete-base-stations")
-def delete_base_stations(
+@app.command("delete-base-stations-dect-networks-1")
+def delete_base_stations_dect_networks_1(
     location_id: str = typer.Argument(help="locationId"),
     dect_network_id: str = typer.Argument(help="dectNetworkId"),
     base_station_id: str = typer.Argument(help="baseStationId"),
@@ -348,7 +352,9 @@ def create_handsets(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if isinstance(result, dict) and "dectNetworkId" in result:
+        typer.echo(f"Created: {result['dectNetworkId']}")
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     else:
         print_json(result)
@@ -362,7 +368,7 @@ def list_handsets(
     basestation_id: str = typer.Option(None, "--basestation-id", help="Search handset details in the specified DECT base station ID"),
     member_id: str = typer.Option(None, "--member-id", help="ID of the member of the handset. Members can be of type PEOP"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -456,8 +462,8 @@ def update_handsets(
 
 
 
-@app.command("delete-handsets")
-def delete_handsets(
+@app.command("delete-handsets-dect-networks")
+def delete_handsets_dect_networks(
     location_id: str = typer.Argument(help="locationId"),
     dect_network_id: str = typer.Argument(help="dectNetworkId"),
     handset_id: str = typer.Argument(help="handsetId"),
@@ -482,8 +488,8 @@ def delete_handsets(
 
 
 
-@app.command("delete-")
-def delete_(
+@app.command("delete-handsets-dect-networks-1")
+def delete_handsets_dect_networks_1(
     location_id: str = typer.Argument(help="locationId"),
     dect_network_id: str = typer.Argument(help="dectNetworkId"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
@@ -530,18 +536,20 @@ def create_bulk(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if isinstance(result, dict) and "dectNetworkId" in result:
+        typer.echo(f"Created: {result['dectNetworkId']}")
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     else:
         print_json(result)
 
 
 
-@app.command("list-dect-networks")
-def list_dect_networks(
+@app.command("list-dect-networks-people")
+def list_dect_networks_people(
     person_id: str = typer.Argument(help="personId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -570,11 +578,11 @@ def list_dect_networks(
 
 
 
-@app.command("list-dect-networks")
-def list_dect_networks(
+@app.command("list-dect-networks-workspaces")
+def list_dect_networks_workspaces(
     workspace_id: str = typer.Argument(help="workspaceId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -615,7 +623,7 @@ def list_available_members(
     exclude_virtual_line: str = typer.Option(None, "--exclude-virtual-line", help="If true, search results will exclude virtual lines in the me"),
     usage_type: str = typer.Option(None, "--usage-type", help="Search for members eligible to become the owner of the devic"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

@@ -90,7 +90,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
         params.append(f'    {param}: str = typer.Option(None, "--{qp.python_name}", help="{_escape_help(qp.description[:60])}"),')
 
     params.append('    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),')
-    params.append('    limit: int = typer.Option(50, "--limit", help="Max results"),')
+    params.append('    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),')
     params.append('    offset: int = typer.Option(0, "--offset", help="Start offset"),')
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
@@ -160,7 +160,26 @@ def _render_show_command(ep: Endpoint) -> str:
     return "\n".join(lines)
 
 
-def _render_create_command(ep: Endpoint) -> str:
+def _render_create_id_extraction(folder_overrides: dict | None = None) -> str:
+    id_key = (folder_overrides or {}).get("create", {}).get("id_key")
+    if id_key:
+        return (
+            f'    if isinstance(result, dict) and "{id_key}" in result:\n'
+            f'        typer.echo(f"Created: {{result[\'{id_key}\']}}")\n'
+            f'    elif isinstance(result, dict) and "id" in result:\n'
+            f'        typer.echo(f"Created: {{result[\'id\']}}")\n'
+            f'    else:\n'
+            f'        print_json(result)'
+        )
+    return (
+        '    if isinstance(result, dict) and "id" in result:\n'
+        '        typer.echo(f"Created: {result[\'id\']}")\n'
+        '    else:\n'
+        '        print_json(result)'
+    )
+
+
+def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -> str:
     func_name = _safe_func_name(ep.command_name)
     params = []
     for var in ep.path_vars:
@@ -217,10 +236,7 @@ def _render_create_command(ep: Endpoint) -> str:
         "    try:",
         "        result = api.session.rest_post(url, json=body)",
         _render_error_handler("    "),
-        '    if isinstance(result, dict) and "id" in result:',
-        '        typer.echo(f"Created: {result[\'id\']}")',
-        "    else:",
-        "        print_json(result)",
+        _render_create_id_extraction(folder_overrides),
     ]
     return "\n".join(lines)
 
@@ -376,6 +392,8 @@ def render_command_file(
             sections.append(f"# SKIPPED: {ep.name} — unknown command type {ep.command_type}\n")
             continue
         if ep.command_type == "list":
+            sections.append(renderer(ep, folder_overrides))
+        elif ep.command_type == "create":
             sections.append(renderer(ep, folder_overrides))
         else:
             sections.append(renderer(ep))

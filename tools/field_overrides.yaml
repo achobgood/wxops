@@ -78,11 +78,26 @@
       - ["Type", "type"]
 
 "DECT Devices Settings":
+  create:
+    id_key: dectNetworkId
   list:
     table_columns:
       - ["ID", "id"]
       - ["Name", "name"]
       - ["Model", "model"]
+
+"Numbers":
+  response_list_keys:
+    list: phoneNumbers
+    list-manage-numbers: items
+
+"User Call Settings (1/2)":
+  response_list_keys:
+    list-numbers: phoneNumbers
+
+"Workspaces":
+  response_list_keys:
+    list: items
 
 # Global settings
 skip_folders:
