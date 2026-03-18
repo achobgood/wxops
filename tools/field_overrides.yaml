@@ -302,6 +302,48 @@
       - ["Name", "name"]
       - ["Type", "type"]
 
+"Features: Single Number Reach":
+  response_list_keys:
+    list: phoneNumbers
+  table_columns:
+    list:
+      - ["Phone Number", "phoneNumber"]
+      - ["State", "state"]
+
+"Features: Virtual Extensions":
+  table_columns:
+    list:
+      - ["ID", "id"]
+      - ["Name", "displayName"]
+      - ["Extension", "extension"]
+      - ["Phone Number", "phoneNumber"]
+
+# Emergency Services Settings: ALL 12 read endpoints return flat singleton dicts.
+# No overrides needed — they fall through to print_json via fallback. Real fix is
+# reclassifying them as settings-get in the generator.
+
+"Features: Announcement Repository":
+  # list-usage-announcements and list-usage-announcements-1 return flat singleton dicts (storage stats)
+
+"Features: Call Recording":
+  response_list_keys:
+    list-vendor-users-call-recording: members
+    list-vendor-users-call-recording-1: members
+    list-call-recording: items
+  table_columns:
+    list-regions:
+      - ["Code", "code"]
+      - ["Name", "name"]
+      - ["Default", "defaultEnabled"]
+    list-vendor-users-call-recording:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Email", "email"]
+    list-vendor-users-call-recording-1:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Email", "email"]
+
 # Global settings
 skip_folders:
   - "Beta *"

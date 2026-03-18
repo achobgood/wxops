@@ -66,7 +66,7 @@ def cmd_list(
     location_id: str = typer.Option(None, "--location-id", help="Filter the list of virtual extensions by location ID."),
     org_level_only: str = typer.Option(None, "--org-level-only", help="Filter the list of virtual extensions by organization level."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -109,7 +109,7 @@ def cmd_list(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Name', 'displayName'), ('Extension', 'extension'), ('Phone Number', 'phoneNumber')], limit=limit)
 
 
 
@@ -321,7 +321,7 @@ def list_virtual_extension_ranges(
     location_id: str = typer.Option(None, "--location-id", help="Filter the list of virtual extension ranges by location ID."),
     org_level_only: str = typer.Option(None, "--org-level-only", help="Filter the list of virtual extension ranges by organization"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -410,8 +410,8 @@ def delete_virtual_extension_ranges(
 
 
 
-@app.command("update-")
-def update_(
+@app.command("update-virtual-extension-ranges")
+def update_virtual_extension_ranges(
     extension_range_id: str = typer.Argument(help="extensionRangeId"),
     name: str = typer.Option(None, "--name", help=""),
     prefix: str = typer.Option(None, "--prefix", help=""),

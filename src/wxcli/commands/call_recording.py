@@ -111,7 +111,7 @@ def update_terms_of_service(
 @app.command("list")
 def cmd_list(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -140,8 +140,8 @@ def cmd_list(
 
 
 
-@app.command("update-compliance-announcement")
-def update_compliance_announcement(
+@app.command("update-compliance-announcement-call-recording")
+def update_compliance_announcement_call_recording(
     inbound_p_s_t_n_calls_enabled: bool = typer.Option(None, "--inbound-p-s-t-n-calls-enabled/--no-inbound-p-s-t-n-calls-enabled", help=""),
     outbound_p_s_t_n_calls_enabled: bool = typer.Option(None, "--outbound-p-s-t-n-calls-enabled/--no-outbound-p-s-t-n-calls-enabled", help=""),
     outbound_p_s_t_n_calls_delay_enabled: bool = typer.Option(None, "--outbound-p-s-t-n-calls-delay-enabled/--no-outbound-p-s-t-n-calls-delay-enabled", help=""),
@@ -181,7 +181,7 @@ def update_compliance_announcement(
 def list_compliance_announcement(
     location_id: str = typer.Argument(help="locationId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -210,8 +210,8 @@ def list_compliance_announcement(
 
 
 
-@app.command("update-compliance-announcement")
-def update_compliance_announcement(
+@app.command("update-compliance-announcement-call-recording-1")
+def update_compliance_announcement_call_recording_1(
     location_id: str = typer.Argument(help="locationId"),
     inbound_p_s_t_n_calls_enabled: bool = typer.Option(None, "--inbound-p-s-t-n-calls-enabled/--no-inbound-p-s-t-n-calls-enabled", help=""),
     use_org_settings_enabled: bool = typer.Option(None, "--use-org-settings-enabled/--no-use-org-settings-enabled", help=""),
@@ -254,7 +254,7 @@ def update_compliance_announcement(
 @app.command("list-regions")
 def list_regions(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -279,17 +279,17 @@ def list_regions(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('Code', 'code'), ('Name', 'name'), ('Default', 'defaultEnabled')], limit=limit)
 
 
 
-@app.command("list-vendor-users")
-def list_vendor_users(
+@app.command("list-vendor-users-call-recording")
+def list_vendor_users_call_recording(
     max: str = typer.Option(None, "--max", help="Limit the number of vendor users returned to this maximum co"),
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
     standard_user_only: str = typer.Option(None, "--standard-user-only", help="If true, results only include Webex Calling standard users."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -316,16 +316,16 @@ def list_vendor_users(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("vendorUsers", result if isinstance(result, list) else [])
+    items = result.get("members", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Email', 'email')], limit=limit)
 
 
 
-@app.command("update-vendor")
-def update_vendor(
+@app.command("update-vendor-call-recording")
+def update_vendor_call_recording(
     location_id: str = typer.Argument(help="locationId"),
     id_param: str = typer.Option(None, "--id", help=""),
     org_default_enabled: bool = typer.Option(None, "--org-default-enabled/--no-org-default-enabled", help=""),
@@ -368,11 +368,11 @@ def update_vendor(
 
 
 
-@app.command("list-vendors")
-def list_vendors(
+@app.command("list-vendors-call-recording")
+def list_vendors_call_recording(
     location_id: str = typer.Argument(help="locationId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -401,14 +401,14 @@ def list_vendors(
 
 
 
-@app.command("list-vendor-users")
-def list_vendor_users(
+@app.command("list-vendor-users-call-recording-1")
+def list_vendor_users_call_recording_1(
     location_id: str = typer.Argument(help="locationId"),
     max: str = typer.Option(None, "--max", help="Limit the number of vendor users returned to this maximum co"),
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
     standard_user_only: str = typer.Option(None, "--standard-user-only", help="If true, results only include Webex Calling standard users."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -435,11 +435,11 @@ def list_vendor_users(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("vendorUsers", result if isinstance(result, list) else [])
+    items = result.get("members", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Email', 'email')], limit=limit)
 
 
 
@@ -448,7 +448,7 @@ def list_call_recording(
     max: str = typer.Option(None, "--max", help="Limit the number of jobs returned to this maximum count. The"),
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -473,7 +473,7 @@ def list_call_recording(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("callRecording", result if isinstance(result, list) else [])
+    items = result.get("items", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -508,7 +508,7 @@ def list_errors(
     job_id: str = typer.Argument(help="jobId"),
     max: str = typer.Option(None, "--max", help="Limit the number of errors returned to this maximum count. T"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -539,10 +539,10 @@ def list_errors(
 
 
 
-@app.command("list-vendors")
-def list_vendors(
+@app.command("list-vendors-call-recording-1")
+def list_vendors_call_recording_1(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -571,8 +571,8 @@ def list_vendors(
 
 
 
-@app.command("update-vendor")
-def update_vendor(
+@app.command("update-vendor-call-recording-1")
+def update_vendor_call_recording_1(
     vendor_id: str = typer.Option(None, "--vendor-id", help=""),
     storage_region: str = typer.Option(None, "--storage-region", help=""),
     failure_behavior: str = typer.Option(None, "--failure-behavior", help="e.g. PROCEED_CALL_WITH_ANNOUNCEMENT"),
