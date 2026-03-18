@@ -16,7 +16,7 @@ def cmd_list(
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
     order: str = typer.Option(None, "--order", help="Order the dial patterns according to the designated fields."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -60,7 +60,7 @@ def list_1(
     name: str = typer.Option(None, "--name", help="List locations whose name contains this string."),
     order: str = typer.Option(None, "--order", help="Sort the list of locations based on `name`, either asc or de"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -212,7 +212,7 @@ def update(
 @app.command("list-update-routing-prefix")
 def list_update_routing_prefix(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -233,11 +233,11 @@ def list_update_routing_prefix(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("updateRoutingPrefix", result if isinstance(result, list) else [])
+    items = result.get("items", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Status', 'latestExecutionStatus')], limit=limit)
 
 
 
@@ -263,11 +263,11 @@ def show_update_routing_prefix(
 
 
 
-@app.command("list-errors")
-def list_errors(
+@app.command("list-errors-update-routing-prefix")
+def list_errors_update_routing_prefix(
     job_id: str = typer.Argument(help="jobId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -335,7 +335,7 @@ def change_announcement_language(
 def list_emergency_callback_number(
     location_id: str = typer.Argument(help="locationId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -505,7 +505,7 @@ def show_music_on_hold(
 def list_private_network_connect(
     location_id: str = typer.Argument(help="locationId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -571,7 +571,7 @@ def list_route_choices(
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
     order: str = typer.Option(None, "--order", help="Order the route identities according to the designated field"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -602,7 +602,7 @@ def list_route_choices(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("routeChoices", result if isinstance(result, list) else [])
+    items = result.get("routeIdentities", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -610,8 +610,8 @@ def list_route_choices(
 
 
 
-@app.command("list-available-numbers")
-def list_available_numbers(
+@app.command("list-available-numbers-external-caller-id")
+def list_available_numbers_external_caller_id(
     location_id: str = typer.Argument(help="locationId"),
     max: str = typer.Option(None, "--max", help="Limit the number of phone numbers returned to this maximum c"),
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
@@ -619,7 +619,7 @@ def list_available_numbers(
     owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
     person_id: str = typer.Option(None, "--person-id", help="Retrieve available external caller ID numbers for this perso"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -650,23 +650,23 @@ def list_available_numbers(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("availableNumbers", result if isinstance(result, list) else [])
+    items = result.get("phoneNumbers", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('Phone Number', 'phoneNumber'), ('State', 'state')], limit=limit)
 
 
 
-@app.command("list-available-numbers")
-def list_available_numbers(
+@app.command("list-available-numbers-locations")
+def list_available_numbers_locations(
     location_id: str = typer.Argument(help="locationId"),
     max: str = typer.Option(None, "--max", help="Limit the number of phone numbers returned to this maximum c"),
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
     owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -695,22 +695,22 @@ def list_available_numbers(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("availableNumbers", result if isinstance(result, list) else [])
+    items = result.get("phoneNumbers", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('Phone Number', 'phoneNumber'), ('State', 'state')], limit=limit)
 
 
 
-@app.command("list-available-numbers")
-def list_available_numbers(
+@app.command("list-available-numbers-webex-go")
+def list_available_numbers_webex_go(
     location_id: str = typer.Argument(help="locationId"),
     max: str = typer.Option(None, "--max", help="Limit the number of phone numbers returned to this maximum c"),
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -737,23 +737,23 @@ def list_available_numbers(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("availableNumbers", result if isinstance(result, list) else [])
+    items = result.get("phoneNumbers", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('Phone Number', 'phoneNumber'), ('State', 'state')], limit=limit)
 
 
 
-@app.command("list-available-numbers")
-def list_available_numbers(
+@app.command("list-available-numbers-emergency-callback-number")
+def list_available_numbers_emergency_callback_number(
     location_id: str = typer.Argument(help="locationId"),
     max: str = typer.Option(None, "--max", help="Limit the number of phone numbers returned to this maximum c"),
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
     owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -782,16 +782,16 @@ def list_available_numbers(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("availableNumbers", result if isinstance(result, list) else [])
+    items = result.get("phoneNumbers", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('Phone Number', 'phoneNumber'), ('State', 'state')], limit=limit)
 
 
 
-@app.command("list-available-numbers")
-def list_available_numbers(
+@app.command("list-available-numbers-call-intercept")
+def list_available_numbers_call_intercept(
     location_id: str = typer.Argument(help="locationId"),
     max: str = typer.Option(None, "--max", help="Limit the number of phone numbers returned to this maximum c"),
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
@@ -799,7 +799,7 @@ def list_available_numbers(
     owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
     extension: str = typer.Option(None, "--extension", help="Returns the list of phone numbers with the given `extension`"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -830,11 +830,11 @@ def list_available_numbers(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("availableNumbers", result if isinstance(result, list) else [])
+    items = result.get("phoneNumbers", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('Phone Number', 'phoneNumber'), ('State', 'state')], limit=limit)
 
 
 
@@ -874,7 +874,7 @@ def create_directories(
 def list_directories(
     location_id: str = typer.Argument(help="locationId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -981,15 +981,15 @@ def update_directories(
 
 
 
-@app.command("list-available-numbers")
-def list_available_numbers(
+@app.command("list-available-numbers-charge-number")
+def list_available_numbers_charge_number(
     location_id: str = typer.Argument(help="locationId"),
     max: str = typer.Option(None, "--max", help="Limit the number of phone numbers returned to this maximum c"),
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
     owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1018,11 +1018,11 @@ def list_available_numbers(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("availableNumbers", result if isinstance(result, list) else [])
+    items = result.get("phoneNumbers", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('Phone Number', 'phoneNumber'), ('State', 'state')], limit=limit)
 
 
 
@@ -1068,7 +1068,7 @@ def list_delete_calling_location(
     max: str = typer.Option(None, "--max", help="Maximum number of jobs to return."),
     start: str = typer.Option(None, "--start", help="Offset to start returning records from."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1093,11 +1093,11 @@ def list_delete_calling_location(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("deleteCallingLocation", result if isinstance(result, list) else [])
+    items = result.get("items", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Status', 'latestExecutionStatus')], limit=limit)
 
 
 
@@ -1179,11 +1179,11 @@ def resume_a_paused(
 
 
 
-@app.command("list-errors")
-def list_errors(
+@app.command("list-errors-delete-calling-location")
+def list_errors_delete_calling_location(
     job_id: str = typer.Argument(help="jobId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

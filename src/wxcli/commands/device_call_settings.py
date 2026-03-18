@@ -12,7 +12,7 @@ app = typer.Typer(help="Manage Webex Calling device-call-settings.")
 def cmd_list(
     device_id: str = typer.Argument(help="deviceId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -37,7 +37,7 @@ def cmd_list(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('First Name', 'firstName'), ('Last Name', 'lastName'), ('Extension', 'extension'), ('Line Type', 'lineType')], limit=limit)
 
 
 
@@ -79,7 +79,7 @@ def list_available_members(
     usage_type: str = typer.Option(None, "--usage-type", help="Search for members eligible to become the owner of the devic"),
     order: str = typer.Option(None, "--order", help="Sort the list of available members on the device in ascendin"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -116,11 +116,11 @@ def list_available_members(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("availableMembers", result if isinstance(result, list) else [])
+    items = result.get("members", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('First Name', 'firstName'), ('Last Name', 'lastName'), ('Extension', 'extension'), ('Member Type', 'memberType')], limit=limit)
 
 
 
@@ -172,8 +172,8 @@ def show(
 
 
 
-@app.command("update-settings")
-def update_settings(
+@app.command("update-settings-devices")
+def update_settings_devices(
     device_id: str = typer.Argument(help="deviceId"),
     custom_enabled: bool = typer.Option(None, "--custom-enabled/--no-custom-enabled", help=""),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -201,8 +201,8 @@ def update_settings(
 
 
 
-@app.command("show-settings")
-def show_settings(
+@app.command("show-settings-devices")
+def show_settings_devices(
     location_id: str = typer.Argument(help="locationId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -245,8 +245,8 @@ def show_devices(
 
 
 
-@app.command("update-devices")
-def update_devices(
+@app.command("update-devices-config")
+def update_devices_config(
     device_id: str = typer.Argument(help="deviceId"),
     sip_password: str = typer.Option(None, "--sip-password", help=""),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -274,11 +274,11 @@ def update_devices(
 
 
 
-@app.command("list-devices")
-def list_devices(
+@app.command("list-devices-people")
+def list_devices_people(
     person_id: str = typer.Argument(help="personId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -303,7 +303,7 @@ def list_devices(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Model', 'model'), ('MAC', 'mac'), ('Type', 'type')], limit=limit)
 
 
 
@@ -333,11 +333,11 @@ def update_hoteling(
 
 
 
-@app.command("list-devices")
-def list_devices(
+@app.command("list-devices-workspaces")
+def list_devices_workspaces(
     workspace_id: str = typer.Argument(help="workspaceId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -362,12 +362,12 @@ def list_devices(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Model', 'model'), ('MAC', 'mac'), ('Type', 'type')], limit=limit)
 
 
 
-@app.command("update-devices")
-def update_devices(
+@app.command("update-devices-workspaces")
+def update_devices_workspaces(
     workspace_id: str = typer.Argument(help="workspaceId"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help=""),
     limit_guest_use: bool = typer.Option(None, "--limit-guest-use/--no-limit-guest-use", help=""),
@@ -401,12 +401,12 @@ def update_devices(
 
 
 
-@app.command("list-supported-devices")
-def list_supported_devices(
+@app.command("list-supported-devices-config")
+def list_supported_devices_config(
     allow_configure_layout_enabled: str = typer.Option(None, "--allow-configure-layout-enabled", help="List supported devices that allow the user to configure the"),
     type_param: str = typer.Option(None, "--type", help="List supported devices of a specific type. To excluded devic"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -431,16 +431,16 @@ def list_supported_devices(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("supportedDevices", result if isinstance(result, list) else [])
+    items = result.get("devices", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('Model', 'model'), ('Display Name', 'displayName'), ('Type', 'type')], limit=limit)
 
 
 
-@app.command("show-settings")
-def show_settings(
+@app.command("show-settings-devices-1")
+def show_settings_devices_1(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -500,7 +500,7 @@ def create(
 @app.command("list-line-key-templates")
 def list_line_key_templates(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -525,7 +525,7 @@ def list_line_key_templates(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Template Name', 'templateName'), ('Device Model', 'deviceModel'), ('Display Name', 'userDisplayName')], limit=limit)
 
 
 
@@ -678,7 +678,7 @@ def create_apply_line_key_template(
 @app.command("list-apply-line-key-template")
 def list_apply_line_key_template(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -699,11 +699,11 @@ def list_apply_line_key_template(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("applyLineKeyTemplate", result if isinstance(result, list) else [])
+    items = result.get("items", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Status', 'latestExecutionStatus')], limit=limit)
 
 
 
@@ -729,11 +729,11 @@ def show_apply_line_key_template(
 
 
 
-@app.command("list-errors")
-def list_errors(
+@app.command("list-errors-apply-line-key-template")
+def list_errors_apply_line_key_template(
     job_id: str = typer.Argument(help="jobId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -762,10 +762,10 @@ def list_errors(
 
 
 
-@app.command("list-supported-devices")
-def list_supported_devices(
+@app.command("list-supported-devices-dects")
+def list_supported_devices_dects(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -786,18 +786,18 @@ def list_supported_devices(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("supportedDevices", result if isinstance(result, list) else [])
+    items = result.get("devices", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('Model', 'model'), ('Display Name', 'displayName'), ('Base Stations', 'numberOfSupportedBaseStations')], limit=limit)
 
 
 
-@app.command("list-supported-devices")
-def list_supported_devices(
+@app.command("list-supported-devices-dect-networks")
+def list_supported_devices_dect_networks(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -818,11 +818,11 @@ def list_supported_devices(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("supportedDevices", result if isinstance(result, list) else [])
+    items = result.get("devices", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('Model', 'model'), ('Display Name', 'displayName'), ('Base Stations', 'numberOfSupportedBaseStations')], limit=limit)
 
 
 
@@ -885,8 +885,8 @@ def create_call_device_settings(
 
 
 
-@app.command("show-call-device-settings")
-def show_call_device_settings(
+@app.command("show-call-device-settings-devices")
+def show_call_device_settings_devices(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -906,8 +906,8 @@ def show_call_device_settings(
 
 
 
-@app.command("show-call-device-settings")
-def show_call_device_settings(
+@app.command("show-call-device-settings-devices-1")
+def show_call_device_settings_devices_1(
     job_id: str = typer.Argument(help="jobId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -954,7 +954,7 @@ def show_errors(
 def list_layout(
     device_id: str = typer.Argument(help="deviceId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1052,7 +1052,7 @@ def create_rebuild_phones(
 @app.command("list-rebuild-phones")
 def list_rebuild_phones(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1073,11 +1073,11 @@ def list_rebuild_phones(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("rebuildPhones", result if isinstance(result, list) else [])
+    items = result.get("items", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Status', 'latestExecutionStatus')], limit=limit)
 
 
 
@@ -1103,11 +1103,11 @@ def show_rebuild_phones(
 
 
 
-@app.command("list-errors")
-def list_errors(
+@app.command("list-errors-rebuild-phones")
+def list_errors_rebuild_phones(
     job_id: str = typer.Argument(help="jobId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1136,8 +1136,8 @@ def list_errors(
 
 
 
-@app.command("show-settings")
-def show_settings(
+@app.command("show-settings-devices-2")
+def show_settings_devices_2(
     person_id: str = typer.Argument(help="personId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1158,8 +1158,8 @@ def show_settings(
 
 
 
-@app.command("update-settings")
-def update_settings(
+@app.command("update-settings-devices-1")
+def update_settings_devices_1(
     person_id: str = typer.Argument(help="personId"),
     compression: str = typer.Option(None, "--compression", help="e.g. OFF"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -1187,8 +1187,8 @@ def update_settings(
 
 
 
-@app.command("show-settings")
-def show_settings(
+@app.command("show-settings-devices-3")
+def show_settings_devices_3(
     workspace_id: str = typer.Argument(help="workspaceId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1209,8 +1209,8 @@ def show_settings(
 
 
 
-@app.command("update-settings")
-def update_settings(
+@app.command("update-settings-devices-2")
+def update_settings_devices_2(
     workspace_id: str = typer.Argument(help="workspaceId"),
     compression: str = typer.Option(None, "--compression", help="e.g. OFF"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -1241,7 +1241,7 @@ def update_settings(
 @app.command("list-background-images")
 def list_background_images(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1319,11 +1319,11 @@ def upload_a_device(
 
 
 
-@app.command("list-count")
-def list_count(
+@app.command("list-count-devices")
+def list_count_devices(
     person_id: str = typer.Argument(help="personId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1352,8 +1352,8 @@ def list_count(
 
 
 
-@app.command("list-count")
-def list_count(
+@app.command("list-count-available-members")
+def list_count_available_members(
     device_id: str = typer.Argument(help="deviceId"),
     member_name: str = typer.Option(None, "--member-name", help="Search (Contains) numbers based on member name."),
     phone_number: str = typer.Option(None, "--phone-number", help="Search (Contains) based on number."),
@@ -1361,7 +1361,7 @@ def list_count(
     extension: str = typer.Option(None, "--extension", help="Search (Contains) based on extension."),
     usage_type: str = typer.Option(None, "--usage-type", help="Search for members eligible to become the owner of the devic"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1400,8 +1400,8 @@ def list_count(
 
 
 
-@app.command("list-count")
-def list_count(
+@app.command("list-count-available-members-1")
+def list_count_available_members_1(
     member_name: str = typer.Option(None, "--member-name", help="Search (Contains) numbers based on member name."),
     phone_number: str = typer.Option(None, "--phone-number", help="Search (Contains) based on number."),
     location_id: str = typer.Option(None, "--location-id", help="Unique identifier for the location."),
@@ -1410,7 +1410,7 @@ def list_count(
     exclude_virtual_line: str = typer.Option(None, "--exclude-virtual-line", help="If true, filters out virtual lines from the available member"),
     device_location_id: str = typer.Option(None, "--device-location-id", help="Unique identifier for the device's location. When specified,"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

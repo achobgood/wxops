@@ -1,3 +1,38 @@
+# ── field_overrides.yaml ──
+# Override schema for the wxcli auto-generator (tools/generate_commands.py).
+#
+# Top-level keys are Postman folder names (exact match).
+# Each folder can contain:
+#
+#   response_list_keys:
+#     <command_name>: <json_key>
+#     Maps a list command name → the JSON key that wraps the array response.
+#     Overrides the auto-derived key (last non-variable URL segment).
+#     Example: "list: phoneNumbers" means the API returns {"phoneNumbers": [...]}.
+#
+#   create:
+#     id_key: <json_key>
+#     Explicit response key for the created resource's ID. Overrides the default
+#     "id" lookup. Example: "id_key: dectNetworkId" extracts result["dectNetworkId"].
+#     required_fields: [field1, field2, ...]
+#     defaults: { field: value, ... }
+#
+#   list:
+#     table_columns:
+#       - ["Header", "json_key"]
+#     Default columns for ALL list commands in this folder. Overrides the
+#     generator default of [("ID", "id"), ("Name", "name")].
+#
+#   table_columns:
+#     <command_name>:
+#       - ["Header", "json_key"]
+#     Per-command column overrides. Takes precedence over list.table_columns.
+#     Use when different list commands in the same folder return different shapes.
+#
+# Global keys:
+#   skip_folders:     - glob patterns for folders to skip entirely
+#   omit_query_params: - query params stripped from all commands (default: [orgId])
+#
 # Known required fields and defaults discovered during v2 live testing
 
 "Features:  Auto Attendant":
@@ -90,14 +125,182 @@
   response_list_keys:
     list: phoneNumbers
     list-manage-numbers: items
+  table_columns:
+    list:
+      - ["Phone Number", "phoneNumber"]
+      - ["Extension", "extension"]
+      - ["State", "state"]
+      - ["Owner Type", "owner.type"]
+      - ["Owner Name", "owner.firstName"]
+    list-manage-numbers:
+      - ["ID", "id"]
+      - ["Operation", "operationType"]
+      - ["Status", "latestExecutionStatus"]
 
 "User Call Settings (1/2)":
   response_list_keys:
     list-numbers: phoneNumbers
+  table_columns:
+    list-numbers:
+      - ["Number", "directNumber"]
+      - ["Extension", "extension"]
+      - ["Primary", "primary"]
+    list-schedules:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Type", "type"]
+      - ["Level", "level"]
+
+"Call Controls":
+  table_columns:
+    list:
+      - ["Call ID", "callId"]
+      - ["Personality", "personality"]
+      - ["State", "state"]
+      - ["Remote Party", "remoteParty.name"]
+    list-history:
+      - ["ID", "id"]
+      - ["Direction", "direction"]
+      - ["Call Type", "callType"]
+      - ["Start", "startTime"]
+    list-calls:
+      - ["Call ID", "callId"]
+      - ["Personality", "personality"]
+      - ["State", "state"]
 
 "Workspaces":
   response_list_keys:
     list: items
+  table_columns:
+    list:
+      - ["ID", "id"]
+      - ["Display Name", "displayName"]
+      - ["Type", "type"]
+      - ["Calling", "calling.type"]
+
+"Location Call Settings":
+  response_list_keys:
+    list-route-choices: routeIdentities
+    list-available-numbers-external-caller-id: phoneNumbers
+    list-available-numbers-locations: phoneNumbers
+    list-available-numbers-webex-go: phoneNumbers
+    list-available-numbers-emergency-callback-number: phoneNumbers
+    list-available-numbers-call-intercept: phoneNumbers
+    list-available-numbers-charge-number: phoneNumbers
+    list-update-routing-prefix: items
+    list-delete-calling-location: items
+  table_columns:
+    list-available-numbers-external-caller-id:
+      - ["Phone Number", "phoneNumber"]
+      - ["State", "state"]
+    list-available-numbers-locations:
+      - ["Phone Number", "phoneNumber"]
+      - ["State", "state"]
+    list-available-numbers-webex-go:
+      - ["Phone Number", "phoneNumber"]
+      - ["State", "state"]
+    list-available-numbers-emergency-callback-number:
+      - ["Phone Number", "phoneNumber"]
+      - ["State", "state"]
+    list-available-numbers-call-intercept:
+      - ["Phone Number", "phoneNumber"]
+      - ["State", "state"]
+    list-available-numbers-charge-number:
+      - ["Phone Number", "phoneNumber"]
+      - ["State", "state"]
+    list-update-routing-prefix:
+      - ["ID", "id"]
+      - ["Status", "latestExecutionStatus"]
+    list-delete-calling-location:
+      - ["ID", "id"]
+      - ["Status", "latestExecutionStatus"]
+
+"Location Call Settings: Call Handling":
+  response_list_keys:
+    list-outgoing-permission: callingPermissions
+  table_columns:
+    list-access-codes:
+      - ["Code", "code"]
+      - ["Description", "description"]
+    list-digit-patterns:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Pattern", "pattern"]
+      - ["Action", "action"]
+    list-outgoing-permission:
+      - ["Call Type", "callType"]
+      - ["Action", "action"]
+      - ["Transfer", "transferEnabled"]
+
+"Location Call Settings:  Voicemail":
+  response_list_keys:
+    list-voicemail-groups: voicemailGroups
+
+"Device Call Settings":
+  response_list_keys:
+    list-available-members: members
+    list-supported-devices-config: devices
+    list-supported-devices-dects: devices
+    list-supported-devices-dect-networks: devices
+    list-apply-line-key-template: items
+    list-rebuild-phones: items
+  table_columns:
+    list:
+      - ["ID", "id"]
+      - ["First Name", "firstName"]
+      - ["Last Name", "lastName"]
+      - ["Extension", "extension"]
+      - ["Line Type", "lineType"]
+    list-available-members:
+      - ["ID", "id"]
+      - ["First Name", "firstName"]
+      - ["Last Name", "lastName"]
+      - ["Extension", "extension"]
+      - ["Member Type", "memberType"]
+    list-supported-devices-config:
+      - ["Model", "model"]
+      - ["Display Name", "displayName"]
+      - ["Type", "type"]
+    list-supported-devices-dects:
+      - ["Model", "model"]
+      - ["Display Name", "displayName"]
+      - ["Base Stations", "numberOfSupportedBaseStations"]
+    list-supported-devices-dect-networks:
+      - ["Model", "model"]
+      - ["Display Name", "displayName"]
+      - ["Base Stations", "numberOfSupportedBaseStations"]
+    list-devices-people:
+      - ["ID", "id"]
+      - ["Model", "model"]
+      - ["MAC", "mac"]
+      - ["Type", "type"]
+    list-devices-workspaces:
+      - ["ID", "id"]
+      - ["Model", "model"]
+      - ["MAC", "mac"]
+      - ["Type", "type"]
+    list-line-key-templates:
+      - ["ID", "id"]
+      - ["Template Name", "templateName"]
+      - ["Device Model", "deviceModel"]
+      - ["Display Name", "userDisplayName"]
+    list-apply-line-key-template:
+      - ["ID", "id"]
+      - ["Status", "latestExecutionStatus"]
+    list-rebuild-phones:
+      - ["ID", "id"]
+      - ["Status", "latestExecutionStatus"]
+
+"PSTN":
+  table_columns:
+    list:
+      - ["Type", "type"]
+      - ["Name", "name"]
+      - ["ID", "id"]
+    list-connection:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Type", "type"]
 
 # Global settings
 skip_folders:

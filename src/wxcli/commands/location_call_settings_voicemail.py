@@ -12,7 +12,7 @@ app = typer.Typer(help="Manage Webex Calling location-call-settings-voicemail.")
 def cmd_list(
     location_id: str = typer.Argument(help="locationId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -74,7 +74,7 @@ def update(
 def list_voice_portal(
     location_id: str = typer.Argument(help="locationId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -154,7 +154,7 @@ def update_voice_portal(
 def list_passcode_rules(
     location_id: str = typer.Argument(help="locationId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -191,7 +191,7 @@ def list_voicemail_groups(
     max: str = typer.Option(None, "--max", help="Limit the maximum number of events in the response. The maxi"),
     start: str = typer.Option(None, "--start", help="Offset from the first result that you want to fetch."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -391,14 +391,14 @@ def create(
 
 
 
-@app.command("list-available-numbers")
-def list_available_numbers(
+@app.command("list-available-numbers-fax-message")
+def list_available_numbers_fax_message(
     location_id: str = typer.Argument(help="locationId"),
     max: str = typer.Option(None, "--max", help="Limit the number of phone numbers returned to this maximum c"),
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -433,14 +433,14 @@ def list_available_numbers(
 
 
 
-@app.command("list-available-numbers")
-def list_available_numbers(
+@app.command("list-available-numbers-voicemail-groups")
+def list_available_numbers_voicemail_groups(
     location_id: str = typer.Argument(help="locationId"),
     max: str = typer.Option(None, "--max", help="Limit the number of phone numbers returned to this maximum c"),
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -475,14 +475,14 @@ def list_available_numbers(
 
 
 
-@app.command("list-available-numbers")
-def list_available_numbers(
+@app.command("list-available-numbers-voice-portal")
+def list_available_numbers_voice_portal(
     location_id: str = typer.Argument(help="locationId"),
     max: str = typer.Option(None, "--max", help="Limit the number of phone numbers returned to this maximum c"),
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

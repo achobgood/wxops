@@ -38,7 +38,7 @@ def generate_example_password(
 def cmd_list(
     location_id: str = typer.Argument(help="locationId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -100,7 +100,7 @@ def update(
 def list_intercept(
     location_id: str = typer.Argument(help="locationId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -162,7 +162,7 @@ def update_intercept(
 def list_outgoing_permission(
     location_id: str = typer.Argument(help="locationId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -183,11 +183,11 @@ def list_outgoing_permission(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("outgoingPermission", result if isinstance(result, list) else [])
+    items = result.get("callingPermissions", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('Call Type', 'callType'), ('Action', 'action'), ('Transfer', 'transferEnabled')], limit=limit)
 
 
 
@@ -221,7 +221,7 @@ def update_outgoing_permission(
 def list_auto_transfer_numbers(
     location_id: str = typer.Argument(help="locationId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -289,7 +289,7 @@ def update_auto_transfer_numbers(
 def list_access_codes(
     location_id: str = typer.Argument(help="locationId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -314,7 +314,7 @@ def list_access_codes(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('Code', 'code'), ('Description', 'description')], limit=limit)
 
 
 
@@ -401,7 +401,7 @@ def delete(
 def list_digit_patterns(
     location_id: str = typer.Argument(help="locationId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -426,7 +426,7 @@ def list_digit_patterns(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Pattern', 'pattern'), ('Action', 'action')], limit=limit)
 
 
 
@@ -471,8 +471,8 @@ def create_digit_patterns(
 
 
 
-@app.command("delete-digit-patterns")
-def delete_digit_patterns(
+@app.command("delete-digit-patterns-outgoing-permission")
+def delete_digit_patterns_outgoing_permission(
     location_id: str = typer.Argument(help="locationId"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
@@ -557,8 +557,8 @@ def update_digit_patterns(
 
 
 
-@app.command("delete-digit-patterns")
-def delete_digit_patterns(
+@app.command("delete-digit-patterns-outgoing-permission-1")
+def delete_digit_patterns_outgoing_permission_1(
     location_id: str = typer.Argument(help="locationId"),
     digit_pattern_id: str = typer.Argument(help="digitPatternId"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
