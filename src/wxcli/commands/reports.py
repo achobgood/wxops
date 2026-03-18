@@ -47,7 +47,7 @@ def cmd_list(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("reports", result if isinstance(result, list) else [])
+    items = result.get("items", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:

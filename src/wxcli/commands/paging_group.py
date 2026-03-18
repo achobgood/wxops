@@ -47,7 +47,7 @@ def cmd_list(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("paging", result if isinstance(result, list) else [])
+    items = result.get("locationPaging", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -244,7 +244,7 @@ def list_available_numbers(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("availableNumbers", result if isinstance(result, list) else [])
+    items = result.get("phoneNumbers", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:

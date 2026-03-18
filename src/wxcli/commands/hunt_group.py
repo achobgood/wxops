@@ -438,7 +438,7 @@ def list_available_numbers_hunt_groups(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("availableNumbers", result if isinstance(result, list) else [])
+    items = result.get("phoneNumbers", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -480,7 +480,7 @@ def list_available_numbers_alternate(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("availableNumbers", result if isinstance(result, list) else [])
+    items = result.get("phoneNumbers", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -528,7 +528,7 @@ def list_available_numbers_call_forwarding(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("availableNumbers", result if isinstance(result, list) else [])
+    items = result.get("phoneNumbers", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:

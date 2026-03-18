@@ -795,7 +795,7 @@ def list_available_numbers_queues(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("availableNumbers", result if isinstance(result, list) else [])
+    items = result.get("phoneNumbers", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -837,7 +837,7 @@ def list_available_numbers_alternate(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("availableNumbers", result if isinstance(result, list) else [])
+    items = result.get("phoneNumbers", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -885,7 +885,7 @@ def list_available_numbers_call_forwarding(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("availableNumbers", result if isinstance(result, list) else [])
+    items = result.get("phoneNumbers", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -935,7 +935,7 @@ def list_available_agents_queues(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("availableAgents", result if isinstance(result, list) else [])
+    items = result.get("agents", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -1161,7 +1161,7 @@ def list_available_supervisors(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("availableSupervisors", result if isinstance(result, list) else [])
+    items = result.get("supervisors", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -1211,7 +1211,7 @@ def list_available_agents_supervisors(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("availableAgents", result if isinstance(result, list) else [])
+    items = result.get("agents", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:

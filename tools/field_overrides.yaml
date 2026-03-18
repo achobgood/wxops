@@ -42,6 +42,10 @@
 # Known required fields and defaults discovered during v2 live testing
 
 "Features:  Auto Attendant":
+  response_list_keys:
+    list-available-numbers-auto-attendants: phoneNumbers
+    list-available-numbers-alternate: phoneNumbers
+    list-available-numbers-call-forwarding: phoneNumbers
   create:
     required_fields: [name, extension, businessHoursMenu, afterHoursMenu, businessSchedule]
     defaults:
@@ -65,6 +69,13 @@
       - ["Enabled", "enabled"]
 
 "Features:  Call Queue":
+  response_list_keys:
+    list-available-numbers-queues: phoneNumbers
+    list-available-numbers-alternate: phoneNumbers
+    list-available-numbers-call-forwarding: phoneNumbers
+    list-available-agents-queues: agents
+    list-available-supervisors: supervisors
+    list-available-agents-supervisors: agents
   create:
     required_fields: [name, callPolicies]
     defaults:
@@ -79,6 +90,9 @@
       - ["Enabled", "enabled"]
 
 "Features:  Call Park":
+  response_list_keys:
+    list-available-users: agents
+    list-available-recall-hunt-groups: huntGroups
   create:
     required_fields: [name, recall]
     defaults:
@@ -90,6 +104,10 @@
       - ["Name", "name"]
 
 "Features:  Hunt Group":
+  response_list_keys:
+    list-available-numbers-hunt-groups: phoneNumbers
+    list-available-numbers-alternate: phoneNumbers
+    list-available-numbers-call-forwarding: phoneNumbers
   list:
     table_columns:
       - ["ID", "id"]
@@ -98,12 +116,17 @@
       - ["Enabled", "enabled"]
 
 "Features:  Call Pickup":
+  response_list_keys:
+    list-available-users: agents
   list:
     table_columns:
       - ["ID", "id"]
       - ["Name", "name"]
 
 "Features:  Paging Group":
+  response_list_keys:
+    list: locationPaging
+    list-available-numbers: phoneNumbers
   list:
     table_columns:
       - ["ID", "id"]
@@ -316,6 +339,16 @@
       - ["Phone Number", "phoneNumber"]
       - ["State", "state"]
 
+"Locations":
+  response_list_keys:
+    list: items
+    list-floors: items
+
+"Features: Operating Modes":
+  response_list_keys:
+    list-available-operating-modes: operatingModes
+    list-available-numbers: phoneNumbers
+
 "Features: Virtual Extensions":
   table_columns:
     list:
@@ -356,6 +389,111 @@
       - ["ID", "id"]
       - ["Name", "name"]
       - ["Email", "email"]
+
+"People":
+  response_list_keys:
+    list: items
+  table_columns:
+    list:
+      - ["ID", "id"]
+      - ["Display Name", "displayName"]
+      - ["Email", "emails[0]"]
+
+"Devices":
+  response_list_keys:
+    list: items
+  table_columns:
+    list:
+      - ["ID", "id"]
+      - ["Display Name", "displayName"]
+      - ["Product", "product"]
+      - ["MAC", "mac"]
+
+"Converged Recordings":
+  response_list_keys:
+    list: items
+    list-converged-recordings: items
+
+"Reports":
+  response_list_keys:
+    list: items
+
+"Recording Report":
+  response_list_keys:
+    list: items
+    list-meeting-archive-summaries: items
+
+"Calling Service Settings":
+  response_list_keys:
+    list: languages
+  command_type_overrides:
+    list-rules: settings-get
+    list-large-org-status: settings-get
+  table_columns:
+    list:
+      - ["Name", "name"]
+      - ["Code", "code"]
+
+"Virtual Line Call Settings":
+  response_list_keys:
+    list-available-numbers-fax-message: phoneNumbers
+    list-available-numbers-call-forwarding: phoneNumbers
+    list-available-numbers-virtual-lines: phoneNumbers
+    list-available-numbers-emergency-callback-number: phoneNumbers
+    list-available-numbers-call-intercept: phoneNumbers
+  command_type_overrides:
+    list-number: settings-get
+    list-caller-id: settings-get
+  table_columns:
+    list-available-numbers-fax-message:
+      - ["Phone Number", "phoneNumber"]
+      - ["State", "state"]
+    list-available-numbers-call-forwarding:
+      - ["Phone Number", "phoneNumber"]
+      - ["State", "state"]
+    list-available-numbers-virtual-lines:
+      - ["Phone Number", "phoneNumber"]
+      - ["State", "state"]
+    list-available-numbers-emergency-callback-number:
+      - ["Phone Number", "phoneNumber"]
+      - ["State", "state"]
+    list-available-numbers-call-intercept:
+      - ["Phone Number", "phoneNumber"]
+      - ["State", "state"]
+
+"Workspace Call Settings (1/2)":
+  response_list_keys:
+    list: phoneNumbers
+  table_columns:
+    list:
+      - ["Number", "directNumber"]
+      - ["Extension", "extension"]
+
+"Features: Customer Experience Essentials":
+  response_list_keys:
+    list: wrapupReasons
+    list-available-agents: agents
+  table_columns:
+    list:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Enabled", "enabled"]
+    list-available-agents:
+      - ["ID", "id"]
+      - ["Display Name", "displayName"]
+
+"Hot Desk":
+  response_list_keys:
+    list: items
+
+"Device Call Settings With Device Dynamic Settings":
+  response_list_keys:
+    list: devices
+  table_columns:
+    list:
+      - ["Model", "model"]
+      - ["Display Name", "displayName"]
+      - ["Type", "type"]
 
 # Global settings
 skip_folders:

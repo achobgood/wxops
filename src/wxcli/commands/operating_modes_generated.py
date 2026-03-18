@@ -338,7 +338,7 @@ def list_available_operating_modes(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("availableOperatingModes", result if isinstance(result, list) else [])
+    items = result.get("operatingModes", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -386,7 +386,7 @@ def list_available_numbers(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("availableNumbers", result if isinstance(result, list) else [])
+    items = result.get("phoneNumbers", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:

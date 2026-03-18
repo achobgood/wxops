@@ -32,11 +32,11 @@ def cmd_list(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("reasons", result if isinstance(result, list) else [])
+    items = result.get("wrapupReasons", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Enabled', 'enabled')], limit=limit)
 
 
 
@@ -379,10 +379,10 @@ def list_available_agents(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("availableAgents", result if isinstance(result, list) else [])
+    items = result.get("agents", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Display Name', 'displayName')], limit=limit)
 
 

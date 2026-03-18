@@ -213,7 +213,7 @@ def list_available_users(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("availableUsers", result if isinstance(result, list) else [])
+    items = result.get("agents", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -258,7 +258,7 @@ def list_available_recall_hunt_groups(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("availableRecallHuntGroups", result if isinstance(result, list) else [])
+    items = result.get("huntGroups", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:

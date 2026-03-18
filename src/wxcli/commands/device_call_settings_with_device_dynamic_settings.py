@@ -38,11 +38,11 @@ def cmd_list(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("supportedDevices", result if isinstance(result, list) else [])
+    items = result.get("devices", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('Model', 'model'), ('Display Name', 'displayName'), ('Type', 'type')], limit=limit)
 
 
 
