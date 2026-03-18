@@ -1,11 +1,13 @@
 # Webex Calling Playbook
 
 Build and configure any aspect of Webex Calling programmatically with guided Claude Code assistance.
-Uses two Python libraries: `wxc_sdk` (official Cisco SDK) and `wxcadm` (admin-focused with XSI/CP-API).
+
+**Execution pattern:** `wxcli` CLI commands (primary) → `wxcadm` (XSI/E911/CP-API) → raw HTTP (fallback).
+The wxcli CLI has 62 command groups covering 1000+ commands. Raw HTTP docs in `docs/reference/` serve as reference and fallback.
 
 ## Quick Start
 
-Run `/wxc-calling-builder` to start building. The agent walks you through authentication, interviews you about what you want to build, designs a deployment plan, executes the API calls, and verifies the results.
+Run `/wxc-calling-builder` to start building. The agent walks you through authentication, interviews you about what you want to build, designs a deployment plan, executes via `wxcli` commands, and verifies the results.
 
 ## If Debugging
 
@@ -62,6 +64,48 @@ Run `/wxc-calling-debug` to troubleshoot a failing configuration.
 | `docs/reference/wxcadm-routing.md` | Call routing, PSTN, CDR, reports, jobs, webhooks |
 | `docs/reference/wxcadm-advanced.md` | RedSky E911, Meraki integration, CP-API, wholesale, bifrost |
 
+### CLI (wxcli) — Primary Execution Layer
+
+| Path | Purpose |
+|------|---------|
+| `src/wxcli/main.py` | CLI entry point — 62 registered command groups |
+| `src/wxcli/commands/*.py` | All command implementations (raw HTTP pattern) |
+| `wxcli --help` | Shows all command groups |
+| `wxcli <group> --help` | Shows commands within a group |
+| `wxcli <group> <command> --help` | Shows options for a command |
+
+### Tools
+
+| Path | Purpose |
+|------|---------|
+| `tools/postman_parser.py` | Parses Postman collection for endpoint discovery |
+| `tools/field_overrides.yaml` | Required fields and defaults for tricky endpoints (read-only, CLI session owns) |
+| `tools/generate_commands.py` | Auto-generates CLI commands from Postman collection (read-only) |
+
+## CLI Status & Known Issues
+
+**62 registered command groups, 1000+ commands.** All generated from Postman collection via `tools/generate_commands.py`.
+
+### Test status (as of 2026-03-18)
+
+- **v0.1.0** (14 commands): Fully live-tested, 3 bugs fixed.
+- **v2** (55 commands): Fully live-tested, 10 bugs fixed. Schedules, AA, HG, CQ, call-park, call-pickup, paging, voicemail-groups, operating-modes.
+- **v3 original 17 groups** (382 commands): All live-tested, 43 response key bugs fixed via `field_overrides.yaml`.
+- **v3 extended 31 groups** (~600 commands): Registered but NOT yet live-tested.
+
+### Known issues
+
+1. **~30 singleton-as-list misclassifications.** The generator's `derive_command_type` classifies flat-object GETs as `list` when they should be `settings-get`. Affected groups: emergency-services (12), location-call-handling (4), location-voicemail (3), call-recording (2), announcements (2), PSTN (1), workspaces (1), device-settings (4). These commands output `[]` in table mode but **work correctly with `-o json`**.
+2. **call-controls requires user-level OAuth.** Admin tokens get 400 "Target user not authorized". Don't use `wxcli call-controls` with admin/service-app tokens.
+3. **Complex nested settings need `--json-body`.** The generator skips object/array body fields. For call forwarding, voicemail, monitoring, and similar nested settings, use `--json-body '{"key": {...}}'`.
+
+### Generator rules
+
+- **Never hand-edit generated files.** Fix bugs by updating `tools/field_overrides.yaml` and regenerating.
+- Regenerate: `PYTHONPATH=. python3.11 tools/generate_commands.py --folder "Folder Name"`
+- Regenerate all: `PYTHONPATH=. python3.11 tools/generate_commands.py --all`
+- Reinstall after regen: `pip3.11 install -e . -q`
+
 ### Templates, Examples & Plans
 
 | Path | Purpose |
@@ -78,8 +122,11 @@ All reference docs are grounded in actual source code and official documentation
 
 - **wxc_sdk v1.30.0** (github.com/jeokrohn/wxc_sdk) — cloned at `../wxc_sdk_reference/`
 - **wxcadm v4.6.1** (github.com/kctrey/wxcadm) — cloned at `../wxcadm_reference/`
+- **Postman collection** (`../postman-webex-collections/webex_cloud_calling.json`) — 22.5MB, 1,079 endpoints, 59 folders
 - **developer.webex.com** — Official API docs, guides, and blog posts
 - **Cisco Live LTRCOL-2574** — Hands-on provisioning lab
+
+**Execution pattern:** wxcli CLI commands are the primary execution method. Reference docs contain both SDK method signatures (for understanding) and Raw HTTP sections (for fallback). All Raw HTTP sections were added 2026-03-18.
 
 Items marked `<!-- NEEDS VERIFICATION -->` need confirmation against live API behavior.
 Known bugs found in wxcadm source are documented in the reference docs.
