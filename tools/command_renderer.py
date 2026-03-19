@@ -77,6 +77,15 @@ def _escape_help(text: str) -> str:
     return text.replace("\\", "\\\\").replace('"', '\\"').replace("\n", " ").strip()
 
 
+def _enum_help(field: EndpointField, max_desc: int = 60) -> str:
+    """Build help text for a field, showing enum choices if available."""
+    if field.enum_values and len(field.enum_values) <= 8:
+        return _escape_help(f"Choices: {', '.join(field.enum_values)}")
+    elif field.enum_values:
+        return _escape_help(f"{field.description[:max_desc]} (use --help for choices)")
+    return _escape_help(field.description[:max_desc])
+
+
 def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
     func_name = _safe_func_name(ep.command_name)
     folder_overrides = folder_overrides or {}
@@ -88,7 +97,8 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
 
     for qp in ep.query_params:
         param = _safe_param_name(qp.python_name)
-        params.append(f'    {param}: str = typer.Option(None, "--{qp.python_name}", help="{_escape_help(qp.description[:60])}"),')
+        help_text = _enum_help(qp)
+        params.append(f'    {param}: str = typer.Option(None, "--{qp.python_name}", help="{help_text}"),')
 
     params.append('    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),')
     params.append('    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),')
@@ -139,7 +149,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
     return "\n".join(lines)
 
 
-def _render_show_command(ep: Endpoint) -> str:
+def _render_show_command(ep: Endpoint, folder_overrides: dict | None = None) -> str:
     func_name = _safe_func_name(ep.command_name)
     params = []
     for var in ep.path_vars:
@@ -166,8 +176,9 @@ def _render_show_command(ep: Endpoint) -> str:
     return "\n".join(lines)
 
 
-def _render_create_id_extraction(folder_overrides: dict | None = None) -> str:
-    id_key = (folder_overrides or {}).get("create", {}).get("id_key")
+def _render_create_id_extraction(ep: Endpoint, folder_overrides: dict | None = None) -> str:
+    # Prefer schema-derived response_id_key, fall back to folder overrides
+    id_key = ep.response_id_key or (folder_overrides or {}).get("create", {}).get("id_key")
     if id_key:
         return (
             f'    if isinstance(result, dict) and "{id_key}" in result:\n'
@@ -197,21 +208,16 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
         param = _safe_param_name(bf.python_name)
         if bf.field_type == "object" or bf.field_type == "array":
             continue
+        help_text = _enum_help(bf)
         if bf.required:
             if bf.field_type == "bool":
-                params.append(f'    {param}: bool = typer.Option(..., "--{bf.python_name}", help="{_escape_help(bf.description[:60])}"),')
+                params.append(f'    {param}: bool = typer.Option(..., "--{bf.python_name}", help="{help_text}"),')
             else:
-                help_text = bf.description[:60]
-                if bf.enum_values:
-                    help_text = f"e.g. {bf.enum_values[0]}"
                 params.append(f'    {param}: str = typer.Option(..., "--{bf.python_name}", help="{help_text}"),')
         else:
             if bf.field_type == "bool":
-                params.append(f'    {param}: bool = typer.Option(None, "--{bf.python_name}/--no-{bf.python_name}", help="{_escape_help(bf.description[:60])}"),')
+                params.append(f'    {param}: bool = typer.Option(None, "--{bf.python_name}/--no-{bf.python_name}", help="{help_text}"),')
             else:
-                help_text = bf.description[:60]
-                if bf.enum_values:
-                    help_text = f"e.g. {bf.enum_values[0]}"
                 params.append(f'    {param}: str = typer.Option(None, "--{bf.python_name}", help="{help_text}"),')
 
     params.append('    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),')
@@ -243,12 +249,12 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
         "    try:",
         "        result = api.session.rest_post(url, json=body)",
         _render_error_handler("    "),
-        _render_create_id_extraction(folder_overrides),
+        _render_create_id_extraction(ep, folder_overrides),
     ]
     return "\n".join(lines)
 
 
-def _render_update_command(ep: Endpoint) -> str:
+def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -> str:
     func_name = _safe_func_name(ep.command_name)
     params = []
     for var in ep.path_vars:
@@ -259,12 +265,10 @@ def _render_update_command(ep: Endpoint) -> str:
         param = _safe_param_name(bf.python_name)
         if bf.field_type in ("object", "array"):
             continue
+        help_text = _enum_help(bf)
         if bf.field_type == "bool":
-            params.append(f'    {param}: bool = typer.Option(None, "--{bf.python_name}/--no-{bf.python_name}", help="{_escape_help(bf.description[:60])}"),')
+            params.append(f'    {param}: bool = typer.Option(None, "--{bf.python_name}/--no-{bf.python_name}", help="{help_text}"),')
         else:
-            help_text = bf.description[:60]
-            if bf.enum_values:
-                help_text = f"e.g. {bf.enum_values[0]}"
             params.append(f'    {param}: str = typer.Option(None, "--{bf.python_name}", help="{help_text}"),')
 
     params.append('    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),')
@@ -298,7 +302,7 @@ def _render_update_command(ep: Endpoint) -> str:
     return "\n".join(lines)
 
 
-def _render_delete_command(ep: Endpoint) -> str:
+def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -> str:
     func_name = _safe_func_name(ep.command_name)
     params = []
     for var in ep.path_vars:
@@ -335,7 +339,7 @@ def _render_delete_command(ep: Endpoint) -> str:
     return "\n".join(lines)
 
 
-def _render_action_command(ep: Endpoint) -> str:
+def _render_action_command(ep: Endpoint, folder_overrides: dict | None = None) -> str:
     func_name = _safe_func_name(ep.command_name)
     params = []
     for var in ep.path_vars:
@@ -346,9 +350,7 @@ def _render_action_command(ep: Endpoint) -> str:
         param = _safe_param_name(bf.python_name)
         if bf.field_type in ("object", "array"):
             continue
-        help_text = bf.description[:60]
-        if bf.enum_values:
-            help_text = f"e.g. {bf.enum_values[0]}"
+        help_text = _enum_help(bf)
         params.append(f'    {param}: str = typer.Option(None, "--{bf.python_name}", help="{help_text}"),')
 
     params.append('    json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),')
@@ -406,12 +408,7 @@ def render_command_file(
         if renderer is None:
             sections.append(f"# SKIPPED: {ep.name} — unknown command type {ep.command_type}\n")
             continue
-        if ep.command_type == "list":
-            sections.append(renderer(ep, folder_overrides))
-        elif ep.command_type == "create":
-            sections.append(renderer(ep, folder_overrides))
-        else:
-            sections.append(renderer(ep))
+        sections.append(renderer(ep, folder_overrides))
         sections.append("")
 
     return "\n\n".join(sections) + "\n"
