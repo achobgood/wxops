@@ -1,0 +1,180 @@
+import json
+import typer
+from wxc_sdk.rest import RestError
+from wxcli.auth import get_api
+from wxcli.output import print_table, print_json
+
+
+app = typer.Typer(help="Manage Webex Calling ecm-folder-linking.")
+
+
+@app.command("list")
+def cmd_list(
+    room_id: str = typer.Option(None, "--room-id", help="ID of the room for which to list the ECM folder."),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """List ECM folder."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/room/linkedFolders"
+    params = {}
+    if room_id is not None:
+        params["roomId"] = room_id
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("items", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+
+
+
+@app.command("create")
+def create(
+    room_id: str = typer.Option(..., "--room-id", help="A unique identifier for the room."),
+    content_url: str = typer.Option(..., "--content-url", help="URL of the ECM folder."),
+    display_name: str = typer.Option(..., "--display-name", help="This should match the folder name in the ECM backend."),
+    drive_id: str = typer.Option(..., "--drive-id", help="Sharepoint or OneDrive drive id. It can be queried via MS Gr"),
+    item_id: str = typer.Option(..., "--item-id", help="Sharepoint or OneDrive item id. It can be queried via MS Gra"),
+    default_folder: str = typer.Option(..., "--default-folder", help="Makes the folder the default storage for the space."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Create an ECM folder configuration."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/room/linkedFolders"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if room_id is not None:
+            body["roomId"] = room_id
+        if content_url is not None:
+            body["contentUrl"] = content_url
+        if display_name is not None:
+            body["displayName"] = display_name
+        if drive_id is not None:
+            body["driveId"] = drive_id
+        if item_id is not None:
+            body["itemId"] = item_id
+        if default_folder is not None:
+            body["defaultFolder"] = default_folder
+    try:
+        result = api.session.rest_post(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    else:
+        print_json(result)
+
+
+
+@app.command("show")
+def show(
+    id: str = typer.Argument(help="id"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get ECM Folder Details."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/room/linkedFolders/{id}"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
+
+
+
+@app.command("update")
+def update(
+    id: str = typer.Argument(help="id"),
+    room_id: str = typer.Option(None, "--room-id", help="ID of the room that contains the room tab in question."),
+    content_url: str = typer.Option(None, "--content-url", help="Content URL of the folder."),
+    display_name: str = typer.Option(None, "--display-name", help="This should match the folder name in the ECM backend."),
+    drive_id: str = typer.Option(None, "--drive-id", help="Sharepoint or OneDrive drive id. It can be queried via MS Gr"),
+    item_id: str = typer.Option(None, "--item-id", help="Sharepoint or OneDrive item id. It can be queried via MS Gra"),
+    default_folder: str = typer.Option(None, "--default-folder", help="Makes the folder the default storage for the space."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update an ECM Linked Folder."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/room/linkedFolders/{id}"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if room_id is not None:
+            body["roomId"] = room_id
+        if content_url is not None:
+            body["contentUrl"] = content_url
+        if display_name is not None:
+            body["displayName"] = display_name
+        if drive_id is not None:
+            body["driveId"] = drive_id
+        if item_id is not None:
+            body["itemId"] = item_id
+        if default_folder is not None:
+            body["defaultFolder"] = default_folder
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("delete")
+def delete(
+    id: str = typer.Argument(help="id"),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Unlink an ECM linked folder."""
+    if not force:
+        typer.confirm(f"Delete {id}?", abort=True)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/room/linkedFolders/{id}"
+    try:
+        api.session.rest_delete(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Deleted: {id}")
+
+

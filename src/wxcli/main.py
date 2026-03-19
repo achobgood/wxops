@@ -244,3 +244,25 @@ from wxcli.commands.workspace_personalization import app as workspace_personaliz
 app.add_typer(workspace_personalization_app, name="workspace-personalization")
 from wxcli.commands.xapi import app as xapi_app
 app.add_typer(xapi_app, name="xapi")
+
+# Auto-generated from messaging spec (webex-messaging.json)
+from wxcli.commands.attachment_actions import app as attachment_actions_app
+app.add_typer(attachment_actions_app, name="attachment-actions")
+from wxcli.commands.ecm import app as ecm_app
+app.add_typer(ecm_app, name="ecm")
+from wxcli.commands.hds import app as hds_app
+app.add_typer(hds_app, name="hds")
+from wxcli.commands.memberships import app as memberships_app
+app.add_typer(memberships_app, name="memberships")
+from wxcli.commands.messages import app as messages_app
+app.add_typer(messages_app, name="messages")
+from wxcli.commands.room_tabs import app as room_tabs_app
+app.add_typer(room_tabs_app, name="room-tabs")
+from wxcli.commands.rooms import app as rooms_app
+app.add_typer(rooms_app, name="rooms")
+from wxcli.commands.team_memberships import app as team_memberships_app
+app.add_typer(team_memberships_app, name="team-memberships")
+from wxcli.commands.teams import app as teams_app
+app.add_typer(teams_app, name="teams")
+from wxcli.commands.webhooks import app as webhooks_app
+app.add_typer(webhooks_app, name="webhooks")
