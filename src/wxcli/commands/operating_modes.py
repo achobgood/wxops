@@ -1,154 +1,393 @@
+import json
 import typer
-from datetime import date as date_type
-from wxc_sdk.telephony.operating_modes import (
-    OperatingMode, OperatingModeHoliday, OperatingModeSchedule,
-    SameHoursDaily, DaySchedule,
-)
-from wxc_sdk.common.schedules import ScheduleLevel
-
+from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 
-app = typer.Typer(help="Manage Webex Calling operating modes.")
+
+app = typer.Typer(help="Manage Webex Calling operating-modes.")
 
 
 @app.command("list")
-def list_operating_modes(
-    location_id: str = typer.Option(None, "--location", help="Filter to a specific location ID"),
-    name: str = typer.Option(None, "--name", help="Filter by name"),
+def cmd_list(
+    name: str = typer.Option(None, "--name", help="List `operating modes` whose name contains this string."),
+    limit_to_location_id: str = typer.Option(None, "--limit-to-location-id", help="Location query parameter to filter the `operating modes` fro"),
+    limit_to_org_level_enabled: str = typer.Option(None, "--limit-to-org-level-enabled", help="If true, only return `operating modes` defined at the organi"),
+    max: str = typer.Option(None, "--max", help="Maximum number of `operating modes` to return in a single pa"),
+    start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
+    order: str = typer.Option(None, "--order", help="Sort the list of `operating modes` based on `name`, either a"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results (0 for all)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List operating modes in the organization."""
+    """Read the List of Operating Modes."""
     api = get_api(debug=debug)
-    modes = list(api.telephony.operating_modes.list(
-        limit_to_location_id=location_id,
-        name=name,
-    ))
+    url = f"https://webexapis.com/v1/telephony/config/operatingModes"
+    params = {}
+    if name is not None:
+        params["name"] = name
+    if limit_to_location_id is not None:
+        params["limitToLocationId"] = limit_to_location_id
+    if limit_to_org_level_enabled is not None:
+        params["limitToOrgLevelEnabled"] = limit_to_org_level_enabled
+    if max is not None:
+        params["max"] = max
+    if start is not None:
+        params["start"] = start
+    if order is not None:
+        params["order"] = order
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("operatingModes", result if isinstance(result, list) else [])
     if output == "json":
-        print_json(modes)
+        print_json(items)
     else:
-        print_table(
-            modes,
-            columns=[
-                ("ID", "id"),
-                ("Name", "name"),
-                ("Type", "type"),
-            ],
-            limit=limit,
-        )
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+
 
 
 @app.command("show")
-def show_operating_mode(
-    mode_id: str = typer.Argument(help="Operating mode ID"),
-    output: str = typer.Option("json", "--output", "-o"),
+def show(
+    mode_id: str = typer.Argument(help="modeId"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Show details for a single operating mode."""
+    """Get Details for an Operating Mode."""
     api = get_api(debug=debug)
-    mode = api.telephony.operating_modes.details(mode_id=mode_id)
-    print_json(mode)
+    url = f"https://webexapis.com/v1/telephony/config/operatingModes/{mode_id}"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
 
-
-@app.command("create")
-def create_operating_mode(
-    name: str = typer.Option(..., "--name", help="Operating mode name"),
-    mode_type: str = typer.Option(..., "--type", help="sameHoursDaily|differentHoursDaily"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results (0 for all)"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Create a new org-level operating mode."""
-    api = get_api(debug=debug)
-    schedule_type = OperatingModeSchedule(mode_type)
-    kwargs = dict(name=name, type=schedule_type, level=ScheduleLevel.organization)
-    if schedule_type == OperatingModeSchedule.same_hours_daily:
-        kwargs["same_hours_daily"] = SameHoursDaily(
-            monday_to_friday=DaySchedule(enabled=True, all_day_enabled=True),
-            saturday_to_sunday=DaySchedule(enabled=False),
-        )
-    settings = OperatingMode(**kwargs)
-    mode_id = api.telephony.operating_modes.create(settings=settings)
-    typer.echo(f"Created: {mode_id} ({name})")
 
 
 @app.command("update")
-def update_operating_mode(
-    mode_id: str = typer.Argument(help="Operating mode ID"),
-    name: str = typer.Option(None, "--name", help="New name"),
-    mode_type: str = typer.Option(None, "--type", help="sameHoursDaily|differentHoursDaily"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results (0 for all)"),
+def update(
+    mode_id: str = typer.Argument(help="modeId"),
+    name: str = typer.Option(None, "--name", help="New unique name for the `operating mode`."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update an existing operating mode."""
+    """Modify an Operating Mode."""
     api = get_api(debug=debug)
-    mode = api.telephony.operating_modes.details(mode_id=mode_id)
-    if name:
-        mode.name = name
-    if mode_type:
-        mode.type = mode_type
-    api.telephony.operating_modes.update(mode_id=mode_id, settings=mode)
-    typer.echo(f"Updated: {mode_id}")
-
-
-@app.command("available")
-def available_operating_modes(
-    location_id: str = typer.Argument(help="Location ID"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results (0 for all)"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """List operating modes available for a location."""
-    api = get_api(debug=debug)
-    modes = api.telephony.operating_modes.available_operating_modes(location_id=location_id)
-    if output == "json":
-        print_json(modes)
+    url = f"https://webexapis.com/v1/telephony/config/operatingModes/{mode_id}"
+    if json_body:
+        body = json.loads(json_body)
     else:
-        print_table(
-            modes,
-            columns=[
-                ("ID", "id"),
-                ("Name", "name"),
-            ],
-            limit=limit,
-        )
+        body = {}
+        if name is not None:
+            body["name"] = name
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
 
 
-@app.command("add-holiday")
-def add_holiday(
-    mode_id: str = typer.Argument(help="Operating mode ID"),
-    name: str = typer.Option(..., "--name", help="Holiday name"),
-    start_date: str = typer.Option(..., "--start-date", help="Start date (YYYY-MM-DD)"),
-    end_date: str = typer.Option(None, "--end-date", help="End date (YYYY-MM-DD), defaults to start date"),
-    all_day: bool = typer.Option(True, "--all-day/--no-all-day", help="All day event"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Add a holiday to an operating mode."""
-    api = get_api(debug=debug)
-    end = end_date or start_date
-    settings = OperatingModeHoliday(
-        name=name,
-        start_date=date_type.fromisoformat(start_date),
-        end_date=date_type.fromisoformat(end),
-        all_day_enabled=all_day,
-    )
-    holiday_id = api.telephony.operating_modes.holiday_create(mode_id=mode_id, settings=settings)
-    typer.echo(f"Created holiday: {holiday_id} ({name})")
 
-
-@app.command("delete-holiday")
-def delete_holiday(
-    mode_id: str = typer.Argument(help="Operating mode ID"),
-    holiday_id: str = typer.Argument(help="Holiday ID"),
+@app.command("delete")
+def delete(
+    mode_id: str = typer.Argument(help="modeId"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a holiday from an operating mode."""
+    """Delete an Operating Mode."""
     if not force:
-        typer.confirm(f"Delete holiday {holiday_id} from mode {mode_id}?", abort=True)
+        typer.confirm(f"Delete {mode_id}?", abort=True)
     api = get_api(debug=debug)
-    api.telephony.operating_modes.holiday_delete(mode_id=mode_id, holiday_id=holiday_id)
-    typer.echo(f"Deleted holiday: {holiday_id}")
+    url = f"https://webexapis.com/v1/telephony/config/operatingModes/{mode_id}"
+    try:
+        api.session.rest_delete(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Deleted: {mode_id}")
+
+
+
+@app.command("create")
+def create(
+    name: str = typer.Option(..., "--name", help="Unique name for the `operating mode`."),
+    location_id: str = typer.Option(None, "--location-id", help="Unique identifier of the location. Mandatory if level is `LO"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Create an Operating Mode."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/operatingModes/"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if name is not None:
+            body["name"] = name
+        if location_id is not None:
+            body["locationId"] = location_id
+    try:
+        result = api.session.rest_post(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    else:
+        print_json(result)
+
+
+
+@app.command("show-holidays")
+def show_holidays(
+    mode_id: str = typer.Argument(help="modeId"),
+    holiday_id: str = typer.Argument(help="holidayId"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get details for an Operating Mode Holiday."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/operatingModes/{mode_id}/holidays/{holiday_id}"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
+
+
+
+@app.command("update-holidays")
+def update_holidays(
+    mode_id: str = typer.Argument(help="modeId"),
+    holiday_id: str = typer.Argument(help="holidayId"),
+    name: str = typer.Option(None, "--name", help="Name of the holiday."),
+    all_day_enabled: bool = typer.Option(None, "--all-day-enabled/--no-all-day-enabled", help="Specifies if the `operating mode holiday` schedule event is"),
+    start_date: str = typer.Option(None, "--start-date", help="Start date of the `operating mode holiday`."),
+    end_date: str = typer.Option(None, "--end-date", help="End date of the `operating mode holiday`."),
+    start_time: str = typer.Option(None, "--start-time", help="Start time for the `operating mode holiday`. Mandatory if `a"),
+    end_time: str = typer.Option(None, "--end-time", help="End time for the `operating mode holiday`. Mandatory if `all"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Modify an Operating Mode Holiday."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/operatingModes/{mode_id}/holidays/{holiday_id}"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if name is not None:
+            body["name"] = name
+        if all_day_enabled is not None:
+            body["allDayEnabled"] = all_day_enabled
+        if start_date is not None:
+            body["startDate"] = start_date
+        if end_date is not None:
+            body["endDate"] = end_date
+        if start_time is not None:
+            body["startTime"] = start_time
+        if end_time is not None:
+            body["endTime"] = end_time
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("delete-holidays")
+def delete_holidays(
+    mode_id: str = typer.Argument(help="modeId"),
+    holiday_id: str = typer.Argument(help="holidayId"),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Delete an Operating Mode Holiday."""
+    if not force:
+        typer.confirm(f"Delete {holiday_id}?", abort=True)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/operatingModes/{mode_id}/holidays/{holiday_id}"
+    try:
+        api.session.rest_delete(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Deleted: {holiday_id}")
+
+
+
+@app.command("create-holidays")
+def create_holidays(
+    mode_id: str = typer.Argument(help="modeId"),
+    name: str = typer.Option(..., "--name", help="Name of the holiday."),
+    all_day_enabled: bool = typer.Option(..., "--all-day-enabled", help="Specifies if the `operating mode holiday` schedule event is"),
+    start_date: str = typer.Option(..., "--start-date", help="Start date of the `operating mode holiday`."),
+    end_date: str = typer.Option(..., "--end-date", help="End date of the `operating mode holiday`."),
+    start_time: str = typer.Option(None, "--start-time", help="Start time for the `operating mode holiday`. Mandatory if `a"),
+    end_time: str = typer.Option(None, "--end-time", help="End time for the `operating mode holiday`. Mandatory if `all"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Create an Operating Mode Holiday."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/operatingModes/{mode_id}/holidays"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if name is not None:
+            body["name"] = name
+        if all_day_enabled is not None:
+            body["allDayEnabled"] = all_day_enabled
+        if start_date is not None:
+            body["startDate"] = start_date
+        if end_date is not None:
+            body["endDate"] = end_date
+        if start_time is not None:
+            body["startTime"] = start_time
+        if end_time is not None:
+            body["endTime"] = end_time
+    try:
+        result = api.session.rest_post(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    else:
+        print_json(result)
+
+
+
+@app.command("list-available-operating-modes")
+def list_available_operating_modes(
+    location_id: str = typer.Argument(help="locationId"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Retrieve the List of Available Operating Modes in a Location."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/operatingModes/availableOperatingModes"
+    params = {}
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("operatingModes", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+
+
+
+@app.command("list-available-numbers")
+def list_available_numbers(
+    location_id: str = typer.Argument(help="locationId"),
+    max: str = typer.Option(None, "--max", help="Limit the number of phone numbers returned to this maximum c"),
+    start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
+    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
+    extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `exten"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Operating Mode Call Forward Available Phone Numbers."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/operatingModes/callForwarding/availableNumbers"
+    params = {}
+    if max is not None:
+        params["max"] = max
+    if start is not None:
+        params["start"] = start
+    if phone_number is not None:
+        params["phoneNumber"] = phone_number
+    if owner_name is not None:
+        params["ownerName"] = owner_name
+    if extension is not None:
+        params["extension"] = extension
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("phoneNumbers", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+
+

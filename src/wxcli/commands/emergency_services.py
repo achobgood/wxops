@@ -1,0 +1,686 @@
+import json
+import typer
+from wxc_sdk.rest import RestError
+from wxcli.auth import get_api
+from wxcli.output import print_table, print_json
+
+
+app = typer.Typer(help="Manage Webex Calling emergency-services-settings.")
+
+
+@app.command("update")
+def update(
+    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="`true` if the service is enabled."),
+    company_id: str = typer.Option(None, "--company-id", help="The RedSky company ID, which can be retrieved from the RedSk"),
+    secret: str = typer.Option(None, "--secret", help="The company secret key, which can be found in the RedSky por"),
+    external_tenant_enabled: bool = typer.Option(None, "--external-tenant-enabled/--no-external-tenant-enabled", help="`true` if the RedSky reseller customer is not under a Cisco"),
+    email: str = typer.Option(None, "--email", help="The email for the RedSky account. `email` is required if `ex"),
+    password: str = typer.Option(None, "--password", help="The password for the RedSky account. `password` is required"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update RedSky Service Settings."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/redSky/serviceSettings"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if enabled is not None:
+            body["enabled"] = enabled
+        if company_id is not None:
+            body["companyId"] = company_id
+        if secret is not None:
+            body["secret"] = secret
+        if external_tenant_enabled is not None:
+            body["externalTenantEnabled"] = external_tenant_enabled
+        if email is not None:
+            body["email"] = email
+        if password is not None:
+            body["password"] = password
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("show")
+def show(
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Retrieve RedSky Account Details for an Organization."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/redSky"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
+
+
+
+@app.command("create")
+def create(
+    email: str = typer.Option(..., "--email", help="The email for the RedSky account administrator."),
+    partner_redsky_org_id: str = typer.Option(None, "--partner-redsky-org-id", help="New organization is created under this partner organization"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Create an Account and Admin in RedSky."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/redSky"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if email is not None:
+            body["email"] = email
+        if partner_redsky_org_id is not None:
+            body["partnerRedskyOrgId"] = partner_redsky_org_id
+    try:
+        result = api.session.rest_post(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    else:
+        print_json(result)
+
+
+
+@app.command("show-status-red-sky")
+def show_status_red_sky(
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get the Organization Compliance Status for a RedSky Account."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/redSky/status"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
+
+
+
+@app.command("update-status-red-sky")
+def update_status_red_sky(
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update the Organization RedSky Account's Compliance Status."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/redSky/status"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("show-compliance-status")
+def show_compliance_status(
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get the Organization Compliance Status and the Location Status List."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/redSky/complianceStatus"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
+
+
+
+@app.command("login-to-a")
+def login_to_a(
+    email: str = typer.Option(None, "--email", help="Email for the RedSky account."),
+    password: str = typer.Option(None, "--password", help="Password for the RedSky account."),
+    red_sky_org_id: str = typer.Option(None, "--red-sky-org-id", help="The RedSky organization ID for the organization which can be"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Login to a RedSky Admin Account."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/redSky/actions/login/invoke"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if email is not None:
+            body["email"] = email
+        if password is not None:
+            body["password"] = password
+        if red_sky_org_id is not None:
+            body["redSkyOrgId"] = red_sky_org_id
+    try:
+        result = api.session.rest_post(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
+
+
+
+@app.command("show-red-sky")
+def show_red_sky(
+    location_id: str = typer.Argument(help="locationId"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get a Location's RedSky Emergency Calling Parameters."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/redSky"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
+
+
+
+@app.command("show-status-red-sky-1")
+def show_status_red_sky_1(
+    location_id: str = typer.Argument(help="locationId"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get a Location's RedSky Compliance Status."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/redSky/status"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
+
+
+
+@app.command("update-status-red-sky-1")
+def update_status_red_sky_1(
+    location_id: str = typer.Argument(help="locationId"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update a Location's RedSky Compliance Status."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/redSky/status"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("create-building")
+def create_building(
+    location_id: str = typer.Argument(help="locationId"),
+    alerting_email: str = typer.Option(..., "--alerting-email", help="Email that is used to create alerts in RedSky. At least one"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Create a RedSky Building Address and Alert Email for a Location."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/redSky/building"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if alerting_email is not None:
+            body["alertingEmail"] = alerting_email
+    try:
+        result = api.session.rest_post(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    else:
+        print_json(result)
+
+
+
+@app.command("update-building")
+def update_building(
+    location_id: str = typer.Argument(help="locationId"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update a RedSky Building Address for a Location."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/redSky/building"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("show-emergency-call-notification-config")
+def show_emergency_call_notification_config(
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get an Organization Emergency Call Notification."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/emergencyCallNotification"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
+
+
+
+@app.command("update-emergency-call-notification-config")
+def update_emergency_call_notification_config(
+    emergency_call_notification_enabled: bool = typer.Option(None, "--emergency-call-notification-enabled/--no-emergency-call-notification-enabled", help="When true sends an email to the specified email address when"),
+    allow_email_notification_all_location_enabled: bool = typer.Option(None, "--allow-email-notification-all-location-enabled/--no-allow-email-notification-all-location-enabled", help="Send an emergency call notification email for all locations."),
+    email_address: str = typer.Option(None, "--email-address", help="When `emergencyCallNotificationEnabled` is true, the emergen"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update an Organization Emergency Call Notification."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/emergencyCallNotification"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if emergency_call_notification_enabled is not None:
+            body["emergencyCallNotificationEnabled"] = emergency_call_notification_enabled
+        if allow_email_notification_all_location_enabled is not None:
+            body["allowEmailNotificationAllLocationEnabled"] = allow_email_notification_all_location_enabled
+        if email_address is not None:
+            body["emailAddress"] = email_address
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("show-emergency-call-notification-locations")
+def show_emergency_call_notification_locations(
+    location_id: str = typer.Argument(help="locationId"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get a Location Emergency Call Notification."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/emergencyCallNotification"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
+
+
+
+@app.command("update-emergency-call-notification-locations")
+def update_emergency_call_notification_locations(
+    location_id: str = typer.Argument(help="locationId"),
+    emergency_call_notification_enabled: bool = typer.Option(None, "--emergency-call-notification-enabled/--no-emergency-call-notification-enabled", help="When true sends an email to the specified email address when"),
+    email_address: str = typer.Option(None, "--email-address", help="Sends an email to this email address when a call is made fro"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update a Location Emergency Call Notification."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/emergencyCallNotification"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if emergency_call_notification_enabled is not None:
+            body["emergencyCallNotificationEnabled"] = emergency_call_notification_enabled
+        if email_address is not None:
+            body["emailAddress"] = email_address
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("show-dependencies-emergency-callback-number")
+def show_dependencies_emergency_callback_number(
+    hunt_group_id: str = typer.Argument(help="huntGroupId"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Dependencies for a Hunt Group Emergency Callback Number."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/huntGroups/{hunt_group_id}/emergencyCallbackNumber/dependencies"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
+
+
+
+@app.command("show-emergency-callback-number-people")
+def show_emergency_callback_number_people(
+    person_id: str = typer.Argument(help="personId"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get a Person's Emergency Callback Number."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/emergencyCallbackNumber"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
+
+
+
+@app.command("update-emergency-callback-number-people")
+def update_emergency_callback_number_people(
+    person_id: str = typer.Argument(help="personId"),
+    location_member_id: str = typer.Option(None, "--location-member-id", help="Member ID of person/workspace/virtual line/hunt group within"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update a Person's Emergency Callback Number."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/emergencyCallbackNumber"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if location_member_id is not None:
+            body["locationMemberId"] = location_member_id
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("show-dependencies-emergency-callback-number-1")
+def show_dependencies_emergency_callback_number_1(
+    person_id: str = typer.Argument(help="personId"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Retrieve A Person's Emergency Callback Number Dependencies."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/emergencyCallbackNumber/dependencies"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
+
+
+
+@app.command("show-emergency-callback-number-workspaces")
+def show_emergency_callback_number_workspaces(
+    workspace_id: str = typer.Argument(help="workspaceId"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get a Workspace Emergency Callback Number."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/emergencyCallbackNumber"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
+
+
+
+@app.command("update-emergency-callback-number-workspaces")
+def update_emergency_callback_number_workspaces(
+    workspace_id: str = typer.Argument(help="workspaceId"),
+    location_member_id: str = typer.Option(None, "--location-member-id", help="Member ID of person/workspace/virtual line/hunt group within"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update a Workspace Emergency Callback Number."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/emergencyCallbackNumber"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if location_member_id is not None:
+            body["locationMemberId"] = location_member_id
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("show-dependencies-emergency-callback-number-2")
+def show_dependencies_emergency_callback_number_2(
+    workspace_id: str = typer.Argument(help="workspaceId"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Retrieve Workspace Emergency Callback Number Dependencies."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/emergencyCallbackNumber/dependencies"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
+
+
+
+@app.command("show-dependencies-emergency-callback-number-3")
+def show_dependencies_emergency_callback_number_3(
+    virtual_line_id: str = typer.Argument(help="virtualLineId"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Dependencies for a Virtual Line Emergency Callback Number."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/virtualLines/{virtual_line_id}/emergencyCallbackNumber/dependencies"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
+
+
+
+@app.command("show-emergency-callback-number-virtual-lines")
+def show_emergency_callback_number_virtual_lines(
+    virtual_line_id: str = typer.Argument(help="virtualLineId"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get the Virtual Line's Emergency Callback settings."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/virtualLines/{virtual_line_id}/emergencyCallbackNumber"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
+
+
+
+@app.command("update-emergency-callback-number-virtual-lines")
+def update_emergency_callback_number_virtual_lines(
+    virtual_line_id: str = typer.Argument(help="virtualLineId"),
+    location_member_id: str = typer.Option(None, "--location-member-id", help="Member ID of person/workspace/virtual line/hunt group within"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update a Virtual Line's Emergency Callback settings."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/virtualLines/{virtual_line_id}/emergencyCallbackNumber"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if location_member_id is not None:
+            body["locationMemberId"] = location_member_id
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+

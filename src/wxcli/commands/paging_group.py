@@ -58,14 +58,14 @@ def cmd_list(
 @app.command("create")
 def create(
     location_id: str = typer.Argument(help="locationId"),
-    name: str = typer.Option(None, "--name", help=""),
-    phone_number: str = typer.Option(None, "--phone-number", help=""),
-    extension: str = typer.Option(None, "--extension", help=""),
-    language_code: str = typer.Option(None, "--language-code", help=""),
-    first_name: str = typer.Option(None, "--first-name", help=""),
-    last_name: str = typer.Option(None, "--last-name", help=""),
-    originator_caller_id_enabled: bool = typer.Option(None, "--originator-caller-id-enabled/--no-originator-caller-id-enabled", help=""),
-    dial_by_name: str = typer.Option(None, "--dial-by-name", help=""),
+    name: str = typer.Option(..., "--name", help="Unique name for the paging group. Minimum length is 1. Maxim"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Paging group phone number. Minimum length is 1. Maximum leng"),
+    extension: str = typer.Option(None, "--extension", help="Paging group extension. Minimum length is 2. Maximum length"),
+    language_code: str = typer.Option(None, "--language-code", help="Language code."),
+    first_name: str = typer.Option(None, "--first-name", help="First name that displays when a group page is performed. Min"),
+    last_name: str = typer.Option(None, "--last-name", help="Last name that displays when a group page is performed. Mini"),
+    originator_caller_id_enabled: bool = typer.Option(None, "--originator-caller-id-enabled/--no-originator-caller-id-enabled", help="Determines what is shown on target users caller ID when a gr"),
+    dial_by_name: str = typer.Option(None, "--dial-by-name", help="The name to be used for dial by name functions.  Characters"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -103,33 +103,10 @@ def create(
         raise typer.Exit(1)
     if isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
+    elif isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
     else:
         print_json(result)
-
-
-
-@app.command("delete")
-def delete(
-    location_id: str = typer.Argument(help="locationId"),
-    paging_id: str = typer.Argument(help="pagingId"),
-    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Delete a Paging Group."""
-    if not force:
-        typer.confirm(f"Delete {paging_id}?", abort=True)
-    api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/paging/{paging_id}"
-    try:
-        api.session.rest_delete(url)
-    except RestError as e:
-        if "25008" in str(e):
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    typer.echo(f"Deleted: {paging_id}")
 
 
 
@@ -160,15 +137,15 @@ def show(
 def update(
     location_id: str = typer.Argument(help="locationId"),
     paging_id: str = typer.Argument(help="pagingId"),
-    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help=""),
-    name: str = typer.Option(None, "--name", help=""),
-    phone_number: str = typer.Option(None, "--phone-number", help=""),
-    extension: str = typer.Option(None, "--extension", help=""),
-    language_code: str = typer.Option(None, "--language-code", help=""),
-    first_name: str = typer.Option(None, "--first-name", help=""),
-    last_name: str = typer.Option(None, "--last-name", help=""),
-    originator_caller_id_enabled: bool = typer.Option(None, "--originator-caller-id-enabled/--no-originator-caller-id-enabled", help=""),
-    dial_by_name: str = typer.Option(None, "--dial-by-name", help=""),
+    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Whether or not the paging group is enabled."),
+    name: str = typer.Option(None, "--name", help="Unique name for the paging group. Minimum length is 1. Maxim"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Paging group phone number. Minimum length is 1. Maximum leng"),
+    extension: str = typer.Option(None, "--extension", help="Paging group extension. Minimum length is 2. Maximum length"),
+    language_code: str = typer.Option(None, "--language-code", help="Language code."),
+    first_name: str = typer.Option(None, "--first-name", help="First name to be shown when calls are forwarded out of this"),
+    last_name: str = typer.Option(None, "--last-name", help="Last name to be shown when calls are forwarded out of this p"),
+    originator_caller_id_enabled: bool = typer.Option(None, "--originator-caller-id-enabled/--no-originator-caller-id-enabled", help="Determines what is shown on target users caller ID when a gr"),
+    dial_by_name: str = typer.Option(None, "--dial-by-name", help="Sets or clears the name to be used for dial by name function"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -207,6 +184,31 @@ def update(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     typer.echo(f"Updated.")
+
+
+
+@app.command("delete")
+def delete(
+    location_id: str = typer.Argument(help="locationId"),
+    paging_id: str = typer.Argument(help="pagingId"),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Delete a Paging Group."""
+    if not force:
+        typer.confirm(f"Delete {paging_id}?", abort=True)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/paging/{paging_id}"
+    try:
+        api.session.rest_delete(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Deleted: {paging_id}")
 
 
 

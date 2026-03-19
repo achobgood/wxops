@@ -10,11 +10,10 @@ app = typer.Typer(help="Manage Webex Calling call-routing.")
 
 @app.command("test-call-routing")
 def test_call_routing(
-    originator_id: str = typer.Option(None, "--originator-id", help=""),
-    originator_type: str = typer.Option(None, "--originator-type", help="e.g. PEOPLE"),
-    destination: str = typer.Option(None, "--destination", help=""),
-    originator_number: str = typer.Option(None, "--originator-number", help=""),
-    include_applied_services: str = typer.Option(None, "--include-applied-services", help=""),
+    originator_id: str = typer.Option(None, "--originator-id", help="This element is used to identify the originating party. It c"),
+    originator_number: str = typer.Option(None, "--originator-number", help="Only used when `originatorType` is `TRUNK`. The `originatorN"),
+    destination: str = typer.Option(None, "--destination", help="This element specifies the called party. It can be any diala"),
+    include_applied_services: str = typer.Option(None, "--include-applied-services", help="This element is used to retrieve if any translation pattern,"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -27,12 +26,10 @@ def test_call_routing(
         body = {}
         if originator_id is not None:
             body["originatorId"] = originator_id
-        if originator_type is not None:
-            body["originatorType"] = originator_type
-        if destination is not None:
-            body["destination"] = destination
         if originator_number is not None:
             body["originatorNumber"] = originator_number
+        if destination is not None:
+            body["destination"] = destination
         if include_applied_services is not None:
             body["includeAppliedServices"] = include_applied_services
     try:
@@ -85,7 +82,7 @@ def cmd_list(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("usageDialPlan", result if isinstance(result, list) else [])
+    items = result.get("dialPlans", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -118,7 +115,7 @@ def list_usage_pstn_connection_trunks(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("usagePstnConnection", result if isinstance(result, list) else [])
+    items = result.get("locations", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -151,7 +148,7 @@ def list_usage_route_group(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("usageRouteGroup", result if isinstance(result, list) else [])
+    items = result.get("routeGroup", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -184,7 +181,7 @@ def show(
 @app.command("update")
 def update(
     dial_plan_id: str = typer.Argument(help="dialPlanId"),
-    delete_all_dial_patterns: bool = typer.Option(None, "--delete-all-dial-patterns/--no-delete-all-dial-patterns", help=""),
+    delete_all_dial_patterns: bool = typer.Option(None, "--delete-all-dial-patterns/--no-delete-all-dial-patterns", help="Delete all the dial patterns for a dial plan."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -287,9 +284,8 @@ def list_dial_plans(
 
 @app.command("create")
 def create(
-    name: str = typer.Option(None, "--name", help=""),
-    route_id: str = typer.Option(None, "--route-id", help=""),
-    route_type: str = typer.Option(None, "--route-type", help="e.g. TRUNK"),
+    name: str = typer.Option(..., "--name", help="A unique name for the dial plan."),
+    route_id: str = typer.Option(..., "--route-id", help="ID of route type associated with the dial plan."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -304,8 +300,6 @@ def create(
             body["name"] = name
         if route_id is not None:
             body["routeId"] = route_id
-        if route_type is not None:
-            body["routeType"] = route_type
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -316,6 +310,8 @@ def create(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     if isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     else:
         print_json(result)
@@ -347,9 +343,8 @@ def show_dial_plans(
 @app.command("update-dial-plans")
 def update_dial_plans(
     dial_plan_id: str = typer.Argument(help="dialPlanId"),
-    name: str = typer.Option(None, "--name", help=""),
-    route_id: str = typer.Option(None, "--route-id", help=""),
-    route_type: str = typer.Option(None, "--route-type", help="e.g. TRUNK"),
+    name: str = typer.Option(None, "--name", help="A unique name for the dial plan."),
+    route_id: str = typer.Option(None, "--route-id", help="ID of route type associated with the dial plan."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -364,8 +359,6 @@ def update_dial_plans(
             body["name"] = name
         if route_id is not None:
             body["routeId"] = route_id
-        if route_type is not None:
-            body["routeType"] = route_type
     try:
         result = api.session.rest_put(url, json=body)
     except RestError as e:
@@ -405,9 +398,9 @@ def delete(
 
 @app.command("validate-local-gateway")
 def validate_local_gateway(
-    address: str = typer.Option(None, "--address", help=""),
-    domain: str = typer.Option(None, "--domain", help=""),
-    port: str = typer.Option(None, "--port", help=""),
+    address: str = typer.Option(None, "--address", help="FQDN or SRV address of the trunk."),
+    domain: str = typer.Option(None, "--domain", help="Domain name of the trunk."),
+    port: str = typer.Option(None, "--port", help="FQDN port of the trunk."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -489,17 +482,15 @@ def list_trunks(
 
 @app.command("create-trunks")
 def create_trunks(
-    name: str = typer.Option(None, "--name", help=""),
-    location_id: str = typer.Option(None, "--location-id", help=""),
-    password: str = typer.Option(None, "--password", help=""),
-    trunk_type: str = typer.Option(None, "--trunk-type", help="e.g. REGISTERING"),
-    dual_identity_support_enabled: bool = typer.Option(None, "--dual-identity-support-enabled/--no-dual-identity-support-enabled", help=""),
-    device_type: str = typer.Option(None, "--device-type", help=""),
-    address: str = typer.Option(None, "--address", help=""),
-    domain: str = typer.Option(None, "--domain", help=""),
-    port: str = typer.Option(None, "--port", help=""),
-    max_concurrent_calls: str = typer.Option(None, "--max-concurrent-calls", help=""),
-    p_charge_info_support_policy: str = typer.Option(None, "--p-charge-info-support-policy", help="e.g. ASSERTED_IDENTITY"),
+    name: str = typer.Option(..., "--name", help="A unique name for the trunk."),
+    location_id: str = typer.Option(..., "--location-id", help="ID of location associated with the trunk."),
+    password: str = typer.Option(..., "--password", help="A password to use on the trunk."),
+    dual_identity_support_enabled: bool = typer.Option(None, "--dual-identity-support-enabled/--no-dual-identity-support-enabled", help="Dual Identity Support setting impacts the handling of the Fr"),
+    device_type: str = typer.Option(None, "--device-type", help="Device type assosiated with trunk."),
+    address: str = typer.Option(None, "--address", help="FQDN or SRV address. Required to create a static certificate"),
+    domain: str = typer.Option(None, "--domain", help="Domain name. Required to create a static certificate based t"),
+    port: str = typer.Option(None, "--port", help="FQDN port. Required to create a static certificate-based tru"),
+    max_concurrent_calls: str = typer.Option(None, "--max-concurrent-calls", help="Max Concurrent call. Required to create a static certificate"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -516,8 +507,6 @@ def create_trunks(
             body["locationId"] = location_id
         if password is not None:
             body["password"] = password
-        if trunk_type is not None:
-            body["trunkType"] = trunk_type
         if dual_identity_support_enabled is not None:
             body["dualIdentitySupportEnabled"] = dual_identity_support_enabled
         if device_type is not None:
@@ -530,8 +519,6 @@ def create_trunks(
             body["port"] = port
         if max_concurrent_calls is not None:
             body["maxConcurrentCalls"] = max_concurrent_calls
-        if p_charge_info_support_policy is not None:
-            body["pChargeInfoSupportPolicy"] = p_charge_info_support_policy
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -542,6 +529,8 @@ def create_trunks(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     if isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     else:
         print_json(result)
@@ -573,11 +562,10 @@ def show_trunks(
 @app.command("update-trunks")
 def update_trunks(
     trunk_id: str = typer.Argument(help="trunkId"),
-    name: str = typer.Option(None, "--name", help=""),
-    password: str = typer.Option(None, "--password", help=""),
-    dual_identity_support_enabled: bool = typer.Option(None, "--dual-identity-support-enabled/--no-dual-identity-support-enabled", help=""),
-    max_concurrent_calls: str = typer.Option(None, "--max-concurrent-calls", help=""),
-    p_charge_info_support_policy: str = typer.Option(None, "--p-charge-info-support-policy", help="e.g. ASSERTED_IDENTITY"),
+    name: str = typer.Option(None, "--name", help="A unique name for the dial plan."),
+    password: str = typer.Option(None, "--password", help="A password to use on the trunk."),
+    dual_identity_support_enabled: bool = typer.Option(None, "--dual-identity-support-enabled/--no-dual-identity-support-enabled", help="Determines the behavior of the From and PAI headers on outbo"),
+    max_concurrent_calls: str = typer.Option(None, "--max-concurrent-calls", help="Max Concurrent call. Required to create a static certificate"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -596,8 +584,6 @@ def update_trunks(
             body["dualIdentitySupportEnabled"] = dual_identity_support_enabled
         if max_concurrent_calls is not None:
             body["maxConcurrentCalls"] = max_concurrent_calls
-        if p_charge_info_support_policy is not None:
-            body["pChargeInfoSupportPolicy"] = p_charge_info_support_policy
     try:
         result = api.session.rest_put(url, json=body)
     except RestError as e:
@@ -713,7 +699,7 @@ def list_route_groups(
 
 @app.command("create-route-groups")
 def create_route_groups(
-    name: str = typer.Option(None, "--name", help=""),
+    name: str = typer.Option(..., "--name", help="A unique name for the Route Group."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -736,6 +722,8 @@ def create_route_groups(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     if isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     else:
         print_json(result)
@@ -767,7 +755,7 @@ def show_route_groups(
 @app.command("update-route-groups")
 def update_route_groups(
     route_group_id: str = typer.Argument(help="routeGroupId"),
-    name: str = typer.Option(None, "--name", help=""),
+    name: str = typer.Option(None, "--name", help="A unique name for the Route Group."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -876,7 +864,7 @@ def list_usage_call_to_extension_route_groups(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("usageCallToExtension", result if isinstance(result, list) else [])
+    items = result.get("locations", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -921,7 +909,7 @@ def list_usage_dial_plan(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("usageDialPlan", result if isinstance(result, list) else [])
+    items = result.get("locations", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -966,7 +954,7 @@ def list_usage_pstn_connection_route_groups(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("usagePstnConnection", result if isinstance(result, list) else [])
+    items = result.get("locations", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -1011,7 +999,7 @@ def list_usage_route_list(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("usageRouteList", result if isinstance(result, list) else [])
+    items = result.get("routeGroupUsageRouteListGet", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -1068,9 +1056,9 @@ def list_route_lists(
 
 @app.command("create-route-lists")
 def create_route_lists(
-    name: str = typer.Option(None, "--name", help=""),
-    location_id: str = typer.Option(None, "--location-id", help=""),
-    route_group_id: str = typer.Option(None, "--route-group-id", help=""),
+    name: str = typer.Option(..., "--name", help="Name of the Route List"),
+    location_id: str = typer.Option(..., "--location-id", help="Location associated with the Route List."),
+    route_group_id: str = typer.Option(..., "--route-group-id", help="ID of the route group associated with Route List."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1098,32 +1086,10 @@ def create_route_lists(
         raise typer.Exit(1)
     if isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
+    elif isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
     else:
         print_json(result)
-
-
-
-@app.command("delete-route-lists")
-def delete_route_lists(
-    route_list_id: str = typer.Argument(help="routeListId"),
-    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Delete a Route List."""
-    if not force:
-        typer.confirm(f"Delete {route_list_id}?", abort=True)
-    api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/telephony/config/premisePstn/routeLists/{route_list_id}"
-    try:
-        api.session.rest_delete(url)
-    except RestError as e:
-        if "25008" in str(e):
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    typer.echo(f"Deleted: {route_list_id}")
 
 
 
@@ -1152,8 +1118,8 @@ def show_route_lists(
 @app.command("update-route-lists")
 def update_route_lists(
     route_list_id: str = typer.Argument(help="routeListId"),
-    name: str = typer.Option(None, "--name", help=""),
-    route_group_id: str = typer.Option(None, "--route-group-id", help=""),
+    name: str = typer.Option(None, "--name", help="Route List new name."),
+    route_group_id: str = typer.Option(None, "--route-group-id", help="New route group ID."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1181,24 +1147,19 @@ def update_route_lists(
 
 
 
-@app.command("update-numbers")
-def update_numbers(
+@app.command("delete-route-lists")
+def delete_route_lists(
     route_list_id: str = typer.Argument(help="routeListId"),
-    delete_all_numbers: bool = typer.Option(None, "--delete-all-numbers/--no-delete-all-numbers", help=""),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Numbers for Route List."""
+    """Delete a Route List."""
+    if not force:
+        typer.confirm(f"Delete {route_list_id}?", abort=True)
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/telephony/config/premisePstn/routeLists/{route_list_id}/numbers"
-    if json_body:
-        body = json.loads(json_body)
-    else:
-        body = {}
-        if delete_all_numbers is not None:
-            body["deleteAllNumbers"] = delete_all_numbers
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/routeLists/{route_list_id}"
     try:
-        result = api.session.rest_put(url, json=body)
+        api.session.rest_delete(url)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1206,7 +1167,7 @@ def update_numbers(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    typer.echo(f"Updated.")
+    typer.echo(f"Deleted: {route_list_id}")
 
 
 
@@ -1255,6 +1216,35 @@ def list_numbers(
 
 
 
+@app.command("update-numbers")
+def update_numbers(
+    route_list_id: str = typer.Argument(help="routeListId"),
+    delete_all_numbers: bool = typer.Option(None, "--delete-all-numbers/--no-delete-all-numbers", help="If present, the numbers array is ignored and all numbers in"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Modify Numbers for Route List."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/routeLists/{route_list_id}/numbers"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if delete_all_numbers is not None:
+            body["deleteAllNumbers"] = delete_all_numbers
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
 @app.command("list-usage-call-to-extension-trunks")
 def list_usage_call_to_extension_trunks(
     trunk_id: str = typer.Argument(help="trunkId"),
@@ -1292,48 +1282,11 @@ def list_usage_call_to_extension_trunks(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("usageCallToExtension", result if isinstance(result, list) else [])
+    items = result.get("locations", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
         print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
-
-
-
-@app.command("create-translation-patterns-call-routing")
-def create_translation_patterns_call_routing(
-    name: str = typer.Option(None, "--name", help=""),
-    matching_pattern: str = typer.Option(None, "--matching-pattern", help=""),
-    replacement_pattern: str = typer.Option(None, "--replacement-pattern", help=""),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Create a Translation Pattern for an Organization."""
-    api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/telephony/config/callRouting/translationPatterns"
-    if json_body:
-        body = json.loads(json_body)
-    else:
-        body = {}
-        if name is not None:
-            body["name"] = name
-        if matching_pattern is not None:
-            body["matchingPattern"] = matching_pattern
-        if replacement_pattern is not None:
-            body["replacementPattern"] = replacement_pattern
-    try:
-        result = api.session.rest_post(url, json=body)
-    except RestError as e:
-        if "25008" in str(e):
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    else:
-        print_json(result)
 
 
 
@@ -1390,6 +1343,45 @@ def list_translation_patterns(
 
 
 
+@app.command("create-translation-patterns-call-routing")
+def create_translation_patterns_call_routing(
+    name: str = typer.Option(..., "--name", help="Name given to a translation pattern for an organization."),
+    matching_pattern: str = typer.Option(..., "--matching-pattern", help="Matching pattern given to a translation pattern for an organ"),
+    replacement_pattern: str = typer.Option(..., "--replacement-pattern", help="Replacement pattern given to a translation pattern for an or"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Create a Translation Pattern for an Organization."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/callRouting/translationPatterns"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if name is not None:
+            body["name"] = name
+        if matching_pattern is not None:
+            body["matchingPattern"] = matching_pattern
+        if replacement_pattern is not None:
+            body["replacementPattern"] = replacement_pattern
+    try:
+        result = api.session.rest_post(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    else:
+        print_json(result)
+
+
+
 @app.command("show-translation-patterns-call-routing")
 def show_translation_patterns_call_routing(
     translation_id: str = typer.Argument(help="translationId"),
@@ -1415,9 +1407,9 @@ def show_translation_patterns_call_routing(
 @app.command("update-translation-patterns-call-routing")
 def update_translation_patterns_call_routing(
     translation_id: str = typer.Argument(help="translationId"),
-    name: str = typer.Option(None, "--name", help=""),
-    matching_pattern: str = typer.Option(None, "--matching-pattern", help=""),
-    replacement_pattern: str = typer.Option(None, "--replacement-pattern", help=""),
+    name: str = typer.Option(None, "--name", help="Name given to a translation pattern for an organization."),
+    matching_pattern: str = typer.Option(None, "--matching-pattern", help="Matching pattern given to a translation pattern for an organ"),
+    replacement_pattern: str = typer.Option(None, "--replacement-pattern", help="Replacement pattern given to a translation pattern for an or"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1474,9 +1466,9 @@ def delete_translation_patterns_call_routing(
 @app.command("create-translation-patterns-call-routing-1")
 def create_translation_patterns_call_routing_1(
     location_id: str = typer.Argument(help="locationId"),
-    name: str = typer.Option(None, "--name", help=""),
-    matching_pattern: str = typer.Option(None, "--matching-pattern", help=""),
-    replacement_pattern: str = typer.Option(None, "--replacement-pattern", help=""),
+    name: str = typer.Option(..., "--name", help="A name given to a translation pattern for a location."),
+    matching_pattern: str = typer.Option(..., "--matching-pattern", help="A matching pattern given to a translation pattern for a loca"),
+    replacement_pattern: str = typer.Option(..., "--replacement-pattern", help="A replacement pattern given to a translation pattern for a l"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1503,6 +1495,8 @@ def create_translation_patterns_call_routing_1(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     if isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     else:
         print_json(result)
@@ -1536,9 +1530,9 @@ def show_translation_patterns_call_routing_1(
 def update_translation_patterns_call_routing_1(
     location_id: str = typer.Argument(help="locationId"),
     translation_id: str = typer.Argument(help="translationId"),
-    name: str = typer.Option(None, "--name", help=""),
-    matching_pattern: str = typer.Option(None, "--matching-pattern", help=""),
-    replacement_pattern: str = typer.Option(None, "--replacement-pattern", help=""),
+    name: str = typer.Option(None, "--name", help="A name given to a translation pattern for a location."),
+    matching_pattern: str = typer.Option(None, "--matching-pattern", help="A matching pattern given to a translation pattern for a loca"),
+    replacement_pattern: str = typer.Option(None, "--replacement-pattern", help="A replacement pattern given to a translation pattern for a l"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):

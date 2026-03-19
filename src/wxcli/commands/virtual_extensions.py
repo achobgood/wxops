@@ -8,52 +8,6 @@ from wxcli.output import print_table, print_json
 app = typer.Typer(help="Manage Webex Calling virtual-extensions.")
 
 
-@app.command("create")
-def create(
-    display_name: str = typer.Option(None, "--display-name", help=""),
-    phone_number: str = typer.Option(None, "--phone-number", help=""),
-    extension: str = typer.Option(None, "--extension", help=""),
-    first_name: str = typer.Option(None, "--first-name", help=""),
-    last_name: str = typer.Option(None, "--last-name", help=""),
-    location_id: str = typer.Option(None, "--location-id", help=""),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Create a Virtual Extension."""
-    api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/telephony/config/virtualExtensions"
-    if json_body:
-        body = json.loads(json_body)
-    else:
-        body = {}
-        if display_name is not None:
-            body["displayName"] = display_name
-        if phone_number is not None:
-            body["phoneNumber"] = phone_number
-        if extension is not None:
-            body["extension"] = extension
-        if first_name is not None:
-            body["firstName"] = first_name
-        if last_name is not None:
-            body["lastName"] = last_name
-        if location_id is not None:
-            body["locationId"] = location_id
-    try:
-        result = api.session.rest_post(url, json=body)
-    except RestError as e:
-        if "25008" in str(e):
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    else:
-        print_json(result)
-
-
-
 @app.command("list")
 def cmd_list(
     max: str = typer.Option(None, "--max", help="Limit the number of virtual extensions returned to this maxi"),
@@ -113,6 +67,54 @@ def cmd_list(
 
 
 
+@app.command("create")
+def create(
+    first_name: str = typer.Option(None, "--first-name", help="First name of the person at the virtual extension."),
+    last_name: str = typer.Option(None, "--last-name", help="Last name of the person at the virtual extension."),
+    display_name: str = typer.Option(..., "--display-name", help="Display name of the person at the virtual extension."),
+    phone_number: str = typer.Option(..., "--phone-number", help="Directory number of the virtual extension."),
+    extension: str = typer.Option(..., "--extension", help="Extension of the virtual extension."),
+    location_id: str = typer.Option(None, "--location-id", help="ID of the location to which the virtual extension is assigne"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Create a Virtual Extension."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/virtualExtensions"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if first_name is not None:
+            body["firstName"] = first_name
+        if last_name is not None:
+            body["lastName"] = last_name
+        if display_name is not None:
+            body["displayName"] = display_name
+        if phone_number is not None:
+            body["phoneNumber"] = phone_number
+        if extension is not None:
+            body["extension"] = extension
+        if location_id is not None:
+            body["locationId"] = location_id
+    try:
+        result = api.session.rest_post(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    else:
+        print_json(result)
+
+
+
 @app.command("show")
 def show(
     extension_id: str = typer.Argument(help="extensionId"),
@@ -138,11 +140,11 @@ def show(
 @app.command("update")
 def update(
     extension_id: str = typer.Argument(help="extensionId"),
-    first_name: str = typer.Option(None, "--first-name", help=""),
-    last_name: str = typer.Option(None, "--last-name", help=""),
-    display_name: str = typer.Option(None, "--display-name", help=""),
-    phone_number: str = typer.Option(None, "--phone-number", help=""),
-    extension: str = typer.Option(None, "--extension", help=""),
+    first_name: str = typer.Option(None, "--first-name", help="First name of the person at the virtual extension."),
+    last_name: str = typer.Option(None, "--last-name", help="Last name of the person at the virtual extension."),
+    display_name: str = typer.Option(None, "--display-name", help="Display name of the person at the virtual extension."),
+    phone_number: str = typer.Option(None, "--phone-number", help="Directory number of the virtual extension."),
+    extension: str = typer.Option(None, "--extension", help="Extension of the virtual extension."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -223,7 +225,7 @@ def show_settings(
 
 @app.command("update-settings")
 def update_settings(
-    mode: str = typer.Option(None, "--mode", help="e.g. STANDARD"),
+    mode: str = typer.Option(None, "--mode", help="Choices: STANDARD"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -271,43 +273,6 @@ def validate_an_external(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     print_json(result)
-
-
-
-@app.command("create-virtual-extension-ranges")
-def create_virtual_extension_ranges(
-    name: str = typer.Option(None, "--name", help=""),
-    prefix: str = typer.Option(None, "--prefix", help=""),
-    location_id: str = typer.Option(None, "--location-id", help=""),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Create a Virtual Extension Range."""
-    api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/telephony/config/virtualExtensionRanges"
-    if json_body:
-        body = json.loads(json_body)
-    else:
-        body = {}
-        if name is not None:
-            body["name"] = name
-        if prefix is not None:
-            body["prefix"] = prefix
-        if location_id is not None:
-            body["locationId"] = location_id
-    try:
-        result = api.session.rest_post(url, json=body)
-    except RestError as e:
-        if "25008" in str(e):
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    else:
-        print_json(result)
 
 
 
@@ -364,6 +329,45 @@ def list_virtual_extension_ranges(
 
 
 
+@app.command("create-virtual-extension-ranges")
+def create_virtual_extension_ranges(
+    name: str = typer.Option(..., "--name", help="Name of the virtual extension range. This is a unique name f"),
+    prefix: str = typer.Option(..., "--prefix", help="Prefix used for a virtual extension range. Prefix works in S"),
+    location_id: str = typer.Option(None, "--location-id", help="ID of the location to which the virtual extension range is a"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Create a Virtual Extension Range."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/virtualExtensionRanges"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if name is not None:
+            body["name"] = name
+        if prefix is not None:
+            body["prefix"] = prefix
+        if location_id is not None:
+            body["locationId"] = location_id
+    try:
+        result = api.session.rest_post(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    else:
+        print_json(result)
+
+
+
 @app.command("show-virtual-extension-ranges")
 def show_virtual_extension_ranges(
     extension_range_id: str = typer.Argument(help="extensionRangeId"),
@@ -413,9 +417,9 @@ def delete_virtual_extension_ranges(
 @app.command("update-virtual-extension-ranges")
 def update_virtual_extension_ranges(
     extension_range_id: str = typer.Argument(help="extensionRangeId"),
-    name: str = typer.Option(None, "--name", help=""),
-    prefix: str = typer.Option(None, "--prefix", help=""),
-    action: str = typer.Option(None, "--action", help="e.g. REPLACE"),
+    name: str = typer.Option(None, "--name", help="Name of the virtual extension range. This is a unique name f"),
+    prefix: str = typer.Option(None, "--prefix", help="Prefix used for a virtual extension range."),
+    action: str = typer.Option(None, "--action", help="Choices: ADD, REMOVE, REPLACE"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -447,10 +451,10 @@ def update_virtual_extension_ranges(
 
 @app.command("validate-the-prefix")
 def validate_the_prefix(
-    location_id: str = typer.Option(None, "--location-id", help=""),
-    name: str = typer.Option(None, "--name", help=""),
-    prefix: str = typer.Option(None, "--prefix", help=""),
-    range_id: str = typer.Option(None, "--range-id", help=""),
+    location_id: str = typer.Option(None, "--location-id", help="ID of the location to which the virtual extension range is a"),
+    name: str = typer.Option(None, "--name", help="Name of the virtual extension range. This is a unique name f"),
+    prefix: str = typer.Option(None, "--prefix", help="Prefix used for a virtual extension range."),
+    range_id: str = typer.Option(None, "--range-id", help="ID of the virtual extension range. This is mandatory when va"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
     debug: bool = typer.Option(False, "--debug"),
 ):

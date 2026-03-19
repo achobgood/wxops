@@ -66,17 +66,17 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    extension: str = typer.Option(None, "--extension", help=""),
-    location_id: str = typer.Option(None, "--location-id", help=""),
-    display_name: str = typer.Option(None, "--display-name", help=""),
-    first_name: str = typer.Option(None, "--first-name", help=""),
-    last_name: str = typer.Option(None, "--last-name", help=""),
-    avatar: str = typer.Option(None, "--avatar", help=""),
-    org_id: str = typer.Option(None, "--org-id", help=""),
-    department: str = typer.Option(None, "--department", help=""),
-    manager: str = typer.Option(None, "--manager", help=""),
-    manager_id: str = typer.Option(None, "--manager-id", help=""),
-    title: str = typer.Option(None, "--title", help=""),
+    extension: str = typer.Option(None, "--extension", help="Webex Calling extension of the person. This is only settable"),
+    location_id: str = typer.Option(None, "--location-id", help="The ID of the location for this person."),
+    display_name: str = typer.Option(None, "--display-name", help="The full name of the person."),
+    first_name: str = typer.Option(None, "--first-name", help="The first name of the person."),
+    last_name: str = typer.Option(None, "--last-name", help="The last name of the person."),
+    avatar: str = typer.Option(None, "--avatar", help="The URL to the person's avatar in PNG format."),
+    org_id: str = typer.Option(None, "--org-id", help="The ID of the organization to which this person belongs."),
+    department: str = typer.Option(None, "--department", help="The business department the user belongs to."),
+    manager: str = typer.Option(None, "--manager", help="A manager identifier."),
+    manager_id: str = typer.Option(None, "--manager-id", help="Person ID of the manager."),
+    title: str = typer.Option(None, "--title", help="The person's title."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -150,19 +150,19 @@ def show(
 @app.command("update")
 def update(
     person_id: str = typer.Argument(help="personId"),
-    display_name: str = typer.Option(None, "--display-name", help=""),
-    extension: str = typer.Option(None, "--extension", help=""),
-    location_id: str = typer.Option(None, "--location-id", help=""),
-    first_name: str = typer.Option(None, "--first-name", help=""),
-    last_name: str = typer.Option(None, "--last-name", help=""),
-    nick_name: str = typer.Option(None, "--nick-name", help=""),
-    avatar: str = typer.Option(None, "--avatar", help=""),
-    org_id: str = typer.Option(None, "--org-id", help=""),
-    department: str = typer.Option(None, "--department", help=""),
-    manager: str = typer.Option(None, "--manager", help=""),
-    manager_id: str = typer.Option(None, "--manager-id", help=""),
-    title: str = typer.Option(None, "--title", help=""),
-    login_enabled: bool = typer.Option(None, "--login-enabled/--no-login-enabled", help=""),
+    extension: str = typer.Option(None, "--extension", help="Webex Calling extension of the person. This is only settable"),
+    location_id: str = typer.Option(None, "--location-id", help="The ID of the location for this person."),
+    display_name: str = typer.Option(None, "--display-name", help="The full name of the person."),
+    first_name: str = typer.Option(None, "--first-name", help="The first name of the person."),
+    last_name: str = typer.Option(None, "--last-name", help="The last name of the person."),
+    nick_name: str = typer.Option(None, "--nick-name", help="The nickname of the person if configured. This cannot be ove"),
+    avatar: str = typer.Option(None, "--avatar", help="The URL to the person's avatar in PNG format."),
+    org_id: str = typer.Option(None, "--org-id", help="The ID of the organization to which this person belongs."),
+    department: str = typer.Option(None, "--department", help="The business department the user belongs to."),
+    manager: str = typer.Option(None, "--manager", help="A manager identifier."),
+    manager_id: str = typer.Option(None, "--manager-id", help="Person ID of the manager."),
+    title: str = typer.Option(None, "--title", help="The person's title."),
+    login_enabled: bool = typer.Option(None, "--login-enabled/--no-login-enabled", help="Whether or not the user is allowed to use Webex. This proper"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -173,12 +173,12 @@ def update(
         body = json.loads(json_body)
     else:
         body = {}
-        if display_name is not None:
-            body["displayName"] = display_name
         if extension is not None:
             body["extension"] = extension
         if location_id is not None:
             body["locationId"] = location_id
+        if display_name is not None:
+            body["displayName"] = display_name
         if first_name is not None:
             body["firstName"] = first_name
         if last_name is not None:
@@ -263,7 +263,7 @@ def list_me(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("me", result if isinstance(result, list) else [])
+    items = result.get("emails", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:

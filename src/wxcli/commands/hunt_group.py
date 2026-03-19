@@ -58,16 +58,16 @@ def cmd_list(
 @app.command("create")
 def create(
     location_id: str = typer.Argument(help="locationId"),
-    name: str = typer.Option(None, "--name", help=""),
-    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help=""),
-    phone_number: str = typer.Option(None, "--phone-number", help=""),
-    extension: str = typer.Option(None, "--extension", help=""),
-    language_code: str = typer.Option(None, "--language-code", help=""),
-    first_name: str = typer.Option(None, "--first-name", help=""),
-    last_name: str = typer.Option(None, "--last-name", help=""),
-    time_zone: str = typer.Option(None, "--time-zone", help=""),
-    hunt_group_caller_id_for_outgoing_calls_enabled: bool = typer.Option(None, "--hunt-group-caller-id-for-outgoing-calls-enabled/--no-hunt-group-caller-id-for-outgoing-calls-enabled", help=""),
-    dial_by_name: str = typer.Option(None, "--dial-by-name", help=""),
+    name: str = typer.Option(..., "--name", help="Unique name for the hunt group."),
+    phone_number: str = typer.Option(None, "--phone-number", help="Primary phone number of the hunt group. Either phone number"),
+    extension: str = typer.Option(None, "--extension", help="Primary phone extension of the hunt group. Either phone numb"),
+    language_code: str = typer.Option(None, "--language-code", help="Language code."),
+    first_name: str = typer.Option(None, "--first-name", help="First name to be shown when calls are forwarded out of this"),
+    last_name: str = typer.Option(None, "--last-name", help="Last name to be shown when calls are forwarded out of this h"),
+    time_zone: str = typer.Option(None, "--time-zone", help="Time zone for the hunt group."),
+    enabled: bool = typer.Option(..., "--enabled", help="Whether or not the hunt group is enabled."),
+    hunt_group_caller_id_for_outgoing_calls_enabled: bool = typer.Option(None, "--hunt-group-caller-id-for-outgoing-calls-enabled/--no-hunt-group-caller-id-for-outgoing-calls-enabled", help="Enable the hunt group to be used as the caller ID when the a"),
+    dial_by_name: str = typer.Option(None, "--dial-by-name", help="The name to be used for dial by name functions.  Characters"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -80,8 +80,6 @@ def create(
         body = {}
         if name is not None:
             body["name"] = name
-        if enabled is not None:
-            body["enabled"] = enabled
         if phone_number is not None:
             body["phoneNumber"] = phone_number
         if extension is not None:
@@ -94,6 +92,8 @@ def create(
             body["lastName"] = last_name
         if time_zone is not None:
             body["timeZone"] = time_zone
+        if enabled is not None:
+            body["enabled"] = enabled
         if hunt_group_caller_id_for_outgoing_calls_enabled is not None:
             body["huntGroupCallerIdForOutgoingCallsEnabled"] = hunt_group_caller_id_for_outgoing_calls_enabled
         if dial_by_name is not None:
@@ -111,31 +111,6 @@ def create(
         typer.echo(f"Created: {result['id']}")
     else:
         print_json(result)
-
-
-
-@app.command("delete")
-def delete(
-    location_id: str = typer.Argument(help="locationId"),
-    hunt_group_id: str = typer.Argument(help="huntGroupId"),
-    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Delete a Hunt Group."""
-    if not force:
-        typer.confirm(f"Delete {hunt_group_id}?", abort=True)
-    api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/huntGroups/{hunt_group_id}"
-    try:
-        api.session.rest_delete(url)
-    except RestError as e:
-        if "25008" in str(e):
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    typer.echo(f"Deleted: {hunt_group_id}")
 
 
 
@@ -166,17 +141,17 @@ def show(
 def update(
     location_id: str = typer.Argument(help="locationId"),
     hunt_group_id: str = typer.Argument(help="huntGroupId"),
-    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help=""),
-    name: str = typer.Option(None, "--name", help=""),
-    phone_number: str = typer.Option(None, "--phone-number", help=""),
-    extension: str = typer.Option(None, "--extension", help=""),
-    distinctive_ring: bool = typer.Option(None, "--distinctive-ring/--no-distinctive-ring", help=""),
-    language_code: str = typer.Option(None, "--language-code", help=""),
-    first_name: str = typer.Option(None, "--first-name", help=""),
-    last_name: str = typer.Option(None, "--last-name", help=""),
-    time_zone: str = typer.Option(None, "--time-zone", help=""),
-    hunt_group_caller_id_for_outgoing_calls_enabled: bool = typer.Option(None, "--hunt-group-caller-id-for-outgoing-calls-enabled/--no-hunt-group-caller-id-for-outgoing-calls-enabled", help=""),
-    dial_by_name: str = typer.Option(None, "--dial-by-name", help=""),
+    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Whether or not the hunt group is enabled."),
+    name: str = typer.Option(None, "--name", help="Unique name for the hunt group."),
+    phone_number: str = typer.Option(None, "--phone-number", help="Primary phone number of the hunt group."),
+    extension: str = typer.Option(None, "--extension", help="Primary phone extension of the hunt group."),
+    distinctive_ring: bool = typer.Option(None, "--distinctive-ring/--no-distinctive-ring", help="Whether or not the hunt group has the distinctive ring optio"),
+    language_code: str = typer.Option(None, "--language-code", help="Language code."),
+    first_name: str = typer.Option(None, "--first-name", help="First name to be shown when calls are forwarded out of this"),
+    last_name: str = typer.Option(None, "--last-name", help="Last name to be shown when calls are forwarded out of this h"),
+    time_zone: str = typer.Option(None, "--time-zone", help="Time zone for the hunt group."),
+    hunt_group_caller_id_for_outgoing_calls_enabled: bool = typer.Option(None, "--hunt-group-caller-id-for-outgoing-calls-enabled/--no-hunt-group-caller-id-for-outgoing-calls-enabled", help="Enable the hunt group to be used as the caller ID when the a"),
+    dial_by_name: str = typer.Option(None, "--dial-by-name", help="Sets or clears the name to be used for dial by name function"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -219,6 +194,31 @@ def update(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     typer.echo(f"Updated.")
+
+
+
+@app.command("delete")
+def delete(
+    location_id: str = typer.Argument(help="locationId"),
+    hunt_group_id: str = typer.Argument(help="huntGroupId"),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Delete a Hunt Group."""
+    if not force:
+        typer.confirm(f"Delete {hunt_group_id}?", abort=True)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/huntGroups/{hunt_group_id}"
+    try:
+        api.session.rest_delete(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Deleted: {hunt_group_id}")
 
 
 
@@ -276,10 +276,10 @@ def update_call_forwarding(
 def create_selective_rules(
     location_id: str = typer.Argument(help="locationId"),
     hunt_group_id: str = typer.Argument(help="huntGroupId"),
-    name: str = typer.Option(None, "--name", help=""),
-    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help=""),
-    holiday_schedule: str = typer.Option(None, "--holiday-schedule", help=""),
-    business_schedule: str = typer.Option(None, "--business-schedule", help=""),
+    name: str = typer.Option(..., "--name", help="Unique name for the selective rule in the hunt group."),
+    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Reflects if rule is enabled."),
+    holiday_schedule: str = typer.Option(None, "--holiday-schedule", help="Name of the location's holiday schedule which determines whe"),
+    business_schedule: str = typer.Option(None, "--business-schedule", help="Name of the location's business schedule which determines wh"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -308,6 +308,8 @@ def create_selective_rules(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     if isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     else:
         print_json(result)
@@ -343,10 +345,10 @@ def update_selective_rules(
     location_id: str = typer.Argument(help="locationId"),
     hunt_group_id: str = typer.Argument(help="huntGroupId"),
     rule_id: str = typer.Argument(help="ruleId"),
-    name: str = typer.Option(None, "--name", help=""),
-    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help=""),
-    holiday_schedule: str = typer.Option(None, "--holiday-schedule", help=""),
-    business_schedule: str = typer.Option(None, "--business-schedule", help=""),
+    name: str = typer.Option(None, "--name", help="Unique name for the selective rule in the hunt group."),
+    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Reflects if rule is enabled."),
+    holiday_schedule: str = typer.Option(None, "--holiday-schedule", help="Name of the location's holiday schedule which determines whe"),
+    business_schedule: str = typer.Option(None, "--business-schedule", help="Name of the location's business schedule which determines wh"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):

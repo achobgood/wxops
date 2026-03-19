@@ -31,7 +31,7 @@ def show(
 
 @app.command("update")
 def update(
-    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help=""),
+    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Whether or not the call recording is enabled."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -82,7 +82,7 @@ def show_terms_of_service(
 @app.command("update-terms-of-service")
 def update_terms_of_service(
     vendor_id: str = typer.Argument(help="vendorId"),
-    terms_of_service_enabled: bool = typer.Option(None, "--terms-of-service-enabled/--no-terms-of-service-enabled", help=""),
+    terms_of_service_enabled: bool = typer.Option(None, "--terms-of-service-enabled/--no-terms-of-service-enabled", help="Whether or not the call recording terms of service are enabl"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -131,10 +131,10 @@ def show_compliance_announcement_call_recording(
 
 @app.command("update-compliance-announcement-call-recording")
 def update_compliance_announcement_call_recording(
-    inbound_p_s_t_n_calls_enabled: bool = typer.Option(None, "--inbound-p-s-t-n-calls-enabled/--no-inbound-p-s-t-n-calls-enabled", help=""),
-    outbound_p_s_t_n_calls_enabled: bool = typer.Option(None, "--outbound-p-s-t-n-calls-enabled/--no-outbound-p-s-t-n-calls-enabled", help=""),
-    outbound_p_s_t_n_calls_delay_enabled: bool = typer.Option(None, "--outbound-p-s-t-n-calls-delay-enabled/--no-outbound-p-s-t-n-calls-delay-enabled", help=""),
-    delay_in_seconds: str = typer.Option(None, "--delay-in-seconds", help=""),
+    inbound_pstn_calls_enabled: bool = typer.Option(None, "--inbound-pstn-calls-enabled/--no-inbound-pstn-calls-enabled", help="Flag to indicate whether the call recording START/STOP annou"),
+    outbound_pstn_calls_enabled: bool = typer.Option(None, "--outbound-pstn-calls-enabled/--no-outbound-pstn-calls-enabled", help="Flag to indicate whether the call recording START/STOP annou"),
+    outbound_pstn_calls_delay_enabled: bool = typer.Option(None, "--outbound-pstn-calls-delay-enabled/--no-outbound-pstn-calls-delay-enabled", help="Flag to indicate whether compliance announcement is played a"),
+    delay_in_seconds: str = typer.Option(None, "--delay-in-seconds", help="Number of seconds to wait before playing the compliance anno"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -145,12 +145,12 @@ def update_compliance_announcement_call_recording(
         body = json.loads(json_body)
     else:
         body = {}
-        if inbound_p_s_t_n_calls_enabled is not None:
-            body["inboundPSTNCallsEnabled"] = inbound_p_s_t_n_calls_enabled
-        if outbound_p_s_t_n_calls_enabled is not None:
-            body["outboundPSTNCallsEnabled"] = outbound_p_s_t_n_calls_enabled
-        if outbound_p_s_t_n_calls_delay_enabled is not None:
-            body["outboundPSTNCallsDelayEnabled"] = outbound_p_s_t_n_calls_delay_enabled
+        if inbound_pstn_calls_enabled is not None:
+            body["inboundPSTNCallsEnabled"] = inbound_pstn_calls_enabled
+        if outbound_pstn_calls_enabled is not None:
+            body["outboundPSTNCallsEnabled"] = outbound_pstn_calls_enabled
+        if outbound_pstn_calls_delay_enabled is not None:
+            body["outboundPSTNCallsDelayEnabled"] = outbound_pstn_calls_delay_enabled
         if delay_in_seconds is not None:
             body["delayInSeconds"] = delay_in_seconds
     try:
@@ -191,11 +191,11 @@ def show_compliance_announcement_call_recording_1(
 @app.command("update-compliance-announcement-call-recording-1")
 def update_compliance_announcement_call_recording_1(
     location_id: str = typer.Argument(help="locationId"),
-    inbound_p_s_t_n_calls_enabled: bool = typer.Option(None, "--inbound-p-s-t-n-calls-enabled/--no-inbound-p-s-t-n-calls-enabled", help=""),
-    use_org_settings_enabled: bool = typer.Option(None, "--use-org-settings-enabled/--no-use-org-settings-enabled", help=""),
-    outbound_p_s_t_n_calls_enabled: bool = typer.Option(None, "--outbound-p-s-t-n-calls-enabled/--no-outbound-p-s-t-n-calls-enabled", help=""),
-    outbound_p_s_t_n_calls_delay_enabled: bool = typer.Option(None, "--outbound-p-s-t-n-calls-delay-enabled/--no-outbound-p-s-t-n-calls-delay-enabled", help=""),
-    delay_in_seconds: str = typer.Option(None, "--delay-in-seconds", help=""),
+    inbound_pstn_calls_enabled: bool = typer.Option(None, "--inbound-pstn-calls-enabled/--no-inbound-pstn-calls-enabled", help="Flag to indicate whether the Call Recording START/STOP annou"),
+    use_org_settings_enabled: bool = typer.Option(None, "--use-org-settings-enabled/--no-use-org-settings-enabled", help="Flag to indicate whether to use the customer level complianc"),
+    outbound_pstn_calls_enabled: bool = typer.Option(None, "--outbound-pstn-calls-enabled/--no-outbound-pstn-calls-enabled", help="Flag to indicate whether the Call Recording START/STOP annou"),
+    outbound_pstn_calls_delay_enabled: bool = typer.Option(None, "--outbound-pstn-calls-delay-enabled/--no-outbound-pstn-calls-delay-enabled", help="Flag to indicate whether compliance announcement is played a"),
+    delay_in_seconds: str = typer.Option(None, "--delay-in-seconds", help="Number of seconds to wait before playing the compliance anno"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -206,14 +206,14 @@ def update_compliance_announcement_call_recording_1(
         body = json.loads(json_body)
     else:
         body = {}
-        if inbound_p_s_t_n_calls_enabled is not None:
-            body["inboundPSTNCallsEnabled"] = inbound_p_s_t_n_calls_enabled
+        if inbound_pstn_calls_enabled is not None:
+            body["inboundPSTNCallsEnabled"] = inbound_pstn_calls_enabled
         if use_org_settings_enabled is not None:
             body["useOrgSettingsEnabled"] = use_org_settings_enabled
-        if outbound_p_s_t_n_calls_enabled is not None:
-            body["outboundPSTNCallsEnabled"] = outbound_p_s_t_n_calls_enabled
-        if outbound_p_s_t_n_calls_delay_enabled is not None:
-            body["outboundPSTNCallsDelayEnabled"] = outbound_p_s_t_n_calls_delay_enabled
+        if outbound_pstn_calls_enabled is not None:
+            body["outboundPSTNCallsEnabled"] = outbound_pstn_calls_enabled
+        if outbound_pstn_calls_delay_enabled is not None:
+            body["outboundPSTNCallsDelayEnabled"] = outbound_pstn_calls_delay_enabled
         if delay_in_seconds is not None:
             body["delayInSeconds"] = delay_in_seconds
     try:
@@ -305,12 +305,11 @@ def list_vendor_users_call_recording(
 @app.command("update-vendor-call-recording")
 def update_vendor_call_recording(
     location_id: str = typer.Argument(help="locationId"),
-    id_param: str = typer.Option(None, "--id", help=""),
-    org_default_enabled: bool = typer.Option(None, "--org-default-enabled/--no-org-default-enabled", help=""),
-    storage_region: str = typer.Option(None, "--storage-region", help=""),
-    org_storage_region_enabled: bool = typer.Option(None, "--org-storage-region-enabled/--no-org-storage-region-enabled", help=""),
-    failure_behavior: str = typer.Option(None, "--failure-behavior", help="e.g. PROCEED_CALL_WITH_ANNOUNCEMENT"),
-    org_failure_behavior_enabled: bool = typer.Option(None, "--org-failure-behavior-enabled/--no-org-failure-behavior-enabled", help=""),
+    id_param: str = typer.Option(None, "--id", help="Unique identifier of the call recording vendor."),
+    org_default_enabled: bool = typer.Option(None, "--org-default-enabled/--no-org-default-enabled", help="Vendor is enabled by default."),
+    storage_region: str = typer.Option(None, "--storage-region", help="Regions where call recordings are stored."),
+    org_storage_region_enabled: bool = typer.Option(None, "--org-storage-region-enabled/--no-org-storage-region-enabled", help="Region-based call recording storage is enabled."),
+    org_failure_behavior_enabled: bool = typer.Option(None, "--org-failure-behavior-enabled/--no-org-failure-behavior-enabled", help="Failure behavior is enabled."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -329,8 +328,6 @@ def update_vendor_call_recording(
             body["storageRegion"] = storage_region
         if org_storage_region_enabled is not None:
             body["orgStorageRegionEnabled"] = org_storage_region_enabled
-        if failure_behavior is not None:
-            body["failureBehavior"] = failure_behavior
         if org_failure_behavior_enabled is not None:
             body["orgFailureBehaviorEnabled"] = org_failure_behavior_enabled
     try:
@@ -346,8 +343,8 @@ def update_vendor_call_recording(
 
 
 
-@app.command("list-vendors-call-recording")
-def list_vendors_call_recording(
+@app.command("list-vendors")
+def list_vendors(
     location_id: str = typer.Argument(help="locationId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
@@ -509,7 +506,7 @@ def list_errors(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("errors", result if isinstance(result, list) else [])
+    items = result.get("items", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -517,23 +514,16 @@ def list_errors(
 
 
 
-@app.command("list-vendors-call-recording-1")
-def list_vendors_call_recording_1(
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+@app.command("show-vendors")
+def show_vendors(
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Organization Call Recording Vendors."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/callRecording/vendors"
-    params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -541,19 +531,14 @@ def list_vendors_call_recording_1(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("vendors", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    print_json(result)
 
 
 
 @app.command("update-vendor-call-recording-1")
 def update_vendor_call_recording_1(
-    vendor_id: str = typer.Option(None, "--vendor-id", help=""),
-    storage_region: str = typer.Option(None, "--storage-region", help=""),
-    failure_behavior: str = typer.Option(None, "--failure-behavior", help="e.g. PROCEED_CALL_WITH_ANNOUNCEMENT"),
+    vendor_id: str = typer.Option(None, "--vendor-id", help="Unique identifier of the vendor."),
+    storage_region: str = typer.Option(None, "--storage-region", help="Call recording storage region. Only applicable for Webex as"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -568,8 +553,6 @@ def update_vendor_call_recording_1(
             body["vendorId"] = vendor_id
         if storage_region is not None:
             body["storageRegion"] = storage_region
-        if failure_behavior is not None:
-            body["failureBehavior"] = failure_behavior
     try:
         result = api.session.rest_put(url, json=body)
     except RestError as e:

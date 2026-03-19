@@ -1,107 +1,229 @@
+import json
 import typer
-from typing import Optional
-from wxc_sdk.telephony.callpickup import CallPickup
+from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 
-app = typer.Typer(help="Manage Webex Calling call pickup groups.")
+
+app = typer.Typer(help="Manage Webex Calling call-pickup.")
 
 
 @app.command("list")
-def list_pickups(
-    location_id: str = typer.Argument(help="Location ID"),
-    name: Optional[str] = typer.Option(None, "--name", help="Filter by name"),
+def cmd_list(
+    location_id: str = typer.Argument(help="locationId"),
+    max: str = typer.Option(None, "--max", help="Limit the number of call pickups returned to this maximum co"),
+    start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching call"),
+    order: str = typer.Option(None, "--order", help="Sort the list of call pickups by name, either ASC or DSC. De"),
+    name: str = typer.Option(None, "--name", help="Return the list of call pickups that contains the given name"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results (0 for all)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List call pickup groups for a location."""
+    """Read the List of Call Pickups."""
     api = get_api(debug=debug)
-
-    kwargs = dict(location_id=location_id)
-    if name:
-        kwargs["name"] = name
-
-    pickups = list(api.telephony.pickup.list(**kwargs))
-
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callPickups"
+    params = {}
+    if max is not None:
+        params["max"] = max
+    if start is not None:
+        params["start"] = start
+    if order is not None:
+        params["order"] = order
+    if name is not None:
+        params["name"] = name
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("callPickups", result if isinstance(result, list) else [])
     if output == "json":
-        print_json(pickups)
+        print_json(items)
     else:
-        print_table(
-            pickups,
-            columns=[
-                ("ID", "pickup_id"),
-                ("Name", "name"),
-            ],
-            limit=limit,
-        )
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
 
-
-@app.command("show")
-def show_pickup(
-    location_id: str = typer.Argument(help="Location ID"),
-    pickup_id: str = typer.Argument(help="Call Pickup ID"),
-    output: str = typer.Option("json", "--output", "-o"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Show details for a single call pickup group."""
-    api = get_api(debug=debug)
-    pickup = api.telephony.pickup.details(
-        location_id=location_id,
-        pickup_id=pickup_id,
-    )
-    print_json(pickup)
 
 
 @app.command("create")
-def create_pickup(
-    location_id: str = typer.Argument(help="Location ID"),
-    name: str = typer.Option(..., "--name", help="Call pickup group name"),
+def create(
+    location_id: str = typer.Argument(help="locationId"),
+    name: str = typer.Option(..., "--name", help="Unique name for the call pickup. The maximum length is 80."),
+    notification_type: str = typer.Option(None, "--notification-type", help="Choices: NONE, AUDIO_ONLY, VISUAL_ONLY, AUDIO_AND_VISUAL"),
+    notification_delay_timer_seconds: str = typer.Option(None, "--notification-delay-timer-seconds", help="After the number of seconds given by the `notificationDelayT"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new call pickup group for a location."""
+    """Create a Call Pickup."""
     api = get_api(debug=debug)
-    settings = CallPickup(name=name)
-    pickup_id = api.telephony.pickup.create(
-        location_id=location_id,
-        settings=settings,
-    )
-    typer.echo(f"Created: {pickup_id} ({name})")
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callPickups"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if name is not None:
+            body["name"] = name
+        if notification_type is not None:
+            body["notificationType"] = notification_type
+        if notification_delay_timer_seconds is not None:
+            body["notificationDelayTimerSeconds"] = notification_delay_timer_seconds
+    try:
+        result = api.session.rest_post(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    else:
+        print_json(result)
+
+
+
+@app.command("show")
+def show(
+    location_id: str = typer.Argument(help="locationId"),
+    call_pickup_id: str = typer.Argument(help="callPickupId"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Details for a Call Pickup."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callPickups/{call_pickup_id}"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
+
 
 
 @app.command("update")
-def update_pickup(
-    location_id: str = typer.Argument(help="Location ID"),
-    pickup_id: str = typer.Argument(help="Call Pickup ID"),
-    name: Optional[str] = typer.Option(None, "--name", help="New call pickup group name"),
+def update(
+    location_id: str = typer.Argument(help="locationId"),
+    call_pickup_id: str = typer.Argument(help="callPickupId"),
+    name: str = typer.Option(None, "--name", help="Unique name for the call pickup. The maximum length is 80."),
+    notification_type: str = typer.Option(None, "--notification-type", help="Choices: NONE, AUDIO_ONLY, VISUAL_ONLY, AUDIO_AND_VISUAL"),
+    notification_delay_timer_seconds: str = typer.Option(None, "--notification-delay-timer-seconds", help="After the number of seconds given by the `notificationDelayT"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a call pickup group."""
+    """Update a Call Pickup."""
     api = get_api(debug=debug)
-    settings = CallPickup(name=name)
-    api.telephony.pickup.update(
-        location_id=location_id,
-        pickup_id=pickup_id,
-        settings=settings,
-    )
-    typer.echo(f"Updated: {pickup_id}")
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callPickups/{call_pickup_id}"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if name is not None:
+            body["name"] = name
+        if notification_type is not None:
+            body["notificationType"] = notification_type
+        if notification_delay_timer_seconds is not None:
+            body["notificationDelayTimerSeconds"] = notification_delay_timer_seconds
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
 
 
 @app.command("delete")
-def delete_pickup(
-    location_id: str = typer.Argument(help="Location ID"),
-    pickup_id: str = typer.Argument(help="Call Pickup ID"),
+def delete(
+    location_id: str = typer.Argument(help="locationId"),
+    call_pickup_id: str = typer.Argument(help="callPickupId"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a call pickup group."""
-    api = get_api(debug=debug)
-
+    """Delete a Call Pickup."""
     if not force:
-        typer.confirm(f"Delete call pickup {pickup_id}?", abort=True)
+        typer.confirm(f"Delete {call_pickup_id}?", abort=True)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callPickups/{call_pickup_id}"
+    try:
+        api.session.rest_delete(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Deleted: {call_pickup_id}")
 
-    api.telephony.pickup.delete_pickup(
-        location_id=location_id,
-        pickup_id=pickup_id,
-    )
-    typer.echo(f"Deleted: {pickup_id}")
+
+
+@app.command("list-available-users")
+def list_available_users(
+    location_id: str = typer.Argument(help="locationId"),
+    call_pickup_name: str = typer.Option(None, "--call-pickup-name", help="Only return available agents from call pickups with the matc"),
+    max: str = typer.Option(None, "--max", help="Limit the number of available agents returned to this maximu"),
+    start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching avail"),
+    name: str = typer.Option(None, "--name", help="Only return available agents with the matching name."),
+    phone_number: str = typer.Option(None, "--phone-number", help="Only return available agents with the matching primary numbe"),
+    order: str = typer.Option(None, "--order", help="Order the available agents according to the designated field"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get available agents from Call Pickups."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callPickups/availableUsers"
+    params = {}
+    if call_pickup_name is not None:
+        params["callPickupName"] = call_pickup_name
+    if max is not None:
+        params["max"] = max
+    if start is not None:
+        params["start"] = start
+    if name is not None:
+        params["name"] = name
+    if phone_number is not None:
+        params["phoneNumber"] = phone_number
+    if order is not None:
+        params["order"] = order
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("agents", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
+
+

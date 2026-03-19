@@ -67,18 +67,18 @@ def cmd_list(
 @app.command("create")
 def create(
     location_id: str = typer.Argument(help="locationId"),
-    name: str = typer.Option(..., "--name", help=""),
-    phone_number: str = typer.Option(None, "--phone-number", help=""),
-    extension: str = typer.Option(None, "--extension", help=""),
-    language_code: str = typer.Option(None, "--language-code", help=""),
-    first_name: str = typer.Option(None, "--first-name", help=""),
-    last_name: str = typer.Option(None, "--last-name", help=""),
-    time_zone: str = typer.Option(None, "--time-zone", help=""),
-    calling_line_id_policy: str = typer.Option(None, "--calling-line-id-policy", help="e.g. CUSTOM"),
-    calling_line_id_phone_number: str = typer.Option(None, "--calling-line-id-phone-number", help=""),
-    allow_agent_join_enabled: bool = typer.Option(None, "--allow-agent-join-enabled/--no-allow-agent-join-enabled", help=""),
-    phone_number_for_outgoing_calls_enabled: bool = typer.Option(None, "--phone-number-for-outgoing-calls-enabled/--no-phone-number-for-outgoing-calls-enabled", help=""),
-    dial_by_name: str = typer.Option(None, "--dial-by-name", help=""),
+    name: str = typer.Option(..., "--name", help="Unique name for the call queue."),
+    phone_number: str = typer.Option(None, "--phone-number", help="Primary phone number of the call queue. Either a `phoneNumbe"),
+    extension: str = typer.Option(None, "--extension", help="Primary phone extension of the call queue. Either a `phoneNu"),
+    language_code: str = typer.Option(None, "--language-code", help="Language code."),
+    first_name: str = typer.Option(None, "--first-name", help="First name to be shown when calls are forwarded out of this"),
+    last_name: str = typer.Option(None, "--last-name", help="Last name to be shown when calls are forwarded out of this c"),
+    time_zone: str = typer.Option(None, "--time-zone", help="Time zone for the call queue."),
+    calling_line_id_policy: str = typer.Option(None, "--calling-line-id-policy", help="Choices: DIRECT_LINE, LOCATION_NUMBER, CUSTOM"),
+    calling_line_id_phone_number: str = typer.Option(None, "--calling-line-id-phone-number", help="Calling line ID Phone number which will be shown if CUSTOM i"),
+    allow_agent_join_enabled: bool = typer.Option(None, "--allow-agent-join-enabled/--no-allow-agent-join-enabled", help="Whether or not to allow agents to join or unjoin a queue."),
+    phone_number_for_outgoing_calls_enabled: bool = typer.Option(None, "--phone-number-for-outgoing-calls-enabled/--no-phone-number-for-outgoing-calls-enabled", help="When `true`, indicates that the agent's configuration allows"),
+    dial_by_name: str = typer.Option(None, "--dial-by-name", help="The name to be used for dial by name functions. Characters o"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -91,7 +91,6 @@ def create(
         body = {}
         if name is not None:
             body["name"] = name
-        body.setdefault('callPolicies', {'routingType': 'PRIORITY_BASED', 'policy': 'CIRCULAR'})
         if phone_number is not None:
             body["phoneNumber"] = phone_number
         if extension is not None:
@@ -130,31 +129,6 @@ def create(
 
 
 
-@app.command("delete")
-def delete(
-    location_id: str = typer.Argument(help="locationId"),
-    queue_id: str = typer.Argument(help="queueId"),
-    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Delete a Call Queue."""
-    if not force:
-        typer.confirm(f"Delete {queue_id}?", abort=True)
-    api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}"
-    try:
-        api.session.rest_delete(url)
-    except RestError as e:
-        if "25008" in str(e):
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    typer.echo(f"Deleted: {queue_id}")
-
-
-
 @app.command("show")
 def show(
     location_id: str = typer.Argument(help="locationId"),
@@ -182,20 +156,20 @@ def show(
 def update(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
-    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help=""),
-    name: str = typer.Option(None, "--name", help=""),
-    language_code: str = typer.Option(None, "--language-code", help=""),
-    first_name: str = typer.Option(None, "--first-name", help=""),
-    last_name: str = typer.Option(None, "--last-name", help=""),
-    time_zone: str = typer.Option(None, "--time-zone", help=""),
-    phone_number: str = typer.Option(None, "--phone-number", help=""),
-    extension: str = typer.Option(None, "--extension", help=""),
-    calling_line_id_policy: str = typer.Option(None, "--calling-line-id-policy", help="e.g. CUSTOM"),
-    calling_line_id_phone_number: str = typer.Option(None, "--calling-line-id-phone-number", help=""),
-    allow_call_waiting_for_agents_enabled: bool = typer.Option(None, "--allow-call-waiting-for-agents-enabled/--no-allow-call-waiting-for-agents-enabled", help=""),
-    allow_agent_join_enabled: bool = typer.Option(None, "--allow-agent-join-enabled/--no-allow-agent-join-enabled", help=""),
-    phone_number_for_outgoing_calls_enabled: bool = typer.Option(None, "--phone-number-for-outgoing-calls-enabled/--no-phone-number-for-outgoing-calls-enabled", help=""),
-    dial_by_name: str = typer.Option(None, "--dial-by-name", help=""),
+    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Whether or not the call queue is enabled."),
+    name: str = typer.Option(None, "--name", help="Unique name for the call queue."),
+    language_code: str = typer.Option(None, "--language-code", help="Language code."),
+    first_name: str = typer.Option(None, "--first-name", help="First name to be shown when calls are forwarded out of this"),
+    last_name: str = typer.Option(None, "--last-name", help="Last name to be shown when calls are forwarded out of this c"),
+    time_zone: str = typer.Option(None, "--time-zone", help="Time zone for the hunt group."),
+    phone_number: str = typer.Option(None, "--phone-number", help="Primary phone number of the call queue."),
+    extension: str = typer.Option(None, "--extension", help="Extension of the call queue."),
+    calling_line_id_policy: str = typer.Option(None, "--calling-line-id-policy", help="Choices: DIRECT_LINE, LOCATION_NUMBER, CUSTOM"),
+    calling_line_id_phone_number: str = typer.Option(None, "--calling-line-id-phone-number", help="Calling line ID Phone number which will be shown if CUSTOM i"),
+    allow_call_waiting_for_agents_enabled: bool = typer.Option(None, "--allow-call-waiting-for-agents-enabled/--no-allow-call-waiting-for-agents-enabled", help="Flag to indicate whether call waiting is enabled for agents."),
+    allow_agent_join_enabled: bool = typer.Option(None, "--allow-agent-join-enabled/--no-allow-agent-join-enabled", help="Whether or not to allow agents to join or unjoin a queue."),
+    phone_number_for_outgoing_calls_enabled: bool = typer.Option(None, "--phone-number-for-outgoing-calls-enabled/--no-phone-number-for-outgoing-calls-enabled", help="When `true`, indicates that the agent's configuration allows"),
+    dial_by_name: str = typer.Option(None, "--dial-by-name", help="Sets or clears the name to be used for dial by name function"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -244,6 +218,31 @@ def update(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     typer.echo(f"Updated.")
+
+
+
+@app.command("delete")
+def delete(
+    location_id: str = typer.Argument(help="locationId"),
+    queue_id: str = typer.Argument(help="queueId"),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Delete a Call Queue."""
+    if not force:
+        typer.confirm(f"Delete {queue_id}?", abort=True)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}"
+    try:
+        api.session.rest_delete(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Deleted: {queue_id}")
 
 
 
@@ -361,10 +360,10 @@ def update_call_forwarding(
 def create_selective_rules(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
-    name: str = typer.Option(..., "--name", help=""),
-    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help=""),
-    holiday_schedule: str = typer.Option(None, "--holiday-schedule", help=""),
-    business_schedule: str = typer.Option(None, "--business-schedule", help=""),
+    name: str = typer.Option(..., "--name", help="Unique name for the selective rule in the hunt group."),
+    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Reflects if rule is enabled."),
+    holiday_schedule: str = typer.Option(None, "--holiday-schedule", help="Name of the location's holiday schedule which determines whe"),
+    business_schedule: str = typer.Option(None, "--business-schedule", help="Name of the location's business schedule which determines wh"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -393,6 +392,8 @@ def create_selective_rules(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     if isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     else:
         print_json(result)
@@ -428,10 +429,10 @@ def update_selective_rules(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
     rule_id: str = typer.Argument(help="ruleId"),
-    name: str = typer.Option(None, "--name", help=""),
-    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help=""),
-    holiday_schedule: str = typer.Option(None, "--holiday-schedule", help=""),
-    business_schedule: str = typer.Option(None, "--business-schedule", help=""),
+    name: str = typer.Option(None, "--name", help="Unique name for the selective rule in the hunt group."),
+    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Reflects if rule is enabled."),
+    holiday_schedule: str = typer.Option(None, "--holiday-schedule", help="Name of the location's holiday schedule which determines whe"),
+    business_schedule: str = typer.Option(None, "--business-schedule", help="Name of the location's business schedule which determines wh"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -489,18 +490,25 @@ def delete_selective_rules(
 
 
 
-@app.command("show-holiday-service")
-def show_holiday_service(
+@app.command("list-holiday-service")
+def list_holiday_service(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Details for a Call Queue Holiday Service."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/holidayService"
+    params = {}
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -508,7 +516,11 @@ def show_holiday_service(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    print_json(result)
+    items = result.get("audioFiles", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Extension', 'extension'), ('Enabled', 'enabled')], limit=limit)
 
 
 
@@ -516,13 +528,13 @@ def show_holiday_service(
 def update_holiday_service(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
-    holiday_service_enabled: bool = typer.Option(None, "--holiday-service-enabled/--no-holiday-service-enabled", help=""),
-    action: str = typer.Option(None, "--action", help="e.g. BUSY"),
-    holiday_schedule_level: str = typer.Option(None, "--holiday-schedule-level", help="e.g. ORGANIZATION"),
-    play_announcement_before_enabled: bool = typer.Option(None, "--play-announcement-before-enabled/--no-play-announcement-before-enabled", help=""),
-    audio_message_selection: str = typer.Option(None, "--audio-message-selection", help="e.g. DEFAULT"),
-    holiday_schedule_name: str = typer.Option(None, "--holiday-schedule-name", help=""),
-    transfer_phone_number: str = typer.Option(None, "--transfer-phone-number", help=""),
+    holiday_service_enabled: bool = typer.Option(None, "--holiday-service-enabled/--no-holiday-service-enabled", help="Enable or Disable the call queue holiday service routing pol"),
+    action: str = typer.Option(None, "--action", help="Choices: BUSY, TRANSFER"),
+    holiday_schedule_level: str = typer.Option(None, "--holiday-schedule-level", help="Choices: LOCATION, ORGANIZATION"),
+    holiday_schedule_name: str = typer.Option(None, "--holiday-schedule-name", help="Name of the schedule configured for a holiday service as one"),
+    transfer_phone_number: str = typer.Option(None, "--transfer-phone-number", help="Call gets transferred to this number when action is set to `"),
+    play_announcement_before_enabled: bool = typer.Option(None, "--play-announcement-before-enabled/--no-play-announcement-before-enabled", help="Indicates whether an announcement plays to callers before th"),
+    audio_message_selection: str = typer.Option(None, "--audio-message-selection", help="Choices: DEFAULT, CUSTOM"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -539,14 +551,14 @@ def update_holiday_service(
             body["action"] = action
         if holiday_schedule_level is not None:
             body["holidayScheduleLevel"] = holiday_schedule_level
-        if play_announcement_before_enabled is not None:
-            body["playAnnouncementBeforeEnabled"] = play_announcement_before_enabled
-        if audio_message_selection is not None:
-            body["audioMessageSelection"] = audio_message_selection
         if holiday_schedule_name is not None:
             body["holidayScheduleName"] = holiday_schedule_name
         if transfer_phone_number is not None:
             body["transferPhoneNumber"] = transfer_phone_number
+        if play_announcement_before_enabled is not None:
+            body["playAnnouncementBeforeEnabled"] = play_announcement_before_enabled
+        if audio_message_selection is not None:
+            body["audioMessageSelection"] = audio_message_selection
     try:
         result = api.session.rest_put(url, json=body)
     except RestError as e:
@@ -560,18 +572,25 @@ def update_holiday_service(
 
 
 
-@app.command("show-night-service")
-def show_night_service(
+@app.command("list-night-service")
+def list_night_service(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Details for a Call Queue Night Service."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/nightService"
+    params = {}
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -579,7 +598,11 @@ def show_night_service(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    print_json(result)
+    items = result.get("audioFiles", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Extension', 'extension'), ('Enabled', 'enabled')], limit=limit)
 
 
 
@@ -587,16 +610,16 @@ def show_night_service(
 def update_night_service(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
-    night_service_enabled: bool = typer.Option(None, "--night-service-enabled/--no-night-service-enabled", help=""),
-    play_announcement_before_enabled: bool = typer.Option(None, "--play-announcement-before-enabled/--no-play-announcement-before-enabled", help=""),
-    announcement_mode: str = typer.Option(None, "--announcement-mode", help="e.g. MANUAL"),
-    audio_message_selection: str = typer.Option(None, "--audio-message-selection", help="e.g. DEFAULT"),
-    force_night_service_enabled: bool = typer.Option(None, "--force-night-service-enabled/--no-force-night-service-enabled", help=""),
-    manual_audio_message_selection: str = typer.Option(None, "--manual-audio-message-selection", help="e.g. CUSTOM"),
-    action: str = typer.Option(None, "--action", help="e.g. BUSY"),
-    transfer_phone_number: str = typer.Option(None, "--transfer-phone-number", help=""),
-    business_hours_name: str = typer.Option(None, "--business-hours-name", help=""),
-    business_hours_level: str = typer.Option(None, "--business-hours-level", help="e.g. LOCATION"),
+    night_service_enabled: bool = typer.Option(None, "--night-service-enabled/--no-night-service-enabled", help="Enable or disable call queue night service routing policy."),
+    action: str = typer.Option(None, "--action", help="Choices: BUSY, TRANSFER"),
+    transfer_phone_number: str = typer.Option(None, "--transfer-phone-number", help="Call gets transferred to this number when action is set to `"),
+    play_announcement_before_enabled: bool = typer.Option(None, "--play-announcement-before-enabled/--no-play-announcement-before-enabled", help="Indicates whether an announcement plays to callers before th"),
+    announcement_mode: str = typer.Option(None, "--announcement-mode", help="Choices: NORMAL, MANUAL"),
+    audio_message_selection: str = typer.Option(None, "--audio-message-selection", help="Choices: DEFAULT, CUSTOM"),
+    business_hours_name: str = typer.Option(None, "--business-hours-name", help="Name of the schedule configured for a night service as one o"),
+    business_hours_level: str = typer.Option(None, "--business-hours-level", help="Choices: ORGANIZATION, LOCATION"),
+    force_night_service_enabled: bool = typer.Option(None, "--force-night-service-enabled/--no-force-night-service-enabled", help="Force night service regardless of business hour schedule."),
+    manual_audio_message_selection: str = typer.Option(None, "--manual-audio-message-selection", help="Choices: DEFAULT, CUSTOM"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -609,24 +632,24 @@ def update_night_service(
         body = {}
         if night_service_enabled is not None:
             body["nightServiceEnabled"] = night_service_enabled
+        if action is not None:
+            body["action"] = action
+        if transfer_phone_number is not None:
+            body["transferPhoneNumber"] = transfer_phone_number
         if play_announcement_before_enabled is not None:
             body["playAnnouncementBeforeEnabled"] = play_announcement_before_enabled
         if announcement_mode is not None:
             body["announcementMode"] = announcement_mode
         if audio_message_selection is not None:
             body["audioMessageSelection"] = audio_message_selection
-        if force_night_service_enabled is not None:
-            body["forceNightServiceEnabled"] = force_night_service_enabled
-        if manual_audio_message_selection is not None:
-            body["manualAudioMessageSelection"] = manual_audio_message_selection
-        if action is not None:
-            body["action"] = action
-        if transfer_phone_number is not None:
-            body["transferPhoneNumber"] = transfer_phone_number
         if business_hours_name is not None:
             body["businessHoursName"] = business_hours_name
         if business_hours_level is not None:
             body["businessHoursLevel"] = business_hours_level
+        if force_night_service_enabled is not None:
+            body["forceNightServiceEnabled"] = force_night_service_enabled
+        if manual_audio_message_selection is not None:
+            body["manualAudioMessageSelection"] = manual_audio_message_selection
     try:
         result = api.session.rest_put(url, json=body)
     except RestError as e:
@@ -640,18 +663,25 @@ def update_night_service(
 
 
 
-@app.command("show-forced-forward")
-def show_forced_forward(
+@app.command("list-forced-forward")
+def list_forced_forward(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Details for a Call Queue Forced Forward."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/forcedForward"
+    params = {}
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -659,7 +689,11 @@ def show_forced_forward(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    print_json(result)
+    items = result.get("audioFiles", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Extension', 'extension'), ('Enabled', 'enabled')], limit=limit)
 
 
 
@@ -667,10 +701,10 @@ def show_forced_forward(
 def update_forced_forward(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
-    forced_forward_enabled: bool = typer.Option(None, "--forced-forward-enabled/--no-forced-forward-enabled", help=""),
-    play_announcement_before_enabled: bool = typer.Option(None, "--play-announcement-before-enabled/--no-play-announcement-before-enabled", help=""),
-    audio_message_selection: str = typer.Option(None, "--audio-message-selection", help="e.g. DEFAULT"),
-    transfer_phone_number: str = typer.Option(None, "--transfer-phone-number", help=""),
+    forced_forward_enabled: bool = typer.Option(None, "--forced-forward-enabled/--no-forced-forward-enabled", help="Enable or disable call forced forward service routing policy"),
+    transfer_phone_number: str = typer.Option(None, "--transfer-phone-number", help="Call gets transferred to this number when action is set to `"),
+    play_announcement_before_enabled: bool = typer.Option(None, "--play-announcement-before-enabled/--no-play-announcement-before-enabled", help="Indicates whether an announcement plays to callers before th"),
+    audio_message_selection: str = typer.Option(None, "--audio-message-selection", help="Choices: DEFAULT, CUSTOM"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -683,12 +717,12 @@ def update_forced_forward(
         body = {}
         if forced_forward_enabled is not None:
             body["forcedForwardEnabled"] = forced_forward_enabled
+        if transfer_phone_number is not None:
+            body["transferPhoneNumber"] = transfer_phone_number
         if play_announcement_before_enabled is not None:
             body["playAnnouncementBeforeEnabled"] = play_announcement_before_enabled
         if audio_message_selection is not None:
             body["audioMessageSelection"] = audio_message_selection
-        if transfer_phone_number is not None:
-            body["transferPhoneNumber"] = transfer_phone_number
     try:
         result = api.session.rest_put(url, json=body)
     except RestError as e:
@@ -702,18 +736,25 @@ def update_forced_forward(
 
 
 
-@app.command("show-stranded-calls")
-def show_stranded_calls(
+@app.command("list-stranded-calls")
+def list_stranded_calls(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Details for a Call Queue Stranded Calls."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/strandedCalls"
+    params = {}
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -721,7 +762,11 @@ def show_stranded_calls(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    print_json(result)
+    items = result.get("audioFiles", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Extension', 'extension'), ('Enabled', 'enabled')], limit=limit)
 
 
 
@@ -729,9 +774,9 @@ def show_stranded_calls(
 def update_stranded_calls(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
-    action: str = typer.Option(None, "--action", help="e.g. RINGING"),
-    audio_message_selection: str = typer.Option(None, "--audio-message-selection", help="e.g. CUSTOM"),
-    transfer_phone_number: str = typer.Option(None, "--transfer-phone-number", help=""),
+    action: str = typer.Option(None, "--action", help="Choices: NONE, BUSY, TRANSFER, NIGHT_SERVICE, RINGING, ANNOUNCEMENT"),
+    transfer_phone_number: str = typer.Option(None, "--transfer-phone-number", help="Call gets transferred to this number when action is set to `"),
+    audio_message_selection: str = typer.Option(None, "--audio-message-selection", help="Choices: DEFAULT, CUSTOM"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -744,10 +789,10 @@ def update_stranded_calls(
         body = {}
         if action is not None:
             body["action"] = action
-        if audio_message_selection is not None:
-            body["audioMessageSelection"] = audio_message_selection
         if transfer_phone_number is not None:
             body["transferPhoneNumber"] = transfer_phone_number
+        if audio_message_selection is not None:
+            body["audioMessageSelection"] = audio_message_selection
     try:
         result = api.session.rest_put(url, json=body)
     except RestError as e:
@@ -995,7 +1040,7 @@ def list_supervisors(
 
 @app.command("create-supervisors")
 def create_supervisors(
-    id_param: str = typer.Option(None, "--id", help=""),
+    id_param: str = typer.Option(..., "--id", help="A unique identifier for the supervisor."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1031,7 +1076,7 @@ def delete_supervisors_config(
 ):
     """Delete Bulk supervisors."""
     if not force:
-        typer.confirm(f"Delete {item}?", abort=True)
+        typer.confirm("Delete this resource?", abort=True)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/supervisors"
     try:
@@ -1043,31 +1088,7 @@ def delete_supervisors_config(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    typer.echo(f"Deleted: {item}")
-
-
-
-@app.command("delete-supervisors-config-1")
-def delete_supervisors_config_1(
-    supervisor_id: str = typer.Argument(help="supervisorId"),
-    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Delete A Supervisor."""
-    if not force:
-        typer.confirm(f"Delete {supervisor_id}?", abort=True)
-    api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/telephony/config/supervisors/{supervisor_id}"
-    try:
-        api.session.rest_delete(url)
-    except RestError as e:
-        if "25008" in str(e):
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    typer.echo(f"Deleted: {supervisor_id}")
+    typer.echo("Deleted.")
 
 
 
@@ -1116,6 +1137,30 @@ def update_supervisors(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     typer.echo(f"Updated.")
+
+
+
+@app.command("delete-supervisors-config-1")
+def delete_supervisors_config_1(
+    supervisor_id: str = typer.Argument(help="supervisorId"),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Delete A Supervisor."""
+    if not force:
+        typer.confirm(f"Delete {supervisor_id}?", abort=True)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/supervisors/{supervisor_id}"
+    try:
+        api.session.rest_delete(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Deleted: {supervisor_id}")
 
 
 

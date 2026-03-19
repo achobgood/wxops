@@ -58,7 +58,7 @@ def whoami(
             pass
 
 
-# Register sub-commands
+# Hand-coded modules
 from wxcli.commands.configure import app as configure_app
 from wxcli.commands.locations import app as locations_app
 from wxcli.commands.users import app as users_app
@@ -71,128 +71,96 @@ app.add_typer(users_app, name="users")
 app.add_typer(numbers_app, name="numbers")
 app.add_typer(licenses_app, name="licenses")
 
-# v2: Call features
-from wxcli.commands.schedules import app as schedules_app
-from wxcli.commands.operating_modes import app as operating_modes_app
-from wxcli.commands.auto_attendants import app as auto_attendants_app
-from wxcli.commands.hunt_groups import app as hunt_groups_app
-from wxcli.commands.call_queues import app as call_queues_app
-from wxcli.commands.call_park import app as call_park_app
-from wxcli.commands.call_pickup import app as call_pickup_app
-from wxcli.commands.paging import app as paging_app
-from wxcli.commands.voicemail_groups import app as voicemail_groups_app
-
-app.add_typer(schedules_app, name="schedules")
-app.add_typer(operating_modes_app, name="operating-modes")
-app.add_typer(auto_attendants_app, name="auto-attendants")
-app.add_typer(hunt_groups_app, name="hunt-groups")
-app.add_typer(call_queues_app, name="call-queues")
-app.add_typer(call_park_app, name="call-park")
-app.add_typer(call_pickup_app, name="call-pickup")
-app.add_typer(paging_app, name="paging")
-app.add_typer(voicemail_groups_app, name="voicemail-groups")
-
-# v3: Auto-generated from Postman collection
-from wxcli.commands.call_routing import app as call_routing_app
-from wxcli.commands.dect_devices_settings import app as dect_devices_app
-from wxcli.commands.device_call_settings import app as device_call_settings_app
-from wxcli.commands.emergency_services_settings import app as emergency_services_app
-from wxcli.commands.announcement_playlist import app as announcement_playlist_app
-from wxcli.commands.announcement_repository import app as announcement_repository_app
-from wxcli.commands.location_call_settings import app as location_call_settings_app
-from wxcli.commands.location_call_settings_call_handling import app as loc_call_handling_app
-from wxcli.commands.location_call_settings_voicemail import app as loc_voicemail_app
-from wxcli.commands.call_recording import app as call_recording_app
-from wxcli.commands.virtual_extensions import app as virtual_extensions_app
-from wxcli.commands.user_call_settings import app as user_call_settings_app
-from wxcli.commands.numbers_generated import app as numbers_gen_app
-from wxcli.commands.single_number_reach import app as single_number_reach_app
+# Auto-generated from OpenAPI spec
 from wxcli.commands.call_controls import app as call_controls_app
-from wxcli.commands.workspaces import app as workspaces_app
-from wxcli.commands.pstn import app as pstn_app
-
-app.add_typer(call_routing_app, name="call-routing")
-app.add_typer(dect_devices_app, name="dect-devices")
-app.add_typer(device_call_settings_app, name="device-settings")
-app.add_typer(emergency_services_app, name="emergency-services")
-app.add_typer(announcement_playlist_app, name="announcement-playlists")
-app.add_typer(announcement_repository_app, name="announcements")
-app.add_typer(location_call_settings_app, name="location-settings")
-app.add_typer(loc_call_handling_app, name="location-call-handling")
-app.add_typer(loc_voicemail_app, name="location-voicemail")
-app.add_typer(call_recording_app, name="call-recording")
-app.add_typer(virtual_extensions_app, name="virtual-extensions")
-app.add_typer(user_call_settings_app, name="user-settings")
-app.add_typer(numbers_gen_app, name="numbers-manage")
-app.add_typer(single_number_reach_app, name="single-number-reach")
 app.add_typer(call_controls_app, name="call-controls")
-app.add_typer(workspaces_app, name="workspaces")
-app.add_typer(pstn_app, name="pstn")
-
-# v3: Extended coverage — generated versions of v2 groups (additional endpoints)
-from wxcli.commands.auto_attendant import app as auto_attendant_gen_app
-from wxcli.commands.call_park_generated import app as call_park_gen_app
-from wxcli.commands.call_pickup_generated import app as call_pickup_gen_app
-from wxcli.commands.call_queue import app as call_queue_gen_app
-from wxcli.commands.hunt_group import app as hunt_group_gen_app
-from wxcli.commands.locations_generated import app as locations_gen_app
-from wxcli.commands.operating_modes_generated import app as operating_modes_gen_app
-from wxcli.commands.paging_group import app as paging_group_gen_app
-
-app.add_typer(auto_attendant_gen_app, name="auto-attendant-ext")
-app.add_typer(call_park_gen_app, name="call-park-ext")
-app.add_typer(call_pickup_gen_app, name="call-pickup-ext")
-app.add_typer(call_queue_gen_app, name="call-queue-ext")
-app.add_typer(hunt_group_gen_app, name="hunt-group-ext")
-app.add_typer(locations_gen_app, name="locations-ext")
-app.add_typer(operating_modes_gen_app, name="operating-modes-ext")
-app.add_typer(paging_group_gen_app, name="paging-ext")
-
-# v3: New command groups — not covered by v2
-from wxcli.commands.call_settings_for_me import app as call_settings_for_me_app
-from wxcli.commands.caller_reputation_provider import app as caller_reputation_app
-from wxcli.commands.calling_service_settings import app as calling_service_app
-from wxcli.commands.client_call_settings import app as client_call_settings_app
-from wxcli.commands.conference_controls import app as conference_controls_app
-from wxcli.commands.converged_recordings import app as converged_recordings_app
-from wxcli.commands.customer_experience_essentials import app as cx_essentials_app
-from wxcli.commands.devices import app as devices_app
-from wxcli.commands.external_voicemail import app as external_voicemail_app
-from wxcli.commands.hot_desk import app as hot_desk_app
-from wxcli.commands.hot_desking_sign_in_via_voice_portal import app as hot_desking_portal_app
-from wxcli.commands.location_call_settings_schedules import app as loc_schedules_app
-from wxcli.commands.mode_management import app as mode_management_app
-from wxcli.commands.partner_reports_templates import app as partner_reports_app
-from wxcli.commands.people import app as people_app
-from wxcli.commands.recording_report import app as recording_report_app
-from wxcli.commands.reports import app as reports_app
-from wxcli.commands.reports_detailed_call_history import app as detailed_cdr_app
-from wxcli.commands.send_activation_email import app as send_activation_app
-from wxcli.commands.virtual_line_call_settings import app as virtual_line_app
-from wxcli.commands.workspace_call_settings import app as workspace_call_settings_app
-from wxcli.commands.call_queue_settings_with_playlist_settings import app as cq_playlist_app
-from wxcli.commands.device_call_settings_with_device_dynamic_settings import app as device_dynamic_app
-
-app.add_typer(call_settings_for_me_app, name="my-settings")
+from wxcli.commands.cq_playlists import app as cq_playlists_app
+app.add_typer(cq_playlists_app, name="cq-playlists")
+from wxcli.commands.call_routing import app as call_routing_app
+app.add_typer(call_routing_app, name="call-routing")
+from wxcli.commands.caller_reputation import app as caller_reputation_app
 app.add_typer(caller_reputation_app, name="caller-reputation")
+from wxcli.commands.calling_service import app as calling_service_app
 app.add_typer(calling_service_app, name="calling-service")
-app.add_typer(client_call_settings_app, name="client-settings")
-app.add_typer(conference_controls_app, name="conference")
-app.add_typer(converged_recordings_app, name="recordings")
-app.add_typer(cx_essentials_app, name="cx-essentials")
+from wxcli.commands.client_settings import app as client_settings_app
+app.add_typer(client_settings_app, name="client-settings")
+from wxcli.commands.conference import app as conference_app
+app.add_typer(conference_app, name="conference")
+from wxcli.commands.recordings import app as recordings_app
+app.add_typer(recordings_app, name="recordings")
+from wxcli.commands.dect_devices import app as dect_devices_app
+app.add_typer(dect_devices_app, name="dect-devices")
+from wxcli.commands.device_settings import app as device_settings_app
+app.add_typer(device_settings_app, name="device-settings")
+from wxcli.commands.device_dynamic_settings import app as device_dynamic_settings_app
+app.add_typer(device_dynamic_settings_app, name="device-dynamic-settings")
+from wxcli.commands.devices import app as devices_app
 app.add_typer(devices_app, name="devices")
+from wxcli.commands.emergency_services import app as emergency_services_app
+app.add_typer(emergency_services_app, name="emergency-services")
+from wxcli.commands.external_voicemail import app as external_voicemail_app
 app.add_typer(external_voicemail_app, name="external-voicemail")
-app.add_typer(hot_desk_app, name="hot-desk")
+from wxcli.commands.auto_attendant import app as auto_attendant_app
+app.add_typer(auto_attendant_app, name="auto-attendant")
+from wxcli.commands.call_park import app as call_park_app
+app.add_typer(call_park_app, name="call-park")
+from wxcli.commands.call_pickup import app as call_pickup_app
+app.add_typer(call_pickup_app, name="call-pickup")
+from wxcli.commands.call_queue import app as call_queue_app
+app.add_typer(call_queue_app, name="call-queue")
+from wxcli.commands.hunt_group import app as hunt_group_app
+app.add_typer(hunt_group_app, name="hunt-group")
+from wxcli.commands.paging_group import app as paging_group_app
+app.add_typer(paging_group_app, name="paging-group")
+from wxcli.commands.announcement_playlists import app as announcement_playlists_app
+app.add_typer(announcement_playlists_app, name="announcement-playlists")
+from wxcli.commands.announcements import app as announcements_app
+app.add_typer(announcements_app, name="announcements")
+from wxcli.commands.call_recording import app as call_recording_app
+app.add_typer(call_recording_app, name="call-recording")
+from wxcli.commands.cx_essentials import app as cx_essentials_app
+app.add_typer(cx_essentials_app, name="cx-essentials")
+from wxcli.commands.hot_desking_portal import app as hot_desking_portal_app
 app.add_typer(hot_desking_portal_app, name="hot-desking-portal")
-app.add_typer(loc_schedules_app, name="location-schedules")
+from wxcli.commands.operating_modes import app as operating_modes_app
+app.add_typer(operating_modes_app, name="operating-modes")
+from wxcli.commands.single_number_reach import app as single_number_reach_app
+app.add_typer(single_number_reach_app, name="single-number-reach")
+from wxcli.commands.virtual_extensions import app as virtual_extensions_app
+app.add_typer(virtual_extensions_app, name="virtual-extensions")
+from wxcli.commands.hot_desk import app as hot_desk_app
+app.add_typer(hot_desk_app, name="hot-desk")
+from wxcli.commands.location_settings import app as location_settings_app
+app.add_typer(location_settings_app, name="location-settings")
+from wxcli.commands.location_schedules import app as location_schedules_app
+app.add_typer(location_schedules_app, name="location-schedules")
+from wxcli.commands.location_voicemail import app as location_voicemail_app
+app.add_typer(location_voicemail_app, name="location-voicemail")
+from wxcli.commands.location_call_handling import app as location_call_handling_app
+app.add_typer(location_call_handling_app, name="location-call-handling")
+from wxcli.commands.locations_api import app as locations_api_app
+app.add_typer(locations_api_app, name="locations-api")
+from wxcli.commands.mode_management import app as mode_management_app
 app.add_typer(mode_management_app, name="mode-management")
+from wxcli.commands.numbers_api import app as numbers_api_app
+app.add_typer(numbers_api_app, name="numbers-api")
+from wxcli.commands.pstn import app as pstn_app
+app.add_typer(pstn_app, name="pstn")
+from wxcli.commands.partner_reports import app as partner_reports_app
 app.add_typer(partner_reports_app, name="partner-reports")
+from wxcli.commands.people import app as people_app
 app.add_typer(people_app, name="people")
+from wxcli.commands.recording_report import app as recording_report_app
 app.add_typer(recording_report_app, name="recording-report")
+from wxcli.commands.reports import app as reports_app
 app.add_typer(reports_app, name="reports")
-app.add_typer(detailed_cdr_app, name="cdr")
-app.add_typer(send_activation_app, name="send-activation")
-app.add_typer(virtual_line_app, name="virtual-line-settings")
-app.add_typer(workspace_call_settings_app, name="workspace-settings")
-app.add_typer(cq_playlist_app, name="cq-playlists")
-app.add_typer(device_dynamic_app, name="device-dynamic-settings")
+from wxcli.commands.cdr import app as cdr_app
+app.add_typer(cdr_app, name="cdr")
+from wxcli.commands.user_settings import app as user_settings_app
+app.add_typer(user_settings_app, name="user-settings")
+from wxcli.commands.virtual_line_settings import app as virtual_line_settings_app
+app.add_typer(virtual_line_settings_app, name="virtual-line-settings")
+from wxcli.commands.workspace_settings import app as workspace_settings_app
+app.add_typer(workspace_settings_app, name="workspace-settings")
+from wxcli.commands.workspaces import app as workspaces_app
+app.add_typer(workspaces_app, name="workspaces")

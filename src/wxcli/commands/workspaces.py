@@ -15,18 +15,18 @@ def cmd_list(
     floor_id: str = typer.Option(None, "--floor-id", help="Floor associated with the workspace."),
     display_name: str = typer.Option(None, "--display-name", help="List workspaces by display name."),
     capacity: str = typer.Option(None, "--capacity", help="List workspaces with the given capacity. Must be -1 or highe"),
-    type_param: str = typer.Option(None, "--type", help="List workspaces by type."),
+    type_param: str = typer.Option(None, "--type", help="Choices: notSet, focus, huddle, meetingRoom, open, desk, other"),
     start: str = typer.Option(None, "--start", help="Offset. Default is 0."),
     max: str = typer.Option(None, "--max", help="Limit the maximum number of workspaces in the response."),
-    calling: str = typer.Option(None, "--calling", help="List workspaces by calling type."),
-    supported_devices: str = typer.Option(None, "--supported-devices", help="List workspaces by supported devices."),
-    calendar: str = typer.Option(None, "--calendar", help="List workspaces by calendar type."),
+    calling: str = typer.Option(None, "--calling", help="Choices: freeCalling, hybridCalling, webexCalling, webexEdgeForDevices, thirdPartySipCalling, none"),
+    supported_devices: str = typer.Option(None, "--supported-devices", help="Choices: collaborationDevices, phones"),
+    calendar: str = typer.Option(None, "--calendar", help="Choices: none, google, microsoft"),
     device_hosted_meetings_enabled: str = typer.Option(None, "--device-hosted-meetings-enabled", help="List workspaces enabled for device hosted meetings."),
-    device_platform: str = typer.Option(None, "--device-platform", help="List workspaces by device platform."),
-    health_level: str = typer.Option(None, "--health-level", help="List workspaces by health level."),
+    device_platform: str = typer.Option(None, "--device-platform", help="Choices: cisco, microsoftTeamsRoom"),
+    health_level: str = typer.Option(None, "--health-level", help="Choices: error, warning, info, ok"),
     include_devices: str = typer.Option(None, "--include-devices", help="Flag identifying whether to include the devices associated w"),
     include_capabilities: str = typer.Option(None, "--include-capabilities", help="Flag identifying whether to include the workspace capabiliti"),
-    planned_maintenance: str = typer.Option(None, "--planned-maintenance", help="List workspaces with given maintenance mode."),
+    planned_maintenance: str = typer.Option(None, "--planned-maintenance", help="Choices: off, on, upcoming"),
     custom_attribute: str = typer.Option(None, "--custom-attribute", help="List workspaces with given custom attribute key."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
@@ -96,17 +96,17 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    display_name: str = typer.Option(None, "--display-name", help=""),
-    org_id: str = typer.Option(None, "--org-id", help=""),
-    location_id: str = typer.Option(None, "--location-id", help=""),
-    workspace_location_id: str = typer.Option(None, "--workspace-location-id", help=""),
-    floor_id: str = typer.Option(None, "--floor-id", help=""),
-    capacity: str = typer.Option(None, "--capacity", help=""),
-    type_param: str = typer.Option(None, "--type", help=""),
-    sip_address: str = typer.Option(None, "--sip-address", help=""),
-    notes: str = typer.Option(None, "--notes", help=""),
-    hotdesking_status: str = typer.Option(None, "--hotdesking-status", help=""),
-    supported_devices: str = typer.Option(None, "--supported-devices", help=""),
+    display_name: str = typer.Option(..., "--display-name", help="A friendly name for the workspace."),
+    org_id: str = typer.Option(None, "--org-id", help="`OrgId` associated with the workspace. Only admin users of a"),
+    location_id: str = typer.Option(None, "--location-id", help="Location associated with the workspace. Must be provided whe"),
+    workspace_location_id: str = typer.Option(None, "--workspace-location-id", help="Legacy workspace location ID associated with the workspace."),
+    floor_id: str = typer.Option(None, "--floor-id", help="Floor associated with the workspace."),
+    capacity: str = typer.Option(None, "--capacity", help="How many people the workspace is suitable for. If set, must"),
+    type_param: str = typer.Option(None, "--type", help="Choices: notSet, focus, huddle, meetingRoom, open, desk, other"),
+    sip_address: str = typer.Option(None, "--sip-address", help="The `sipAddress` field can only be provided when calling typ"),
+    notes: str = typer.Option(None, "--notes", help="Notes associated to the workspace."),
+    hotdesking_status: str = typer.Option(None, "--hotdesking-status", help="Choices: on, off"),
+    supported_devices: str = typer.Option(None, "--supported-devices", help="Choices: collaborationDevices, phones"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -150,32 +150,24 @@ def create(
         raise typer.Exit(1)
     if isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
+    elif isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
     else:
         print_json(result)
 
 
 
-@app.command("list-workspaces")
-def list_workspaces(
+@app.command("show")
+def show(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    include_devices: str = typer.Option(None, "--include-devices", help="Flag identifying whether to include the devices associated w"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Workspace Details."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/workspaces/{workspace_id}/"
-    params = {}
-    if include_devices is not None:
-        params["includeDevices"] = include_devices
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
+    url = f"https://webexapis.com/v1/workspaces/{workspace_id}"
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -183,26 +175,22 @@ def list_workspaces(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("items", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    print_json(result)
 
 
 
 @app.command("update")
 def update(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    display_name: str = typer.Option(None, "--display-name", help=""),
-    location_id: str = typer.Option(None, "--location-id", help=""),
-    workspace_location_id: str = typer.Option(None, "--workspace-location-id", help=""),
-    floor_id: str = typer.Option(None, "--floor-id", help=""),
-    capacity: str = typer.Option(None, "--capacity", help=""),
-    type_param: str = typer.Option(None, "--type", help=""),
-    sip_address: str = typer.Option(None, "--sip-address", help=""),
-    notes: str = typer.Option(None, "--notes", help=""),
-    hotdesking_status: str = typer.Option(None, "--hotdesking-status", help=""),
+    display_name: str = typer.Option(None, "--display-name", help="A friendly name for the workspace."),
+    location_id: str = typer.Option(None, "--location-id", help="Location associated with the workspace. Must be provided whe"),
+    workspace_location_id: str = typer.Option(None, "--workspace-location-id", help="Legacy workspace location ID associated with the workspace."),
+    floor_id: str = typer.Option(None, "--floor-id", help="Floor associated with the workspace."),
+    capacity: str = typer.Option(None, "--capacity", help="How many people the workspace is suitable for. If set, must"),
+    type_param: str = typer.Option(None, "--type", help="Choices: notSet, focus, huddle, meetingRoom, open, desk, other"),
+    sip_address: str = typer.Option(None, "--sip-address", help="The `sipAddress` field can only be provided when calling typ"),
+    notes: str = typer.Option(None, "--notes", help="Notes associated to the workspace."),
+    hotdesking_status: str = typer.Option(None, "--hotdesking-status", help="Choices: on, off"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -268,48 +256,15 @@ def delete(
 
 
 
-@app.command("list-capabilities")
-def list_capabilities(
+@app.command("show-capabilities")
+def show_capabilities(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Workspace Capabilities."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/workspaces/{workspace_id}/capabilities"
-    params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
-    try:
-        result = api.session.rest_get(url, params=params)
-    except RestError as e:
-        if "25008" in str(e):
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    items = result.get("capabilities", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
-
-
-
-@app.command("show")
-def show(
-    workspace_id: str = typer.Argument(help="workspaceId"),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Get Workspace Details."""
-    api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/workspaces/{workspace_id}"
     try:
         result = api.session.rest_get(url)
     except RestError as e:

@@ -10,9 +10,9 @@ app = typer.Typer(help="Manage Webex Calling call-controls.")
 
 @app.command("create")
 def create(
-    destination: str = typer.Option(None, "--destination", help=""),
-    endpoint_id: str = typer.Option(None, "--endpoint-id", help=""),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help=""),
+    destination: str = typer.Option(..., "--destination", help="The destination to be dialed. The destination can be digits"),
+    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the call. The"),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -38,7 +38,9 @@ def create(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if isinstance(result, dict) and "callId" in result:
+        typer.echo(f"Created: {result['callId']}")
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     else:
         print_json(result)
@@ -47,9 +49,9 @@ def create(
 
 @app.command("create-answer-calls")
 def create_answer_calls(
-    call_id: str = typer.Option(None, "--call-id", help=""),
-    endpoint_id: str = typer.Option(None, "--endpoint-id", help=""),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help=""),
+    call_id: str = typer.Option(..., "--call-id", help="The call identifier of the call to be answered."),
+    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to answer the call on. T"),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -84,9 +86,9 @@ def create_answer_calls(
 
 @app.command("create-reject")
 def create_reject(
-    call_id: str = typer.Option(None, "--call-id", help=""),
-    action: str = typer.Option(None, "--action", help=""),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help=""),
+    call_id: str = typer.Option(..., "--call-id", help="The call identifier of the call to be rejected."),
+    action: str = typer.Option(None, "--action", help="The rejection action to apply to the call. The busy action i"),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -121,8 +123,8 @@ def create_reject(
 
 @app.command("create-hangup-calls")
 def create_hangup_calls(
-    call_id: str = typer.Option(None, "--call-id", help=""),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help=""),
+    call_id: str = typer.Option(..., "--call-id", help="The call identifier of the call to hangup."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -155,8 +157,8 @@ def create_hangup_calls(
 
 @app.command("create-hold")
 def create_hold(
-    call_id: str = typer.Option(None, "--call-id", help=""),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help=""),
+    call_id: str = typer.Option(..., "--call-id", help="The call identifier of the call to hold."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -189,8 +191,8 @@ def create_hold(
 
 @app.command("create-resume")
 def create_resume(
-    call_id: str = typer.Option(None, "--call-id", help=""),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help=""),
+    call_id: str = typer.Option(..., "--call-id", help="The call identifier of the call to resume."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -223,8 +225,8 @@ def create_resume(
 
 @app.command("create-mute")
 def create_mute(
-    call_id: str = typer.Option(None, "--call-id", help=""),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help=""),
+    call_id: str = typer.Option(..., "--call-id", help="The call identifier of the call to mute."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -257,8 +259,8 @@ def create_mute(
 
 @app.command("create-unmute")
 def create_unmute(
-    call_id: str = typer.Option(None, "--call-id", help=""),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help=""),
+    call_id: str = typer.Option(..., "--call-id", help="The call identifier of the call to unmute."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -291,10 +293,10 @@ def create_unmute(
 
 @app.command("create-divert")
 def create_divert(
-    call_id: str = typer.Option(None, "--call-id", help=""),
-    destination: str = typer.Option(None, "--destination", help=""),
-    to_voicemail: bool = typer.Option(None, "--to-voicemail/--no-to-voicemail", help=""),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help=""),
+    call_id: str = typer.Option(..., "--call-id", help="The call identifier of the call to divert."),
+    destination: str = typer.Option(None, "--destination", help="The destination to divert the call to. If toVoicemail is fal"),
+    to_voicemail: bool = typer.Option(None, "--to-voicemail/--no-to-voicemail", help="If set to true, the call is diverted to voicemail. If no des"),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -331,10 +333,10 @@ def create_divert(
 
 @app.command("create-transfer")
 def create_transfer(
-    call_id1: str = typer.Option(None, "--call-id1", help=""),
-    call_id2: str = typer.Option(None, "--call-id2", help=""),
-    destination: str = typer.Option(None, "--destination", help=""),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help=""),
+    call_id1: str = typer.Option(None, "--call-id1", help="The call identifier of the first call to transfer. This para"),
+    call_id2: str = typer.Option(None, "--call-id2", help="The call identifier of the second call to transfer. This par"),
+    destination: str = typer.Option(None, "--destination", help="The destination to be transferred to. The destination can be"),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -362,7 +364,9 @@ def create_transfer(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if isinstance(result, dict) and "callId" in result:
+        typer.echo(f"Created: {result['callId']}")
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     else:
         print_json(result)
@@ -371,10 +375,10 @@ def create_transfer(
 
 @app.command("create-park")
 def create_park(
-    call_id: str = typer.Option(None, "--call-id", help=""),
-    destination: str = typer.Option(None, "--destination", help=""),
-    is_group_park: bool = typer.Option(None, "--is-group-park/--no-is-group-park", help=""),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help=""),
+    call_id: str = typer.Option(..., "--call-id", help="The call identifier of the call to park."),
+    destination: str = typer.Option(None, "--destination", help="Identifes where the call is to be parked. If not provided, t"),
+    is_group_park: bool = typer.Option(None, "--is-group-park/--no-is-group-park", help="If set to`true`, the call is parked against an automatically"),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -411,9 +415,9 @@ def create_park(
 
 @app.command("create-retrieve")
 def create_retrieve(
-    destination: str = typer.Option(None, "--destination", help=""),
-    endpoint_id: str = typer.Option(None, "--endpoint-id", help=""),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help=""),
+    destination: str = typer.Option(None, "--destination", help="Identifies where the call is parked. The number field from t"),
+    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the retrieval"),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -439,7 +443,9 @@ def create_retrieve(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if isinstance(result, dict) and "callId" in result:
+        typer.echo(f"Created: {result['callId']}")
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     else:
         print_json(result)
@@ -448,8 +454,8 @@ def create_retrieve(
 
 @app.command("create-start-recording")
 def create_start_recording(
-    call_id: str = typer.Option(None, "--call-id", help=""),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help=""),
+    call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to start recording."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -482,8 +488,8 @@ def create_start_recording(
 
 @app.command("create-stop-recording")
 def create_stop_recording(
-    call_id: str = typer.Option(None, "--call-id", help=""),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help=""),
+    call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to stop recording."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -516,8 +522,8 @@ def create_stop_recording(
 
 @app.command("create-pause-recording")
 def create_pause_recording(
-    call_id: str = typer.Option(None, "--call-id", help=""),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help=""),
+    call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to pause recording."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -550,8 +556,8 @@ def create_pause_recording(
 
 @app.command("create-resume-recording")
 def create_resume_recording(
-    call_id: str = typer.Option(None, "--call-id", help=""),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help=""),
+    call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to resume recording."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -584,9 +590,9 @@ def create_resume_recording(
 
 @app.command("create-transmit-dtmf")
 def create_transmit_dtmf(
-    call_id: str = typer.Option(None, "--call-id", help=""),
-    dtmf: str = typer.Option(None, "--dtmf", help=""),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help=""),
+    call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to transmit DTMF digits for."),
+    dtmf: str = typer.Option(None, "--dtmf", help="The DTMF digits to transmit. Each digit must be part of the"),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -621,8 +627,8 @@ def create_transmit_dtmf(
 
 @app.command("create-push")
 def create_push(
-    call_id: str = typer.Option(None, "--call-id", help=""),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help=""),
+    call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to push."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -655,9 +661,9 @@ def create_push(
 
 @app.command("create-pickup")
 def create_pickup(
-    target: str = typer.Option(None, "--target", help=""),
-    endpoint_id: str = typer.Option(None, "--endpoint-id", help=""),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help=""),
+    target: str = typer.Option(None, "--target", help="Identifies the user to pickup an incoming call from. If not"),
+    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the pickup. T"),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -683,7 +689,9 @@ def create_pickup(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if isinstance(result, dict) and "callId" in result:
+        typer.echo(f"Created: {result['callId']}")
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     else:
         print_json(result)
@@ -692,9 +700,9 @@ def create_pickup(
 
 @app.command("create-barge-in")
 def create_barge_in(
-    target: str = typer.Option(None, "--target", help=""),
-    endpoint_id: str = typer.Option(None, "--endpoint-id", help=""),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help=""),
+    target: str = typer.Option(..., "--target", help="Identifies the user to barge-in on. The target can be digits"),
+    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the barge-in."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -720,7 +728,9 @@ def create_barge_in(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if isinstance(result, dict) and "callId" in result:
+        typer.echo(f"Created: {result['callId']}")
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     else:
         print_json(result)
@@ -754,7 +764,7 @@ def cmd_list(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("calls", result if isinstance(result, list) else [])
+    items = result.get("items", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -786,7 +796,7 @@ def show(
 
 @app.command("list-history")
 def list_history(
-    type_param: str = typer.Option(None, "--type", help="The type of call history records to retrieve. If not specifi"),
+    type_param: str = typer.Option(None, "--type", help="Choices: placed, missed, received"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -811,7 +821,7 @@ def list_history(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("history", result if isinstance(result, list) else [])
+    items = result.get("items", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -819,11 +829,47 @@ def list_history(
 
 
 
+@app.command("create-pull")
+def create_pull(
+    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the retrieval"),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Pull."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/pull"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if endpoint_id is not None:
+            body["endpointId"] = endpoint_id
+        if line_owner_id is not None:
+            body["lineOwnerId"] = line_owner_id
+    try:
+        result = api.session.rest_post(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if isinstance(result, dict) and "callId" in result:
+        typer.echo(f"Created: {result['callId']}")
+    elif isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    else:
+        print_json(result)
+
+
+
 @app.command("create-dial")
 def create_dial(
     member_id: str = typer.Argument(help="memberId"),
-    destination: str = typer.Option(None, "--destination", help=""),
-    endpoint_id: str = typer.Option(None, "--endpoint-id", help=""),
+    destination: str = typer.Option(..., "--destination", help="The destination to be dialed. The destination can be digits"),
+    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the call. The"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -847,7 +893,9 @@ def create_dial(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if isinstance(result, dict) and "callId" in result:
+        typer.echo(f"Created: {result['callId']}")
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     else:
         print_json(result)
@@ -857,8 +905,8 @@ def create_dial(
 @app.command("create-answer-members")
 def create_answer_members(
     member_id: str = typer.Argument(help="memberId"),
-    call_id: str = typer.Option(None, "--call-id", help=""),
-    endpoint_id: str = typer.Option(None, "--endpoint-id", help=""),
+    call_id: str = typer.Option(..., "--call-id", help="The call identifier of the call to be answered."),
+    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to answer the call on. T"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -892,7 +940,7 @@ def create_answer_members(
 @app.command("create-hangup-members")
 def create_hangup_members(
     member_id: str = typer.Argument(help="memberId"),
-    call_id: str = typer.Option(None, "--call-id", help=""),
+    call_id: str = typer.Option(..., "--call-id", help="The call identifier of the call to hangup."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -946,7 +994,7 @@ def list_calls(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("calls", result if isinstance(result, list) else [])
+    items = result.get("items", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -974,39 +1022,5 @@ def show_calls(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     print_json(result)
-
-
-
-@app.command("create-pull")
-def create_pull(
-    endpoint_id: str = typer.Option(None, "--endpoint-id", help=""),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help=""),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Pull."""
-    api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/telephony/calls/pull"
-    if json_body:
-        body = json.loads(json_body)
-    else:
-        body = {}
-        if endpoint_id is not None:
-            body["endpointId"] = endpoint_id
-        if line_owner_id is not None:
-            body["lineOwnerId"] = line_owner_id
-    try:
-        result = api.session.rest_post(url, json=body)
-    except RestError as e:
-        if "25008" in str(e):
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    else:
-        print_json(result)
 
 

@@ -67,7 +67,7 @@ def list_common_modes(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("commonModes", result if isinstance(result, list) else [])
+    items = result.get("commonModeNames", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -77,7 +77,7 @@ def list_common_modes(
 
 @app.command("switch-mode-for-invoke")
 def switch_mode_for_invoke(
-    operating_mode_name: str = typer.Option(None, "--operating-mode-name", help=""),
+    operating_mode_name: str = typer.Option(None, "--operating-mode-name", help="Name of the common operating mode to be set as current opera"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -125,24 +125,17 @@ def show(
 
 
 
-@app.command("list-normal-operation-mode")
-def list_normal_operation_mode(
+@app.command("show-normal-operation-mode")
+def show_normal_operation_mode(
     feature_id: str = typer.Argument(help="featureId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Normal Operation Mode."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/me/settings/modeManagement/features/{feature_id}/normalOperationMode"
-    params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -150,11 +143,7 @@ def list_normal_operation_mode(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("normalOperationMode", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    print_json(result)
 
 
 
@@ -210,8 +199,8 @@ def switch_to_normal(
 @app.command("switch-mode-for-invoke-1")
 def switch_mode_for_invoke_1(
     feature_id: str = typer.Argument(help="featureId"),
-    operating_mode_id: str = typer.Option(None, "--operating-mode-id", help=""),
-    is_manual_switchback_enabled: str = typer.Option(None, "--is-manual-switchback-enabled", help=""),
+    operating_mode_id: str = typer.Option(None, "--operating-mode-id", help="Operating mode ID to switch to"),
+    is_manual_switchback_enabled: str = typer.Option(None, "--is-manual-switchback-enabled", help="Determines if switch back will be manual (if true) or automa"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -242,8 +231,8 @@ def switch_mode_for_invoke_1(
 @app.command("extend-current-operating")
 def extend_current_operating(
     feature_id: str = typer.Argument(help="featureId"),
-    operating_mode_id: str = typer.Option(None, "--operating-mode-id", help=""),
-    extension_time: str = typer.Option(None, "--extension-time", help=""),
+    operating_mode_id: str = typer.Option(None, "--operating-mode-id", help="Unique identifier for the operating mode for which the exten"),
+    extension_time: str = typer.Option(None, "--extension-time", help="Extension time in minutes (must be multiple of 30). If not s"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
     debug: bool = typer.Option(False, "--debug"),
 ):

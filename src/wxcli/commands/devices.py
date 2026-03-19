@@ -16,20 +16,20 @@ def cmd_list(
     person_id: str = typer.Option(None, "--person-id", help="List devices by person ID."),
     workspace_id: str = typer.Option(None, "--workspace-id", help="List devices by workspace ID."),
     connection_status: str = typer.Option(None, "--connection-status", help="List devices with this connection status."),
-    product: str = typer.Option(None, "--product", help="List devices with this product name."),
-    type_param: str = typer.Option(None, "--type", help="List devices with this type."),
+    product: str = typer.Option(None, "--product", help="Choices: DX-80, RoomKit, SX-80"),
+    type_param: str = typer.Option(None, "--type", help="Choices: roomdesk, phone, accessory, webexgo, unknown"),
     serial: str = typer.Option(None, "--serial", help="List devices with this serial number."),
     tag: str = typer.Option(None, "--tag", help="List devices which have a tag. Searching for multiple tags"),
     software: str = typer.Option(None, "--software", help="List devices with this software version."),
     upgrade_channel: str = typer.Option(None, "--upgrade-channel", help="List devices with this upgrade channel."),
     error_code: str = typer.Option(None, "--error-code", help="List devices with this error code."),
-    capability: str = typer.Option(None, "--capability", help="List devices with this capability."),
+    capability: str = typer.Option(None, "--capability", help="Choices: xapi"),
     permission: str = typer.Option(None, "--permission", help="List devices with this permission."),
     location_id: str = typer.Option(None, "--location-id", help="List devices by location ID."),
     workspace_location_id: str = typer.Option(None, "--workspace-location-id", help="List devices by workspace location ID. Deprecated, prefer `"),
     mac: str = typer.Option(None, "--mac", help="List devices with this MAC address."),
-    device_platform: str = typer.Option(None, "--device-platform", help="List devices with this device platform."),
-    planned_maintenance: str = typer.Option(None, "--planned-maintenance", help="List devices with this planned maintenance."),
+    device_platform: str = typer.Option(None, "--device-platform", help="Choices: cisco, microsoftTeamsRoom"),
+    planned_maintenance: str = typer.Option(None, "--planned-maintenance", help="Choices: off, on, upcoming"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -92,21 +92,21 @@ def cmd_list(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("devices", result if isinstance(result, list) else [])
+    items = result.get("items", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Display Name', 'displayName'), ('Product', 'product'), ('MAC', 'mac')], limit=limit)
 
 
 
 @app.command("create")
 def create(
-    mac: str = typer.Option(None, "--mac", help=""),
-    model: str = typer.Option(None, "--model", help=""),
-    workspace_id: str = typer.Option(None, "--workspace-id", help=""),
-    person_id: str = typer.Option(None, "--person-id", help=""),
-    password: str = typer.Option(None, "--password", help=""),
+    mac: str = typer.Option(..., "--mac", help="The MAC address of the device being created."),
+    model: str = typer.Option(..., "--model", help="The model of the device being created. The corresponding dev"),
+    workspace_id: str = typer.Option(None, "--workspace-id", help="The ID of the workspace where the device will be created."),
+    person_id: str = typer.Option(None, "--person-id", help="The ID of the person who will own the device once created."),
+    password: str = typer.Option(None, "--password", help="SIP password to be configured for the phone, only required w"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -165,6 +165,32 @@ def show(
 
 
 
+@app.command("update")
+def update(
+    device_id: str = typer.Argument(help="deviceId"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Modify Device Tags."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/devices/{device_id}"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+    try:
+        result = api.session.rest_patch(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
 @app.command("delete")
 def delete(
     device_id: str = typer.Argument(help="deviceId"),
@@ -189,43 +215,11 @@ def delete(
 
 
 
-@app.command("update")
-def update(
-    device_id: str = typer.Argument(help="deviceId"),
-    op: str = typer.Option(None, "--op", help=""),
-    path: str = typer.Option(None, "--path", help=""),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Modify Device Tags."""
-    api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/devices/{device_id}"
-    if json_body:
-        body = json.loads(json_body)
-    else:
-        body = {}
-        if op is not None:
-            body["op"] = op
-        if path is not None:
-            body["path"] = path
-    try:
-        result = api.session.rest_put(url, json=body)
-    except RestError as e:
-        if "25008" in str(e):
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    typer.echo(f"Updated.")
-
-
-
 @app.command("create-activation-code")
 def create_activation_code(
-    workspace_id: str = typer.Option(None, "--workspace-id", help=""),
-    person_id: str = typer.Option(None, "--person-id", help=""),
-    model: str = typer.Option(None, "--model", help=""),
+    workspace_id: str = typer.Option(None, "--workspace-id", help="The ID of the workspace where the device will be activated."),
+    person_id: str = typer.Option(None, "--person-id", help="The ID of the person who will own the device once activated."),
+    model: str = typer.Option(None, "--model", help="The model of the device being created. The corresponding dev"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):

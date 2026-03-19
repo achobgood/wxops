@@ -82,18 +82,18 @@ def show(
 def update(
     location_id: str = typer.Argument(help="locationId"),
     auto_attendant_id: str = typer.Argument(help="autoAttendantId"),
-    name: str = typer.Option(None, "--name", help=""),
-    phone_number: str = typer.Option(None, "--phone-number", help=""),
-    extension: str = typer.Option(None, "--extension", help=""),
-    first_name: str = typer.Option(None, "--first-name", help=""),
-    last_name: str = typer.Option(None, "--last-name", help=""),
-    language_code: str = typer.Option(None, "--language-code", help=""),
-    business_schedule: str = typer.Option(None, "--business-schedule", help=""),
-    holiday_schedule: str = typer.Option(None, "--holiday-schedule", help=""),
-    extension_dialing: str = typer.Option(None, "--extension-dialing", help="e.g. ENTERPRISE"),
-    name_dialing: str = typer.Option(None, "--name-dialing", help="e.g. ENTERPRISE"),
-    time_zone: str = typer.Option(None, "--time-zone", help=""),
-    dial_by_name: str = typer.Option(None, "--dial-by-name", help=""),
+    name: str = typer.Option(None, "--name", help="Unique name for the auto attendant."),
+    phone_number: str = typer.Option(None, "--phone-number", help="Auto attendant phone number.  Either `phoneNumber` or `exten"),
+    extension: str = typer.Option(None, "--extension", help="Auto attendant extension.  Either `phoneNumber` or `extensio"),
+    first_name: str = typer.Option(None, "--first-name", help="First name defined for an auto attendant. This field has bee"),
+    last_name: str = typer.Option(None, "--last-name", help="Last name defined for an auto attendant. This field has been"),
+    language_code: str = typer.Option(None, "--language-code", help="Announcement language code for the auto attendant."),
+    business_schedule: str = typer.Option(None, "--business-schedule", help="Business hours defined for the auto attendant."),
+    holiday_schedule: str = typer.Option(None, "--holiday-schedule", help="Holiday defined for the auto attendant."),
+    extension_dialing: str = typer.Option(None, "--extension-dialing", help="Choices: ENTERPRISE, GROUP"),
+    name_dialing: str = typer.Option(None, "--name-dialing", help="Choices: ENTERPRISE, GROUP"),
+    time_zone: str = typer.Option(None, "--time-zone", help="Time zone defined for the auto attendant."),
+    dial_by_name: str = typer.Option(None, "--dial-by-name", help="Sets or clears the name to be used for dial by name function"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -169,18 +169,18 @@ def delete(
 @app.command("create")
 def create(
     location_id: str = typer.Argument(help="locationId"),
-    name: str = typer.Option(..., "--name", help=""),
-    business_schedule: str = typer.Option(..., "--business-schedule", help=""),
-    phone_number: str = typer.Option(None, "--phone-number", help=""),
-    extension: str = typer.Option(..., "--extension", help=""),
-    first_name: str = typer.Option(None, "--first-name", help=""),
-    last_name: str = typer.Option(None, "--last-name", help=""),
-    language_code: str = typer.Option(None, "--language-code", help=""),
-    holiday_schedule: str = typer.Option(None, "--holiday-schedule", help=""),
-    extension_dialing: str = typer.Option(None, "--extension-dialing", help="e.g. GROUP"),
-    name_dialing: str = typer.Option(None, "--name-dialing", help="e.g. GROUP"),
-    time_zone: str = typer.Option(None, "--time-zone", help=""),
-    dial_by_name: str = typer.Option(None, "--dial-by-name", help=""),
+    name: str = typer.Option(..., "--name", help="Unique name for the auto attendant."),
+    phone_number: str = typer.Option(None, "--phone-number", help="Auto attendant phone number.  Either `phoneNumber` or `exten"),
+    extension: str = typer.Option(None, "--extension", help="Auto attendant extension.  Either `phoneNumber` or `extensio"),
+    first_name: str = typer.Option(None, "--first-name", help="First name defined for an auto attendant. This field has bee"),
+    last_name: str = typer.Option(None, "--last-name", help="Last name defined for an auto attendant. This field has been"),
+    language_code: str = typer.Option(None, "--language-code", help="Announcement language code for the auto attendant."),
+    business_schedule: str = typer.Option(..., "--business-schedule", help="Business hours defined for the auto attendant."),
+    holiday_schedule: str = typer.Option(None, "--holiday-schedule", help="Holiday defined for the auto attendant."),
+    extension_dialing: str = typer.Option(None, "--extension-dialing", help="Choices: ENTERPRISE, GROUP"),
+    name_dialing: str = typer.Option(None, "--name-dialing", help="Choices: ENTERPRISE, GROUP"),
+    time_zone: str = typer.Option(None, "--time-zone", help="Time zone defined for the auto attendant."),
+    dial_by_name: str = typer.Option(None, "--dial-by-name", help="The name to be used for dial by name functions.  Characters"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -193,10 +193,6 @@ def create(
         body = {}
         if name is not None:
             body["name"] = name
-        if business_schedule is not None:
-            body["businessSchedule"] = business_schedule
-        body.setdefault('businessHoursMenu', {'greeting': 'DEFAULT', 'extensionEnabled': True, 'keyConfigurations': [{'key': '0', 'action': 'EXIT'}]})
-        body.setdefault('afterHoursMenu', {'greeting': 'DEFAULT', 'extensionEnabled': True, 'keyConfigurations': [{'key': '0', 'action': 'EXIT'}]})
         if phone_number is not None:
             body["phoneNumber"] = phone_number
         if extension is not None:
@@ -207,6 +203,8 @@ def create(
             body["lastName"] = last_name
         if language_code is not None:
             body["languageCode"] = language_code
+        if business_schedule is not None:
+            body["businessSchedule"] = business_schedule
         if holiday_schedule is not None:
             body["holidaySchedule"] = holiday_schedule
         if extension_dialing is not None:
@@ -227,6 +225,8 @@ def create(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     if isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     else:
         print_json(result)
@@ -287,10 +287,10 @@ def update_call_forwarding(
 def create_selective_rules(
     location_id: str = typer.Argument(help="locationId"),
     auto_attendant_id: str = typer.Argument(help="autoAttendantId"),
-    name: str = typer.Option(..., "--name", help=""),
-    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help=""),
-    business_schedule: str = typer.Option(..., "--business-schedule", help=""),
-    holiday_schedule: str = typer.Option(None, "--holiday-schedule", help=""),
+    name: str = typer.Option(..., "--name", help="Unique name for the selective rule in the auto attendant."),
+    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Reflects if rule is enabled."),
+    business_schedule: str = typer.Option(None, "--business-schedule", help="Name of the location's business schedule which determines wh"),
+    holiday_schedule: str = typer.Option(None, "--holiday-schedule", help="Name of the location's holiday schedule which determines whe"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -319,6 +319,8 @@ def create_selective_rules(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     if isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     else:
         print_json(result)
@@ -354,10 +356,10 @@ def update_selective_rules(
     location_id: str = typer.Argument(help="locationId"),
     auto_attendant_id: str = typer.Argument(help="autoAttendantId"),
     rule_id: str = typer.Argument(help="ruleId"),
-    name: str = typer.Option(None, "--name", help=""),
-    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help=""),
-    business_schedule: str = typer.Option(None, "--business-schedule", help=""),
-    holiday_schedule: str = typer.Option(None, "--holiday-schedule", help=""),
+    name: str = typer.Option(None, "--name", help="Unique name for the selective rule in the auto attendant."),
+    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Reflects if rule is enabled."),
+    business_schedule: str = typer.Option(None, "--business-schedule", help="Name of the location's business schedule which determines wh"),
+    holiday_schedule: str = typer.Option(None, "--holiday-schedule", help="Name of the location's holiday schedule which determines whe"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
