@@ -1,3 +1,4 @@
+<!-- Updated by playbook session 2026-03-18 -->
 # Webhooks & Telephony Events Reference
 
 Webex webhooks deliver real-time notifications to your application when resources change. This document covers webhook CRUD operations and the `telephony_calls` resource events specific to Webex Calling.
@@ -12,6 +13,101 @@ Webex webhooks deliver real-time notifications to your application when resource
 | `spark:all` | Firehose webhook (resource=`all`, event=`all`) |
 
 Creating a webhook requires **read** scope on the resource the webhook is for. For telephony call events, that means `spark:calls_read`.
+
+---
+
+## Raw HTTP Reference (All Webhook Endpoints)
+
+Webhook endpoints use standard REST verbs on `https://webexapis.com/v1/webhooks`. No special scoping beyond read access for the target resource.
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+```
+
+### Webhook CRUD Endpoints
+
+| Action | Method | URL | Body / Params |
+|--------|--------|-----|---------------|
+| List Webhooks | GET | `{BASE}/webhooks` | Query: `ownedBy` (optional) |
+| Create Webhook | POST | `{BASE}/webhooks` | `name`, `targetUrl`, `resource`, `event`, `filter`, `secret`, `ownedBy` |
+| Get Webhook | GET | `{BASE}/webhooks/{webhookId}` | (none) |
+| Update Webhook | PUT | `{BASE}/webhooks/{webhookId}` | `name`, `targetUrl`, `secret`, `status` |
+| Delete Webhook | DELETE | `{BASE}/webhooks/{webhookId}` | (none) |
+
+### Raw HTTP Examples
+
+#### Create a telephony call webhook
+
+```python
+body = {
+    "name": "Call Events",
+    "targetUrl": "https://example.com/webhooks/calls",
+    "resource": "telephony_calls",
+    "event": "all",
+    "secret": "my-hmac-secret"
+}
+result = api.session.rest_post(f"{BASE}/webhooks", json=body)
+# Returns: {id, name, targetUrl, resource, event, status, created, orgId, ...}
+webhook_id = result["id"]
+```
+
+#### List all webhooks
+
+```python
+result = api.session.rest_get(f"{BASE}/webhooks")
+webhooks = result.get("items", [])
+for wh in webhooks:
+    print(f"{wh['id']} | {wh['resource']} | {wh['event']} | {wh['status']}")
+```
+
+#### Get webhook details
+
+```python
+result = api.session.rest_get(f"{BASE}/webhooks/{webhook_id}")
+# Returns full webhook object
+```
+
+#### Update a webhook (reactivate after auto-deactivation)
+
+```python
+body = {
+    "name": "Call Events (reactivated)",
+    "targetUrl": "https://example.com/webhooks/calls",
+    "status": "active"
+}
+result = api.session.rest_put(f"{BASE}/webhooks/{webhook_id}", json=body)
+```
+
+#### Delete a webhook
+
+```python
+api.session.rest_delete(f"{BASE}/webhooks/{webhook_id}")
+# Returns 204 (no content)
+```
+
+#### Create filtered webhook (incoming calls only)
+
+```python
+body = {
+    "name": "Incoming Calls",
+    "targetUrl": "https://example.com/webhooks/incoming",
+    "resource": "telephony_calls",
+    "event": "all",
+    "filter": "personality=terminator"
+}
+result = api.session.rest_post(f"{BASE}/webhooks", json=body)
+```
+
+### Raw HTTP Gotchas
+
+1. **List response key is `items`** -- `GET /webhooks` returns `{"items": [...]}`, not a bare array.
+2. **Update uses PUT, not PATCH** -- You must supply all updatable fields (`name`, `targetUrl`, `secret`, `status`), not just the changed ones.
+3. **Cannot change resource/event/filter** -- These are immutable after creation. Delete and recreate instead.
+4. **Delete returns 204** -- No response body on successful deletion.
+5. **`ownedBy` on create vs list** -- On create, set `"ownedBy": "org"` for org-level webhooks. On list, pass as query param to filter.
+6. **For telephony events** -- Set `resource` to `"telephony_calls"` (underscore, not hyphen). The `event` field is the webhook trigger type (`created`, `updated`, `deleted`, `all`), distinct from `data.eventType` in the delivered payload.
 
 ---
 
@@ -275,6 +371,104 @@ The `data` object in telephony_calls events corresponds to the SDK's `TelephonyE
 
 ---
 
+### 4b. Messaging Resource Events
+
+The messaging webhook resources (`messages`, `memberships`, `rooms`, `attachmentActions`) follow the same delivery pattern as telephony: Webex POSTs to your `targetUrl` with the webhook envelope plus a `data` object containing resource metadata.
+
+**Critical gotcha for `messages` webhooks:** The webhook payload does NOT include the message text when the receiving token is a bot. The bot must call `GET /messages/{messageId}` (or `wxcli messages show MESSAGE_ID`) to retrieve the actual message content. This is the standard bot pattern: webhook fires → bot fetches message → bot processes text.
+
+<!-- NEEDS VERIFICATION: Confirm exact data fields in webhook payloads for messaging resources. The fields below are based on Webex API documentation patterns. -->
+
+#### messages Resource
+
+| Webhook `event` | When It Fires |
+|-----------------|---------------|
+| `created` | A message was posted to a space |
+| `deleted` | A message was deleted from a space |
+
+**Event payload `data` fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | str | Message ID |
+| `roomId` | str | Space the message was posted in |
+| `roomType` | str | `direct` or `group` |
+| `personId` | str | Person who sent the message |
+| `personEmail` | str | Email of the sender |
+| `created` | datetime | When the message was created |
+
+**Note:** `text` is NOT included in the webhook payload for bot tokens (security measure). Always call `wxcli messages show MESSAGE_ID` to retrieve the text.
+
+**CLI to fetch full message:**
+```bash
+wxcli messages show MESSAGE_ID
+```
+
+#### memberships Resource
+
+| Webhook `event` | When It Fires |
+|-----------------|---------------|
+| `created` | Someone was added to a space |
+| `updated` | A membership was changed (e.g., moderator status) |
+| `deleted` | Someone was removed from a space |
+
+**Event payload `data` fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | str | Membership ID |
+| `roomId` | str | Space the membership is in |
+| `personId` | str | Person whose membership changed |
+| `personEmail` | str | Email of the person |
+| `isModerator` | bool | Whether the person is a moderator |
+| `isMonitor` | bool | Whether the person is a monitor |
+| `created` | datetime | When the membership was created |
+
+#### rooms Resource
+
+| Webhook `event` | When It Fires |
+|-----------------|---------------|
+| `created` | A new space was created |
+| `updated` | A space was modified (title, lock status, etc.) |
+
+**Event payload `data` fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | str | Space (room) ID |
+| `title` | str | Space title |
+| `type` | str | `direct` or `group` |
+| `isLocked` | bool | Whether the space is locked |
+| `creatorId` | str | Person ID of the space creator |
+| `created` | datetime | When the space was created |
+| `lastActivity` | datetime | Timestamp of last activity |
+
+#### attachmentActions Resource
+
+| Webhook `event` | When It Fires |
+|-----------------|---------------|
+| `created` | A user submitted an adaptive card (`Action.Submit`) |
+
+**Event payload `data` fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | str | Attachment action ID |
+| `type` | str | Always `submit` |
+| `messageId` | str | ID of the message containing the card |
+| `personId` | str | Person who submitted the card action |
+| `roomId` | str | Space where the card was submitted |
+| `created` | datetime | When the action was submitted |
+
+**Note:** `inputs` (the user's form values) are NOT included in the webhook payload. Call `wxcli attachment-actions show ACTION_ID` to retrieve the submitted values.
+
+**CLI to fetch card response inputs:**
+```bash
+wxcli attachment-actions show ACTION_ID
+```
+
+---
+
 ## 5. Filtering Telephony Webhooks
 
 Use the `filter` parameter when creating a webhook to narrow which events are delivered.
@@ -294,6 +488,18 @@ Filters use the format: `fieldName=value` or `fieldName=value1,value2` for multi
 | `personId` | `personId=Y2lzY29z...` | Only events for a specific person |
 
 <!-- NEEDS VERIFICATION: The exact filter field names and supported combinations for telephony_calls may differ from the above. Consult the Webex developer docs filtering guide for the definitive list. -->
+
+**Available filters for messaging resources:**
+
+<!-- NEEDS VERIFICATION: Confirm exact filter field names for messaging webhook resources. -->
+
+| Resource | Filter | Example | Description |
+|----------|--------|---------|-------------|
+| `messages` | `roomId` | `roomId=Y2lz...` | Only messages in a specific space |
+| `messages` | `personId` | `personId=Y2lz...` | Only messages from a specific person |
+| `messages` | `mentionedPeople` | `mentionedPeople=me` | Only messages that @mention someone (use `me` for the authenticated user) |
+| `memberships` | `roomId` | `roomId=Y2lz...` | Only membership changes in a specific space |
+| `memberships` | `personId` | `personId=Y2lz...` | Only membership changes for a specific person |
 
 **Example: Create a webhook for incoming calls only:**
 ```python
@@ -383,6 +589,102 @@ The SDK's `firehose.py` example demonstrates a complete Flask-based firehose lis
 3. Creates a firehose webhook (`resource='all'`, `event='all'`)
 4. Routes events to resource-specific handlers
 5. Auto-parses `WebhookEvent` from the POST body, which dispatches to the correct `WebhookEventData` subclass based on the resource (e.g., `TelephonyEventData` for `telephony_calls`)
+
+---
+
+### 6b. Bot Webhook Pattern
+
+This section covers the standard webhook interaction loop for bots. For webhook CRUD commands, see Sections 1 and 6 above.
+
+#### Message Handling Loop
+
+How a bot "hears" and responds to messages:
+
+**Step 1 — Create a webhook for incoming messages:**
+```bash
+wxcli webhooks create \
+  --name "Bot Messages" \
+  --target-url https://your-bot.example.com/webhook \
+  --resource messages \
+  --event created
+```
+
+**Step 2-5 — The interaction loop (at runtime):**
+
+1. User sends a message to a space where the bot is a member (or @mentions the bot)
+2. Webex fires a POST to your `targetUrl` with message metadata — **no message text** (bot security restriction)
+3. Bot extracts `data.id` from the webhook payload and fetches the message:
+   ```bash
+   wxcli messages show MESSAGE_ID
+   ```
+4. Bot processes the message text and sends a response:
+   ```bash
+   wxcli messages create --room-id ROOM_ID --text "Response text here"
+   ```
+
+**Key rule:** Never assume the webhook payload contains the message text. Always fetch via `wxcli messages show MESSAGE_ID`. See Section 4b for the complete list of fields available in the payload.
+
+#### Card Interaction Loop
+
+How a bot sends adaptive cards and captures user responses:
+
+**Step 1 — Create a webhook for card submissions:**
+```bash
+wxcli webhooks create \
+  --name "Bot Card Responses" \
+  --target-url https://your-bot.example.com/webhook \
+  --resource attachmentActions \
+  --event created
+```
+
+**Step 2-5 — The card interaction loop (at runtime):**
+
+1. Bot sends a message containing an adaptive card:
+   ```bash
+   wxcli messages create --json-body '{
+     "roomId": "ROOM_ID",
+     "text": "Approval request (fallback)",
+     "attachments": [{
+       "contentType": "application/vnd.microsoft.card.adaptive",
+       "content": { ... card payload ... }
+     }]
+   }'
+   ```
+2. User clicks `Action.Submit` in the rendered card
+3. Webex fires a POST to your `targetUrl` with action metadata — `inputs` (the user's form values) are NOT in the payload
+4. Bot extracts `data.id` from the payload and fetches the action:
+   ```bash
+   wxcli attachment-actions show ACTION_ID
+   ```
+5. Bot reads the `inputs` object from the response and sends a follow-up:
+   ```bash
+   wxcli messages create --room-id ROOM_ID --text "Got your response: Approved"
+   ```
+
+#### Typical Bot Webhook Setup (both loops)
+
+Most interactive bots need both webhooks:
+
+```bash
+# 1. Subscribe to incoming messages
+wxcli webhooks create \
+  --name "Bot Messages" \
+  --target-url https://your-bot.example.com/webhook \
+  --resource messages \
+  --event created
+
+# 2. Subscribe to card responses
+wxcli webhooks create \
+  --name "Bot Card Responses" \
+  --target-url https://your-bot.example.com/webhook \
+  --resource attachmentActions \
+  --event created
+
+# 3. Verify both are active
+wxcli webhooks list --output json
+```
+
+Add `--filter "roomId=ROOM_ID"` to either webhook to scope it to a specific space.
 
 ---
 
