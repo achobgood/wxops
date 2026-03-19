@@ -1,12 +1,14 @@
 ---
 name: configure-features
 description: |
-  Configure Webex Calling call features: Auto Attendants, Call Queues, Hunt Groups,
-  Paging Groups, Call Park, Call Pickup, Voicemail Groups, and CX Essentials.
+  Configure Webex Calling call features using wxcli CLI commands: Auto Attendants, Call Queues,
+  Hunt Groups, Paging Groups, Call Park, Call Pickup, Voicemail Groups, and CX Essentials.
   Guides the user from prerequisites through creation and verification.
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [feature-type]
 ---
+
+<!-- Updated by playbook session 2026-03-18 -->
 
 # Configure Call Features Workflow
 
@@ -15,20 +17,16 @@ argument-hint: [feature-type]
 1. Read `docs/reference/call-features-major.md` for AA, CQ, HG data models and API signatures
 2. Read `docs/reference/call-features-additional.md` for Paging, Call Park, Call Pickup, VM Groups, CX Essentials
 3. Read `docs/reference/authentication.md` for auth token conventions
-4. Read `docs/reference/wxc-sdk-patterns.md` for SDK usage patterns
 
 ## Step 2: Verify auth token
 
 Before any API calls, confirm the user has a working auth token:
 
-```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi(tokens='<token>')
-me = api.people.me()
-print(f"Authenticated as: {me.display_name}")
+```bash
+wxcli whoami
 ```
 
-If this fails, stop and resolve authentication first. Required scopes:
+If this fails, stop and resolve authentication first (`wxcli configure`). Required scopes:
 - **Read**: `spark-admin:telephony_config_read`
 - **Write**: `spark-admin:telephony_config_write`
 - **CX Essentials recording**: `spark-admin:people_read` / `spark-admin:people_write`
@@ -56,11 +54,14 @@ Before creating any feature, verify these exist:
 
 All features are location-scoped. Confirm the target location:
 
-```python
-locations = list(api.locations.list(name='<location_name>'))
-location = locations[0]
-location_id = location.location_id
-print(f"Location: {location.name} ({location_id})")
+```bash
+wxcli locations list --output json
+```
+
+Scan the output for the target location name and capture the `location_id`. For details on a specific location:
+
+```bash
+wxcli locations show LOCATION_ID
 ```
 
 If no location matches, the user must create one first (see provisioning skill).
@@ -69,21 +70,22 @@ If no location matches, the user must create one first (see provisioning skill).
 
 For CQ, HG, Paging, Call Park, Call Pickup -- confirm the people who will be agents/members:
 
-```python
-people = list(api.people.list(display_name='<name>'))
-for p in people:
-    print(f"{p.display_name} — {p.person_id}")
+```bash
+wxcli users list --calling-enabled --output json
+```
+
+To filter by location:
+
+```bash
+wxcli users list --calling-enabled --location LOCATION_ID --output json
 ```
 
 ### 4c. Phone numbers available (for features that need a number)
 
 For AA, CQ, HG, Paging, VM Groups -- check available numbers at the location:
 
-```python
-# Example for auto attendant; each feature has its own method
-numbers = list(api.telephony.auto_attendant.primary_available_phone_numbers(location_id=location_id))
-for n in numbers:
-    print(f"{n.phone_number} — {n.extension}")
+```bash
+wxcli numbers list --location LOCATION_ID --output json
 ```
 
 ### 4d. Feature-specific prerequisites
@@ -112,7 +114,7 @@ Collect from user:
 | Parameter | Required | Notes |
 |-----------|:--------:|-------|
 | Name | Yes | Unique name for the AA |
-| Phone number or extension | Yes (one of) | Use `primary_available_phone_numbers()` to find candidates |
+| Phone number or extension | Yes (one of) | Use `wxcli numbers list` to find candidates |
 | Business hours schedule | Yes | Must already exist at org/location level |
 | Holiday schedule | No | Optional |
 | Business hours menu | Yes | Key-press actions (see key config below) |
@@ -120,7 +122,7 @@ Collect from user:
 | Extension dialing | No | `ENTERPRISE` (default) or `GROUP` |
 | Name dialing | No | `ENTERPRISE` (default) or `GROUP` |
 
-**Key-press actions** — for each menu, define up to 12 keys (`0`-`9`, `*`, `#`):
+**Key-press actions** -- for each menu, define up to 12 keys (`0`-`9`, `*`, `#`):
 
 | Action | Description |
 |--------|-------------|
@@ -135,32 +137,18 @@ Collect from user:
 | `RETURN_TO_PREVIOUS_MENU` | Go back one level |
 | `PLAY_ANNOUNCEMENT` | Play an announcement |
 
-**SDK call:**
-```python
-from wxc_sdk.telephony.autoattendant import AutoAttendant, AutoAttendantMenu, AutoAttendantKeyConfiguration
-from wxc_sdk.telephony.autoattendant import AutoAttendantAction, Greeting, MenuKey
+**CLI command:**
 
-settings = AutoAttendant.create(
-    name='Main Menu',
-    business_schedule='Business Hours',
-    extension='1000'
-)
-settings.business_hours_menu = AutoAttendantMenu(
-    greeting=Greeting.DEFAULT,
-    extension_enabled=True,
-    key_configurations=[
-        AutoAttendantKeyConfiguration(key='1', action=AutoAttendantAction.TRANSFER_WITHOUT_PROMPT, value='2000'),
-        AutoAttendantKeyConfiguration(key='0', action=AutoAttendantAction.TRANSFER_TO_OPERATOR, value='1001'),
-    ]
-)
-settings.after_hours_menu = AutoAttendantMenu(
-    greeting=Greeting.DEFAULT,
-    key_configurations=[
-        AutoAttendantKeyConfiguration(key='0', action=AutoAttendantAction.EXIT),
-    ]
-)
-aa_id = api.telephony.auto_attendant.create(location_id=location_id, settings=settings)
+> **NOTE:** The CLI automatically provides default menus (key 0 = EXIT, extension dialing enabled, DEFAULT greeting) so the create command succeeds without specifying menu details. To customize menus with specific key-press actions, use `wxcli auto-attendant update` after creation.
+
+```bash
+wxcli auto-attendant create LOCATION_ID \
+  --name "Main Menu" \
+  --extension 1000 \
+  --business-schedule "Business Hours"
 ```
+
+Optional flags: `--phone-number`, `--holiday-schedule`, `--disabled`.
 
 ---
 
@@ -183,26 +171,41 @@ Collect from user:
 
 **Announcement chain** (all optional, configure as needed):
 
-1. **Welcome message** — first thing callers hear; can be mandatory even when agent is available
-2. **Wait message** — estimated wait time or queue position
-3. **Comfort message** — periodic message (promotions, info); interval 10-600 seconds
-4. **Comfort message bypass** — short comfort for quickly-answered calls
-5. **Music on hold** — normal + alternate source
-6. **Whisper message** — plays to agent before connection (identifies which queue)
+1. **Welcome message** -- first thing callers hear; can be mandatory even when agent is available
+2. **Wait message** -- estimated wait time or queue position
+3. **Comfort message** -- periodic message (promotions, info); interval 10-600 seconds
+4. **Comfort message bypass** -- short comfort for quickly-answered calls
+5. **Music on hold** -- normal + alternate source
+6. **Whisper message** -- plays to agent before connection (identifies which queue)
 
-**SDK call:**
-```python
-from wxc_sdk.telephony.callqueue import CallQueue, CallQueueCallPolicies, QueueSettings, OverflowSetting
-from wxc_sdk.telephony.hg_and_cq import Agent, Policy
+**CLI command:**
 
-settings = CallQueue.create(
-    name='Support Queue',
-    agents=[Agent(agent_id=pid) for pid in person_ids],
-    queue_size=10,
-    extension='2000'
-)
-cq_id = api.telephony.callqueue.create(location_id=location_id, settings=settings)
+> **NOTE:** The CLI automatically provides default `callPolicies` (PRIORITY_BASED routing, CIRCULAR policy) so the create succeeds. Agents are added after creation.
+
+```bash
+wxcli call-queue create LOCATION_ID \
+  --name "Support Queue" \
+  --extension 2000
 ```
+
+Optional flags: `--phone-number`.
+
+To add agents after creation, use the update command with `--json-body`:
+
+```bash
+wxcli call-queue update LOCATION_ID QUEUE_ID --json-body '{"agents": [{"id": "AGENT_PERSON_ID"}]}'
+```
+
+To find available agents for a location:
+
+```bash
+wxcli call-queue list-available-agents-queues LOCATION_ID --output json
+```
+
+> **WARNING (CQ Update):** The CLI `update` command uses partial objects to avoid the `callingLineIdPolicy=CUSTOM` 400 error. Only changed fields are sent:
+> ```bash
+> wxcli call-queue update LOCATION_ID QUEUE_ID --name "New Name"
+> ```
 
 ---
 
@@ -222,15 +225,21 @@ Collect from user:
 
 **Key difference from Call Queue:** Hunt groups ring agents directly -- no queue hold, no announcements chain, no agent join/unjoin.
 
-**SDK call:**
-```python
-from wxc_sdk.telephony.huntgroup import HuntGroup
+**CLI command:**
 
-settings = HuntGroup.create(
-    name='Sales Team',
-    extension='3000'
-)
-hg_id = api.telephony.huntgroup.create(location_id=location_id, settings=settings)
+```bash
+wxcli hunt-group create LOCATION_ID \
+  --name "Sales Team" \
+  --extension 3000 \
+  --enabled
+```
+
+Optional flags: `--phone-number`.
+
+To add agents after creation, use the update command with `--json-body`:
+
+```bash
+wxcli hunt-group update LOCATION_ID HG_ID --json-body '{"agents": [{"id": "AGENT_PERSON_ID"}]}'
 ```
 
 ---
@@ -247,16 +256,23 @@ Collect from user:
 | Targets | No | People/workspaces/virtual lines who receive pages (up to 75) |
 | Originator caller ID enabled | Yes if originators set | Shows originator's caller ID on target phones |
 
-**SDK call:**
-```python
-from wxc_sdk.telephony.paging import Paging, PagingAgent
+**CLI command:**
 
-settings = Paging.create(name='Warehouse Page', extension='8100')
-settings.originator_caller_id_enabled = True
-settings.originators = [PagingAgent(agent_id=pid) for pid in originator_ids]
-settings.targets = [PagingAgent(agent_id=pid) for pid in target_ids]
-paging_id = api.telephony.paging.create(location_id=location_id, settings=settings)
+```bash
+wxcli paging-group create LOCATION_ID \
+  --name "Warehouse Page" \
+  --extension 8100
 ```
+
+Optional flags: `--disabled`.
+
+To list existing paging groups:
+
+```bash
+wxcli paging-group list --location-id LOCATION_ID --output json
+```
+
+> **NOTE:** Originator and target assignment requires `wxcli paging-group update` after creation. The CLI create command creates the group with name, extension, and enabled status.
 
 ---
 
@@ -273,25 +289,20 @@ Collect from user:
 | Recall behavior | No | `ALERT_PARKING_USER_ONLY` (default), `ALERT_PARKING_USER_FIRST_THEN_HUNT_GROUP`, `ALERT_HUNT_GROUP_ONLY` |
 | Recall hunt group | If recall uses HG | Must be an existing hunt group at the location |
 
-**Two-step process:**
-1. Create Call Park Extensions first (if needed):
-```python
-cpe_id = api.telephony.callpark_extension.create(
-    location_id=location_id, name='Park Slot 1', extension='7001'
-)
-```
-2. Create the Call Park group:
-```python
-from wxc_sdk.telephony.callpark import CallPark
+**CLI command:**
 
-settings = CallPark.default(name='Lobby Park')
-park_id = api.telephony.callpark.create(location_id=location_id, settings=settings)
+> **NOTE:** The CLI automatically provides the required `recall` field (defaults to `parking_user_only`), so the create succeeds with just a name.
+
+```bash
+wxcli call-park create LOCATION_ID --name "Lobby Park"
 ```
 
-**Location-level settings** (recall timer, ring pattern):
-```python
-loc_settings = api.telephony.callpark.call_park_settings(location_id=location_id)
-# loc_settings.call_park_settings.recall_time = 60  # seconds (30-600)
+Note: `LOCATION_ID` is a positional argument for call-park commands.
+
+To list call park groups:
+
+```bash
+wxcli call-park list LOCATION_ID --output json
 ```
 
 **Gotcha:** Call Park ID changes when name is modified. Always re-fetch after a name change.
@@ -311,17 +322,18 @@ Collect from user:
 
 **Constraint:** A user can only belong to one call pickup group at a time.
 
-**SDK call:**
-```python
-from wxc_sdk.telephony.callpickup import CallPickup, PickupNotificationType
+**CLI command:**
 
-settings = CallPickup(
-    name='Front Desk Pickup',
-    notification_type=PickupNotificationType.AUDIO_AND_VISUAL,
-    notification_delay_timer_seconds=8,
-    agents=[PersonPlaceAgent(agent_id=pid) for pid in member_ids]
-)
-pickup_id = api.telephony.callpickup.create(location_id=location_id, settings=settings)
+```bash
+wxcli call-pickup create LOCATION_ID --name "Front Desk Pickup"
+```
+
+Note: `LOCATION_ID` is a positional argument for call-pickup commands.
+
+To list call pickup groups:
+
+```bash
+wxcli call-pickup list LOCATION_ID --output json
 ```
 
 **Gotcha:** Call Pickup ID changes when name is modified. Always re-fetch after a name change.
@@ -336,30 +348,23 @@ Collect from user:
 |-----------|:--------:|-------|
 | Name | Yes | Group name |
 | Extension | Yes | Required on create |
-| Passcode | Yes | Access passcode (integer) |
-| First name / Last name | Yes | Caller ID display (deprecated — use `direct_line_caller_id_name` if available) |
+| Passcode | Yes | Access passcode (6+ digits, no repeating) |
 | Phone number | No | Optional external number |
 | Language code | No | Default `en_us` |
-| Message storage | No | `INTERNAL` (default) or `EXTERNAL` with email |
-| Notifications enabled | No | Email/phone notification on new message |
-| Fax enabled | No | Enable fax reception with dedicated number |
-| Transfer to number | No | Caller presses 0 to transfer |
-| Email copy of message | No | Send voicemail copies to email |
 
-**SDK call:**
-```python
-from wxc_sdk.telephony.voicemail_groups import VoicemailGroupDetail
+**CLI command:**
 
-settings = VoicemailGroupDetail.create(
-    name='Support VM',
-    extension='8200',
-    first_name='Support',
-    last_name='Team',
-    passcode=740384,
-    language_code='en_us'
-)
-vmg_id = api.telephony.voicemail_groups.create(location_id=location_id, settings=settings)
+> **NOTE:** The CLI handles the known `VoicemailGroupDetail.for_create()` SDK bug (missing `by_alias=True`) internally. It uses `model_dump(by_alias=True)` and raw HTTP under the hood, so the command just works.
+
+```bash
+wxcli location-voicemail create LOCATION_ID \
+  --name "Support VM" \
+  --extension 8200 \
+  --passcode 740384 \
+  --language-code en_us
 ```
+
+Optional flags: `--phone-number`, `--first-name`, `--last-name`.
 
 ---
 
@@ -367,10 +372,23 @@ vmg_id = api.telephony.voicemail_groups.create(location_id=location_id, settings
 
 CX Essentials enhances existing Call Queues. The queue must exist first.
 
+> **CLI commands now available:** Use `wxcli cx-essentials` for wrap-up reasons, screen pop, and settings. <!-- Updated by playbook session 2026-03-18 -->
+
 **Three sub-features:**
 
 #### Screen Pop
 Pop a URL when agent receives a queued call:
+
+```bash
+# View current screen pop config
+wxcli cx-essentials show-screen-pop LOCATION_ID QUEUE_ID --output json
+
+# Update screen pop config
+wxcli cx-essentials update-screen-pop LOCATION_ID QUEUE_ID \
+  --enabled --screen-pop-url "https://crm.example.com/lookup"
+```
+
+**Raw HTTP alternative** (if CLI doesn't cover all fields):
 ```python
 from wxc_sdk.telephony.cx_essentials import ScreenPopConfiguration
 
@@ -419,9 +437,9 @@ api.telephony.cx_essentials.wrapup_reasons.update_queue_settings(
 
 ---
 
-## Step 6: Build and present deployment plan — `[SHOW BEFORE EXECUTING]`
+## Step 6: Build and present deployment plan -- `[SHOW BEFORE EXECUTING]`
 
-Before executing any API calls, present the full plan to the user:
+Before executing any commands, present the full plan to the user:
 
 ```
 DEPLOYMENT PLAN
@@ -444,39 +462,49 @@ Prerequisites verified:
   ✓ Phone number/extension available
   ✓ [Feature-specific prereqs]
 
+Commands to execute:
+  wxcli [feature] create ...
+  wxcli [feature] update ... --json-body '{"agents": [...]}' (if applicable)
+
 Proceed? (yes/no)
 ```
 
 **Wait for user confirmation before executing.**
 
-## Step 7: Execute via wxc_sdk
+## Step 7: Execute via wxcli
 
-Run the creation API call. If the feature requires multiple steps (e.g., Call Park Extensions before Call Park), execute them in order.
+Run the creation command. If the feature requires multiple steps (e.g., agents added after CQ/HG creation), execute them in order.
 
 Handle errors explicitly:
-- **401/403**: Token expired or insufficient scopes — re-authenticate
-- **409**: Name or extension conflict — ask user for alternate
-- **400**: Validation error — read the error message and fix the parameter
+- **401/403**: Token expired or insufficient scopes -- run `wxcli configure` to re-authenticate
+- **409**: Name or extension conflict -- ask user for alternate
+- **400**: Validation error -- read the error message and fix the parameter
 
 ## Step 8: Verify creation
 
 After creation, fetch the details back and confirm:
 
-```python
+```bash
 # Example for auto attendant
-created = api.telephony.auto_attendant.details(
-    location_id=location_id, auto_attendant_id=aa_id
-)
-print(f"Created: {created.name}")
-print(f"Extension: {created.extension}")
-print(f"Phone: {created.phone_number}")
-```
+wxcli auto-attendant show LOCATION_ID AA_ID --output json
 
-If phone number assignment is separate (some features), assign it now:
-```python
-# Check if number needs separate assignment
-# This varies by feature — AA, CQ, HG accept number at creation
-# Paging and VM Groups also accept number at creation
+# Example for call queue
+wxcli call-queue show LOCATION_ID QUEUE_ID --output json
+
+# Example for hunt group
+wxcli hunt-group show LOCATION_ID HG_ID --output json
+
+# Example for paging
+wxcli paging-group show LOCATION_ID PAGING_ID --output json
+
+# Example for call park
+wxcli call-park show LOCATION_ID CALLPARK_ID --output json
+
+# Example for call pickup
+wxcli call-pickup show LOCATION_ID PICKUP_ID --output json
+
+# Example for voicemail group
+wxcli location-voicemail show-voicemail-groups LOCATION_ID VMG_ID --output json
 ```
 
 ## Step 9: Report results
@@ -506,13 +534,25 @@ Next steps:
 
 1. **Always verify location exists** before creating any feature. Every feature is location-scoped.
 2. **Always show the deployment plan** (Step 6) and wait for user confirmation before executing.
-3. **Agent/member assignment requires valid person IDs.** Use `api.people.list()` or the feature-specific `available_agents()` to find them.
-4. **Phone number vs. extension** — at least one is required for AA, CQ, HG, Paging, VM Groups. Use `primary_available_phone_numbers()` to find unassigned numbers.
-5. **Audio file upload is not supported via API** — custom greetings for AA and CQ must be uploaded through Webex Control Hub.
+3. **Agent/member assignment requires valid person IDs.** Use `wxcli users list --calling-enabled` or the feature-specific `available-agents` subcommand to find them.
+4. **Phone number vs. extension** -- at least one is required for AA, CQ, HG, Paging, VM Groups. Use `wxcli numbers list --location LOCATION_ID` to find unassigned numbers.
+5. **Audio file upload is not supported via API** -- custom greetings for AA and CQ must be uploaded through Webex Control Hub.
 6. **Call Park and Call Pickup IDs change on name modification.** Always re-fetch after renaming.
-7. **CQ routing policy limits** — `SIMULTANEOUS` max 50 agents; `WEIGHTED` max 100 agents; `CIRCULAR`/`REGULAR`/`UNIFORM` max 1,000 agents.
-8. **Paging Group validation** — if `originators` are provided, `originator_caller_id_enabled` must be set (raises `TypeError` otherwise).
-9. **Call Pickup one-group-per-user constraint** — a user can only belong to one pickup group. Check `available_agents()` to find unassigned users.
-10. **CX Essentials requires existing Call Queues** — screen pop, recording, and wrap-up reasons are per-queue configurations.
+7. **CQ routing policy limits** -- `SIMULTANEOUS` max 50 agents; `WEIGHTED` max 100 agents; `CIRCULAR`/`REGULAR`/`UNIFORM` max 1,000 agents.
+8. **Paging Group: originators require update** -- the CLI create command does not accept originator/target lists; use `wxcli paging-group update` after creation.
+9. **Call Pickup one-group-per-user constraint** -- a user can only belong to one pickup group.
+10. **CX Essentials requires existing Call Queues** -- screen pop, recording, and wrap-up reasons are per-queue configurations. Use `wxcli cx-essentials` commands.
 11. **Hunt Group holiday/night service** uses forwarding rules (schedule-based), not a dedicated policy API like Call Queues have.
-12. **Voicemail Group passcode is required** on create — the `VoicemailGroupDetail.create()` factory enforces this.
+12. **Voicemail Group passcode is required** on create -- the CLI enforces this via `--passcode` (required option).
+13. **AA create: menus are auto-populated by the CLI.** The CLI provides default menus (key 0 = EXIT, extension dialing enabled) so the create command succeeds. Customize menus via `wxcli auto-attendant update` after creation.
+14. **CQ update uses partial objects.** The CLI `update` command avoids the `callingLineIdPolicy=CUSTOM` 400 error by sending only changed fields.
+15. **VM Group SDK bug is handled by the CLI.** The `wxcli location-voicemail create` command works around the `by_alias=True` bug internally.
+
+---
+
+## Context Compaction
+
+If context compacts mid-execution, recover by:
+1. Read the deployment plan from `docs/plans/` to recover what was planned
+2. Check what's already been created: run the relevant `list` commands
+3. Resume from the first incomplete step

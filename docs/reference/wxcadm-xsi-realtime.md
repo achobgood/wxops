@@ -14,6 +14,22 @@ None of this is available through wxc_sdk or the standard Webex REST APIs.
 
 ---
 
+<!-- Updated by playbook session 2026-03-18 -->
+## When to Use wxcadm vs Raw HTTP
+
+**XSI is wxcadm's killer feature. There is no raw HTTP alternative for any of this.**
+
+| Use wxcadm when | Use raw HTTP when |
+|---|---|
+| Real-time call event streaming (XSI-Events) | **Never** -- XSI-Events requires persistent HTTP streaming with heartbeats, auto-refresh, and DNS SRV discovery that wxcadm handles entirely |
+| Programmatic call control (originate, hold, transfer, park, record) | **Never** -- XSI-Actions endpoints are on the BroadWorks XSP, not the standard Webex REST API |
+| Live call state queries, directory search, service config reads | **Never** -- these hit BroadWorks directly via XSI, not available through `api.webex.com` |
+| CRM screen pops, real-time dashboards, call center queue routing | **Never** -- all require XSI event streaming |
+
+> **Note:** The playbook uses raw HTTP via `api.session.rest_*()` for standard CRUD operations against `api.webex.com`. XSI operates on an entirely different infrastructure (BroadWorks XSP) and **cannot** be replaced by raw HTTP calls to the Webex REST API. If you need real-time call monitoring or programmatic call control, wxcadm is the only option.
+
+---
+
 ## XSI Architecture Overview
 
 ```
@@ -374,7 +390,7 @@ call.recording("resume")   # Resume paused recording
 
 Requires Call Recording to be enabled for the user. Raises `NotAllowed` if not enabled.
 
-**Known issue in source:** The `recording()` method has a bug where `action="resume"` maps to `PauseRecording` instead of `ResumeRecording` due to a duplicate elif condition. The `"resume"` case on line 1524 (which correctly calls `ResumeRecording`) is reachable, but the duplicate on line 1528 would never execute. <!-- NEEDS VERIFICATION: confirm this bug is still present in latest release -->
+**Known bug in source (verified 2026-03-18):** The `recording()` method has a duplicate `elif action.lower() == "resume"` at line 1528 that was meant to be `"pause"`. The first `"resume"` branch (line 1524) correctly calls `ResumeRecording`. The second (line 1528) maps to `PauseRecording` but is dead code (shadowed by line 1524). This means `recording("pause")` falls through to the `else` branch and raises `ValueError`. **Workaround:** Call the XSI PauseRecording endpoint directly: `requests.put(url + f"/{call_id}/PauseRecording", headers=headers)`.
 
 ### DTMF
 
@@ -921,7 +937,7 @@ while True:
 
 9. **Call IDs are transient.** They only exist while the call is active. Use `attach_call()` promptly after receiving an event.
 
-10. **The `recording()` method has a bug.** There is a duplicate `elif action.lower() == "resume"` condition in the source -- one maps to `ResumeRecording` (correct) and the other maps to `PauseRecording` (incorrect). Because of the duplicate, `action="pause"` never reaches its intended branch. If you need to pause recording, call the XSI API directly. <!-- NEEDS VERIFICATION -->
+10. **The `recording()` method has a bug (verified 2026-03-18).** Line 1528 has a duplicate `elif action.lower() == "resume"` that should be `"pause"`. The first `"resume"` (line 1524, → `ResumeRecording`) works correctly. The duplicate (line 1528, → `PauseRecording`) is dead code. As a result, `recording("pause")` raises `ValueError`. Workaround: call `PauseRecording` XSI endpoint directly.
 
 11. **SRV lookup dependency.** wxcadm uses the `srvlookup` library to find XSP servers. If DNS SRV records are unreachable, channel creation will fail.
 

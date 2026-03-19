@@ -3,7 +3,7 @@
 Build and configure Webex Calling, admin, device, and messaging APIs programmatically with guided Claude Code assistance.
 
 **Execution pattern:** `wxcli` CLI commands (primary) → `wxcadm` (XSI/E911/CP-API) → raw HTTP (fallback).
-The wxcli CLI has 99 registered command groups covering calling, admin, device, and messaging APIs. Raw HTTP docs in `docs/reference/` serve as reference and fallback.
+The wxcli CLI has 100 command groups covering calling, admin, device, and messaging APIs. Raw HTTP docs in `docs/reference/` serve as reference and fallback.
 
 ## Quick Start
 
@@ -68,7 +68,7 @@ Use `/wxc-calling-debug` to troubleshoot a failing configuration (this one is a 
 
 | Path | Purpose |
 |------|---------|
-| `src/wxcli/main.py` | CLI entry point — 99 registered command groups |
+| `src/wxcli/main.py` | CLI entry point — 100 command groups |
 | `src/wxcli/commands/*.py` | All command implementations (raw HTTP pattern) |
 | `wxcli --help` | Shows all command groups |
 | `wxcli <group> --help` | Shows commands within a group |
@@ -90,7 +90,7 @@ Use `/wxc-calling-debug` to troubleshoot a failing configuration (this one is a 
 
 ## CLI Status & Known Issues
 
-**99 registered command groups covering calling, admin, device, and messaging APIs.** All generated from 4 OpenAPI 3.0 specs via `tools/generate_commands.py`.
+**100 command groups covering calling, admin, device, and messaging APIs.** All generated from 4 OpenAPI 3.0 specs via `tools/generate_commands.py`.
 
 ### Test status (as of 2026-03-18)
 
@@ -127,7 +127,7 @@ Use `/wxc-calling-debug` to troubleshoot a failing configuration (this one is a 
 | `docs/templates/deployment-plan.md` | Template: what the agent produces before executing |
 | `docs/templates/execution-report.md` | Template: what the agent produces after executing |
 | `docs/plans/` | Generated design docs (one per customer build) |
-| `docs/later/` | Parked: messaging, meetings, bots/webhooks (post-calling) |
+| `docs/later/` | Parked: meetings, bots/webhooks (messaging commands now generated) |
 
 ## Reference Doc Sources
 

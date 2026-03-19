@@ -1,3 +1,4 @@
+<!-- Updated by playbook session 2026-03-18 -->
 # Person Call Settings — Call Handling Reference
 
 Person-level call handling settings control how incoming calls are routed, filtered, and alerted for individual Webex Calling users. All APIs live under `PersonSettingsApi` (accessed via `api.person_settings.*`) and share a common base class pattern.
@@ -161,6 +162,37 @@ settings.call_forwarding.always = CallForwardingAlways(
 api.person_settings.forwarding.configure(entity_id=person_id, forwarding=settings)
 ```
 
+### Raw HTTP
+<!-- Updated by playbook session 2026-03-18 -->
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+
+# GET — read call forwarding settings
+result = api.session.rest_get(f"{BASE}/people/{person_id}/features/callForwarding")
+# Returns: {"callForwarding": {"always": {...}, "busy": {...}, "noAnswer": {...}}, "businessContinuity": {...}}
+
+# PUT — update call forwarding settings
+body = {
+    "callForwarding": {
+        "always": {
+            "enabled": True,
+            "destination": "+12223334444",
+            "destinationVoicemailEnabled": True,
+            "ringReminderEnabled": True
+        },
+        "busy": {"enabled": False},
+        "noAnswer": {"enabled": True, "destination": "+15556667777", "numberOfRings": 5}
+    },
+    "businessContinuity": {"enabled": True, "destination": "+18889990000"}
+}
+api.session.rest_put(f"{BASE}/people/{person_id}/features/callForwarding", json=body)
+```
+
+> **Note:** `systemMaxNumberOfRings` is read-only; omit it from the PUT body.
+
 ---
 
 ## 2. Call Waiting
@@ -210,6 +242,22 @@ is_enabled = api.person_settings.call_waiting.read(entity_id=person_id)
 
 # Disable call waiting
 api.person_settings.call_waiting.configure(entity_id=person_id, enabled=False)
+```
+
+### Raw HTTP
+<!-- Updated by playbook session 2026-03-18 -->
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+
+# GET — read call waiting
+result = api.session.rest_get(f"{BASE}/people/{person_id}/features/callWaiting")
+# Returns: {"enabled": true}
+
+# PUT — update call waiting
+api.session.rest_put(f"{BASE}/people/{person_id}/features/callWaiting", json={"enabled": False})
 ```
 
 ---
@@ -267,13 +315,32 @@ api.person_settings.dnd.configure(
 )
 ```
 
+### Raw HTTP
+<!-- Updated by playbook session 2026-03-18 -->
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+
+# GET — read DND settings
+result = api.session.rest_get(f"{BASE}/people/{person_id}/features/doNotDisturb")
+# Returns: {"enabled": true, "ringSplashEnabled": true}
+
+# PUT — update DND settings
+api.session.rest_put(f"{BASE}/people/{person_id}/features/doNotDisturb", json={
+    "enabled": True,
+    "ringSplashEnabled": True
+})
+```
+
 ---
 
 ## 4. Simultaneous Ring
 
 Ring the user's office phone and up to 10 additional phone numbers at the same time when an incoming call arrives. Supports schedule-based criteria to control when simultaneous ring is active.
 
-**SDK path:** `api.person_settings.sim_ring` <!-- NEEDS VERIFICATION: SimRingApi is not imported into PersonSettingsApi in the SDK source; this feature may only be available via workspace_settings or the "me" API (MeSimRingApi) for person-level access -->
+**SDK path:** `api.person_settings.sim_ring` <!-- Note: SimRingApi may not be imported into PersonSettingsApi in some SDK versions; the raw HTTP endpoint at telephony/config/people/{personId}/simultaneousRing works for admin-level access. Updated by playbook session 2026-03-18 -->
 **Feature slug:** `simultaneousRing`
 **API class:** `SimRingApi`
 
@@ -334,13 +401,47 @@ SimRingApi.delete_criteria(entity_id: str, id: str, org_id: str = None) -> None
 
 `create_criteria` returns the new criteria ID.
 
+### Raw HTTP
+<!-- Updated by playbook session 2026-03-18 -->
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+
+# GET — read simultaneous ring settings
+result = api.session.rest_get(f"{BASE}/telephony/config/people/{person_id}/simultaneousRing")
+# Returns: {"enabled": true, "doNotRingIfOnCallEnabled": false, "phoneNumbers": [...], "criterias": [...]}
+
+# PUT — update simultaneous ring settings (criteria list excluded)
+api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/simultaneousRing", json={
+    "enabled": True,
+    "doNotRingIfOnCallEnabled": True,
+    "phoneNumbers": [
+        {"phoneNumber": "+12223334444", "answerConfirmationRequiredEnabled": False}
+    ]
+})
+
+# Criteria CRUD
+# POST — create criteria (returns ID in Location header)
+api.session.rest_post(f"{BASE}/telephony/config/people/{person_id}/simultaneousRing/criteria", json={...})
+# GET — read single criteria
+api.session.rest_get(f"{BASE}/telephony/config/people/{person_id}/simultaneousRing/criteria/{criteria_id}")
+# PUT — update criteria
+api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/simultaneousRing/criteria/{criteria_id}", json={...})
+# DELETE — delete criteria
+api.session.rest_delete(f"{BASE}/telephony/config/people/{person_id}/simultaneousRing/criteria/{criteria_id}")
+```
+
+> **Alt URL:** `people/{person_id}/features/simultaneousRing` also works for the main GET/PUT.
+
 ---
 
 ## 5. Sequential Ring
 
 Ring up to five phone numbers one after another when an incoming call arrives. Configurable ring counts per number, optional primary-line-first behavior, and schedule-based criteria.
 
-**SDK path:** `api.person_settings.sequential_ring` <!-- NEEDS VERIFICATION: SequentialRingApi is not imported into PersonSettingsApi in the SDK source; may only be available via workspace_settings or MeSequentialRingApi -->
+**SDK path:** `api.person_settings.sequential_ring` <!-- Note: SequentialRingApi may not be imported into PersonSettingsApi in some SDK versions; the raw HTTP endpoint at telephony/config/people/{personId}/sequentialRing works for admin-level access. Updated by playbook session 2026-03-18 -->
 **Feature slug:** `sequentialRing`
 **API class:** `SequentialRingApi`
 
@@ -401,6 +502,43 @@ SequentialRingApi.read_criteria(entity_id: str, id: str, org_id: str = None) -> 
 SequentialRingApi.configure_criteria(entity_id: str, id: str, settings: SequentialRingCriteria, org_id: str = None) -> None
 SequentialRingApi.delete_criteria(entity_id: str, id: str, org_id: str = None) -> None
 ```
+
+### Raw HTTP
+<!-- Updated by playbook session 2026-03-18 -->
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+
+# GET — read sequential ring settings
+result = api.session.rest_get(f"{BASE}/telephony/config/people/{person_id}/sequentialRing")
+# Returns: {"enabled": true, "ringBaseLocationFirstEnabled": true, "baseLocationNumberOfRings": 3, ...}
+
+# PUT — update sequential ring settings (criteria list excluded)
+api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/sequentialRing", json={
+    "enabled": True,
+    "ringBaseLocationFirstEnabled": True,
+    "baseLocationNumberOfRings": 3,
+    "continueIfBaseLocationIsBusyEnabled": True,
+    "callsToVoicemailEnabled": True,
+    "phoneNumbers": [
+        {"phoneNumber": "+12223334444", "answerConfirmationRequiredEnabled": False, "numberOfRings": 3}
+    ]
+})
+
+# Criteria CRUD
+# POST — create criteria
+api.session.rest_post(f"{BASE}/telephony/config/people/{person_id}/sequentialRing/criteria", json={...})
+# GET — read single criteria
+api.session.rest_get(f"{BASE}/telephony/config/people/{person_id}/sequentialRing/criteria/{criteria_id}")
+# PUT — update criteria
+api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/sequentialRing/criteria/{criteria_id}", json={...})
+# DELETE — delete criteria
+api.session.rest_delete(f"{BASE}/telephony/config/people/{person_id}/sequentialRing/criteria/{criteria_id}")
+```
+
+> **Alt URL:** `people/{person_id}/features/sequentialRing` also works for the main GET/PUT.
 
 ---
 
@@ -484,6 +622,52 @@ Lists service and standard PSTN numbers at a location that are available for SNR
 
 **Scopes:** `spark-admin:telephony_config_read`
 
+### Raw HTTP
+<!-- Updated by playbook session 2026-03-18 -->
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+
+# GET — read Single Number Reach settings
+result = api.session.rest_get(f"{BASE}/telephony/config/people/{person_id}/singleNumberReach")
+# Returns: {"enabled": true, "alertAllNumbersForClickToDialCallsEnabled": false, "numbers": [...]}
+
+# PUT — update top-level SNR settings
+api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/singleNumberReach", json={
+    "alertAllNumbersForClickToDialCallsEnabled": True
+})
+
+# SNR Number CRUD
+# POST — create an SNR number entry
+api.session.rest_post(f"{BASE}/telephony/config/people/{person_id}/singleNumberReach/numbers", json={
+    "phoneNumber": "+12223334444",
+    "enabled": True,
+    "name": "Mobile",
+    "doNotForwardCallsEnabled": False,
+    "answerConfirmationEnabled": True
+})
+
+# PUT — update an SNR number entry
+api.session.rest_put(
+    f"{BASE}/telephony/config/people/{person_id}/singleNumberReach/numbers/{snr_number_id}",
+    json={"enabled": False}
+)
+
+# DELETE — delete an SNR number entry
+api.session.rest_delete(
+    f"{BASE}/telephony/config/people/{person_id}/singleNumberReach/numbers/{snr_number_id}"
+)
+
+# GET — list available phone numbers for SNR at a location
+result = api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{location_id}/singleNumberReach/availableNumbers"
+)
+```
+
+> **Note:** SNR number IDs are base64-encoded phone numbers. The ID changes if the phone number is modified.
+
 ---
 
 ## 7. Selective Accept
@@ -538,6 +722,42 @@ SelectiveAcceptApi.configure_criteria(entity_id: str, id: str, settings: Selecti
 SelectiveAcceptApi.delete_criteria(entity_id: str, id: str, org_id: str = None) -> None
 ```
 
+### Raw HTTP
+<!-- Updated by playbook session 2026-03-18 -->
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+
+# GET — read selective accept settings
+result = api.session.rest_get(f"{BASE}/telephony/config/people/{person_id}/selectiveAccept")
+# Returns: {"enabled": true, "criterias": [...]}
+
+# PUT — update selective accept (enable/disable only; criteria managed separately)
+api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/selectiveAccept", json={
+    "enabled": True
+})
+
+# Criteria CRUD
+# POST — create criteria (returns ID in Location header)
+api.session.rest_post(f"{BASE}/telephony/config/people/{person_id}/selectiveAccept/criteria", json={
+    "acceptEnabled": True,
+    "scheduleName": "Business Hours",
+    "scheduleType": "businessHours",
+    "callsFrom": "SELECT_PHONE_NUMBERS",
+    "phoneNumbers": ["+12223334444"],
+    "anonymousCallersEnabled": False,
+    "unavailableCallersEnabled": False
+})
+# GET — read single criteria
+api.session.rest_get(f"{BASE}/telephony/config/people/{person_id}/selectiveAccept/criteria/{criteria_id}")
+# PUT — update criteria
+api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/selectiveAccept/criteria/{criteria_id}", json={...})
+# DELETE — delete criteria
+api.session.rest_delete(f"{BASE}/telephony/config/people/{person_id}/selectiveAccept/criteria/{criteria_id}")
+```
+
 ---
 
 ## 8. Selective Forward
@@ -586,6 +806,44 @@ SelectiveForwardApi.configure_criteria(entity_id: str, id: str, settings: Select
 SelectiveForwardApi.delete_criteria(entity_id: str, id: str, org_id: str = None) -> None
 ```
 
+### Raw HTTP
+<!-- Updated by playbook session 2026-03-18 -->
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+
+# GET — read selective forward settings
+result = api.session.rest_get(f"{BASE}/telephony/config/people/{person_id}/selectiveForward")
+# Returns: {"enabled": true, "defaultPhoneNumberToForward": "+1...", "ringReminderEnabled": false, ...}
+
+# PUT — update selective forward settings (criteria managed separately)
+api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/selectiveForward", json={
+    "enabled": True,
+    "defaultPhoneNumberToForward": "+15556667777",
+    "ringReminderEnabled": True,
+    "destinationVoicemailEnabled": False
+})
+
+# Criteria CRUD
+# POST — create criteria
+api.session.rest_post(f"{BASE}/telephony/config/people/{person_id}/selectiveForward/criteria", json={
+    "forwardEnabled": True,
+    "forwardToPhoneNumber": "+18889990000",
+    "sendToVoicemailEnabled": False,
+    "callsFrom": "ANY_EXTERNAL"
+})
+# GET — read single criteria
+api.session.rest_get(f"{BASE}/telephony/config/people/{person_id}/selectiveForward/criteria/{criteria_id}")
+# PUT — update criteria
+api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/selectiveForward/criteria/{criteria_id}", json={...})
+# DELETE — delete criteria
+api.session.rest_delete(f"{BASE}/telephony/config/people/{person_id}/selectiveForward/criteria/{criteria_id}")
+```
+
+> **Note:** Selective Forward uses `forwardEnabled` (not `enabled`) and `numbers` (not `phoneNumbers`) for its criteria enabled attr and number list, respectively.
+
 ---
 
 ## 9. Selective Reject
@@ -624,13 +882,47 @@ SelectiveRejectApi.configure_criteria(entity_id: str, id: str, settings: Selecti
 SelectiveRejectApi.delete_criteria(entity_id: str, id: str, org_id: str = None) -> None
 ```
 
+### Raw HTTP
+<!-- Updated by playbook session 2026-03-18 -->
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+
+# GET — read selective reject settings
+result = api.session.rest_get(f"{BASE}/telephony/config/people/{person_id}/selectiveReject")
+# Returns: {"enabled": true, "criterias": [...]}
+
+# PUT — update selective reject (enable/disable only; criteria managed separately)
+api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/selectiveReject", json={
+    "enabled": True
+})
+
+# Criteria CRUD
+# POST — create criteria
+api.session.rest_post(f"{BASE}/telephony/config/people/{person_id}/selectiveReject/criteria", json={
+    "rejectEnabled": True,
+    "callsFrom": "SELECT_PHONE_NUMBERS",
+    "phoneNumbers": ["+15551234567"],
+    "anonymousCallersEnabled": True,
+    "unavailableCallersEnabled": False
+})
+# GET — read single criteria
+api.session.rest_get(f"{BASE}/telephony/config/people/{person_id}/selectiveReject/criteria/{criteria_id}")
+# PUT — update criteria
+api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/selectiveReject/criteria/{criteria_id}", json={...})
+# DELETE — delete criteria
+api.session.rest_delete(f"{BASE}/telephony/config/people/{person_id}/selectiveReject/criteria/{criteria_id}")
+```
+
 ---
 
 ## 10. Priority Alert
 
 Play a distinctive ring pattern for calls matching specific criteria (caller identity, schedule). Useful for VIP caller identification.
 
-**SDK path:** `api.person_settings.priority_alert` <!-- NEEDS VERIFICATION: PriorityAlertApi is not imported into PersonSettingsApi; may only be available via workspace_settings or MePriorityAlertApi -->
+**SDK path:** `api.person_settings.priority_alert` <!-- Note: PriorityAlertApi may not be imported into PersonSettingsApi in some SDK versions; the raw HTTP endpoint at telephony/config/people/{personId}/priorityAlert works for admin-level access. Updated by playbook session 2026-03-18 -->
 **Feature slug:** `priorityAlert`
 **API class:** `PriorityAlertApi`
 
@@ -659,6 +951,40 @@ PriorityAlertApi.create_criteria(entity_id: str, settings: PriorityAlertCriteria
 PriorityAlertApi.read_criteria(entity_id: str, id: str, org_id: str = None) -> PriorityAlertCriteria
 PriorityAlertApi.configure_criteria(entity_id: str, id: str, settings: PriorityAlertCriteria, org_id: str = None) -> None
 PriorityAlertApi.delete_criteria(entity_id: str, id: str, org_id: str = None) -> None
+```
+
+### Raw HTTP
+<!-- Updated by playbook session 2026-03-18 -->
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+
+# GET — read priority alert settings
+result = api.session.rest_get(f"{BASE}/telephony/config/people/{person_id}/priorityAlert")
+# Returns: {"enabled": true, "criterias": [...]}
+
+# PUT — update priority alert (enable/disable only; criteria managed separately)
+api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/priorityAlert", json={
+    "enabled": True
+})
+
+# Criteria CRUD
+# POST — create criteria
+api.session.rest_post(f"{BASE}/telephony/config/people/{person_id}/priorityAlert/criteria", json={
+    "notificationEnabled": True,
+    "callsFrom": "SELECT_PHONE_NUMBERS",
+    "phoneNumbers": ["+12223334444"],
+    "anonymousCallersEnabled": False,
+    "unavailableCallersEnabled": False
+})
+# GET — read single criteria
+api.session.rest_get(f"{BASE}/telephony/config/people/{person_id}/priorityAlert/criteria/{criteria_id}")
+# PUT — update criteria
+api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/priorityAlert/criteria/{criteria_id}", json={...})
+# DELETE — delete criteria
+api.session.rest_delete(f"{BASE}/telephony/config/people/{person_id}/priorityAlert/criteria/{criteria_id}")
 ```
 
 ---
@@ -738,15 +1064,15 @@ For user-token access (a person managing their own settings), the SDK provides p
 | Forwarding | `forwarding` | `forwarding` (`MeForwardingApi`) |
 | Call Waiting | `call_waiting` | `call_waiting` (`MeCallWaitingApi`) |
 | DND | `dnd` | `dnd` (`MeDNDApi`) |
-| Simultaneous Ring | N/A (see note) | `sim_ring` (`MeSimRingApi`) |
-| Sequential Ring | N/A (see note) | `sequential_ring` (`MeSequentialRingApi`) |
+| Simultaneous Ring | N/A in SDK¹ | `sim_ring` (`MeSimRingApi`) |
+| Sequential Ring | N/A in SDK¹ | `sequential_ring` (`MeSequentialRingApi`) |
 | Single Number Reach | `single_number_reach` | `snr` (`MeSNRApi`) |
 | Selective Accept | `selective_accept` | `selective_accept` (`MeSelectiveAcceptApi`) |
 | Selective Forward | `selective_forward` | `selective_forward` (`MeSelectiveForwardApi`) |
 | Selective Reject | `selective_reject` | `selective_reject` (`MeSelectiveRejectApi`) |
-| Priority Alert | N/A (see note) | `priority_alert` (`MePriorityAlertApi`) |
+| Priority Alert | N/A in SDK¹ | `priority_alert` (`MePriorityAlertApi`) |
 
-> **Note:** `SimRingApi`, `SequentialRingApi`, and `PriorityAlertApi` are **not** imported into the admin-level `PersonSettingsApi` class. They are available under `workspace_settings` (for workspaces) and the `me` API (for user self-service). For admin-level person management of these features, use the REST API directly or the workspace-settings API if the target is a workspace. <!-- NEEDS VERIFICATION: whether admin-level person endpoints exist for these features in the Webex Calling REST API -->
+> **¹ "N/A in SDK" means the SDK class is not wired to `PersonSettingsApi`** — the admin REST endpoints exist and work via raw HTTP (see Raw HTTP sections above for each feature at `telephony/config/people/{person_id}/simultaneousRing`, `sequentialRing`, and `priorityAlert`). <!-- Verified via raw HTTP sections in this doc 2026-03-18 -->
 
 ---
 

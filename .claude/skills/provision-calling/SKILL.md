@@ -1,12 +1,14 @@
 ---
 name: provision-calling
 description: |
-  Provision Webex Calling users, locations, and licenses via the wxc_sdk Python SDK.
+  Provision Webex Calling users, locations, and licenses via the wxcli CLI.
   Guides through auth verification, prerequisite checks, deployment planning, execution,
   and result verification for any provisioning operation.
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [operation — e.g. "create location", "enable user", "assign license", "bulk provision"]
 ---
+
+<!-- Updated by playbook session 2026-03-18 -->
 
 # Provision Calling Workflow
 
@@ -20,21 +22,13 @@ argument-hint: [operation — e.g. "create location", "enable user", "assign lic
 
 Before any provisioning operation, confirm the token is valid and has admin scopes.
 
-```python
-from dotenv import load_dotenv
-from wxc_sdk import WebexSimpleApi
-
-load_dotenv(override=True)
-api = WebexSimpleApi()
-
-me = api.people.me(calling_data=True)
-print(f'Authenticated as: {me.display_name} ({me.emails[0]})')
-print(f'Org ID: {me.org_id}')
+```bash
+wxcli whoami
 ```
 
 If this fails with 401/403, stop and troubleshoot auth before proceeding. Common causes:
 - Token expired (personal access tokens last 12 hours)
-- Missing `WEBEX_ACCESS_TOKEN` environment variable
+- Token not configured — run `wxcli configure` or check `~/.wxcli/config.json`
 - Token lacks admin scopes (`spark-admin:people_write`, `spark-admin:licenses_read`, etc.)
 
 ## Step 3: Determine the operation
@@ -48,7 +42,7 @@ Ask the user which provisioning operation they need. The six supported operation
 | **Create user** | Add a new person to the org | Admin token with `spark-admin:people_write` |
 | **Enable user for calling** | Assign calling license + location + extension to existing user | Location must exist; calling license available |
 | **Assign/change licenses** | Add or remove licenses on a user | License with available capacity |
-| **Bulk provision** | Provision multiple users in one run | All of the above + async pattern for performance |
+| **Bulk provision** | Provision multiple users in one run | All of the above |
 
 Confirm with the user before proceeding:
 - **Which operation** from the table above
@@ -60,47 +54,37 @@ Confirm with the user before proceeding:
 Run these checks based on the operation. **Stop and report** if any prerequisite fails.
 
 ### For location creation:
-```python
+```bash
 # Check if location name already exists
-existing = api.locations.by_name('Target Location Name')
-if existing:
-    print(f'Location already exists: {existing.location_id}')
-    # Ask user: update existing or abort?
+wxcli locations list --calling-only
+# Look for a match in the output. If the target name appears:
+wxcli locations show LOCATION_ID
+# Ask user: update existing or abort?
 ```
 
 ### For user provisioning:
-```python
+```bash
 # 1. Verify location exists
-location = api.locations.by_name('Target Location Name')
-assert location, 'Location not found — create it first'
+wxcli locations list --calling-only
+wxcli locations show LOCATION_ID
 
 # 2. Find an available calling license with capacity
-calling_license = next(
-    (lic for lic in api.licenses.list()
-     if lic.webex_calling_professional
-     and lic.consumed_units < lic.total_units),
-    None
-)
-assert calling_license, 'No available Webex Calling Professional licenses'
-print(f'License: {calling_license.name} ({calling_license.consumed_units}/{calling_license.total_units} used)')
+wxcli licenses list
+# Look for "Webex Calling - Professional" with consumed < total
 
 # 3. Check if user already exists
-user = next(api.people.list(email='target@example.com'), None)
-if user:
-    user = api.people.details(person_id=user.person_id, calling_data=True)
-    if user.location_id:
-        print(f'User already calling-enabled at location {user.location_id}')
-        # Ask user: update or abort?
+wxcli users list --email target@example.com --output json
+# If user exists, check if already calling-enabled:
+wxcli users show PERSON_ID --output json
+# If location_id is set, user is already calling-enabled.
+# Ask user: update or abort?
 ```
 
 ### For phone number assignment:
-```python
+```bash
 # Verify number is in location inventory before assigning to a user
-# Numbers must be added to location first via telephony API
-api.telephony.location.number.add(
-    location_id='<location_id>',
-    phone_numbers=['+15551234567']
-)
+# Numbers must be added to location first via numbers-manage commands
+wxcli numbers-api create LOCATION_ID --json-body '{"phoneNumbers": ["+15551234567"], "numberType": "DID"}'
 ```
 
 ## Step 5: Build deployment plan — SHOW BEFORE EXECUTING
@@ -118,8 +102,8 @@ Target:
   - [specific details]
 
 Steps:
-  1. [First API call — what it does]
-  2. [Second API call — what it does]
+  1. [First CLI command — what it does]
+  2. [Second CLI command — what it does]
   3. Verify: [what we'll check after]
 
 Prerequisites verified:
@@ -135,212 +119,138 @@ Proceed? [wait for user confirmation]
 
 ### Operation A: Create a Location
 
-All parameters are **required**: name, time_zone, preferred_language, announcement_language, address1, city, state, postal_code, country.
+Required flags: `--name`, `--timezone`, `--address`, `--city`, `--state`, `--zip`. Country defaults to US. Language defaults to en_US.
 
-```python
-location_id = api.locations.create(
-    name='San Jose Office',           # Max 80 chars if will be calling-enabled
-    time_zone='America/Los_Angeles',
-    preferred_language='en_us',
-    announcement_language='en_us',     # MUST be lowercase for calling enablement
-    address1='123 Main St',
-    city='San Jose',
-    state='CA',
-    postal_code='95113',
-    country='US'
-)
-print(f'Created location: {location_id}')
+```bash
+wxcli locations create \
+  --name "San Jose Office" \
+  --timezone "America/Los_Angeles" \
+  --announcement-language en_us \
+  --address "123 Main St" \
+  --city "San Jose" \
+  --state CA \
+  --zip 95113 \
+  --country US
 ```
 
 ### Operation B: Enable Location for Calling
 
-Creating a location does NOT automatically enable calling. Separate API call required.
+Creating a location does NOT automatically enable calling. Separate command required.
 
-```python
-location = api.locations.details(location_id=loc_id)
-
-# announcement_language returns None from details — always set explicitly
-# MUST be lowercase (en_us not en_US) or API rejects with "Invalid Language Code"
-if not location.announcement_language:
-    location.announcement_language = (location.preferred_language or "en_US").lower()
-
-api.telephony.location.enable_for_calling(location=location)
+```bash
+wxcli locations enable-calling LOCATION_ID
 ```
+
+**Important:** `announcement_language` must be lowercase (`en_us` not `en_US`) or the API rejects with "Invalid Language Code". If the location was created without it, update first.
 
 **Warning:** Once calling is enabled on a location, it **cannot be disabled via API**. Calling-enabled locations can only be deleted from Control Hub, not via the API (returns 409 Conflict).
 
 ### Operation C: Create a New User
 
-The `create()` method takes a `Person` model, NOT kwargs.
-
-```python
-from wxc_sdk.people import Person, PhoneNumber, PhoneNumberType
-
-new_user = api.people.create(
-    settings=Person(
-        emails=['jsmith@example.com'],
-        display_name='John Smith',
-        first_name='John',
-        last_name='Smith',
-        # Include these if assigning calling at creation time:
-        licenses=['<calling_license_id>'],
-        location_id='<location_id>',
-        extension='1001',
-        phone_numbers=[PhoneNumber(type=PhoneNumberType.work, value='+15551234567')]
-    ),
-    calling_data=True      # ← REQUIRED to set calling fields
-)
+```bash
+wxcli users create \
+  --email jsmith@example.com \
+  --display-name "John Smith" \
+  --first-name John \
+  --last-name Smith
 ```
 
-**Gotcha:** A POST that returns 400 may **still have created the person**. Always check with a GET before retrying.
+**Gotcha:** A POST that returns 400 may **still have created the person**. Always check with a GET before retrying:
+```bash
+wxcli users list --email jsmith@example.com --output json
+```
 
-### Operation D: Enable Existing User for Calling (Method A — People API PUT)
+### Operation D: Enable Existing User for Calling
 
-Standard pattern: GET details first, modify, then PUT back.
+Assign a calling license, location, and extension to an existing user.
+
+> **Note:** `wxcli licenses` only has `list` and `show` — license assignment requires raw HTTP. This is one of the gaps where the CLI falls back to Python.
+
+```bash
+# Look up current user state
+wxcli users show PERSON_ID --output json
+
+# Look up the calling license ID
+wxcli licenses list --output json
+# Find the license where name contains "Calling - Professional"
+```
 
 ```python
-# GET current state — calling_data=True is REQUIRED
-user = api.people.details(person_id='<id>', calling_data=True)
+# Assign license via raw HTTP (PATCH API)
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
 
-# Modify: add calling license, set location and extension
-if calling_license.license_id not in user.licenses:
-    user.licenses.append(calling_license.license_id)
-user.location_id = location.location_id
-user.extension = '1001'                    # NO routing prefix
-
-# PUT back — calling_data=True is REQUIRED
-updated = api.people.update(person=user, calling_data=True)
+api.session.rest_patch(f"{BASE}/licenses/users", json={
+    "personId": "PERSON_ID",
+    "licenses": [{
+        "id": "CALLING_LICENSE_ID",
+        "properties": {
+            "locationId": "LOCATION_ID",
+            "extension": "1001"
+        }
+    }]
+})
 ```
 
 **Key constraints:**
 - `location_id` is **write-once** — can only be set on initial calling license assignment, cannot be changed after
 - `extension` value must NOT include the location routing prefix
-- Primary email must be listed first in the emails array
-- Some licenses are implicitly assigned and cannot be removed
-
-### Operation E: Assign License (Method B — Licenses PATCH API, recommended)
-
-Cleaner for new provisioning. Supports calling-specific properties natively.
-
-```python
-from wxc_sdk.licenses import LicenseRequest, LicenseProperties
-
-api.licenses.assign_licenses_to_users(
-    person_id='<person_id>',
-    licenses=[
-        LicenseRequest(
-            id=calling_license.license_id,
-            properties=LicenseProperties(
-                location_id=location.location_id,
-                extension='1001'
-                # OR: phone_number='+15551234567'
-            )
-        )
-    ]
-)
-```
-
-**LicenseProperties rules:**
 - Either `phone_number` or `extension` is mandatory for calling licenses
-- If `phone_number` is omitted, `location_id` is mandatory
-- Can combine add + remove in one call (e.g., remove UCM + add WxC Professional)
+- To move a user, remove calling license and re-add with new location
 
-**When to use which method:**
-- **Method B (PATCH)** — net-new users, SCIM-created users, atomic license+location+extension assignment
-- **Method A (PUT)** — migrating existing users, modifying other Person fields simultaneously
+### Operation E: Bulk Provision
 
-### Operation F: Bulk Provision (Async)
+For small batches (< 20 users), loop wxcli commands:
 
-For provisioning multiple users, use the async API for performance.
-
-```python
-import asyncio
-from wxc_sdk.as_api import AsWebexSimpleApi
-from wxc_sdk.licenses import LicenseRequest, LicenseProperties
-
-async def provision_user(api, email, license_id, location_id, extension):
-    """Provision a single user — called in parallel."""
-    user = next(iter(await api.people.list(email=email)), None)
-    if not user:
-        print(f'User not found: {email}')
-        return None
-
-    await api.licenses.assign_licenses_to_users(
-        person_id=user.person_id,
-        licenses=[
-            LicenseRequest(
-                id=license_id,
-                properties=LicenseProperties(
-                    location_id=location_id,
-                    extension=extension
-                )
-            )
-        ]
-    )
-    return email
-
-async def main():
-    async with AsWebexSimpleApi(concurrent_requests=10) as api:
-        # Define users to provision
-        users_to_provision = [
-            {'email': 'user1@example.com', 'extension': '1001'},
-            {'email': 'user2@example.com', 'extension': '1002'},
-            # ...
-        ]
-
-        results = await asyncio.gather(
-            *[provision_user(api, u['email'], license_id, location_id, u['extension'])
-              for u in users_to_provision],
-            return_exceptions=True    # collect errors without stopping
-        )
-
-        # Report results
-        for user_info, result in zip(users_to_provision, results):
-            if isinstance(result, Exception):
-                print(f"FAILED: {user_info['email']} — {result}")
-            elif result is None:
-                print(f"SKIPPED: {user_info['email']} — user not found")
-            else:
-                print(f"OK: {result}")
-
-asyncio.run(main())
+```bash
+# Small batch: loop wxcli commands
+for email in user1@example.com user2@example.com user3@example.com; do
+  wxcli users create --email "$email" --display-name "User $(echo $email | cut -d@ -f1)"
+  echo "Created: $email"
+done
 ```
 
-**Bulk tuning:**
-- `concurrent_requests=10` is conservative — can increase to 40 for large batches
-- SDK auto-retries 429 rate limits when `retry_429=True` (default)
-- `MAX_USERS_WITH_CALLING_DATA = 10` is hardcoded in SDK — limits concurrent calling data fetches
+For enabling calling on multiple existing users:
+
+```bash
+# Assign calling license to multiple users
+LOCATION_ID="<location_id>"
+LICENSE_ID="<calling_license_id>"
+EXT=1001
+
+for email in user1@example.com user2@example.com user3@example.com; do
+  # Create the user
+  wxcli users create --email "$email" --display-name "User $EXT" --first-name "User" --last-name "$EXT"
+  echo "Created $email"
+  EXT=$((EXT + 1))
+done
+# License assignment requires raw HTTP — see Operation D above
+```
+
+> **Raw HTTP fallback for bulk operations:** For large batches (20+ users), the async Python SDK pattern provides better performance with concurrent requests and automatic 429 retry handling. See `docs/reference/wxc-sdk-patterns.md` for the `AsWebexSimpleApi` async pattern with `concurrent_requests=10..40`.
 
 ## Step 7: Verify results
 
 Always read back the created/updated resources to confirm.
 
 ### Verify a user:
-```python
-verified = api.people.details(person_id=user.person_id, calling_data=True)
-assert verified.location_id is not None, 'location_id not set'
-assert calling_license.license_id in verified.licenses, 'calling license not assigned'
-print(f'User: {verified.display_name}')
-print(f'Location: {verified.location_id}')
-print(f'Extension: {verified.extension}')
-print(f'Licenses: {len(verified.licenses)} assigned')
+```bash
+wxcli users show PERSON_ID --output json
+# Confirm: location_id is set, calling license appears in licenses list, extension is correct
 ```
 
 ### Verify a location:
-```python
-location = api.locations.details(location_id=loc_id)
-print(f'Location: {location.name}')
-print(f'Address: {location.address.address1}, {location.address.city}, {location.address.state}')
-print(f'Timezone: {location.time_zone}')
+```bash
+wxcli locations show LOCATION_ID --output json
+# Confirm: name, address, timezone are correct
 ```
 
 ### Verify bulk:
-```python
-# Count calling-enabled users at the target location
-users_at_location = [
-    u for u in api.people.list(location_id=location.location_id, calling_data=True)
-]
-print(f'{len(users_at_location)} users at {location.name}')
+```bash
+# List all users at a location
+wxcli users list --location LOCATION_ID --output json
+# Count results to confirm expected number of users provisioned
 ```
 
 ## Step 8: Report results
@@ -366,33 +276,54 @@ Next steps:
 
 ## CRITICAL RULES
 
-1. **ALWAYS test auth first** — Run `api.people.me()` before any provisioning call. Do not proceed on auth failure.
+1. **ALWAYS test auth first** — Run `wxcli whoami` before any provisioning call. Do not proceed on auth failure.
 
 2. **ALWAYS show plan before executing** — Present the deployment plan and wait for user confirmation. Never provision without approval.
 
-3. **NEVER skip `calling_data=True`** — Required on `list()`, `details()`, `create()`, and `update()` for any People API call involving calling fields. Without it, `location_id`, `extension`, and calling `phone_numbers` are all `None`.
+3. **`location_id` is write-once** — Can only be set when first assigning a calling license. Cannot be changed after. To move a user, remove calling license and re-add with new location.
 
-4. **`PeopleApi.create()` takes a `Person` model, not kwargs** — `api.people.create(settings=Person(...))`, not `api.people.create(emails=[...])`. The latter raises `TypeError`.
+4. **`announcement_language` must be lowercase** — `en_us` not `en_US`. The telephony `enable_for_calling` API rejects mixed case with "Invalid Language Code".
 
-5. **`location_id` is write-once** — Can only be set when first assigning a calling license. Cannot be changed after. To move a user, remove calling license and re-add with new location.
+5. **`announcement_language` returns None from details** — Always set it explicitly before calling `enable_for_calling`, even if it was set during creation.
 
-6. **`announcement_language` must be lowercase** — `en_us` not `en_US`. The telephony `enable_for_calling` API rejects mixed case with "Invalid Language Code".
+6. **Calling-enabled locations cannot be deleted via API** — Returns 409 Conflict. Must use Control Hub.
 
-7. **`announcement_language` returns None from `details()`** — Always set it explicitly before calling `enable_for_calling`, even if it was set during creation.
+7. **Phone numbers must be in location inventory first** — Before assigning a DID to a user, add it via `wxcli numbers-api create LOCATION_ID`.
 
-8. **Calling-enabled locations cannot be deleted via API** — Returns 409 Conflict. Must use Control Hub.
+8. **POST/PUT may partially succeed** — A 400 response on user create/update may have still created/modified the resource. Always verify with a subsequent GET before retrying.
 
-9. **Phone numbers must be in location inventory first** — Before assigning a DID to a user, add it via `api.telephony.location.number.add()`.
+9. **License IDs are org-specific base64 strings** — Never hardcode them. Always retrieve via `wxcli licenses list`.
 
-10. **Handle 429 rate limits** — The SDK auto-retries when `retry_429=True` (default). For bulk operations, set `concurrent_requests` appropriately (10 for conservative, 40 for large batches).
+10. **Extension values must NOT include the routing prefix** — Set extension to `1001`. The work_extension in the response will include the prefix (e.g., `8001001`), but when writing, omit it.
 
-11. **POST/PUT may partially succeed** — A 400 response on People create/update may have still created/modified the resource. Always verify with a subsequent GET before retrying.
+11. **Log all operations** — Print what you're about to do before each CLI command, and print the result after. This creates an audit trail for troubleshooting.
 
-12. **License IDs are org-specific base64 strings** — Never hardcode them. Always retrieve via `api.licenses.list()`.
+12. **For bulk operations (20+ users), consider the async Python SDK** — wxcli runs one command at a time. For large batches, the `AsWebexSimpleApi` async pattern in `docs/reference/wxc-sdk-patterns.md` is significantly faster.
 
-13. **Extension values must NOT include the routing prefix** — Set `person.extension = '1001'`. The `work_extension` phone number in the response will include the prefix (e.g., `8001001`), but when writing, omit it.
+---
 
-14. **Log all operations** — Print what you're about to do before each API call, and print the result after. This creates an audit trail for troubleshooting.
+## Error Handling
+
+When a wxcli command fails:
+
+**A. Fix and retry** — Missing required field, wrong ID, format issue:
+1. Read the full error message
+2. Run `wxcli <group> <command> --help` to check required flags
+3. Fix the command and retry
+
+**B. Skip and continue** — Resource already exists or already configured:
+1. Verify current state: `wxcli users show PERSON_ID` or `wxcli locations show LOCATION_ID`
+2. If state is correct, skip to next operation
+
+**C. Escalate** — Unclear or persistent error:
+1. Run with `--debug` for raw HTTP details
+2. Invoke `/wxc-calling-debug` for systematic diagnosis
+
+Provisioning-specific errors:
+- 400 on `users create`: Check email format, verify no existing user with same email
+- 400 on `numbers-api create`: Check E.164 format (+1XXXXXXXXXX), verify number not already assigned
+- 403: Check token has `spark-admin:people_write` and `spark-admin:telephony_config_write` scopes
+- 409: User/location already exists — GET current state first
 
 ---
 
@@ -412,20 +343,15 @@ Next steps:
 
 ## License Lookup Quick Reference
 
-```python
-# Find Webex Calling Professional license with available capacity
-wxc_pro = next(
-    (lic for lic in api.licenses.list()
-     if lic.webex_calling_professional
-     and lic.consumed_units < lic.total_units),
-    None
-)
+```bash
+# List all licenses — look for "Webex Calling - Professional" with available capacity
+wxcli licenses list
 
-# Helper properties on License model:
-#   lic.webex_calling              — True for any calling license
-#   lic.webex_calling_professional — True for "Webex Calling - Professional"
-#   lic.webex_calling_basic        — True for "Webex Calling - Basic"
-#   lic.webex_calling_workspaces   — True for "Webex Calling - Workspaces"
+# Key license types to look for in the output:
+#   "Webex Calling - Professional"   — full calling license
+#   "Webex Calling - Basic"          — basic calling (limited features)
+#   "Webex Calling - Workspaces"     — for workspace devices
+# Check that consumed < total for the license you need
 ```
 
 ---
@@ -434,7 +360,16 @@ wxc_pro = next(
 
 | | Method A: People API PUT | Method B: Licenses PATCH API |
 |---|---|---|
-| **SDK call** | `api.people.update(person=user, calling_data=True)` | `api.licenses.assign_licenses_to_users(person_id=..., licenses=[...])` |
+| **CLI equivalent** | `wxcli users update` (modify user fields) | Raw HTTP PATCH `/licenses/users` (license assignment not in CLI yet) |
 | **Best for** | Migrating existing users, changing multiple Person fields | Net-new provisioning, SCIM users, atomic license+location+extension |
-| **Gotcha** | Must GET full person first, include ALL fields in PUT | `LicenseProperties` requires extension or phone_number for calling |
-| **Can combine add+remove** | Manually modify the `licenses` list | Yes, via `LicenseRequestOperation.add` / `.remove` in same call |
+| **Gotcha** | Must GET full person first, include ALL fields in PUT | Requires extension or phone_number for calling licenses |
+| **Can combine add+remove** | Manually modify the licenses list | Yes, add + remove operations in same call |
+
+---
+
+## Context Compaction
+
+If context compacts mid-execution, recover by:
+1. Read the deployment plan from `docs/plans/` to recover what was planned
+2. Check what's already been created: run the relevant `list` commands
+3. Resume from the first incomplete step
