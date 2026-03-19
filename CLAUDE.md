@@ -1,9 +1,9 @@
 # Webex Calling Playbook
 
-Build and configure any aspect of Webex Calling programmatically with guided Claude Code assistance.
+Build and configure Webex Calling, admin, device, and messaging APIs programmatically with guided Claude Code assistance.
 
 **Execution pattern:** `wxcli` CLI commands (primary) → `wxcadm` (XSI/E911/CP-API) → raw HTTP (fallback).
-The wxcli CLI has 62 command groups covering 1000+ commands. Raw HTTP docs in `docs/reference/` serve as reference and fallback.
+The wxcli CLI has 99 registered command groups covering calling, admin, device, and messaging APIs. Raw HTTP docs in `docs/reference/` serve as reference and fallback.
 
 ## Quick Start
 
@@ -68,11 +68,15 @@ Use `/wxc-calling-debug` to troubleshoot a failing configuration (this one is a 
 
 | Path | Purpose |
 |------|---------|
-| `src/wxcli/main.py` | CLI entry point — 62 registered command groups |
+| `src/wxcli/main.py` | CLI entry point — 99 registered command groups |
 | `src/wxcli/commands/*.py` | All command implementations (raw HTTP pattern) |
 | `wxcli --help` | Shows all command groups |
 | `wxcli <group> --help` | Shows commands within a group |
 | `wxcli <group> <command> --help` | Shows options for a command |
+| `webex-cloud-calling.json` | OpenAPI 3.0 spec — calling APIs |
+| `webex-admin.json` | OpenAPI 3.0 spec — admin/org management APIs |
+| `webex-device.json` | OpenAPI 3.0 spec — device management APIs |
+| `webex-messaging.json` | OpenAPI 3.0 spec — messaging/rooms/teams APIs |
 
 ### Tools
 
@@ -86,7 +90,7 @@ Use `/wxc-calling-debug` to troubleshoot a failing configuration (this one is a 
 
 ## CLI Status & Known Issues
 
-**62 registered command groups, 1000+ commands.** All generated from the OpenAPI 3.0 spec (`webex-cloud-calling.json`) via `tools/generate_commands.py`.
+**99 registered command groups covering calling, admin, device, and messaging APIs.** All generated from 4 OpenAPI 3.0 specs via `tools/generate_commands.py`.
 
 ### Test status (as of 2026-03-18)
 
@@ -104,9 +108,16 @@ Use `/wxc-calling-debug` to troubleshoot a failing configuration (this one is a 
 ### Generator rules
 
 - **Never hand-edit generated files.** Fix bugs by updating `tools/field_overrides.yaml` and regenerating.
-- **Spec file:** `webex-cloud-calling.json` (OpenAPI 3.0, project root)
-- Regenerate one tag: `PYTHONPATH=. python3.11 tools/generate_commands.py --tag "Tag Name"`
-- Regenerate all: `PYTHONPATH=. python3.11 tools/generate_commands.py --all`
+- **Spec files:** 4 OpenAPI 3.0 specs in project root (`webex-cloud-calling.json`, `webex-admin.json`, `webex-device.json`, `webex-messaging.json`)
+- Regenerate one tag: `PYTHONPATH=. python3.11 tools/generate_commands.py --spec webex-cloud-calling.json --tag "Tag Name"`
+- Regenerate one spec (all tags): `PYTHONPATH=. python3.11 tools/generate_commands.py --spec webex-cloud-calling.json --all`
+- Regenerate all specs:
+  ```
+  PYTHONPATH=. python3.11 tools/generate_commands.py --spec webex-cloud-calling.json --all
+  PYTHONPATH=. python3.11 tools/generate_commands.py --spec webex-admin.json --all
+  PYTHONPATH=. python3.11 tools/generate_commands.py --spec webex-device.json --all
+  PYTHONPATH=. python3.11 tools/generate_commands.py --spec webex-messaging.json --all
+  ```
 - Reinstall after regen: `pip3.11 install -e . -q`
 
 ### Templates, Examples & Plans
@@ -124,7 +135,7 @@ All reference docs are grounded in actual source code and official documentation
 
 - **wxc_sdk v1.30.0** (github.com/jeokrohn/wxc_sdk) — cloned at `../wxc_sdk_reference/`
 - **wxcadm v4.6.1** (github.com/kctrey/wxcadm) — cloned at `../wxcadm_reference/`
-- **OpenAPI 3.0 spec** (`webex-cloud-calling.json`) — primary source for CLI generation
+- **OpenAPI 3.0 specs** — `webex-cloud-calling.json` (calling), `webex-admin.json` (admin), `webex-device.json` (devices), `webex-messaging.json` (messaging)
 - **Postman collection** (`../postman-webex-collections/webex_cloud_calling.json`) — legacy reference, 22.5MB, 1,079 endpoints
 - **developer.webex.com** — Official API docs, guides, and blog posts
 - **Cisco Live LTRCOL-2574** — Hands-on provisioning lab
