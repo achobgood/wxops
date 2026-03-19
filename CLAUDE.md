@@ -7,11 +7,11 @@ The wxcli CLI has 62 command groups covering 1000+ commands. Raw HTTP docs in `d
 
 ## Quick Start
 
-Run `/wxc-calling-builder` to start building. The agent walks you through authentication, interviews you about what you want to build, designs a deployment plan, executes via `wxcli` commands, and verifies the results.
+Use `/agents` and select **wxc-calling-builder** to start building. The agent walks you through authentication, interviews you about what you want to build, designs a deployment plan, executes via `wxcli` commands, and verifies the results.
 
 ## If Debugging
 
-Run `/wxc-calling-debug` to troubleshoot a failing configuration.
+Use `/wxc-calling-debug` to troubleshoot a failing configuration (this one is a skill, invoked directly).
 
 ## File Map
 
@@ -78,31 +78,34 @@ Run `/wxc-calling-debug` to troubleshoot a failing configuration.
 
 | Path | Purpose |
 |------|---------|
-| `tools/postman_parser.py` | Parses Postman collection for endpoint discovery |
-| `tools/field_overrides.yaml` | Required fields and defaults for tricky endpoints (read-only, CLI session owns) |
-| `tools/generate_commands.py` | Auto-generates CLI commands from Postman collection (read-only) |
+| `tools/postman_parser.py` | Shared dataclasses (`Endpoint`, `EndpointField`) and utilities for the generator pipeline |
+| `tools/openapi_parser.py` | Parses OpenAPI 3.0 spec into `Endpoint` objects |
+| `tools/command_renderer.py` | Renders `Endpoint` objects into Click command files |
+| `tools/field_overrides.yaml` | Table columns, display config, and endpoint overrides |
+| `tools/generate_commands.py` | Orchestrates OpenAPI parse → render → write pipeline |
 
 ## CLI Status & Known Issues
 
-**62 registered command groups, 1000+ commands.** All generated from Postman collection via `tools/generate_commands.py`.
+**62 registered command groups, 1000+ commands.** All generated from the OpenAPI 3.0 spec (`webex-cloud-calling.json`) via `tools/generate_commands.py`.
 
 ### Test status (as of 2026-03-18)
 
 - **v0.1.0** (14 commands): Fully live-tested, 3 bugs fixed.
-- **v2** (55 commands): Fully live-tested, 10 bugs fixed. Schedules, AA, HG, CQ, call-park, call-pickup, paging, voicemail-groups, operating-modes.
 - **v3 original 17 groups** (382 commands): All live-tested, 43 response key bugs fixed via `field_overrides.yaml`.
 - **v3 extended 31 groups** (~600 commands): Registered but NOT yet live-tested.
+- **OpenAPI migration**: All commands regenerated from OpenAPI spec. Singleton/list classification, response keys, and body field parsing all derived from schema.
 
 ### Known issues
 
-1. **~30 singleton-as-list misclassifications.** The generator's `derive_command_type` classifies flat-object GETs as `list` when they should be `settings-get`. Affected groups: emergency-services (12), location-call-handling (4), location-voicemail (3), call-recording (2), announcements (2), PSTN (1), workspaces (1), device-settings (4). These commands output `[]` in table mode but **work correctly with `-o json`**.
-2. **call-controls requires user-level OAuth.** Admin tokens get 400 "Target user not authorized". Don't use `wxcli call-controls` with admin/service-app tokens.
-3. **Complex nested settings need `--json-body`.** The generator skips object/array body fields. For call forwarding, voicemail, monitoring, and similar nested settings, use `--json-body '{"key": {...}}'`.
+1. **call-controls requires user-level OAuth.** Admin tokens get 400 "Target user not authorized". Don't use `wxcli call-controls` with admin/service-app tokens.
+2. **Complex nested settings need `--json-body`.** The generator skips deeply nested object/array body fields. For call forwarding, voicemail, monitoring, and similar nested settings, use `--json-body '{"key": {...}}'`.
+3. **my-settings and mode-management require calling-licensed user.** All `/people/me/*` endpoints return 404 (error 4008) if the authenticated user doesn't have a Webex Calling license. Test with a calling user's token, not the admin token.
 
 ### Generator rules
 
 - **Never hand-edit generated files.** Fix bugs by updating `tools/field_overrides.yaml` and regenerating.
-- Regenerate: `PYTHONPATH=. python3.11 tools/generate_commands.py --folder "Folder Name"`
+- **Spec file:** `webex-cloud-calling.json` (OpenAPI 3.0, project root)
+- Regenerate one tag: `PYTHONPATH=. python3.11 tools/generate_commands.py --tag "Tag Name"`
 - Regenerate all: `PYTHONPATH=. python3.11 tools/generate_commands.py --all`
 - Reinstall after regen: `pip3.11 install -e . -q`
 
@@ -112,7 +115,6 @@ Run `/wxc-calling-debug` to troubleshoot a failing configuration.
 |------|---------|
 | `docs/templates/deployment-plan.md` | Template: what the agent produces before executing |
 | `docs/templates/execution-report.md` | Template: what the agent produces after executing |
-| `docs/examples/user-provisioning/` | Working example from Cisco Live lab |
 | `docs/plans/` | Generated design docs (one per customer build) |
 | `docs/later/` | Parked: messaging, meetings, bots/webhooks (post-calling) |
 
@@ -122,7 +124,8 @@ All reference docs are grounded in actual source code and official documentation
 
 - **wxc_sdk v1.30.0** (github.com/jeokrohn/wxc_sdk) — cloned at `../wxc_sdk_reference/`
 - **wxcadm v4.6.1** (github.com/kctrey/wxcadm) — cloned at `../wxcadm_reference/`
-- **Postman collection** (`../postman-webex-collections/webex_cloud_calling.json`) — 22.5MB, 1,079 endpoints, 59 folders
+- **OpenAPI 3.0 spec** (`webex-cloud-calling.json`) — primary source for CLI generation
+- **Postman collection** (`../postman-webex-collections/webex_cloud_calling.json`) — legacy reference, 22.5MB, 1,079 endpoints
 - **developer.webex.com** — Official API docs, guides, and blog posts
 - **Cisco Live LTRCOL-2574** — Hands-on provisioning lab
 
