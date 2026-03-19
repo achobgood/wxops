@@ -315,6 +315,76 @@
       - ["Display Name", "displayName"]
       - ["Type", "type"]
 
+"Licenses":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Total Units", "totalUnits"]
+      - ["Consumed", "consumedUnits"]
+
+"Organizations":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Display Name", "displayName"]
+
+"Roles":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Name", "name"]
+
+"Groups":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Display Name", "displayName"]
+      - ["Member Count", "memberSize"]
+
+"Workspace Locations":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Display Name", "displayName"]
+      - ["City", "address.city"]
+
+"Rooms":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Title", "title"]
+      - ["Type", "type"]
+
+"Teams":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Name", "name"]
+
+"Messages":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Person Email", "personEmail"]
+      - ["Text", "text"]
+
+"Webhooks":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Target URL", "targetUrl"]
+      - ["Resource", "resource"]
+
+"Recordings":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Topic", "topic"]
+      - ["Format", "format"]
+      - ["Created", "timeRecorded"]
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Global settings
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -327,6 +397,16 @@ skip_tags:
   - "Beta *"
   - "Call Settings For Me*"
   - "* Phase*"
+  # Cross-spec overlaps (identical endpoints already generated from calling spec)
+  - "Partner Reports/Templates"
+  - "Recording Report"
+  - "Reports"
+  - "People"
+  - "Devices"
+  - "Device Call Settings"
+  - "Device Call Settings With Device Dynamic Settings"
+  - "Hot Desk"
+  - "Workspaces"
 
 # Merge split tags into a single CLI group
 tag_merge:
@@ -378,3 +458,23 @@ cli_name_overrides:
   "Location Call Settings": "location-settings"
   "Call Routing": "call-routing"
   "Call Controls": "call-controls"
+  # Admin spec overrides
+  "API - Domain Management": "domains"
+  "Admin Audit Events": "audit-events"
+  "Bulk Manage SCIM 2 Users and Groups": "scim-bulk"
+  "Historical Analytics APIs": "analytics"
+  "Identity Organization": "identity-org"
+  "Licenses": "licenses-api"
+  "Organization Contacts": "org-contacts"
+  "Partner Administrators": "partner-admins"
+  "Recordings": "admin-recordings"
+  "SCIM 2 Groups": "scim-groups"
+  "SCIM 2 Schemas": "scim-schemas"
+  "SCIM 2 Users": "scim-users"
+  "Security Audit Events": "security-audit"
+  "Send Activation Email": "activation-email"
+  "Settings": "org-settings"
+  # Messaging spec overrides
+  "Attachment Actions": "attachment-actions"
+  "ECM folder linking": "ecm"
+  "Team Memberships": "team-memberships"
