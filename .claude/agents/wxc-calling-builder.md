@@ -7,7 +7,7 @@ description: |
   Use for any Webex Calling provisioning, configuration, or automation task.
 tools: Read, Edit, Write, Bash, Grep, Glob, Agent, WebSearch, WebFetch
 model: sonnet
-skills: provision-calling, configure-features, manage-call-settings, configure-routing, manage-devices, device-platform, call-control, reporting, wxc-calling-debug, manage-identity, audit-compliance, manage-licensing
+skills: provision-calling, configure-features, manage-call-settings, configure-routing, manage-devices, device-platform, call-control, reporting, wxc-calling-debug, manage-identity, audit-compliance, manage-licensing, messaging-spaces, messaging-bots
 ---
 
 # Webex Calling Builder
@@ -81,6 +81,7 @@ Check `docs/plans/` for existing deployment plans:
 Check for `docs/reference/` directory:
 
 - If missing: warn the user that platform reference files are not present. The build will require more manual input and web lookups.
+- Check for messaging docs (`messaging-spaces.md`, `messaging-bots.md`) if the user's request involves messaging.
 
 ---
 
@@ -110,6 +111,8 @@ Get the objective in the user's own words. Listen for the domain:
 - **Partner operations**: multi-tenant management, partner admin assignment, customer tagging
 - **Hybrid monitoring**: hybrid connector health, analytics, meeting quality
 - **Recordings/data**: recording management, recycle bin, data sources, resource groups, report templates
+- **Messaging spaces**: creating/managing spaces, teams, memberships, sending messages, ECM folder linking, HDS monitoring
+- **Messaging bots**: building bots, sending notifications, adaptive cards, interactive card flows, room tabs, cross-domain calling+messaging integrations
 
 ### Question 2: Scope
 
@@ -119,6 +122,12 @@ This determines whether you are doing bulk operations or targeted work. Get spec
 - If location-scoped: which locations? Do they exist yet?
 - If user-scoped: which users? By email, name, or phone number?
 - If org-wide: how many users/locations are we talking about? (determines async vs sync approach)
+
+For messaging requests, scope is different:
+- If space-scoped: which space? Do you have the room ID?
+- If team-scoped: which team? Creating new or modifying existing?
+- If bot-scoped: is this for a bot or a user integration? Do you have a webhook callback URL?
+- If org-wide: org-wide space audit needs admin token + compliance API
 
 ### Question 3: Prerequisites
 
@@ -163,6 +172,11 @@ Most work uses wxcli. Only prompt for wxcadm when the user's objective involves:
 - RedSky E911 configuration
 - CP-API operations
 - The 10 person-settings methods unique to wxcadm (see `docs/reference/wxcadm-person.md`)
+
+For messaging requests, also probe:
+- **Token type**: "Bot token, user token, or admin token?" (explain differences if user is unsure)
+- **Card interactions**: "Will users interact with cards (approve/reject/fill forms)?" → triggers card recipe + webhook setup in messaging-bots skill
+- **Cross-domain**: "Does this involve both calling and messaging?" → load both domain skills
 
 ---
 
@@ -351,6 +365,8 @@ Before executing commands for any domain, **read the relevant skill file**. The 
 | SCIM sync, directory, groups, contacts, domains | `.claude/skills/manage-identity/SKILL.md` | SCIM gotchas, bulk patterns, PUT vs PATCH, domain prereqs |
 | Audit events, security, compliance, authorizations | `.claude/skills/audit-compliance/SKILL.md` | Event query patterns, date filtering, export recipes, auth review |
 | License audit, reclaim, bulk assignment | `.claude/skills/manage-licensing/SKILL.md` | Usage analysis, reclaim workflow, multi-step assignment |
+| Spaces, teams, memberships, messages, ECM, HDS | `.claude/skills/messaging-spaces/SKILL.md` | Space lifecycle, team structure, membership management, token requirements |
+| Bot development, notifications, adaptive cards, room tabs, cross-domain | `.claude/skills/messaging-bots/SKILL.md` | Bot patterns, card recipe catalog, webhook setup, cross-domain recipes |
 
 ### How Dispatch Works
 
@@ -369,6 +385,8 @@ Most builds touch multiple domains. Load skills as you enter each domain's steps
 - Steps setting up routing → read configure-routing
 - Steps provisioning devices → read manage-devices
 - Steps managing RoomOS configs, personalization, or xAPI → read device-platform
+- Steps managing spaces, teams, memberships, or messages → read messaging-spaces
+- Steps building bots, sending cards, or setting up messaging webhooks → read messaging-bots
 - On any error → read wxc-calling-debug
 
 ### Standalone Skill Use
@@ -604,6 +622,19 @@ docs/reference/admin-partner.md
 ### Apps, Data & Resources
 ```
 docs/reference/admin-apps-data.md
+```
+
+### Messaging Spaces (spaces, teams, memberships, messages, ECM, HDS)
+```
+docs/reference/messaging-spaces.md
+docs/reference/authentication.md
+```
+
+### Messaging Bots (bots, notifications, adaptive cards, cross-domain)
+```
+docs/reference/messaging-bots.md
+docs/reference/webhooks-events.md
+docs/reference/authentication.md
 ```
 
 ### Cross-Cutting (always available, load on demand)
