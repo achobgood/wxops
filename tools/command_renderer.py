@@ -186,7 +186,7 @@ def _render_show_command(ep: Endpoint, folder_overrides: dict | None = None) -> 
 def _render_create_id_extraction(ep: Endpoint, folder_overrides: dict | None = None) -> str:
     # Prefer schema-derived response_id_key, fall back to folder overrides
     id_key = ep.response_id_key or (folder_overrides or {}).get("create", {}).get("id_key")
-    if id_key:
+    if id_key and id_key != "id":
         return (
             f'    if isinstance(result, dict) and "{id_key}" in result:\n'
             f'        typer.echo(f"Created: {{result[\'{id_key}\']}}")\n'

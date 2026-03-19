@@ -329,6 +329,21 @@
       - ["ID", "id"]
       - ["Display Name", "displayName"]
 
+"SCIM 2 Users":
+  response_list_keys:
+    list: "Resources"
+  table_columns:
+    list:
+      - ["ID", "id"]
+      - ["Display Name", "displayName"]
+      - ["User Name", "userName"]
+      - ["Active", "active"]
+
+"SCIM 2 Groups":
+  response_list_keys:
+    list: "Resources"
+    list-members: "members"
+
 "Roles":
   list:
     table_columns:

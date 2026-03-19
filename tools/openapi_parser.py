@@ -224,8 +224,10 @@ def detect_command_type(
 
     # GET — check path ending FIRST
     if method == "GET":
-        # Path ends with {param} → always "show"
+        # Path ends with {param} or /me → always "show"
         if last_seg.startswith("{") and last_seg.endswith("}"):
+            return "show"
+        if last_seg == "me":
             return "show"
 
         # Check response schema for array properties

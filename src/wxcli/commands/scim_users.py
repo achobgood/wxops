@@ -63,11 +63,11 @@ def cmd_list(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("schemas", result if isinstance(result, list) else [])
+    items = result.get("Resources", result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Display Name', 'displayName'), ('User Name', 'userName'), ('Active', 'active')], limit=limit)
 
 
 
@@ -124,8 +124,6 @@ def create(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     if isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     else:
         print_json(result)
@@ -264,23 +262,16 @@ def delete(
 
 
 
-@app.command("list-me")
-def list_me(
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+@app.command("show-me")
+def show_me(
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Me."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/identity/scim/v2/Users/me"
-    params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -288,10 +279,6 @@ def list_me(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("schemas", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    print_json(result)
 
 

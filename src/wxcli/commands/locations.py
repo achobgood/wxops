@@ -1,156 +1,329 @@
+import json
 import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 
+
 app = typer.Typer(help="Manage Webex Calling locations.")
 
 
 @app.command("list")
-def list_locations(
-    calling_only: bool = typer.Option(False, "--calling-only", help="Only calling-enabled locations"),
+def cmd_list(
+    name: str = typer.Option(None, "--name", help="List locations whose name contains this string (case-insensi"),
+    id_param: str = typer.Option(None, "--id", help="List locations by ID."),
+    max: str = typer.Option(None, "--max", help="Limit the maximum number of location in the response."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(50, "--limit", help="Max results (0 for all)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List all locations in the organization."""
+    """List Locations."""
     api = get_api(debug=debug)
-
-    if calling_only:
-        locations = list(api.telephony.locations.list())
-    else:
-        locations = list(api.locations.list())
-
+    url = f"https://webexapis.com/v1/locations"
+    params = {}
+    if name is not None:
+        params["name"] = name
+    if id_param is not None:
+        params["id"] = id_param
+    if max is not None:
+        params["max"] = max
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("items", result if isinstance(result, list) else [])
     if output == "json":
-        print_json(locations)
+        print_json(items)
     else:
-        print_table(
-            locations,
-            columns=[
-                ("ID", "location_id"),
-                ("Name", "name"),
-                ("City", "address.city"),
-                ("State", "address.state"),
-            ],
-            limit=limit,
-        )
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
-
-@app.command("show")
-def show_location(
-    location_id: str = typer.Argument(help="Location ID"),
-    output: str = typer.Option("json", "--output", "-o"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Show details for a single location."""
-    api = get_api(debug=debug)
-    location = api.locations.details(location_id=location_id)
-    print_json(location)
 
 
 @app.command("create")
-def create_location(
-    name: str = typer.Option(..., "--name", help="Location name"),
-    timezone: str = typer.Option(..., "--timezone", help="Timezone e.g. America/New_York"),
-    address: str = typer.Option(..., "--address", help="Street address"),
-    city: str = typer.Option(..., "--city"),
-    state: str = typer.Option(..., "--state"),
-    zip_code: str = typer.Option(..., "--zip"),
-    country: str = typer.Option("US", "--country"),
-    language: str = typer.Option("en_US", "--language", help="Preferred and announcement language"),
-    preferred_language: str = typer.Option(None, "--preferred-language"),
-    announcement_language: str = typer.Option(None, "--announcement-language"),
+def create(
+    name: str = typer.Option(..., "--name", help="The name of the location. Supports up to 256 characters, but"),
+    time_zone: str = typer.Option(..., "--time-zone", help="Time zone associated with this location, refer to this link"),
+    preferred_language: str = typer.Option(..., "--preferred-language", help="Default email language."),
+    announcement_language: str = typer.Option(..., "--announcement-language", help="Location's phone announcement language."),
+    latitude: str = typer.Option(None, "--latitude", help="Latitude"),
+    longitude: str = typer.Option(None, "--longitude", help="Longitude"),
+    notes: str = typer.Option(None, "--notes", help="Notes"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new location."""
+    """Create a Location."""
     api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/locations"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if name is not None:
+            body["name"] = name
+        if time_zone is not None:
+            body["timeZone"] = time_zone
+        if preferred_language is not None:
+            body["preferredLanguage"] = preferred_language
+        if announcement_language is not None:
+            body["announcementLanguage"] = announcement_language
+        if latitude is not None:
+            body["latitude"] = latitude
+        if longitude is not None:
+            body["longitude"] = longitude
+        if notes is not None:
+            body["notes"] = notes
+    try:
+        result = api.session.rest_post(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    else:
+        print_json(result)
 
-    pref_lang = preferred_language or language
-    ann_lang = announcement_language or language
-
-    location_id = api.locations.create(
-        name=name,
-        time_zone=timezone,
-        preferred_language=pref_lang,
-        announcement_language=ann_lang,
-        address1=address,
-        city=city,
-        state=state,
-        postal_code=zip_code,
-        country=country,
-    )
-    typer.echo(f"Created: {location_id} ({name})")
 
 
-@app.command("enable-calling")
-def enable_calling(
-    location_id: str = typer.Argument(help="Location ID to enable calling on"),
+@app.command("show")
+def show(
+    location_id: str = typer.Argument(help="locationId"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Enable Webex Calling on a location."""
+    """Get Location Details."""
     api = get_api(debug=debug)
-    location = api.locations.details(location_id=location_id)
-    # API requires announcement_language but details endpoint may return None
-    if not location.announcement_language:
-        location.announcement_language = (location.preferred_language or "en_US").lower()
-    api.telephony.location.enable_for_calling(location=location)
-    typer.echo(f"Enabled calling: {location_id} ({location.name})")
+    url = f"https://webexapis.com/v1/locations/{location_id}"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
+
 
 
 @app.command("update")
-def update_location(
-    location_id: str = typer.Argument(help="Location ID"),
-    name: str = typer.Option(None, "--name"),
-    timezone: str = typer.Option(None, "--timezone"),
+def update(
+    location_id: str = typer.Argument(help="locationId"),
+    name: str = typer.Option(None, "--name", help="The name of the location. Supports up to 256 characters, but"),
+    time_zone: str = typer.Option(None, "--time-zone", help="Time zone associated with this location, refer to this link"),
+    preferred_language: str = typer.Option(None, "--preferred-language", help="Default email language."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a location."""
+    """Update a Location."""
     api = get_api(debug=debug)
-    location = api.locations.details(location_id=location_id)
-    if name:
-        location.name = name
-    if timezone:
-        location.time_zone = timezone
-    api.locations.update(location_id=location_id, settings=location)
-    typer.echo(f"Updated: {location_id}")
+    url = f"https://webexapis.com/v1/locations/{location_id}"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if name is not None:
+            body["name"] = name
+        if time_zone is not None:
+            body["timeZone"] = time_zone
+        if preferred_language is not None:
+            body["preferredLanguage"] = preferred_language
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
 
 
 @app.command("delete")
-def delete_location(
-    location_id: str = typer.Argument(help="Location ID"),
+def delete(
+    location_id: str = typer.Argument(help="locationId"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a location. Runs precheck for calling-enabled locations."""
-    api = get_api(debug=debug)
-
-    # Run safe-delete precheck for calling locations
-    try:
-        check = api.telephony.location.safe_delete_check_before_disabling_calling_location(
-            location_id=location_id
-        )
-        if check.location_delete_status != "UNBLOCKED":
-            typer.echo(f"Cannot delete: location has active calling resources.", err=True)
-            blocking = check.blocking
-            if blocking:
-                b = blocking.model_dump() if hasattr(blocking, 'model_dump') else blocking
-                typer.echo(f"Blocking: {b}", err=True)
-            typer.echo("Remove users, numbers, and features from this location first.", err=True)
-            raise typer.Exit(1)
-    except RestError:
-        # Precheck fails for non-calling locations — that's fine, proceed
-        pass
-
+    """Delete Location."""
     if not force:
-        typer.confirm(f"Delete location {location_id}?", abort=True)
-
+        typer.confirm(f"Delete {location_id}?", abort=True)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/locations/{location_id}"
     try:
-        api.locations.delete(location_id=location_id)
+        api.session.rest_delete(url)
     except RestError as e:
-        if e.response.status_code == 409 and "being referenced" in str(e):
-            typer.echo("Error: Cannot delete — location has Webex Calling enabled.", err=True)
-            typer.echo("Calling-enabled locations must be deleted from Control Hub.", err=True)
-            typer.echo("(The Webex API does not support disabling calling on a location.)", err=True)
-            raise typer.Exit(1)
-        raise
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
     typer.echo(f"Deleted: {location_id}")
+
+
+
+@app.command("list-floors")
+def list_floors(
+    location_id: str = typer.Argument(help="locationId"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """List Location Floors."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/locations/{location_id}/floors"
+    params = {}
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("items", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+
+
+
+@app.command("create-floors")
+def create_floors(
+    location_id: str = typer.Argument(help="locationId"),
+    floor_number: str = typer.Option(..., "--floor-number", help="The floor number."),
+    display_name: str = typer.Option(None, "--display-name", help="The floor display name."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Create a Location Floor."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/locations/{location_id}/floors"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if floor_number is not None:
+            body["floorNumber"] = floor_number
+        if display_name is not None:
+            body["displayName"] = display_name
+    try:
+        result = api.session.rest_post(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    else:
+        print_json(result)
+
+
+
+@app.command("show-floors")
+def show_floors(
+    location_id: str = typer.Argument(help="locationId"),
+    floor_id: str = typer.Argument(help="floorId"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Location Floor Details."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/locations/{location_id}/floors/{floor_id}"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    print_json(result)
+
+
+
+@app.command("update-floors")
+def update_floors(
+    location_id: str = typer.Argument(help="locationId"),
+    floor_id: str = typer.Argument(help="floorId"),
+    floor_number: str = typer.Option(None, "--floor-number", help="The floor number."),
+    display_name: str = typer.Option(None, "--display-name", help="The floor display name."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update a Location Floor."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/locations/{location_id}/floors/{floor_id}"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if floor_number is not None:
+            body["floorNumber"] = floor_number
+        if display_name is not None:
+            body["displayName"] = display_name
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("delete-floors")
+def delete_floors(
+    location_id: str = typer.Argument(help="locationId"),
+    floor_id: str = typer.Argument(help="floorId"),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Delete a Location Floor."""
+    if not force:
+        typer.confirm(f"Delete {floor_id}?", abort=True)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/locations/{location_id}/floors/{floor_id}"
+    try:
+        api.session.rest_delete(url)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Deleted: {floor_id}")
+
+

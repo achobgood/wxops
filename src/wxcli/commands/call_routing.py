@@ -311,8 +311,6 @@ def create(
         raise typer.Exit(1)
     if isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
     else:
         print_json(result)
 
@@ -530,8 +528,6 @@ def create_trunks(
         raise typer.Exit(1)
     if isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
     else:
         print_json(result)
 
@@ -722,8 +718,6 @@ def create_route_groups(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     if isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     else:
         print_json(result)
@@ -1086,8 +1080,6 @@ def create_route_lists(
         raise typer.Exit(1)
     if isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
     else:
         print_json(result)
 
@@ -1375,8 +1367,6 @@ def create_translation_patterns_call_routing(
         raise typer.Exit(1)
     if isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
     else:
         print_json(result)
 
@@ -1495,8 +1485,6 @@ def create_translation_patterns_call_routing_1(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     if isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     else:
         print_json(result)

@@ -108,8 +108,6 @@ def create(
         raise typer.Exit(1)
     if isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
     else:
         print_json(result)
 
@@ -360,8 +358,6 @@ def create_virtual_extension_ranges(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     if isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     else:
         print_json(result)
