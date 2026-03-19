@@ -35,6 +35,8 @@ Use `/wxc-calling-debug` to troubleshoot a failing configuration (this one is a 
 | `.claude/skills/manage-identity/` | Skill: SCIM sync, directory, groups, contacts, domains |
 | `.claude/skills/audit-compliance/` | Skill: audit events, security, compliance, authorizations |
 | `.claude/skills/manage-licensing/` | Skill: license audit, assignment, reclamation |
+| `.claude/skills/messaging-spaces/` | Skill: manage spaces, teams, memberships, ECM, HDS |
+| `.claude/skills/messaging-bots/` | Skill: build bots, adaptive cards, webhooks, cross-domain integrations |
 
 ### Reference Docs — wxc_sdk (Official Cisco SDK)
 
@@ -58,7 +60,7 @@ Use `/wxc-calling-debug` to troubleshoot a failing configuration (this one is a 
 | `docs/reference/devices-workspaces.md` | Workspaces, workspace settings, workspace locations |
 | `docs/reference/devices-platform.md` | RoomOS device configurations, workspace personalization, xAPI |
 | `docs/reference/call-control.md` | Real-time call control (dial, answer, hold, transfer, park, recording) |
-| `docs/reference/webhooks-events.md` | Telephony call webhooks, event types, payloads |
+| `docs/reference/webhooks-events.md` | Webhooks: CRUD, telephony + messaging event types, payloads |
 | `docs/reference/reporting-analytics.md` | CDR, report templates, call quality, queue/AA stats |
 | `docs/reference/virtual-lines.md` | Virtual line/extension settings, voicemail, recording |
 | `docs/reference/emergency-services.md` | E911, emergency addresses, ECBN |
@@ -87,6 +89,13 @@ Use `/wxc-calling-debug` to troubleshoot a failing configuration (this one is a 
 | `docs/reference/admin-hybrid.md` | Hybrid clusters/connectors, analytics, meeting quality |
 | `docs/reference/admin-partner.md` | Partner admins, tags, partner reports |
 | `docs/reference/admin-apps-data.md` | Service apps, authorizations, activation emails, data sources, recordings, resource groups |
+
+### Reference Docs — Messaging APIs
+
+| Path | Purpose |
+|------|---------|
+| `docs/reference/messaging-spaces.md` | Spaces, messages, memberships, teams, ECM, HDS |
+| `docs/reference/messaging-bots.md` | Bot development, adaptive cards, room tabs, cross-domain recipes |
 
 ### CLI (wxcli) — Primary Execution Layer
 
@@ -151,7 +160,7 @@ Use `/wxc-calling-debug` to troubleshoot a failing configuration (this one is a 
 | `docs/templates/deployment-plan.md` | Template: what the agent produces before executing |
 | `docs/templates/execution-report.md` | Template: what the agent produces after executing |
 | `docs/plans/` | Generated design docs (one per customer build) |
-| `docs/later/` | Parked: meetings, bots/webhooks (messaging commands now generated) |
+| `docs/later/` | Parked: meetings (messaging now has full reference docs and skills) |
 
 ## Reference Doc Sources
 
