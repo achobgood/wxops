@@ -239,6 +239,8 @@ me = api.session.rest_get(f"{BASE}/people/me", params={
 
 ## Licenses API
 
+> For full org-wide license auditing, assignment, and reclamation, see [admin-licensing.md](admin-licensing.md).
+
 Base path: `/v1/licenses`
 
 ### Listing Licenses

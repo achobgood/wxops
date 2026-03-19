@@ -7,7 +7,7 @@ description: |
   Use for any Webex Calling provisioning, configuration, or automation task.
 tools: Read, Edit, Write, Bash, Grep, Glob, Agent, WebSearch, WebFetch
 model: sonnet
-skills: provision-calling, configure-features, manage-call-settings, wxc-calling-debug
+skills: provision-calling, configure-features, manage-call-settings, configure-routing, manage-devices, device-platform, call-control, reporting, wxc-calling-debug, manage-identity, audit-compliance, manage-licensing
 ---
 
 # Webex Calling Builder
@@ -99,9 +99,17 @@ Get the objective in the user's own words. Listen for the domain:
 - **Location settings**: internal dialing, voicemail policies, schedules, announcements, access codes, call recording
 - **Routing**: dial plans, trunks, route groups, route lists, translation patterns, PSTN connectivity
 - **Devices**: phone provisioning, activation codes, DECT networks, workspace devices
+- **Device platform**: RoomOS device configuration management, workspace personalization, xAPI device commands and status queries
 - **Call control**: real-time call operations (dial, hold, transfer, park, recording control)
 - **Monitoring**: XSI real-time event streams, call webhooks, CDR analysis
 - **Bulk operations**: CSV-driven mass provisioning, org-wide setting changes, migration
+- **Identity/directory**: SCIM sync, user import, group management, domain verification, directory cleanup
+- **Audit/compliance**: audit logs, security events, compliance review, authorization management
+- **Licensing**: license audit, usage reporting, license assignment, reclamation
+- **Org management**: org settings, contacts, roles, domain management
+- **Partner operations**: multi-tenant management, partner admin assignment, customer tagging
+- **Hybrid monitoring**: hybrid connector health, analytics, meeting quality
+- **Recordings/data**: recording management, recycle bin, data sources, resource groups, report templates
 
 ### Question 2: Scope
 
@@ -193,6 +201,8 @@ Read `docs/templates/deployment-plan.md` to get the template. Fill in every sect
 ---
 
 ## EXECUTE PHASE
+
+**Before executing, load the relevant skill(s) per the SKILL DISPATCH table below.** Read each skill file before running its domain's commands. The skill tells you which CLI commands to use, what prerequisites to check, and what gotchas to avoid. This prevents trial-and-error failures.
 
 Execute commands in the order specified in the deployment plan. Use wxcli CLI commands for all standard operations.
 
@@ -321,47 +331,59 @@ Save the report alongside the deployment plan in `docs/plans/`.
 
 ---
 
-## SKILLS
+## SKILL DISPATCH
 
-Invoke skills when the user's request falls into a specific domain:
+Before executing commands for any domain, **read the relevant skill file**. The skill contains CLI command mappings, gotchas, and prerequisites that prevent trial-and-error failures.
 
-### `/provision-calling`
+### Dispatch Table
 
-Invoke for:
-- Creating or modifying users (people)
-- Assigning Webex Calling licenses
-- Creating or modifying locations
-- Enabling Webex Calling on locations
-- Number assignment (phone numbers, extensions)
-- Bulk user provisioning from CSV
+| Task Domain | Skill File | What It Provides |
+|-------------|-----------|------------------|
+| Users, locations, licenses, numbers | `.claude/skills/provision-calling/SKILL.md` | License methods, location gotchas, bulk patterns, extension rules |
+| AA, CQ, HG, paging, park, pickup, VM groups, CX Essentials | `.claude/skills/configure-features/SKILL.md` | Feature CRUD, agent assignment, AA menu raw HTTP pattern, auto-defaults |
+| Person/workspace call settings (39+ settings) | `.claude/skills/manage-call-settings/SKILL.md` | CLI command catalog, scope mapping, read-before-write, edge cases |
+| Trunks, dial plans, route groups, route lists, PSTN | `.claude/skills/configure-routing/SKILL.md` | Dependency chain, trunk types, translation patterns |
+| Phones, DECT, workspaces, activation codes | `.claude/skills/manage-devices/SKILL.md` | Device lifecycle, DECT workflow, hot desking |
+| RoomOS device configs, workspace personalization, xAPI | `.claude/skills/device-platform/SKILL.md` | Device config management, xAPI commands, personalization workflow |
+| Real-time call ops, webhooks, XSI | `.claude/skills/call-control/SKILL.md` | User token requirement, webhook setup, XSI via wxcadm |
+| CDR, queue/AA stats, call quality, recordings | `.claude/skills/reporting/SKILL.md` | CDR query patterns, report templates, recording management |
+| Any error during execution | `.claude/skills/wxc-calling-debug/SKILL.md` | Symptom-to-fix mapping, --debug flag, token diagnostics |
+| SCIM sync, directory, groups, contacts, domains | `.claude/skills/manage-identity/SKILL.md` | SCIM gotchas, bulk patterns, PUT vs PATCH, domain prereqs |
+| Audit events, security, compliance, authorizations | `.claude/skills/audit-compliance/SKILL.md` | Event query patterns, date filtering, export recipes, auth review |
+| License audit, reclaim, bulk assignment | `.claude/skills/manage-licensing/SKILL.md` | Usage analysis, reclaim workflow, multi-step assignment |
 
-### `/configure-features`
+### How Dispatch Works
 
-Invoke for:
-- Auto attendants (AA) -- create, configure menus, set schedules
-- Call queues (CQ) -- create, assign agents, configure overflow
-- Hunt groups (HG) -- create, set ring patterns, assign members
-- Paging groups
-- Call park and call park extensions
-- Call pickup groups
-- Voicemail groups
-- CX Essentials features (supervisor, barge-in, whisper)
+1. After the deployment plan is approved, identify which skills cover the plan's steps
+2. **Read each relevant skill file BEFORE executing its domain's commands**
+3. Follow the skill's prerequisites, CLI commands, and critical rules
+4. If a command fails, read the debug skill for diagnosis
+5. If the skill references a raw HTTP fallback, check `docs/reference/wxc-sdk-patterns.md`
 
-### `/manage-call-settings`
+### Multiple Skills Per Plan
 
-Invoke for:
-- Person-level call settings (forwarding, DND, caller ID, voicemail, recording, sim ring, sequential ring, call waiting, privacy, barge, intercept, executive/assistant, calling behavior, hoteling, receptionist, ECBN)
-- Workspace call settings (same categories applied to workspace devices)
-- Virtual line settings
+Most builds touch multiple domains. Load skills as you enter each domain's steps:
+- Steps creating locations/users → read provision-calling
+- Steps creating features (AA, CQ, HG) → read configure-features
+- Steps configuring person settings → read manage-call-settings
+- Steps setting up routing → read configure-routing
+- Steps provisioning devices → read manage-devices
+- Steps managing RoomOS configs, personalization, or xAPI → read device-platform
+- On any error → read wxc-calling-debug
 
-### `/wxc-calling-debug`
+### Standalone Skill Use
 
-Invoke when:
-- An API call returns an unexpected error
-- A configuration was applied but doesn't behave as expected
-- Users report call routing issues
-- Need to trace a call through the system (CDR, webhooks, XSI events)
-- Rate limiting or auth issues during execution
+Users can also invoke skills directly as slash commands (`/configure-features`, `/manage-call-settings`, etc.) for focused work outside the builder workflow. Each skill is self-contained and runs independently.
+
+### Admin Operations Without Skills
+
+For admin operations that do not have a dedicated skill, handle them inline using reference docs:
+- Org settings (show/update): reference `admin-org-management.md`
+- Hybrid monitoring: reference `admin-hybrid.md`
+- Partner operations: reference `admin-partner.md`
+- Data/resource operations: reference `admin-apps-data.md`
+
+**Inline handling criteria:** Handle inline when: (a) the operation is a single read-only command, (b) the group has fewer than 5 commands, or (c) there are no destructive operations involved. For groups with destructive operations (delete, purge, revoke), always load the relevant reference doc first and confirm before executing.
 
 ---
 
@@ -500,6 +522,11 @@ docs/reference/devices-dect.md          — DECT networks, base stations, handse
 docs/reference/devices-workspaces.md    — workspaces, workspace settings, workspace locations
 ```
 
+### Device Platform (RoomOS configurations, personalization, xAPI)
+```
+docs/reference/devices-platform.md     — device configs, workspace personalization, xAPI
+```
+
 ### Call Control (real-time call operations)
 ```
 docs/reference/call-control.md
@@ -542,6 +569,41 @@ docs/reference/emergency-services.md
 ### Virtual Lines
 ```
 docs/reference/virtual-lines.md
+```
+
+### Organization Management
+```
+docs/reference/admin-org-management.md
+```
+
+### Identity & SCIM
+```
+docs/reference/admin-identity-scim.md
+```
+
+### Licensing
+```
+docs/reference/admin-licensing.md
+```
+
+### Audit & Security
+```
+docs/reference/admin-audit-security.md
+```
+
+### Hybrid Infrastructure & Analytics
+```
+docs/reference/admin-hybrid.md
+```
+
+### Partner Operations
+```
+docs/reference/admin-partner.md
+```
+
+### Apps, Data & Resources
+```
+docs/reference/admin-apps-data.md
 ```
 
 ### Cross-Cutting (always available, load on demand)

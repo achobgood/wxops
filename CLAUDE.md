@@ -7,7 +7,10 @@ The wxcli CLI has 100 command groups covering calling, admin, device, and messag
 
 ## Quick Start
 
-Use `/agents` and select **wxc-calling-builder** to start building. The agent walks you through authentication, interviews you about what you want to build, designs a deployment plan, executes via `wxcli` commands, and verifies the results.
+Use `/agents` and select **wxc-calling-builder** to start building. The agent walks you through
+authentication, interviews you about what you want to build, designs a deployment plan, executes
+via `wxcli` commands, and verifies the results. Covers Webex Calling, admin/org management,
+identity/SCIM, licensing, audit/compliance, and partner operations.
 
 ## If Debugging
 
@@ -23,7 +26,15 @@ Use `/wxc-calling-debug` to troubleshoot a failing configuration (this one is a 
 | `.claude/skills/provision-calling/` | Skill: provision users, locations, licenses |
 | `.claude/skills/configure-features/` | Skill: set up call features (AA, CQ, HG, etc.) |
 | `.claude/skills/manage-call-settings/` | Skill: configure person/workspace call settings |
+| `.claude/skills/configure-routing/` | Skill: configure routing (trunks, dial plans, PSTN) |
+| `.claude/skills/manage-devices/` | Skill: manage devices (phones, DECT, workspaces) |
+| `.claude/skills/device-platform/` | Skill: manage RoomOS device configs, workspace personalization, xAPI |
+| `.claude/skills/call-control/` | Skill: real-time call control, webhooks, XSI |
+| `.claude/skills/reporting/` | Skill: CDR, queue stats, call quality, reports |
 | `.claude/skills/wxc-calling-debug/` | Skill: debug failing configurations |
+| `.claude/skills/manage-identity/` | Skill: SCIM sync, directory, groups, contacts, domains |
+| `.claude/skills/audit-compliance/` | Skill: audit events, security, compliance, authorizations |
+| `.claude/skills/manage-licensing/` | Skill: license audit, assignment, reclamation |
 
 ### Reference Docs — wxc_sdk (Official Cisco SDK)
 
@@ -45,6 +56,7 @@ Use `/wxc-calling-debug` to troubleshoot a failing configuration (this one is a 
 | `docs/reference/devices-core.md` | Device CRUD, activation, device configurations, telephony devices |
 | `docs/reference/devices-dect.md` | DECT networks, base stations, handsets, hotdesking |
 | `docs/reference/devices-workspaces.md` | Workspaces, workspace settings, workspace locations |
+| `docs/reference/devices-platform.md` | RoomOS device configurations, workspace personalization, xAPI |
 | `docs/reference/call-control.md` | Real-time call control (dial, answer, hold, transfer, park, recording) |
 | `docs/reference/webhooks-events.md` | Telephony call webhooks, event types, payloads |
 | `docs/reference/reporting-analytics.md` | CDR, report templates, call quality, queue/AA stats |
@@ -63,6 +75,18 @@ Use `/wxc-calling-debug` to troubleshoot a failing configuration (this one is a 
 | `docs/reference/wxcadm-xsi-realtime.md` | XSI events, real-time call monitoring (UNIQUE to wxcadm) |
 | `docs/reference/wxcadm-routing.md` | Call routing, PSTN, CDR, reports, jobs, webhooks |
 | `docs/reference/wxcadm-advanced.md` | RedSky E911, Meraki integration, CP-API, wholesale, bifrost |
+
+### Reference Docs — Admin & Identity APIs
+
+| Path | Purpose |
+|------|---------|
+| `docs/reference/admin-org-management.md` | Organizations, org settings, contacts, roles, domains |
+| `docs/reference/admin-identity-scim.md` | SCIM users/groups, schemas, bulk ops, identity org, people, groups |
+| `docs/reference/admin-licensing.md` | License inventory, assignment, usage auditing |
+| `docs/reference/admin-audit-security.md` | Admin audit events, security audit, compliance events |
+| `docs/reference/admin-hybrid.md` | Hybrid clusters/connectors, analytics, meeting quality |
+| `docs/reference/admin-partner.md` | Partner admins, tags, partner reports |
+| `docs/reference/admin-apps-data.md` | Service apps, authorizations, activation emails, data sources, recordings, resource groups |
 
 ### CLI (wxcli) — Primary Execution Layer
 
@@ -160,7 +184,7 @@ Whenever you discover a technical detail through implementation — a gotcha, a 
    - Call features (AA/CQ/HG): `docs/reference/call-features-major.md`, `call-features-additional.md`
    - Person settings: `docs/reference/person-call-settings-*.md` (4 files: handling, media, permissions, behavior)
    - Location settings: `docs/reference/location-call-settings-*.md` (3 files: core, media, advanced)
-   - Devices: `docs/reference/devices-*.md` (3 files: core, dect, workspaces)
+   - Devices: `docs/reference/devices-*.md` (4 files: core, dect, workspaces, platform)
    - Routing: `docs/reference/call-routing.md`
    - Auth: `docs/reference/authentication.md`
    - SDK patterns: `docs/reference/wxc-sdk-patterns.md`

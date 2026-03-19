@@ -343,6 +343,8 @@ Provisioning-specific errors:
 
 ## License Lookup Quick Reference
 
+> For bulk license assignment, usage auditing, and reclamation workflows, see the `manage-licensing` skill. The `licenses-api update` command provides CLI-native license assignment.
+
 ```bash
 # List all licenses — look for "Webex Calling - Professional" with available capacity
 wxcli licenses list
