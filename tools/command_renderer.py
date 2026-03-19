@@ -202,16 +202,16 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
                 params.append(f'    {param}: bool = typer.Option(..., "--{bf.python_name}", help="{_escape_help(bf.description[:60])}"),')
             else:
                 help_text = bf.description[:60]
-                if bf.enum_example:
-                    help_text = f"e.g. {bf.enum_example}"
+                if bf.enum_values:
+                    help_text = f"e.g. {bf.enum_values[0]}"
                 params.append(f'    {param}: str = typer.Option(..., "--{bf.python_name}", help="{help_text}"),')
         else:
             if bf.field_type == "bool":
                 params.append(f'    {param}: bool = typer.Option(None, "--{bf.python_name}/--no-{bf.python_name}", help="{_escape_help(bf.description[:60])}"),')
             else:
                 help_text = bf.description[:60]
-                if bf.enum_example:
-                    help_text = f"e.g. {bf.enum_example}"
+                if bf.enum_values:
+                    help_text = f"e.g. {bf.enum_values[0]}"
                 params.append(f'    {param}: str = typer.Option(None, "--{bf.python_name}", help="{help_text}"),')
 
     params.append('    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),')
@@ -263,8 +263,8 @@ def _render_update_command(ep: Endpoint) -> str:
             params.append(f'    {param}: bool = typer.Option(None, "--{bf.python_name}/--no-{bf.python_name}", help="{_escape_help(bf.description[:60])}"),')
         else:
             help_text = bf.description[:60]
-            if bf.enum_example:
-                help_text = f"e.g. {bf.enum_example}"
+            if bf.enum_values:
+                help_text = f"e.g. {bf.enum_values[0]}"
             params.append(f'    {param}: str = typer.Option(None, "--{bf.python_name}", help="{help_text}"),')
 
     params.append('    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),')
@@ -279,6 +279,8 @@ def _render_update_command(ep: Endpoint) -> str:
             continue
         body_build.append(f'        if {param} is not None:\n            body["{bf.name}"] = {param}')
 
+    rest_method = "rest_patch" if ep.method == "PATCH" else "rest_put"
+
     lines = [
         f'@app.command("{ep.command_name}")',
         f"def {func_name}(",
@@ -289,7 +291,7 @@ def _render_update_command(ep: Endpoint) -> str:
         f'    url = f"{url_expr}"',
         *body_build,
         "    try:",
-        "        result = api.session.rest_put(url, json=body)",
+        f"        result = api.session.{rest_method}(url, json=body)",
         _render_error_handler("    "),
         '    typer.echo(f"Updated.")',
     ]
@@ -307,7 +309,13 @@ def _render_delete_command(ep: Endpoint) -> str:
 
     url_expr = _render_url_expr(ep.url_path, ep.path_vars)
 
-    id_var = _path_var_to_param(ep.path_vars[-1]) if ep.path_vars else "item"
+    if ep.path_vars:
+        id_var = _path_var_to_param(ep.path_vars[-1])
+        confirm_line = f'        typer.confirm(f"Delete {{{id_var}}}?", abort=True)'
+        echo_line = f'    typer.echo(f"Deleted: {{{id_var}}}")'
+    else:
+        confirm_line = '        typer.confirm("Delete this resource?", abort=True)'
+        echo_line = '    typer.echo("Deleted.")'
 
     lines = [
         f'@app.command("{ep.command_name}")',
@@ -316,13 +324,13 @@ def _render_delete_command(ep: Endpoint) -> str:
         "):",
         f'    """{ep.name}."""',
         "    if not force:",
-        f'        typer.confirm(f"Delete {{{id_var}}}?", abort=True)',
+        confirm_line,
         "    api = get_api(debug=debug)",
         f'    url = f"{url_expr}"',
         "    try:",
         "        api.session.rest_delete(url)",
         _render_error_handler("    "),
-        f'    typer.echo(f"Deleted: {{{id_var}}}")',
+        echo_line,
     ]
     return "\n".join(lines)
 
@@ -339,8 +347,8 @@ def _render_action_command(ep: Endpoint) -> str:
         if bf.field_type in ("object", "array"):
             continue
         help_text = bf.description[:60]
-        if bf.enum_example:
-            help_text = f"e.g. {bf.enum_example}"
+        if bf.enum_values:
+            help_text = f"e.g. {bf.enum_values[0]}"
         params.append(f'    {param}: str = typer.Option(None, "--{bf.python_name}", help="{help_text}"),')
 
     params.append('    json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),')

@@ -16,7 +16,7 @@ class EndpointField:
     description: str
     required: bool = False
     default: Any = None
-    enum_example: str | None = None
+    enum_values: list[str] | None = None
 
 
 @dataclass
@@ -31,16 +31,20 @@ class Endpoint:
     command_name: str
     raw_path: list[str] = field(default_factory=list)
     response_list_key: str | None = None
+    response_id_key: str | None = None
+    deprecated: bool = False
 
 
 def camel_to_kebab(name: str) -> str:
-    s = re.sub(r"([A-Z])", r"-\1", name).lower().lstrip("-")
-    return s
+    s = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1-\2", name)
+    s = re.sub(r"([a-z0-9])([A-Z])", r"\1-\2", s)
+    return s.lower().lstrip("-")
 
 
 def camel_to_snake(name: str) -> str:
-    s = re.sub(r"([A-Z])", r"_\1", name).lower().lstrip("_")
-    return s
+    s = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", name)
+    s = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", s)
+    return s.lower().lstrip("_")
 
 
 def _infer_type(value: Any) -> tuple[str, str | None]:
@@ -83,7 +87,7 @@ def parse_body_fields(raw_body: str | None) -> list[EndpointField]:
                 python_name=camel_to_kebab(key),
                 field_type=field_type,
                 description="",
-                enum_example=enum_example,
+                enum_values=[enum_example] if enum_example else None,
             )
         )
     return fields
@@ -303,9 +307,13 @@ def apply_overrides(
 
 
 def apply_endpoint_overrides(ep: 'Endpoint', folder_overrides: dict) -> None:
-    """Apply folder-level overrides to an endpoint (e.g. command_type, response_list_key)."""
+    """Apply folder-level overrides to an endpoint (e.g. command_type, response_list_key, url)."""
     if not folder_overrides:
         return
+    # URL overrides (e.g. fix incorrect Postman paths)
+    url_overrides = folder_overrides.get("url_overrides", {})
+    if ep.command_name in url_overrides:
+        ep.url_path = url_overrides[ep.command_name]
     # Command type overrides (e.g. reclassify list → settings-get for singletons)
     type_overrides = folder_overrides.get("command_type_overrides", {})
     if ep.command_name in type_overrides:
