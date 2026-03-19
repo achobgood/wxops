@@ -168,6 +168,8 @@ def show(
 @app.command("update")
 def update(
     device_id: str = typer.Argument(help="deviceId"),
+    op: str = typer.Option(None, "--op", help="Choices: add, remove, replace"),
+    path: str = typer.Option(None, "--path", help="Only the tags path is supported to patch."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -178,6 +180,10 @@ def update(
         body = json.loads(json_body)
     else:
         body = {}
+        if op is not None:
+            body["op"] = op
+        if path is not None:
+            body["path"] = path
     try:
         result = api.session.rest_patch(url, json=body)
     except RestError as e:

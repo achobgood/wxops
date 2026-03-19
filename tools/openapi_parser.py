@@ -152,7 +152,8 @@ def parse_request_body(
     content = rb.get("content", {})
     json_content = (
         content.get("application/json")
-        or content.get("application/json;charset=UTF-8", {})
+        or content.get("application/json;charset=UTF-8")
+        or content.get("application/json-patch+json", {})
     )
     if not json_content:
         return []
