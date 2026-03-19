@@ -1,66 +1,21 @@
 # ── field_overrides.yaml ──
-# Override schema for the wxcli auto-generator (tools/generate_commands.py).
+# Overrides for the wxcli OpenAPI-based generator (tools/generate_commands.py).
 #
-# Top-level keys are Postman folder names (exact match).
-# Each folder can contain:
+# The OpenAPI spec now provides: response schemas, required fields, command types,
+# enum values, and descriptions. This file only contains what the spec does NOT provide:
 #
-#   command_type_overrides:
-#     <command_name>: <new_type>
-#     Reclassifies a command's type. Use when heuristics get it wrong.
-#     Common fix: "list-foo: settings-get" for singleton GETs misclassified as list.
-#     Supported types: list, show, settings-get, settings-update, create, update, delete, action.
+#   table_columns       — display columns for CLI table output (per-group or per-command)
+#   skip_tags           — glob patterns for OpenAPI tags to skip entirely
+#   tag_merge           — merge split tags into one CLI group
+#   cli_name_overrides  — human-friendly CLI group names (tag → CLI name)
+#   omit_query_params   — query params stripped from all commands
 #
-#   response_list_keys:
-#     <command_name>: <json_key>
-#     Maps a list command name → the JSON key that wraps the array response.
-#     Overrides the auto-derived key (last non-variable URL segment).
-#     Example: "list: phoneNumbers" means the API returns {"phoneNumbers": [...]}.
-#
-#   create:
-#     id_key: <json_key>
-#     Explicit response key for the created resource's ID. Overrides the default
-#     "id" lookup. Example: "id_key: dectNetworkId" extracts result["dectNetworkId"].
-#     required_fields: [field1, field2, ...]
-#     defaults: { field: value, ... }
-#
-#   list:
-#     table_columns:
-#       - ["Header", "json_key"]
-#     Default columns for ALL list commands in this folder. Overrides the
-#     generator default of [("ID", "id"), ("Name", "name")].
-#
-#   table_columns:
-#     <command_name>:
-#       - ["Header", "json_key"]
-#     Per-command column overrides. Takes precedence over list.table_columns.
-#     Use when different list commands in the same folder return different shapes.
-#
-# Global keys:
-#   skip_folders:     - glob patterns for folders to skip entirely
-#   omit_query_params: - query params stripped from all commands (default: [orgId])
-#
-# Known required fields and defaults discovered during v2 live testing
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Table columns — display preferences for CLI table output
+# ═══════════════════════════════════════════════════════════════════════════════
 
 "Features:  Auto Attendant":
-  response_list_keys:
-    list-available-numbers-auto-attendants: phoneNumbers
-    list-available-numbers-alternate: phoneNumbers
-    list-available-numbers-call-forwarding: phoneNumbers
-  create:
-    required_fields: [name, extension, businessHoursMenu, afterHoursMenu, businessSchedule]
-    defaults:
-      businessHoursMenu:
-        greeting: DEFAULT
-        extensionEnabled: true
-        keyConfigurations:
-          - key: "0"
-            action: EXIT
-      afterHoursMenu:
-        greeting: DEFAULT
-        extensionEnabled: true
-        keyConfigurations:
-          - key: "0"
-            action: EXIT
   list:
     table_columns:
       - ["ID", "id"]
@@ -69,19 +24,6 @@
       - ["Enabled", "enabled"]
 
 "Features:  Call Queue":
-  response_list_keys:
-    list-available-numbers-queues: phoneNumbers
-    list-available-numbers-alternate: phoneNumbers
-    list-available-numbers-call-forwarding: phoneNumbers
-    list-available-agents-queues: agents
-    list-available-supervisors: supervisors
-    list-available-agents-supervisors: agents
-  create:
-    required_fields: [name, callPolicies]
-    defaults:
-      callPolicies:
-        routingType: PRIORITY_BASED
-        policy: CIRCULAR
   list:
     table_columns:
       - ["ID", "id"]
@@ -90,24 +32,12 @@
       - ["Enabled", "enabled"]
 
 "Features:  Call Park":
-  response_list_keys:
-    list-available-users: agents
-    list-available-recall-hunt-groups: huntGroups
-  create:
-    required_fields: [name, recall]
-    defaults:
-      recall:
-        option: ALERT_PARKING_USER_ONLY
   list:
     table_columns:
       - ["ID", "id"]
       - ["Name", "name"]
 
 "Features:  Hunt Group":
-  response_list_keys:
-    list-available-numbers-hunt-groups: phoneNumbers
-    list-available-numbers-alternate: phoneNumbers
-    list-available-numbers-call-forwarding: phoneNumbers
   list:
     table_columns:
       - ["ID", "id"]
@@ -116,17 +46,12 @@
       - ["Enabled", "enabled"]
 
 "Features:  Call Pickup":
-  response_list_keys:
-    list-available-users: agents
   list:
     table_columns:
       - ["ID", "id"]
       - ["Name", "name"]
 
 "Features:  Paging Group":
-  response_list_keys:
-    list: locationPaging
-    list-available-numbers: phoneNumbers
   list:
     table_columns:
       - ["ID", "id"]
@@ -142,8 +67,6 @@
       - ["Type", "type"]
 
 "DECT Devices Settings":
-  create:
-    id_key: dectNetworkId
   list:
     table_columns:
       - ["ID", "id"]
@@ -151,9 +74,6 @@
       - ["Model", "model"]
 
 "Numbers":
-  response_list_keys:
-    list: phoneNumbers
-    list-manage-numbers: items
   table_columns:
     list:
       - ["Phone Number", "phoneNumber"]
@@ -166,9 +86,7 @@
       - ["Operation", "operationType"]
       - ["Status", "latestExecutionStatus"]
 
-"User Call Settings (1/2)":
-  response_list_keys:
-    list-numbers: phoneNumbers
+"User Call Settings":
   table_columns:
     list-numbers:
       - ["Number", "directNumber"]
@@ -198,8 +116,6 @@
       - ["State", "state"]
 
 "Workspaces":
-  response_list_keys:
-    list: items
   table_columns:
     list:
       - ["ID", "id"]
@@ -208,16 +124,6 @@
       - ["Calling", "calling.type"]
 
 "Location Call Settings":
-  response_list_keys:
-    list-route-choices: routeIdentities
-    list-available-numbers-external-caller-id: phoneNumbers
-    list-available-numbers-locations: phoneNumbers
-    list-available-numbers-webex-go: phoneNumbers
-    list-available-numbers-emergency-callback-number: phoneNumbers
-    list-available-numbers-call-intercept: phoneNumbers
-    list-available-numbers-charge-number: phoneNumbers
-    list-update-routing-prefix: items
-    list-delete-calling-location: items
   table_columns:
     list-available-numbers-external-caller-id:
       - ["Phone Number", "phoneNumber"]
@@ -245,8 +151,6 @@
       - ["Status", "latestExecutionStatus"]
 
 "Location Call Settings: Call Handling":
-  response_list_keys:
-    list-outgoing-permission: callingPermissions
   table_columns:
     list-access-codes:
       - ["Code", "code"]
@@ -261,18 +165,7 @@
       - ["Action", "action"]
       - ["Transfer", "transferEnabled"]
 
-"Location Call Settings:  Voicemail":
-  response_list_keys:
-    list-voicemail-groups: voicemailGroups
-
 "Device Call Settings":
-  response_list_keys:
-    list-available-members: members
-    list-supported-devices-config: devices
-    list-supported-devices-dects: devices
-    list-supported-devices-dect-networks: devices
-    list-apply-line-key-template: items
-    list-rebuild-phones: items
   table_columns:
     list:
       - ["ID", "id"]
@@ -332,22 +225,10 @@
       - ["Type", "type"]
 
 "Features: Single Number Reach":
-  response_list_keys:
-    list: phoneNumbers
   table_columns:
     list:
       - ["Phone Number", "phoneNumber"]
       - ["State", "state"]
-
-"Locations":
-  response_list_keys:
-    list: items
-    list-floors: items
-
-"Features: Operating Modes":
-  response_list_keys:
-    list-available-operating-modes: operatingModes
-    list-available-numbers: phoneNumbers
 
 "Features: Virtual Extensions":
   table_columns:
@@ -357,25 +238,7 @@
       - ["Extension", "extension"]
       - ["Phone Number", "phoneNumber"]
 
-# Emergency Services Settings: most read endpoints return flat singleton dicts.
-# The expanded SETTINGS_KEYWORDS catches redSky, emergencyCallbackNumber,
-# emergencyCallNotification, complianceStatus. The "status" endpoints need
-# explicit overrides since "status" is too generic for the keyword set.
-"Emergency Services Settings":
-  command_type_overrides:
-    # GET /redSky/status — "status" is too generic for SETTINGS_KEYWORDS
-    list: settings-get
-    # GET /locations/{id}/redSky/status — same issue
-    list-status: settings-get
-
-"Features: Announcement Repository":
-  # list-usage-announcements and list-usage-announcements-1 are caught by "usage" keyword
-
 "Features: Call Recording":
-  response_list_keys:
-    list-vendor-users-call-recording: members
-    list-vendor-users-call-recording-1: members
-    list-call-recording: items
   table_columns:
     list-regions:
       - ["Code", "code"]
@@ -391,8 +254,6 @@
       - ["Email", "email"]
 
 "People":
-  response_list_keys:
-    list: items
   table_columns:
     list:
       - ["ID", "id"]
@@ -400,8 +261,6 @@
       - ["Email", "emails[0]"]
 
 "Devices":
-  response_list_keys:
-    list: items
   table_columns:
     list:
       - ["ID", "id"]
@@ -409,41 +268,13 @@
       - ["Product", "product"]
       - ["MAC", "mac"]
 
-"Converged Recordings":
-  response_list_keys:
-    list: items
-    list-converged-recordings: items
-
-"Reports":
-  response_list_keys:
-    list: items
-
-"Recording Report":
-  response_list_keys:
-    list: items
-    list-meeting-archive-summaries: items
-
 "Calling Service Settings":
-  response_list_keys:
-    list: languages
-  command_type_overrides:
-    list-rules: settings-get
-    list-large-org-status: settings-get
   table_columns:
     list:
       - ["Name", "name"]
       - ["Code", "code"]
 
 "Virtual Line Call Settings":
-  response_list_keys:
-    list-available-numbers-fax-message: phoneNumbers
-    list-available-numbers-call-forwarding: phoneNumbers
-    list-available-numbers-virtual-lines: phoneNumbers
-    list-available-numbers-emergency-callback-number: phoneNumbers
-    list-available-numbers-call-intercept: phoneNumbers
-  command_type_overrides:
-    list-number: settings-get
-    list-caller-id: settings-get
   table_columns:
     list-available-numbers-fax-message:
       - ["Phone Number", "phoneNumber"]
@@ -461,18 +292,13 @@
       - ["Phone Number", "phoneNumber"]
       - ["State", "state"]
 
-"Workspace Call Settings (1/2)":
-  response_list_keys:
-    list: phoneNumbers
+"Workspace Call Settings":
   table_columns:
     list:
       - ["Number", "directNumber"]
       - ["Extension", "extension"]
 
 "Features: Customer Experience Essentials":
-  response_list_keys:
-    list: wrapupReasons
-    list-available-agents: agents
   table_columns:
     list:
       - ["ID", "id"]
@@ -482,28 +308,73 @@
       - ["ID", "id"]
       - ["Display Name", "displayName"]
 
-"Hot Desk":
-  response_list_keys:
-    list: items
-
 "Device Call Settings With Device Dynamic Settings":
-  response_list_keys:
-    list: devices
   table_columns:
     list:
       - ["Model", "model"]
       - ["Display Name", "displayName"]
       - ["Type", "type"]
 
+# ═══════════════════════════════════════════════════════════════════════════════
 # Global settings
-skip_folders:
-  - "Beta *"
-  - "* (2/2)"
-  - "* Phase2"
-  - "* Phase3"
-  - "* Phase4"
-  - "Call Settings For Me *"
-  - "Read the Contact Center Extensions"
+# ═══════════════════════════════════════════════════════════════════════════════
 
 omit_query_params:
   - orgId
+
+# Tags to skip entirely (glob patterns matched against OpenAPI tag names)
+skip_tags:
+  - "Beta *"
+  - "Call Settings For Me*"
+  - "* Phase*"
+
+# Merge split tags into a single CLI group
+tag_merge:
+  "User Call Settings":
+    - "User Call Settings (1/2)"
+    - "User Call Settings (2/2)"
+  "Workspace Call Settings":
+    - "Workspace Call Settings (1/2)"
+    - "Workspace Call Settings (2/2)"
+
+# Human-friendly CLI group names (OpenAPI tag → CLI name)
+cli_name_overrides:
+  "Features:  Auto Attendant": "auto-attendant"
+  "Features:  Call Queue": "call-queue"
+  "Features:  Hunt Group": "hunt-group"
+  "Features:  Call Park": "call-park"
+  "Features:  Call Pickup": "call-pickup"
+  "Features:  Paging Group": "paging-group"
+  "Features: Announcement Playlist": "announcement-playlists"
+  "Features: Announcement Repository": "announcements"
+  "Features: Call Recording": "call-recording"
+  "Features: Customer Experience Essentials": "cx-essentials"
+  "Features: Hot Desking Sign-in via Voice Portal": "hot-desking-portal"
+  "Features: Operating Modes": "operating-modes"
+  "Features: Single Number Reach": "single-number-reach"
+  "Features: Virtual Extensions": "virtual-extensions"
+  "Location Call Settings:  Schedules": "location-schedules"
+  "Location Call Settings:  Voicemail": "location-voicemail"
+  "Location Call Settings: Call Handling": "location-call-handling"
+  "Reports: Detailed Call History": "cdr"
+  "User Call Settings": "user-settings"
+  "Workspace Call Settings": "workspace-settings"
+  "DECT Devices Settings": "dect-devices"
+  "Device Call Settings": "device-settings"
+  "Emergency Services Settings": "emergency-services"
+  "Calling Service Settings": "calling-service"
+  "Caller Reputation Provider": "caller-reputation"
+  "Call Queue Settings with Playlist Settings": "cq-playlists"
+  "Device Call Settings With Device Dynamic Settings": "device-dynamic-settings"
+  "Partner Reports/Templates": "partner-reports"
+  "Recording Report": "recording-report"
+  "Conference Controls": "conference"
+  "Converged Recordings": "recordings"
+  "External Voicemail": "external-voicemail"
+  "Client Call Settings": "client-settings"
+  "Virtual Line Call Settings": "virtual-line-settings"
+  "Mode Management": "mode-management"
+  "Hot Desk": "hot-desk"
+  "Location Call Settings": "location-settings"
+  "Call Routing": "call-routing"
+  "Call Controls": "call-controls"
