@@ -68,17 +68,7 @@ Three tiers of message complexity. Plain text and markdown use direct CLI option
 | Markdown | `--markdown "**Bold**"` | Direct CLI option |
 | Adaptive card | `--json-body '{...}'` | JSON body required |
 
-### Plain Text
-
-```bash
-wxcli messages create --room-id ROOM_ID --text "Build completed successfully"
-```
-
-### Markdown
-
-```bash
-wxcli messages create --room-id ROOM_ID --markdown "## Build Status\n**Project:** myapp\n**Result:** Passed"
-```
+For plain text (`--text`) and markdown (`--markdown`) message patterns, see [`messaging-spaces.md`](messaging-spaces.md).
 
 ### Adaptive Card
 
@@ -757,15 +747,9 @@ For space and membership management commands (`rooms create`, `memberships creat
 
 ## 8. Webhook Signpost
 
-For full webhook CRUD, event setup, HMAC verification, and the complete resource/event catalog, see [`webhooks-events.md`](webhooks-events.md).
+For full webhook CRUD, event setup, messaging resource event payloads, bot webhook patterns, and HMAC verification, see [`webhooks-events.md`](webhooks-events.md) — especially sections 4b (messaging events) and 6b (bot webhook loop).
 
-For messaging bots, the key webhook resources are:
-- `messages` — fires when a message is posted (how bots "hear" messages in a space)
-- `attachmentActions` — fires when a user submits an adaptive card (how bots receive card responses)
-- `memberships` — fires when someone joins or leaves a space
-- `rooms` — fires when a space is created, updated, or deleted
-
-**Create a bot listener webhook:**
+**Example — create a bot listener webhook:**
 
 ```bash
 wxcli webhooks create \
@@ -774,8 +758,6 @@ wxcli webhooks create \
   --resource messages \
   --event created
 ```
-
-Note: For the `messages` resource, webhook payloads do **not** include the message text for bot tokens (a Webex security measure). Your webhook handler must call `GET /messages/{id}` (via `wxcli messages show MSG_ID`) to retrieve the full message content.
 
 ---
 
