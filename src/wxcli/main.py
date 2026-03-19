@@ -236,3 +236,11 @@ from wxcli.commands.workspace_locations import app as workspace_locations_app
 app.add_typer(workspace_locations_app, name="workspace-locations")
 from wxcli.commands.workspace_metrics import app as workspace_metrics_app
 app.add_typer(workspace_metrics_app, name="workspace-metrics")
+
+# Auto-generated from device spec (webex-device.json)
+from wxcli.commands.device_configurations import app as device_configurations_app
+app.add_typer(device_configurations_app, name="device-configurations")
+from wxcli.commands.workspace_personalization import app as workspace_personalization_app
+app.add_typer(workspace_personalization_app, name="workspace-personalization")
+from wxcli.commands.xapi import app as xapi_app
+app.add_typer(xapi_app, name="xapi")
