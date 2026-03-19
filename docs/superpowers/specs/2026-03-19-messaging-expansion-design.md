@@ -8,7 +8,7 @@
 
 ## Summary
 
-Expand the Webex playbook from calling-only to calling + messaging. The messaging CLI surface is 10 groups / 55 commands covering spaces, messages, teams, webhooks, bots, and enterprise content. This spec defines exactly what gets built, where every boundary is, and what changes in the existing agent.
+Expand the Webex playbook from calling-only to calling + messaging. The messaging CLI surface is 10 groups / 51 commands covering spaces, messages, teams, webhooks, bots, and enterprise content. This spec defines exactly what gets built, where every boundary is, and what changes in the existing agent.
 
 **Deliverables:**
 - 2 new reference docs (`messaging-spaces.md`, `messaging-bots.md`)
@@ -40,7 +40,9 @@ Expand the Webex playbook from calling-only to calling + messaging. The messagin
 
 ## CLI Surface Inventory
 
-### 10 Messaging CLI Groups (55 commands total)
+### 10 Messaging CLI Groups (51 commands total)
+
+Note: The `webhooks` group (5 commands) is shared infrastructure already documented in `webhooks-events.md`. The 46 messaging-only commands are new coverage.
 
 | Group | Commands | Read/Write | Maps To |
 |-------|----------|-----------|---------|
@@ -216,7 +218,7 @@ Gotchas:
 - Links SharePoint/OneDrive/Box folders to Webex spaces
 - `--default-folder` flag sets the folder as the default for the space
 
-**Section 7: HDS — Hybrid Data Security (hds CLI group — 8 commands, read-only)**
+**Section 7: HDS — Hybrid Data Security (hds CLI group — 7 commands, read-only)**
 
 | Command | CLI | What It Shows |
 |---------|-----|--------------|
@@ -241,6 +243,10 @@ Recipes for common multi-step workflows:
 - Archive old spaces (set read-only + post archival notice)
 - Set up a project team (create team → create spaces → add members)
 - Export messages from a space (paginated list)
+
+Note: All messaging commands support `--output json|table` like calling commands. Use `--output json` for scripting and verification.
+
+<!-- NEEDS VERIFICATION: Confirm messaging API rate limits. Webex messaging APIs typically enforce ~5 requests/second for bot tokens with exponential backoff. When bulk-creating spaces or adding members, use `sleep 1` between operations for safety. -->
 
 **Section 9: See Also**
 
@@ -285,6 +291,20 @@ wxcli configure
 # Enter the bot's access token when prompted
 wxcli whoami  # Verify — should show the bot's display name
 ```
+
+**Detecting token type from `wxcli whoami` output:**
+
+The `/people/me` response (which `wxcli whoami` calls) includes a `type` field:
+
+| Token Type | `type` field | `displayName` pattern | Other indicators |
+|-----------|-------------|----------------------|------------------|
+| Bot | `bot` | Usually ends with "(bot)" or similar | `emails` field contains bot-specific email |
+| User | `person` | Normal human name | Has `orgId`, standard email |
+| Admin | `person` | Normal human name | Same as user — admin privileges come from roles, not token type |
+
+<!-- NEEDS VERIFICATION: Confirm that `wxcli whoami` exposes the `type` field from /people/me response. If it only shows a subset of fields, document which fields are visible and how to distinguish bot from user. -->
+
+The key discriminator: if `type` is `bot`, it's a bot token. If `type` is `person`, check what the user intends — admin vs regular user depends on the token's scopes, not the /people/me response. The skills should ask if unclear.
 
 **Section 2: Sending Messages**
 
@@ -414,6 +434,8 @@ Response object fields:
 
 <!-- NEEDS VERIFICATION: Confirm exact required fields for room tab creation and whether contentUrl must be HTTPS -->
 
+**Important: Room tabs require a user token (moderator), NOT a bot token.** This section is in the bots doc because tabs are developer/integration workflows, but the authenticated user must be a space moderator.
+
 - Tabs embed web content (dashboards, wikis, tools) directly in a Webex space
 - `--content-url`: the URL to embed (must be HTTPS)
 - `--display-name`: shown in the tab bar
@@ -467,7 +489,9 @@ The doc currently has 9 sections covering webhook CRUD, data model, ALL webhook 
 
 ### What to Add
 
-**Do NOT modify sections 1-3 or 7-10.** They are already universal (CRUD, data model, resource list, security, gotchas).
+**Do NOT modify sections 1-3 or 7-9.** They are already universal (CRUD, data model, resource list, SDK class hierarchy, HMAC security, gotchas).
+
+Insert new content as subsections (H3 under existing H2) to avoid renumbering. Use heading style `### 4b. Title` under the existing `## 4.` section.
 
 **Add Section 4b: Messaging Resource Events** (after existing section 4 "Telephony Call Events")
 
@@ -771,24 +795,24 @@ For interactive bots:
 
 ### Exact Changes Required
 
-The agent file is 554 lines. All changes are additive — no existing content is modified or removed.
+The agent file is 616 lines. All changes are additive — no existing content is modified or removed.
 
-### Change 1: Frontmatter (line ~7)
+### Change 1: Frontmatter (line 10)
 
 **Current:**
 ```
-skills: provision-calling, configure-features, manage-call-settings, configure-routing, manage-devices, call-control, reporting, wxc-calling-debug
+skills: provision-calling, configure-features, manage-call-settings, configure-routing, manage-devices, device-platform, call-control, reporting, wxc-calling-debug, manage-identity, audit-compliance, manage-licensing
 ```
 
 **New:**
 ```
-skills: provision-calling, configure-features, manage-call-settings, configure-routing, manage-devices, call-control, reporting, wxc-calling-debug, messaging-spaces, messaging-bots
+skills: provision-calling, configure-features, manage-call-settings, configure-routing, manage-devices, device-platform, call-control, reporting, wxc-calling-debug, manage-identity, audit-compliance, manage-licensing, messaging-spaces, messaging-bots
 ```
 
 ### Change 2: Interview Phase — Question 1 Objective Recognition (line ~95)
 
 **Current domain detection list:**
-provisioning, features, settings, routing, devices, control, monitoring, bulk
+provisioning, features, settings, routing, devices, device-platform, control, monitoring, identity, compliance, licensing, bulk
 
 **Add to the recognition list:**
 
@@ -798,7 +822,7 @@ provisioning, features, settings, routing, devices, control, monitoring, bulk
 | messaging-bots | "build a bot", "send notifications", "adaptive card", "interactive card", "bot integration", "alert to space", "webhook for messages", "room tab" | `messaging-bots` skill |
 | cross-domain | "calling + messaging", "queue alert to space", "incident response space", "voicemail notification" | `messaging-bots` skill (with calling skill co-dispatch) |
 
-### Change 3: Interview Phase — Question 2 Scope (line ~108)
+### Change 3: Interview Phase — Question 2 Scope (line ~100)
 
 **Add messaging-specific scope probes** (only triggered when domain is messaging):
 
@@ -815,7 +839,7 @@ Additional messaging probes:
 - "Do you have a webhook callback URL?" (needed for interactive bots)
 - "Will you need adaptive cards?" (triggers card recipe selection in bot skill)
 
-### Change 4: Interview Phase — Question 5 Special Requirements (line ~145)
+### Change 4: Interview Phase — Question 5 Special Requirements (line ~155)
 
 **Add messaging-specific probes** (only triggered when domain is messaging):
 
@@ -823,16 +847,16 @@ Additional messaging probes:
 - Card interactions: "Will users interact with cards (approve/reject/fill forms)?" → triggers card recipe + webhook setup
 - Cross-domain: "Does this involve both calling and messaging?" → triggers co-dispatch
 
-### Change 5: Skill Dispatch Table (line ~330)
+### Change 5: Skill Dispatch Table (line ~334)
 
-**Add 2 rows to existing 8-row table:**
+**Add 2 rows to existing 12-row table:**
 
 | Task Domain | Skill File | What It Provides |
 |-------------|-----------|------------------|
 | Spaces, teams, memberships, messages, ECM, HDS | `.claude/skills/messaging-spaces/SKILL.md` | Space lifecycle, team structure, membership management, token type requirements |
 | Bot development, notifications, adaptive cards, room tabs, cross-domain integrations | `.claude/skills/messaging-bots/SKILL.md` | Bot patterns, card recipe catalog, webhook setup, cross-domain recipes |
 
-### Change 6: Reference Doc Loading (line ~458)
+### Change 6: Reference Doc Loading (line ~481)
 
 **Add 2 domain entries to existing loading map:**
 
@@ -841,7 +865,7 @@ Additional messaging probes:
 | Messaging Spaces (spaces, teams, memberships, messages, ECM, HDS) | `docs/reference/messaging-spaces.md`, `docs/reference/authentication.md` |
 | Messaging Bots (bots, notifications, cards, integrations, cross-domain) | `docs/reference/messaging-bots.md`, `docs/reference/webhooks-events.md`, `docs/reference/authentication.md` |
 
-### Change 7: First-Time Setup — Reference Docs Check (line ~75)
+### Change 7: First-Time Setup — Reference Docs Check (line ~28)
 
 Add messaging reference docs to the existence check alongside calling docs.
 
