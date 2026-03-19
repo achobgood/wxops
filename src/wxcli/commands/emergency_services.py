@@ -154,14 +154,24 @@ def update_status_red_sky(
 
 @app.command("show-compliance-status")
 def show_compliance_status(
+    start: str = typer.Option(None, "--start", help="Specifies the offset from the first result that you want to"),
+    max: str = typer.Option(None, "--max", help="Specifies the maximum number of records that you want to fet"),
+    order: str = typer.Option(None, "--order", help="Sort the list of locations in ascending or descending order."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get the Organization Compliance Status and the Location Status List."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/redSky/complianceStatus"
+    params = {}
+    if start is not None:
+        params["start"] = start
+    if max is not None:
+        params["max"] = max
+    if order is not None:
+        params["order"] = order
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)

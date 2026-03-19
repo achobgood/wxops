@@ -10,14 +10,21 @@ app = typer.Typer(help="Manage Webex Calling xapi.")
 
 @app.command("show")
 def show(
+    device_id: str = typer.Option(..., "--device-id", help="The unique identifier for the Webex RoomOS Device."),
+    name: str = typer.Option(..., "--name", help="A list of status expressions used to query the Webex RoomOS"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Query Status."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/xapi/status"
+    params = {}
+    if device_id is not None:
+        params["deviceId"] = device_id
+    if name is not None:
+        params["name"] = name
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)

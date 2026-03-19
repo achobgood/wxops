@@ -860,14 +860,33 @@ def create_directories(
 def show_directories(
     location_id: str = typer.Argument(help="locationId"),
     directory_id: str = typer.Argument(help="directoryId"),
+    search_criteria_mode_or: str = typer.Option(None, "--search-criteria-mode-or", help="When `true`, results matching any one of the search criteria"),
+    first_name: str = typer.Option(None, "--first-name", help="Search for directories that contain people with the indicate"),
+    last_name: str = typer.Option(None, "--last-name", help="Search for directories that contain people with the indicate"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Search for directories that contain people with the indicate"),
+    extension: str = typer.Option(None, "--extension", help="Search for directories that contain people with the indicate"),
+    person_id: str = typer.Option(None, "--person-id", help="Search for directories that contain people with the indicate"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get details for a Receptionist Contact Directory."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/receptionistContacts/directories/{directory_id}"
+    params = {}
+    if search_criteria_mode_or is not None:
+        params["searchCriteriaModeOr"] = search_criteria_mode_or
+    if first_name is not None:
+        params["firstName"] = first_name
+    if last_name is not None:
+        params["lastName"] = last_name
+    if phone_number is not None:
+        params["phoneNumber"] = phone_number
+    if extension is not None:
+        params["extension"] = extension
+    if person_id is not None:
+        params["personId"] = person_id
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)

@@ -162,14 +162,18 @@ def delete(
 @app.command("show")
 def show(
     recording_id: str = typer.Argument(help="recordingId"),
+    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. Only used if the user or"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Recording Details."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/recordings/{recording_id}"
+    params = {}
+    if host_email is not None:
+        params["hostEmail"] = host_email
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -184,6 +188,7 @@ def show(
 @app.command("delete-recordings")
 def delete_recordings(
     recording_id: str = typer.Argument(help="recordingId"),
+    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. Only used if the user or"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -192,8 +197,11 @@ def delete_recordings(
         typer.confirm(f"Delete {recording_id}?", abort=True)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/recordings/{recording_id}"
+    params = {}
+    if host_email is not None:
+        params["hostEmail"] = host_email
     try:
-        api.session.rest_delete(url)
+        api.session.rest_delete(url, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -207,6 +215,7 @@ def delete_recordings(
 
 @app.command("create")
 def create(
+    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. Only used if the user or"),
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site from which the API deletes recordings."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -214,6 +223,9 @@ def create(
     """Move Recordings into the Recycle Bin."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/recordings/softDelete"
+    params = {}
+    if host_email is not None:
+        params["hostEmail"] = host_email
     if json_body:
         body = json.loads(json_body)
     else:
@@ -221,7 +233,7 @@ def create(
         if site_url is not None:
             body["siteUrl"] = site_url
     try:
-        result = api.session.rest_post(url, json=body)
+        result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -238,6 +250,7 @@ def create(
 
 @app.command("create-restore")
 def create_restore(
+    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only u"),
     restore_all: bool = typer.Option(None, "--restore-all/--no-restore-all", help="If not specified or `false`, restores the recordings specifi"),
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site from which the API restores recordings"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -246,6 +259,9 @@ def create_restore(
     """Restore Recordings from Recycle Bin."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/recordings/restore"
+    params = {}
+    if host_email is not None:
+        params["hostEmail"] = host_email
     if json_body:
         body = json.loads(json_body)
     else:
@@ -255,7 +271,7 @@ def create_restore(
         if site_url is not None:
             body["siteUrl"] = site_url
     try:
-        result = api.session.rest_post(url, json=body)
+        result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -272,6 +288,7 @@ def create_restore(
 
 @app.command("create-purge")
 def create_purge(
+    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. Only used if the user or"),
     purge_all: bool = typer.Option(None, "--purge-all/--no-purge-all", help="If not specified or `false`, purges the recordings specified"),
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site from which the API purges recordings."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -280,6 +297,9 @@ def create_purge(
     """Purge Recordings from Recycle Bin."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/recordings/purge"
+    params = {}
+    if host_email is not None:
+        params["hostEmail"] = host_email
     if json_body:
         body = json.loads(json_body)
     else:
@@ -289,7 +309,7 @@ def create_purge(
         if site_url is not None:
             body["siteUrl"] = site_url
     try:
-        result = api.session.rest_post(url, json=body)
+        result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -438,14 +458,18 @@ def list_recordings_group(
 @app.command("show-recordings")
 def show_recordings(
     recording_id: str = typer.Argument(help="recordingId"),
+    person_id: str = typer.Option(None, "--person-id", help="Person ID of the user whose recordings will be retrieved. Th"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Group Recording Details."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/group/recordings/{recording_id}"
+    params = {}
+    if person_id is not None:
+        params["personId"] = person_id
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)

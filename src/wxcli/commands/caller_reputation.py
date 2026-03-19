@@ -10,14 +10,18 @@ app = typer.Typer(help="Manage Webex Calling caller-reputation-provider.")
 
 @app.command("show")
 def show(
+    organization_id: str = typer.Option(None, "--organization-id", help="Unique identifier for the organization."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Caller Reputation Provider Service Settings."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/serviceSettings/callerReputationProvider"
+    params = {}
+    if organization_id is not None:
+        params["organizationId"] = organization_id
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -31,6 +35,7 @@ def show(
 
 @app.command("update")
 def update(
+    organization_id: str = typer.Option(None, "--organization-id", help="Unique identifier for the organization."),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Indicates if the caller reputation provider service is enabl"),
     id_param: str = typer.Option(None, "--id", help="Unique identifier for the reputation provider."),
     name: str = typer.Option(None, "--name", help="Name of the reputation provider."),
@@ -44,6 +49,9 @@ def update(
     """Update Caller Reputation Provider Service Settings."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/serviceSettings/callerReputationProvider"
+    params = {}
+    if organization_id is not None:
+        params["organizationId"] = organization_id
     if json_body:
         body = json.loads(json_body)
     else:
@@ -63,7 +71,7 @@ def update(
         if call_allow_score_threshold is not None:
             body["callAllowScoreThreshold"] = call_allow_score_threshold
     try:
-        result = api.session.rest_put(url, json=body)
+        result = api.session.rest_put(url, json=body, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -77,14 +85,18 @@ def update(
 
 @app.command("show-status")
 def show_status(
+    organization_id: str = typer.Option(None, "--organization-id", help="Unique identifier for the organization."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Caller Reputation Provider Status."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/serviceSettings/callerReputationProvider/status"
+    params = {}
+    if organization_id is not None:
+        params["organizationId"] = organization_id
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -98,6 +110,7 @@ def show_status(
 
 @app.command("unlock-caller-reputation")
 def unlock_caller_reputation(
+    organization_id: str = typer.Option(None, "--organization-id", help="Unique identifier for the organization."),
     id_param: str = typer.Option(None, "--id", help="Unique identifier for the reputation provider."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
     debug: bool = typer.Option(False, "--debug"),
@@ -105,6 +118,9 @@ def unlock_caller_reputation(
     """Unlock Caller Reputation Provider."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/serviceSettings/callerReputationProvider/actions/unlock/invoke"
+    params = {}
+    if organization_id is not None:
+        params["organizationId"] = organization_id
     if json_body:
         body = json.loads(json_body)
     else:
@@ -112,7 +128,7 @@ def unlock_caller_reputation(
         if id_param is not None:
             body["id"] = id_param
     try:
-        result = api.session.rest_post(url, json=body)
+        result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)

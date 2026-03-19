@@ -80,14 +80,18 @@ def create(
 @app.command("show")
 def show(
     team_id: str = typer.Argument(help="teamId"),
+    description: str = typer.Option(None, "--description", help="The teams description."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Team Details."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/teams/{team_id}"
+    params = {}
+    if description is not None:
+        params["description"] = description
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)

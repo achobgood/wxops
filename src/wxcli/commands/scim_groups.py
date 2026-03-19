@@ -107,14 +107,18 @@ def create(
 def show(
     org_id: str = typer.Argument(help="orgId"),
     group_id: str = typer.Argument(help="groupId"),
+    excluded_attributes: str = typer.Option(None, "--excluded-attributes", help="Attributes to be excluded from the return."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get a group."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/identity/scim/{org_id}/v2/Groups/{group_id}"
+    params = {}
+    if excluded_attributes is not None:
+        params["excludedAttributes"] = excluded_attributes
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)

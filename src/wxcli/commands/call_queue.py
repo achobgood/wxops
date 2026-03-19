@@ -67,6 +67,7 @@ def cmd_list(
 @app.command("create")
 def create(
     location_id: str = typer.Argument(help="locationId"),
+    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Creates a Customer Experience Essentials call queue, when `t"),
     name: str = typer.Option(..., "--name", help="Unique name for the call queue."),
     phone_number: str = typer.Option(None, "--phone-number", help="Primary phone number of the call queue. Either a `phoneNumbe"),
     extension: str = typer.Option(None, "--extension", help="Primary phone extension of the call queue. Either a `phoneNu"),
@@ -85,6 +86,9 @@ def create(
     """Create a Call Queue with Customer Experience Essentials."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues"
+    params = {}
+    if has_cx_essentials is not None:
+        params["hasCxEssentials"] = has_cx_essentials
     if json_body:
         body = json.loads(json_body)
     else:
@@ -114,7 +118,7 @@ def create(
         if dial_by_name is not None:
             body["dialByName"] = dial_by_name
     try:
-        result = api.session.rest_post(url, json=body)
+        result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -133,14 +137,18 @@ def create(
 def show(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
+    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true`, to view the details of a call queue w"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Details for a Call Queue with Customer Experience Essentials."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}"
+    params = {}
+    if has_cx_essentials is not None:
+        params["hasCxEssentials"] = has_cx_essentials
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1038,6 +1046,7 @@ def list_supervisors(
 
 @app.command("create-supervisors")
 def create_supervisors(
+    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Creates a Customer Experience Essentials queue supervisor, w"),
     id_param: str = typer.Option(..., "--id", help="A unique identifier for the supervisor."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1045,6 +1054,9 @@ def create_supervisors(
     """Create a Supervisor with Customer Experience Essentials."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/supervisors"
+    params = {}
+    if has_cx_essentials is not None:
+        params["hasCxEssentials"] = has_cx_essentials
     if json_body:
         body = json.loads(json_body)
     else:
@@ -1052,7 +1064,7 @@ def create_supervisors(
         if id_param is not None:
             body["id"] = id_param
     try:
-        result = api.session.rest_post(url, json=body)
+        result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1093,14 +1105,33 @@ def delete_supervisors_config(
 @app.command("show-supervisors")
 def show_supervisors(
     supervisor_id: str = typer.Argument(help="supervisorId"),
+    max: str = typer.Option(None, "--max", help="Limit the number of objects returned to this maximum count."),
+    start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
+    name: str = typer.Option(None, "--name", help="Only return the agents that match the given name."),
+    phone_number: str = typer.Option(None, "--phone-number", help="Only return agents that match the given phone number, extens"),
+    order: str = typer.Option(None, "--order", help="Sort results alphabetically by supervisor name, in ascending"),
+    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true`, to view the details of a supervisor w"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """GET Supervisor Detail with Customer Experience Essentials."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/supervisors/{supervisor_id}"
+    params = {}
+    if max is not None:
+        params["max"] = max
+    if start is not None:
+        params["start"] = start
+    if name is not None:
+        params["name"] = name
+    if phone_number is not None:
+        params["phoneNumber"] = phone_number
+    if order is not None:
+        params["order"] = order
+    if has_cx_essentials is not None:
+        params["hasCxEssentials"] = has_cx_essentials
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1115,18 +1146,22 @@ def show_supervisors(
 @app.command("update-supervisors")
 def update_supervisors(
     supervisor_id: str = typer.Argument(help="supervisorId"),
+    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true` to modify a supervisor with Customer E"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Assign or Unassign Agents to Supervisor with Customer Experience Essentials."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/supervisors/{supervisor_id}"
+    params = {}
+    if has_cx_essentials is not None:
+        params["hasCxEssentials"] = has_cx_essentials
     if json_body:
         body = json.loads(json_body)
     else:
         body = {}
     try:
-        result = api.session.rest_put(url, json=body)
+        result = api.session.rest_put(url, json=body, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1324,14 +1359,24 @@ def list_agents(
 @app.command("show-agents")
 def show_agents(
     id: str = typer.Argument(help="id"),
+    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true` to view the details of an agent with C"),
+    max: str = typer.Option(..., "--max", help="Limit the number of objects returned to this maximum count."),
+    start: str = typer.Option(..., "--start", help="Start at the zero-based offset in the list of matching objec"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Details for a Call Queue Agent with Customer Experience Essentials."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/queues/agents/{id}"
+    params = {}
+    if has_cx_essentials is not None:
+        params["hasCxEssentials"] = has_cx_essentials
+    if max is not None:
+        params["max"] = max
+    if start is not None:
+        params["start"] = start
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1346,18 +1391,22 @@ def show_agents(
 @app.command("update-settings")
 def update_settings(
     id: str = typer.Argument(help="id"),
+    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true` to modify an agent that has Customer E"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update an Agent's Settings of One or More Call Queues with Customer Experience Essentials."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/queues/agents/{id}/settings"
+    params = {}
+    if has_cx_essentials is not None:
+        params["hasCxEssentials"] = has_cx_essentials
     if json_body:
         body = json.loads(json_body)
     else:
         body = {}
     try:
-        result = api.session.rest_put(url, json=body)
+        result = api.session.rest_put(url, json=body, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)

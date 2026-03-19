@@ -98,14 +98,18 @@ def create(
 @app.command("show")
 def show(
     group_id: str = typer.Argument(help="groupId"),
+    include_members: str = typer.Option(None, "--include-members", help="Include the members as part of the response."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Group Details."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/groups/{group_id}"
+    params = {}
+    if include_members is not None:
+        params["includeMembers"] = include_members
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)

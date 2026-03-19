@@ -10,14 +10,21 @@ app = typer.Typer(help="Manage Webex Calling device-configurations.")
 
 @app.command("show")
 def show(
+    device_id: str = typer.Option(..., "--device-id", help="List device configurations by device ID."),
+    key: str = typer.Option(None, "--key", help="This can optionally be used to filter configurations. Keys a"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Device Configurations for device."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/deviceConfigurations"
+    params = {}
+    if device_id is not None:
+        params["deviceId"] = device_id
+    if key is not None:
+        params["key"] = key
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -31,6 +38,7 @@ def show(
 
 @app.command("update")
 def update(
+    device_id: str = typer.Option(..., "--device-id", help="Update device configurations by device ID."),
     op: str = typer.Option(None, "--op", help="Choices: remove, replace"),
     path: str = typer.Option(None, "--path", help="Only paths ending in `/sources/configured/value` are support"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -39,6 +47,9 @@ def update(
     """Update Device Configurations."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/deviceConfigurations"
+    params = {}
+    if device_id is not None:
+        params["deviceId"] = device_id
     if json_body:
         body = json.loads(json_body)
     else:
@@ -48,7 +59,7 @@ def update(
         if path is not None:
             body["path"] = path
     try:
-        result = api.session.rest_patch(url, json=body)
+        result = api.session.rest_patch(url, json=body, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)

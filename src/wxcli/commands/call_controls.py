@@ -775,14 +775,18 @@ def cmd_list(
 @app.command("show")
 def show(
     call_id: str = typer.Argument(help="callId"),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Call Details."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/calls/{call_id}"
+    params = {}
+    if line_owner_id is not None:
+        params["lineOwnerId"] = line_owner_id
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)

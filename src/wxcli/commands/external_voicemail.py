@@ -10,6 +10,7 @@ app = typer.Typer(help="Manage Webex Calling external-voicemail.")
 
 @app.command("create")
 def create(
+    id_param: str = typer.Option(..., "--id", help="Unique identifier for the user or workspace."),
     action: str = typer.Option(..., "--action", help="Choices: SET, CLEAR"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -17,6 +18,9 @@ def create(
     """Set or Clear Message Waiting Indicator (MWI) Status."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/externalVoicemail/mwi"
+    params = {}
+    if id_param is not None:
+        params["id"] = id_param
     if json_body:
         body = json.loads(json_body)
     else:
@@ -24,7 +28,7 @@ def create(
         if action is not None:
             body["action"] = action
     try:
-        result = api.session.rest_post(url, json=body)
+        result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)

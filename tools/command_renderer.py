@@ -86,6 +86,28 @@ def _enum_help(field: EndpointField, max_desc: int = 60) -> str:
     return _escape_help(field.description[:max_desc])
 
 
+def _render_query_params(ep: Endpoint) -> tuple[list[str], list[str]]:
+    """Render query param options and param-building lines for non-list commands.
+
+    Returns (param_defs, param_build_lines). Skips rendering if no query params.
+    """
+    if not ep.query_params:
+        return [], []
+    param_defs = []
+    for qp in ep.query_params:
+        param = _safe_param_name(qp.python_name)
+        help_text = _enum_help(qp)
+        if qp.required:
+            param_defs.append(f'    {param}: str = typer.Option(..., "--{qp.python_name}", help="{help_text}"),')
+        else:
+            param_defs.append(f'    {param}: str = typer.Option(None, "--{qp.python_name}", help="{help_text}"),')
+    param_build = ["    params = {}"]
+    for qp in ep.query_params:
+        param = _safe_param_name(qp.python_name)
+        param_build.append(f'    if {param} is not None:\n        params["{qp.name}"] = {param}')
+    return param_defs, param_build
+
+
 def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
     func_name = _safe_func_name(ep.command_name)
     folder_overrides = folder_overrides or {}
@@ -162,24 +184,42 @@ def _render_show_command(ep: Endpoint, folder_overrides: dict | None = None) -> 
     for var in ep.path_vars:
         param = _path_var_to_param(var)
         params.append(f'    {param}: str = typer.Argument(help="{var}"),')
+    qp_defs, qp_build = _render_query_params(ep)
+    params.extend(qp_defs)
     params.append('    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),')
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
     url_expr = _render_url_expr(ep.url_path, ep.path_vars)
 
-    lines = [
-        f'@app.command("{ep.command_name}")',
-        f"def {func_name}(",
-        *params,
-        "):",
-        f'    """{ep.name}."""',
-        "    api = get_api(debug=debug)",
-        f'    url = f"{url_expr}"',
-        "    try:",
-        "        result = api.session.rest_get(url)",
-        _render_error_handler("    "),
-        "    print_json(result)",
-    ]
+    if qp_build:
+        lines = [
+            f'@app.command("{ep.command_name}")',
+            f"def {func_name}(",
+            *params,
+            "):",
+            f'    """{ep.name}."""',
+            "    api = get_api(debug=debug)",
+            f'    url = f"{url_expr}"',
+            *qp_build,
+            "    try:",
+            "        result = api.session.rest_get(url, params=params)",
+            _render_error_handler("    "),
+            "    print_json(result)",
+        ]
+    else:
+        lines = [
+            f'@app.command("{ep.command_name}")',
+            f"def {func_name}(",
+            *params,
+            "):",
+            f'    """{ep.name}."""',
+            "    api = get_api(debug=debug)",
+            f'    url = f"{url_expr}"',
+            "    try:",
+            "        result = api.session.rest_get(url)",
+            _render_error_handler("    "),
+            "    print_json(result)",
+        ]
     return "\n".join(lines)
 
 
@@ -210,6 +250,9 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
     for var in ep.path_vars:
         param = _path_var_to_param(var)
         params.append(f'    {param}: str = typer.Argument(help="{var}"),')
+
+    qp_defs, qp_build = _render_query_params(ep)
+    params.extend(qp_defs)
 
     for bf in ep.body_fields:
         param = _safe_param_name(bf.python_name)
@@ -244,6 +287,8 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
         else:
             body_build.append(f'        if {param} is not None:\n            body["{bf.name}"] = {param}')
 
+    post_call = "result = api.session.rest_post(url, json=body)" if not qp_build else "result = api.session.rest_post(url, json=body, params=params)"
+
     lines = [
         f'@app.command("{ep.command_name}")',
         f"def {func_name}(",
@@ -252,9 +297,10 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
         f'    """{ep.name}."""',
         "    api = get_api(debug=debug)",
         f'    url = f"{url_expr}"',
+        *qp_build,
         *body_build,
         "    try:",
-        "        result = api.session.rest_post(url, json=body)",
+        f"        {post_call}",
         _render_error_handler("    "),
         _render_create_id_extraction(ep, folder_overrides),
     ]
@@ -267,6 +313,9 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
     for var in ep.path_vars:
         param = _path_var_to_param(var)
         params.append(f'    {param}: str = typer.Argument(help="{var}"),')
+
+    qp_defs, qp_build = _render_query_params(ep)
+    params.extend(qp_defs)
 
     for bf in ep.body_fields:
         param = _safe_param_name(bf.python_name)
@@ -291,6 +340,7 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
         body_build.append(f'        if {param} is not None:\n            body["{bf.name}"] = {param}')
 
     rest_method = "rest_patch" if ep.method == "PATCH" else "rest_put"
+    method_call = f"result = api.session.{rest_method}(url, json=body)" if not qp_build else f"result = api.session.{rest_method}(url, json=body, params=params)"
 
     lines = [
         f'@app.command("{ep.command_name}")',
@@ -300,9 +350,10 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
         f'    """{ep.name}."""',
         "    api = get_api(debug=debug)",
         f'    url = f"{url_expr}"',
+        *qp_build,
         *body_build,
         "    try:",
-        f"        result = api.session.{rest_method}(url, json=body)",
+        f"        {method_call}",
         _render_error_handler("    "),
         '    typer.echo(f"Updated.")',
     ]
@@ -315,6 +366,8 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
     for var in ep.path_vars:
         param = _path_var_to_param(var)
         params.append(f'    {param}: str = typer.Argument(help="{var}"),')
+    qp_defs, qp_build = _render_query_params(ep)
+    params.extend(qp_defs)
     params.append('    force: bool = typer.Option(False, "--force", help="Skip confirmation"),')
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
@@ -328,6 +381,8 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
         confirm_line = '        typer.confirm("Delete this resource?", abort=True)'
         echo_line = '    typer.echo("Deleted.")'
 
+    delete_call = "api.session.rest_delete(url)" if not qp_build else "api.session.rest_delete(url, params=params)"
+
     lines = [
         f'@app.command("{ep.command_name}")',
         f"def {func_name}(",
@@ -338,8 +393,9 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
         confirm_line,
         "    api = get_api(debug=debug)",
         f'    url = f"{url_expr}"',
+        *qp_build,
         "    try:",
-        "        api.session.rest_delete(url)",
+        f"        {delete_call}",
         _render_error_handler("    "),
         echo_line,
     ]
@@ -352,6 +408,9 @@ def _render_action_command(ep: Endpoint, folder_overrides: dict | None = None) -
     for var in ep.path_vars:
         param = _path_var_to_param(var)
         params.append(f'    {param}: str = typer.Argument(help="{var}"),')
+
+    qp_defs, qp_build = _render_query_params(ep)
+    params.extend(qp_defs)
 
     for bf in ep.body_fields:
         param = _safe_param_name(bf.python_name)
@@ -372,6 +431,8 @@ def _render_action_command(ep: Endpoint, folder_overrides: dict | None = None) -
             continue
         body_build.append(f'        if {param} is not None:\n            body["{bf.name}"] = {param}')
 
+    post_call = "result = api.session.rest_post(url, json=body)" if not qp_build else "result = api.session.rest_post(url, json=body, params=params)"
+
     lines = [
         f'@app.command("{ep.command_name}")',
         f"def {func_name}(",
@@ -380,9 +441,10 @@ def _render_action_command(ep: Endpoint, folder_overrides: dict | None = None) -
         f'    """{ep.name}."""',
         "    api = get_api(debug=debug)",
         f'    url = f"{url_expr}"',
+        *qp_build,
         *body_build,
         "    try:",
-        "        result = api.session.rest_post(url, json=body)",
+        f"        {post_call}",
         _render_error_handler("    "),
         "    print_json(result)",
     ]

@@ -76,6 +76,7 @@ def create(
 
 @app.command("delete")
 def delete(
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -84,8 +85,11 @@ def delete(
         typer.confirm("Delete this resource?", abort=True)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/conference"
+    params = {}
+    if line_owner_id is not None:
+        params["lineOwnerId"] = line_owner_id
     try:
-        api.session.rest_delete(url)
+        api.session.rest_delete(url, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -257,18 +261,22 @@ def create_undeafen(
 
 @app.command("create-hold")
 def create_hold(
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Hold."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/conference/hold"
+    params = {}
+    if line_owner_id is not None:
+        params["lineOwnerId"] = line_owner_id
     if json_body:
         body = json.loads(json_body)
     else:
         body = {}
     try:
-        result = api.session.rest_post(url, json=body)
+        result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -285,18 +293,22 @@ def create_hold(
 
 @app.command("create-resume")
 def create_resume(
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Resume."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/conference/resume"
+    params = {}
+    if line_owner_id is not None:
+        params["lineOwnerId"] = line_owner_id
     if json_body:
         body = json.loads(json_body)
     else:
         body = {}
     try:
-        result = api.session.rest_post(url, json=body)
+        result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)

@@ -48,6 +48,7 @@ def cmd_list(
 
 @app.command("delete")
 def delete(
+    client_id: str = typer.Option(..., "--client-id", help="The unique oAuth client id."),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -56,8 +57,11 @@ def delete(
         typer.confirm("Delete this resource?", abort=True)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/authorizations"
+    params = {}
+    if client_id is not None:
+        params["clientId"] = client_id
     try:
-        api.session.rest_delete(url)
+        api.session.rest_delete(url, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)

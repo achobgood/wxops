@@ -3781,14 +3781,27 @@ def list_available_members_applications_1(
 @app.command("show-count")
 def show_count(
     person_id: str = typer.Argument(help="personId"),
+    location_id: str = typer.Option(None, "--location-id", help="Location ID for the person."),
+    member_name: str = typer.Option(None, "--member-name", help="Search for people with names that match the query."),
+    phone_number: str = typer.Option(None, "--phone-number", help="Search for people with numbers that match the query."),
+    extension: str = typer.Option(None, "--extension", help="Search for people with extensions that match the query."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Count of Shared-Line Appearance Members."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/applications/availableMembers/count"
+    params = {}
+    if location_id is not None:
+        params["locationId"] = location_id
+    if member_name is not None:
+        params["memberName"] = member_name
+    if phone_number is not None:
+        params["phoneNumber"] = phone_number
+    if extension is not None:
+        params["extension"] = extension
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)

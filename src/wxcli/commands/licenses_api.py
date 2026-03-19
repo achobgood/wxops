@@ -43,14 +43,24 @@ def cmd_list(
 @app.command("show")
 def show(
     license_id: str = typer.Argument(help="licenseId"),
+    include_assigned_to: str = typer.Option(None, "--include-assigned-to", help="Choices: user"),
+    next: str = typer.Option(None, "--next", help="List the next set of users. Applicable only if `includeAssig"),
+    limit: str = typer.Option(None, "--limit", help="A limit on the number of users to be returned in the respons"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get License Details."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/licenses/{license_id}"
+    params = {}
+    if include_assigned_to is not None:
+        params["includeAssignedTo"] = include_assigned_to
+    if next is not None:
+        params["next"] = next
+    if limit is not None:
+        params["limit"] = limit
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)

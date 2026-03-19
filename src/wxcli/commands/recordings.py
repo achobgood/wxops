@@ -187,14 +187,18 @@ def delete(
 @app.command("show-metadata")
 def show_metadata(
     recording_id: str = typer.Argument(help="recordingId"),
+    show_all_types: str = typer.Option(None, "--show-all-types", help="If `showAllTypes` is `true`, all attributes will be shown. I"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Recording metadata."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/convergedRecordings/{recording_id}/metadata"
+    params = {}
+    if show_all_types is not None:
+        params["showAllTypes"] = show_all_types
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
