@@ -17,7 +17,7 @@ def show(
 ):
     """Historical Data related to Messaging."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/v1/analytics/messagingMetrics/dailyTotals"
+    url = f"https://webexapis.com/v1/analytics/messagingMetrics/dailyTotals"
     params = {}
     if from_param is not None:
         params["from"] = from_param
@@ -45,7 +45,7 @@ def show_daily_totals(
 ):
     """Historical Data related to Room Devices."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/v1/analytics/roomDeviceMetrics/dailyTotals"
+    url = f"https://webexapis.com/v1/analytics/roomDeviceMetrics/dailyTotals"
     params = {}
     if from_param is not None:
         params["from"] = from_param
@@ -74,7 +74,7 @@ def show_aggregates(
 ):
     """Historical Data related to Meetings."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/v1/analytics/meetingsMetrics/aggregates"
+    url = f"https://webexapis.com/v1/analytics/meetingsMetrics/aggregates"
     params = {}
     if site_url is not None:
         params["siteUrl"] = site_url

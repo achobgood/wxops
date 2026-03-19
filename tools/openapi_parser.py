@@ -328,9 +328,13 @@ def _path_to_raw_path(path: str) -> list[str]:
 def _path_to_url_path(path: str) -> str:
     """Convert OpenAPI path '/foo/{bar}/baz' to url_path 'foo/{bar}/baz'.
 
-    Strips leading slash but keeps {param} format as-is (renderer expects it).
+    Strips leading slash and redundant 'v1/' prefix (renderer's BASE_URL
+    already includes /v1). Keeps {param} format as-is.
     """
-    return path.lstrip("/")
+    result = path.lstrip("/")
+    if result.startswith("v1/"):
+        result = result[3:]
+    return result
 
 
 def parse_operation(
