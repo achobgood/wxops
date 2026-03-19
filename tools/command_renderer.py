@@ -100,9 +100,14 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
         help_text = _enum_help(qp)
         params.append(f'    {param}: str = typer.Option(None, "--{qp.python_name}", help="{help_text}"),')
 
+    # Track query param names to avoid duplicating generic pagination params
+    query_param_names = {_safe_param_name(qp.python_name) for qp in ep.query_params}
+
     params.append('    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),')
-    params.append('    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),')
-    params.append('    offset: int = typer.Option(0, "--offset", help="Start offset"),')
+    if "limit" not in query_param_names:
+        params.append('    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),')
+    if "offset" not in query_param_names:
+        params.append('    offset: int = typer.Option(0, "--offset", help="Start offset"),')
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
     url_expr = _render_url_expr(ep.url_path, ep.path_vars)
@@ -112,8 +117,10 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
     for qp in ep.query_params:
         param = _safe_param_name(qp.python_name)
         param_build.append(f'    if {param} is not None:\n        params["{qp.name}"] = {param}')
-    param_build.append('    if limit > 0:\n        params["max"] = limit')
-    param_build.append('    if offset > 0:\n        params["start"] = offset')
+    if "limit" not in query_param_names:
+        param_build.append('    if limit > 0:\n        params["max"] = limit')
+    if "offset" not in query_param_names:
+        param_build.append('    if offset > 0:\n        params["start"] = offset')
 
     list_key = ep.response_list_key or "items"
 
@@ -144,7 +151,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
         '    if output == "json":',
         "        print_json(items)",
         "    else:",
-        f"        print_table(items, columns={col_str}, limit=limit)",
+        f"        print_table(items, columns={col_str}, limit={'limit' if 'limit' not in query_param_names else '0'})",
     ]
     return "\n".join(lines)
 
