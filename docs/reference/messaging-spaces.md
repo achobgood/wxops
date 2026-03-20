@@ -592,7 +592,7 @@ HDS endpoints work with a standard full admin token -- no special admin role (e.
 
 All messaging commands support `--output json|table`. Use `--output json` for scripting and piping results to other tools.
 
-<!-- NEEDS VERIFICATION: Specific numeric rate limits (~5 req/s for bot tokens) not yet confirmed via live testing. The OpenAPI spec confirms 429 responses with Retry-After headers but does not document per-token-type rates. Safely testing rate limits requires a bot token and rapid-fire requests, which risks temporary throttling. Skipped for now. -->
+> **Note:** Specific numeric rate limits (~5 req/s for bot tokens) not yet confirmed via live testing. The OpenAPI spec confirms 429 responses with Retry-After headers but does not document per-token-type rates.
 
 ### Bulk Create Spaces from a List
 
