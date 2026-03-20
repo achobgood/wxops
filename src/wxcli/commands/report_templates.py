@@ -8,16 +8,23 @@ from wxcli.output import print_table, print_json
 app = typer.Typer(help="Manage Webex Calling report-templates.")
 
 
-@app.command("show")
-def show(
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+@app.command("list")
+def cmd_list(
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Report Templates."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/report/templates"
+    params = {}
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
         if "25008" in str(e):
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -25,6 +32,11 @@ def show(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    print_json(result)
+    result = result or []
+    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[('ID', 'Id'), ('Title', 'title'), ('Service', 'service'), ('Max Days', 'maxDays')], limit=limit)
 
 

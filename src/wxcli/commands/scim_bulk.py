@@ -17,7 +17,7 @@ def create(
 ):
     """User bulk API."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/identity/scim/{org_id}/v2/Bulk"
+    url = f"https://webexapis.com/identity/scim/{org_id}/v2/Bulk"
     if json_body:
         body = json.loads(json_body)
     else:

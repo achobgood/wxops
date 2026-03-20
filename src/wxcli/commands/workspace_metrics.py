@@ -57,7 +57,7 @@ def cmd_list(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('Start', 'start'), ('End', 'end'), ('Metric', 'metricName'), ('Value', 'value')], limit=limit)
 
 
 
@@ -104,6 +104,6 @@ def list_workspace_duration_metrics(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('Start', 'start'), ('End', 'end'), ('Duration', 'duration')], limit=limit)
 
 

@@ -10,8 +10,9 @@ app = typer.Typer(help="Manage Webex Calling admin-audit-events.")
 
 @app.command("list")
 def cmd_list(
-    from_param: str = typer.Option(None, "--from", help="List events which occurred after a specific date and time."),
-    to: str = typer.Option(None, "--to", help="List events which occurred before a specific date and time."),
+    org_id: str = typer.Option(..., "--org-id", help="List events in this organization, by ID."),
+    from_param: str = typer.Option(..., "--from", help="List events which occurred after a specific date and time."),
+    to: str = typer.Option(..., "--to", help="List events which occurred before a specific date and time."),
     actor_id: str = typer.Option(None, "--actor-id", help="List events performed by this person, by ID."),
     max: str = typer.Option(None, "--max", help="Limit the maximum number of events in the response. The maxi"),
     offset: str = typer.Option(None, "--offset", help="Offset from the first result that you want to fetch."),
@@ -24,6 +25,8 @@ def cmd_list(
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/adminAudit/events"
     params = {}
+    if org_id is not None:
+        params["orgId"] = org_id
     if from_param is not None:
         params["from"] = from_param
     if to is not None:

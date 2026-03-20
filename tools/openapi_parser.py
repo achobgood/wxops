@@ -233,6 +233,9 @@ def detect_command_type(
         # Check response schema for array properties
         schema = _get_response_schema(op, spec, "200")
         if schema:
+            # Direct array response → list
+            if schema.get("type") == "array":
+                return "list"
             props = schema.get("properties", {})
             has_array = any(
                 p.get("type") == "array" for p in props.values()

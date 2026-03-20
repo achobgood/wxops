@@ -28,7 +28,7 @@ def cmd_list(
 ):
     """Search users."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/identity/scim/{org_id}/v2/Users"
+    url = f"https://webexapis.com/identity/scim/{org_id}/v2/Users"
     params = {}
     if filter_param is not None:
         params["filter"] = filter_param
@@ -89,7 +89,7 @@ def create(
 ):
     """Create a user."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/identity/scim/{org_id}/v2/Users"
+    url = f"https://webexapis.com/identity/scim/{org_id}/v2/Users"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -139,7 +139,7 @@ def show(
 ):
     """Get a user."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/identity/scim/{org_id}/v2/Users/{user_id}"
+    url = f"https://webexapis.com/identity/scim/{org_id}/v2/Users/{user_id}"
     try:
         result = api.session.rest_get(url)
     except RestError as e:
@@ -172,7 +172,7 @@ def update(
 ):
     """Update a user with PUT."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/identity/scim/{org_id}/v2/Users/{user_id}"
+    url = f"https://webexapis.com/identity/scim/{org_id}/v2/Users/{user_id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -219,7 +219,7 @@ def update_users(
 ):
     """Update a user with PATCH."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/identity/scim/{org_id}/v2/Users/{user_id}"
+    url = f"https://webexapis.com/identity/scim/{org_id}/v2/Users/{user_id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -248,7 +248,7 @@ def delete(
     if not force:
         typer.confirm(f"Delete {user_id}?", abort=True)
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/identity/scim/{org_id}/v2/Users/{user_id}"
+    url = f"https://webexapis.com/identity/scim/{org_id}/v2/Users/{user_id}"
     try:
         api.session.rest_delete(url)
     except RestError as e:
@@ -269,7 +269,7 @@ def show_me(
 ):
     """Get Me."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/identity/scim/v2/Users/me"
+    url = f"https://webexapis.com/identity/scim/v2/Users/me"
     try:
         result = api.session.rest_get(url)
     except RestError as e:

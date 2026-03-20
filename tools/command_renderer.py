@@ -4,6 +4,14 @@ from tools.postman_parser import Endpoint, EndpointField, camel_to_snake, camel_
 
 
 BASE_URL = "https://webexapis.com/v1"
+BASE_URL_NO_V1 = "https://webexapis.com"
+BASE_URL_ANALYTICS = "https://analytics-calling.webexapis.com/v1"
+
+# Path prefixes that use the base URL without /v1
+NO_V1_PREFIXES = ("identity/", "Schemas/")
+
+# Paths that use analytics.webexapis.com instead of webexapis.com
+ANALYTICS_PREFIXES = ("cdr_feed", "cdr_stream")
 
 # Existing v2 command modules — generate with _generated suffix to avoid collision
 V2_MODULES = {
@@ -36,7 +44,14 @@ from wxcli.output import print_table, print_json
 
 
 def _render_url_expr(url_path: str, path_vars: list[str]) -> str:
-    expr = f"{BASE_URL}/{url_path}"
+    # CDR paths use analytics.webexapis.com; SCIM/Schema paths skip /v1 prefix
+    if any(url_path.startswith(p) for p in ANALYTICS_PREFIXES):
+        base = BASE_URL_ANALYTICS
+    elif any(url_path.startswith(p) for p in NO_V1_PREFIXES):
+        base = BASE_URL_NO_V1
+    else:
+        base = BASE_URL
+    expr = f"{base}/{url_path}"
     for var in path_vars:
         param = _path_var_to_param(var)
         expr = expr.replace("{" + var + "}", "{" + param + "}")
@@ -120,7 +135,10 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
     for qp in ep.query_params:
         param = _safe_param_name(qp.python_name)
         help_text = _enum_help(qp)
-        params.append(f'    {param}: str = typer.Option(None, "--{qp.python_name}", help="{help_text}"),')
+        if qp.required:
+            params.append(f'    {param}: str = typer.Option(..., "--{qp.python_name}", help="{help_text}"),')
+        else:
+            params.append(f'    {param}: str = typer.Option(None, "--{qp.python_name}", help="{help_text}"),')
 
     # Track query param names to avoid duplicating generic pagination params
     query_param_names = {_safe_param_name(qp.python_name) for qp in ep.query_params}
@@ -169,7 +187,8 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
         "    try:",
         "        result = api.session.rest_get(url, params=params)",
         _render_error_handler("    "),
-        f'    items = result.get("{list_key}", result if isinstance(result, list) else [])',
+        f'    result = result or []',
+    f'    items = result.get("{list_key}", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])',
         '    if output == "json":',
         "        print_json(items)",
         "    else:",

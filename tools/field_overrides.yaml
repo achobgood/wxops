@@ -15,6 +15,24 @@
 # Table columns — display preferences for CLI table output
 # ═══════════════════════════════════════════════════════════════════════════════
 
+"Report Templates":
+  list:
+    table_columns:
+      - ["ID", "Id"]
+      - ["Title", "title"]
+      - ["Service", "service"]
+      - ["Max Days", "maxDays"]
+
+"Reports: Detailed Call History":
+  list:
+    table_columns:
+      - ["Start Time", "startTime"]
+      - ["Calling Number", "callingNumber"]
+      - ["Called Number", "calledNumber"]
+      - ["Duration", "duration"]
+      - ["Direction", "direction"]
+      - ["Call Type", "callType"]
+
 "Features:  Auto Attendant":
   list:
     table_columns:
@@ -160,7 +178,7 @@
       - ["Name", "name"]
       - ["Pattern", "pattern"]
       - ["Action", "action"]
-    list-outgoing-permission:
+    list:
       - ["Call Type", "callType"]
       - ["Action", "action"]
       - ["Transfer", "transferEnabled"]
@@ -214,15 +232,13 @@
       - ["Status", "latestExecutionStatus"]
 
 "PSTN":
+  command_type_overrides:
+    list-connection: "settings-get"
   table_columns:
     list:
       - ["Type", "type"]
       - ["Name", "name"]
       - ["ID", "id"]
-    list-connection:
-      - ["ID", "id"]
-      - ["Name", "name"]
-      - ["Type", "type"]
 
 "Features: Single Number Reach":
   table_columns:
@@ -344,6 +360,14 @@
     list: "Resources"
     list-members: "members"
 
+"Admin Audit Events":
+  keep_query_params:
+    - orgId
+
+"Security Audit Events":
+  keep_query_params:
+    - orgId
+
 "Roles":
   list:
     table_columns:
@@ -391,6 +415,34 @@
       - ["Name", "name"]
       - ["Target URL", "targetUrl"]
       - ["Resource", "resource"]
+
+"Authorizations":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Application", "applicationName"]
+      - ["Type", "type"]
+      - ["Client ID", "clientId"]
+
+"Memberships":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Person", "personDisplayName"]
+      - ["Email", "personEmail"]
+      - ["Moderator", "isModerator"]
+
+"Workspace Metrics":
+  table_columns:
+    list:
+      - ["Start", "start"]
+      - ["End", "end"]
+      - ["Metric", "metricName"]
+      - ["Value", "value"]
+    list-workspace-duration-metrics:
+      - ["Start", "start"]
+      - ["End", "end"]
+      - ["Duration", "duration"]
 
 "Recordings":
   list:
@@ -462,6 +514,7 @@ cli_name_overrides:
   "Call Queue Settings with Playlist Settings": "cq-playlists"
   "Device Call Settings With Device Dynamic Settings": "device-dynamic-settings"
   "Partner Reports/Templates": "partner-reports"
+  "Report Templates": "report-templates"
   "Recording Report": "recording-report"
   "Conference Controls": "conference"
   "Converged Recordings": "recordings"

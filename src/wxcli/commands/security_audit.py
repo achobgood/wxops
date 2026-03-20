@@ -10,8 +10,9 @@ app = typer.Typer(help="Manage Webex Calling security-audit-events.")
 
 @app.command("list")
 def cmd_list(
-    start_time: str = typer.Option(None, "--start-time", help="List events which occurred after a specific date and time."),
-    end_time: str = typer.Option(None, "--end-time", help="List events which occurred before a specific date and time."),
+    org_id: str = typer.Option(..., "--org-id", help="List events in this organization, by ID."),
+    start_time: str = typer.Option(..., "--start-time", help="List events which occurred after a specific date and time."),
+    end_time: str = typer.Option(..., "--end-time", help="List events which occurred before a specific date and time."),
     actor_id: str = typer.Option(None, "--actor-id", help="List events performed by this person, by ID."),
     max: str = typer.Option(None, "--max", help="Limit the maximum number of events in the response. The maxi"),
     event_categories: str = typer.Option(None, "--event-categories", help="List events, by event categories."),
@@ -24,6 +25,8 @@ def cmd_list(
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/admin/securityAudit/events"
     params = {}
+    if org_id is not None:
+        params["orgId"] = org_id
     if start_time is not None:
         params["startTime"] = start_time
     if end_time is not None:

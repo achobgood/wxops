@@ -27,7 +27,7 @@ def cmd_list(
 ):
     """Search groups."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/identity/scim/{org_id}/v2/Groups"
+    url = f"https://webexapis.com/identity/scim/{org_id}/v2/Groups"
     params = {}
     if filter_param is not None:
         params["filter"] = filter_param
@@ -78,7 +78,7 @@ def create(
 ):
     """Create a group."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/identity/scim/{org_id}/v2/Groups"
+    url = f"https://webexapis.com/identity/scim/{org_id}/v2/Groups"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -113,7 +113,7 @@ def show(
 ):
     """Get a group."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/identity/scim/{org_id}/v2/Groups/{group_id}"
+    url = f"https://webexapis.com/identity/scim/{org_id}/v2/Groups/{group_id}"
     params = {}
     if excluded_attributes is not None:
         params["excludedAttributes"] = excluded_attributes
@@ -141,7 +141,7 @@ def update(
 ):
     """Update a group with PUT."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/identity/scim/{org_id}/v2/Groups/{group_id}"
+    url = f"https://webexapis.com/identity/scim/{org_id}/v2/Groups/{group_id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -172,7 +172,7 @@ def update_groups(
 ):
     """Update a group with PATCH."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/identity/scim/{org_id}/v2/Groups/{group_id}"
+    url = f"https://webexapis.com/identity/scim/{org_id}/v2/Groups/{group_id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -201,7 +201,7 @@ def delete(
     if not force:
         typer.confirm(f"Delete {group_id}?", abort=True)
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/identity/scim/{org_id}/v2/Groups/{group_id}"
+    url = f"https://webexapis.com/identity/scim/{org_id}/v2/Groups/{group_id}"
     try:
         api.session.rest_delete(url)
     except RestError as e:
@@ -212,5 +212,48 @@ def delete(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     typer.echo(f"Deleted: {group_id}")
+
+
+
+@app.command("list-members")
+def list_members(
+    org_id: str = typer.Argument(help="orgId"),
+    group_id: str = typer.Argument(help="groupId"),
+    start_index: str = typer.Option(None, "--start-index", help="The index to start for group pagination."),
+    count: str = typer.Option(None, "--count", help="Non-negative integer that specifies the desired number of se"),
+    member_type: str = typer.Option(None, "--member-type", help="Filter the members by member type. Sample data: `user`, `mac"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Group Members."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/identity/scim/{org_id}/v2/Groups/{group_id}/Members"
+    params = {}
+    if start_index is not None:
+        params["startIndex"] = start_index
+    if count is not None:
+        params["count"] = count
+    if member_type is not None:
+        params["memberType"] = member_type
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        if "25008" in str(e):
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    items = result.get("members", result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 

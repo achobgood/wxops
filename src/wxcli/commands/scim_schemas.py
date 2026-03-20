@@ -15,7 +15,7 @@ def show(
 ):
     """Get Group Schema."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/Schemas/SCIM2/Group"
+    url = f"https://webexapis.com/Schemas/SCIM2/Group"
     try:
         result = api.session.rest_get(url)
     except RestError as e:
@@ -36,7 +36,7 @@ def show_user(
 ):
     """Get User Schema."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/Schemas/SCIM2/User"
+    url = f"https://webexapis.com/Schemas/SCIM2/User"
     try:
         result = api.session.rest_get(url)
     except RestError as e:
@@ -58,7 +58,7 @@ def show_scim2(
 ):
     """Get Schema using Group Schema ID."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/Schemas/SCIM2/{schema_id}"
+    url = f"https://webexapis.com/Schemas/SCIM2/{schema_id}"
     try:
         result = api.session.rest_get(url)
     except RestError as e:
