@@ -85,7 +85,7 @@ wxcli users list --calling-enabled --location LOCATION_ID --output json
 For AA, CQ, HG, Paging, VM Groups -- check available numbers at the location:
 
 ```bash
-wxcli numbers list --location LOCATION_ID --output json
+wxcli numbers list --location-id LOCATION_ID --output json
 ```
 
 ### 4d. Feature-specific prerequisites
@@ -101,7 +101,7 @@ wxcli numbers list --location LOCATION_ID --output json
 | **Voicemail Group** | Extension is required. Passcode is required. |
 | **CX Essentials** | Call Queue must exist first. Requires CX Essentials licensing. |
 
-## Step 5: Gather feature-specific configuration
+## Step 5: Gather configuration and present deployment plan -- [SHOW BEFORE EXECUTING]
 
 Based on the selected feature, collect the required parameters from the user. **Always present the plan before executing.**
 
@@ -437,7 +437,7 @@ api.telephony.cx_essentials.wrapup_reasons.update_queue_settings(
 
 ---
 
-## Step 6: Build and present deployment plan -- `[SHOW BEFORE EXECUTING]`
+### Deployment Plan Template
 
 Before executing any commands, present the full plan to the user:
 
@@ -471,7 +471,7 @@ Proceed? (yes/no)
 
 **Wait for user confirmation before executing.**
 
-## Step 7: Execute via wxcli
+## Step 6: Execute via wxcli
 
 Run the creation command. If the feature requires multiple steps (e.g., agents added after CQ/HG creation), execute them in order.
 
@@ -480,7 +480,7 @@ Handle errors explicitly:
 - **409**: Name or extension conflict -- ask user for alternate
 - **400**: Validation error -- read the error message and fix the parameter
 
-## Step 8: Verify creation
+## Step 7: Verify creation
 
 After creation, fetch the details back and confirm:
 
@@ -507,7 +507,7 @@ wxcli call-pickup show LOCATION_ID PICKUP_ID --output json
 wxcli location-voicemail show-voicemail-groups LOCATION_ID VMG_ID --output json
 ```
 
-## Step 9: Report results
+## Step 8: Report results
 
 Present the creation results:
 
@@ -533,9 +533,9 @@ Next steps:
 ## Critical Rules
 
 1. **Always verify location exists** before creating any feature. Every feature is location-scoped.
-2. **Always show the deployment plan** (Step 6) and wait for user confirmation before executing.
+2. **Always show the deployment plan** (Step 5) and wait for user confirmation before executing.
 3. **Agent/member assignment requires valid person IDs.** Use `wxcli users list --calling-enabled` or the feature-specific `available-agents` subcommand to find them.
-4. **Phone number vs. extension** -- at least one is required for AA, CQ, HG, Paging, VM Groups. Use `wxcli numbers list --location LOCATION_ID` to find unassigned numbers.
+4. **Phone number vs. extension** -- at least one is required for AA, CQ, HG, Paging, VM Groups. Use `wxcli numbers list --location-id LOCATION_ID` to find unassigned numbers.
 5. **Audio file upload is not supported via API** -- custom greetings for AA and CQ must be uploaded through Webex Control Hub.
 6. **Call Park and Call Pickup IDs change on name modification.** Always re-fetch after renaming.
 7. **CQ routing policy limits** -- `SIMULTANEOUS` max 50 agents; `WEIGHTED` max 100 agents; `CIRCULAR`/`REGULAR`/`UNIFORM` max 1,000 agents.
@@ -550,7 +550,7 @@ Next steps:
 
 ---
 
-## Context Compaction
+## Context Compaction Recovery
 
 If context compacts mid-execution, recover by:
 1. Read the deployment plan from `docs/plans/` to recover what was planned

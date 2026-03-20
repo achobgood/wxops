@@ -9,7 +9,7 @@ allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [person-email-or-workspace-name]
 ---
 
-<!-- Updated by playbook session 2026-03-18 -->
+<!-- Updated by playbook session 2026-03-19 -->
 
 # Manage Call Settings Workflow
 
@@ -20,7 +20,7 @@ argument-hint: [person-email-or-workspace-name]
 3. Read `docs/reference/person-call-settings-permissions.md` for incoming/outgoing permissions, feature access codes, executive/assistant
 4. Read `docs/reference/person-call-settings-behavior.md` for calling behavior, app services, shared line, hoteling, receptionist, numbers, preferred answer, MS Teams, mode management, personal assistant, ECBN
 
-## Step 2: Verify authentication
+## Step 2: Verify auth token
 
 Before any API calls, confirm the user's auth token is working:
 
@@ -28,9 +28,54 @@ Before any API calls, confirm the user's auth token is working:
 wxcli whoami
 ```
 
-Check the token has the required scopes for the target operation. See the [Scope Quick Reference](#scope-quick-reference) at the bottom of this file.
+Check the token has the required scopes for the target operation.
 
-## Step 3: Identify the target
+### Required Scopes by Operation Type
+
+| Scope | Grants |
+|-------|--------|
+| `spark-admin:people_read` | Read any person's call settings (admin) |
+| `spark-admin:people_write` | Modify any person's call settings (admin) |
+| `spark:people_read` | Read own call settings (self) |
+| `spark:people_write` | Modify own call settings (self) |
+| `spark-admin:telephony_config_read` | Read telephony config (SNR, MoH, App Services, ECBN, Numbers, Feature Access, Executive, etc.) |
+| `spark-admin:telephony_config_write` | Modify telephony config |
+| `spark-admin:workspaces_read` | Read workspace settings (outgoing permissions transfer numbers, access codes, call policy) |
+| `spark-admin:workspaces_write` | Modify workspace settings |
+
+### Which Settings Use Which Scopes
+
+| `people_read/write` | `telephony_config_read/write` | `workspaces_read/write` |
+|---------------------|-------------------------------|------------------------|
+| Forwarding | Single Number Reach | Outgoing Permissions — Transfer Numbers |
+| Call Waiting | Music on Hold | Outgoing Permissions — Access Codes |
+| DND | Voicemail (passcode only) | Call Policy |
+| Voicemail (main) | App Services (read) | |
+| Caller ID | App Shared Line | |
+| ~~Anon Call Rejection~~ *(user-only)* | Feature Access Controls | |
+| Privacy | Executive Settings | |
+| Barge-In | Numbers (update) | |
+| Call Recording | Available Numbers | |
+| Call Intercept | Preferred Answer | |
+| Monitoring | MS Teams | |
+| Push-to-Talk | Mode Management | |
+| Incoming Permissions | Personal Assistant | |
+| Outgoing Permissions (main) | ECBN | |
+| Exec Assistant Type | Digit Patterns | |
+| Calling Behavior | | |
+| Call Bridge | | |
+| Hoteling | | |
+| Receptionist | | |
+| Numbers (read) | | |
+
+### Scope Verification Logic
+
+1. Determine target type: **Person** needs `people_*` scopes; **Workspace** needs `workspaces_*` scopes
+2. Determine operation: **Read** needs `*_read`; **Write** needs `*_write`
+3. Check if the setting uses `telephony_config` scopes (see table above) — if so, verify those are present too
+4. If `wxcli whoami` does not show the required scopes, stop and tell the user which scopes are missing before proceeding
+
+## Step 3: Identify the operation
 
 Confirm with the user:
 
@@ -72,11 +117,9 @@ async with AsWebexSimpleApi(tokens='<token>') as api:
                      if u.location_id]
 ```
 
-## Step 4: Identify which settings to configure
+### Settings Catalog
 
 Present the user with the settings categories. Ask which settings they want to read or change.
-
-### Settings Catalog
 
 #### Category 1: Call Handling
 
@@ -85,13 +128,14 @@ Present the user with the settings categories. Ask which settings they want to r
 | Call Forwarding | `show-call-forwarding` | `update-call-forwarding` | Always, Busy, No-Answer, Business Continuity |
 | Call Waiting | `show-call-waiting` | `update-call-waiting` | Simple on/off toggle |
 | Do Not Disturb | `show-do-not-disturb` | `update-do-not-disturb` | Includes ring splash, Webex Go override |
-| Simultaneous Ring | — | — | **Admin API may not support person-level; use workspace-level or self-service APIs** |
-| Sequential Ring | — | — | **Same admin limitation as SimRing** |
+| Simultaneous Ring | — | — | **USER-ONLY: No admin endpoint. Requires user-level OAuth via `/me/settings/simultaneousRing`** |
+| Sequential Ring | — | — | **USER-ONLY: No admin endpoint. Requires user-level OAuth via `/me/settings/sequentialRing`** |
 | Single Number Reach | `wxcli single-number-reach` group | `wxcli single-number-reach` group | Uses `telephony_config` scopes, not `people` scopes |
 | Selective Accept | — | — | Criteria managed via separate CRUD methods (SDK only) |
 | Selective Forward | — | — | Takes precedence over standard forwarding |
 | Selective Reject | — | — | Highest priority of the selective features |
-| Priority Alert | — | — | **Same admin limitation as SimRing** |
+| Priority Alert | — | — | **USER-ONLY: No admin endpoint. Requires user-level OAuth via `/me/settings/priorityAlert`** |
+| Call Notify | — | — | **USER-ONLY: No admin endpoint. Requires user-level OAuth via `/me/settings/callNotify`** |
 
 #### Category 2: Voicemail & Media
 
@@ -99,7 +143,7 @@ Present the user with the settings categories. Ask which settings they want to r
 |---------|-------------------|---------------------|-------|
 | Voicemail | `show-voicemail` | `update-voicemail` | Inherits from location; greeting uploads via `configure-busy-voicemail`, `configure-no-answer` |
 | Caller ID | `list` | `update-caller-id-features` | |
-| Anonymous Call Rejection | — | — | Simple on/off (SDK only for now) |
+| Anonymous Call Rejection | — | — | **USER-ONLY: No admin endpoint. Requires user-level OAuth via `/me/settings/anonymousCallReject`; workspace-level uses `workspaces/{id}/anonymousCallReject`** |
 | Privacy | `list-privacy` | `update-privacy` | Controls line monitoring, AA extension/name dialing |
 | Barge-In | `show-barge-in` | `update-barge-in` | Enables FAC-based barge-in across locations |
 | Call Recording | `show-call-recording` | `update-call-recording` | **Read scope is `people_read` not `people_write` (SDK doc bug)**; inherits from location recording vendor config |
@@ -116,7 +160,7 @@ Present the user with the settings categories. Ask which settings they want to r
 | Outgoing Permissions | `list-outgoing-permission` | `update-outgoing-permission` | Per-call-type (local, toll, international, etc.) |
 | Feature Access Controls | — | — | Controls what users can self-modify (SDK only for now) |
 | Executive/Assistant | `show-executive-assistant` | `update-executive-assistant` | UNASSIGNED, EXECUTIVE, or EXECUTIVE_ASSISTANT |
-| Call Policy | — | — | Connected line ID privacy; **workspace-only (professional license)** |
+| Call Policy | — | — | **USER-ONLY for persons (via `/me/settings/callPolicies`); workspace-only at admin level (`workspaces/{id}/features/callPolicies`, professional license required)** |
 
 #### Category 4: Behavior & Devices
 
@@ -135,25 +179,48 @@ Present the user with the settings categories. Ask which settings they want to r
 
 All CLI commands above are under `wxcli user-settings`. Run `wxcli user-settings --help` to see the full list.
 
-## Step 5: Read current settings — `[Always do this first]`
+### Settings without CLI commands ("SDK only")
+
+**6 USER-ONLY settings (no admin endpoint — require user-level OAuth token):**
+SimRing, SequentialRing, PriorityAlert, CallNotify, AnonymousCallReject, CallPolicies (person-level).
+These ONLY work at `/telephony/config/people/me/settings/{feature}` with a user token. Admin tokens get 404. <!-- Verified via live API 2026-03-19 -->
+
+For other settings marked "SDK only" above (Music on Hold, Feature Access Controls, Preferred Answer, MS Teams, Mode Management, Personal Assistant, ECBN), use the raw HTTP fallback pattern with an **admin** token:
+
+```bash
+# Read the current setting value
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://webexapis.com/v1/telephony/config/people/{person_id}/{settingEndpoint}" | python3 -m json.tool
+
+# Update via PUT (read-modify-write)
+curl -s -X PUT -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  "https://webexapis.com/v1/telephony/config/people/{person_id}/{settingEndpoint}" \
+  -d '{ ... }'
+```
+
+Consult `docs/reference/person-call-settings-handling.md` (SimRing, SeqRing, Priority Alert, Selective features) or `docs/reference/person-call-settings-behavior.md` (ECBN, Mode Management, MS Teams, Personal Assistant, Preferred Answer) for the exact endpoint paths, required fields, and gotchas for each setting.
+
+## Step 4: Check prerequisites
+
+### 4a. Read current settings — always do this first
 
 **CRITICAL: Always read the current value of any setting before proposing a change.** This prevents accidental overwrites and gives the user a clear before/after comparison.
 
-### Pattern for simple settings
+#### Pattern for simple settings
 
 ```bash
 # Call Waiting
 wxcli user-settings show-call-waiting PERSON_ID --output json
 ```
 
-### Pattern for object settings
+#### Pattern for object settings
 
 ```bash
 # Call Forwarding (always, busy, no-answer, business continuity)
 wxcli user-settings show-call-forwarding PERSON_ID --output json
 ```
 
-### Pattern for settings with sub-components
+#### Pattern for settings with sub-components
 
 ```bash
 # Voicemail (many nested fields)
@@ -163,7 +230,7 @@ wxcli user-settings show-voicemail PERSON_ID --output json
 wxcli user-settings show-do-not-disturb PERSON_ID --output json
 ```
 
-### Reading multiple settings at once
+#### Reading multiple settings at once
 
 For a full audit, read all relevant settings and review the JSON output:
 
@@ -179,7 +246,22 @@ wxcli user-settings list-privacy PERSON_ID --output json
 wxcli user-settings show-barge-in PERSON_ID --output json
 ```
 
-## Step 6: Build deployment plan — `[Present to user before executing]`
+### 4b. Check for location-level dependencies
+
+Before configuring these settings, verify location-level prerequisites:
+
+| Setting | Location Prerequisite |
+|---------|----------------------|
+| Music on Hold | `moh_location_enabled` must be `true` at location level |
+| Call Recording | Location must have recording vendor configured |
+| Call Intercept | Location-level intercept settings serve as defaults |
+| Voicemail | Location-level voicemail policies (transcription, expiry) govern person-level behavior |
+
+### 4c. Verify scope coverage
+
+Cross-reference the settings the user wants to change against the scopes table in Step 2. If any required scopes are missing from the token, stop and inform the user before building the plan.
+
+## Step 5: Build and present deployment plan -- [SHOW BEFORE EXECUTING]
 
 **CRITICAL: Always show the plan and get user confirmation before making changes.**
 
@@ -199,34 +281,25 @@ Affected scopes required: spark-admin:people_write
 Proceed? (y/n)
 ```
 
-### Check for location-level dependencies
+## Step 6: Execute via wxcli — `[After user confirms plan]`
 
-Before configuring these settings, verify location-level prerequisites:
+### 6a. Execute individual changes
 
-| Setting | Location Prerequisite |
-|---------|----------------------|
-| Music on Hold | `moh_location_enabled` must be `true` at location level |
-| Call Recording | Location must have recording vendor configured |
-| Call Intercept | Location-level intercept settings serve as defaults |
-| Voicemail | Location-level voicemail policies (transcription, expiry) govern person-level behavior |
-
-## Step 7: Execute changes — `[After user confirms plan]`
-
-### Pattern: Simple toggle
+#### Pattern: Simple toggle
 
 ```bash
 # Enable Call Waiting
 wxcli user-settings update-call-waiting PERSON_ID --json-body '{"enabled": true}'
 ```
 
-### Pattern: Object-based settings
+#### Pattern: Object-based settings
 
 ```bash
 # Enable DND with ring splash
 wxcli user-settings update-do-not-disturb PERSON_ID --json-body '{"enabled": true, "ringSplashEnabled": true}'
 ```
 
-### Pattern: Complex nested settings (read first, modify fields, write back)
+#### Pattern: Complex nested settings (read first, modify fields, write back)
 
 ```bash
 # 1. Read current forwarding
@@ -242,7 +315,7 @@ wxcli user-settings update-call-forwarding PERSON_ID --json-body '{
 }'
 ```
 
-### Pattern: Voicemail configuration
+#### Pattern: Voicemail configuration
 
 ```bash
 # Update voicemail settings
@@ -259,7 +332,7 @@ wxcli user-settings configure-busy-voicemail PERSON_ID --json-body '{"type": "CU
 wxcli user-settings configure-no-answer PERSON_ID --json-body '{"type": "CUSTOM", ...}'
 ```
 
-### Pattern: Call intercept (take phone out of service)
+#### Pattern: Call intercept (take phone out of service)
 
 ```bash
 # Enable call intercept
@@ -274,7 +347,7 @@ wxcli user-settings update-intercept PERSON_ID --json-body '{
 wxcli user-settings configure-call-intercept PERSON_ID --json-body '{"type": "CUSTOM", ...}'
 ```
 
-### Pattern: Permissions
+#### Pattern: Permissions
 
 ```bash
 # Update incoming permissions
@@ -292,7 +365,7 @@ wxcli user-settings update-outgoing-permission PERSON_ID --json-body '{
 }'
 ```
 
-### Pattern: Executive/Assistant pairing
+#### Pattern: Executive/Assistant pairing
 
 ```bash
 # Assign executive role
@@ -302,7 +375,7 @@ wxcli user-settings update-executive-assistant EXEC_PERSON_ID --json-body '{"typ
 wxcli user-settings update-executive-assistant ASST_PERSON_ID --json-body '{"type": "EXECUTIVE_ASSISTANT"}'
 ```
 
-### Pattern: Workspace settings
+#### Pattern: Workspace settings
 
 Workspace settings mirror person settings but use the workspace-settings command group. Check available commands:
 
@@ -310,7 +383,7 @@ Workspace settings mirror person settings but use the workspace-settings command
 wxcli workspace-settings --help
 ```
 
-### Pattern: Schedules
+#### Pattern: Schedules
 
 Person-level schedules have full CRUD support:
 
@@ -342,13 +415,15 @@ wxcli user-settings show-schedules PERSON_ID SCHEDULE_ID --output json
 wxcli user-settings delete PERSON_ID SCHEDULE_TYPE SCHEDULE_ID EVENT_ID
 ```
 
-### Pattern: Reset voicemail PIN
+#### Pattern: Reset voicemail PIN
 
 ```bash
 wxcli user-settings reset-voicemail-pin PERSON_ID
 ```
 
-### Pattern: Bulk changes (shell loop for small batches)
+### 6b. Bulk changes
+
+#### Shell loop for small batches
 
 ```bash
 # Disable call waiting for a list of users
@@ -357,7 +432,7 @@ for ID in PERSON_ID_1 PERSON_ID_2 PERSON_ID_3; do
 done
 ```
 
-For large batches (50+ users), use the async Python SDK as a fallback:
+#### Async Python SDK for large batches (50+ users)
 
 ```python
 from wxc_sdk.as_api import AsWebexSimpleApi
@@ -377,7 +452,7 @@ async with AsWebexSimpleApi(tokens='<token>', concurrent_requests=40) as api:
     ])
 ```
 
-## Step 8: Verify changes — `[Read back after every update]`
+## Step 7: Verify — `[Read back after every update]`
 
 Always read back the setting after writing to confirm the change took effect:
 
@@ -394,7 +469,7 @@ wxcli user-settings show-voicemail PERSON_ID --output json
 
 Compare the JSON output to the values you set. Flag any discrepancies.
 
-## Step 9: Report results
+## Step 8: Report results
 
 Summarize what was changed:
 
@@ -412,10 +487,10 @@ All 3 changes applied successfully.
 
 ---
 
-## CRITICAL REMINDERS
+## Critical Rules
 
 - **Always read before writing** — never update a setting without first reading its current value via `wxcli user-settings show-*`
-- **Always show plan before executing** — present the deployment plan and get user confirmation
+- **Always show plan before executing** — present the deployment plan (Step 5) and get user confirmation
 - **Handle person vs workspace scope differences** — some scopes use `workspaces_read/write` instead of `people_read/write` (outgoing permissions transfer numbers, access codes, call policy)
 - **Location-level prerequisites** — voicemail, recording, intercept, and MoH have location-level settings that must be configured first; person-level settings may be overridden or ineffective without them
 - **SimRing, SequentialRing, PriorityAlert admin limitation** — these may not be available via admin-level person management; use self-service APIs or workspace-level commands
@@ -455,49 +530,7 @@ Common errors:
 
 ---
 
-## Scope Quick Reference
-
-### Person Settings — Common Scopes
-
-| Scope | Grants |
-|-------|--------|
-| `spark-admin:people_read` | Read any person's call settings (admin) |
-| `spark-admin:people_write` | Modify any person's call settings (admin) |
-| `spark:people_read` | Read own call settings (self) |
-| `spark:people_write` | Modify own call settings (self) |
-| `spark-admin:telephony_config_read` | Read telephony config (SNR, MoH, App Services, ECBN, Numbers, Feature Access, Executive, etc.) |
-| `spark-admin:telephony_config_write` | Modify telephony config |
-| `spark-admin:workspaces_read` | Read workspace settings (outgoing permissions transfer numbers, access codes, call policy) |
-| `spark-admin:workspaces_write` | Modify workspace settings |
-
-### Which Settings Use Which Scopes
-
-| `people_read/write` | `telephony_config_read/write` | `workspaces_read/write` |
-|---------------------|-------------------------------|------------------------|
-| Forwarding | Single Number Reach | Outgoing Permissions — Transfer Numbers |
-| Call Waiting | Music on Hold | Outgoing Permissions — Access Codes |
-| DND | Voicemail (passcode only) | Call Policy |
-| Voicemail (main) | App Services (read) | |
-| Caller ID | App Shared Line | |
-| Anon Call Rejection | Feature Access Controls | |
-| Privacy | Executive Settings | |
-| Barge-In | Numbers (update) | |
-| Call Recording | Available Numbers | |
-| Call Intercept | Preferred Answer | |
-| Monitoring | MS Teams | |
-| Push-to-Talk | Mode Management | |
-| Incoming Permissions | Personal Assistant | |
-| Outgoing Permissions (main) | ECBN | |
-| Exec Assistant Type | Digit Patterns | |
-| Calling Behavior | | |
-| Call Bridge | | |
-| Hoteling | | |
-| Receptionist | | |
-| Numbers (read) | | |
-
----
-
-## Context Compaction
+## Context Compaction Recovery
 
 If context compacts mid-execution, recover by:
 1. Read the deployment plan from `docs/plans/` to recover what was planned

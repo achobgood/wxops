@@ -9,30 +9,43 @@ argument-hint: [symptom-or-error-message]
 ---
 
 <!-- Updated by playbook session 2026-03-18 -->
+<!-- Restructured to canonical 8-step template 2026-03-19 -->
 
 # Webex Calling Debug Workflow
 
-## Step 1: Identify the symptom
+## Critical Rules
 
-Ask the user: **What happened?** Map their answer to one of these categories:
+1. **Verify token before any writes** — always run `wxcli whoami` before attempting create/update/delete operations.
+2. **Never modify without confirmation** — present the diagnostic plan (Step 5) and get user approval before executing fixes.
+3. **Always check auth/scope first** — auth and scope issues cause 80% of failures. Complete Step 2 before investigating anything else.
+4. **Never hand-edit generated files** — if the bug is in a generated CLI command file, fix it via `tools/field_overrides.yaml` and regenerate. See CLAUDE.md generator rules.
+5. **call-controls requires user-level OAuth** — admin tokens and service-app tokens get 400 "Target user not authorized" on `/telephony/calls/*` endpoints. The user must authenticate with a personal or OAuth token for a specific calling-licensed user.
+6. **my-settings requires a calling-licensed user** — all `/people/me/*` endpoints return 404 (error 4008) if the authenticated user does not have a Webex Calling license. Test with a calling user's token, not the admin token.
 
-| Category | User says something like... |
-|----------|-----------------------------|
-| HTTP error from API | "Got a 401/403/404/409", "API returned an error", "RestError" |
-| CLI command failed | "wxcli returned an error", "command exited with non-zero", "got an error message" |
-| Method returns None | "Got None back", "No return value", "Update didn't return anything" |
-| Missing data on object | "location_id is None", "calling_data fields are empty", "no phone number" |
-| Resource not found | "Can't find the queue/user/location", "404 on a resource I just created" |
-| Permission denied | "403 Forbidden", "insufficient scopes", "not authorized" |
-| Rate limited | "429 Too Many Requests", "script is getting throttled" |
-| SDK exception | "RestError", "AsRestError", "ValueError on init" |
-| Configuration didn't apply | "Changed the setting but nothing happened", "Update succeeded but value is the same" |
-| Bulk operation failures | "Some users failed", "partial failures in gather", "exceptions in batch" |
-| Async/timeout issue | "Script hangs", "aiohttp error", "session closed" |
+## Step 1: Load references
 
-## Step 2: Check the obvious first
+Load the reference docs relevant to the reported symptom. Do NOT load all docs — pick 1-2 based on the API area involved.
 
-These are the most common root causes. Check them FIRST before doing anything else:
+| Symptom area | Reference docs to load |
+|--------------|----------------------|
+| Auth / token / scope | `docs/reference/authentication.md` |
+| Provisioning (users, locations, licenses) | `docs/reference/provisioning.md` |
+| Call features (AA, CQ, HG, paging) | `docs/reference/call-features-major.md`, `docs/reference/call-features-additional.md` |
+| Person call settings | `docs/reference/person-call-settings-*.md` (pick the relevant one: handling, media, permissions, behavior) |
+| Location call settings | `docs/reference/location-call-settings-*.md` (pick: core, media, advanced) |
+| Routing (trunks, dial plans, PSTN) | `docs/reference/call-routing.md` |
+| Devices | `docs/reference/devices-core.md`, `docs/reference/devices-workspaces.md` |
+| Call control (dial, hold, transfer) | `docs/reference/call-control.md` |
+| Reporting / CDR | `docs/reference/reporting-analytics.md` |
+| Webhooks / events | `docs/reference/webhooks-events.md` |
+| Emergency services | `docs/reference/emergency-services.md` |
+| SDK patterns / async | `docs/reference/wxc-sdk-patterns.md` |
+
+Also load `docs/reference/wxc-sdk-patterns.md` if the user is working with the Python SDK directly.
+
+## Step 2: Verify auth token and scopes
+
+Check authentication and scope access BEFORE investigating any other cause. Auth/scope issues account for the vast majority of failures.
 
 ### 2a. Is the token valid and not expired?
 
@@ -72,24 +85,67 @@ If you get a **403 Forbidden**, the token almost certainly lacks the required sc
 - For OAuth tokens: check the `scope` field in your cached tokens YML
 - For personal tokens: they carry all scopes your account has -- if you still get 403, you may not be an org admin (required for `spark-admin:` scopes)
 
-### 2c. Is calling data included?
+### 2c. Scope verification logic
+
+When you know the failing API endpoint, use this logic to verify scope access:
+
+1. **Identify the API area from the symptom** — map the failing endpoint to one of the rows in the scope table above.
+2. **Determine read vs write** — `GET`/`LIST` operations need the read scope; `POST`/`PUT`/`PATCH`/`DELETE` need the write scope.
+3. **Test scope access** — run a minimal read command for that API area to confirm the scope works:
+   ```bash
+   # Test telephony_config scope
+   wxcli locations list
+   # Test people scope
+   wxcli users list
+   # Test calls scope (requires user-level OAuth — see special cases below)
+   wxcli call-controls list-calls
+   ```
+4. **Diagnose 403s** — if the test command returns 403:
+   - Personal token: user may not be a full org admin (required for `spark-admin:` scopes)
+   - Service app: org admin must authorize the app in Control Hub
+   - OAuth integration: the requested scopes were not included in the authorization URL
+   - Bot token: bots cannot access admin-scoped endpoints (`spark-admin:*`)
+
+**Special cases:**
+
+- **call-controls (`/telephony/calls/*`)** — requires **user-level OAuth**, not admin tokens. Admin tokens and service-app tokens get HTTP 400 "Target user not authorized". The authenticated user must be a specific calling-licensed person.
+- **my-settings (`/people/me/*`)** — requires the authenticated user to have a **Webex Calling license**. Returns 404 (error 4008) otherwise. Test with a calling user's token, not an admin-only token.
+- **XSI operations** — require `spark:xsi` scope AND XSI must be provisioned for the org. If scope is present but calls fail, check with Webex TAC.
+- **CDR (`/telephony/callHistory`)** — requires `spark-admin:calling_cdr_read`. This is a separate scope from `telephony_config_read`.
+
+### 2d. Is calling data included?
 
 wxcli handles this automatically -- all user-related commands that need calling data (location_id, phone numbers, calling-specific fields) include it in the API request. You do not need to pass a `calling_data` flag.
 
-If you are using the Python SDK directly (outside wxcli), you must pass `calling_data=True` to `api.people.list()` and `api.people.details()`. See the Advanced SDK Debugging section below.
+If you are using the Python SDK directly (outside wxcli), you must pass `calling_data=True` to `api.people.list()` and `api.people.details()`. See the Advanced SDK Debugging section in Step 6.
 
-## Step 3: Check the specific error
+## Step 3: Identify the symptom
 
-### CLI debugging with --debug
+Ask the user: **What happened?** Map their answer to one of these categories:
 
-Add `--debug` to any wxcli command for verbose HTTP request/response output:
+| Category | User says something like... |
+|----------|-----------------------------|
+| HTTP error from API | "Got a 401/403/404/409", "API returned an error", "RestError" |
+| CLI command failed | "wxcli returned an error", "command exited with non-zero", "got an error message" |
+| Method returns None | "Got None back", "No return value", "Update didn't return anything" |
+| Missing data on object | "location_id is None", "calling_data fields are empty", "no phone number" |
+| Resource not found | "Can't find the queue/user/location", "404 on a resource I just created" |
+| Permission denied | "403 Forbidden", "insufficient scopes", "not authorized" |
+| Rate limited | "429 Too Many Requests", "script is getting throttled" |
+| SDK exception | "RestError", "AsRestError", "ValueError on init" |
+| Configuration didn't apply | "Changed the setting but nothing happened", "Update succeeded but value is the same" |
+| Bulk operation failures | "Some users failed", "partial failures in gather", "exceptions in batch" |
+| Async/timeout issue | "Script hangs", "aiohttp error", "session closed" |
+
+## Step 4: Check prerequisites
+
+### 4a. Reproduce the failure
+
+Re-run the failing command with `--debug` to capture the full HTTP request/response:
 
 ```bash
-# See full HTTP traffic for a locations list
-wxcli locations list --debug
-
-# Debug a failing create operation
-wxcli auto-attendant create LOC_ID --name "Test" --extension 9999 --business-schedule "Default" --debug
+# Add --debug to the exact command that failed
+wxcli <failing-command> --debug
 ```
 
 The `--debug` flag shows:
@@ -98,19 +154,156 @@ The `--debug` flag shows:
 - Response status code and body
 - Tracking ID (for Webex TAC escalation)
 
-### CLI error output
+### 4b. Verify the resource chain
 
-wxcli includes the HTTP status code and error message in its output when a command fails. Common patterns:
+Many failures happen because a prerequisite resource is missing or misconfigured. Walk up the dependency chain:
 
-- **Error code 25008**: Missing required field -- check which parameters the command requires
+```bash
+# Does the location exist and is it calling-enabled?
+wxcli locations list
+
+# Does the user exist and have a calling license?
+wxcli users list --output json | head -20
+
+# Does the parent resource exist? (e.g., for a queue agent, does the queue exist?)
+wxcli call-queue show LOCATION_ID QUEUE_ID --output json
+```
+
+### 4c. Check known gotchas
+
+Cross-reference the symptom against these common gotchas:
+
+- **Error code 25008**: Missing required field — check which parameters the command requires
 - **HTTP 400 with details**: The error body usually includes a `description` explaining what's wrong
-- **Tracking ID**: Included in error output -- save this for TAC escalation
+- **Tracking ID**: Included in error output — save this for TAC escalation
+- **Extension conflict**: Another user/feature already has the extension in that location
+- **Number not in location**: Phone number assignment fails if the number isn't in the location's inventory
+- **Calling license missing**: User shows no calling features if license isn't assigned
+- **Location not calling-enabled**: Features fail if location hasn't been enabled for Webex Calling
 
-### Advanced SDK Debugging (when CLI doesn't give enough detail)
+Also check the loaded reference doc's Gotchas section (if it has one) for API-area-specific issues.
+
+## Step 5: Build and present diagnostic plan -- [SHOW BEFORE EXECUTING]
+
+Before running any fix commands, present the user with:
+
+1. **Root cause hypothesis** — what you believe is causing the failure and why
+2. **Evidence** — the specific error message, HTTP status, or missing data that supports the hypothesis
+3. **Proposed fix** — the exact commands you plan to run to resolve the issue
+4. **Verification plan** — how you will confirm the fix worked
+5. **Risk assessment** — whether the fix modifies any existing resources (creates, updates, or deletes)
+
+Format as a brief numbered plan. Wait for user confirmation before proceeding to Step 6.
+
+## Step 6: Execute diagnostic commands and apply fix
+
+### 6a. Match symptom to cause and fix
+
+#### HTTP Error Codes
+
+| Symptom | Likely Cause | Fix |
+|---------|-------------|-----|
+| **401 Unauthorized** | Token expired or invalid | Run `wxcli configure` to set a new token. For personal tokens: generate new one at developer.webex.com. |
+| **401 immediately after refresh** | Refresh token also expired (>90 days) | Full re-authorization required -- run OAuth flow again or regenerate service app credentials |
+| **403 Forbidden** | Token lacks required scope | Check scope table in Step 2b. For admin endpoints, verify user is a full org admin. For service apps, verify org admin has authorized the app. |
+| **404 Not Found** | Resource ID is wrong, resource doesn't exist, or wrong org | Verify the resource ID. List resources first to confirm it exists. Check you're authenticating against the correct org. |
+| **409 Conflict** | Duplicate resource (name, extension, phone number) | Check for existing resources with the same name/extension/number. Use the corresponding `list` command to find conflicts. |
+| **429 Too Many Requests** | Rate limited | SDK auto-retries when `retry_429=True` (default). For bulk work, lower `concurrent_requests` or use async with semaphore. |
+| **400 Bad Request** | Invalid parameters, wrong data types, missing required fields | Run the command with `--debug` to see the full error body. Error code 25008 means a required field is missing. Check required fields in the API reference. Verify enum values. Check that IDs are the correct type (Webex base64 ID, not UUID). |
+| **400 "Target user not authorized"** | Using admin/service-app token on call-controls endpoint | call-controls requires user-level OAuth. See Critical Rules #5. |
+| **404 error 4008 on /people/me/** | Authenticated user lacks Webex Calling license | my-settings endpoints require a calling-licensed user. See Critical Rules #6. |
+| **502/503 Service Error** | Webex platform issue | Retry after a delay. Check [status.webex.com](https://status.webex.com) for outages. |
+
+#### CLI Debugging
+
+```bash
+# Add --debug flag to any wxcli command for verbose HTTP output
+wxcli locations list --debug
+
+# Debug a failing write operation — shows full request/response
+wxcli auto-attendant create LOC_ID --name "Test" --extension 9999 --business-schedule "Default" --debug
+
+# Check for errors — wxcli shows HTTP status and error message
+wxcli call-queue show LOCATION_ID QUEUE_ID --output json --debug
+```
+
+#### SDK Behavior Issues (for Python SDK / agent fallback)
+
+| Symptom | Likely Cause | Fix |
+|---------|-------------|-----|
+| `configure()` / `update()` returns `None` | This is **normal** -- many update/delete methods return `None` on success | Not a bug. Read back the resource with `details()` to verify the change applied. |
+| `calling_data` fields are `None` on Person | Didn't pass `calling_data=True` | Re-fetch: `api.people.list(calling_data=True)` or `api.people.details(id, calling_data=True)` |
+| `list()` result missing agents/details | List endpoints return minimal data | Call `details(location_id=..., queue_id=...)` to get the full object including agents, alternate numbers, etc. |
+| `ValueError` on `WebexSimpleApi()` | No token in argument or `WEBEX_ACCESS_TOKEN` env var | Set `WEBEX_ACCESS_TOKEN` or pass `tokens=` argument |
+| `SafeEnum` warning in logs | API returned an enum value the SDK doesn't know yet | Usually harmless -- SDK auto-adds the new value. Upgrade wxc_sdk if it causes issues. |
+| Import error for `Agent` | Wrong import path for the feature type | Hunt groups/call queues: `from wxc_sdk.telephony.hg_and_cq import Agent`. Call park/pickup: `from wxc_sdk.common import PersonPlaceAgent`. Paging: `from wxc_sdk.telephony.paging import PagingAgent`. |
+| Import error for `Schedule` | Wrong import path | `from wxc_sdk.common.schedules import Schedule, Event, ScheduleType` -- NOT from `wxc_sdk.telephony.schedules` |
+| `PagingApi.update()` wrong parameter order | Model comes before ID in signature | Always use keyword args: `api.telephony.paging.update(location_id=loc, update=paging_obj, paging_id=pg_id)` |
+| Generic `.delete()` accepts any ID silently | Used inherited method instead of named delete | Use named methods: `delete_callpark()`, `delete_pickup()`, `delete_paging()`, `delete_huntgroup()`, `delete_queue()`, `delete_auto_attendant()`, `delete_schedule()` |
+
+#### Resource/Configuration Issues
+
+| Symptom | Likely Cause | Fix |
+|---------|-------------|-----|
+| Location not showing as calling-enabled | Location not enabled for Webex Calling | Enable calling on the location via `wxcli location-settings` or SDK |
+| Phone number assignment fails | Number not in location inventory | Add number to location first. Check available numbers: `wxcli numbers list` |
+| User shows no calling license | License not assigned | Check licenses: `wxcli licenses list`. Assign via SDK or Control Hub. See provisioning.md. |
+| Feature creation fails with location error | Location doesn't exist or wrong `location_id` | Verify with `wxcli locations list` -- confirm the ID matches |
+| Hunt group / call queue agent not receiving calls | Agent not assigned to the feature, or not joined | Check agent list: `wxcli call-queue show LOCATION_ID QUEUE_ID --output json`. Verify agent `joinEnabled` is `true`. |
+| Async job timeout | Bulk provisioning job still processing | Check job status via SDK `api.telephony.jobs`. Jobs can take minutes for large orgs. |
+| XSI connection fails | XSI not enabled or wrong endpoint | Verify `spark:xsi` scope. Check with Webex TAC if XSI is provisioned for the org. |
+| Setting update succeeded but value unchanged | Some settings require specific preconditions | Check if the feature requires a license, an enabled location, or a specific calling plan. Read back the resource to confirm. |
+| Extension conflict | Another user/feature already has the extension in that location | List all extensions in the location and pick an unused one |
+
+#### Async-Specific Issues
+
+| Symptom | Likely Cause | Fix |
+|---------|-------------|-----|
+| `RuntimeError: Event loop is closed` | Calling `asyncio.run()` in an already-running loop (Jupyter, etc.) | Use `await main()` directly, or use `nest_asyncio` |
+| `aiohttp.ClientError` / session closed | Session used after `async with` block exited | Keep all API calls inside the `async with AsWebexSimpleApi() as api:` block |
+| Partial failures in `asyncio.gather` | Some calls failed, rest succeeded | Use `return_exceptions=True` and check each result: `isinstance(result, Exception)` |
+| Slow bulk operations | `concurrent_requests` too low (default: 10) | Increase to 40-100 for bulk work: `AsWebexSimpleApi(concurrent_requests=40)` |
+
+### 6b. Test with targeted CLI commands
+
+Isolate the issue by running minimal commands that test the specific failure:
+
+```bash
+# Test 1: Basic auth — does the token work at all?
+wxcli whoami
+
+# Test 2: Can you read telephony config?
+wxcli locations list
+
+# Test 3: Can you read calling-specific user data?
+wxcli users list --output json | head -20
+
+# Test 4: Test a specific resource directly
+wxcli call-queue show LOCATION_ID QUEUE_ID --output json
+```
+
+If Test 1 fails: token issue (Step 2a).
+If Test 1 passes but Test 2 fails: scope issue (Step 2b/2c).
+If Tests 1-2 pass but Test 3 fails: calling license or org issue.
+
+For a specific failing resource, test it directly with `--debug` for full HTTP details:
+
+```bash
+# If a queue/HG/AA operation fails, verify the resource exists
+wxcli call-queue show LOCATION_ID QUEUE_ID --debug
+
+# If a create operation fails, check the request body
+wxcli auto-attendant create LOC_ID --name "Test" --extension 9999 --business-schedule "Default" --debug
+
+# If a user operation fails, check the user exists and has calling
+wxcli users show USER_ID --output json --debug
+```
+
+#### Fallback: Advanced SDK Debugging (when CLI doesn't give enough detail)
 
 If the `--debug` flag output doesn't reveal the issue, fall back to Python SDK debugging for deeper inspection.
 
-#### Enable debug logging
+##### Enable debug logging
 
 ```python
 import logging
@@ -136,7 +329,7 @@ rest_logger.addHandler(handler)
 
 The SDK automatically masks tokens in log output (`Bearer ***`).
 
-#### Read RestError details
+##### Read RestError details
 
 When the API returns an error, the SDK raises `RestError` (sync) or `AsRestError` (async). Extract the full details:
 
@@ -159,107 +352,7 @@ except RestError as e:
 
 The **tracking ID** is critical for Webex TAC support escalation.
 
-## Step 4: Match symptom to cause and fix
-
-### HTTP Error Codes
-
-| Symptom | Likely Cause | Fix |
-|---------|-------------|-----|
-| **401 Unauthorized** | Token expired or invalid | Run `wxcli configure` to set a new token. For personal tokens: generate new one at developer.webex.com. |
-| **401 immediately after refresh** | Refresh token also expired (>90 days) | Full re-authorization required -- run OAuth flow again or regenerate service app credentials |
-| **403 Forbidden** | Token lacks required scope | Check scope table above. For admin endpoints, verify user is a full org admin. For service apps, verify org admin has authorized the app. |
-| **404 Not Found** | Resource ID is wrong, resource doesn't exist, or wrong org | Verify the resource ID. List resources first to confirm it exists. Check you're authenticating against the correct org. |
-| **409 Conflict** | Duplicate resource (name, extension, phone number) | Check for existing resources with the same name/extension/number. Use the corresponding `list` command to find conflicts. |
-| **429 Too Many Requests** | Rate limited | SDK auto-retries when `retry_429=True` (default). For bulk work, lower `concurrent_requests` or use async with semaphore. |
-| **400 Bad Request** | Invalid parameters, wrong data types, missing required fields | Run the command with `--debug` to see the full error body. Error code 25008 means a required field is missing. Check required fields in the API reference. Verify enum values. Check that IDs are the correct type (Webex base64 ID, not UUID). |
-| **502/503 Service Error** | Webex platform issue | Retry after a delay. Check [status.webex.com](https://status.webex.com) for outages. |
-
-### CLI Debugging
-
-```bash
-# Add --debug flag to any wxcli command for verbose HTTP output
-wxcli locations list --debug
-
-# Debug a failing write operation — shows full request/response
-wxcli auto-attendant create LOC_ID --name "Test" --extension 9999 --business-schedule "Default" --debug
-
-# Check for errors — wxcli shows HTTP status and error message
-wxcli call-queue show LOCATION_ID QUEUE_ID --output json --debug
-```
-
-### SDK Behavior Issues (for Python SDK / agent fallback)
-
-| Symptom | Likely Cause | Fix |
-|---------|-------------|-----|
-| `configure()` / `update()` returns `None` | This is **normal** -- many update/delete methods return `None` on success | Not a bug. Read back the resource with `details()` to verify the change applied. |
-| `calling_data` fields are `None` on Person | Didn't pass `calling_data=True` | Re-fetch: `api.people.list(calling_data=True)` or `api.people.details(id, calling_data=True)` |
-| `list()` result missing agents/details | List endpoints return minimal data | Call `details(location_id=..., queue_id=...)` to get the full object including agents, alternate numbers, etc. |
-| `ValueError` on `WebexSimpleApi()` | No token in argument or `WEBEX_ACCESS_TOKEN` env var | Set `WEBEX_ACCESS_TOKEN` or pass `tokens=` argument |
-| `SafeEnum` warning in logs | API returned an enum value the SDK doesn't know yet | Usually harmless -- SDK auto-adds the new value. Upgrade wxc_sdk if it causes issues. |
-| Import error for `Agent` | Wrong import path for the feature type | Hunt groups/call queues: `from wxc_sdk.telephony.hg_and_cq import Agent`. Call park/pickup: `from wxc_sdk.common import PersonPlaceAgent`. Paging: `from wxc_sdk.telephony.paging import PagingAgent`. |
-| Import error for `Schedule` | Wrong import path | `from wxc_sdk.common.schedules import Schedule, Event, ScheduleType` -- NOT from `wxc_sdk.telephony.schedules` |
-| `PagingApi.update()` wrong parameter order | Model comes before ID in signature | Always use keyword args: `api.telephony.paging.update(location_id=loc, update=paging_obj, paging_id=pg_id)` |
-| Generic `.delete()` accepts any ID silently | Used inherited method instead of named delete | Use named methods: `delete_callpark()`, `delete_pickup()`, `delete_paging()`, `delete_huntgroup()`, `delete_queue()`, `delete_auto_attendant()`, `delete_schedule()` |
-
-### Resource/Configuration Issues
-
-| Symptom | Likely Cause | Fix |
-|---------|-------------|-----|
-| Location not showing as calling-enabled | Location not enabled for Webex Calling | Enable calling on the location via `wxcli location-settings` or SDK |
-| Phone number assignment fails | Number not in location inventory | Add number to location first. Check available numbers: `wxcli numbers list` |
-| User shows no calling license | License not assigned | Check licenses: `wxcli licenses list`. Assign via SDK or Control Hub. See provisioning.md. |
-| Feature creation fails with location error | Location doesn't exist or wrong `location_id` | Verify with `wxcli locations list` -- confirm the ID matches |
-| Hunt group / call queue agent not receiving calls | Agent not assigned to the feature, or not joined | Check agent list: `wxcli call-queue show LOCATION_ID QUEUE_ID --output json`. Verify agent `joinEnabled` is `true`. |
-| Async job timeout | Bulk provisioning job still processing | Check job status via SDK `api.telephony.jobs`. Jobs can take minutes for large orgs. |
-| XSI connection fails | XSI not enabled or wrong endpoint | Verify `spark:xsi` scope. Check with Webex TAC if XSI is provisioned for the org. |
-| Setting update succeeded but value unchanged | Some settings require specific preconditions | Check if the feature requires a license, an enabled location, or a specific calling plan. Read back the resource to confirm. |
-| Extension conflict | Another user/feature already has the extension in that location | List all extensions in the location and pick an unused one |
-
-### Async-Specific Issues
-
-| Symptom | Likely Cause | Fix |
-|---------|-------------|-----|
-| `RuntimeError: Event loop is closed` | Calling `asyncio.run()` in an already-running loop (Jupyter, etc.) | Use `await main()` directly, or use `nest_asyncio` |
-| `aiohttp.ClientError` / session closed | Session used after `async with` block exited | Keep all API calls inside the `async with AsWebexSimpleApi() as api:` block |
-| Partial failures in `asyncio.gather` | Some calls failed, rest succeeded | Use `return_exceptions=True` and check each result: `isinstance(result, Exception)` |
-| Slow bulk operations | `concurrent_requests` too low (default: 10) | Increase to 40-100 for bulk work: `AsWebexSimpleApi(concurrent_requests=40)` |
-
-## Step 5: Test with targeted CLI commands
-
-Isolate the issue by running minimal commands that test the specific failure:
-
-```bash
-# Test 1: Basic auth — does the token work at all?
-wxcli whoami
-
-# Test 2: Can you read telephony config?
-wxcli locations list
-
-# Test 3: Can you read calling-specific user data?
-wxcli users list --output json | head -20
-
-# Test 4: Test a specific resource directly
-wxcli call-queue show LOCATION_ID QUEUE_ID --output json
-```
-
-If Test 1 fails: token issue (Step 2a).
-If Test 1 passes but Test 2 fails: scope issue (Step 2b).
-If Tests 1-2 pass but Test 3 fails: calling license or org issue.
-
-For a specific failing resource, test it directly with `--debug` for full HTTP details:
-
-```bash
-# If a queue/HG/AA operation fails, verify the resource exists
-wxcli call-queue show LOCATION_ID QUEUE_ID --debug
-
-# If a create operation fails, check the request body
-wxcli auto-attendant create LOC_ID --name "Test" --extension 9999 --business-schedule "Default" --debug
-
-# If a user operation fails, check the user exists and has calling
-wxcli users show USER_ID --output json --debug
-```
-
-### Fallback: Python SDK targeted test
+##### Targeted Python SDK test
 
 If CLI commands don't reveal the issue, use a minimal Python script for deeper inspection:
 
@@ -285,7 +378,7 @@ except RestError as e:
             print(f'  - {err.description} (code: {err.error_code})')
 ```
 
-## Step 6: Apply fix and verify
+## Step 7: Apply fix and verify
 
 After identifying and applying the fix:
 
@@ -302,6 +395,23 @@ wxcli users list --output json | head -40
 ```
 
 If the fix didn't work, return to Step 4 and check the next most likely cause.
+
+## Step 8: Report results
+
+Summarize the debugging session for the user:
+
+1. **Symptom** — what the user reported
+2. **Root cause** — what was actually wrong (with evidence)
+3. **Fix applied** — what commands were run to resolve it
+4. **Verification** — confirmation that the fix worked (with command output)
+5. **Prevention** — how to avoid this issue in the future (if applicable)
+
+If the issue could not be resolved:
+- Document what was tried and ruled out
+- Provide the **Tracking ID** from the error for Webex TAC escalation
+- Suggest next steps (TAC case, check status.webex.com, etc.)
+
+If a reference doc was wrong or incomplete, update it per the Reference Doc Sync Protocol in CLAUDE.md.
 
 ---
 
@@ -349,7 +459,7 @@ The SDK caps retry wait at 60 seconds (`RETRY_429_MAX_WAIT`). If you're still be
 
 ---
 
-## Context Compaction
+## Context Compaction Recovery
 
 If context compacts mid-execution, recover by:
 1. Read the deployment plan from `docs/plans/` to recover what was planned
