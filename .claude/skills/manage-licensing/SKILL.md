@@ -18,16 +18,53 @@ argument-hint: [operation — e.g. "audit usage", "assign licenses", "reclaim un
 
 ## Step 2: Verify auth token is working
 
-Before any licensing operation, confirm the token is valid and has admin scopes.
+Before any licensing operation, confirm the token is valid and has the required scopes.
+
+### Required scopes by operation
+
+| Operation | Scope(s) |
+|-----------|----------|
+| List/view licenses | Admin token (full or read-only admin) |
+| Assign/remove licenses (PATCH) | Admin token (full admin) |
+| List people (for cross-reference) | `spark-admin:people_read` |
+
+### Verification sequence
+
+**2a. Check token identity:**
 
 ```bash
 wxcli whoami
 ```
 
-If this fails with 401/403, stop and troubleshoot auth before proceeding. Common causes:
-- Token expired (personal access tokens last 12 hours)
+Inspect the output:
+- Confirm a valid user/admin identity is returned (display name, org ID present).
+- If this fails with 401 — token is expired or missing. Run `wxcli configure` or check `~/.wxcli/config.json`.
+- If this fails with 403 — token exists but lacks permissions. You may have a user-level token instead of an admin token.
+- Personal access tokens last 12 hours. Service app tokens vary by grant type.
+
+**2b. Verify admin scope by exercising the license API:**
+
+```bash
+wxcli licenses-api list
+```
+
+Inspect the output:
+- **Success (license table returned):** Admin read scope confirmed. Proceed.
+- **403 Forbidden:** Token is not an admin token, or the admin role is insufficient. Stop and resolve.
+- **401 Unauthorized:** Token is invalid or expired. Re-run `wxcli configure`.
+- **Empty result (no licenses):** Unusual — confirm org ID is correct via `wxcli whoami` output.
+
+**2c. For write operations (assign/remove), verify full admin:**
+
+If the user's operation requires assignment or removal, confirm the token is a **full admin** token (not read-only admin). Read-only admins can list licenses but cannot PATCH. The only reliable test is to note the admin role from `wxcli whoami` output, or to attempt the operation and handle a 403.
+
+### Gate
+
+**Do not proceed until token confirmed valid.** Both `wxcli whoami` and `wxcli licenses-api list` must succeed before moving to Step 3. If either fails, stop and troubleshoot auth:
+- Token expired — re-run `wxcli configure` with a fresh token
 - Token not configured — run `wxcli configure` or check `~/.wxcli/config.json`
 - Token lacks admin access — read-only admins can list but cannot assign/remove licenses
+- Wrong org — verify the org ID in `wxcli whoami` matches the target organization
 
 ## Step 3: Determine the operation
 
@@ -82,7 +119,7 @@ wxcli licenses-api show "LICENSE_ID" --include-assigned-to user -o json
 wxcli people list -o json
 ```
 
-## Step 5: Build plan — SHOW BEFORE EXECUTING
+## Step 5: Build plan — [SHOW BEFORE EXECUTING]
 
 **Present the plan to the user and wait for approval.** Never execute write operations without confirmation.
 
@@ -368,7 +405,7 @@ Next steps:
 
 ---
 
-## CRITICAL RULES
+## Critical Rules
 
 1. **ALWAYS test auth first** -- Run `wxcli whoami` before any licensing call. Do not proceed on auth failure.
 
@@ -467,7 +504,7 @@ For calling license assignment during user provisioning, see the `provision-call
 
 ---
 
-## Context Compaction
+## Context Compaction Recovery
 
 If context compacts mid-execution, recover by:
 1. Read `docs/reference/admin-licensing.md` to recover PATCH body format and error codes

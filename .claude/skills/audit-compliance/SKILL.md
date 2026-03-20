@@ -15,7 +15,7 @@ argument-hint: [audit-type -- e.g. "admin audit", "security events", "compliance
 1. Read `docs/reference/admin-audit-security.md` for audit event APIs, security audit scopes, event categories, and date parameter conventions
 2. Read `docs/reference/authentication.md` for auth token conventions and scope requirements
 
-## Step 2: Verify auth
+## Step 2: Verify auth token
 
 Before any API calls, confirm the user has a working auth token:
 
@@ -27,15 +27,43 @@ If this fails, stop and resolve authentication first (`wxcli configure`).
 
 ### Required scopes by audit type
 
-| Audit Type | Scope | Notes |
-|------------|-------|-------|
-| Admin audit events | Standard admin token | Full or read-only admin. No special scope beyond admin auth. |
-| Security audit events | `audit:events_read` | Specifically required. Standard admin token without this scope returns 401/403. |
-| Platform events (compliance) | Standard admin token | Full or read-only admin. Compliance officer role also works. |
-| Authorizations review | Standard admin token | Lists OAuth grants for users and the org. |
-| Service app tokens | Admin + service app credentials | Requires `client-id`, `client-secret`, and `target-org-id`. |
+| Audit Type | CLI Group | Scope | Date Params | Notes |
+|------------|-----------|-------|-------------|-------|
+| Admin audit events | `audit-events` | Standard admin token | `--from` / `--to` | Full or read-only admin. No special scope beyond admin auth. |
+| Security audit events | `security-audit` | `audit:events_read` | `--start-time` / `--end-time` | Specifically required. Standard admin token without this scope returns 401/403. |
+| Platform events (compliance) | `events` | Standard admin token | `--from` / `--to` | Full or read-only admin. Compliance officer role also works. |
+| Authorizations review | `authorizations` | Standard admin token | N/A | Lists OAuth grants for users and the org. Full admin required for delete. |
+| Service app tokens | `service-apps` | Admin + service app credentials | N/A | Requires `client-id`, `client-secret`, and `target-org-id`. |
 
-## Step 3: Identify the audit need
+### Verification gate
+
+Run a quick probe for the audit type the user needs. If it fails, stop and fix auth before proceeding.
+
+```bash
+# Admin audit — verify access
+wxcli audit-events list-event-categories -o json
+
+# Security audit — verify audit:events_read scope
+wxcli security-audit list \
+  --start-time "2026-03-18T00:00:00.000Z" \
+  --end-time "2026-03-19T00:00:00.000Z" \
+  --limit 1 \
+  -o json
+
+# Platform events — verify access
+wxcli events list \
+  --from "2026-03-18T00:00:00.000Z" \
+  --to "2026-03-19T00:00:00.000Z" \
+  --limit 1 \
+  -o json
+
+# Authorizations — verify access
+wxcli authorizations show -o json
+```
+
+If the probe returns 401/403, the token lacks the required scope. Resolve before continuing.
+
+## Step 3: Identify the operation
 
 Ask the user what they want to investigate. Present this decision matrix if they are unsure:
 
@@ -48,19 +76,64 @@ Ask the user what they want to investigate. Present this decision matrix if they
 | Create/rotate service app credentials | Service app token | `service-apps` |
 | List available audit event categories | Category reference | `audit-events` |
 
-## Step 4: Admin audit events
+## Step 4: Check prerequisites
 
-Use `wxcli audit-events` to see who changed what in Control Hub. Every admin action is logged: user created, setting changed, license assigned, location modified, policy updated.
+### 4a. Confirm date range and filters
 
-### 4a. Discover available event categories
+All audit queries require scoping. Confirm with the user:
+
+1. **Date range** — What period to cover? Use ISO 8601 format (`2026-03-18T00:00:00.000Z`).
+2. **Filters** — Any specific actor (admin/user), event category, resource type, or event type?
+3. **Date parameter names** — `audit-events` and `events` use `--from`/`--to`. `security-audit` uses `--start-time`/`--end-time`. Mixing them produces errors.
+
+### 4b. Resolve actor IDs if filtering by person
+
+If the user wants to filter by a specific admin or user, resolve their person ID first:
+
+```bash
+wxcli people list --email "admin@company.com" -o json
+```
+
+For event category filtering on admin audit, discover available categories:
 
 ```bash
 wxcli audit-events list-event-categories -o json
 ```
 
-This returns the list of category names you can use to filter audit events.
+This returns the exact category names (which may be case-sensitive). <!-- NEEDS VERIFICATION: case sensitivity of event categories -->
 
-### 4b. List audit events with a date range
+## Step 5: Build and present deployment plan -- [SHOW BEFORE EXECUTING]
+
+Present the query plan to the user for approval before executing. Include:
+
+1. **Which API** — `audit-events`, `security-audit`, `events`, `authorizations`, or `service-apps`
+2. **Date range** — Start and end dates, using the correct parameter names for the chosen API
+3. **Filters** — Actor ID, event category, resource type, event type (if any)
+4. **Output format and destination** — Screen display, file export, or pipe to analysis
+5. **Destructive operations** — Flag any delete/revoke operations and require explicit confirmation
+
+Example plan format:
+
+```
+Audit Query Plan:
+  API:        wxcli security-audit list
+  Date range: 2026-03-12 to 2026-03-19 (--start-time / --end-time)
+  Filters:    --event-categories "Logins"
+  Output:     JSON to screen
+  Destructive: No
+```
+
+**Do not proceed to Step 6 until the user approves the plan.**
+
+## Step 6: Execute via wxcli
+
+Execute the approved query plan. Jump to the sub-step matching the audit type identified in Step 3.
+
+### 6a. Admin audit events (`audit-events`)
+
+Use `wxcli audit-events` to see who changed what in Control Hub. Every admin action is logged: user created, setting changed, license assigned, location modified, policy updated.
+
+**List audit events with a date range:**
 
 ```bash
 wxcli audit-events list \
@@ -69,13 +142,9 @@ wxcli audit-events list \
   -o json
 ```
 
-### 4c. Filter by admin (actor)
+**Filter by admin (actor):**
 
 ```bash
-# Step 1: Get the admin's person ID
-wxcli people list --email "admin@company.com" -o json
-
-# Step 2: Pull their audit events
 wxcli audit-events list \
   --actor-id "Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0" \
   --from "2026-03-01T00:00:00.000Z" \
@@ -83,7 +152,7 @@ wxcli audit-events list \
   -o json
 ```
 
-### 4d. Filter by event category
+**Filter by event category:**
 
 ```bash
 wxcli audit-events list \
@@ -93,7 +162,7 @@ wxcli audit-events list \
   -o json
 ```
 
-### 4e. Limit results for a quick check
+**Limit results for a quick check:**
 
 ```bash
 wxcli audit-events list \
@@ -103,11 +172,11 @@ wxcli audit-events list \
   -o json
 ```
 
-## Step 5: Security audit events
+### 6b. Security audit events (`security-audit`)
 
 Use `wxcli security-audit` for security-related events: login failures, suspicious activity, security policy changes, authentication anomalies. This is the API to use when investigating security incidents or feeding events into an external SIEM.
 
-### 5a. List security events for a date range
+**List security events for a date range:**
 
 ```bash
 wxcli security-audit list \
@@ -118,7 +187,7 @@ wxcli security-audit list \
 
 Note: `security-audit` uses `--start-time`/`--end-time`, NOT `--from`/`--to` like the other audit APIs.
 
-### 5b. Filter by actor
+**Filter by actor:**
 
 ```bash
 wxcli security-audit list \
@@ -128,7 +197,7 @@ wxcli security-audit list \
   -o json
 ```
 
-### 5c. Filter by event category
+**Filter by event category:**
 
 ```bash
 wxcli security-audit list \
@@ -138,7 +207,7 @@ wxcli security-audit list \
   -o json
 ```
 
-### 5d. Export for SIEM ingestion
+**Export for SIEM ingestion:**
 
 ```bash
 # Pull the last 7 days of security events as JSON file
@@ -154,11 +223,11 @@ wxcli security-audit list \
   -o json >> siem_feed.json
 ```
 
-## Step 6: Platform events (compliance)
+### 6c. Platform events — compliance (`events`)
 
 Use `wxcli events` for general Webex platform activity: messages created/deleted, calls placed, meetings held, memberships changed. This is the API for compliance reviews, eDiscovery, and building integrations that react to platform activity.
 
-### 6a. List events with a date range
+**List events with a date range:**
 
 ```bash
 wxcli events list \
@@ -167,7 +236,7 @@ wxcli events list \
   -o json
 ```
 
-### 6b. Filter by resource type
+**Filter by resource type:**
 
 ```bash
 # Only calling events
@@ -185,7 +254,7 @@ wxcli events list \
   -o json
 ```
 
-### 6c. Filter by event type
+**Filter by event type:**
 
 ```bash
 # Deleted resources (compliance/eDiscovery)
@@ -204,24 +273,24 @@ wxcli events list \
   -o json
 ```
 
-### 6d. Compliance review for a specific user
+**Compliance review for a specific user:**
 
 ```bash
-# Step 1: Get the user's person ID
+# Get the user's person ID (if not already resolved in Step 4b)
 wxcli people list --email "user@company.com" -o json
 
-# Step 2: Pull all events for that user
+# Pull all events for that user
 wxcli events list \
   --actor-id "Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0" \
   --from "2026-03-01T00:00:00.000Z" \
   --to "2026-03-19T00:00:00.000Z" \
   -o json
 
-# Step 3: Get full details on a specific event
+# Get full details on a specific event
 wxcli events show "Y2lzY29zcGFyazovL3VzL0VWRU5ULzU2Nzg5"
 ```
 
-### 6e. Event resource types reference
+**Event resource types reference:**
 
 | Resource | Description |
 |----------|-------------|
@@ -233,7 +302,7 @@ wxcli events show "Y2lzY29zcGFyazovL3VzL0VWRU5ULzU2Nzg5"
 | `recordings` | Recording events |
 | `meetingMessages` | In-meeting chat messages |
 
-### 6f. Event types reference
+**Event types reference:**
 
 | Type | Description |
 |------|-------------|
@@ -242,11 +311,11 @@ wxcli events show "Y2lzY29zcGFyazovL3VzL0VWRU5ULzU2Nzg5"
 | `deleted` | Resource was deleted |
 | `ended` | Resource ended (calls, meetings) |
 
-## Step 7: Authorization audit
+### 6d. Authorization audit (`authorizations`)
 
 Use `wxcli authorizations` to review OAuth grants and integrations authorized in the org. This reveals which third-party apps and integrations have access to user or org data.
 
-### 7a. List authorizations for a user
+**List authorizations for a user:**
 
 ```bash
 # By email
@@ -256,13 +325,13 @@ wxcli authorizations list --person-email "user@company.com" -o json
 wxcli authorizations list --person-id "Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0" -o json
 ```
 
-### 7b. Check token expiration status
+**Check token expiration status:**
 
 ```bash
 wxcli authorizations show -o json
 ```
 
-### 7c. Revoke an OAuth authorization by client ID
+**Revoke an OAuth authorization by client ID:**
 
 This is destructive -- it revokes access for an integration across the org. Always confirm with the user before executing.
 
@@ -271,7 +340,7 @@ This is destructive -- it revokes access for an integration across the org. Alwa
 wxcli authorizations delete --client-id "C1234567890abcdef" --force
 ```
 
-### 7d. Delete a specific authorization by ID
+**Delete a specific authorization by ID:**
 
 This is destructive -- it removes a specific authorization. Always confirm with the user before executing.
 
@@ -279,11 +348,11 @@ This is destructive -- it removes a specific authorization. Always confirm with 
 wxcli authorizations delete-authorizations "Y2lzY29zcGFyazovL3VzL0FVVEhPUklaQVRJT04vMTIz" --force
 ```
 
-## Step 8: Service app credential management
+### 6e. Service app credential management (`service-apps`)
 
 Use `wxcli service-apps` to create access tokens for service applications. Service apps are non-interactive integrations that act on behalf of an org.
 
-### 8a. Create a service app access token
+**Create a service app access token:**
 
 ```bash
 wxcli service-apps create APPLICATION_ID \
@@ -294,9 +363,33 @@ wxcli service-apps create APPLICATION_ID \
 
 The returned token is short-lived. Store it immediately -- the secret is only shown once at creation time.
 
-## Step 9: Analysis recipes
+## Step 7: Verify
 
-After retrieving audit data, use these patterns to analyze the results.
+After executing the query, verify the results are correct and complete.
+
+### Quick verification checks
+
+1. **Non-empty results** — If the query returned empty, check: date range too narrow? Wrong filter values? Misspelled `--resource` type (returns empty, not error)?
+2. **Expected scope** — Do results cover the expected time period and event types?
+3. **Actor correlation** — If filtering by actor, confirm the returned events match the expected admin/user.
+
+### Spot-check a specific record
+
+```bash
+# For platform events, get full details on one event
+wxcli events show "EVENT_ID_FROM_RESULTS"
+
+# For admin audit, re-query a narrow window to confirm
+wxcli audit-events list \
+  --from "2026-03-18T12:00:00.000Z" \
+  --to "2026-03-18T13:00:00.000Z" \
+  --limit 5 \
+  -o json
+```
+
+## Step 8: Report results
+
+After retrieving and verifying audit data, analyze and present the results.
 
 ### Summarize admin changes by category
 
@@ -365,39 +458,6 @@ for auth in data:
 "
 ```
 
-## Step 10: Verification and query plan
-
-Always show the query plan to the user before executing. Confirm:
-
-1. Which API to use (`audit-events`, `security-audit`, `events`, `authorizations`, or `service-apps`)
-2. Date range (and the correct date parameter names for that API)
-3. Any filters (actor, category, resource type, event type)
-4. Output format and destination (screen, file, or pipe to analysis)
-
-### Quick verification checks
-
-```bash
-# Verify audit events are accessible
-wxcli audit-events list-event-categories -o json
-
-# Verify security audit scope
-wxcli security-audit list \
-  --start-time "2026-03-18T00:00:00.000Z" \
-  --end-time "2026-03-19T00:00:00.000Z" \
-  --limit 1 \
-  -o json
-
-# Verify events API access
-wxcli events list \
-  --from "2026-03-18T00:00:00.000Z" \
-  --to "2026-03-19T00:00:00.000Z" \
-  --limit 1 \
-  -o json
-
-# Verify authorizations access
-wxcli authorizations show -o json
-```
-
 ---
 
 ## Critical Rules
@@ -405,14 +465,14 @@ wxcli authorizations show -o json
 1. **`audit-events` and `security-audit` are different APIs with different scopes.** `audit-events` = admin changes in Control Hub, works with standard admin token. `security-audit` = security/login events, requires `audit:events_read` scope. Do not confuse them.
 2. **`security-audit` requires `audit:events_read` scope specifically.** A standard admin token without this scope returns 401 or 403. If you get a scope error on `security-audit list`, the token needs the `audit:events_read` scope added.
 3. **Date range filtering is essential.** Without date parameters, you get the full event stream, which can be enormous and slow. Always specify a date range.
-4. **Date parameter names differ across APIs.** `audit-events` and `events` use `--from`/`--to`. `security-audit` uses `--start-time`/`--end-time`. Mixing them up produces errors.
+4. **Date parameter names differ across APIs.** `audit-events` and `events` use `--from`/`--to`. `security-audit` uses `--start-time`/`--end-time`. Mixing them up produces errors. See Step 2 scopes table for the mapping.
 5. **Events API covers all platform events, not just calling.** Filter by `--resource` and `--type` to narrow results. Use `--service-type calling` to scope to Webex Calling events only.
 6. **`authorizations delete` revokes access -- this is destructive.** It removes an OAuth grant by client ID across the org. Always confirm with the user before executing. `delete-authorizations` removes a specific authorization by ID.
 7. **Service app token creation returns a short-lived token.** Store it immediately. The credentials (`client-secret`) are only shown once at creation time and cannot be retrieved later.
-8. **Always show the query plan before executing.** Present which API, date range, filters, and output format to the user for confirmation before running queries.
+8. **Always show the query plan before executing (Step 5).** Present which API, date range, filters, and output format to the user for confirmation before running queries.
 9. **ISO 8601 datetime format required.** All date parameters expect ISO 8601 format: `2026-03-18T00:00:00.000Z`. Other formats return errors or unexpected results.
-10. **Event categories are case-sensitive.** Always run `wxcli audit-events list-event-categories` first to discover the exact category names before filtering. <!-- NEEDS VERIFICATION: case sensitivity of event categories -->
-11. **`events list` resource types are not validated client-side.** Misspelled `--resource` values return empty result sets, not errors. Use the known resource types listed in Step 6e.
+10. **Event categories are case-sensitive.** Always run `wxcli audit-events list-event-categories` first (Step 4b) to discover the exact category names before filtering. <!-- NEEDS VERIFICATION: case sensitivity of event categories -->
+11. **`events list` resource types are not validated client-side.** Misspelled `--resource` values return empty result sets, not errors. Use the known resource types listed in Step 6c.
 
 ---
 
@@ -431,14 +491,14 @@ wxcli authorizations show -o json
 | Error | Cause | Fix |
 |-------|-------|-----|
 | 401/403 on `security-audit list` | Token missing `audit:events_read` scope | Regenerate token with `audit:events_read` scope or use a service app with that scope |
-| Empty results from `events list` | Wrong `--resource` value or no events in date range | Check resource type spelling against Step 6e table; widen the date range |
+| Empty results from `events list` | Wrong `--resource` value or no events in date range | Check resource type spelling against Step 6c resource types table; widen the date range |
 | 403 on `authorizations list` | Insufficient admin privileges | Requires full admin, not read-only |
 | Empty results from `audit-events list` | Date range too narrow or no admin activity | Widen the date range; verify org has admin activity in that period |
-| 400 on date parameters | Wrong date format or wrong parameter names for the API | Use ISO 8601 (`2026-03-18T00:00:00.000Z`); check which date params the API expects |
+| 400 on date parameters | Wrong date format or wrong parameter names for the API | Use ISO 8601 (`2026-03-18T00:00:00.000Z`); check Step 2 table for which date params the API expects |
 
 ---
 
-## Context Compaction
+## Context Compaction Recovery
 
 If context compacts mid-execution, recover by:
 1. Read `docs/reference/admin-audit-security.md` to recover API details, scopes, and date parameter conventions

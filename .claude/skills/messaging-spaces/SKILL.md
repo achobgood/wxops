@@ -34,7 +34,7 @@ Check the `type` field in the response to determine the token type:
 |-------------|-----------|-------|
 | `bot` | Bot token | Limited — cannot create teams, cannot add self to spaces |
 | `person` | User token | Full messaging access; space-scoped operations |
-| `admin` or org context | Admin token | Required for ECM, HDS, and org-wide operations |
+| `person` (with `spark-admin:` scopes) | Admin token | Required for ECM, HDS, and org-wide operations. API returns `type: person`, not `admin` — detect admin by checking if `spark-admin:` scoped operations succeed. |
 
 **Required scopes by operation:**
 
@@ -151,7 +151,7 @@ ECM requires an admin token and Microsoft Graph API identifiers obtained before 
 
 | Prerequisite | How to obtain |
 |-------------|--------------|
-| Admin token with `spark-admin:` scopes | `wxcli configure`, verify `type` is admin context |
+| Admin token with `spark-admin:` scopes | `wxcli configure`, verify admin access by testing a `spark-admin:` scoped operation |
 | Target space ID (`roomId`) | `wxcli rooms show ROOM_ID` or `wxcli rooms list` |
 | SharePoint/OneDrive `driveId` | Microsoft Graph API: `GET /sites/{site-id}/drive` |
 | SharePoint/OneDrive `itemId` | Microsoft Graph API: `GET /drives/{drive-id}/root:/path/to/folder` |
@@ -175,7 +175,154 @@ wxcli hds list ORG_ID --output json
 
 ---
 
-## Step 5: CLI command catalog
+## Step 5: Build and present deployment plan — [SHOW BEFORE EXECUTING]
+
+Before executing any commands, present the full plan to the user:
+
+```
+DEPLOYMENT PLAN
+===============
+Operation: [type — e.g., "Create project team with 3 spaces and 5 members"]
+Target: [space name / team name / org-wide]
+
+Resources to create/modify:
+  - [Team: "Acme Project"] (if applicable)
+  - [Space: "Engineering"] (if applicable)
+  - [Space: "Announcements" — announcement-only] (if applicable)
+  - [Members to add: lead@example.com (moderator), dev1@example.com, dev2@example.com]
+
+Prerequisites verified:
+  [checkmark] Auth token verified — type: [user/admin/bot]
+  [checkmark] Required scopes present
+  [checkmark] Target space/team identified or does not yet exist (new)
+  [checkmark] Person emails/IDs confirmed
+  [checkmark] ECM drive/item IDs obtained (if ECM operation)
+
+Commands to execute:
+  1. wxcli teams create --name "Acme Project" --description "..."
+  2. wxcli rooms create --title "Engineering" --team-id TEAM_ID
+  3. wxcli rooms create --title "Announcements" --team-id TEAM_ID --is-announcement-only
+  4. wxcli team-memberships create --team-id TEAM_ID --person-email lead@example.com --is-moderator
+  5. wxcli team-memberships create --team-id TEAM_ID --person-email dev1@example.com
+  6. wxcli team-memberships create --team-id TEAM_ID --person-email dev2@example.com
+
+Proceed? (yes/no)
+```
+
+**Wait for user confirmation before executing.**
+
+---
+
+## Step 6: Execute via wxcli
+
+Run the commands in plan order. Capture IDs from each creation response to use in subsequent commands.
+
+Refer to the **CLI Command Reference** section at the bottom of this skill for the full command catalog per resource type.
+
+Handle errors explicitly:
+
+- **401/403**: Token expired or insufficient scopes — run `wxcli configure` to re-authenticate
+- **404**: Resource not found — confirm the ID is correct and the token has access
+- **409**: Conflict (e.g., space already exists with that name) — verify with `list`, then proceed or skip
+- **400**: Validation error — read the error message and fix the parameter (e.g., missing required field)
+- **429**: Rate limiting — add `sleep 1` between commands; use sequential execution for bulk operations
+
+## Step 7: Verify
+
+Read back each created resource to confirm:
+
+```bash
+# Verify a space
+wxcli rooms show ROOM_ID --output json
+
+# Verify memberships in a space
+wxcli memberships list --room-id ROOM_ID --output json
+
+# Verify a team
+wxcli teams show TEAM_ID --output json
+
+# Verify team members
+wxcli team-memberships list --team-id TEAM_ID --output json
+
+# Verify ECM folder link
+wxcli ecm show FOLDER_ID --output json
+
+# Verify HDS status
+wxcli hds show ORG_ID --output json
+```
+
+---
+
+## Step 8: Report results
+
+Present the operation results:
+
+```
+OPERATION COMPLETE
+==================
+Operation: [type]
+Status: Success
+
+Resources Created/Modified:
+  [Team: "Acme Project"]
+    ID: [team_id]
+    Created: [timestamp]
+
+  [Space: "Engineering"]
+    ID: [room_id]
+    Team: Acme Project
+    Type: group
+
+  [Space: "Announcements"]
+    ID: [room_id]
+    Team: Acme Project
+    Type: group (announcement-only)
+
+  Members added: 3
+    lead@example.com — team moderator
+    dev1@example.com
+    dev2@example.com
+
+Next steps:
+  - [e.g., "Add remaining team members"]
+  - [e.g., "Upload project files and link ECM folder"]
+  - [e.g., "Configure webhooks for message events — see webhooks-events.md"]
+  - [e.g., "Set up bot integrations — see messaging-bots.md"]
+```
+
+---
+
+## Critical Rules
+
+1. **Always verify token type before executing.** Bot tokens cannot create teams, manage team memberships, or access ECM/HDS. Check `type` in `wxcli whoami` output.
+2. **Always show the deployment plan** (Step 5) and wait for user confirmation before executing any create, update, or delete commands.
+3. **Membership operations require valid person IDs or emails.** Use `wxcli memberships list` or `wxcli team-memberships list` to find existing membership IDs — they are different from person IDs.
+4. **Deleting a space or team is permanent.** There is no recycle bin. Confirm with the user explicitly before running any `delete` command. Deleting a team removes ALL team spaces and content.
+5. **Bot tokens cannot create teams or manage team memberships.** Only user tokens and admin tokens can do this. Bot tokens also cannot add themselves to spaces.
+6. **ECM and HDS require admin tokens with `spark-admin:` scopes.** User tokens return 403. Verify token type before attempting ECM or HDS commands.
+7. **`rooms list` only returns spaces the authenticated user or bot is a member of.** It does not list all org spaces. Use an admin token or the compliance API for org-wide space auditing.
+8. **Direct (1:1) spaces cannot be deleted or renamed via API.** The delete endpoint returns an error for direct spaces. The `title` field may be empty for direct spaces.
+9. **When adding members in bulk, execute sequentially with `sleep 1` between operations.** The messaging API enforces rate limits (~5 requests/second for bot tokens). Parallel bulk adds risk 429 errors.
+10. **Always check if a space or team already exists before creating (idempotency).** Run `wxcli rooms list` or `wxcli teams list` first. Creating a duplicate may succeed but creates clutter, or may fail with a 409 conflict.
+
+---
+
+## Context Compaction Recovery
+
+If context compacts mid-execution, recover by:
+
+1. Read the deployment plan from `docs/plans/` to recover what was planned
+2. Check what has already been created:
+   ```bash
+   wxcli rooms list --output json
+   wxcli teams list --output json
+   wxcli memberships list --room-id ROOM_ID --output json
+   ```
+3. Resume from the first incomplete step in the plan
+
+---
+
+## CLI Command Reference
 
 ### Spaces (`rooms`)
 
@@ -361,146 +508,3 @@ wxcli hds list-network-test NODE_ID --trigger-type All --output json
 # Get cluster availability metrics
 wxcli hds list-availability CLUSTER_ID --from 2026-01-01T00:00:00Z --to 2026-03-19T00:00:00Z --output json
 ```
-
----
-
-## Step 6: Build and present deployment plan — `[SHOW BEFORE EXECUTING]`
-
-Before executing any commands, present the full plan to the user:
-
-```
-DEPLOYMENT PLAN
-===============
-Operation: [type — e.g., "Create project team with 3 spaces and 5 members"]
-Target: [space name / team name / org-wide]
-
-Resources to create/modify:
-  - [Team: "Acme Project"] (if applicable)
-  - [Space: "Engineering"] (if applicable)
-  - [Space: "Announcements" — announcement-only] (if applicable)
-  - [Members to add: lead@example.com (moderator), dev1@example.com, dev2@example.com]
-
-Prerequisites verified:
-  [checkmark] Auth token verified — type: [user/admin/bot]
-  [checkmark] Required scopes present
-  [checkmark] Target space/team identified or does not yet exist (new)
-  [checkmark] Person emails/IDs confirmed
-  [checkmark] ECM drive/item IDs obtained (if ECM operation)
-
-Commands to execute:
-  1. wxcli teams create --name "Acme Project" --description "..."
-  2. wxcli rooms create --title "Engineering" --team-id TEAM_ID
-  3. wxcli rooms create --title "Announcements" --team-id TEAM_ID --is-announcement-only
-  4. wxcli team-memberships create --team-id TEAM_ID --person-email lead@example.com --is-moderator
-  5. wxcli team-memberships create --team-id TEAM_ID --person-email dev1@example.com
-  6. wxcli team-memberships create --team-id TEAM_ID --person-email dev2@example.com
-
-Proceed? (yes/no)
-```
-
-**Wait for user confirmation before executing.**
-
----
-
-## Step 7: Execute and verify
-
-Run the commands in plan order. Capture IDs from each creation response to use in subsequent commands.
-
-Handle errors explicitly:
-
-- **401/403**: Token expired or insufficient scopes — run `wxcli configure` to re-authenticate
-- **404**: Resource not found — confirm the ID is correct and the token has access
-- **409**: Conflict (e.g., space already exists with that name) — verify with `list`, then proceed or skip
-- **400**: Validation error — read the error message and fix the parameter (e.g., missing required field)
-- **429**: Rate limiting — add `sleep 1` between commands; use sequential execution for bulk operations
-
-**Read back each created resource to confirm:**
-
-```bash
-# Verify a space
-wxcli rooms show ROOM_ID --output json
-
-# Verify memberships in a space
-wxcli memberships list --room-id ROOM_ID --output json
-
-# Verify a team
-wxcli teams show TEAM_ID --output json
-
-# Verify team members
-wxcli team-memberships list --team-id TEAM_ID --output json
-
-# Verify ECM folder link
-wxcli ecm show FOLDER_ID --output json
-
-# Verify HDS status
-wxcli hds show ORG_ID --output json
-```
-
----
-
-## Step 8: Report results
-
-Present the operation results:
-
-```
-OPERATION COMPLETE
-==================
-Operation: [type]
-Status: Success
-
-Resources Created/Modified:
-  [Team: "Acme Project"]
-    ID: [team_id]
-    Created: [timestamp]
-
-  [Space: "Engineering"]
-    ID: [room_id]
-    Team: Acme Project
-    Type: group
-
-  [Space: "Announcements"]
-    ID: [room_id]
-    Team: Acme Project
-    Type: group (announcement-only)
-
-  Members added: 3
-    lead@example.com — team moderator
-    dev1@example.com
-    dev2@example.com
-
-Next steps:
-  - [e.g., "Add remaining team members"]
-  - [e.g., "Upload project files and link ECM folder"]
-  - [e.g., "Configure webhooks for message events — see webhooks-events.md"]
-  - [e.g., "Set up bot integrations — see messaging-bots.md"]
-```
-
----
-
-## Critical Rules
-
-1. **Always verify token type before executing.** Bot tokens cannot create teams, manage team memberships, or access ECM/HDS. Check `type` in `wxcli whoami` output.
-2. **Always show the deployment plan** (Step 6) and wait for user confirmation before executing any create, update, or delete commands.
-3. **Membership operations require valid person IDs or emails.** Use `wxcli memberships list` or `wxcli team-memberships list` to find existing membership IDs — they are different from person IDs.
-4. **Deleting a space or team is permanent.** There is no recycle bin. Confirm with the user explicitly before running any `delete` command. Deleting a team removes ALL team spaces and content.
-5. **Bot tokens cannot create teams or manage team memberships.** Only user tokens and admin tokens can do this. Bot tokens also cannot add themselves to spaces.
-6. **ECM and HDS require admin tokens with `spark-admin:` scopes.** User tokens return 403. Verify token type before attempting ECM or HDS commands.
-7. **`rooms list` only returns spaces the authenticated user or bot is a member of.** It does not list all org spaces. Use an admin token or the compliance API for org-wide space auditing.
-8. **Direct (1:1) spaces cannot be deleted or renamed via API.** The delete endpoint returns an error for direct spaces. The `title` field may be empty for direct spaces.
-9. **When adding members in bulk, execute sequentially with `sleep 1` between operations.** The messaging API enforces rate limits (~5 requests/second for bot tokens). Parallel bulk adds risk 429 errors.
-10. **Always check if a space or team already exists before creating (idempotency).** Run `wxcli rooms list` or `wxcli teams list` first. Creating a duplicate may succeed but creates clutter, or may fail with a 409 conflict.
-
----
-
-## Context Compaction Recovery
-
-If context compacts mid-execution, recover by:
-
-1. Read the deployment plan from `docs/plans/` to recover what was planned
-2. Check what has already been created:
-   ```bash
-   wxcli rooms list --output json
-   wxcli teams list --output json
-   wxcli memberships list --room-id ROOM_ID --output json
-   ```
-3. Resume from the first incomplete step in the plan

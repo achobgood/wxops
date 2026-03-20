@@ -129,14 +129,24 @@ Use `/wxc-calling-debug` to troubleshoot a failing configuration (this one is a 
 
 - **v0.1.0** (14 commands): Fully live-tested, 3 bugs fixed.
 - **v3 original 17 groups** (382 commands): All live-tested, 43 response key bugs fixed via `field_overrides.yaml`.
-- **v3 extended 31 groups** (~600 commands): Registered but NOT yet live-tested.
+- **v3 extended 31 groups** (~600 commands): Registered. Most now live-tested via Batches 1-3.
 - **OpenAPI migration**: All commands regenerated from OpenAPI spec. Singleton/list classification, response keys, and body field parsing all derived from schema.
+- **Live API sweep Batch 1 (2026-03-19):** Tested ~60 CLI commands and ~36 person endpoints. Found 9 CLI bugs (5 response key, 2 SCIM URL, 2 missing params) and 6 user-only person endpoints. All documented in reference docs.
+- **Live API sweep Batch 2 (2026-03-19):** Tested user-settings (~12 cmds), workspace-settings (~12 cmds), virtual-line-settings (~6 cmds), device-settings (~4 cmds), device-dynamic-settings, call-routing (5 list cmds), calling-service, caller-reputation, client-settings, hot-desking-portal, report-templates, CDR, admin-recordings, resource-groups, resource-group-memberships, hybrid-clusters/connectors, and workspace endpoint existence via curl. Found 3 CLI bugs (CDR wrong base URL, null result traceback, report-templates misclassified as singleton). Fixed in generator: analytics base URL support, null result guard, direct-array-response list classification. Mapped workspace endpoint access by license tier (Basic vs Professional).
+- **Live API sweep Batch 3 (2026-03-20):** Tested location-settings (~15 cmds), location-schedules, location-voicemail (~10 cmds), emergency-services (~15 cmds), dect-devices full CRUD lifecycle (create network → add handsets with 2 lines → update → bulk add → delete), call-recording (~10 cmds), organizations, roles, org-contacts, device-configurations, xapi, workspace-personalization. No new CLI bugs found. Full DECT create/read/update/delete cycle verified. Base station MACs require Cisco manufacturing database (Bifrost) — can't use fake MACs.
 
 ### Known issues
 
 1. **call-controls requires user-level OAuth.** Admin tokens get 400 "Target user not authorized". Don't use `wxcli call-controls` with admin/service-app tokens.
 2. **Complex nested settings need `--json-body`.** The generator skips deeply nested object/array body fields. For call forwarding, voicemail, monitoring, and similar nested settings, use `--json-body '{"key": {...}}'`.
 3. **my-settings and mode-management require calling-licensed user.** All `/people/me/*` endpoints return 404 (error 4008) if the authenticated user doesn't have a Webex Calling license. Test with a calling user's token, not the admin token.
+4. **6 person settings are user-only (no admin path).** `simultaneousRing`, `sequentialRing`, `priorityAlert`, `callNotify`, `anonymousCallReject`, and `callPolicies` only exist at `/telephony/config/people/me/settings/{feature}`. Admin tokens get 404. Use user-level OAuth for these.
+5. **Two path families for person settings.** Classic settings use `/people/{personId}/features/{feature}`. Newer settings use `/telephony/config/people/{personId}/{feature}`. Some names differ between families: `intercept` (not `callIntercept`), `reception` (not `receptionist`), `applications` (not `applicationServicesSettings`), `autoTransferNumbers` (not `transferNumbers`), `pushToTalk` (not `pushToTalkSettings`).
+6. **SCIM endpoints use a different base URL.** SCIM API paths start with `/identity/scim/` not `/v1/identity/scim/`. The `/v1/` prefix must not be prepended.
+7. **~~`audit-events` and `security-audit` commands need `--org-id`~~** (RESOLVED). Both commands now expose `--org-id` as a required option. The generator's global `omit_query_params: [orgId]` is overridden via `keep_query_params: [orgId]` in `field_overrides.yaml` for these two tags.
+8. **~~CDR endpoints use wrong base URL~~** (RESOLVED). CDR commands now correctly use `analytics-calling.webexapis.com/v1` via the `ANALYTICS_PREFIXES` mechanism in `command_renderer.py`. CDR also requires `analytics:read_all` scope which admin tokens may not have.
+9. **Workspace `/telephony/config/` settings require Professional license.** Most workspace call settings under `/telephony/config/workspaces/{id}/` return 405 "Invalid Professional Place" for Basic-licensed workspaces. Only `musicOnHold` and `doNotDisturb` work on Basic. The `/workspaces/{id}/features/` path family (callForwarding, callWaiting, callerId, intercept, monitoring) works on Basic.
+10. **Default table columns show empty for settings endpoints.** Settings endpoints return objects without `id`/`name` fields, so the default table columns display empty. Use `-o json` for these. This affects user-settings, workspace-settings, virtual-line-settings show commands.
 
 ### Generator rules
 

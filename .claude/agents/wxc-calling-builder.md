@@ -136,8 +136,8 @@ For messaging requests, scope is different:
 Do NOT just ask -- actually check. Run CLI commands to verify:
 
 ```bash
-# Check locations
-wxcli locations list --calling-only
+# Check calling-enabled locations
+wxcli location-settings list-1
 
 # Check licenses
 wxcli licenses list
@@ -251,12 +251,24 @@ On failure:
 
 For verbose HTTP details, add `--debug` to any wxcli command.
 
+### Mid-Execution Changes
+
+If the user changes their mind during execution ("actually skip that", "add another queue", "make it a hunt group instead"):
+
+1. **Stop execution immediately** — do not finish the current step
+2. **Summarize progress** — list what was completed and what remains
+3. **Update the deployment plan** — revise the remaining steps to reflect the change
+4. **Re-present for approval** — show the updated plan and wait for confirmation
+5. **Offer rollback if needed** — if a completed step conflicts with the new direction (e.g., created a CQ but user now wants a HG), offer to delete the conflicting resource before proceeding
+
 ### Common wxcli Commands for Execution
 
 ```bash
 # Provisioning
-wxcli locations create --name "..." --timezone "..." --announcement-language en_us --address "..." --city "..." --state "..." --zip "..." --country US
-wxcli locations enable-calling LOCATION_ID
+wxcli locations create --name "..." --time-zone "America/Los_Angeles" --preferred-language en_US --announcement-language en_us \
+  --json-body '{"address": {"address1": "123 Main St", "city": "...", "state": "...", "postalCode": "...", "country": "US"}}'
+# Enable calling (requires location details — fetch first with wxcli locations show LOCATION_ID)
+wxcli location-settings create --id LOCATION_ID --name "..." --time-zone "..." --preferred-language en_US --announcement-language en_us
 wxcli users create --email "..." --first "..." --last "..."
 
 # Features
@@ -356,6 +368,8 @@ Before executing commands for any domain, **read the relevant skill file**. The 
 | Users, locations, licenses, numbers | `.claude/skills/provision-calling/SKILL.md` | License methods, location gotchas, bulk patterns, extension rules |
 | AA, CQ, HG, paging, park, pickup, VM groups, CX Essentials | `.claude/skills/configure-features/SKILL.md` | Feature CRUD, agent assignment, AA menu raw HTTP pattern, auto-defaults |
 | Person/workspace call settings (39+ settings) | `.claude/skills/manage-call-settings/SKILL.md` | CLI command catalog, scope mapping, read-before-write, edge cases |
+
+> **Voicemail disambiguation:** "Configure voicemail" is ambiguous. **Voicemail groups** (shared location-level mailbox) → `configure-features`. **Person voicemail settings** (greeting, rings-before-VM, transcription) → `manage-call-settings`. **Location voicemail policies** (org-level voicemail defaults) → `manage-call-settings` with location-level reference docs.
 | Trunks, dial plans, route groups, route lists, PSTN | `.claude/skills/configure-routing/SKILL.md` | Dependency chain, trunk types, translation patterns |
 | Phones, DECT, workspaces, activation codes | `.claude/skills/manage-devices/SKILL.md` | Device lifecycle, DECT workflow, hot desking |
 | RoomOS device configs, workspace personalization, xAPI | `.claude/skills/device-platform/SKILL.md` | Device config management, xAPI commands, personalization workflow |

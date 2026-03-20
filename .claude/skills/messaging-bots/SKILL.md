@@ -34,7 +34,8 @@ The `/people/me` response includes a `type` field:
 |-----------|-------------|-------------|
 | Bot | `bot` | Sending messages, receiving webhooks, card interactions |
 | User | `person` | Testing, room tabs (requires moderator), all bot operations |
-| Admin | `person` | NOT suitable for sending messages — admin tokens cannot post to spaces |
+| Admin (personal) | `person` | CAN post to spaces if admin is a member — same as user token with elevated scopes |
+| Service App | `appuser` | NOT suitable for sending messages — service app tokens cannot post to spaces |
 
 <!-- NEEDS VERIFICATION: Confirm wxcli whoami exposes the type field -->
 
@@ -45,7 +46,26 @@ The `/people/me` response includes a `type` field:
 - `spark:memberships_read` — list space members
 - `spark:kms` — E2E encryption key management
 
-**Warning:** If the user has an admin token and wants to send messages, they need to switch to a bot or user token. Admin tokens get 403 on message creation.
+**Warning:** If the user has a service app token and wants to send messages, they need to switch to a bot or user token. Service app tokens get 403 on message creation. Personal admin tokens (which are user tokens with elevated scopes) CAN post to spaces if the admin is a member of the space.
+
+### Scope verification
+
+After identifying the token type, verify the token has the scopes required for the user's task:
+
+| Task Type | Required Scopes |
+|-----------|----------------|
+| Send notification | `spark:messages_write`, `spark:rooms_read` |
+| Card interaction | `spark:messages_write`, `spark:rooms_read` + webhook callback URL |
+| Webhook setup | `spark:messages_read` or `spark:rooms_read` (depends on resource) |
+| Room tab | `spark:rooms_read`, `spark:rooms_write` (user token only) |
+| Cross-domain (calling + messaging) | `spark:messages_write` + `spark:calls_read` (may need two tokens) |
+
+**How to check:** Run `wxcli whoami` to confirm identity. `wxcli whoami` does not support `--output json` — it displays a formatted summary. For detailed token inspection, use `wxcli people show-me --output json`. Bot tokens have a fixed scope set (see above). For user/admin tokens, the scopes depend on the OAuth grant.
+
+**If scopes are missing:**
+- **Bot token:** Bot scopes are fixed at creation time. If the bot lacks a required scope, the user must create a new bot with the correct scopes at developer.webex.com.
+- **User token:** The user must re-authorize with the required scopes in their OAuth flow.
+- **Cross-domain:** If the task needs both messaging and calling scopes, the user likely needs two tokens — a bot token for messaging and a user/admin token for calling webhooks.
 
 ## Step 3: Identify task type
 
@@ -59,7 +79,7 @@ Ask the user what they want to build. Present this decision matrix if they are u
 | Embed a web app in a space's tab bar | **Room tab** | User token (moderator) — NOT bot token |
 | Bridge calling events to messaging | **Cross-domain** | Bot token + calling webhook + target space |
 
-## Step 4: Check bot setup prerequisites
+## Step 4: Check prerequisites
 
 Before executing, verify these are in place:
 
@@ -112,7 +132,7 @@ wxcli rooms create --title "Bot Space"
 
 Then add the bot to the new space (see 4b).
 
-## Step 5: Select card recipe (if applicable)
+### 4e. Select card recipe (if applicable)
 
 If the user's task involves sending rich messages or interactive cards, guide them to the right recipe:
 
@@ -125,14 +145,14 @@ If the user's task involves sending rich messages or interactive cards, guide th
 | "Alert on-call engineer" | **Incident Alert** — Attention style + Action.Submit (Acknowledge) | Yes |
 | "Let user pick from options" | **Dropdown Menu** — Input.ChoiceSet + Action.Submit | Yes |
 
-### After recipe selection
+#### After recipe selection
 
 1. Load the complete JSON payload from `docs/reference/messaging-bots.md` Section 3
 2. Customize placeholder values: room ID, field names, button labels, URLs
 3. Build the `wxcli messages create --json-body '...'` command
 4. **If the recipe is interactive** (uses Action.Submit): also set up webhooks (Step 6) and explain the attachment action response flow
 
-### Sending the card
+#### Sending the card
 
 ```bash
 wxcli messages create --json-body '{
@@ -147,11 +167,34 @@ wxcli messages create --json-body '{
 
 **Critical:** The `text` field is REQUIRED even when sending a card. It's the fallback for email notifications and clients that can't render adaptive cards.
 
-## Step 6: Set up webhooks (if applicable)
+## Step 5: Build and present deployment plan [SHOW BEFORE EXECUTING]
+
+Before executing any commands, compile a deployment plan and present it to the user for approval.
+
+The plan must include:
+
+1. **Task summary** — what we are building (task type from Step 3, card recipe from Step 4e if applicable)
+2. **Token type** — bot / user / admin, and any scope gaps identified in Step 2
+3. **Target space** — space name and ID
+4. **Commands to execute** — the exact `wxcli` commands in execution order:
+   - Message/card creation commands
+   - Webhook creation commands (if interactive)
+   - Room tab commands (if applicable)
+   - Cross-domain calling webhook commands (if applicable)
+5. **Verification steps** — what we will check after execution
+6. **Risks or warnings** — scope gaps, rate limiting concerns, cross-domain token requirements
+
+**Present the plan and wait for user approval before proceeding to Step 6.**
+
+## Step 6: Execute via wxcli
+
+After the user approves the deployment plan, execute the commands:
+
+### 6a. Set up webhooks (if applicable)
 
 For interactive bots that need to receive events:
 
-### 6a. Create webhook for messages (so bot can "hear")
+**Create webhook for messages (so bot can "hear"):**
 
 ```bash
 wxcli webhooks create \
@@ -161,7 +204,7 @@ wxcli webhooks create \
   --event created
 ```
 
-### 6b. Create webhook for card responses (if using adaptive cards with Action.Submit)
+**Create webhook for card responses (if using adaptive cards with Action.Submit):**
 
 ```bash
 wxcli webhooks create \
@@ -171,7 +214,7 @@ wxcli webhooks create \
   --event created
 ```
 
-### 6c. Verify webhooks are active
+**Verify webhooks are active:**
 
 ```bash
 wxcli webhooks list --output json
@@ -179,7 +222,11 @@ wxcli webhooks list --output json
 
 Check that both webhooks show `"status": "active"`.
 
-### The bot interaction loop
+### 6b. Send messages and cards
+
+Execute the message/card creation commands from the deployment plan. For cards, use the customized JSON payload built in Step 4e.
+
+### 6c. The bot interaction loop
 
 **Messages:**
 1. User sends message mentioning @bot → webhook fires with message metadata (NO text for bot tokens)
@@ -193,7 +240,7 @@ Check that both webhooks show `"status": "active"`.
 
 For full webhook CRUD, HMAC verification, auto-deactivation handling, and advanced filtering, see `docs/reference/webhooks-events.md`.
 
-## Step 7: Cross-domain dispatch (if applicable)
+### 6d. Cross-domain dispatch (if applicable)
 
 When the user's objective involves both Webex Calling and Messaging:
 
@@ -212,7 +259,7 @@ The cross-domain recipes in `docs/reference/messaging-bots.md` Section 7 provide
 
 **Important:** Calling webhooks require `spark:calls_read` scope, which is separate from bot messaging scopes. The user may need two different tokens (bot token for messaging, user/admin token for calling webhooks) or a user token that has both scope sets.
 
-## Step 8: Execute and verify
+## Step 7: Verify
 
 ### For notification bots (no interaction)
 
@@ -247,7 +294,7 @@ wxcli room-tabs list --room-id ROOM_ID --output json
 
 Verify the tab appears in the space's tab bar in the Webex App.
 
-## Step 9: Report results
+## Step 8: Report results
 
 ```
 BOT DEPLOYMENT COMPLETE

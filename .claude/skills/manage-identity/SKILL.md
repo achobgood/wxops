@@ -102,7 +102,7 @@ wxcli people list --email "target@example.com"
 wxcli org-contacts list $ORG_ID
 ```
 
-## Step 5: Build plan -- SHOW BEFORE EXECUTING
+## Step 5: Build plan -- [SHOW BEFORE EXECUTING]
 
 **Present the plan to the user and wait for approval.** Never execute write operations without confirmation.
 
@@ -454,7 +454,7 @@ Next steps:
 
 ---
 
-## CRITICAL RULES
+## Critical Rules
 
 1. **ALWAYS test auth first** -- Run `wxcli whoami` before any identity call. Do not proceed on auth failure.
 
@@ -550,7 +550,7 @@ Use this to decide which CLI group to use:
 
 ---
 
-## Context Compaction
+## Context Compaction Recovery
 
 If context compacts mid-execution, recover by:
 1. Read the deployment plan from `docs/plans/` to recover what was planned

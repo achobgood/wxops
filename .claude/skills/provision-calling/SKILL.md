@@ -56,7 +56,7 @@ Run these checks based on the operation. **Stop and report** if any prerequisite
 ### For location creation:
 ```bash
 # Check if location name already exists
-wxcli locations list --calling-only
+wxcli locations list --name "target name"
 # Look for a match in the output. If the target name appears:
 wxcli locations show LOCATION_ID
 # Ask user: update existing or abort?
@@ -64,9 +64,9 @@ wxcli locations show LOCATION_ID
 
 ### For user provisioning:
 ```bash
-# 1. Verify location exists
-wxcli locations list --calling-only
-wxcli locations show LOCATION_ID
+# 1. Verify location exists and is calling-enabled
+wxcli location-settings list-1
+# Confirm target location appears (only calling-enabled locations are returned)
 
 # 2. Find an available calling license with capacity
 wxcli licenses list
@@ -87,7 +87,7 @@ wxcli users show PERSON_ID --output json
 wxcli numbers-api create LOCATION_ID --json-body '{"phoneNumbers": ["+15551234567"], "numberType": "DID"}'
 ```
 
-## Step 5: Build deployment plan — SHOW BEFORE EXECUTING
+## Step 5: Build deployment plan — [SHOW BEFORE EXECUTING]
 
 **Present the plan to the user and wait for approval.** Never execute without confirmation.
 
@@ -119,29 +119,37 @@ Proceed? [wait for user confirmation]
 
 ### Operation A: Create a Location
 
-Required flags: `--name`, `--timezone`, `--address`, `--city`, `--state`, `--zip`. Country defaults to US. Language defaults to en_US.
+Required flags: `--name`, `--time-zone`, `--preferred-language`, `--announcement-language`. Address must go in `--json-body`.
 
 ```bash
 wxcli locations create \
   --name "San Jose Office" \
-  --timezone "America/Los_Angeles" \
+  --time-zone "America/Los_Angeles" \
+  --preferred-language en_US \
   --announcement-language en_us \
-  --address "123 Main St" \
-  --city "San Jose" \
-  --state CA \
-  --zip 95113 \
-  --country US
+  --json-body '{"address": {"address1": "123 Main St", "city": "San Jose", "state": "CA", "postalCode": "95113", "country": "US"}}'
 ```
 
 ### Operation B: Enable Location for Calling
 
 Creating a location does NOT automatically enable calling. Separate command required.
 
+First, fetch the location details you'll need:
 ```bash
-wxcli locations enable-calling LOCATION_ID
+wxcli locations show LOCATION_ID
 ```
 
-**Important:** `announcement_language` must be lowercase (`en_us` not `en_US`) or the API rejects with "Invalid Language Code". If the location was created without it, update first.
+Then enable calling using those details:
+```bash
+wxcli location-settings create \
+  --id LOCATION_ID \
+  --name "San Jose Office" \
+  --time-zone "America/Los_Angeles" \
+  --preferred-language en_US \
+  --announcement-language en_us
+```
+
+**Important:** `announcement_language` must be lowercase (`en_us` not `en_US`) or the API rejects with "Invalid Language Code".
 
 **Warning:** Once calling is enabled on a location, it **cannot be disabled via API**. Calling-enabled locations can only be deleted from Control Hub, not via the API (returns 409 Conflict).
 
@@ -150,9 +158,8 @@ wxcli locations enable-calling LOCATION_ID
 ```bash
 wxcli users create \
   --email jsmith@example.com \
-  --display-name "John Smith" \
-  --first-name John \
-  --last-name Smith
+  --first John \
+  --last Smith
 ```
 
 **Gotcha:** A POST that returns 400 may **still have created the person**. Always check with a GET before retrying:
@@ -164,8 +171,6 @@ wxcli users list --email jsmith@example.com --output json
 
 Assign a calling license, location, and extension to an existing user.
 
-> **Note:** `wxcli licenses` only has `list` and `show` — license assignment requires raw HTTP. This is one of the gaps where the CLI falls back to Python.
-
 ```bash
 # Look up current user state
 wxcli users show PERSON_ID --output json
@@ -173,24 +178,18 @@ wxcli users show PERSON_ID --output json
 # Look up the calling license ID
 wxcli licenses list --output json
 # Find the license where name contains "Calling - Professional"
-```
 
-```python
-# Assign license via raw HTTP (PATCH API)
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
-BASE = "https://webexapis.com/v1"
-
-api.session.rest_patch(f"{BASE}/licenses/users", json={
-    "personId": "PERSON_ID",
-    "licenses": [{
-        "id": "CALLING_LICENSE_ID",
-        "properties": {
-            "locationId": "LOCATION_ID",
-            "extension": "1001"
-        }
-    }]
-})
+# Assign the calling license with location and extension
+wxcli licenses-api update --person-id PERSON_ID --json-body '{
+  "email": "jsmith@example.com",
+  "licenses": [{
+    "id": "CALLING_LICENSE_ID",
+    "properties": {
+      "locationId": "LOCATION_ID",
+      "extension": "1001"
+    }
+  }]
+}'
 ```
 
 **Key constraints:**
@@ -206,7 +205,8 @@ For small batches (< 20 users), loop wxcli commands:
 ```bash
 # Small batch: loop wxcli commands
 for email in user1@example.com user2@example.com user3@example.com; do
-  wxcli users create --email "$email" --display-name "User $(echo $email | cut -d@ -f1)"
+  name=$(echo "$email" | cut -d@ -f1)
+  wxcli users create --email "$email" --first "$name" --last "User"
   echo "Created: $email"
 done
 ```
@@ -274,7 +274,7 @@ Next steps:
 
 ---
 
-## CRITICAL RULES
+## Critical Rules
 
 1. **ALWAYS test auth first** — Run `wxcli whoami` before any provisioning call. Do not proceed on auth failure.
 
@@ -369,7 +369,7 @@ wxcli licenses list
 
 ---
 
-## Context Compaction
+## Context Compaction Recovery
 
 If context compacts mid-execution, recover by:
 1. Read the deployment plan from `docs/plans/` to recover what was planned
