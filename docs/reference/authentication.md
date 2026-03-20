@@ -255,7 +255,7 @@ Since bot tokens never expire, no refresh logic is needed.
 
 ### Gotchas
 
-- **Bot calling scopes unverified.** The exact list of calling-related scopes available to bots (if any) has not been confirmed. The developer.webex.com docs list scopes with a `show_for_app_type` property for "integration" and "serviceApp" but do not enumerate bot-specific scopes. Calling scopes like `spark:calls_read` and `spark:calls_write` appear to be user-level scopes for integrations. Bots likely cannot use calling scopes since they don't act on behalf of a user, but this has not been confirmed with a live bot token. <!-- NEEDS VERIFICATION: requires live API testing with a bot token. Developer docs do not enumerate bot-specific scopes. Checked 2026-03-19. -->
+- **Bot calling scopes unverified.** The exact list of calling-related scopes available to bots (if any) has not been confirmed. The developer.webex.com docs list scopes with a `show_for_app_type` property for "integration" and "serviceApp" but do not enumerate bot-specific scopes. Calling scopes like `spark:calls_read` and `spark:calls_write` appear to be user-level scopes for integrations. Bots likely cannot use calling scopes since they don't act on behalf of a user, but this has not been confirmed with a live bot token. *(Unverified — requires live bot token testing. Checked 2026-03-19.)*
 
 ---
 
