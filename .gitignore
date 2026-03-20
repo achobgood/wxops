@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Packaging
+*.egg-info/
+dist/
+build/
+*.egg
+
+# OS
+.DS_Store
+
+# Secrets
+.env
+.env.local
+*.token
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Tool caches
+tools/__pycache__/
+tests/**/__pycache__/

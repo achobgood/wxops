@@ -30,8 +30,8 @@ wxcli whoami
 # See all 100 command groups
 wxcli --help
 
-# List locations
-wxcli locations list --calling-only
+# List calling-enabled locations
+wxcli location-settings list-1
 
 # Create a location (address requires --json-body)
 wxcli locations create --name "San Jose Office" \
@@ -40,8 +40,8 @@ wxcli locations create --name "San Jose Office" \
   --announcement-language en_us \
   --json-body '{"address": {"address1": "123 Main St", "city": "San Jose", "state": "CA", "postalCode": "95113", "country": "US"}}'
 
-# Enable Webex Calling on a location
-wxcli locations enable-calling LOCATION_ID
+# Enable Webex Calling on a location (fetch details first with wxcli locations show LOCATION_ID)
+wxcli location-settings create --id LOCATION_ID --name "..." --time-zone "..." --preferred-language en_US --announcement-language en_us
 
 # Create an auto attendant (LOCATION_ID is positional)
 wxcli auto-attendant create LOCATION_ID \
@@ -110,7 +110,7 @@ wxcli numbers-api list --location-id LOC_ID  # Get number inventory
 | `pstn` | PSTN connection management |
 | `cx-essentials` | CX Essentials (screen pop, wrap-up, supervisors) |
 
-Run `wxcli <group> --help` for commands within a group.
+This table shows the 31 most commonly used groups. Run `wxcli --help` to see all ~100 groups, which also cover admin, device, and messaging APIs.
 
 ## Claude Code Integration
 
@@ -126,7 +126,7 @@ This repo includes a [Claude Code](https://claude.com/claude-code) playbook that
 
 The playbook includes:
 - An agent workflow that interviews you, designs a deployment plan, executes via wxcli, and verifies results
-- 4 specialized skills: provisioning, feature configuration, call settings, debugging
+- 14 specialized skills covering calling, admin, devices, messaging, and debugging
 - 29 reference docs covering every Webex Calling API surface with raw HTTP examples
 
 ## Requirements
@@ -137,4 +137,4 @@ The playbook includes:
 
 ## License
 
-Internal use.
+Apache 2.0 — see LICENSE.
