@@ -13,6 +13,15 @@ Service apps, authorizations, user lifecycle operations, recordings management, 
 
 ---
 
+## Table of Contents
+
+1. [Service Apps & Authorizations](#1-service-apps--authorizations)
+2. [User Lifecycle](#2-user-lifecycle)
+3. [Recordings (Admin)](#3-recordings-admin)
+4. [Data & Compliance](#4-data--compliance)
+
+---
+
 ## Required Scopes
 
 | Scope | Purpose |

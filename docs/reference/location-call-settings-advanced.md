@@ -1,4 +1,11 @@
+<!-- Updated by playbook session 2026-03-18 -->
 # Location Call Settings -- Recording, Supervisor, Guest Calling, Conference & Misc
+
+## Sources
+
+- wxc_sdk v1.30.0
+- OpenAPI spec: webex-cloud-calling.json
+- developer.webex.com Location Call Settings APIs
 
 Reference for advanced location-level and org-level call settings managed through the wxc_sdk. Covers call recording vendors and compliance, caller reputation (spam scoring), conference controls, supervisor/agent management, guest calling (click-to-call), operating modes, hot desking via voice portal, and shared forwarding patterns used across features.
 
@@ -183,7 +190,164 @@ class CallRecordingSettingsApi:
                             org_id: str = None, **params) -> Generator[RecordingUser]
 ```
 
-### 1.4 Key Behaviors
+### 1.4 Raw HTTP — Call Recording
+
+```python
+BASE = "https://webexapis.com/v1"
+
+# --- Org-level recording on/off ---
+# GET — Get call recording settings
+result = api.session.rest_get(f"{BASE}/telephony/config/callRecording")
+# Response: {"organization": {"id": "...", "name": "..."}, "enabled": true,
+#            "vendorId": "...", "vendorName": "...", "termsOfServiceUrl": ""}
+
+# PUT — Enable/disable call recording (Cisco partners only)
+body = {"enabled": True}
+api.session.rest_put(f"{BASE}/telephony/config/callRecording", json=body)
+
+# --- Terms of service ---
+# GET
+result = api.session.rest_get(f"{BASE}/telephony/config/callRecording/vendors/{vendor_id}/termsOfService")
+# PUT
+body = {"termsOfServiceEnabled": True}
+api.session.rest_put(f"{BASE}/telephony/config/callRecording/vendors/{vendor_id}/termsOfService", json=body)
+
+# --- Compliance announcement (org) ---
+# GET
+result = api.session.rest_get(f"{BASE}/telephony/config/callRecording/complianceAnnouncement")
+# Response: {"inboundPSTNCallsEnabled": false, "outboundPSTNCallsEnabled": false,
+#            "outboundPSTNCallsDelayEnabled": false, "delayInSeconds": 3}
+
+# PUT
+body = {
+    "inboundPSTNCallsEnabled": True,
+    "outboundPSTNCallsEnabled": True,
+    "outboundPSTNCallsDelayEnabled": True,
+    "delayInSeconds": 5
+}
+api.session.rest_put(f"{BASE}/telephony/config/callRecording/complianceAnnouncement", json=body)
+
+# --- Compliance announcement (location) ---
+# GET
+result = api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{loc_id}/callRecording/complianceAnnouncement"
+)
+# Response includes useOrgSettingsEnabled
+
+# PUT
+body = {
+    "useOrgSettingsEnabled": False,
+    "inboundPSTNCallsEnabled": True,
+    "outboundPSTNCallsEnabled": True,
+    "outboundPSTNCallsDelayEnabled": True,
+    "delayInSeconds": 3
+}
+api.session.rest_put(
+    f"{BASE}/telephony/config/locations/{loc_id}/callRecording/complianceAnnouncement",
+    json=body
+)
+
+# --- Regions ---
+# GET
+result = api.session.rest_get(f"{BASE}/telephony/config/callRecording/regions")
+# Response: {"regions": [{"code": "US", "name": "United States", "defaultEnabled": true}]}
+
+# --- Vendor users (org) ---
+# GET (paginated)
+result = api.session.rest_get(f"{BASE}/telephony/config/callRecording/vendorUsers",
+    params={"max": 1000, "standardUserOnly": True})
+# Response: {"vendorUsers": [...]}
+
+# --- Vendor management (org) ---
+# GET — Get org vendors
+result = api.session.rest_get(f"{BASE}/telephony/config/callRecording/vendors")
+
+# PUT — Set org vendor (returns jobId)
+body = {"vendorId": "<vendor_id>", "storageRegion": "US", "failureBehavior": "PROCEED_WITH_CALL_NO_ANNOUNCEMENT"}
+result = api.session.rest_put(f"{BASE}/telephony/config/callRecording/vendor", json=body)
+# Response 200: {"jobId": "..."} or 204 for immediate
+
+# --- Vendor management (location) ---
+# GET — Get location vendors
+result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/callRecording/vendors")
+
+# PUT — Set location vendor (returns jobId)
+body = {
+    "id": "<vendor_id>",
+    "orgDefaultEnabled": False,
+    "storageRegion": "US",
+    "orgStorageRegionEnabled": False,
+    "failureBehavior": "PROCEED_WITH_CALL_NO_ANNOUNCEMENT",
+    "orgFailureBehaviorEnabled": False
+}
+result = api.session.rest_put(f"{BASE}/telephony/config/locations/{loc_id}/callRecording/vendor", json=body)
+
+# --- Vendor users (location) ---
+# GET (paginated)
+result = api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{loc_id}/callRecording/vendorUsers",
+    params={"max": 1000, "standardUserOnly": True}
+)
+
+# --- Call Recording Jobs ---
+# GET — List jobs
+result = api.session.rest_get(f"{BASE}/telephony/config/jobs/callRecording", params={"max": 100})
+
+# GET — Job status
+result = api.session.rest_get(f"{BASE}/telephony/config/jobs/callRecording/{job_id}")
+
+# GET — Job errors
+result = api.session.rest_get(f"{BASE}/telephony/config/jobs/callRecording/{job_id}/errors")
+```
+
+### 1.5 CLI Examples
+
+```bash
+# Get org-level call recording settings
+wxcli call-recording show
+
+# Get org-level compliance announcement settings
+wxcli call-recording show-compliance-announcement-call-recording
+
+# Enable compliance announcement for inbound PSTN calls with 5-second delay
+wxcli call-recording update-compliance-announcement-call-recording \
+  --inbound-pstn-calls-enabled --outbound-pstn-calls-enabled \
+  --outbound-pstn-calls-delay-enabled --delay-in-seconds 5
+
+# Get location-level compliance announcement settings
+wxcli call-recording show-compliance-announcement-call-recording-1 <location_id>
+
+# Get org-level recording vendors
+wxcli call-recording show-vendors
+
+# Get location-level recording vendors
+wxcli call-recording list-vendors <location_id>
+
+# Set recording vendor for a location
+wxcli call-recording update-vendor-call-recording <location_id> \
+  --id <vendor_id> --no-org-default-enabled \
+  --storage-region US --no-org-storage-region-enabled
+
+# List call recording regions
+wxcli call-recording list
+
+# List vendor users at org level (paginated)
+wxcli call-recording list-vendor-users-call-recording
+
+# List vendor users at location level
+wxcli call-recording list-vendor-users-call-recording-1 <location_id>
+
+# List call recording jobs
+wxcli call-recording list-call-recording
+
+# Get status of a specific recording job
+wxcli call-recording show-call-recording <job_id>
+
+# Get errors for a recording job
+wxcli call-recording list-errors <job_id>
+```
+
+### 1.6 Key Behaviors
 
 - `set_org_vendor()` and `set_location_vendor()` return a **job ID** (string). Use the jobs API to check status if the change cannot be applied immediately (HTTP 200 with jobId vs. 204 for immediate).
 - `update()` (enable/disable recording) is **Cisco partners only**.
@@ -263,12 +427,85 @@ class CallerReputationProviderApi:
     def status(self, organization_id: str = None) -> ReputationProviderStatus
 ```
 
-### 2.3 Key Behaviors
+### 2.3 Raw HTTP — Caller Reputation
+
+```python
+BASE = "https://webexapis.com/v1"
+
+# GET — Get caller reputation provider settings
+result = api.session.rest_get(
+    f"{BASE}/telephony/config/serviceSettings/callerReputationProvider")
+# Response: {"name": "...", "id": "...", "clientId": "...", "enabled": true,
+#            "callBlockScoreThreshold": "80", "callAllowScoreThreshold": "20"}
+# Note: clientSecret is NEVER returned by GET
+
+# PUT — Update caller reputation provider settings
+body = {
+    "enabled": True,
+    "id": "<provider_id>",
+    "name": "Provider Name",
+    "clientId": "<oauth_client_id>",
+    "clientSecret": "<oauth_client_secret>",
+    "callBlockScoreThreshold": "80",
+    "callAllowScoreThreshold": "20"
+}
+api.session.rest_put(
+    f"{BASE}/telephony/config/serviceSettings/callerReputationProvider", json=body)
+
+# GET — Get provider status
+result = api.session.rest_get(
+    f"{BASE}/telephony/config/serviceSettings/callerReputationProvider/status")
+# Response: {"id": "...", "status": "CONNECTED"}
+
+# GET — List available providers
+result = api.session.rest_get(
+    f"{BASE}/telephony/config/serviceSettings/callerReputationProvider/providers")
+# Response: {"providers": [{"id": "...", "enabled": true, "name": "...",
+#            "regions": [{"id": "...", "name": "...", "type": "primary", "visible": true}]}]}
+
+# POST — Unlock a locked provider
+body = {"id": "<provider_id>"}
+api.session.rest_post(
+    f"{BASE}/telephony/config/serviceSettings/callerReputationProvider/actions/unlock/invoke",
+    json=body)
+```
+
+**Gotcha:** This API uses `organizationId` as the query parameter (not `orgId` like most other telephony APIs).
+
+**Gotcha:** Score thresholds are strings, not integers.
+<!-- Updated by playbook session 2026-03-18 -->
+
+### 2.4 CLI Examples
+
+```bash
+# Get caller reputation provider settings
+wxcli caller-reputation show
+
+# Get caller reputation provider status
+wxcli caller-reputation show-status
+
+# List available caller reputation providers
+wxcli caller-reputation list
+
+# Update caller reputation provider settings
+wxcli caller-reputation update \
+  --enabled --id <provider_id> --name "Provider Name" \
+  --client-id <oauth_client_id> --client-secret <oauth_client_secret> \
+  --call-block-score-threshold "80" --call-allow-score-threshold "20"
+
+# Unlock a locked caller reputation provider
+wxcli caller-reputation unlock-caller-reputation
+
+# Query for a specific org (partner scenario)
+wxcli caller-reputation show --organization-id <org_id>
+```
+
+### 2.5 Key Behaviors
 
 - **`client_secret` is write-only** -- it is never returned by `get()`. Only usable in `update()`.
-- The `unlock()` method invokes `actions/unlock/invoke` -- use this when the provider is in a locked state (e.g., after auth failure). <!-- NEEDS VERIFICATION: exact conditions that trigger a locked state -->
+- The `unlock()` method invokes `actions/unlock/invoke` -- use this when the provider is in a locked state (e.g., after auth failure). <!-- UNVERIFIABLE: exact conditions that trigger a locked state are not documented in SDK or OpenAPI spec; would need live API testing -->
 - Note the parameter is `organization_id` (not `org_id`) in this API, differing from most other telephony APIs.
-- Score thresholds are strings, not integers. <!-- NEEDS VERIFICATION: whether these are numeric strings or can contain non-numeric values -->
+- Score thresholds are strings, not integers. The OpenAPI spec examples show decimal numeric strings (e.g., `"0.7"`, `"0.3"`), not integer strings. <!-- Verified via OpenAPI spec (webex-cloud-calling.json) 2026-03-19 -->
 
 ---
 
@@ -340,7 +577,45 @@ class ConferenceControlsApi:
     def undeafen_participant(self, call_id: str)
 ```
 
-### 3.4 Key Behaviors
+### 3.4 CLI Examples
+
+```bash
+# Get current conference details (requires user-level OAuth token)
+wxcli conference list
+
+# Get conference details for a specific line owner
+wxcli conference list --line-owner-id <user_id>
+
+# Start a conference by merging two active calls
+wxcli conference create --json-body '{"callIds": ["call_id_1", "call_id_2"]}'
+
+# Add a participant to an active conference
+wxcli conference create-add-participant --json-body '{"callId": "call_id_3"}'
+
+# Hold / resume the conference
+wxcli conference create-hold
+wxcli conference create-resume
+
+# Mute the host
+wxcli conference create-mute
+
+# Mute a specific participant
+wxcli conference create-mute --json-body '{"callId": "participant_call_id"}'
+
+# Unmute
+wxcli conference create-unmute
+
+# Deafen / undeafen a participant
+wxcli conference create-deafen --json-body '{"callId": "participant_call_id"}'
+wxcli conference create-undeafen --json-body '{"callId": "participant_call_id"}'
+
+# Release (end) the conference
+wxcli conference delete
+```
+
+> **Note:** Conference controls require a **user-level OAuth token** (`spark:calls_write` scope). Admin tokens will not work. See Known Issues in CLAUDE.md.
+
+### 3.5 Key Behaviors
 
 - **`start_conference()`** requires a minimum of **two call IDs**. Each must identify an existing call between the invoking user and a participant.
 - **`get_conference_details()`** returns an **empty JSON object** if no conference exists.
@@ -398,7 +673,7 @@ Used for both supervisor and agent listings.
 | `id` | `str` | |
 | `status` | `str` | Status result |
 | `message` | `str` | Detail message |
-| `type` | `UserType` | <!-- NEEDS VERIFICATION: undocumented field, SDK issue 202 --> |
+| `type` | `UserType` | SDK-only field; absent from OpenAPI spec `ListSupervisorAgentStatusObject`. SDK marks as `# TODO: undocumented, issue 202` <!-- Verified via OpenAPI spec + wxc_sdk source 2026-03-19 --> |
 
 ### 4.3 API Methods
 
@@ -433,7 +708,19 @@ class SupervisorApi:
                                org_id: str = None) -> Optional[list[SupervisorAgentStatus]]
 ```
 
-### 4.4 Key Behaviors
+### 4.4 CLI Examples
+
+There is no dedicated `wxcli` supervisor command group. Use the SDK methods or Raw HTTP calls documented above. The related `cx-essentials` group covers CX Essentials wrap-up reasons, screen pop, and available agents:
+
+```bash
+# List available CX Essentials agents at a location
+wxcli cx-essentials list-available-agents <location_id>
+
+# List CX Essentials agents with CX Essentials license only
+wxcli cx-essentials list-available-agents <location_id> --has-cx-essentials true
+```
+
+### 4.5 Key Behaviors
 
 - **A supervisor must have at least one agent** when created via `create()`.
 - **`create()` takes agent IDs as a flat `list[str]`**, not `IdAndAction` objects. The SDK wraps them as `[{'id': agent_id}]` internally.
@@ -466,7 +753,7 @@ Click-to-call allows external (guest) callers to reach internal destinations. Or
 |-------|------|-------|
 | `enabled` | `bool` | Click-to-call enabled |
 | `privacy_enabled` | `bool` | Privacy mode |
-| `video_enabled` | `bool` | <!-- NEEDS VERIFICATION: no docstring on this field in SDK --> |
+| `video_enabled` | `bool` | SDK-only field with no docstring; absent from all OpenAPI specs. May be undocumented or deprecated <!-- Verified via OpenAPI spec + wxc_sdk source 2026-03-19 --> |
 
 #### `DestinationMember`
 
@@ -498,7 +785,11 @@ class GuestCallingApi:
                           **params) -> Generator[DestinationMember]
 ```
 
-### 5.4 Key Behaviors
+### 5.4 CLI Examples
+
+There is no dedicated `wxcli` guest-calling (click-to-call) command group. Use the SDK methods or Raw HTTP calls. The `guest-management` group covers a different feature (guest user creation), not click-to-call destinations.
+
+### 5.5 Key Behaviors
 
 - **Supported destination types**: Auto Attendant, Call Queue, Hunt Group, and Virtual Line. Not individual users.
 - **`update()` takes destination member IDs** as a flat `list[str]`, not full `DestinationMember` objects.
@@ -617,7 +908,201 @@ class OperatingModesApi:
                                              org_id: str = None, **params) -> Generator[AvailableNumber]
 ```
 
-### 6.4 Key Behaviors
+### 6.4 Raw HTTP — Operating Modes
+
+```python
+BASE = "https://webexapis.com/v1"
+
+# --- Operating Mode CRUD ---
+
+# GET — List operating modes (paginated)
+result = api.session.rest_get(f"{BASE}/telephony/config/operatingModes",
+    params={"max": 1000, "limitToLocationId": loc_id})
+# Response: {"operatingModes": [{"id": "...", "name": "...", "type": "SAME_HOURS_DAILY",
+#            "level": "ORGANIZATION"}]}
+# Optional params: name, limitToOrgLevelEnabled, order (asc/desc by name)
+
+# GET — Get operating mode details
+result = api.session.rest_get(f"{BASE}/telephony/config/operatingModes/{mode_id}")
+# Response includes full schedule data (sameHoursDaily, differentHoursDaily, or holidays)
+# plus callForwarding settings
+
+# POST — Create an operating mode
+body = {
+    "name": "Business Hours",
+    "type": "SAME_HOURS_DAILY",
+    "level": "ORGANIZATION",
+    "sameHoursDaily": {
+        "mondayToFriday": {
+            "enabled": True,
+            "allDayEnabled": False,
+            "startTime": "09:00",
+            "endTime": "17:00"
+        },
+        "saturdayToSunday": {
+            "enabled": False
+        }
+    }
+}
+result = api.session.rest_post(f"{BASE}/telephony/config/operatingModes/", json=body)
+# Returns: {"id": "<mode_id>"}
+
+# For location-scoped:
+body = {
+    "name": "Branch Office Hours",
+    "type": "DIFFERENT_HOURS_DAILY",
+    "level": "LOCATION",
+    "locationId": "<loc_id>",
+    "differentHoursDaily": {
+        "monday": {"enabled": True, "startTime": "08:00", "endTime": "18:00"},
+        "tuesday": {"enabled": True, "startTime": "08:00", "endTime": "18:00"},
+        "wednesday": {"enabled": True, "startTime": "08:00", "endTime": "18:00"},
+        "thursday": {"enabled": True, "startTime": "08:00", "endTime": "18:00"},
+        "friday": {"enabled": True, "startTime": "08:00", "endTime": "16:00"},
+        "saturday": {"enabled": False},
+        "sunday": {"enabled": False}
+    }
+}
+result = api.session.rest_post(f"{BASE}/telephony/config/operatingModes/", json=body)
+
+# PUT — Update an operating mode
+body = {"name": "Updated Business Hours"}
+api.session.rest_put(f"{BASE}/telephony/config/operatingModes/{mode_id}", json=body)
+
+# DELETE — Delete an operating mode
+api.session.rest_delete(f"{BASE}/telephony/config/operatingModes/{mode_id}")
+
+# --- Holiday management (only for HOLIDAY type operating modes) ---
+
+# GET — Get holiday details
+result = api.session.rest_get(
+    f"{BASE}/telephony/config/operatingModes/{mode_id}/holidays/{holiday_id}")
+
+# POST — Create a holiday
+body = {
+    "name": "Independence Day",
+    "allDayEnabled": True,
+    "startDate": "2026-07-04",
+    "endDate": "2026-07-04"
+}
+result = api.session.rest_post(
+    f"{BASE}/telephony/config/operatingModes/{mode_id}/holidays", json=body)
+# Returns: {"id": "<holiday_id>"}
+
+# POST — Create holiday with yearly recurrence
+body = {
+    "name": "Christmas",
+    "allDayEnabled": True,
+    "startDate": "2026-12-25",
+    "endDate": "2026-12-25",
+    "recurrence": {
+        "recurYearlyByDate": {"dayOfMonth": 25, "month": "DECEMBER"}
+    }
+}
+result = api.session.rest_post(
+    f"{BASE}/telephony/config/operatingModes/{mode_id}/holidays", json=body)
+
+# PUT — Update a holiday
+body = {"name": "Christmas Day", "allDayEnabled": True,
+        "startDate": "2026-12-25", "endDate": "2026-12-25"}
+api.session.rest_put(
+    f"{BASE}/telephony/config/operatingModes/{mode_id}/holidays/{holiday_id}", json=body)
+
+# DELETE — Delete a holiday
+api.session.rest_delete(
+    f"{BASE}/telephony/config/operatingModes/{mode_id}/holidays/{holiday_id}")
+
+# --- Availability queries ---
+
+# GET — Available operating modes for a location (up to 200: location + org combined)
+result = api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{loc_id}/operatingModes/availableOperatingModes")
+# Response: {"availableOperatingModes": [{"id": "...", "name": "..."}]}
+
+# GET — Available phone numbers for call forwarding in operating modes
+result = api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{loc_id}/operatingModes/callForwarding/availableNumbers",
+    params={"max": 1000})
+# Response: {"availableNumbers": [{"phoneNumber": "+1...", "ownerName": "...", "extension": "..."}]}
+```
+
+**Gotcha:** Create requires `level` set to `ORGANIZATION` or `LOCATION`. For `LOCATION`, you must also include `locationId` in the body. The `type` field must use the enum value directly (e.g., `SAME_HOURS_DAILY`, `DIFFERENT_HOURS_DAILY`, `HOLIDAY`).
+
+**Gotcha:** For `SAME_HOURS_DAILY` type, you must provide actual schedule data in `sameHoursDaily` -- the API rejects a create with no schedule data.
+<!-- Verified via CLI implementation 2026-03-17 -->
+
+**Gotcha:** Holidays can only be added to operating modes with `type: HOLIDAY`. The `holiday_create` endpoint requires `startDate`, `endDate`, and `allDayEnabled` at minimum.
+<!-- Verified via CLI implementation 2026-03-17 -->
+
+### 6.5 CLI Examples
+
+```bash
+# List all operating modes
+wxcli operating-modes list
+
+# List operating modes for a specific location
+wxcli operating-modes list --limit-to-location-id <location_id>
+
+# List org-level operating modes only
+wxcli operating-modes list --limit-to-org-level-enabled true
+
+# Search operating modes by name
+wxcli operating-modes list --name "Business Hours"
+
+# Get details for an operating mode
+wxcli operating-modes show <mode_id>
+
+# Create an operating mode (requires --json-body for schedule data)
+wxcli operating-modes create --name "Business Hours" --json-body '{
+  "type": "SAME_HOURS_DAILY",
+  "level": "ORGANIZATION",
+  "sameHoursDaily": {
+    "mondayToFriday": {"enabled": true, "startTime": "09:00", "endTime": "17:00"},
+    "saturdayToSunday": {"enabled": false}
+  }
+}'
+
+# Create a location-scoped operating mode
+wxcli operating-modes create --name "Branch Hours" \
+  --location-id <location_id> --json-body '{
+  "type": "DIFFERENT_HOURS_DAILY",
+  "level": "LOCATION",
+  "differentHoursDaily": {
+    "monday": {"enabled": true, "startTime": "08:00", "endTime": "18:00"},
+    "tuesday": {"enabled": true, "startTime": "08:00", "endTime": "18:00"},
+    "wednesday": {"enabled": true, "startTime": "08:00", "endTime": "18:00"},
+    "thursday": {"enabled": true, "startTime": "08:00", "endTime": "18:00"},
+    "friday": {"enabled": true, "startTime": "08:00", "endTime": "16:00"},
+    "saturday": {"enabled": false},
+    "sunday": {"enabled": false}
+  }
+}'
+
+# Update an operating mode
+wxcli operating-modes update <mode_id> --json-body '{"name": "Updated Business Hours"}'
+
+# Delete an operating mode
+wxcli operating-modes delete <mode_id>
+
+# Create a holiday on a HOLIDAY-type operating mode
+wxcli operating-modes create-holidays <mode_id> \
+  --name "Independence Day" --all-day-enabled \
+  --start-date "2026-07-04" --end-date "2026-07-04"
+
+# Get holiday details
+wxcli operating-modes show-holidays <mode_id> <holiday_id>
+
+# Delete a holiday
+wxcli operating-modes delete-holidays <mode_id> <holiday_id>
+
+# List available operating modes for a location
+wxcli operating-modes list-available-operating-modes <location_id>
+
+# List available phone numbers for call forwarding in operating modes
+wxcli operating-modes list-available-numbers <location_id>
+```
+
+### 6.6 Key Behaviors
 
 - **Max 100 operating modes per location** and 100 per org. `available_operating_modes()` returns up to 200 (location + org combined).
 - **Max 150 holidays per operating mode.**
@@ -667,7 +1152,29 @@ class HotDeskingSigninViaVoicePortalApi:
     def user_update(self, person_id: str, setting: HotDeskingVoicePortalSetting, org_id: str = None)
 ```
 
-### 7.4 Key Behaviors
+### 7.4 CLI Examples
+
+```bash
+# Get hot desking voice portal settings for a location
+wxcli hot-desking-portal show <location_id>
+
+# Enable hot desking sign-in via voice portal for a location
+wxcli hot-desking-portal update <location_id> --voice-portal-hot-desk-sign-in-enabled
+
+# Disable hot desking sign-in via voice portal for a location
+wxcli hot-desking-portal update <location_id> --no-voice-portal-hot-desk-sign-in-enabled
+
+# Get hot desking guest settings for a specific user
+wxcli hot-desking-portal show-guest <person_id>
+
+# Enable a user as a hot desking guest
+wxcli hot-desking-portal update-guest <person_id> --voice-portal-hot-desk-sign-in-enabled
+
+# Disable a user as a hot desking guest
+wxcli hot-desking-portal update-guest <person_id> --no-voice-portal-hot-desk-sign-in-enabled
+```
+
+### 7.5 Key Behaviors
 
 - Location endpoint: `locations/{location_id}/features/hotDesking`
 - User endpoint: `people/{person_id}/features/hotDesking/guest`
@@ -845,7 +1352,52 @@ class ForwardingApi:
                                         org_id: str = None)
 ```
 
-### 8.4 Key Behaviors
+### 8.4 CLI Examples
+
+Forwarding commands are accessed through the feature-specific command groups (`auto-attendant`, `call-queue`, `hunt-group`), not a standalone forwarding group. The commands follow the same pattern across all three features:
+
+```bash
+# --- Call Queue forwarding ---
+
+# Get call forwarding settings for a call queue
+wxcli call-queue show-call-forwarding <location_id> <queue_id>
+
+# Update call forwarding settings (use --json-body for complex forwarding rules)
+wxcli call-queue update-call-forwarding <location_id> <queue_id> --json-body '{
+  "callForwarding": {
+    "always": {"enabled": true, "destination": "+14155551234"}
+  }
+}'
+
+# Create a selective call forwarding rule
+wxcli call-queue create-selective-rules <location_id> <queue_id> \
+  --name "After Hours Forward" --enabled \
+  --business-schedule "After Hours Schedule"
+
+# Get a selective call forwarding rule
+wxcli call-queue show-selective-rules <location_id> <queue_id> <rule_id>
+
+# Delete a selective call forwarding rule
+wxcli call-queue delete-selective-rules <location_id> <queue_id> <rule_id>
+
+# Get available phone numbers for call forwarding
+wxcli call-queue list-available-numbers-call-forwarding <location_id> <queue_id>
+
+# Switch operating mode back to normal operations
+wxcli call-queue switch-mode-for <location_id> <queue_id>
+
+# --- Auto Attendant forwarding (same pattern) ---
+wxcli auto-attendant show-call-forwarding <location_id> <aa_id>
+wxcli auto-attendant create-selective-rules <location_id> <aa_id> --name "Holiday Forward"
+wxcli auto-attendant switch-mode-for <location_id> <aa_id>
+
+# --- Hunt Group forwarding (same pattern) ---
+wxcli hunt-group show-call-forwarding <location_id> <hg_id>
+wxcli hunt-group create-selective-rules <location_id> <hg_id> --name "Overflow Forward"
+wxcli hunt-group switch-mode-for <location_id> <hg_id>
+```
+
+### 8.5 Key Behaviors
 
 - **Rule ID changes on rename**: The Call Forwarding Rule ID will change when the rule name is modified via `update_call_forwarding_rule()`. The new ID is returned.
 - **NANP number normalization**: The SDK automatically handles +1 prefix transformations. Numbers returned from the platform without a `+` prefix get `+1-` prepended. When serializing for API calls, `+1-` is stripped back off. Non-NANP numbers (those starting with `+`) are left as-is.
@@ -870,6 +1422,19 @@ class ForwardingApi:
 | Forwarding | `spark-admin:telephony_config_read` | `spark-admin:telephony_config_write` |
 
 Note that Conference Controls uses **user-level** scopes (`spark:calls_*`), not admin scopes, because it is a runtime call-control API.
+
+---
+
+## Gotchas (Cross-Cutting)
+
+- **Conference Controls require user-level OAuth.** Unlike all other APIs in this doc, Conference Controls uses `spark:calls_read` / `spark:calls_write` scopes (not admin scopes). Admin or service-app tokens will fail. This matches the `call-controls` known issue documented in CLAUDE.md.
+- **Caller Reputation uses `organizationId`, not `orgId`.** Most telephony APIs use `orgId` as the query parameter, but the caller reputation endpoints use `organizationId`. The wxcli maps this as `--organization-id`.
+- **Call Recording vendor changes are async.** `set_org_vendor()` and `set_location_vendor()` may return a job ID (HTTP 200) instead of completing immediately (HTTP 204). Always check job status via `wxcli call-recording show-call-recording <job_id>` after vendor changes.
+- **Operating mode type and level are immutable after creation.** You cannot change `type` (SAME_HOURS_DAILY, DIFFERENT_HOURS_DAILY, HOLIDAY) or `level` (ORGANIZATION, LOCATION) after creating an operating mode. Delete and recreate if you need to change these.
+- **Forwarding rule IDs change on rename.** When you rename a selective forwarding rule via `update_call_forwarding_rule()`, the rule ID changes. The new ID is returned from the update call. Store it if you need to reference the rule again.
+- **Score thresholds are strings.** The caller reputation `callBlockScoreThreshold` and `callAllowScoreThreshold` fields are string-typed, not integers. Pass them as quoted values in both CLI and raw HTTP.
+- **`delete_bulk` supervisors has a nuke option.** Setting `delete_all: true` on `delete_bulk()` ignores the provided ID list and removes ALL supervisors in the org. Double-check before using.
+- **Hot desking has two levels.** The location setting enables the feature globally for the location; the user-level setting controls whether a specific user can act as a hot desking guest. Both must be enabled for a user to hot-desk at that location.
 
 ---
 

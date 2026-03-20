@@ -3,8 +3,56 @@
 Reference document for the `wxc_sdk` Python SDK -- the primary tool for automating Webex Calling administration via the Webex REST APIs.
 
 **SDK Version (at time of writing):** `1.30.0`
-**Source:** [github.com/jeokrohn/wxc_sdk](https://github.com/jeokrohn/wxc_sdk)
-**Docs:** [wxc-sdk.readthedocs.io](http://wxc-sdk.readthedocs.io)
+
+## Sources
+
+- **wxc_sdk v1.30.0** — [github.com/jeokrohn/wxc_sdk](https://github.com/jeokrohn/wxc_sdk)
+- **Docs** — [wxc-sdk.readthedocs.io](http://wxc-sdk.readthedocs.io)
+- **Webex API Reference** — [developer.webex.com](https://developer.webex.com/docs/api/getting-started)
+
+## Required Scopes
+
+Token type and scope requirements for common SDK operations. Admin tokens (`spark-admin:*`) cover org-wide management; user tokens (`spark:*`) cover personal settings and call control.
+
+| Operation Category | Required Scope | Token Type | Notes |
+|-------------------|----------------|------------|-------|
+| List/read people | `spark-admin:people_read` | Admin / Service App | `calling_data=True` requires this scope |
+| Create/update/delete people | `spark-admin:people_write` | Admin / Service App | Also needs `_read` for pre-flight checks |
+| List/read locations | `spark-admin:locations_read` | Admin / Service App | |
+| Manage locations | `spark-admin:locations_write` | Admin / Service App | |
+| Read telephony config (queues, HG, AA, etc.) | `spark-admin:telephony_config_read` | Admin / Service App | Covers all `/telephony/config/*` endpoints |
+| Write telephony config | `spark-admin:telephony_config_write` | Admin / Service App | Create/update/delete calling features |
+| Read person call settings | `spark-admin:people_read` | Admin / Service App | Voicemail, forwarding, caller ID, etc. |
+| Write person call settings | `spark-admin:people_write` | Admin / Service App | |
+| Read workspace settings | `spark-admin:workspaces_read` | Admin / Service App | |
+| Manage workspaces | `spark-admin:workspaces_write` | Admin / Service App | |
+| Read devices | `spark-admin:devices_read` | Admin / Service App | |
+| Manage devices | `spark-admin:devices_write` | Admin / Service App | |
+| Read licenses | `spark-admin:licenses_read` | Admin / Service App | |
+| Call control (dial, answer, hold, transfer) | `spark:calls_write` | **User** | Must be calling-licensed user's token; admin tokens get 400 |
+| Read own call settings (`/people/me/*`) | `spark:people_read` | **User** | User must have Webex Calling license |
+| CDR / call detail records | `spark-admin:cdr_read` | Admin / Service App | |
+| Webhooks | `spark:webhooks_read`, `spark:webhooks_write` | Admin or User | |
+| Admin audit events | `spark-admin:audit_events_read` | Admin / Service App | |
+| Org/roles/authorizations | `spark-admin:organizations_read` | Admin / Service App | |
+
+**Scope naming pattern:** `spark-admin:` prefix = org-wide admin scope; `spark:` prefix = user-level scope. Most SDK operations use admin scopes. Call control and `/people/me/*` endpoints are the main exceptions requiring user-level tokens.
+
+## Table of Contents
+
+1. [Installation](#1-installation)
+2. [Raw HTTP Pattern](#15-raw-http-pattern-preferred-execution-method)
+3. [WebexSimpleApi -- The Sync Entry Point](#2-webexsimpleapi----the-sync-entry-point)
+4. [Authentication Patterns](#3-authentication-patterns)
+5. [Sync vs Async](#4-sync-vs-async)
+6. [Common Recipes](#5-common-recipes)
+7. [Error Handling](#6-error-handling)
+8. [REST Client Details](#7-rest-client-details)
+9. [Data Types](#8-data-types)
+10. [Environment Variable Patterns](#9-environment-variable-patterns)
+11. [Logging](#10-logging)
+12. [Key Gotchas](#11-key-gotchas)
+13. [See Also](#see-also)
 
 ---
 
@@ -31,6 +79,128 @@ Core dependencies pulled in automatically by wxc_sdk:
 - `pydantic` (data models)
 - `aenum` (dynamic enum extension)
 - `python-dateutil` / `pytz` (date handling)
+
+---
+
+## 1.5. Raw HTTP Pattern (Preferred Execution Method)
+<!-- Updated by playbook session 2026-03-18 -->
+
+The primary way to execute Webex API calls in this project is **raw HTTP via `api.session.rest_*()`**. We use `wxc_sdk` for authentication and session management only -- all actual API calls go through the REST client methods with full URLs.
+
+### Why Raw HTTP
+
+- **Full control** over request/response -- no SDK model translation surprises
+- **Matches the Webex API docs exactly** -- URLs, params, and body keys are 1:1 with developer.webex.com
+- **No SDK version dependency** for API coverage -- new endpoints work immediately
+- **Responses are plain dicts** -- easy to inspect, log, and forward
+
+### Setup
+
+```python
+from wxc_sdk import WebexSimpleApi
+
+api = WebexSimpleApi()  # auth via WEBEX_ACCESS_TOKEN env var
+BASE = "https://webexapis.com/v1"
+```
+
+### REST Methods
+
+| Method | Signature | Returns |
+|--------|-----------|---------|
+| `rest_get` | `api.session.rest_get(url, params=dict)` | Parsed JSON dict |
+| `rest_post` | `api.session.rest_post(url, json=dict)` | Parsed JSON dict |
+| `rest_put` | `api.session.rest_put(url, json=dict)` | Parsed JSON dict (or None) |
+| `rest_delete` | `api.session.rest_delete(url)` | None |
+
+All methods require **full URLs** (`https://webexapis.com/v1/...`), not relative paths.
+
+### CRUD Example
+
+```python
+from wxc_sdk import WebexSimpleApi
+from wxc_sdk.rest import RestError
+
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+
+# ── LIST (GET with params) ────────────────────────────────────────
+result = api.session.rest_get(f"{BASE}/people", params={"max": 1000})
+people = result.get("items", [])
+
+# ── CREATE (POST with JSON body) ──────────────────────────────────
+body = {
+    "emails": ["jsmith@example.com"],
+    "displayName": "John Smith",
+    "firstName": "John",
+    "lastName": "Smith",
+}
+result = api.session.rest_post(f"{BASE}/people", json=body)
+person_id = result["id"]
+
+# ── READ (GET by ID) ──────────────────────────────────────────────
+person = api.session.rest_get(f"{BASE}/people/{person_id}")
+
+# ── UPDATE (PUT with full body) ───────────────────────────────────
+person["department"] = "Engineering"
+api.session.rest_put(f"{BASE}/people/{person_id}", json=person)
+
+# ── DELETE ─────────────────────────────────────────────────────────
+api.session.rest_delete(f"{BASE}/people/{person_id}")
+```
+
+### Pagination
+
+There is **no automatic pagination** with raw HTTP. The SDK's `follow_pagination()` only works with the typed API methods (e.g., `api.people.list()`). For raw HTTP, request the maximum page size and handle paging manually if needed:
+
+```python
+# Request max page size (API maximum is typically 1000)
+result = api.session.rest_get(f"{BASE}/people", params={"max": 1000})
+items = result.get("items", [])
+
+# For endpoints that may return more than 1000 items,
+# check for a next link (rare in practice for most Webex APIs):
+# The SDK does NOT auto-follow next links in raw HTTP mode.
+```
+
+### Error Handling
+
+All `rest_*()` methods raise `RestError` on HTTP errors. The exception carries the full error detail from the Webex API:
+
+```python
+from wxc_sdk.rest import RestError
+
+try:
+    api.session.rest_get(f"{BASE}/people/invalid-id")
+except RestError as e:
+    print(f"HTTP {e.response.status_code}")  # e.g., 404
+    print(f"Error code: {e.code}")            # Webex error code
+    print(f"Description: {e.description}")    # Human-readable message
+    print(f"Tracking ID: {e.detail.tracking_id}")  # For Cisco TAC
+```
+
+### Response Parsing
+
+Responses are already-parsed JSON dicts. The response key varies by endpoint:
+
+| Endpoint | List response key |
+|----------|------------------|
+| `/v1/people` | `items` |
+| `/v1/locations` | `items` |
+| `/v1/licenses` | `items` |
+| `/v1/workspaces` | `items` |
+| `/v1/telephony/config/numbers` | `phoneNumbers` |
+| `/v1/telephony/config/jobs/numbers/manageNumbers` | `items` |
+
+Single-resource GETs return the resource dict directly (no wrapper key).
+
+### When to Use Typed SDK Methods Instead
+
+The typed SDK API (e.g., `api.people.list()`) is still useful for:
+- **Auto-pagination** -- `list()` returns generators that follow all pages automatically
+- **Pydantic models** -- typed access with IDE completion and validation
+- **Async bulk operations** -- `AsWebexSimpleApi` with `asyncio.gather` for high-concurrency reads
+
+The existing SDK patterns in this doc remain valid. Raw HTTP is the **preferred approach for write operations and targeted reads** where you want direct control over the request.
 
 ---
 
@@ -113,18 +283,53 @@ Every property below is an API sub-object. The ones most relevant to Webex Calli
 
 The `TelephonyApi` object is the gateway to all calling features. Key sub-properties:
 
-- `api.telephony.callqueue` -- Call queue CRUD, agents
-- `api.telephony.huntgroup` -- Hunt group CRUD
+- `api.telephony.access_codes` -- Location access/authentication codes
+- `api.telephony.announcements_repo` -- Announcements repository
 - `api.telephony.auto_attendant` -- Auto attendant CRUD
-- `api.telephony.schedules` -- Holiday/business hours schedules
-- `api.telephony.phone_numbers(...)` -- List phone numbers org-wide or per-location
-- `api.telephony.location` -- Location-level telephony settings
+- `api.telephony.call_controls_members` -- Call controls members
+- `api.telephony.call_intercept` -- Location call intercept settings
+- `api.telephony.call_recording` -- Call recording settings
+- `api.telephony.call_routing` -- Call routing
+- `api.telephony.caller_reputation_provider` -- Caller reputation provider
+- `api.telephony.calls` -- Calls API
+- `api.telephony.callpark` -- Call park CRUD
+- `api.telephony.callpark_extension` -- Call park extensions
+- `api.telephony.callqueue` -- Call queue CRUD, agents
+- `api.telephony.conference` -- Conference controls
+- `api.telephony.cx_essentials` -- Customer Experience Essentials
+- `api.telephony.dect_devices` -- DECT device management
 - `api.telephony.devices` -- Telephony device details, members, MAC validation
+- `api.telephony.emergency_address` -- Emergency address management
+- `api.telephony.emergency_services` -- Org emergency services
+- `api.telephony.guest_calling` -- Guest calling
+- `api.telephony.hotdesk` -- Hot desk management
+- `api.telephony.hotdesking_voiceportal` -- Hot desking sign-in via voice portal
+- `api.telephony.huntgroup` -- Hunt group CRUD
+- `api.telephony.jobs` -- Bulk provisioning jobs
+- `api.telephony.location` -- Location-level telephony settings
+- `api.telephony.locations` -- Alias for `location` (same object)
+- `api.telephony.ms_teams` -- Org MS Teams settings
+- `api.telephony.operating_modes` -- Operating modes
+- `api.telephony.organisation_access_codes` -- Org-level access codes
+- `api.telephony.organisation_voicemail` -- Org voicemail settings
+- `api.telephony.paging` -- Paging groups
 - `api.telephony.permissions_out` -- Outgoing call permissions
+- `api.telephony.phone_numbers(...)` -- List phone numbers org-wide or per-location (method, not sub-API)
+- `api.telephony.pickup` -- Call pickup CRUD
+- `api.telephony.playlist` -- Playlists (music on hold)
+- `api.telephony.pnc` -- Private network connect
+- `api.telephony.prem_pstn` -- Premises PSTN
+- `api.telephony.pstn` -- PSTN settings
+- `api.telephony.schedules` -- Holiday/business hours schedules
+- `api.telephony.supervisors` -- Supervisor management
+- `api.telephony.virtual_extensions` -- Virtual extensions
 - `api.telephony.virtual_lines` -- Virtual line management
-- `api.telephony.locations` -- Telephony location list (returns `TelephonyLocation`)
+- `api.telephony.voicemail_groups` -- Voicemail groups
+- `api.telephony.voicemail_rules` -- Voicemail rules
+- `api.telephony.voice_messaging` -- Voice messaging
+- `api.telephony.voiceportal` -- Voice portal settings
 
-<!-- NEEDS VERIFICATION: Full list of api.telephony sub-properties -- the as_api.py file is auto-generated and very large. The above are confirmed from example usage. -->
+<!-- Verified via wxc_sdk v1.30.0 source (wxc_sdk/telephony/__init__.py TelephonyApi class) 2026-03-19 -->
 
 ---
 
@@ -831,7 +1036,7 @@ async with AsWebexSimpleApi(tokens=tokens) as api:
         await api.people.list()
 ```
 
-<!-- NEEDS VERIFICATION: HarWriter constructor parameter names may vary. Confirmed from examples but not from source. -->
+<!-- Verified via wxc_sdk v1.30.0 source (wxc_sdk/har_writer/__init__.py). Constructor: HarWriter(path=None, api=None, with_authorization=False, incremental=False). 2026-03-19 -->
 
 ---
 

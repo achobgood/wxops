@@ -1,6 +1,11 @@
 <!-- Updated by playbook session 2026-03-18 -->
 # Call Routing & PSTN Reference
 
+## Sources
+- wxc_sdk v1.30.0
+- OpenAPI spec: webex-cloud-calling.json
+- developer.webex.com Call Routing APIs
+
 Comprehensive reference for Webex Calling dial plans, trunks, route groups, route lists, translation patterns, PSTN configuration, and call routing validation using the `wxc_sdk` and raw HTTP via `api.session`.
 
 ---
@@ -1774,7 +1779,7 @@ BASE = "https://webexapis.com/v1"
 result = api.session.rest_post(
     f"{BASE}/telephony/config/actions/testCallRouting/invoke", json={
         "originatorId": person_id,
-        "originatorType": "PEOPLE",
+        "originatorType": "USER",
         "destination": "+19195551234",
         "includeAppliedServices": True
     })
@@ -1792,7 +1797,7 @@ result = api.session.rest_post(
     })
 ```
 
-**Note:** The `originatorType` value in raw HTTP may be `"USER"` or `"PEOPLE"` depending on context. The wxc_sdk sends `"USER"` on the wire. The Postman collection uses `"PEOPLE"`. Both are accepted by the API. <!-- NEEDS VERIFICATION -->
+**Note:** The `originatorType` value differs between sources. The OpenAPI spec defines `OriginatorType` as `["PEOPLE", "TRUNK"]`, while wxc_sdk uses `"USER"` and `"TRUNK"`. The live API accepts **both** `"PEOPLE"` and `"USER"` as valid values for `originatorType` and returns identical results. Use `"PEOPLE"` for new code (matches OpenAPI spec), but `"USER"` (wxc_sdk convention) also works. <!-- Verified via live API 2026-03-19: tested testCallRouting/invoke with both PEOPLE and USER, both succeed -->
 
 | Operation | Method | URL |
 |-----------|--------|-----|

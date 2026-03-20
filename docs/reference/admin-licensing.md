@@ -10,6 +10,21 @@ License inventory, assignment, usage auditing, and reclamation for Webex organiz
 
 ---
 
+## Table of Contents
+
+1. [License Types](#license-types)
+2. [Required Scopes](#required-scopes)
+3. [CLI Command Groups](#cli-command-groups)
+4. [1. licenses-api (Admin Spec)](#1-licenses-api-admin-spec)
+5. [2. licenses (Calling Spec)](#2-licenses-calling-spec)
+6. [Raw HTTP Fallback](#raw-http-fallback)
+7. [License Assignment Error Codes](#license-assignment-error-codes)
+8. [Recipes](#recipes)
+9. [Gotchas](#gotchas)
+10. [See Also](#see-also)
+
+---
+
 ## License Types
 
 Webex organizations contain a mix of license types. Common ones relevant to calling deployments:
@@ -182,6 +197,12 @@ wxcli licenses-api update --email "user@example.com" --json-body '{
 - If `phoneNumber` is not provided, `locationId` is mandatory.
 - Non-calling licenses (Meetings, Messaging) do not need `properties`.
 
+> **Gotcha — Calling licenses require `properties`.** Unlike Meetings or Messaging licenses, Calling license assignment must include `properties` with at least `phoneNumber` or `extension`. If you omit `phoneNumber`, you must provide `locationId`. Error code 400411 indicates missing properties.
+
+> **Gotcha — `licenses-api update` confirms "Updated" even on no-op.** If the user already has the license, the CLI prints "Updated." without error. Always verify the actual state with `licenses-api show` after assignment.
+
+> **Gotcha — Attendant Console has a prerequisite.** You must assign Calling Professional before assigning Attendant Console. Error code 400408 is returned if the prerequisite is missing.
+
 ---
 
 ## 2. licenses (Calling Spec)
@@ -210,6 +231,8 @@ wxcli licenses show "Y2lzY29zcGFyazov..."
 ```
 
 **Table columns:** ID, Name, Total, Consumed.
+
+> **Gotcha — The `--calling-only` filter uses substring matching.** It filters for `"calling"` in the license name (case-insensitive). This may miss licenses with non-standard naming, or include unexpected matches.
 
 ---
 
@@ -377,15 +400,7 @@ wxcli licenses-api update --json-body '{
 
 3. **206 Partial Content is not an error.** The PATCH endpoint can return HTTP 206 when some licenses in the request succeeded but others failed. Always compare the returned `licenses` array against what you requested to identify which ones failed.
 
-4. **Calling licenses require `properties`.** Unlike Meetings or Messaging licenses, Calling license assignment must include `properties` with at least `phoneNumber` or `extension`. If you omit `phoneNumber`, you must provide `locationId`. Error code 400411 indicates missing properties.
-
-5. **License conflicts are strictly enforced.** A user cannot hold both Calling Professional and Calling Standard, or Calling Standard and CX Essentials. The API returns specific 400-level error codes for each conflict type (see Error Codes table above).
-
-6. **`licenses-api update` confirms "Updated" even on no-op.** If the user already has the license, the CLI prints "Updated." without error. Always verify the actual state with `licenses-api show` after assignment.
-
-7. **The `--calling-only` filter on `licenses list` uses substring matching.** It filters for `"calling"` in the license name (case-insensitive). This may miss licenses with non-standard naming, or include unexpected matches.
-
-8. **Attendant Console has a prerequisite.** You must assign Calling Professional before assigning Attendant Console. Error code 400408 is returned if the prerequisite is missing.
+4. **License conflicts are strictly enforced.** A user cannot hold both Calling Professional and Calling Standard, or Calling Standard and CX Essentials. The API returns specific 400-level error codes for each conflict type (see Error Codes table above).
 
 ---
 

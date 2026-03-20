@@ -6,6 +6,20 @@ Source: `wxcadm/__init__.py`, `wxcadm/webex.py`, `wxcadm/org.py`, `wxcadm/common
 
 ---
 
+<!-- Updated by playbook session 2026-03-18 -->
+## When to Use wxcadm vs Raw HTTP
+
+| Use wxcadm when | Use raw HTTP when |
+|---|---|
+| You need **object model navigation** — traverse Org → Locations → People → Settings without knowing endpoint URLs | You need direct, targeted API calls to known endpoints |
+| You want **lazy-loaded discovery** of all org resources (20+ collection properties auto-fetched on first access) | You want precise control over which API calls fire and when |
+| You need **cross-org person lookups** via `Webex.get_person_by_email()` | You're doing standard CRUD on a single resource |
+| You want the **XSI endpoint discovery** flow (`get_xsi_endpoints()`) for real-time event subscriptions | You want minimal dependencies and predictable latency |
+
+> **Note:** The playbook uses raw HTTP via `api.session.rest_*()` for standard CRUD operations. wxcadm's core value is its object model — it discovers and caches org topology so you can navigate relationships without hardcoding endpoint paths. Use it for discovery and navigation, not as an API wrapper.
+
+---
+
 ## Object Model Hierarchy
 
 ```
@@ -280,7 +294,7 @@ def get_audit_events(self, start: str, end: str) -> AuditEventList
 ```python
 def get_recordings(self, **kwargs) -> RecordingList
 ```
-<!-- NEEDS VERIFICATION --> kwargs likely include date range and other filters -- see RecordingList for details.
+<!-- Verified via wxcadm source (wxcadm/recording.py RecordingList.__init__) 2026-03-19 --> kwargs passed through to `RecordingList`: `from_date_time` (str), `to_date_time` (str), `status` (str), `service` (str, maps to `serviceType`), `owner` (Person/Workspace/VirtualLine, uses `.id`), `region` (str, maps to `storageRegion`), `location` (Location, uses `.id`).
 
 #### Admin Operations
 
@@ -620,7 +634,7 @@ The `__init__.py` uses star-imports from most submodules to make the entire API 
 | **Object hierarchy** | `Webex -> Org -> [People, Locations, ...]` with back-references to parent | Flat API -- no parent references, each call is independent |
 | **Rate limiting** | Built-in 429 retry with `Retry-After` header | Built-in 429 retry |
 | **XSI support** | Yes -- XSI events, calls, call queues | No |
-| **CPAPI support** | Yes (internal Cisco API) <!-- NEEDS VERIFICATION --> | No |
+| **CPAPI support** | Yes -- `wxcadm/cpapi.py` provides `CPAPI` class (VM pin, numbers, workspace caller ID, MOH, AA greetings). Auto-init in `Org.__init__` is commented out; must instantiate manually. Some methods deprecated as public APIs replaced them. <!-- Verified via wxcadm source (wxcadm/cpapi.py, wxcadm/org.py:109) 2026-03-19 --> | No |
 | **Pagination** | Automatic (follows `r.links['next']`) | Automatic |
 | **Auth patterns** | Token, Integration refresh, Service App flow | Token, Integration, Service App, JWT |
 | **Typical use** | Admin scripts, bulk provisioning, monitoring | Any Webex integration, broader API coverage |
@@ -628,7 +642,7 @@ The `__init__.py` uses star-imports from most submodules to make the entire API 
 **When to use wxcadm:**
 - You need XSI event subscriptions or real-time call control
 - You want an object model where `person.org.locations` traversal is natural
-- You need CPAPI access <!-- NEEDS VERIFICATION -->
+- You need CPAPI access (manual `CPAPI` instantiation required; auto-init is commented out in current version) <!-- Verified via wxcadm source 2026-03-19 -->
 - You're building admin/provisioning scripts and prefer the lazy-loaded collection pattern
 
 **When to use wxc_sdk:**
@@ -711,6 +725,15 @@ new_token_info = webex.get_new_token()
 ```
 
 ---
+
+## Gotchas
+
+- **`auto_refresh_token` is not production-ready.** The constructor accepts `auto_refresh_token=True` but the docs explicitly say it is "still in development -- do not use." Token refresh must be done manually via `get_new_token()`.
+- **`get_xsi` is a hidden kwargs parameter.** It does not appear in the explicit constructor signature -- it is passed through `**kwargs` to `Org` creation. Easy to miss when reading the API surface.
+- **`read_only=True` skips org discovery.** It uses `/v1/people/me` instead of `/v1/organizations`, so `self.orgs` will contain only one org derived from the token owner's identity. This mode does not require admin scope but gives a limited view.
+- **Legacy `webex_api_call()` is still in the codebase.** Some modules still use it instead of `WebexApi`. It creates a new `requests.Session` per call (no connection reuse), so it is less efficient. Prefer `org.api` methods in new code.
+- **`get_recordings()` kwargs are passed through to `RecordingList`.** <!-- Verified via wxcadm source (wxcadm/recording.py) 2026-03-19 --> The method signature accepts `**kwargs` which map to `RecordingList.__init__` parameters: `from_date_time`, `to_date_time`, `status`, `service` (maps to API `serviceType`), `owner` (Person/Workspace/VirtualLine), `region` (maps to API `storageRegion`), `location` (Location object).
+- **CPAPI support exists but auto-init is disabled.** <!-- Verified via wxcadm source (wxcadm/cpapi.py, wxcadm/org.py:109) 2026-03-19 --> The `CPAPI` class in `wxcadm/cpapi.py` provides methods for VM pin management, numbers (deprecated), workspace caller ID, MOH file upload/config, and AA greeting upload/config. However, the auto-instantiation line in `Org.__init__` is commented out (`#self._cpapi = CPAPI(...)`). To use CPAPI, instantiate manually: `cpapi = CPAPI(org, access_token)`. Several methods have been superseded by public developer APIs (e.g., `reset_vm_pin`, `get_numbers`).
 
 ## See Also
 

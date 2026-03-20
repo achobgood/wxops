@@ -4,6 +4,12 @@ User, license, and location provisioning for Webex Calling via the `wxc_sdk` Pyt
 
 > **Prerequisite:** All examples assume a configured `WebexSimpleApi` instance. See `authentication.md` for token setup. For the raw HTTP pattern, see `wxc-sdk-patterns.md` section 1.5.
 
+## Sources
+
+- wxc_sdk v1.30.0 (github.com/jeokrohn/wxc_sdk)
+- OpenAPI spec: `webex-admin.json` (People, Licenses, Locations, Organizations APIs)
+- developer.webex.com People, Licenses, Locations, and Organizations APIs
+
 ---
 
 ## Table of Contents
@@ -15,7 +21,8 @@ User, license, and location provisioning for Webex Calling via the `wxc_sdk` Pyt
 5. [Organization API](#organization-api)
 6. [Provisioning Workflow](#provisioning-workflow)
 7. [Data Models](#data-models)
-8. [Common Gotchas](#common-gotchas)
+8. [Gotchas](#gotchas) (cross-cutting)
+9. [See Also](#see-also)
 
 ---
 
@@ -235,6 +242,38 @@ me = api.session.rest_get(f"{BASE}/people/me", params={
 - No auto-pagination -- use `max=1000` for large orgs
 - Update is a raw PUT -- you must include all fields (GET first, modify, PUT back)
 
+### Gotchas
+
+**`calling_data=True` is not optional -- it is mandatory for calling fields.**
+The single most common mistake. Without `calling_data=True` on `list()`, `details()`, `create()`, and `update()`, the response will **not include** `location_id`, `extension`, or calling-related `phone_numbers`. Your code will see `None` for these fields and may incorrectly conclude the user is not calling-enabled.
+
+**`location_id` is write-once for calling users.**
+You can set `location_id` when you first assign a calling license to a user. After that, `location_id` **cannot be changed** via the People API update. To move a user to a different location, you would need to remove the calling license, re-add it with the new location. <!-- Verified via wxc_sdk source (people_auto.py): "The locationId can only be set when assigning a calling license to a user. It cannot be changed if a user is already an existing calling user." 2026-03-19 -->
+
+**The People API is a composite of multiple microservices.**
+A create or update call can **partially succeed**. For example, the user may be created but the phone number assignment may fail (especially with invalid numbers). Always verify with a subsequent GET after errors.
+
+**Performance limits with `calling_data=True`.**
+The SDK enforces a soft limit of 10 users per page when fetching with `calling_data=True` (constant `MAX_USERS_WITH_CALLING_DATA = 10`). This is due to backend performance issues. For large orgs, consider the async API with `concurrent_requests` tuning.
+
+**Extension vs. work_extension.**
+- When **writing**: set `person.extension = '1001'` (no routing prefix).
+- When **reading**: `phone_numbers` of type `work_extension` will have the value `<routing_prefix><extension>` (e.g., `'8001001'` where `800` is the prefix and `1001` is the extension).
+
+**Deleting a calling user may have delayed side effects.**
+After deleting a user, their phone numbers may not be immediately available for reassignment. The SDK test suite retries number removal with delays of up to 10 seconds between attempts when encountering 502 errors.
+
+**`PeopleApi.create()` takes a `Person` model, not kwargs.**
+<!-- Verified via CLI implementation 2026-03-17 -->
+
+```python
+from wxc_sdk.people import Person
+person = Person(emails=[email], first_name=first, last_name=last)
+result = api.people.create(settings=person)
+```
+
+Do NOT call `api.people.create(emails=[...], first_name=...)` — this raises `TypeError`.
+
 ---
 
 ## Licenses API
@@ -446,6 +485,14 @@ api.session.rest_post(f"{BASE}/licenses/users", json=body)
 
 **Note:** The Licenses API is read-only for license inventory (list/details). License assignment to users is done via the `/licenses/users` PATCH-style endpoint (implemented as POST). There is no create/update/delete for license definitions themselves.
 
+### Gotchas
+
+**License ID assignment requires the full base64-encoded ID.**
+License IDs in Webex are long base64-encoded strings (e.g., `Y2lzY29zcGFyazov...`). Always retrieve them programmatically from `api.licenses.list()` -- never hardcode them, as they vary by organization and subscription.
+
+**SCIM 2.0 is now the recommended path for user creation.**
+As of January 2024, Webex recommends SCIM 2.0 (`wxc_sdk.scim.ScimV2Api`) over the People API for user creation and management due to higher performance and standard connectors. Users created via SCIM can then be licensed using the `assign_licenses_to_users` PATCH method.
+
 ---
 
 ## Locations API
@@ -641,6 +688,39 @@ api.locations.update_floor(floor=floor)
 api.locations.delete_floor(location_id='<id>', floor_id='<floor_id>')
 ```
 
+### Gotchas
+
+**Location must exist before user assignment.**
+You cannot assign a user to a location that does not exist. Create the location first, optionally enable it for calling, then assign users.
+
+**Location name length for calling.**
+Locations enabled for Webex Calling must have names of **80 characters or fewer**. The general Locations API allows 256, but calling features and Control Hub enforce the shorter limit.
+
+**`enable_for_calling` requires lowercase language codes.**
+<!-- Verified via CLI implementation 2026-03-17 -->
+The telephony `enable_for_calling` API rejects `en_US` (mixed case) for `announcement_language` with error `Invalid Language Code`. Use `en_us` (all lowercase). The general Locations API stores `preferredLanguage` as `en_US` but the telephony backend expects lowercase.
+
+```python
+location = api.locations.details(location_id=loc_id)
+if not location.announcement_language:
+    location.announcement_language = (location.preferred_language or "en_US").lower()
+api.telephony.location.enable_for_calling(location=location)
+```
+
+**`announcement_language` returns None from details endpoint.**
+<!-- Verified via CLI implementation 2026-03-17 -->
+`LocationsApi.details()` returns `announcement_language = None` even on locations that have it set. This is a Webex API inconsistency. Always set it explicitly before calling `enable_for_calling`.
+
+**Cannot delete calling-enabled locations via API.**
+<!-- Verified via CLI implementation 2026-03-17 -->
+`LocationsApi.delete()` returns `409 Conflict: Location is being referenced, cannot be deleted` for any location with Webex Calling enabled. There is **no API to disable calling on a location** — `wxcadm` confirms: "There is currently no way to delete a Location outside of Control Hub." The `safe_delete_check_before_disabling_calling_location` precheck may return `UNBLOCKED` but the delete still fails due to the telephony reference.
+
+Calling-enabled locations can only be deleted from Control Hub.
+
+**`SafeDeleteCheckResponse` uses `location_delete_status`, not `status`.**
+<!-- Verified via CLI implementation 2026-03-17 -->
+The response model field is `location_delete_status` (value: `"UNBLOCKED"` or `"BLOCKED"`), not `status`. The `blocking` field contains a model with `users_in_use_count`, `trunks_in_use_count`, etc.
+
 ---
 
 ## Organization API
@@ -679,6 +759,40 @@ api.organizations.delete(org_id='<id>')
 ```
 
 Requires authorization from a user with the **Full Administrator Role**. Deletion may take up to 10 minutes to complete after the response returns.
+
+### Raw HTTP
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+
+# ── List organizations ──────────────────────────────────────────
+result = api.session.rest_get(f"{BASE}/organizations", params={"max": 1000})
+orgs = result.get("items", [])
+
+# ── List with calling data (XSI endpoints) ─────────────────────
+result = api.session.rest_get(f"{BASE}/organizations", params={
+    "callingData": "true",
+    "max": 1000,
+})
+
+# ── Get organization details ────────────────────────────────────
+org = api.session.rest_get(f"{BASE}/organizations/{org_id}", params={
+    "callingData": "true",
+})
+# XSI fields: xsiActionsEndpoint, xsiEventsEndpoint,
+#              xsiEventsChannelEndpoint, xsiDomain
+
+# ── Delete an organization ──────────────────────────────────────
+# WARNING: Requires Full Administrator Role. Deletion takes up to 10 min.
+api.session.rest_delete(f"{BASE}/organizations/{org_id}")
+```
+
+**Key differences from typed SDK:**
+- `callingData` is a string `"true"`, not a Python bool
+- Response key for list is `items`, not `organizations`
+- XSI field names are camelCase in raw JSON: `xsiActionsEndpoint`, `xsiEventsEndpoint`, `xsiEventsChannelEndpoint`, `xsiDomain`
 
 ---
 
@@ -929,42 +1043,15 @@ Either `phone_number` or `extension` is mandatory for Calling license assignment
 
 ---
 
-## Common Gotchas
+## Gotchas
 
-### 1. `calling_data=True` is not optional -- it is mandatory for calling fields
+Cross-cutting gotchas that span multiple API surfaces. Section-specific gotchas are inline within their respective sections above.
 
-The single most common mistake. Without `calling_data=True` on `list()`, `details()`, `create()`, and `update()`, the response will **not include** `location_id`, `extension`, or calling-related `phone_numbers`. Your code will see `None` for these fields and may incorrectly conclude the user is not calling-enabled.
-
-### 2. Location must exist before user assignment
-
-You cannot assign a user to a location that does not exist. Create the location first, optionally enable it for calling, then assign users.
-
-### 3. `location_id` is write-once for calling users
-
-You can set `location_id` when you first assign a calling license to a user. After that, `location_id` **cannot be changed** via the People API update. To move a user to a different location, you would need to remove the calling license, re-add it with the new location. <!-- NEEDS VERIFICATION — not yet tested via CLI -->
-
-### 4. License ID assignment requires the full base64-encoded ID
-
-License IDs in Webex are long base64-encoded strings (e.g., `Y2lzY29zcGFyazov...`). Always retrieve them programmatically from `api.licenses.list()` -- never hardcode them, as they vary by organization and subscription.
-
-### 5. The People API is a composite of multiple microservices
-
-A create or update call can **partially succeed**. For example, the user may be created but the phone number assignment may fail (especially with invalid numbers). Always verify with a subsequent GET after errors.
-
-### 6. Performance limits with `calling_data=True`
-
-The SDK enforces a soft limit of 10 users per page when fetching with `calling_data=True` (constant `MAX_USERS_WITH_CALLING_DATA = 10`). This is due to backend performance issues. For large orgs, consider the async API with `concurrent_requests` tuning.
-
-### 7. Extension vs. work_extension
-
-- When **writing**: set `person.extension = '1001'` (no routing prefix).
-- When **reading**: `phone_numbers` of type `work_extension` will have the value `<routing_prefix><extension>` (e.g., `'8001001'` where `800` is the prefix and `1001` is the extension).
-
-### 8. 403 errors on license or people calls
+### 403 errors on license or people calls
 
 Usually means the access token does not have admin scopes. Verify the token has `spark-admin:people_read`, `spark-admin:people_write`, and `spark-admin:licenses_read`.
 
-### 9. Phone numbers must be provisioned to the location first
+### Phone numbers must be provisioned to the location first
 
 Before assigning a DID/TN to a user, the number must already be added to the location's number inventory via the telephony location numbers API:
 
@@ -975,74 +1062,22 @@ api.telephony.location.number.add(
 )
 ```
 
-### 10. SCIM 2.0 is now the recommended path for user creation
-
-As of January 2024, Webex recommends SCIM 2.0 (`wxc_sdk.scim.ScimV2Api`) over the People API for user creation and management due to higher performance and standard connectors. Users created via SCIM can then be licensed using the `assign_licenses_to_users` PATCH method.
-
-### 11. Deleting a calling user may have delayed side effects
-
-After deleting a user, their phone numbers may not be immediately available for reassignment. The SDK test suite retries number removal with delays of up to 10 seconds between attempts when encountering 502 errors.
-
-### 12. Location name length for calling
-
-Locations enabled for Webex Calling must have names of **80 characters or fewer**. The general Locations API allows 256, but calling features and Control Hub enforce the shorter limit.
-
-### 13. `enable_for_calling` requires lowercase language codes
-<!-- Verified via CLI implementation 2026-03-17 -->
-
-The telephony `enable_for_calling` API rejects `en_US` (mixed case) for `announcement_language` with error `Invalid Language Code`. Use `en_us` (all lowercase). The general Locations API stores `preferredLanguage` as `en_US` but the telephony backend expects lowercase.
-
-```python
-location = api.locations.details(location_id=loc_id)
-if not location.announcement_language:
-    location.announcement_language = (location.preferred_language or "en_US").lower()
-api.telephony.location.enable_for_calling(location=location)
-```
-
-### 14. `announcement_language` returns None from details endpoint
-<!-- Verified via CLI implementation 2026-03-17 -->
-
-`LocationsApi.details()` returns `announcement_language = None` even on locations that have it set. This is a Webex API inconsistency. Always set it explicitly before calling `enable_for_calling`.
-
-### 15. Cannot delete calling-enabled locations via API
-<!-- Verified via CLI implementation 2026-03-17 -->
-
-`LocationsApi.delete()` returns `409 Conflict: Location is being referenced, cannot be deleted` for any location with Webex Calling enabled. There is **no API to disable calling on a location** — `wxcadm` confirms: "There is currently no way to delete a Location outside of Control Hub." The `safe_delete_check_before_disabling_calling_location` precheck may return `UNBLOCKED` but the delete still fails due to the telephony reference.
-
-Calling-enabled locations can only be deleted from Control Hub.
-
-### 16. `PeopleApi.create()` takes a `Person` model, not kwargs
-<!-- Verified via CLI implementation 2026-03-17 -->
-
-```python
-from wxc_sdk.people import Person
-person = Person(emails=[email], first_name=first, last_name=last)
-result = api.people.create(settings=person)
-```
-
-Do NOT call `api.people.create(emails=[...], first_name=...)` — this raises `TypeError`.
-
-### 17. `SafeDeleteCheckResponse` uses `location_delete_status`, not `status`
-<!-- Verified via CLI implementation 2026-03-17 -->
-
-The response model field is `location_delete_status` (value: `"UNBLOCKED"` or `"BLOCKED"`), not `status`. The `blocking` field contains a model with `users_in_use_count`, `trunks_in_use_count`, etc.
-
-### 18. Numbers list API returns key `phoneNumbers`, not `numbers`
+### Numbers list API returns key `phoneNumbers`, not `numbers`
 <!-- Verified via CLI implementation 2026-03-18 -->
 
 `GET /telephony/config/numbers` returns a response body with the key `phoneNumbers`, not `numbers`. Code that looks for `response['numbers']` will get a `KeyError`.
 
-### 19. Workspaces list API returns key `items`, not `workspaces`
+### Workspaces list API returns key `items`, not `workspaces`
 <!-- Verified via CLI implementation 2026-03-18 -->
 
 `GET /workspaces` returns a response body with the key `items`, not `workspaces`. Parse using `response['items']` when working with raw API responses.
 
-### 20. Manage numbers jobs list API returns key `items`, not `manageNumbers`
+### Manage numbers jobs list API returns key `items`, not `manageNumbers`
 <!-- Verified via CLI implementation 2026-03-18 -->
 
 The manage numbers jobs list endpoint returns its results under the key `items`, not `manageNumbers`. This is inconsistent with other telephony job endpoints.
 
-### 21. Manage numbers job body uses `numberList` array, not `phoneNumbers`
+### Manage numbers job body uses `numberList` array, not `phoneNumbers`
 <!-- Verified via CLI implementation 2026-03-18 -->
 
 The manage numbers job creation body expects a `numberList` array where each element contains `locationId` and `numbers`. Do not use `phoneNumbers` as the key -- the API will reject or ignore it.

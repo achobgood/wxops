@@ -1,4 +1,24 @@
+<!-- Updated by playbook session 2026-03-18 -->
+
 # Devices API Reference (wxc_sdk)
+
+## Sources
+
+- wxc_sdk v1.30.0
+- OpenAPI spec: webex-device.json
+- developer.webex.com Device APIs
+
+## Table of Contents
+
+1. [DevicesApi (Cloud Device CRUD)](#1-devicesapi-cloud-device-crud)
+2. [DeviceConfigurationsApi (RoomOS / Config-Service Settings)](#2-deviceconfigurationsapi-roomos--config-service-settings)
+3. [TelephonyDevicesApi (Webex Calling Device Management)](#3-telephonydevicesapi-webex-calling-device-management)
+4. [Code Examples](#4-code-examples)
+5. [API Relationship Summary](#5-api-relationship-summary)
+6. [Raw HTTP](#6-raw-http)
+7. [Gotchas](#7-gotchas)
+
+---
 
 Three separate API surfaces handle device management in the wxc_sdk. They cover different concerns and live at different SDK paths.
 
@@ -195,7 +215,11 @@ def create_by_mac_address(
 
 ### 1.4 Sub-APIs
 
-**`DevicesApi.settings_jobs`** (`DeviceSettingsJobsApi`) -- handles bulk device settings jobs. <!-- NEEDS VERIFICATION --> Exact methods not documented in this source; refer to `wxc_sdk.telephony.jobs.DeviceSettingsJobsApi`.
+**`DevicesApi.settings_jobs`** (`DeviceSettingsJobsApi`) -- handles bulk device settings jobs at the location and organization level. Methods: `change(location_id, customization, org_id)` to initiate bulk settings changes, `list(org_id)` to list all jobs, `status(job_id, org_id)` to get job status, and `errors(job_id, org_id)` to list job errors. Defined in `wxc_sdk.telephony.jobs.DeviceSettingsJobsApi`, base path `telephony/config/jobs/devices/callDeviceSettings`. <!-- Verified via wxc_sdk source (telephony/jobs/__init__.py + devices/__init__.py) 2026-03-19 -->
+
+> **Gotcha — Tags PATCH content type:** `modify_device_tags` uses `application/json-patch+json` content type, not standard JSON. The SDK handles this automatically, but raw HTTP callers must set the header explicitly.
+
+> **Gotcha — Two device API surfaces:** `api.devices` (`/v1/devices`) manages cloud device entities (CRUD, tags, activation). `api.telephony.devices` (`/v1/telephony/config/devices`) manages Webex Calling config (members, settings, layout, line keys). These are separate API surfaces with potentially different device IDs — use `callingDeviceId` for telephony config endpoints.
 
 ---
 
@@ -828,6 +852,12 @@ def get_location_device_settings(
 ) -> DeviceDynamicSettings
 ```
 
+> **Gotcha — `deviceModel` required for settings endpoints:** `GET/PUT .../devices/{id}/settings` requires the `deviceModel` query parameter. Omitting it returns an error.
+
+> **Gotcha — Apply changes after updates:** After updating device settings, members, or layout, call `apply_changes()` (or `.../actions/applyChanges/invoke` via raw HTTP) to push the configuration to the physical device.
+
+> **Gotcha — Background image upload is multipart:** The upload endpoint requires multipart form data, not JSON. Max 625 KB, `.jpeg` or `.png` only. Max 100 images per org. Use the SDK method for file handling rather than raw HTTP.
+
 ---
 
 ## 4. Code Examples
@@ -1005,6 +1035,418 @@ WebexSimpleApi
 ```
 
 **Key distinction:** `DevicesApi` handles the device as a cloud entity (create, delete, activate, tag). `DeviceConfigurationsApi` handles RoomOS-level configs. `TelephonyDevicesApi` handles everything Webex Calling needs: line assignments, phone layouts, supported models, and calling-specific settings.
+
+---
+
+## 6. Raw HTTP
+
+All examples use:
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+```
+
+No auto-pagination -- pass `max=1000` explicitly. All responses are JSON dicts. Errors raise `RestError`.
+
+### 6.1 DevicesApi (Cloud CRUD)
+
+#### List devices
+
+```python
+result = api.session.rest_get(f"{BASE}/devices", params={
+    "max": 1000,
+    "productType": "phone",           # optional: "phone" or "roomdesk"
+    "connectionStatus": "connected",  # optional
+    "locationId": loc_id,             # optional
+    "tag": "floor-3,building-a",      # optional: comma-separated (AND logic)
+})
+items = result.get("items", [])
+# Each item: {id, displayName, product, type, mac, ip, serial, connectionStatus, personId, workspaceId, locationId, ...}
+```
+
+#### Get device details
+
+```python
+result = api.session.rest_get(f"{BASE}/devices/{device_id}")
+# Returns full device object: {id, displayName, product, type, mac, serial, connectionStatus, tags, ...}
+```
+
+#### Delete device
+
+```python
+api.session.rest_delete(f"{BASE}/devices/{device_id}")
+# Returns 204 No Content
+```
+
+#### Generate activation code
+
+```python
+body = {"workspaceId": workspace_id}  # or {"personId": person_id, "model": "DMS Cisco 8845"}
+result = api.session.rest_post(f"{BASE}/devices/activationCode", json=body)
+# Returns: {code, expiryTime}
+```
+
+#### Create device by MAC address
+
+```python
+body = {
+    "mac": "AABBCCDDEEFF",
+    "workspaceId": workspace_id,  # or "personId"
+    "model": "DMS Cisco 8845",
+    "password": "sip_password"    # required for 3rd-party devices
+}
+result = api.session.rest_post(f"{BASE}/devices", json=body)
+# Returns device object or empty on some models
+```
+
+#### Modify device tags
+
+```python
+import requests
+body = [{"op": "add", "path": "tags", "value": ["floor-3", "building-a"]}]
+# Note: requires Content-Type: application/json-patch+json
+# The SDK's rest_patch handles this; for raw HTTP use:
+api.session.rest_patch(f"{BASE}/devices/{device_id}", json=body)
+```
+
+### 6.2 TelephonyDevicesApi (Calling-Specific)
+
+#### Supported devices catalog
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/supportedDevices")
+devices = result.get("devices", [])
+# Each: {model, displayName, familyDisplayName, type, manufacturer, managedBy, supportedFor, onboardingMethod, numberOfLinePorts, ...}
+```
+
+#### Get telephony device details (3rd-party)
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/devices/{device_id}")
+# Returns: {manufacturer, managedBy, id, ip, mac, model, activationState, owner: {linePort, sipUserName}, proxy: {outboundProxy}}
+```
+
+#### Update 3rd-party device SIP password
+
+```python
+api.session.rest_put(f"{BASE}/telephony/config/devices/{device_id}", json={
+    "sipPassword": "new_password"
+})
+```
+
+#### Get device members (lines)
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/devices/{device_id}/members")
+members = result.get("members", [])
+# Each: {id, firstName, lastName, phoneNumber, extension, port, lineType, primaryOwner, lineWeight, hotlineEnabled, ...}
+# Also: result["model"], result["maxLineCount"]
+```
+
+#### Update device members
+
+```python
+body = {
+    "members": [
+        {"id": person_id, "port": 1, "lineType": "PRIMARY", "primaryOwner": True},
+        {"id": shared_person_id, "port": 2, "lineType": "SHARED_LINE", "primaryOwner": False}
+    ]
+}
+api.session.rest_put(f"{BASE}/telephony/config/devices/{device_id}/members", json=body)
+```
+
+#### Search available members for a device
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/devices/{device_id}/availableMembers", params={
+    "max": 1000,
+    "memberName": "Jane",        # optional: contains-match
+    "usageType": "SHARED_LINE",  # optional: DEVICE_OWNER or SHARED_LINE
+    "locationId": loc_id,        # optional
+})
+members = result.get("members", [])
+```
+
+#### Count members / available members
+
+```python
+# Count of current members (filtered)
+result = api.session.rest_get(f"{BASE}/telephony/config/devices/{device_id}/availableMembers/count", params={
+    "memberName": "Jane"
+})
+count = result.get("count", 0)
+
+# Count of available members (org-wide, no device_id)
+result = api.session.rest_get(f"{BASE}/telephony/config/devices/availableMembers/count")
+count = result.get("count", 0)
+```
+
+#### Apply changes (push config to device)
+
+```python
+api.session.rest_post(f"{BASE}/telephony/config/devices/{device_id}/actions/applyChanges/invoke")
+# Returns 204. Device downloads and applies configuration.
+```
+
+#### Get device settings (MPP/ATA)
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/devices/{device_id}/settings", params={
+    "deviceModel": "DMS Cisco 8845"  # required
+})
+# Returns: {customEnabled, customizations: {mpp: {...}, ata: {...}}}
+```
+
+#### Update device settings
+
+```python
+body = {"customEnabled": True, "customizations": {"mpp": {"displayNameFormat": "PERSON_LAST_THEN_FIRST_NAME"}}}
+api.session.rest_put(f"{BASE}/telephony/config/devices/{device_id}/settings", json=body)
+# Follow with apply_changes to push to device
+```
+
+#### Get/update location device settings
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/locations/{location_id}/devices/settings")
+# Returns location-level device customization defaults
+```
+
+#### Get/update org-level device settings
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/devices/settings")
+# Returns org-level device customization defaults
+```
+
+#### Person device settings (compression)
+
+```python
+# Get
+result = api.session.rest_get(f"{BASE}/telephony/config/people/{person_id}/devices/settings")
+# Returns: {compression: true/false}
+
+# Update
+api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/devices/settings", json={
+    "compression": True
+})
+```
+
+#### Workspace device settings (compression)
+
+```python
+# Get
+result = api.session.rest_get(f"{BASE}/telephony/config/workspaces/{workspace_id}/devices/settings")
+
+# Update
+api.session.rest_put(f"{BASE}/telephony/config/workspaces/{workspace_id}/devices/settings", json={
+    "compression": True
+})
+```
+
+#### List person's devices
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/people/{person_id}/devices")
+devices = result.get("devices", [])
+```
+
+#### Get person hoteling settings
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/people/{person_id}/devices/settings/hoteling")
+# Returns: {enabled, limitGuestUse, ...}
+```
+
+#### List workspace devices
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/workspaces/{workspace_id}/devices")
+devices = result.get("devices", [])
+```
+
+#### Modify workspace devices
+
+```python
+body = {"devices": [{"activationId": activation_id, "model": "DMS Cisco 8845"}]}
+api.session.rest_put(f"{BASE}/telephony/config/workspaces/{workspace_id}/devices", json=body)
+```
+
+#### User device count
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/people/{person_id}/devices/count")
+# Returns: {totalDeviceCount, applicationsCount}
+```
+
+#### Validate MAC addresses
+
+```python
+body = {"macs": ["AABBCCDDEEFF", "112233445566"]}
+result = api.session.rest_post(f"{BASE}/telephony/config/devices/actions/validateMacs/invoke", json=body)
+mac_statuses = result.get("macStatus", [])
+# Each: {mac, state, errorCode, message}
+# state: AVAILABLE, UNAVAILABLE, DUPLICATE_IN_LIST, INVALID
+```
+
+### 6.3 Line Key Templates
+
+#### CRUD
+
+```python
+# List
+result = api.session.rest_get(f"{BASE}/telephony/config/devices/lineKeyTemplates")
+templates = result.get("lineKeyTemplates", [])
+
+# Create
+body = {
+    "templateName": "Standard Layout",
+    "deviceModel": "DMS Cisco 8845",
+    "lineKeys": [
+        {"lineKeyIndex": 1, "lineKeyType": "PRIMARY_LINE"},
+        {"lineKeyIndex": 2, "lineKeyType": "MONITOR"},
+        {"lineKeyIndex": 3, "lineKeyType": "SPEED_DIAL", "lineKeyLabel": "Front Desk", "lineKeyValue": "1000"}
+    ]
+}
+result = api.session.rest_post(f"{BASE}/telephony/config/devices/lineKeyTemplates", json=body)
+template_id = result.get("id")
+
+# Get details
+result = api.session.rest_get(f"{BASE}/telephony/config/devices/lineKeyTemplates/{template_id}")
+
+# Update
+api.session.rest_put(f"{BASE}/telephony/config/devices/lineKeyTemplates/{template_id}", json=body)
+
+# Delete
+api.session.rest_delete(f"{BASE}/telephony/config/devices/lineKeyTemplates/{template_id}")
+```
+
+#### Preview apply template
+
+```python
+body = {
+    "action": "APPLY_TEMPLATE",
+    "templateId": template_id,
+    "locationIds": [loc_id],
+    "excludeDevicesWithCustomLayout": True
+}
+result = api.session.rest_post(f"{BASE}/telephony/config/devices/actions/previewApplyLineKeyTemplate/invoke", json=body)
+# Returns: {deviceCount}
+```
+
+#### Apply template job
+
+```python
+# Start job
+result = api.session.rest_post(f"{BASE}/telephony/config/jobs/devices/applyLineKeyTemplate", json=body)
+job_id = result.get("id")
+
+# List jobs
+result = api.session.rest_get(f"{BASE}/telephony/config/jobs/devices/applyLineKeyTemplate")
+
+# Get job status
+result = api.session.rest_get(f"{BASE}/telephony/config/jobs/devices/applyLineKeyTemplate/{job_id}")
+
+# Get job errors
+result = api.session.rest_get(f"{BASE}/telephony/config/jobs/devices/applyLineKeyTemplate/{job_id}/errors")
+```
+
+### 6.4 Device Layout
+
+```python
+# Get layout
+result = api.session.rest_get(f"{BASE}/telephony/config/devices/{device_id}/layout")
+# Returns: {layoutMode, userReorderEnabled, lineKeys: [...], kemModuleType, kemKeys: [...]}
+
+# Update layout
+body = {
+    "layoutMode": "CUSTOM",
+    "lineKeys": [
+        {"lineKeyIndex": 1, "lineKeyType": "PRIMARY_LINE"},
+        {"lineKeyIndex": 2, "lineKeyType": "SPEED_DIAL", "lineKeyLabel": "Lobby", "lineKeyValue": "2000"}
+    ],
+    "kemModuleType": "KEM_14_KEYS",
+    "kemKeys": [
+        {"kemModuleIndex": 1, "kemKeyIndex": 1, "kemKeyType": "MONITOR"}
+    ]
+}
+api.session.rest_put(f"{BASE}/telephony/config/devices/{device_id}/layout", json=body)
+```
+
+### 6.5 Background Images
+
+```python
+# List org images
+result = api.session.rest_get(f"{BASE}/telephony/config/devices/backgroundImages")
+images = result.get("backgroundImages", [])
+# Each: {backgroundImageUrl, fileName, count}
+
+# Upload (multipart)
+api.session.rest_post(f"{BASE}/telephony/config/devices/{device_id}/actions/backgroundImageUpload/invoke",
+    # Requires multipart form upload -- use SDK method for file handling
+)
+
+# Delete
+body = {"backgroundImages": [{"fileName": "logo.png", "forceDelete": True}]}
+api.session.rest_delete(f"{BASE}/telephony/config/devices/backgroundImages", json=body)
+```
+
+### 6.6 Device Settings Jobs (Bulk)
+
+```python
+# Start bulk device settings job
+result = api.session.rest_post(f"{BASE}/telephony/config/jobs/devices/callDeviceSettings", json=body)
+job_id = result.get("id")
+
+# List jobs
+result = api.session.rest_get(f"{BASE}/telephony/config/jobs/devices/callDeviceSettings")
+
+# Get job status
+result = api.session.rest_get(f"{BASE}/telephony/config/jobs/devices/callDeviceSettings/{job_id}")
+
+# Get job errors
+result = api.session.rest_get(f"{BASE}/telephony/config/jobs/devices/callDeviceSettings/{job_id}/errors")
+```
+
+### 6.7 Rebuild Phones Jobs
+
+```python
+# Start rebuild job
+result = api.session.rest_post(f"{BASE}/telephony/config/jobs/devices/rebuildPhones", json=body)
+job_id = result.get("id")
+
+# List jobs
+result = api.session.rest_get(f"{BASE}/telephony/config/jobs/devices/rebuildPhones")
+
+# Get job status
+result = api.session.rest_get(f"{BASE}/telephony/config/jobs/devices/rebuildPhones/{job_id}")
+
+# Get job errors
+result = api.session.rest_get(f"{BASE}/telephony/config/jobs/devices/rebuildPhones/{job_id}/errors")
+```
+
+### 6.8 DECT Supported Devices (via device-call-settings)
+
+```python
+# Two endpoints exist for DECT supported device types:
+result = api.session.rest_get(f"{BASE}/telephony/config/devices/dects/supportedDevices")
+result = api.session.rest_get(f"{BASE}/telephony/config/devices/dectNetworks/supportedDevices")
+# Both return: {devices: [{model, displayName, numberOfBasestations, numberOfLinePorts, numberOfRegistrationsSupported}]}
+```
+
+---
+
+## 7. Gotchas
+
+1. **`{BASE}/devices` vs `{BASE}/telephony/config/devices`** — These are two different API surfaces. The former manages cloud device entities (CRUD, tags, activation). The latter manages Webex Calling config (members, settings, layout, line keys).
+2. **Device IDs differ between surfaces.** A device's `id` from `GET /devices` may differ from its telephony `callingDeviceId`. Use `callingDeviceId` for telephony config endpoints.
+3. **`deviceModel` query param is required** for `GET/PUT .../devices/{id}/settings`. Omitting it returns an error.
+4. **Apply changes after settings updates.** After updating device settings, members, or layout, call `.../actions/applyChanges/invoke` to push the config to the physical device.
+5. **Background image upload is multipart.** The upload endpoint requires multipart form data, not JSON. Max 625 KB, `.jpeg` or `.png` only.
+6. **Tags PATCH uses `application/json-patch+json`** content type, not standard JSON. The `rest_patch` method handles this.
+7. **No auto-pagination.** Pass `max=1000` on list endpoints. The `rest_get` method does not auto-paginate like SDK generator methods do.
 
 ---
 

@@ -1,11 +1,41 @@
 <!-- Updated by playbook session 2026-03-18 -->
+<!-- Verified via live API 2026-03-19: admin vs user-only access levels for all endpoints -->
 # Person Call Settings — Call Handling Reference
+
+## Sources
+
+- wxc_sdk v1.30.0 (PersonSettingsApi)
+- OpenAPI spec: webex-cloud-calling.json
+- developer.webex.com Person Call Settings APIs
 
 Person-level call handling settings control how incoming calls are routed, filtered, and alerted for individual Webex Calling users. All APIs live under `PersonSettingsApi` (accessed via `api.person_settings.*`) and share a common base class pattern.
 
 > **SDK access path:** `api.person_settings.<feature>`
 > **REST base:** `people/{person_id}/features/{feature}` (with some remapped to `telephony/config/people/{person_id}/...`)
 > **Also available for:** Workspaces, Virtual Lines (same API classes, different URL selectors)
+
+---
+
+## Admin vs User-Only Access
+<!-- Verified via live API 2026-03-19 -->
+
+Not all person call handling endpoints support admin-level access. Four features are **user-only** — they exist only at `/telephony/config/people/me/settings/{feature}` and require user-level OAuth. An admin cannot read or write these settings for another user.
+
+| Feature | Admin Access | Admin REST Path | User REST Path |
+|---------|-------------|-----------------|----------------|
+| Call Forwarding | **Yes** | `/people/{id}/features/callForwarding` | `/people/me/features/callForwarding` |
+| Call Waiting | **Yes** | `/people/{id}/features/callWaiting` | `/people/me/features/callWaiting` |
+| Do Not Disturb | **Yes** | `/people/{id}/features/doNotDisturb` | `/people/me/features/doNotDisturb` |
+| Simultaneous Ring | **No — user-only** | N/A | `/telephony/config/people/me/settings/simultaneousRing` |
+| Sequential Ring | **No — user-only** | N/A | `/telephony/config/people/me/settings/sequentialRing` |
+| Single Number Reach | **Yes** | `/telephony/config/people/{id}/singleNumberReach` | `/telephony/config/people/me/singleNumberReach` |
+| Selective Accept | **Yes** | `/telephony/config/people/{id}/selectiveAccept` | `/telephony/config/people/me/selectiveAccept` |
+| Selective Forward | **Yes** | `/telephony/config/people/{id}/selectiveForward` | `/telephony/config/people/me/selectiveForward` |
+| Selective Reject | **Yes** | `/telephony/config/people/{id}/selectiveReject` | `/telephony/config/people/me/selectiveReject` |
+| Priority Alert | **No — user-only** | N/A | `/telephony/config/people/me/settings/priorityAlert` |
+| Call Notify | **No — user-only** | N/A | `/telephony/config/people/me/settings/callNotify` |
+
+> **Call Notify** (`callNotify`) is a user-only feature not yet documented in this file. It follows the same criteria-based pattern as Priority Alert but sends email/text notifications instead of changing ring patterns.
 
 ---
 
@@ -38,10 +68,13 @@ Every feature API follows the same read/configure (or read/update) pattern. All 
 
 ## 1. Call Forwarding
 
+<!-- Verified via live API 2026-03-19: admin access works at /people/{id}/features/callForwarding (200) -->
+
 Controls where incoming calls are sent when the user cannot or does not want to answer. Three forwarding modes plus business continuity.
 
 **SDK path:** `api.person_settings.forwarding`
 **Feature slug:** `callForwarding`
+**Admin REST path:** `/people/{person_id}/features/callForwarding`
 **API class:** `PersonForwardingApi`
 
 ### Data Models
@@ -162,6 +195,25 @@ settings.call_forwarding.always = CallForwardingAlways(
 api.person_settings.forwarding.configure(entity_id=person_id, forwarding=settings)
 ```
 
+### CLI Examples
+
+```bash
+# Read call forwarding settings for a person
+wxcli user-settings show-call-forwarding Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0
+
+# Enable always-forward to a destination (uses --json-body for nested settings)
+wxcli user-settings update-call-forwarding Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 \
+  --json-body '{"callForwarding":{"always":{"enabled":true,"destination":"+12223334444","ringReminderEnabled":true}}}'
+
+# Enable no-answer forwarding with 5 rings
+wxcli user-settings update-call-forwarding Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 \
+  --json-body '{"callForwarding":{"noAnswer":{"enabled":true,"destination":"+15556667777","numberOfRings":5}}}'
+
+# Enable business continuity forwarding
+wxcli user-settings update-call-forwarding Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 \
+  --json-body '{"businessContinuity":{"enabled":true,"destination":"+18889990000"}}'
+```
+
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
 
@@ -191,16 +243,22 @@ body = {
 api.session.rest_put(f"{BASE}/people/{person_id}/features/callForwarding", json=body)
 ```
 
-> **Note:** `systemMaxNumberOfRings` is read-only; omit it from the PUT body.
+### Gotchas
+
+- `systemMaxNumberOfRings` is read-only; omit it from the PUT body.
+- Call forwarding requires `--json-body` in the CLI because the payload has nested objects (`callForwarding.always`, `callForwarding.busy`, etc.).
 
 ---
 
 ## 2. Call Waiting
 
+<!-- Verified via live API 2026-03-19: admin access works at /people/{id}/features/callWaiting (200) -->
+
 Controls whether a user can place an active call on hold to answer a second incoming call. A tone alerts the user of the incoming call.
 
 **SDK path:** `api.person_settings.call_waiting`
 **Feature slug:** `callWaiting`
+**Admin REST path:** `/people/{person_id}/features/callWaiting`
 **API class:** `CallWaitingApi`
 
 ### Data Model
@@ -244,6 +302,19 @@ is_enabled = api.person_settings.call_waiting.read(entity_id=person_id)
 api.person_settings.call_waiting.configure(entity_id=person_id, enabled=False)
 ```
 
+### CLI Examples
+
+```bash
+# Read call waiting settings for a person
+wxcli user-settings show-call-waiting Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0
+
+# Enable call waiting
+wxcli user-settings update-call-waiting Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 --enabled
+
+# Disable call waiting
+wxcli user-settings update-call-waiting Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 --no-enabled
+```
+
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
 
@@ -264,10 +335,13 @@ api.session.rest_put(f"{BASE}/people/{person_id}/features/callWaiting", json={"e
 
 ## 3. Do Not Disturb (DND)
 
+<!-- Verified via live API 2026-03-19: admin access works at /people/{id}/features/doNotDisturb (200) -->
+
 When enabled, all incoming calls receive busy treatment. Optionally plays a ring splash (brief tone) on the desktop phone as a reminder.
 
 **SDK path:** `api.person_settings.dnd`
 **Feature slug:** `doNotDisturb`
+**Admin REST path:** `/people/{person_id}/features/doNotDisturb`
 **API class:** `DndApi`
 
 ### Data Model — `DND`
@@ -315,6 +389,24 @@ api.person_settings.dnd.configure(
 )
 ```
 
+### CLI Examples
+
+```bash
+# Read DND settings for a person
+wxcli user-settings show-do-not-disturb Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0
+
+# Enable DND with ring splash
+wxcli user-settings update-do-not-disturb Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 \
+  --enabled --ring-splash-enabled
+
+# Disable DND
+wxcli user-settings update-do-not-disturb Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 --no-enabled
+
+# Enable DND but keep mobile ringing (Webex Go override)
+wxcli user-settings update-do-not-disturb Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 \
+  --enabled --webex-go-override-enabled
+```
+
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
 
@@ -338,9 +430,11 @@ api.session.rest_put(f"{BASE}/people/{person_id}/features/doNotDisturb", json={
 
 ## 4. Simultaneous Ring
 
+> **Admin access: Not available.** This endpoint only exists at `/telephony/config/people/me/settings/simultaneousRing` (user-level OAuth). No admin-level path exists — `/telephony/config/people/{personId}/simultaneousRing` returns 404. <!-- Verified via live API 2026-03-19 -->
+
 Ring the user's office phone and up to 10 additional phone numbers at the same time when an incoming call arrives. Supports schedule-based criteria to control when simultaneous ring is active.
 
-**SDK path:** `api.person_settings.sim_ring` <!-- Note: SimRingApi may not be imported into PersonSettingsApi in some SDK versions; the raw HTTP endpoint at telephony/config/people/{personId}/simultaneousRing works for admin-level access. Updated by playbook session 2026-03-18 -->
+**SDK path:** `api.person_settings.sim_ring`
 **Feature slug:** `simultaneousRing`
 **API class:** `SimRingApi`
 
@@ -401,6 +495,10 @@ SimRingApi.delete_criteria(entity_id: str, id: str, org_id: str = None) -> None
 
 `create_criteria` returns the new criteria ID.
 
+### CLI Examples
+
+No dedicated CLI commands for Simultaneous Ring. Use Raw HTTP or the SDK.
+
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
 
@@ -433,15 +531,21 @@ api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/simultaneousRi
 api.session.rest_delete(f"{BASE}/telephony/config/people/{person_id}/simultaneousRing/criteria/{criteria_id}")
 ```
 
-> **Alt URL:** `people/{person_id}/features/simultaneousRing` also works for the main GET/PUT.
+### Gotchas
+
+- **User-only endpoint.** No admin-level path exists. The paths `telephony/config/people/{personId}/simultaneousRing` and `people/{personId}/features/simultaneousRing` both return 404 with an admin token. Only `/telephony/config/people/me/settings/simultaneousRing` works, and it requires user-level OAuth. <!-- Verified via live API 2026-03-19 -->
+- `SimRingApi` may not be imported into `PersonSettingsApi` in some SDK versions.
+- The `criteria` list is excluded from the update payload. Criteria are managed via dedicated CRUD methods.
 
 ---
 
 ## 5. Sequential Ring
 
+> **Admin access: Not available.** This endpoint only exists at `/telephony/config/people/me/settings/sequentialRing` (user-level OAuth). No admin-level path exists — `/telephony/config/people/{personId}/sequentialRing` returns 404. <!-- Verified via live API 2026-03-19 -->
+
 Ring up to five phone numbers one after another when an incoming call arrives. Configurable ring counts per number, optional primary-line-first behavior, and schedule-based criteria.
 
-**SDK path:** `api.person_settings.sequential_ring` <!-- Note: SequentialRingApi may not be imported into PersonSettingsApi in some SDK versions; the raw HTTP endpoint at telephony/config/people/{personId}/sequentialRing works for admin-level access. Updated by playbook session 2026-03-18 -->
+**SDK path:** `api.person_settings.sequential_ring`
 **Feature slug:** `sequentialRing`
 **API class:** `SequentialRingApi`
 
@@ -503,6 +607,10 @@ SequentialRingApi.configure_criteria(entity_id: str, id: str, settings: Sequenti
 SequentialRingApi.delete_criteria(entity_id: str, id: str, org_id: str = None) -> None
 ```
 
+### CLI Examples
+
+No dedicated CLI commands for Sequential Ring. Use Raw HTTP or the SDK.
+
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
 
@@ -538,7 +646,11 @@ api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/sequentialRing
 api.session.rest_delete(f"{BASE}/telephony/config/people/{person_id}/sequentialRing/criteria/{criteria_id}")
 ```
 
-> **Alt URL:** `people/{person_id}/features/sequentialRing` also works for the main GET/PUT.
+### Gotchas
+
+- **User-only endpoint.** No admin-level path exists. The paths `telephony/config/people/{personId}/sequentialRing` and `people/{personId}/features/sequentialRing` both return 404 with an admin token. Only `/telephony/config/people/me/settings/sequentialRing` works, and it requires user-level OAuth. <!-- Verified via live API 2026-03-19 -->
+- `SequentialRingApi` may not be imported into `PersonSettingsApi` in some SDK versions.
+- The `criteria` list is excluded from the update payload. Criteria are managed via dedicated CRUD methods.
 
 ---
 
@@ -622,6 +734,32 @@ Lists service and standard PSTN numbers at a location that are available for SNR
 
 **Scopes:** `spark-admin:telephony_config_read`
 
+### CLI Examples
+
+```bash
+# Read Single Number Reach settings for a person
+wxcli single-number-reach list-single-number-reach Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0
+
+# Update top-level SNR settings (alert all numbers for click-to-dial)
+wxcli single-number-reach update Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 \
+  --alert-all-numbers-for-click-to-dial-calls-enabled
+
+# Create an SNR number entry
+wxcli single-number-reach create Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 \
+  --phone-number "+12223334444" --enabled --name "Mobile" \
+  --answer-confirmation-enabled
+
+# Update an SNR number entry
+wxcli single-number-reach update-numbers Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 \
+  --json-body '{"enabled": false}'
+
+# Delete an SNR number entry
+wxcli single-number-reach delete Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 MTIyMjMzMzQ0NDQ=
+
+# List available phone numbers for SNR at a location
+wxcli single-number-reach list Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzU2Nzg=
+```
+
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
 
@@ -666,11 +804,17 @@ result = api.session.rest_get(
 )
 ```
 
-> **Note:** SNR number IDs are base64-encoded phone numbers. The ID changes if the phone number is modified.
+### Gotchas
+
+- SNR number IDs are base64-encoded phone numbers. The ID changes if the phone number is modified.
+- The `update` method only updates the top-level `alertAllNumbersForClickToDialCallsEnabled` flag. Individual numbers are managed via the SNR number CRUD methods (`create`, `update-numbers`, `delete`).
+- The `id` field is excluded from the create/update request body automatically.
 
 ---
 
 ## 7. Selective Accept
+
+<!-- Verified via live API 2026-03-19: admin access works at /telephony/config/people/{id}/selectiveAccept (200) -->
 
 Accept calls only from specific callers or during specific schedules. Calls not matching any enabled criteria are rejected.
 
@@ -722,6 +866,30 @@ SelectiveAcceptApi.configure_criteria(entity_id: str, id: str, settings: Selecti
 SelectiveAcceptApi.delete_criteria(entity_id: str, id: str, org_id: str = None) -> None
 ```
 
+### CLI Examples
+
+```bash
+# List selective accept criteria for a person
+wxcli user-settings list-selective-accept Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0
+
+# Enable selective accept
+wxcli user-settings update-selective-accept Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 --enabled
+
+# Disable selective accept
+wxcli user-settings update-selective-accept Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 --no-enabled
+
+# Create a selective accept criteria
+wxcli user-settings create-criteria-selective-accept Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 \
+  --accept-enabled --schedule-name "Business Hours" \
+  --anonymous-callers-enabled --no-unavailable-callers-enabled
+
+# Read a specific criteria
+wxcli user-settings show-criteria-selective-accept Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 CRITERIA_ID
+
+# Delete a criteria
+wxcli user-settings delete-criteria-selective-accept Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 CRITERIA_ID
+```
+
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
 
@@ -758,9 +926,17 @@ api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/selectiveAccep
 api.session.rest_delete(f"{BASE}/telephony/config/people/{person_id}/selectiveAccept/criteria/{criteria_id}")
 ```
 
+### Gotchas
+
+- The REST endpoint is remapped to `telephony/config/people/{person_id}/selectiveAccept` (not `people/{person_id}/features/selectiveAccept`).
+- Criteria use `acceptEnabled` (not `enabled`) as the REST API field name for the criteria-level enable flag. The SDK normalizes this to `enabled`.
+- The `criteria` list in the top-level settings is read-only. Criteria are managed via dedicated CRUD commands/methods.
+
 ---
 
 ## 8. Selective Forward
+
+<!-- Verified via live API 2026-03-19: admin access works at /telephony/config/people/{id}/selectiveForward (200) -->
 
 Forward calls to a specific destination based on caller identity and/or schedule. **Takes precedence over standard call forwarding settings.**
 
@@ -806,6 +982,31 @@ SelectiveForwardApi.configure_criteria(entity_id: str, id: str, settings: Select
 SelectiveForwardApi.delete_criteria(entity_id: str, id: str, org_id: str = None) -> None
 ```
 
+### CLI Examples
+
+```bash
+# List selective forward settings and criteria for a person
+wxcli user-settings list-selective-forward Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0
+
+# Enable selective forward with a default destination
+wxcli user-settings update-selective-forward Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 \
+  --enabled --default-phone-number-to-forward "+15556667777" --ring-reminder-enabled
+
+# Disable selective forward
+wxcli user-settings update-selective-forward Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 --no-enabled
+
+# Create a selective forward criteria (forward external calls to voicemail)
+wxcli user-settings create-criteria-selective-forward Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 \
+  --forward-to-phone-number "+18889990000" --send-to-voicemail-enabled \
+  --forward-enabled
+
+# Read a specific criteria
+wxcli user-settings show-criteria-selective-forward Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 CRITERIA_ID
+
+# Delete a criteria
+wxcli user-settings delete-criteria-selective-forward Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 CRITERIA_ID
+```
+
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
 
@@ -842,11 +1043,18 @@ api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/selectiveForwa
 api.session.rest_delete(f"{BASE}/telephony/config/people/{person_id}/selectiveForward/criteria/{criteria_id}")
 ```
 
-> **Note:** Selective Forward uses `forwardEnabled` (not `enabled`) and `numbers` (not `phoneNumbers`) for its criteria enabled attr and number list, respectively.
+### Gotchas
+
+- Selective Forward uses `forwardEnabled` (not `enabled`) and `numbers` (not `phoneNumbers`) for its criteria enabled attr and number list, respectively. This differs from Selective Accept and Selective Reject.
+- Selective Forward takes precedence over standard call forwarding settings.
+- The REST endpoint is remapped to `telephony/config/people/{person_id}/selectiveForward`.
+- Each criteria can override the default forward destination via `forwardToPhoneNumber`.
 
 ---
 
 ## 9. Selective Reject
+
+<!-- Verified via live API 2026-03-19: admin access works at /telephony/config/people/{id}/selectiveReject (200) -->
 
 Reject calls from specific callers or during specific schedules. **Takes precedence over Selective Accept.**
 
@@ -880,6 +1088,29 @@ SelectiveRejectApi.create_criteria(entity_id: str, settings: SelectiveRejectCrit
 SelectiveRejectApi.read_criteria(entity_id: str, id: str, org_id: str = None) -> SelectiveRejectCriteria
 SelectiveRejectApi.configure_criteria(entity_id: str, id: str, settings: SelectiveRejectCriteria, org_id: str = None) -> None
 SelectiveRejectApi.delete_criteria(entity_id: str, id: str, org_id: str = None) -> None
+```
+
+### CLI Examples
+
+```bash
+# List selective reject criteria for a person
+wxcli user-settings list-selective-reject Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0
+
+# Enable selective reject
+wxcli user-settings update-selective-reject Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 --enabled
+
+# Disable selective reject
+wxcli user-settings update-selective-reject Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 --no-enabled
+
+# Create a selective reject criteria (reject anonymous callers)
+wxcli user-settings create-criteria-selective-reject Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 \
+  --reject-enabled --anonymous-callers-enabled --no-unavailable-callers-enabled
+
+# Read a specific criteria
+wxcli user-settings show-criteria-selective-reject Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 CRITERIA_ID
+
+# Delete a criteria
+wxcli user-settings delete-criteria-selective-reject Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 CRITERIA_ID
 ```
 
 ### Raw HTTP
@@ -916,13 +1147,21 @@ api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/selectiveRejec
 api.session.rest_delete(f"{BASE}/telephony/config/people/{person_id}/selectiveReject/criteria/{criteria_id}")
 ```
 
+### Gotchas
+
+- Selective Reject takes precedence over Selective Accept. If both are enabled with overlapping criteria, the reject rule wins.
+- The REST endpoint is remapped to `telephony/config/people/{person_id}/selectiveReject`.
+- Criteria use `rejectEnabled` (not `enabled`) as the REST API field name.
+
 ---
 
 ## 10. Priority Alert
 
+> **Admin access: Not available.** This endpoint only exists at `/telephony/config/people/me/settings/priorityAlert` (user-level OAuth). No admin-level path exists — `/telephony/config/people/{personId}/priorityAlert` returns 404. <!-- Verified via live API 2026-03-19 -->
+
 Play a distinctive ring pattern for calls matching specific criteria (caller identity, schedule). Useful for VIP caller identification.
 
-**SDK path:** `api.person_settings.priority_alert` <!-- Note: PriorityAlertApi may not be imported into PersonSettingsApi in some SDK versions; the raw HTTP endpoint at telephony/config/people/{personId}/priorityAlert works for admin-level access. Updated by playbook session 2026-03-18 -->
+**SDK path:** `api.person_settings.priority_alert`
 **Feature slug:** `priorityAlert`
 **API class:** `PriorityAlertApi`
 
@@ -952,6 +1191,10 @@ PriorityAlertApi.read_criteria(entity_id: str, id: str, org_id: str = None) -> P
 PriorityAlertApi.configure_criteria(entity_id: str, id: str, settings: PriorityAlertCriteria, org_id: str = None) -> None
 PriorityAlertApi.delete_criteria(entity_id: str, id: str, org_id: str = None) -> None
 ```
+
+### CLI Examples
+
+No dedicated CLI commands for Priority Alert. Use Raw HTTP or the SDK.
 
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
@@ -986,6 +1229,13 @@ api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/priorityAlert/
 # DELETE — delete criteria
 api.session.rest_delete(f"{BASE}/telephony/config/people/{person_id}/priorityAlert/criteria/{criteria_id}")
 ```
+
+### Gotchas
+
+- **User-only endpoint.** No admin-level path exists. The path `telephony/config/people/{personId}/priorityAlert` returns 404 with an admin token. Only `/telephony/config/people/me/settings/priorityAlert` works, and it requires user-level OAuth. <!-- Verified via live API 2026-03-19 -->
+- `PriorityAlertApi` may not be imported into `PersonSettingsApi` in some SDK versions.
+- Criteria use `notificationEnabled` (not `enabled`) as the REST API field name.
+- Priority Alert only changes the ring pattern; it does not affect call routing or acceptance.
 
 ---
 
@@ -1051,7 +1301,7 @@ When multiple selective features are enabled simultaneously, the following prece
 3. **Selective Forward** — forwards matching calls; takes precedence over standard call forwarding
 4. **Standard Call Forwarding** (Always > Busy > No Answer > Business Continuity)
 
-<!-- NEEDS VERIFICATION: exact precedence order between Selective Reject and Selective Accept is stated in SDK docstrings ("Selective Reject takes precedence over Selectively Accept Calls") but full interaction with Priority Alert and ring features is not documented in the SDK source -->
+<!-- Verified via wxc_sdk source (selective_reject.py) and OpenAPI spec 2026-03-19: Both sources confirm "This setting [Selective Reject] takes precedence over Selectively Accept Calls." The precedence order Selective Reject > Selective Accept > Selective Forward > Standard Forwarding is confirmed. Full interaction with Priority Alert and ring features remains undocumented in source. -->
 
 ---
 
@@ -1072,7 +1322,7 @@ For user-token access (a person managing their own settings), the SDK provides p
 | Selective Reject | `selective_reject` | `selective_reject` (`MeSelectiveRejectApi`) |
 | Priority Alert | N/A in SDK¹ | `priority_alert` (`MePriorityAlertApi`) |
 
-> **¹ "N/A in SDK" means the SDK class is not wired to `PersonSettingsApi`** — the admin REST endpoints exist and work via raw HTTP (see Raw HTTP sections above for each feature at `telephony/config/people/{person_id}/simultaneousRing`, `sequentialRing`, and `priorityAlert`). <!-- Verified via raw HTTP sections in this doc 2026-03-18 -->
+> **¹ "N/A in SDK" means the SDK class is not wired to `PersonSettingsApi`** — and **no admin-level REST endpoint exists** for these features. Simultaneous Ring, Sequential Ring, and Priority Alert are user-only: they only work at `/telephony/config/people/me/settings/{feature}` with user-level OAuth. An admin cannot read or write these settings for another user. The Raw HTTP examples in sections 4, 5, and 10 above show the `{person_id}` path pattern used by the SDK internally, but these paths return 404 when called with an admin token against another user. <!-- Verified via live API 2026-03-19 — corrects previous claim from 2026-03-18 -->
 
 ---
 
@@ -1117,6 +1367,19 @@ Some feature/selector combinations are remapped to different URL bases. For pers
 | `wxc_sdk/person_settings/priority_alert.py` | `PriorityAlertApi`, `PriorityAlert`, `PriorityAlertCriteria` |
 | `wxc_sdk/common/selective.py` | `SelectiveCriteria` base, `SelectiveCrit`, `SelectiveFrom`, `SelectiveScheduleLevel` |
 | `examples/reset_call_forwarding.py` | Bulk reset forwarding example |
+
+---
+
+## Gotchas (Cross-Cutting)
+
+- **Four features are user-only (no admin access):** Simultaneous Ring, Sequential Ring, Priority Alert, and Call Notify only exist at `/telephony/config/people/me/settings/{feature}` and require user-level OAuth. There is no admin-level path — an admin cannot read or write these settings for another user. All other call handling features in this doc support admin-level access. <!-- Verified via live API 2026-03-19 -->
+- **Selective features remapped URLs:** Selective Accept, Selective Forward, and Selective Reject all use `telephony/config/people/{person_id}/` instead of `people/{person_id}/features/`. This remapping is transparent in the SDK but matters for raw HTTP and CLI usage.
+- **Enabled attribute naming varies by feature:** Each criteria-based feature uses a different REST field name for its enabled flag (`ringEnabled`, `acceptEnabled`, `forwardEnabled`, `rejectEnabled`, `notificationEnabled`). The SDK normalizes all of these to `enabled` on the Python model, but CLI `--json-body` and raw HTTP payloads must use the REST field names.
+- **Criteria are managed separately:** For all criteria-based features (Sim Ring, Sequential Ring, Selective Accept/Forward/Reject, Priority Alert), the `criteria` list in the top-level settings response is read-only. Create, update, and delete criteria via their dedicated CRUD endpoints.
+- **SDK import gaps:** `SimRingApi`, `SequentialRingApi`, and `PriorityAlertApi` may not be wired into `PersonSettingsApi` in some SDK versions. These are also user-only features with no admin-level REST endpoints (see above).
+- **No CLI for Sim Ring, Sequential Ring, or Priority Alert:** These features do not have wxcli command groups. Use Raw HTTP or the SDK.
+- **Selective Forward uses `numbers` not `phoneNumbers`:** Unlike all other criteria-based features that use `phoneNumbers` for their number list, Selective Forward criteria use `numbers`.
+- **Nested settings require `--json-body` in CLI:** Call forwarding and other nested payloads cannot be expressed with simple CLI flags. Use `--json-body '{"key": {...}}'` for these.
 
 ---
 

@@ -1,9 +1,30 @@
+<!-- Updated by playbook session 2026-03-18 -->
 # Call Control API Reference
 
 Webex Calling Call Control APIs enable 3rd-party applications to manage calls on behalf of users. These are **3rd Party Call Control** APIs only, applicable to **Webex Calling Multi-Tenant users** (not UCM or Dedicated Instance users).
 
 > **Base path:** `POST /v1/telephony/calls/{action}`
 > **GET endpoints:** `GET /v1/telephony/calls` and `GET /v1/telephony/calls/{callId}`
+
+## Sources
+
+- wxc_sdk v1.30.0
+- OpenAPI spec: webex-cloud-calling.json
+- developer.webex.com Call Control APIs
+
+## Table of Contents
+
+1. [Required Scopes](#required-scopes)
+2. [Raw HTTP Reference](#raw-http-reference-all-call-control-endpoints)
+3. [Call Connection](#1-call-connection)
+4. [Mid-Call Actions](#2-mid-call-actions)
+5. [Call Details & History](#3-call-details--history)
+6. [Data Models](#4-data-models)
+7. [Service App / Admin API](#5-service-app--admin-api-call-controls-members)
+8. [Additional API: External Voicemail MWI](#6-additional-api-external-voicemail-mwi)
+9. [Common Use Cases](#7-common-use-cases)
+10. [Key Gotchas](#8-key-gotchas)
+11. [See Also](#see-also)
 
 ---
 
@@ -18,6 +39,152 @@ Webex Calling Call Control APIs enable 3rd-party applications to manage calls on
 
 - **User-level APIs** (`CallsApi`) use `spark:calls_read` / `spark:calls_write` and operate on the authenticated user's calls.
 - **Service App / Admin APIs** (`CallControlsMembersApi`) use `spark-admin:calls_read` / `spark-admin:calls_write` and operate on any person, workspace, or virtual line by `member_id`.
+
+---
+
+## Raw HTTP Reference (All Call Control Endpoints)
+
+All call control endpoints use `https://webexapis.com/v1/telephony/calls/{action}`. Most are POST actions that take a JSON body. GET endpoints retrieve call state.
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+```
+
+### User-Level Call Actions
+
+| Action | Method | URL | Body Fields |
+|--------|--------|-----|-------------|
+| Dial | POST | `{BASE}/telephony/calls/dial` | `destination` (required), `endpointId`, `lineOwnerId` |
+| Answer | POST | `{BASE}/telephony/calls/answer` | `callId` (required), `endpointId`, `lineOwnerId` |
+| Reject | POST | `{BASE}/telephony/calls/reject` | `callId` (required), `action`, `lineOwnerId` |
+| Hangup | POST | `{BASE}/telephony/calls/hangup` | `callId` (required), `lineOwnerId` |
+| Hold | POST | `{BASE}/telephony/calls/hold` | `callId` (required), `lineOwnerId` |
+| Resume | POST | `{BASE}/telephony/calls/resume` | `callId` (required), `lineOwnerId` |
+| Mute | POST | `{BASE}/telephony/calls/mute` | `callId` (required), `lineOwnerId` |
+| Unmute | POST | `{BASE}/telephony/calls/unmute` | `callId` (required), `lineOwnerId` |
+| Divert | POST | `{BASE}/telephony/calls/divert` | `callId` (required), `destination`, `toVoicemail`, `lineOwnerId` |
+| Transfer | POST | `{BASE}/telephony/calls/transfer` | `callId1`, `callId2`, `destination`, `lineOwnerId` |
+| Park | POST | `{BASE}/telephony/calls/park` | `callId` (required), `destination`, `isGroupPark`, `lineOwnerId` |
+| Retrieve | POST | `{BASE}/telephony/calls/retrieve` | `destination`, `endpointId`, `lineOwnerId` |
+| Pull | POST | `{BASE}/telephony/calls/pull` | `endpointId`, `lineOwnerId` |
+| Push | POST | `{BASE}/telephony/calls/push` | `callId`, `lineOwnerId` |
+| Pickup | POST | `{BASE}/telephony/calls/pickup` | `target`, `endpointId`, `lineOwnerId` |
+| Barge In | POST | `{BASE}/telephony/calls/bargeIn` | `target` (required), `endpointId`, `lineOwnerId` |
+| Conference | POST | `{BASE}/telephony/calls/conference` | `callId1`, `callId2`, `lineOwnerId` |
+| Start Recording | POST | `{BASE}/telephony/calls/startRecording` | `callId` (required), `lineOwnerId` |
+| Stop Recording | POST | `{BASE}/telephony/calls/stopRecording` | `callId` (required), `lineOwnerId` |
+| Pause Recording | POST | `{BASE}/telephony/calls/pauseRecording` | `callId` (required), `lineOwnerId` |
+| Resume Recording | POST | `{BASE}/telephony/calls/resumeRecording` | `callId` (required), `lineOwnerId` |
+| Transmit DTMF | POST | `{BASE}/telephony/calls/transmitDtmf` | `callId` (required), `dtmf` (required), `lineOwnerId` |
+
+### User-Level Read Endpoints
+
+| Action | Method | URL | Query Params | Response Key |
+|--------|--------|-----|-------------|--------------|
+| List Calls | GET | `{BASE}/telephony/calls` | `lineOwnerId` | `calls` |
+| Get Call Details | GET | `{BASE}/telephony/calls/{callId}` | `lineOwnerId` | (direct object) |
+| List Call History | GET | `{BASE}/telephony/calls/history` | `type` | `history` |
+
+### Service App / Members Endpoints
+
+| Action | Method | URL | Body Fields |
+|--------|--------|-----|-------------|
+| Dial by Member | POST | `{BASE}/telephony/calls/members/{memberId}/dial` | `destination`, `endpointId` |
+| Answer by Member | POST | `{BASE}/telephony/calls/members/{memberId}/answer` | `callId`, `endpointId` |
+| Hangup by Member | POST | `{BASE}/telephony/calls/members/{memberId}/hangup` | `callId` |
+| List Calls by Member | GET | `{BASE}/telephony/calls/members/{memberId}/calls` | (none) |
+| Get Call Details by Member | GET | `{BASE}/telephony/calls/members/{memberId}/calls/{callId}` | (none) |
+
+### Raw HTTP Examples
+
+#### Dial a call
+
+```python
+body = {"destination": "+12223334444", "endpointId": "Y2lzY29zcGFyay..."}
+result = api.session.rest_post(f"{BASE}/telephony/calls/dial", json=body)
+# Returns: {callId, callSessionId}
+```
+
+#### List active calls
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/calls")
+calls = result.get("calls", [])
+# Each call: {id, callSessionId, personality, state, remoteParty: {name, number, ...}, created, answered, ...}
+```
+
+#### Get call details
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/calls/{call_id}")
+# Returns full call object with state, remoteParty, timestamps, etc.
+```
+
+#### List call history
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/calls/history", params={"type": "placed"})
+history = result.get("history", [])
+# Each record: {type, name, number, privacyEnabled, time}
+```
+
+#### Hold, then transfer
+
+```python
+# Put caller on hold
+api.session.rest_post(f"{BASE}/telephony/calls/hold", json={"callId": caller_call_id})
+
+# Dial consult target
+consult = api.session.rest_post(f"{BASE}/telephony/calls/dial", json={"destination": "+15551234567"})
+
+# Transfer both calls together
+api.session.rest_post(f"{BASE}/telephony/calls/transfer", json={
+    "callId1": caller_call_id,
+    "callId2": consult["callId"]
+})
+```
+
+#### Park and retrieve
+
+```python
+# Park
+parked = api.session.rest_post(f"{BASE}/telephony/calls/park", json={"callId": call_id})
+park_number = parked.get("parkedAgainst", {}).get("number")
+
+# Retrieve (from any device)
+retrieved = api.session.rest_post(f"{BASE}/telephony/calls/retrieve", json={"destination": park_number})
+```
+
+#### Service App: Dial on behalf of a member
+
+```python
+body = {"destination": "+12223334444"}
+result = api.session.rest_post(f"{BASE}/telephony/calls/members/{member_id}/dial", json=body)
+# Returns: {callId, callSessionId}
+```
+
+#### External Voicemail MWI
+
+```python
+body = {"action": "SET"}  # or "CLEAR"
+api.session.rest_post(f"{BASE}/telephony/externalVoicemail/mwi", json=body, params={
+    "id": user_id,
+    "orgId": org_id
+})
+```
+
+### Raw HTTP Gotchas
+
+1. **All action endpoints are POST** -- even hold, resume, mute, unmute. Only list/details/history are GET.
+2. **Response varies by action** -- `dial`, `pickup`, `retrieve`, `pull`, `bargeIn` return `{callId, callSessionId}`. Most others return 204 (no content).
+3. **Transfer response depends on mode** -- auto/consultative returns 204; mute transfer returns 201 with `{callId, callSessionId}`.
+4. **`id` vs `callId`** -- GET responses return `id` as the call identifier. Webhook events use `callId`. When passing to action endpoints, always use `callId` in the request body.
+5. **`lineOwnerId`** is optional on all endpoints -- only needed when controlling a secondary line belonging to another user/workspace/virtual line.
+6. **Members API does not have `lineOwnerId`** -- the member_id in the URL serves the same purpose.
+7. **No pagination on call list** -- `list_calls` returns all active calls for the user (typically a small number).
+8. **History max 20 per type** -- `list_call_history` returns at most 20 records per type (placed/missed/received), max 60 total.
 
 ---
 
@@ -186,6 +353,10 @@ Divert to another user's voicemail:
   "toVoicemail": true
 }
 ```
+
+### Gotchas
+
+- **Answer rejection:** Answer is rejected if the device is not alerting for the call, or if the device does not support answer via API.
 
 ---
 
@@ -447,6 +618,14 @@ CallsApi.transmit_dtmf(
 **Valid DTMF characters:** `0-9`, `*`, `#`, `A`, `B`, `C`, `D`
 **Pause:** Use a comma `,` to insert a pause between digits. Example: `"1,234"` sends `1`, pauses, then sends `2`, `3`, `4`.
 
+### Gotchas
+
+- **Transfer restrictions:** Unanswered incoming calls cannot be transferred. Use `divert` instead.
+- **Push is executive-assistant only:** `push` is only valid when the assistant's call is associated with an executive.
+- **Mute capability check:** Only calls that report `muteCapable: true` in call details support `mute`/`unmute`. Always check before calling.
+- **DTMF pause character:** Use a comma `,` to insert a pause between DTMF digits. This is not documented prominently in the API reference.
+- **Recording mode dependency:** `start_recording`/`stop_recording` only work when the user's recording mode is "On Demand". `pause_recording`/`resume_recording` work with both "On Demand" and "Always with Pause/Resume".
+
 ---
 
 ## 3. Call Details & History
@@ -516,6 +695,11 @@ If `history_type` is omitted, all types are returned (up to 20 each = max 60 tot
 | `number` | str (optional) | Party number (digits or URI) |
 | `privacy_enabled` | bool | Whether privacy is enabled |
 | `time` | datetime | When the record was created (placed=call time, missed=disconnect time, received=answer time) |
+
+### Gotchas
+
+- **Call history limit:** `call_history` returns a maximum of 20 records per type (placed/missed/received). If `history_type` is omitted, all types are returned (up to 20 each = max 60 total).
+- **No pagination on call list:** `list_calls` returns all active calls for the user (typically a small number). There is no pagination support.
 
 ---
 
@@ -647,7 +831,7 @@ The Members API mirrors the user-level API but adds `member_id` and `org_id` par
 
 **`member_id`** can be one of: person ID, workspace ID, or virtual line ID.
 
-<!-- NEEDS VERIFICATION: The Members API may support additional actions beyond dial/answer/hangup/list/details (e.g., hold, resume, transfer, park, etc.) that are not present in the current SDK wrapper. Check the Webex developer docs for the full list. -->
+<!-- Corrected via OpenAPI spec (webex-cloud-calling.json) 2026-03-19: The Members API supports exactly 5 endpoints — dial, answer, hangup, list calls, and get call details. No hold, resume, transfer, park, or other actions exist for the Members API. These additional call control actions are only available on the user-level /telephony/calls/* endpoints. -->
 
 ---
 

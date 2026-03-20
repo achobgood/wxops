@@ -67,11 +67,26 @@ Use `scim-users` when integrating with an external IdP (Okta, Azure AD, etc.) or
 | `identity:people_read` | Read-only access to SCIM users and SCIM groups. |
 | `identity:organizations_rw` | Read and write identity organization settings. |
 | `identity:organizations_read` | Read-only access to identity organization settings. |
-| `Identity:one_time_password` | Generate OTP for a user. <!-- NEEDS VERIFICATION --> |
-| `spark-admin:people_write` | Create, update, and delete people (Webex REST API). <!-- NEEDS VERIFICATION --> |
-| `spark-admin:people_read` | List and get people (Webex REST API). <!-- NEEDS VERIFICATION --> |
+| `Identity:one_time_password` | Generate OTP for a user. <!-- Verified via OpenAPI spec (webex-admin.json generateOtp endpoint) 2026-03-19 --> |
+| `spark-admin:people_write` | Create, update, and delete people (Webex REST API). <!-- Verified via wxc_sdk source (people_auto.py) 2026-03-19 --> |
+| `spark-admin:people_read` | List and get people (Webex REST API). <!-- Verified via wxc_sdk source (people_auto.py) 2026-03-19 --> |
 
 **Note:** SCIM endpoints (`scim-users`, `scim-groups`, `scim-bulk`) use `identity:*` scopes. Webex REST endpoints (`people`, `groups`) use `spark-admin:*` scopes. Mixing them up produces 403 errors.
+
+---
+
+## Table of Contents
+
+1. [SCIM Users (`scim-users`)](#1-scim-users-scim-users)
+2. [SCIM Groups (`scim-groups`)](#2-scim-groups-scim-groups)
+3. [SCIM Schemas (`scim-schemas`)](#3-scim-schemas-scim-schemas)
+4. [SCIM Bulk Operations (`scim-bulk`)](#4-scim-bulk-operations-scim-bulk)
+5. [Identity Organization (`identity-org`)](#5-identity-organization-identity-org)
+6. [Groups (Webex REST API) (`groups`)](#6-groups-webex-rest-api-groups)
+7. [People (Webex REST API) (`people`)](#7-people-webex-rest-api-people)
+8. [Recipes](#recipes)
+9. [Gotchas](#gotchas)
+10. [See Also](#see-also)
 
 ---
 
@@ -178,6 +193,19 @@ curl -s -X PATCH -H "Authorization: Bearer $TOKEN" \
   -d '{"schemas":["urn:ietf:params:scim:api:messages:2.0:PatchOp"],"Operations":[{"op":"replace","path":"active","value":false}]}'
 ```
 
+> **Gotcha — PUT Replaces the Entire Resource:**
+> The `scim-users update` and `scim-groups update` commands use HTTP PUT, which replaces the entire resource. If you PUT a user without including their `emails`, `phoneNumbers`, or `addresses`, those fields are removed.
+>
+> **Safe pattern:** Always GET the current resource first, modify the JSON, then PUT the full object back:
+> ```bash
+> # Step 1: GET current state
+> wxcli scim-users show YOUR_ORG_ID USER_ID -o json > user.json
+> # Step 2: Edit user.json to change what you need
+> # Step 3: PUT the modified full object
+> wxcli scim-users update YOUR_ORG_ID USER_ID --json-body "$(cat user.json)"
+> ```
+> **Better alternative:** Use PATCH (`update-users` / `update-groups`) for partial updates whenever possible.
+
 ---
 
 ## 2. SCIM Groups (`scim-groups`)
@@ -250,6 +278,44 @@ wxcli scim-groups update-groups YOUR_ORG_ID GROUP_ID --json-body '{
 wxcli scim-groups delete YOUR_ORG_ID GROUP_ID --force
 ```
 
+### Raw HTTP Fallback
+
+```bash
+# List SCIM groups
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://webexapis.com/identity/scim/YOUR_ORG_ID/v2/Groups"
+
+# Search SCIM groups by name
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://webexapis.com/identity/scim/YOUR_ORG_ID/v2/Groups?filter=displayName%20eq%20%22Engineering%22"
+
+# Create a SCIM group
+curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  "https://webexapis.com/identity/scim/YOUR_ORG_ID/v2/Groups" \
+  -d '{"schemas":["urn:ietf:params:scim:schemas:core:2.0:Group"],"displayName":"DevOps Team"}'
+
+# Get a SCIM group by ID
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://webexapis.com/identity/scim/YOUR_ORG_ID/v2/Groups/GROUP_ID"
+
+# PUT (full replace) a SCIM group
+curl -s -X PUT -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  "https://webexapis.com/identity/scim/YOUR_ORG_ID/v2/Groups/GROUP_ID" \
+  -d '{"schemas":["urn:ietf:params:scim:schemas:core:2.0:Group"],"displayName":"DevOps Team","members":[{"value":"USER_ID","type":"user"}]}'
+
+# PATCH a SCIM group (add member)
+curl -s -X PATCH -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  "https://webexapis.com/identity/scim/YOUR_ORG_ID/v2/Groups/GROUP_ID" \
+  -d '{"schemas":["urn:ietf:params:scim:api:messages:2.0:PatchOp"],"Operations":[{"op":"add","path":"members","value":[{"value":"USER_ID","type":"user"}]}]}'
+
+# Delete a SCIM group
+curl -s -X DELETE -H "Authorization: Bearer $TOKEN" \
+  "https://webexapis.com/identity/scim/YOUR_ORG_ID/v2/Groups/GROUP_ID"
+```
+
 ---
 
 ## 3. SCIM Schemas (`scim-schemas`)
@@ -295,6 +361,22 @@ wxcli scim-schemas show-scim2 "urn:scim:schemas:extension:cisco:webexidentity:2.
 | `urn:scim:schemas:extension:cisco:webexidentity:2.0:Group` | Cisco/Webex extension attributes for groups |
 | `urn:ietf:params:scim:api:messages:2.0:PatchOp` | Schema for PATCH operation payloads |
 | `urn:ietf:params:scim:api:messages:2.0:BulkRequest` | Schema for bulk operation request payloads |
+
+### Raw HTTP Fallback
+
+```bash
+# Get the SCIM User schema
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://webexapis.com/Schemas/SCIM2/User"
+
+# Get the SCIM Group schema
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://webexapis.com/Schemas/SCIM2/Group"
+
+# Get a schema by ID (e.g., Cisco extension schema)
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://webexapis.com/Schemas/SCIM2/urn:scim:schemas:extension:cisco:webexidentity:2.0:User"
+```
 
 ---
 
@@ -394,6 +476,20 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" \
   "https://webexapis.com/identity/scim/YOUR_ORG_ID/v2/Bulk" \
   -d '{"schemas":["urn:ietf:params:scim:api:messages:2.0:BulkRequest"],"failOnErrors":5,"Operations":[...]}'
 ```
+
+> **Gotcha — Bulk Operations Can Partially Fail:**
+> A `scim-bulk create` request can succeed for some operations and fail for others. The `--fail-on-errors` parameter controls the threshold: if the number of failed operations exceeds this value, the remaining operations are not attempted. Always check the response body, which contains per-operation `status` codes.
+>
+> Example partial failure response (abridged):
+> ```json
+> {
+>   "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkResponse"],
+>   "Operations": [
+>     {"method": "POST", "location": "/Users/NEW_ID_1", "status": "201"},
+>     {"method": "POST", "status": "409", "response": {"detail": "User already exists"}}
+>   ]
+> }
+> ```
 
 ---
 
@@ -638,6 +734,15 @@ curl -s -H "Authorization: Bearer $TOKEN" \
   "https://webexapis.com/v1/people/me?callingData=true"
 ```
 
+> **Gotcha — People API: emails Must Use --json-body:**
+> The `people create` command does not have a `--emails` CLI option. The `emails` field (an array of objects) is too complex for a simple CLI flag. Use `--json-body` to pass the emails array:
+> ```bash
+> wxcli people create --json-body '{"emails": ["user@example.com"], "displayName": "User Name"}'
+> ```
+
+> **Gotcha — People API: update is PUT (Full Replace):**
+> Like the SCIM PUT, `people update` uses HTTP PUT. It replaces the entire person record. The CLI does **not** do a GET-merge-PUT for flag-based options -- it sends only the specified fields in the PUT body, which means unspecified fields may be cleared by the API. Always use `--json-body` with the full person record for safe updates, or use the GET-modify-PUT pattern shown in the SCIM section above. <!-- Corrected via CLI source (people.py) 2026-03-19 -->
+
 ---
 
 ## Recipes
@@ -696,9 +801,14 @@ wxcli people list --email "target@example.com"
 
 # People API: search by name prefix
 wxcli people list --display-name "John"
-```
 
-<!-- NEEDS VERIFICATION: SCIM filter on department -- unclear if `urn:scim:schemas:extension:cisco:webexidentity:2.0:User:department` is the correct path -->
+# SCIM: search users by department (Enterprise Extension attribute)
+wxcli scim-users list YOUR_ORG_ID --filter 'department eq "Engineering"'
+
+# SCIM: search users whose department starts with "Eng"
+wxcli scim-users list YOUR_ORG_ID --filter 'department sw "Eng"'
+```
+<!-- Verified via OpenAPI spec (webex-admin.json SCIM Users filter parameter) 2026-03-19: department is a supported Enterprise Extension filter attribute with eq/sw/ew operators -->
 
 ### Bulk Deactivate Stale Users
 
@@ -768,47 +878,13 @@ wxcli identity-org generate-otp YOUR_ORG_ID USER_ID
 
 ## Gotchas
 
-### PUT Replaces the Entire Resource
-
-The `scim-users update` and `scim-groups update` commands use HTTP PUT, which replaces the entire resource. If you PUT a user without including their `emails`, `phoneNumbers`, or `addresses`, those fields are removed.
-
-**Safe pattern:** Always GET the current resource first, modify the JSON, then PUT the full object back:
-
-```bash
-# Step 1: GET current state
-wxcli scim-users show YOUR_ORG_ID USER_ID -o json > user.json
-
-# Step 2: Edit user.json to change what you need
-
-# Step 3: PUT the modified full object
-wxcli scim-users update YOUR_ORG_ID USER_ID --json-body "$(cat user.json)"
-```
-
-**Better alternative:** Use PATCH (`update-users` / `update-groups`) for partial updates whenever possible.
-
 ### /me Endpoints Require User-Level Tokens
 
 `scim-users show-me` and `people list-me` hit the `/me` endpoint, which returns the identity of the authenticated user. These commands fail with admin service-app tokens because service apps do not represent a person. Use a user-level OAuth token (authorization code grant flow) instead.
 
 ### orgId Requirement on SCIM Commands
 
-All SCIM commands (`scim-users`, `scim-groups`, `scim-bulk`) require `ORG_ID` as a positional argument. The Webex REST API commands (`people`, `groups`) do not -- they use the org implied by the token. <!-- NEEDS VERIFICATION: whether SCIM endpoints accept the orgId from the token if omitted, or always require explicit orgId -->
-
-### Bulk Operations Can Partially Fail
-
-A `scim-bulk create` request can succeed for some operations and fail for others. The `--fail-on-errors` parameter controls the threshold: if the number of failed operations exceeds this value, the remaining operations are not attempted. Always check the response body, which contains per-operation `status` codes.
-
-Example partial failure response (abridged):
-
-```json
-{
-  "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkResponse"],
-  "Operations": [
-    {"method": "POST", "location": "/Users/NEW_ID_1", "status": "201"},
-    {"method": "POST", "status": "409", "response": {"detail": "User already exists"}}
-  ]
-}
-```
+All SCIM commands (`scim-users`, `scim-groups`, `scim-bulk`) require `ORG_ID` as a positional argument because the org ID is part of the URL path (`/identity/scim/{orgId}/v2/...`). It cannot be omitted or inferred from the token. The Webex REST API commands (`people`, `groups`) do not require it -- they use the org implied by the token. <!-- Verified via OpenAPI spec (webex-admin.json path structure) 2026-03-19 -->
 
 ### Scope Troubleshooting for Identity Scopes
 
@@ -816,20 +892,8 @@ SCIM endpoints use `identity:*` scopes, not the `spark-admin:*` scopes used by P
 
 1. Your integration/service-app has `identity:people_rw` or `identity:people_read` granted.
 2. For `identity-org` endpoints, you need `identity:organizations_rw` or `identity:organizations_read`.
-3. For OTP generation, you need `Identity:one_time_password`. <!-- NEEDS VERIFICATION: exact scope name capitalization -->
+3. For OTP generation, you need `Identity:one_time_password` (note the capital "I" in `Identity`). An alternative scope is `Identity:Config`. <!-- Verified via OpenAPI spec (webex-admin.json generateOtp endpoint) 2026-03-19 -->
 4. These identity scopes must be explicitly requested during OAuth authorization. They are separate from the `spark-admin:people_*` scopes.
-
-### People API: emails Must Use --json-body
-
-The `people create` command does not have a `--emails` CLI option. The `emails` field (an array of objects) is too complex for a simple CLI flag. Use `--json-body` to pass the emails array:
-
-```bash
-wxcli people create --json-body '{"emails": ["user@example.com"], "displayName": "User Name"}'
-```
-
-### People API: update is PUT (Full Replace)
-
-Like the SCIM PUT, `people update` uses HTTP PUT. It replaces the entire person record. Always GET the person first, then PUT the full modified JSON. Simple flag-based updates (e.g., `--department "New Dept"`) work only if the CLI merges them with the existing record. <!-- NEEDS VERIFICATION: whether the CLI does a GET-merge-PUT for flag-based options or sends only the specified fields -->
 
 ### SCIM Filter URL Encoding
 

@@ -12,6 +12,19 @@ Source files:
 
 ---
 
+<!-- Updated by playbook session 2026-03-18 -->
+## When to Use wxcadm vs Raw HTTP
+
+| Use wxcadm when | Use raw HTTP when |
+|---|---|
+| CDR post-processing -- the `Call -> CallLeg -> LegPart` hierarchy with automatic transfer merging is unique to wxcadm and has no raw HTTP equivalent | Call routing CRUD (trunks, route groups, route lists, dial plans, translation patterns) |
+| You need the two-phase validate-then-move pattern for `UserMoveJobList` in a single call | PSTN provider configuration per location |
+| Object-graph navigation for routing (e.g., `org.call_routing.trunks.get(name=...)`) is more convenient than tracking IDs | Report creation, job management, webhook CRUD |
+
+> **Note:** The playbook uses raw HTTP via `api.session.rest_*()` for standard CRUD operations. All routing, PSTN, report, job, and webhook endpoints are standard Webex REST APIs that work fine with raw HTTP. wxcadm's unique value here is the CDR parsing module (`CallDetailRecords`) which builds a structured call hierarchy from raw CSV records.
+
+---
+
 ## Table of Contents
 
 1. [Call Routing](#1-call-routing)
@@ -272,7 +285,7 @@ After `__post_init__`, the raw ID/name fields are replaced with:
 - `self.location` -- resolved `Location` instance
 - `self.route_group` -- resolved `RouteGroup` instance
 
-<!-- NEEDS VERIFICATION --> Note: `__post_init__` calls `self.org.call_routing.route_groups.get_route_group(id=...)` but the `RouteGroups` class only defines `get()`, not `get_route_group()`. This may cause an `AttributeError` at runtime. Verify whether this was renamed or whether `RouteList` creation works end-to-end.
+<!-- Verified via wxcadm source 2026-03-19 --> **Bug:** `__post_init__` calls `self.org.call_routing.route_groups.get_route_group(id=...)` but the `RouteGroups` class only defines `get()`, not `get_route_group()`. This will raise `AttributeError` at runtime when a `RouteList` is instantiated. Workaround: iterate `route_groups` manually or call `.get(id=...)` instead.
 
 **Properties:**
 
@@ -283,7 +296,7 @@ def numbers(self)
 
 Returns the numbers assigned to this route list. Fetches from `GET /v1/telephony/config/premisePstn/routeLists/{id}/numbers`.
 
-<!-- NEEDS VERIFICATION --> The `numbers` property calls `response.json()` on the API response, but other wxcadm methods typically receive already-parsed JSON from the internal API wrapper. Confirm whether this returns raw JSON or raises an error.
+<!-- Verified via wxcadm source 2026-03-19 --> **Bug:** The `numbers` property calls `response.json()` on the return value of `org.api.get()`, but `org.api.get()` already returns a parsed dict (not a raw `Response` object). This will raise `AttributeError: 'dict' object has no attribute 'json'` at runtime. Workaround: use raw HTTP `GET /v1/telephony/config/premisePstn/routeLists/{id}/numbers` instead.
 
 **Not implemented:** Delete route list (noted as TODO in source).
 
@@ -1071,7 +1084,7 @@ def device_count(self) -> int
 
 Returns the number of devices included in the rebuild job.
 
-<!-- NEEDS VERIFICATION --> `RebuildPhonesJob` does not have a `success` property unlike the other job types. Confirm whether success/failure can be determined from the `details` dict or if the `completed` property is sufficient.
+<!-- Verified via wxcadm source 2026-03-19 --> `RebuildPhonesJob` does not have a `success` property unlike the other job types (`NumberManagementJob` and `UserMoveJob` both have one). The `completed` property's docstring incorrectly references a `success` attribute that was never implemented. To check success, inspect `self.details` dict directly after `completed` returns `True` (look for `deviceCount` and execution status fields).
 
 ---
 
@@ -1194,7 +1207,7 @@ Sets status to `'active'`. Returns `True` even if already active.
 
 ## 7. wxcadm vs wxc_sdk Comparison
 
-<!-- NEEDS VERIFICATION --> This comparison is based on API coverage patterns observed in the source. Verify against the current wxc_sdk version for accuracy.
+<!-- Verified via wxc_sdk v1.30.0 source 2026-03-19 -->
 
 | Feature Area | wxcadm | wxc_sdk |
 |-------------|--------|---------|
@@ -1202,7 +1215,7 @@ Sets status to `'active'`. Returns `True` even if already active.
 | **Route Groups** | `org.call_routing.route_groups` -- list, get, add trunk to group | `api.telephony.prem_pstn.route_group` -- full CRUD |
 | **Route Lists** | `org.call_routing.route_lists` -- list, get, create (no delete) | `api.telephony.prem_pstn.route_list` -- full CRUD including delete |
 | **Dial Plans** | `org.call_routing.dial_plans` -- list, pattern add/delete (no collection `get()`) | `api.telephony.prem_pstn.dial_plan` -- full CRUD |
-| **Translation Patterns** | `TranslationPatternList` -- org or location scope, full CRUD | `api.telephony.callrouting.tp` -- similar scope and CRUD |
+| **Translation Patterns** | `TranslationPatternList` -- org or location scope, full CRUD | `api.telephony.call_routing.tp` -- similar scope and CRUD |
 | **Call Routing Test** | `org.call_routing.test()` | `api.telephony.test_call_routing()` |
 | **PSTN** | `LocationPSTN` -- get/set provider per location | Covered under location telephony settings |
 | **CDR** | `CallDetailRecords` -- post-processing class, records passed in externally | No direct equivalent; CDRs obtained via reports or analytics API |
@@ -1210,7 +1223,7 @@ Sets status to `'active'`. Returns `True` even if already active.
 | **Jobs (Number Move)** | `NumberManagementJobList` -- move only, single number limit | `api.telephony.jobs.manage_numbers` -- similar |
 | **Jobs (User Move)** | `UserMoveJobList` -- validate-then-move pattern, max 100 users | `api.telephony.jobs.move_users` -- similar |
 | **Jobs (Rebuild Phones)** | `RebuildPhonesJobList` -- location-level only | `api.telephony.jobs.rebuild_phones` -- similar |
-| **Webhooks** | `Webhooks` -- full CRUD with activate/deactivate | `api.webhooks` -- full CRUD |
+| **Webhooks** | `Webhooks` -- full CRUD with activate/deactivate | `api.webhook` -- full CRUD |
 
 **Key architectural differences:**
 

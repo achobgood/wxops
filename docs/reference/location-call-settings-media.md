@@ -1,5 +1,11 @@
 # Location Call Settings — Announcements, Playlists, Schedules & Access Codes
 
+## Sources
+
+- wxc_sdk v1.30.0
+- OpenAPI spec: webex-cloud-calling.json
+- developer.webex.com Location Call Settings APIs
+
 Reference for managing audio media (announcements, playlists), time-based routing (schedules), and outgoing-permission bypass codes at the location and org level via the `wxc_sdk`.
 
 > **Not supported for Webex for Government (FedRAMP)** — Announcements and Playlists APIs are explicitly excluded.
@@ -187,7 +193,63 @@ def usage(
 
 **Required scope:** `spark-admin:telephony_config_read`
 
-### 1.3 Key Patterns
+### 1.3 Raw HTTP — Announcements
+
+```python
+BASE = "https://webexapis.com/v1"
+
+# --- Org-level announcements ---
+
+# GET — List org-level announcements (paginated)
+result = api.session.rest_get(f"{BASE}/telephony/config/announcements",
+    params={"max": 1000})
+# Response: {"announcements": [{"id": "...", "name": "...", "fileName": "...", "fileSize": 123, ...}]}
+
+# GET — Get org-level announcement details
+result = api.session.rest_get(f"{BASE}/telephony/config/announcements/{ann_id}")
+# Response includes featureReferenceCount, featureReferences, playlists (not returned by list)
+
+# PUT — Update org-level announcement (metadata only; file upload uses multipart)
+body = {"name": "Updated Name"}
+api.session.rest_put(f"{BASE}/telephony/config/announcements/{ann_id}", json=body)
+
+# DELETE — Delete org-level announcement
+api.session.rest_delete(f"{BASE}/telephony/config/announcements/{ann_id}")
+
+# GET — Org-level repository usage
+result = api.session.rest_get(f"{BASE}/telephony/config/announcements/usage")
+# Response: {"totalFileSizeUsedKB": 1024, "maxAudioFileSizeAllowedKB": 8192,
+#            "maxVideoFileSizeAllowedKB": 16384, "totalFileSizeLimitMB": 500}
+
+# --- Location-level announcements ---
+
+# GET — List location announcements (use locationId query param on org endpoint)
+result = api.session.rest_get(f"{BASE}/telephony/config/announcements",
+    params={"locationId": loc_id, "max": 1000})
+
+# GET — Get location announcement details
+result = api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{loc_id}/announcements/{ann_id}")
+
+# PUT — Update location announcement
+api.session.rest_put(
+    f"{BASE}/telephony/config/locations/{loc_id}/announcements/{ann_id}", json=body)
+
+# DELETE — Delete location announcement
+api.session.rest_delete(
+    f"{BASE}/telephony/config/locations/{loc_id}/announcements/{ann_id}")
+
+# GET — Location repository usage
+result = api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{loc_id}/announcements/usage")
+```
+
+**Gotcha:** The list endpoint uses a query parameter `locationId` on the org-level URL (`/telephony/config/announcements`), but details/update/delete for location announcements use a path segment (`/locations/{locId}/announcements/{annId}`). These are different URL patterns for list vs. CRUD.
+<!-- Updated by playbook session 2026-03-18 -->
+
+**Gotcha:** Upload and modify (file replacement) use `multipart/form-data` with `audio/wav` content type. The SDK handles this via `upload_announcement()` and `modify()`. For raw HTTP, you would need to construct the multipart body manually -- the `rest_put`/`rest_post` JSON helpers do not handle file uploads.
+
+### 1.4 Key Patterns
 
 - **Org vs. location scoping:** Every method takes an optional `location_id`. When `None`, the operation targets the org-level repository. When set, it targets that location's repository.
 - **URL pattern:** Org-level uses `/telephony/config/announcements/...`; location-level uses `/telephony/config/locations/{locationId}/announcements/...`.
@@ -340,7 +402,7 @@ def usage(
 
 - Returns which locations and features reference this playlist.
 
-<!-- NEEDS VERIFICATION — scope not documented in source; likely spark-admin:telephony_config_read -->
+- **Scopes:** `spark-admin:telephony_config_read` (the `PlayListApi` class docstring confirms all read operations use `spark-admin:telephony_config_read`; the `usage()` method itself has no explicit scope docstring but inherits from the class-level scope) <!-- Verified via wxc_sdk source (PlayListApi class docstring) 2026-03-19 -->
 
 #### `assigned_locations(...)` — List locations assigned to a playlist
 
@@ -372,7 +434,56 @@ def modify_assigned_locations(
 
 **Required scope:** `spark-admin:telephony_config_write`
 
-### 2.3 Key Patterns
+### 2.3 Raw HTTP — Playlists
+
+```python
+BASE = "https://webexapis.com/v1"
+
+# GET — List all playlists (org-level, not paginated)
+result = api.session.rest_get(f"{BASE}/telephony/config/announcements/playlists")
+# Response: {"playlists": [{"id": "...", "name": "...", "fileSize": 0, "fileCount": 0,
+#            "isInUse": false, "lastUpdated": "...", "locationCount": 0}]}
+
+# POST — Create a playlist
+body = {
+    "name": "Hold Music Rotation",
+    "announcements": [{"id": "<ann_id_1>"}, {"id": "<ann_id_2>"}]
+}
+result = api.session.rest_post(f"{BASE}/telephony/config/announcements/playlists", json=body)
+# Returns: {"id": "<playlist_id>"}
+
+# GET — Get playlist details (includes announcement list)
+result = api.session.rest_get(f"{BASE}/telephony/config/announcements/playlists/{playlist_id}")
+
+# PUT — Update a playlist (name and/or announcements)
+body = {
+    "name": "Updated Playlist Name",
+    "announcements": [{"id": "<ann_id_1>"}, {"id": "<ann_id_3>"}]
+}
+api.session.rest_put(f"{BASE}/telephony/config/announcements/playlists/{playlist_id}", json=body)
+
+# DELETE — Delete a playlist
+api.session.rest_delete(f"{BASE}/telephony/config/announcements/playlists/{playlist_id}")
+
+# --- Playlist location assignments ---
+
+# GET — List locations assigned to a playlist
+result = api.session.rest_get(
+    f"{BASE}/telephony/config/announcements/playlists/{playlist_id}/locations")
+# Response: {"locations": [{"id": "...", "name": "..."}]}
+
+# PUT — Assign playlist to locations (full replace)
+body = {
+    "locationIds": ["<loc_id_1>", "<loc_id_2>"]
+}
+api.session.rest_put(
+    f"{BASE}/telephony/config/announcements/playlists/{playlist_id}/locations", json=body)
+```
+
+**Gotcha:** Location assignment is a full replace, not incremental. Always GET current locations first, then PUT the complete list including any new additions.
+<!-- Updated by playbook session 2026-03-18 -->
+
+### 2.4 Key Patterns
 
 - **Playlists are org-level only.** They are created at the org level, then assigned to locations via `modify_assigned_locations()`.
 - **Workflow:** Upload announcements to the repo first, then create a playlist referencing those announcement IDs, then assign the playlist to locations.
@@ -515,12 +626,71 @@ def delete(
 
 **Required scope:** `spark-admin:telephony_config_write`
 
-### 3.3 Key Patterns
+### 3.3 Raw HTTP — Access Codes
+
+```python
+BASE = "https://webexapis.com/v1"
+
+# --- Location-level access codes ---
+
+# GET — List access codes for a location
+result = api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{loc_id}/outgoingPermission/accessCodes")
+# Response: {"accessCodes": [{"code": "1234", "description": "Sales team", "level": "LOCATION"}]}
+
+# POST — Create access codes for a location
+body = {
+    "accessCodes": [
+        {"code": "1234", "description": "Sales team"},
+        {"code": "5678", "description": "Support team"}
+    ]
+}
+api.session.rest_post(
+    f"{BASE}/telephony/config/locations/{loc_id}/outgoingPermission/accessCodes", json=body)
+
+# PUT — Delete specific access codes (uses PUT, not DELETE)
+body = {
+    "deleteCodes": ["1234", "5678"]
+}
+api.session.rest_put(
+    f"{BASE}/telephony/config/locations/{loc_id}/outgoingPermission/accessCodes", json=body)
+
+# DELETE — Delete all access codes for a location
+api.session.rest_delete(
+    f"{BASE}/telephony/config/locations/{loc_id}/outgoingPermission/accessCodes")
+
+# --- Org-level access codes ---
+
+# GET — List org-level access codes (paginated)
+result = api.session.rest_get(
+    f"{BASE}/telephony/config/outgoingPermission/accessCodes",
+    params={"max": 1000})
+# Response: {"accessCodes": [{"code": "9999", "description": "Global bypass"}]}
+
+# POST — Create org-level access codes (max 10,000 per request)
+body = {
+    "accessCodes": [
+        {"code": "9999", "description": "Global bypass"}
+    ]
+}
+api.session.rest_post(f"{BASE}/telephony/config/outgoingPermission/accessCodes", json=body)
+
+# PUT — Delete org-level access codes (uses PUT, not DELETE; max 10,000 per request)
+body = {
+    "deleteCodes": ["9999"]
+}
+api.session.rest_put(f"{BASE}/telephony/config/outgoingPermission/accessCodes", json=body)
+```
+
+**Gotcha:** Deleting specific codes uses PUT with a `deleteCodes` array in the body, not an HTTP DELETE. This applies at both location and org level. The `DELETE` verb is only used for "delete all" at the location level.
+<!-- Updated by playbook session 2026-03-18 -->
+
+### 3.4 Key Patterns
 
 - **Location vs. org level:** Location codes bypass permissions for persons/workspaces at that location only. Org codes apply across all locations.
 - **No update method:** To change an access code, delete the old one and create a new one.
 - **Delete uses PUT:** Both location and org `delete` methods send a PUT with `deleteCodes` in the body, not an HTTP DELETE. The SDK handles this transparently.
-- **Batch limits:** Org-level create and delete support up to 10,000 codes per request. <!-- NEEDS VERIFICATION — location-level batch limit not documented in source -->
+- **Batch limits:** Org-level create and delete support up to 10,000 codes per request (confirmed in SDK docstrings: "max limit is 10k per request"). Location-level create/delete has no documented batch limit in the SDK source -- the `LocationAccessCodesApi.create()` and `delete_codes()` methods accept a `list[AuthCode]` with no stated maximum. <!-- Verified via wxc_sdk source (org_access_codes/__init__.py + access_codes.py) 2026-03-19 -->
 
 ---
 
@@ -652,7 +822,7 @@ def list(
 - Returns a **paginated generator**.
 - Listing does **not** include events; use `details()` to get events.
 
-**Required scope:** `spark-admin:people_read` <!-- NEEDS VERIFICATION — source says people_read but location schedules likely also accept telephony_config_read -->
+**Required scope:** Depends on schedule level. The wxc_sdk `ScheduleApi.list()` docstring says `spark-admin:people_read` (this applies when listing **person/user** schedules via `/people/{id}/features/schedules`). For **location** schedules via `/telephony/config/locations/{id}/schedules`, the OpenAPI spec requires `spark-admin:telephony_config_read`. <!-- Corrected via OpenAPI spec + wxc_sdk source 2026-03-19: person schedules use people_read, location schedules use telephony_config_read -->
 
 #### `details(...)` — Get schedule details with events
 
@@ -781,7 +951,110 @@ def event_delete(
 
 **Required scope:** `spark-admin:telephony_config_write`
 
-### 4.3 Endpoint URL Structure
+### 4.3 Raw HTTP — Schedules
+
+```python
+BASE = "https://webexapis.com/v1"
+
+# --- Location schedules ---
+
+# GET — List schedules for a location (paginated)
+result = api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{loc_id}/schedules",
+    params={"max": 1000, "type": "businessHours"}  # or "holidays"
+)
+# Response: {"schedules": [{"id": "...", "name": "...", "type": "businessHours"}]}
+# Note: list does NOT include events — use details to get events
+
+# POST — Create a schedule
+body = {
+    "type": "holidays",
+    "name": "National Holidays",
+    "events": [
+        {
+            "name": "Independence Day",
+            "startDate": "2026-07-04",
+            "endDate": "2026-07-04",
+            "allDayEnabled": True
+        }
+    ]
+}
+result = api.session.rest_post(f"{BASE}/telephony/config/locations/{loc_id}/schedules", json=body)
+# Returns: {"id": "<schedule_id>"}
+
+# GET — Get schedule details (includes events)
+# sched_type is "businessHours" or "holidays"
+result = api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{loc_id}/schedules/{sched_type}/{sched_id}"
+)
+
+# PUT — Update a schedule
+body = {
+    "name": "Updated Schedule Name",
+    "events": [...]  # Full event list
+}
+result = api.session.rest_put(
+    f"{BASE}/telephony/config/locations/{loc_id}/schedules/{sched_type}/{sched_id}",
+    json=body
+)
+# Returns schedule ID (changes if name changed!)
+
+# DELETE — Delete a schedule
+api.session.rest_delete(
+    f"{BASE}/telephony/config/locations/{loc_id}/schedules/{sched_type}/{sched_id}"
+)
+
+# --- Schedule events ---
+
+# GET — Get a single event
+result = api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{loc_id}/schedules/{sched_type}/{sched_id}/events/{event_id}"
+)
+
+# POST — Add an event to a schedule
+body = {
+    "name": "Christmas Day",
+    "startDate": "2026-12-25",
+    "endDate": "2026-12-25",
+    "allDayEnabled": True
+}
+result = api.session.rest_post(
+    f"{BASE}/telephony/config/locations/{loc_id}/schedules/{sched_type}/{sched_id}/events",
+    json=body
+)
+# Returns: {"id": "<event_id>"}
+
+# PUT — Update an event
+body = {
+    "name": "Christmas Day 2026",
+    "startDate": "2026-12-25",
+    "endDate": "2026-12-25",
+    "allDayEnabled": True,
+    "recurrence": {
+        "recurYearlyByDate": {"dayOfMonth": 25, "month": "DECEMBER"}
+    }
+}
+result = api.session.rest_put(
+    f"{BASE}/telephony/config/locations/{loc_id}/schedules/{sched_type}/{sched_id}/events/{event_id}",
+    json=body
+)
+# Returns event ID (changes if name changed!)
+
+# DELETE — Delete an event
+api.session.rest_delete(
+    f"{BASE}/telephony/config/locations/{loc_id}/schedules/{sched_type}/{sched_id}/events/{event_id}"
+)
+
+# --- User-level schedules (same pattern, different base) ---
+# Base: {BASE}/people/{person_id}/features/schedules/...
+```
+
+**Gotcha:** Schedule IDs are name-derived (base64-encoded from the schedule name). Renaming a schedule changes its ID -- the old ID returns 404 after rename. Always re-fetch the ID after a name change. Event IDs behave the same way.
+<!-- Verified via CLI implementation 2026-03-17 -->
+
+**Gotcha:** The `ScheduleApi` import path is `wxc_sdk.common.schedules`, NOT `wxc_sdk.telephony.schedules`.
+
+### 4.4 Endpoint URL Structure
 
 Location schedules:
 ```
@@ -889,7 +1162,8 @@ ats.delete_schedule(
 |-----------|---------------|
 | Read announcements, playlists, schedules, access codes | `spark-admin:telephony_config_read` |
 | Write announcements, playlists, schedules, access codes | `spark-admin:telephony_config_write` |
-| List schedules (location or user) | `spark-admin:people_read` <!-- NEEDS VERIFICATION --> |
+| List schedules (location) | `spark-admin:telephony_config_read` <!-- Corrected via OpenAPI spec 2026-03-19 --> |
+| List schedules (user/person) | `spark-admin:people_read` <!-- Verified via OpenAPI spec + wxc_sdk source 2026-03-19 --> |
 
 ### Org vs. Location Scoping
 

@@ -1,4 +1,12 @@
+<!-- Updated by playbook session 2026-03-18 -->
+
 # Devices & Workspaces — wxc_sdk Reference
+
+## Sources
+
+- wxc_sdk v1.30.0
+- OpenAPI spec: webex-device.json
+- developer.webex.com Workspace APIs
 
 Workspaces represent physical places where people work — conference rooms, meeting spaces, lobbies, desks. Devices are associated with workspaces. The wxc_sdk provides four API modules for managing workspaces and their configurations.
 
@@ -22,6 +30,7 @@ Workspaces represent physical places where people work — conference rooms, mee
 - [Workspace Personalization API](#workspace-personalization-api)
 - [Required Scopes](#required-scopes)
 - [Code Examples](#code-examples)
+- [Raw HTTP](#raw-http)
 
 ---
 
@@ -755,7 +764,7 @@ api.workspace_settings.numbers.update(
     workspace_id=workspace_id,
     phone_numbers=[
         UpdateWorkspacePhoneNumber(
-            action=PatternAction.add,       # <!-- NEEDS VERIFICATION --> exact enum value
+            action=PatternAction.add,       # PatternAction.add = 'ADD', PatternAction.delete = 'DELETE' <!-- Verified via wxc_sdk source (common/__init__.py) 2026-03-19 -->
             direct_number="+14155551234",
             primary=False,
         )
@@ -769,6 +778,172 @@ api.workspace_settings.numbers.update(
 # WARNING: Also deletes all associated devices (they must be reactivated)
 await api.workspaces.delete_workspace(workspace_id=workspace.workspace_id)
 ```
+
+---
+
+## Raw HTTP
+<!-- Updated by playbook session 2026-03-18 -->
+
+All workspace operations can be performed via raw HTTP using `api.session.rest_*()`. This is the preferred execution pattern -- wxc_sdk handles auth and session management, while you control the exact request.
+
+```python
+from wxc_sdk import WebexSimpleApi
+from wxc_sdk.rest import RestError
+
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+```
+
+### Workspaces CRUD
+
+```python
+# ── List workspaces ──────────────────────────────────────────────
+result = api.session.rest_get(f"{BASE}/workspaces", params={
+    "max": 1000,
+    "calling": "webexCalling",           # filter by calling type
+    "includeDevices": "true",            # embed device details
+})
+workspaces = result.get("items", [])     # NOTE: response key is "items", NOT "workspaces"
+
+# ── List with location filter ────────────────────────────────────
+result = api.session.rest_get(f"{BASE}/workspaces", params={
+    "locationId": location_id,
+    "max": 1000,
+})
+workspaces = result.get("items", [])
+
+# ── Get workspace details ────────────────────────────────────────
+ws = api.session.rest_get(f"{BASE}/workspaces/{workspace_id}")
+
+# ── Get workspace details with devices ───────────────────────────
+ws = api.session.rest_get(f"{BASE}/workspaces/{workspace_id}", params={
+    "includeDevices": "true",
+})
+
+# ── Create a workspace ───────────────────────────────────────────
+body = {
+    "displayName": "Lobby Phone",
+    "locationId": location_id,
+    "type": "desk",
+    "capacity": 1,
+    "supportedDevices": "phones",
+    "hotdeskingStatus": "off",
+    "calling": {
+        "type": "webexCalling",
+        "webexCalling": {
+            "extension": "2001",
+            "locationId": location_id,
+            "licenses": [calling_license_id],
+        },
+    },
+}
+result = api.session.rest_post(f"{BASE}/workspaces", json=body)
+new_ws_id = result["id"]
+
+# ── Update a workspace (full PUT -- include all fields) ──────────
+ws = api.session.rest_get(f"{BASE}/workspaces/{workspace_id}")
+ws["displayName"] = "Lobby Phone (Updated)"
+result = api.session.rest_put(f"{BASE}/workspaces/{workspace_id}", json=ws)
+
+# ── Delete a workspace ───────────────────────────────────────────
+# WARNING: Also deletes all associated devices (they must be reactivated)
+api.session.rest_delete(f"{BASE}/workspaces/{workspace_id}")
+
+# ── Get workspace capabilities ───────────────────────────────────
+caps = api.session.rest_get(f"{BASE}/workspaces/{workspace_id}/capabilities")
+```
+
+### Workspace Call Settings (Features)
+
+Workspace call settings use the `/workspaces/{workspaceId}/features/` path:
+
+```python
+# ── Call Forwarding ──────────────────────────────────────────────
+fwd = api.session.rest_get(f"{BASE}/workspaces/{workspace_id}/features/callForwarding")
+body = {"callForwarding": {"always": {"enabled": True, "destination": "+15551234567"}}}
+api.session.rest_put(f"{BASE}/workspaces/{workspace_id}/features/callForwarding", json=body)
+
+# ── Call Waiting ─────────────────────────────────────────────────
+cw = api.session.rest_get(f"{BASE}/workspaces/{workspace_id}/features/callWaiting")
+api.session.rest_put(f"{BASE}/workspaces/{workspace_id}/features/callWaiting", json={"enabled": True})
+
+# ── Caller ID ────────────────────────────────────────────────────
+cid = api.session.rest_get(f"{BASE}/workspaces/{workspace_id}/features/callerId")
+api.session.rest_put(f"{BASE}/workspaces/{workspace_id}/features/callerId", json={
+    "selected": "DIRECT_LINE",
+    "externalCallerIdNamePolicy": "DIRECT_LINE",
+})
+
+# ── Monitoring (BLF) ────────────────────────────────────────────
+mon = api.session.rest_get(f"{BASE}/workspaces/{workspace_id}/features/monitoring")
+api.session.rest_put(f"{BASE}/workspaces/{workspace_id}/features/monitoring", json={
+    "enableCallParkNotification": True,
+})
+
+# ── Numbers ──────────────────────────────────────────────────────
+nums = api.session.rest_get(f"{BASE}/workspaces/{workspace_id}/features/numbers")
+
+# ── Incoming Permission ──────────────────────────────────────────
+perm_in = api.session.rest_get(f"{BASE}/workspaces/{workspace_id}/features/incomingPermission")
+api.session.rest_put(f"{BASE}/workspaces/{workspace_id}/features/incomingPermission", json={
+    "useCustomEnabled": False,
+    "externalTransfer": "ALLOW_ALL_EXTERNAL",
+})
+
+# ── Outgoing Permission ─────────────────────────────────────────
+perm_out = api.session.rest_get(f"{BASE}/workspaces/{workspace_id}/features/outgoingPermission")
+api.session.rest_put(f"{BASE}/workspaces/{workspace_id}/features/outgoingPermission", json={
+    "useCustomEnabled": False,
+})
+
+# ── Outgoing Permission Access Codes ─────────────────────────────
+codes = api.session.rest_get(f"{BASE}/workspaces/{workspace_id}/features/outgoingPermission/accessCodes")
+access_codes = codes.get("accessCodes", [])
+
+api.session.rest_post(f"{BASE}/workspaces/{workspace_id}/features/outgoingPermission/accessCodes", json={
+    "code": "1234",
+    "description": "Long distance override",
+})
+
+# ── Auto Transfer Numbers ────────────────────────────────────────
+xfer = api.session.rest_get(f"{BASE}/workspaces/{workspace_id}/features/outgoingPermission/autoTransferNumbers")
+api.session.rest_put(f"{BASE}/workspaces/{workspace_id}/features/outgoingPermission/autoTransferNumbers", json={
+    "useCustomTransferNumbers": True,
+    "autoTransferNumber1": "+15551234567",
+})
+
+# ── Call Intercept ───────────────────────────────────────────────
+intercept = api.session.rest_get(f"{BASE}/workspaces/{workspace_id}/features/intercept")
+api.session.rest_put(f"{BASE}/workspaces/{workspace_id}/features/intercept", json={
+    "enabled": True,
+})
+```
+
+### Workspace Telephony Devices
+
+Workspace telephony device operations use the `/telephony/config/workspaces/` path:
+
+```python
+# ── List telephony devices for workspace ─────────────────────────
+result = api.session.rest_get(f"{BASE}/telephony/config/workspaces/{workspace_id}/devices")
+devices = result.get("devices", [])
+
+# ── Modify hoteling ─────────────────────────────────────────────
+api.session.rest_put(f"{BASE}/telephony/config/workspaces/{workspace_id}/devices/hoteling", json={
+    "enabled": True,
+    "limitGuestUse": True,
+    "guestHotelingLimit": 12,
+})
+```
+
+### Raw HTTP Gotchas
+
+1. **Response key is `items` not `workspaces`** -- When listing workspaces, the response uses the generic `items` key, not `workspaces`. This differs from most telephony APIs that use a domain-specific key (e.g., `virtualLines`, `virtualExtensions`).
+2. **No auto-pagination** -- Use `max=1000` for the first page. The Workspaces API does not auto-paginate; check for a `next` link in the response if you have more than 1000 workspaces.
+3. **`includeDevices` and `includeCapabilities` are strings** -- Pass `"true"` not `True` in query params.
+4. **Two different base paths** -- CRUD and features use `/workspaces/{id}` and `/workspaces/{id}/features/*`. Telephony device operations use `/telephony/config/workspaces/{id}/devices`.
+5. **Update is full PUT** -- Omitting optional fields (`capacity`, `type`, `notes`) clears them. `locationId`, `supportedDevices`, `calendar`, and `calling` are preserved when omitted.
+6. **`webexCalling` details not returned on GET** -- The `calling.webexCalling` object is write-only (used on create). GET responses only include `calling.type`.
 
 ---
 
@@ -791,6 +966,29 @@ await api.workspaces.delete_workspace(workspace_id=workspace.workspace_id)
 8. **Device cleanup on workspace delete** — Deleting a workspace deletes all associated devices. Those devices must be reactivated to be reused.
 
 9. **Personalization is one-time** — The Workspace Personalization API is for migrating Edge devices from shared to personal mode. It requires the device to be online and the workspace to have no calendar configured.
+
+10. **Workspace call settings endpoint access by license tier.** <!-- Verified via live API 2026-03-19 -->
+
+    | Endpoint Path | Basic (webexCalling) | Professional Required |
+    |---------------|---------------------|-----------------------|
+    | `/workspaces/{id}/features/callForwarding` | 200 | — |
+    | `/workspaces/{id}/features/callWaiting` | 200 | — |
+    | `/workspaces/{id}/features/callerId` | 200 | — |
+    | `/workspaces/{id}/features/intercept` | 200 | — |
+    | `/workspaces/{id}/features/monitoring` | 200 | — |
+    | `/workspaces/{id}/features/voicemail` | 404 | N/A (wrong path) |
+    | `/telephony/config/workspaces/{id}/musicOnHold` | 200 | — |
+    | `/telephony/config/workspaces/{id}/doNotDisturb` | 200 | — |
+    | `/telephony/config/workspaces/{id}/anonymousCallReject` | 405 | Yes |
+    | `/telephony/config/workspaces/{id}/callPolicies` | 405 | Yes |
+    | `/telephony/config/workspaces/{id}/voicemail` | 405 | Yes |
+    | `/telephony/config/workspaces/{id}/bargeIn` | 405 | Yes |
+    | `/telephony/config/workspaces/{id}/callBridge` | 405 | Yes |
+    | `/telephony/config/workspaces/{id}/pushToTalk` | 405 | Yes |
+    | `/telephony/config/workspaces/{id}/privacy` | 405 | Yes |
+    | `/telephony/config/workspaces/{id}/selectiveReject` | 405 | Yes |
+    | `/telephony/config/workspaces/{id}/selectiveAccept` | 405 | Yes |
+    | `/telephony/config/workspaces/{id}/callRecording` | 404 | May not exist |
 
 ---
 

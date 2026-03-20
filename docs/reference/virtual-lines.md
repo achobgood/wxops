@@ -1,4 +1,16 @@
+<!-- Updated by playbook session 2026-03-18 -->
+
 # Virtual Lines & Virtual Extensions
+
+## Table of Contents
+
+1. [Overview](#overview)
+2. [Virtual Lines](#virtual-lines)
+3. [Virtual Extensions](#virtual-extensions)
+4. [Raw HTTP](#raw-http)
+5. [Virtual Lines vs. Virtual Extensions: Decision Guide](#virtual-lines-vs-virtual-extensions-decision-guide)
+6. [Source](#source)
+7. [See Also](#see-also)
 
 ## Overview
 
@@ -518,7 +530,7 @@ VirtualExtensionsApi.modify_extension_settings(
 
 **Standard mode** (default): Virtual extensions must have an E.164 prefix. No special PSTN provider support required.
 
-**Enhanced mode**: Prefix can be E.164 or non-E.164, but requires PSTN provider support for special network signaling extensions. Very few PSTN providers support this. <!-- NEEDS VERIFICATION: exact list of PSTN providers supporting Enhanced mode -->
+**Enhanced mode**: Prefix can be E.164 or non-E.164, but requires PSTN provider support for special network signaling extensions. The API documentation states: "virtual extensions won't function properly in this mode unless your PSTN provider supports special network signaling extensions and there aren't many PSTN providers that do." No specific provider list is published in the API documentation or OpenAPI spec. Contact your Cisco account team or PSTN provider to confirm Enhanced mode support. <!-- Verified via OpenAPI spec 2026-03-19: no provider list in spec; API description confirms few providers support it -->
 
 ### Data Models
 
@@ -594,6 +606,252 @@ class PhoneNumberStatus(ApiModel):
     error_code: Optional[int]
     message: Optional[str]
 ```
+
+---
+
+## Raw HTTP
+<!-- Updated by playbook session 2026-03-18 -->
+
+All virtual line and virtual extension operations can be performed via raw HTTP using `api.session.rest_*()`. This is the preferred execution pattern -- wxc_sdk handles auth and session management, while you control the exact request.
+
+```python
+from wxc_sdk import WebexSimpleApi
+from wxc_sdk.rest import RestError
+
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+```
+
+### Virtual Lines CRUD
+
+```python
+# ── List virtual lines ───────────────────────────────────────────
+result = api.session.rest_get(f"{BASE}/telephony/config/virtualLines", params={
+    "max": 1000,
+    "locationId": location_id,            # filter by location
+})
+virtual_lines = result.get("virtualLines", [])
+
+# ── List with filters ────────────────────────────────────────────
+result = api.session.rest_get(f"{BASE}/telephony/config/virtualLines", params={
+    "max": 1000,
+    "ownerName": "Sales",
+    "hasDeviceAssigned": "true",
+    "hasExtensionAssigned": "true",
+})
+virtual_lines = result.get("virtualLines", [])
+
+# ── Get virtual line details ─────────────────────────────────────
+vl = api.session.rest_get(f"{BASE}/telephony/config/virtualLines/{virtual_line_id}")
+
+# ── Create a virtual line ────────────────────────────────────────
+body = {
+    "firstName": "Sales",
+    "lastName": "Line",
+    "locationId": location_id,
+    "extension": "8500",
+    "phoneNumber": "+15551234567",
+    "callerIdLastName": "Sales",
+    "callerIdFirstName": "Department",
+}
+result = api.session.rest_post(f"{BASE}/telephony/config/virtualLines", json=body)
+new_vl_id = result["id"]
+
+# ── Update a virtual line ────────────────────────────────────────
+body = {
+    "firstName": "Sales",
+    "lastName": "Main Line",
+    "extension": "8501",
+}
+api.session.rest_put(f"{BASE}/telephony/config/virtualLines/{virtual_line_id}", json=body)
+
+# ── Delete a virtual line ────────────────────────────────────────
+api.session.rest_delete(f"{BASE}/telephony/config/virtualLines/{virtual_line_id}")
+
+# ── Get phone number ─────────────────────────────────────────────
+num = api.session.rest_get(f"{BASE}/telephony/config/virtualLines/{virtual_line_id}/number")
+
+# ── Update directory search ──────────────────────────────────────
+api.session.rest_put(f"{BASE}/telephony/config/virtualLines/{virtual_line_id}/directorySearch", json={
+    "enabled": True,
+})
+
+# ── Get assigned devices ─────────────────────────────────────────
+devices = api.session.rest_get(f"{BASE}/telephony/config/virtualLines/{virtual_line_id}/devices")
+
+# ── Get DECT network handsets ────────────────────────────────────
+dect = api.session.rest_get(f"{BASE}/telephony/config/virtualLines/{virtual_line_id}/dectNetworks")
+```
+
+### Virtual Line Call Settings
+
+Virtual line call settings use the `/telephony/config/virtualLines/{id}/{feature}` path:
+
+```python
+# ── Voicemail ────────────────────────────────────────────────────
+vm = api.session.rest_get(f"{BASE}/telephony/config/virtualLines/{vl_id}/voicemail")
+api.session.rest_put(f"{BASE}/telephony/config/virtualLines/{vl_id}/voicemail", json={
+    "enabled": True,
+    "sendAllCalls": {"enabled": False},
+    "sendBusyCalls": {"enabled": True, "greeting": "DEFAULT"},
+    "sendUnansweredCalls": {"enabled": True, "numberOfRings": 3, "greeting": "DEFAULT"},
+})
+
+# ── Call Forwarding ──────────────────────────────────────────────
+fwd = api.session.rest_get(f"{BASE}/telephony/config/virtualLines/{vl_id}/callForwarding")
+api.session.rest_put(f"{BASE}/telephony/config/virtualLines/{vl_id}/callForwarding", json={
+    "callForwarding": {"always": {"enabled": True, "destination": "+15551234567"}},
+})
+
+# ── Call Recording ───────────────────────────────────────────────
+rec = api.session.rest_get(f"{BASE}/telephony/config/virtualLines/{vl_id}/callRecording")
+
+# ── Call Waiting ─────────────────────────────────────────────────
+cw = api.session.rest_get(f"{BASE}/telephony/config/virtualLines/{vl_id}/callWaiting")
+
+# ── Caller ID ────────────────────────────────────────────────────
+cid = api.session.rest_get(f"{BASE}/telephony/config/virtualLines/{vl_id}/callerId")
+
+# ── DND ──────────────────────────────────────────────────────────
+dnd = api.session.rest_get(f"{BASE}/telephony/config/virtualLines/{vl_id}/doNotDisturb")
+
+# ── Call Intercept ───────────────────────────────────────────────
+intercept = api.session.rest_get(f"{BASE}/telephony/config/virtualLines/{vl_id}/callIntercept")
+
+# ── Privacy ──────────────────────────────────────────────────────
+privacy = api.session.rest_get(f"{BASE}/telephony/config/virtualLines/{vl_id}/privacy")
+
+# ── ECBN ─────────────────────────────────────────────────────────
+ecbn = api.session.rest_get(f"{BASE}/telephony/config/virtualLines/{vl_id}/emergencyCallbackNumber")
+
+# ── Incoming Permissions ─────────────────────────────────────────
+perm_in = api.session.rest_get(f"{BASE}/telephony/config/virtualLines/{vl_id}/incomingPermission")
+
+# ── Outgoing Permissions ─────────────────────────────────────────
+perm_out = api.session.rest_get(f"{BASE}/telephony/config/virtualLines/{vl_id}/outgoingPermission")
+
+# ── Music on Hold ────────────────────────────────────────────────
+moh = api.session.rest_get(f"{BASE}/telephony/config/virtualLines/{vl_id}/musicOnHold")
+
+# ── Barge-In ─────────────────────────────────────────────────────
+barge = api.session.rest_get(f"{BASE}/telephony/config/virtualLines/{vl_id}/bargeIn")
+
+# ── Push to Talk ─────────────────────────────────────────────────
+ptt = api.session.rest_get(f"{BASE}/telephony/config/virtualLines/{vl_id}/pushToTalk")
+```
+
+### Virtual Extensions CRUD
+
+```python
+# ── List virtual extensions ──────────────────────────────────────
+result = api.session.rest_get(f"{BASE}/telephony/config/virtualExtensions", params={
+    "max": 1000,
+    "locationId": location_id,
+})
+extensions = result.get("virtualExtensions", [])
+
+# ── List org-level only ──────────────────────────────────────────
+result = api.session.rest_get(f"{BASE}/telephony/config/virtualExtensions", params={
+    "max": 1000,
+    "orgLevelOnly": "true",
+})
+
+# ── Get virtual extension details ────────────────────────────────
+ve = api.session.rest_get(f"{BASE}/telephony/config/virtualExtensions/{extension_id}")
+
+# ── Create a virtual extension ───────────────────────────────────
+body = {
+    "displayName": "Alice Remote",
+    "phoneNumber": "+15559876543",
+    "extension": "7001",
+    "firstName": "Alice",
+    "lastName": "Remote",
+    "locationId": location_id,            # omit for org-level
+}
+result = api.session.rest_post(f"{BASE}/telephony/config/virtualExtensions", json=body)
+new_ve_id = result["id"]
+
+# ── Update a virtual extension ───────────────────────────────────
+body = {
+    "displayName": "Alice Remote (Updated)",
+    "phoneNumber": "+15559876544",
+}
+api.session.rest_put(f"{BASE}/telephony/config/virtualExtensions/{extension_id}", json=body)
+
+# ── Delete a virtual extension ───────────────────────────────────
+api.session.rest_delete(f"{BASE}/telephony/config/virtualExtensions/{extension_id}")
+
+# ── Validate external phone numbers ─────────────────────────────
+result = api.session.rest_post(
+    f"{BASE}/telephony/config/virtualExtensions/actions/validateNumbers/invoke",
+    json={"phoneNumbers": ["+15551112222", "+15553334444"]},
+)
+# Returns: {status: "OK"|"ERRORS", phoneNumberStatus: [...]}
+
+# ── Get/set extension mode ───────────────────────────────────────
+settings = api.session.rest_get(f"{BASE}/telephony/config/virtualExtensions/settings")
+# Returns: {mode: "STANDARD"|"ENHANCED"}
+
+api.session.rest_put(f"{BASE}/telephony/config/virtualExtensions/settings", json={
+    "mode": "STANDARD",
+})
+```
+
+### Virtual Extension Ranges
+
+```python
+# ── List ranges ──────────────────────────────────────────────────
+result = api.session.rest_get(f"{BASE}/telephony/config/virtualExtensionRanges", params={
+    "max": 1000,
+})
+ranges = result.get("virtualExtensionRanges", [])
+
+# ── Get range details ────────────────────────────────────────────
+rng = api.session.rest_get(f"{BASE}/telephony/config/virtualExtensionRanges/{range_id}")
+
+# ── Create a range ───────────────────────────────────────────────
+body = {
+    "name": "Remote Office Block",
+    "prefix": "+15559870000",
+    "patterns": ["70XX", "71XX"],
+    "locationId": location_id,            # omit for org-level
+}
+result = api.session.rest_post(f"{BASE}/telephony/config/virtualExtensionRanges", json=body)
+new_range_id = result["id"]
+
+# ── Modify a range (ADD/REMOVE/REPLACE patterns) ────────────────
+api.session.rest_put(f"{BASE}/telephony/config/virtualExtensionRanges/{range_id}", json={
+    "name": "Remote Office Block",
+    "prefix": "+15559870000",
+    "patterns": ["72XX"],
+    "action": "ADD",                      # ADD, REMOVE, or REPLACE
+})
+
+# ── Delete a range ───────────────────────────────────────────────
+api.session.rest_delete(f"{BASE}/telephony/config/virtualExtensionRanges/{range_id}")
+
+# ── Validate a range ─────────────────────────────────────────────
+result = api.session.rest_post(
+    f"{BASE}/telephony/config/virtualExtensionRanges/actions/validate/invoke",
+    json={
+        "name": "Test Range",
+        "prefix": "+15559870000",
+        "patterns": ["70XX"],
+    },
+)
+# Returns: {status: "OK"|"ERRORS", validationStatus: [...]}
+```
+
+### Raw HTTP Gotchas
+
+1. **Virtual lines response key is `virtualLines`** -- Not `items`. This differs from the Workspaces API which uses `items`.
+2. **Virtual extensions response key is `virtualExtensions`** -- Consistent with the domain-specific naming pattern.
+3. **Virtual extension ranges response key is `virtualExtensionRanges`** -- Same pattern.
+4. **Virtual line update is partial** -- Only include fields you want to change. Omitted fields are not modified. This differs from workspace update which is a full PUT.
+5. **`action` is mandatory when modifying range patterns** -- If you include `patterns` in a range PUT, you must also include `action` (ADD, REMOVE, or REPLACE).
+6. **`orgLevelOnly` is mutually exclusive with `locationId`/`locationName`** -- Only one filter type is allowed when listing virtual extensions or ranges.
+7. **No auto-pagination** -- Use `max=1000` for the first page. Check for pagination links if you have more results.
+8. **Virtual line call settings path vs workspace features path** -- Virtual lines use `/telephony/config/virtualLines/{id}/{feature}`. Workspaces use `/workspaces/{id}/features/{feature}`. These are completely different base paths.
 
 ---
 

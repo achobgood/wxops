@@ -1,8 +1,33 @@
+<!-- Updated by playbook session 2026-03-18 -->
 # Person Call Settings -- Voicemail, Caller ID, Privacy & Recording
 
 Reference for per-person (also virtual line and workspace) call settings covering voicemail, caller ID, anonymous call rejection, privacy, barge-in, call recording, call intercept, monitoring, push-to-talk, and music on hold.
 
 All APIs in this group follow the same structural pattern: they extend `PersonSettingsApiChild`, which builds REST endpoints using the formula `people/{person_id}/features/{feature}` for persons (with alternate URL patterns for workspaces, virtual lines, and locations). Each sub-API exposes a `read()` and `configure()` method pair, sometimes with additional action methods.
+
+## Sources
+
+- wxc_sdk v1.30.0 (PersonSettingsApi)
+- OpenAPI spec: webex-cloud-calling.json
+- developer.webex.com Person Call Settings APIs
+
+## Required Scopes
+
+| Feature | Read Scope | Write Scope | Notes |
+|---------|-----------|------------|-------|
+| Voicemail | `spark-admin:people_read` | `spark-admin:people_write` | Self: `spark:people_read` / `spark:people_write` |
+| Voicemail Passcode | `spark-admin:telephony_config_write` | `spark-admin:telephony_config_write` | Write-only; uses `telephony/config/people` path |
+| Voicemail PIN Reset | `spark-admin:people_write` | `spark-admin:people_write` | Write-only action |
+| Caller ID | `spark-admin:people_read` | `spark-admin:people_write` | Self: `spark:people_read` / `spark:people_write` |
+| Agent Caller ID | `spark-admin:telephony_config_read` | `spark-admin:telephony_config_write` | Available caller IDs uses `spark-admin:people_read` |
+| Anonymous Call Rejection | `spark-admin:workspaces_read` | `spark-admin:workspaces_write` | Workspace-only admin endpoint. No admin-level `/people/{id}` path exists; self-service via `/me` only. <!-- Verified via live API 2026-03-19 --> |
+| Privacy | `spark-admin:people_read` | `spark-admin:people_write` | |
+| Barge-In | `spark-admin:people_read` | `spark-admin:people_write` | Self: `spark:people_read` / `spark:people_write` |
+| Call Recording | `spark-admin:people_read` | `spark-admin:people_write` | |
+| Call Intercept | `spark-admin:people_read` | `spark-admin:people_write` | Greeting upload: self `spark:people_write` also works |
+| Monitoring | `spark-admin:people_read` | `spark-admin:people_write` | |
+| Push-to-Talk | `spark-admin:people_read` | `spark-admin:people_write` | |
+| Music on Hold | `spark-admin:telephony_config_read` | `spark-admin:telephony_config_write` | Uses `telephony/config/people` path |
 
 ---
 
@@ -175,6 +200,135 @@ vm.configure(person_id, settings=vm_settings)
 
 The example script reads a CSV of usernames, filters to calling users, and bulk-updates ring count using `ThreadPoolExecutor`.
 
+### CLI Examples
+
+```bash
+# Read voicemail settings for a person
+wxcli user-settings show-voicemail PERSON_ID
+
+# Read voicemail settings as JSON
+wxcli user-settings show-voicemail PERSON_ID -o json
+
+# Enable voicemail for a person
+wxcli user-settings update-voicemail PERSON_ID --enabled
+
+# Disable voicemail for a person
+wxcli user-settings update-voicemail PERSON_ID --no-enabled
+
+# Update voicemail with full settings (nested objects require --json-body)
+wxcli user-settings update-voicemail PERSON_ID --json-body '{
+  "enabled": true,
+  "sendAllCalls": {"enabled": false},
+  "sendBusyCalls": {"enabled": false, "greeting": "DEFAULT"},
+  "sendUnansweredCalls": {"enabled": true, "greeting": "DEFAULT", "numberOfRings": 6},
+  "notifications": {"enabled": false},
+  "transferToNumber": {"enabled": false},
+  "emailCopyOfMessage": {"enabled": false},
+  "messageStorage": {"mwiEnabled": true, "storageType": "INTERNAL"},
+  "faxMessage": {"enabled": false}
+}'
+
+# Upload a custom busy voicemail greeting
+wxcli user-settings configure-busy-voicemail PERSON_ID
+
+# Upload a custom no-answer voicemail greeting
+wxcli user-settings configure-no-answer PERSON_ID
+
+# Reset voicemail PIN
+wxcli user-settings reset-voicemail-pin PERSON_ID
+
+# Set voicemail passcode
+wxcli user-settings update-passcode PERSON_ID --passcode "123456"
+```
+
+### Raw HTTP
+
+#### Read Voicemail Settings
+
+```
+GET https://webexapis.com/v1/people/{personId}/features/voicemail
+```
+
+```python
+result = api.session.rest_get(f"{BASE}/people/{person_id}/features/voicemail")
+# Response:
+# {
+#   "enabled": true,
+#   "sendAllCalls": {"enabled": false},
+#   "sendBusyCalls": {"enabled": false, "greeting": "DEFAULT", "greetingUploaded": false},
+#   "sendUnansweredCalls": {"enabled": true, "greeting": "DEFAULT", "numberOfRings": 3, "systemMaxNumberOfRings": 20},
+#   "notifications": {"enabled": false, "destination": ""},
+#   "transferToNumber": {"enabled": false, "destination": ""},
+#   "emailCopyOfMessage": {"enabled": false, "emailId": ""},
+#   "messageStorage": {"mwiEnabled": true, "storageType": "INTERNAL"},
+#   "faxMessage": {"enabled": false},
+#   "voiceMessageForwardingEnabled": false
+# }
+```
+
+#### Configure Voicemail Settings
+
+```
+PUT https://webexapis.com/v1/people/{personId}/features/voicemail
+```
+
+```python
+body = {
+    "enabled": True,
+    "sendAllCalls": {"enabled": False},
+    "sendBusyCalls": {"enabled": False, "greeting": "DEFAULT"},
+    "sendUnansweredCalls": {"enabled": True, "greeting": "DEFAULT", "numberOfRings": 6},
+    "notifications": {"enabled": False},
+    "transferToNumber": {"enabled": False},
+    "emailCopyOfMessage": {"enabled": False},
+    "messageStorage": {"mwiEnabled": True, "storageType": "INTERNAL"},
+    "faxMessage": {"enabled": False}
+}
+api.session.rest_put(f"{BASE}/people/{person_id}/features/voicemail", json=body)
+```
+
+#### Upload Busy Greeting
+
+```
+POST https://webexapis.com/v1/people/{personId}/features/voicemail/actions/uploadBusyGreeting/invoke
+```
+
+Multipart/form-data with `.wav` file. Uses `rest_post` with file upload.
+
+#### Upload No-Answer Greeting
+
+```
+POST https://webexapis.com/v1/people/{personId}/features/voicemail/actions/uploadNoAnswerGreeting/invoke
+```
+
+Multipart/form-data with `.wav` file. Uses `rest_post` with file upload.
+
+#### Reset Voicemail PIN
+
+```
+POST https://webexapis.com/v1/people/{personId}/features/voicemail/actions/resetPin/invoke
+```
+
+```python
+api.session.rest_post(f"{BASE}/people/{person_id}/features/voicemail/actions/resetPin/invoke")
+```
+
+#### Modify Voicemail Passcode
+
+```
+PUT https://webexapis.com/v1/telephony/config/people/{personId}/voicemail/passcode
+```
+
+```python
+body = {"passcode": "123456"}
+api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/voicemail/passcode", json=body)
+```
+
+**Gotchas:**
+- Exclude read-only fields from PUT body: `greetingUploaded`, `systemMaxNumberOfRings`, `voiceMessageForwardingEnabled`.
+- Passcode endpoint uses `telephony/config/people` path (not `people/{id}/features`). Requires `spark-admin:telephony_config_write` scope.
+- Greeting uploads use POST with multipart/form-data, not JSON.
+
 ---
 
 ## 2. Caller ID
@@ -276,6 +430,89 @@ caller_id_settings.block_in_forward_calls_enabled = True
 api.person_settings.caller_id.configure_settings(entity_id=person_id, settings=caller_id_settings)
 ```
 
+### CLI Examples
+
+```bash
+# Read caller ID settings for a person
+wxcli user-settings list PERSON_ID
+
+# Read caller ID settings as JSON
+wxcli user-settings list PERSON_ID -o json
+
+# Set caller ID to direct line
+wxcli user-settings update-caller-id-features PERSON_ID --selected DIRECT_LINE
+
+# Set caller ID to location number
+wxcli user-settings update-caller-id-features PERSON_ID --selected LOCATION_NUMBER
+
+# Set caller ID to a custom number
+wxcli user-settings update-caller-id-features PERSON_ID --selected CUSTOM --custom-number "+12125559999"
+
+# Set external caller ID name policy to location name
+wxcli user-settings update-caller-id-features PERSON_ID --external-caller-id-name-policy LOCATION
+
+# Set external caller ID name policy to custom name
+wxcli user-settings update-caller-id-features PERSON_ID \
+  --external-caller-id-name-policy OTHER \
+  --custom-external-caller-id-name "Sales Department"
+
+# Block identity when receiving forwarded calls
+wxcli user-settings update-caller-id-features PERSON_ID --block-in-forward-calls-enabled
+
+# Set dial-by-name fields
+wxcli user-settings update-caller-id-features PERSON_ID \
+  --dial-by-first-name "Jane" --dial-by-last-name "Doe"
+```
+
+### Raw HTTP
+
+#### Read Caller ID Settings
+
+```
+GET https://webexapis.com/v1/people/{personId}/features/callerId
+```
+
+```python
+result = api.session.rest_get(f"{BASE}/people/{person_id}/features/callerId")
+# Response:
+# {
+#   "types": ["DIRECT_LINE", "LOCATION_NUMBER", "CUSTOM"],
+#   "selected": "DIRECT_LINE",
+#   "directNumber": "+12125551234",
+#   "extensionNumber": "1234",
+#   "locationNumber": "+12125550000",
+#   "blockInForwardCallsEnabled": false,
+#   "externalCallerIdNamePolicy": "DIRECT_LINE",
+#   "locationExternalCallerIdName": "Main Office",
+#   "additionalExternalCallerIdDirectLineEnabled": false,
+#   "additionalExternalCallerIdLocationNumberEnabled": false,
+#   "dialByFirstName": "Jane",
+#   "dialByLastName": "Doe"
+# }
+```
+
+#### Configure Caller ID Settings
+
+```
+PUT https://webexapis.com/v1/people/{personId}/features/callerId
+```
+
+```python
+body = {
+    "selected": "DIRECT_LINE",
+    "blockInForwardCallsEnabled": True,
+    "externalCallerIdNamePolicy": "DIRECT_LINE"
+}
+api.session.rest_put(f"{BASE}/people/{person_id}/features/callerId", json=body)
+```
+
+**Gotchas:**
+- `types` is read-only (returned as JSON key `types`); do not include in PUT body.
+- `locationExternalCallerIdName` is read-only.
+- `selected` values: `"DIRECT_LINE"`, `"LOCATION_NUMBER"`, `"MOBILE_NUMBER"`, `"CUSTOM"`.
+- `externalCallerIdNamePolicy` values: `"DIRECT_LINE"`, `"LOCATION"`, `"OTHER"`.
+- When `selected` is `"CUSTOM"`, include `customNumber` in the body.
+
 ---
 
 ## 3. Agent Caller ID
@@ -349,6 +586,80 @@ Set the agent's caller ID to a specific call queue or hunt group. Pass `None` to
 - **Scopes:** `spark-admin:telephony_config_write`
 - Body: `{"selectedCallerId": "<id_or_null>"}`
 
+### CLI Examples
+
+```bash
+# List available caller IDs (call queues/hunt groups) for an agent
+wxcli user-settings list-available-caller-ids PERSON_ID
+
+# Read the agent's currently selected caller ID
+wxcli user-settings show-caller-id PERSON_ID
+
+# Read agent caller ID as JSON
+wxcli user-settings show-caller-id PERSON_ID -o json
+
+# Set agent caller ID to a specific call queue
+wxcli user-settings update-caller-id-agent PERSON_ID --selected-caller-id QUEUE_ID
+
+# Revert agent caller ID to the agent's own caller ID
+wxcli user-settings update-caller-id-agent PERSON_ID --json-body '{"selectedCallerId": null}'
+```
+
+### Raw HTTP
+
+> **Note:** Agent Caller ID uses the `telephony/config/people` path, not `people/{id}/features`.
+
+#### List Available Agent Caller IDs
+
+```
+GET https://webexapis.com/v1/telephony/config/people/{personId}/agent/availableCallerIds
+```
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/people/{person_id}/agent/availableCallerIds")
+# Response:
+# {
+#   "availableCallerIds": [
+#     {"id": "queue-id", "type": "CALL_QUEUE", "name": "Sales Queue", "phoneNumber": "+12125551234", "extension": "8001"},
+#     {"id": "hg-id", "type": "HUNT_GROUP", "name": "Support HG", "extension": "8002"}
+#   ]
+# }
+```
+
+#### Read Agent Caller ID
+
+```
+GET https://webexapis.com/v1/telephony/config/people/{personId}/agent/callerId
+```
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/people/{person_id}/agent/callerId")
+# Response:
+# {
+#   "queueCallerIdEnabled": true,
+#   "selectedQueue": {"id": "queue-id", "type": "CALL_QUEUE", "name": "Sales Queue", ...}
+# }
+```
+
+#### Configure Agent Caller ID
+
+```
+PUT https://webexapis.com/v1/telephony/config/people/{personId}/agent/callerId
+```
+
+```python
+body = {"selectedCallerId": "queue-id"}
+api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/agent/callerId", json=body)
+
+# To revert to the agent's own caller ID:
+body = {"selectedCallerId": None}
+api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/agent/callerId", json=body)
+```
+
+**Gotchas:**
+- Uses `telephony_config_read`/`write` scopes (not `people_read`/`write`).
+- Pass `null` for `selectedCallerId` to revert to agent's own caller ID.
+
 ---
 
 ## 4. Anonymous Call Rejection
@@ -359,7 +670,7 @@ Set the agent's caller ID to a specific call queue or hunt group. Pass `None` to
 
 When enabled, blocks all incoming calls from unidentified or blocked caller IDs.
 
-> **Note from source:** This API is documented as "only available for professional licensed workspaces," but the `PersonSettingsApiChild` base makes it usable for persons, virtual lines, and workspaces. <!-- NEEDS VERIFICATION: whether this works for persons or only workspaces in practice -->
+> **Note from source:** This API is documented as "only available for professional licensed workspaces," and live testing confirms this. The OpenAPI spec only defines endpoints for `/me` (self) and `/workspaces/{id}` -- no admin-level `/people/{id}` endpoint exists. Attempting `GET /v1/telephony/config/people/{personId}/anonymousCallReject` returns 404. The workspace endpoint requires a Professional-licensed workspace (error 25409 returned for non-professional workspaces). The SDK's `PersonSettingsApiChild` base class constructs the person URL pattern, but the API does not accept it. <!-- Verified via live API 2026-03-19 -->
 
 ### Methods
 
@@ -371,7 +682,7 @@ AnonCallsApi.read(entity_id: str, org_id: str = None) -> bool
 
 Returns a simple boolean: `True` if anonymous call rejection is enabled.
 
-- **Scopes:** `spark-admin:people_read` <!-- NEEDS VERIFICATION: exact scope may differ for workspaces -->
+- **Scopes:** `spark-admin:workspaces_read` (workspace admin), `spark:people_read` (self via `/me`). No admin-level person endpoint exists. <!-- Verified via live API 2026-03-19 -->
 
 #### `configure`
 
@@ -382,6 +693,77 @@ AnonCallsApi.configure(entity_id: str, enabled: bool, org_id: str = None)
 Enable or disable anonymous call rejection.
 
 - Body: `{"enabled": true|false}`
+
+### CLI Examples
+
+```bash
+# Read anonymous call rejection settings for a workspace
+# Note: In wxcli, anonymous call rejection is under workspace-settings, not user-settings.
+# The API is documented as "only available for professional licensed workspaces."
+wxcli workspace-settings show-anonymous-call-reject WORKSPACE_ID
+
+# Enable anonymous call rejection for a workspace
+wxcli workspace-settings update-anonymous-call-reject WORKSPACE_ID --enabled
+
+# Disable anonymous call rejection for a workspace
+wxcli workspace-settings update-anonymous-call-reject WORKSPACE_ID --no-enabled
+```
+
+### Raw HTTP
+
+> **WARNING: No admin-level person endpoint exists.** The path `people/{personId}/features/anonymousCallReject` returns 404. Only the workspace admin path and the self-service `/me` path work. <!-- Verified via live API 2026-03-19 -->
+
+#### Read Anonymous Call Rejection (Workspace — admin token)
+
+```
+GET https://webexapis.com/v1/telephony/config/workspaces/{workspaceId}/anonymousCallReject
+```
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/workspaces/{workspace_id}/anonymousCallReject")
+# Response:
+# {
+#   "enabled": true
+# }
+```
+
+#### Read Anonymous Call Rejection (Self — user token, calling-licensed user)
+
+```
+GET https://webexapis.com/v1/telephony/config/people/me/settings/anonymousCallReject
+```
+
+```python
+# Requires calling-licensed user token with spark:telephony_config_read scope
+result = api.session.rest_get(f"{BASE}/telephony/config/people/me/settings/anonymousCallReject")
+# Response:
+# {
+#   "enabled": true
+# }
+```
+
+#### Configure Anonymous Call Rejection (Workspace — admin token)
+
+```
+PUT https://webexapis.com/v1/telephony/config/workspaces/{workspaceId}/anonymousCallReject
+```
+
+```python
+body = {"enabled": True}
+api.session.rest_put(f"{BASE}/telephony/config/workspaces/{workspace_id}/anonymousCallReject", json=body)
+```
+
+#### Configure Anonymous Call Rejection (Self — user token, calling-licensed user)
+
+```
+PUT https://webexapis.com/v1/telephony/config/people/me/settings/anonymousCallReject
+```
+
+```python
+# Requires calling-licensed user token with spark:telephony_config_write scope
+body = {"enabled": True}
+api.session.rest_put(f"{BASE}/telephony/config/people/me/settings/anonymousCallReject", json=body)
+```
 
 ---
 
@@ -424,6 +806,79 @@ PrivacyApi.configure(entity_id: str, settings: Privacy, org_id: str = None)
 - **Scopes:** `spark-admin:people_write`
 - When updating `monitoring_agents`, the SDK extracts IDs from `PersonPlaceAgent` objects (using `agent_id`) or passes strings directly.
 
+### CLI Examples
+
+```bash
+# Read privacy settings for a person
+wxcli user-settings list-privacy PERSON_ID
+
+# Read privacy settings as JSON
+wxcli user-settings list-privacy PERSON_ID -o json
+
+# Enable AA extension dialing and directory privacy
+wxcli user-settings update-privacy PERSON_ID \
+  --aa-extension-dialing-enabled \
+  --enable-phone-status-directory-privacy
+
+# Disable AA naming dialing
+wxcli user-settings update-privacy PERSON_ID --no-aa-naming-dialing-enabled
+
+# Enable pickup/barge-in privacy
+wxcli user-settings update-privacy PERSON_ID --enable-phone-status-pickup-barge-in-privacy
+
+# Update privacy with monitoring agents list (requires --json-body)
+wxcli user-settings update-privacy PERSON_ID --json-body '{
+  "aaExtensionDialingEnabled": true,
+  "aaNamingDialingEnabled": true,
+  "enablePhoneStatusDirectoryPrivacy": true,
+  "enablePhoneStatusPickupBargeInPrivacy": true,
+  "monitoringAgents": ["PERSON_ID_1", "PERSON_ID_2"]
+}'
+```
+
+### Raw HTTP
+
+#### Read Privacy Settings
+
+```
+GET https://webexapis.com/v1/people/{personId}/features/privacy
+```
+
+```python
+result = api.session.rest_get(f"{BASE}/people/{person_id}/features/privacy")
+# Response:
+# {
+#   "aaExtensionDialingEnabled": true,
+#   "aaNamingDialingEnabled": true,
+#   "enablePhoneStatusDirectoryPrivacy": false,
+#   "enablePhoneStatusPickupBargeInPrivacy": false,
+#   "monitoringAgents": [
+#     {"id": "person-id", "firstName": "Jane", "lastName": "Doe", ...}
+#   ]
+# }
+```
+
+#### Configure Privacy Settings
+
+```
+PUT https://webexapis.com/v1/people/{personId}/features/privacy
+```
+
+```python
+body = {
+    "aaExtensionDialingEnabled": True,
+    "aaNamingDialingEnabled": True,
+    "enablePhoneStatusDirectoryPrivacy": True,
+    "enablePhoneStatusPickupBargeInPrivacy": False,
+    "monitoringAgents": ["person-id-1", "person-id-2"]
+}
+api.session.rest_put(f"{BASE}/people/{person_id}/features/privacy", json=body)
+```
+
+**Gotchas:**
+- `monitoringAgents` accepts a flat list of person IDs for updates, even though reads return full agent objects.
+- Uses `people/{id}/features/privacy` path (not `telephony/config/people`). <!-- Updated by playbook session 2026-03-18 -->
+
 ---
 
 ## 6. Barge-In
@@ -461,6 +916,56 @@ BargeApi.configure(entity_id: str, barge_settings: BargeSettings, org_id: str = 
 
 - **Scopes:** `spark-admin:people_write` or `spark:people_write` (self)
 - Serializes the full `BargeSettings` object as JSON body.
+
+### CLI Examples
+
+```bash
+# Read barge-in settings for a person
+wxcli user-settings show-barge-in PERSON_ID
+
+# Read barge-in settings as JSON
+wxcli user-settings show-barge-in PERSON_ID -o json
+
+# Enable barge-in with tone
+wxcli user-settings update-barge-in PERSON_ID --enabled --tone-enabled
+
+# Enable barge-in without tone
+wxcli user-settings update-barge-in PERSON_ID --enabled --no-tone-enabled
+
+# Disable barge-in entirely
+wxcli user-settings update-barge-in PERSON_ID --no-enabled --no-tone-enabled
+```
+
+### Raw HTTP
+
+#### Read Barge-In Settings
+
+```
+GET https://webexapis.com/v1/people/{personId}/features/bargeIn
+```
+
+```python
+result = api.session.rest_get(f"{BASE}/people/{person_id}/features/bargeIn")
+# Response:
+# {
+#   "enabled": true,
+#   "toneEnabled": true
+# }
+```
+
+#### Configure Barge-In Settings
+
+```
+PUT https://webexapis.com/v1/people/{personId}/features/bargeIn
+```
+
+```python
+body = {
+    "enabled": True,
+    "toneEnabled": True
+}
+api.session.rest_put(f"{BASE}/people/{person_id}/features/bargeIn", json=body)
+```
 
 ---
 
@@ -526,8 +1031,8 @@ Provides hosted call recording for replay and archival, for quality assurance, s
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `summary_and_action_items_enabled` | `bool` | <!-- NEEDS VERIFICATION: undocumented field, SDK issue 201 --> |
-| `transcript_enabled` | `bool` | <!-- NEEDS VERIFICATION: undocumented field, SDK issue 201 --> |
+| `summary_and_action_items_enabled` | `bool` | Undocumented field; present in SDK source (`call_recording.py` line 83) with `# TODO: undocumented, issue 201` <!-- Verified via wxc_sdk source 2026-03-19 --> |
+| `transcript_enabled` | `bool` | Undocumented field; present in SDK source (`call_recording.py` line 84) with `# TODO: undocumented, issue 201` <!-- Verified via wxc_sdk source 2026-03-19 --> |
 
 #### `CallRecordingSetting`
 
@@ -572,7 +1077,7 @@ CallRecordingSetting(
 CallRecordingApi.read(entity_id: str, org_id: str = None) -> CallRecordingSetting
 ```
 
-- **Scopes:** `spark-admin:people_read` (Note: the SDK source docstring incorrectly says `people_write` for read; this is almost certainly a documentation error -- read operations use `people_read`) <!-- NEEDS VERIFICATION: confirmed likely correct based on pattern; SDK docstring bug -->
+- **Scopes:** `spark-admin:people_read` (Note: the SDK source docstring incorrectly says `people_write` for read; this is a documentation bug in the SDK -- read operations use `people_read` per the consistent pattern across all PersonSettingsApiChild endpoints) <!-- Verified via wxc_sdk source inspection 2026-03-19: call_recording.py line 162 docstring says people_write but all other read methods use people_read -->
 
 #### `configure`
 
@@ -583,6 +1088,96 @@ CallRecordingApi.configure(entity_id: str, recording: CallRecordingSetting, org_
 - **Scopes:** `spark-admin:people_write`
 - **Gotcha:** When `notification.notification_type` is `None` (the enum value), the update method converts it to JSON `null` (the API returns the string `"None"` on reads but expects `null` on writes).
 - Read-only fields (`service_provider`, `external_group`, `external_identifier`) are automatically excluded.
+
+### CLI Examples
+
+```bash
+# Read call recording settings for a person
+wxcli user-settings show-call-recording PERSON_ID
+
+# Read call recording settings as JSON
+wxcli user-settings show-call-recording PERSON_ID -o json
+
+# Enable call recording with "Always" mode
+wxcli user-settings update-call-recording PERSON_ID --enabled --record "Always"
+
+# Set call recording to "On Demand with User Initiated Start"
+wxcli user-settings update-call-recording PERSON_ID --enabled --record "On Demand with User Initiated Start"
+
+# Disable call recording
+wxcli user-settings update-call-recording PERSON_ID --no-enabled --record "Never"
+
+# Enable call recording with voicemail recording
+wxcli user-settings update-call-recording PERSON_ID --enabled --record "Always" --record-voicemail-enabled
+
+# Full recording config with notifications (requires --json-body)
+wxcli user-settings update-call-recording PERSON_ID --json-body '{
+  "enabled": true,
+  "record": "Always with Pause/Resume",
+  "recordVoicemailEnabled": false,
+  "startStopAnnouncementEnabled": true,
+  "notification": {"type": null, "enabled": false},
+  "repeat": {"interval": 15, "enabled": false},
+  "startStopAnnouncement": {"internalCallsEnabled": true, "pstnCallsEnabled": true}
+}'
+```
+
+### Raw HTTP
+
+> **Note:** The CLI uses `people/{id}/features/callRecording`. The user-provided URL pattern `telephony/config/people/{personId}/callRecording` is the wxc_sdk remapped path; the actual raw HTTP endpoint is `people/{id}/features/callRecording`. <!-- Updated by playbook session 2026-03-18 -->
+
+#### Read Call Recording Settings
+
+```
+GET https://webexapis.com/v1/people/{personId}/features/callRecording
+```
+
+```python
+result = api.session.rest_get(f"{BASE}/people/{person_id}/features/callRecording")
+# Response:
+# {
+#   "enabled": false,
+#   "record": "Never",
+#   "recordVoicemailEnabled": false,
+#   "startStopAnnouncementEnabled": false,
+#   "notification": {"type": null, "enabled": false},
+#   "repeat": {"interval": 15, "enabled": false},
+#   "serviceProvider": "...",
+#   "externalGroup": "...",
+#   "externalIdentifier": "...",
+#   "startStopAnnouncement": {"internalCallsEnabled": false, "pstnCallsEnabled": false},
+#   "callRecordingAccessSettings": {
+#     "viewAndPlayRecordingsEnabled": true,
+#     "downloadRecordingsEnabled": true,
+#     "deleteRecordingsEnabled": true,
+#     "shareRecordingsEnabled": true
+#   }
+# }
+```
+
+#### Configure Call Recording Settings
+
+```
+PUT https://webexapis.com/v1/people/{personId}/features/callRecording
+```
+
+```python
+body = {
+    "enabled": True,
+    "record": "Always",
+    "recordVoicemailEnabled": False,
+    "startStopAnnouncementEnabled": False,
+    "notification": {"type": None, "enabled": False},
+    "repeat": {"interval": 15, "enabled": False},
+    "startStopAnnouncement": {"internalCallsEnabled": False, "pstnCallsEnabled": False}
+}
+api.session.rest_put(f"{BASE}/people/{person_id}/features/callRecording", json=body)
+```
+
+**Gotchas:**
+- Exclude read-only fields from PUT body: `serviceProvider`, `externalGroup`, `externalIdentifier`.
+- `record` values: `"Always"`, `"Never"`, `"On Demand"`, `"Always with Pause/Resume"`, `"On Demand with User Initiated Start"`.
+- `notification.type`: API returns `"None"` as a string on reads but expects JSON `null` on writes. Pass `None` (Python) which serializes to `null`.
 
 ---
 
@@ -707,6 +1302,114 @@ Upload a custom intercept greeting (`.wav` file). Uses multipart/form-data. Endp
 - `upload_as`: required if `content` is a reader.
 - **Scopes:** `spark-admin:people_write` or `spark:people_write` (self)
 
+### CLI Examples
+
+```bash
+# Read call intercept settings for a person
+wxcli user-settings show-intercept PERSON_ID
+
+# Read call intercept settings as JSON
+wxcli user-settings show-intercept PERSON_ID -o json
+
+# Enable call intercept
+wxcli user-settings update-intercept PERSON_ID --enabled
+
+# Disable call intercept
+wxcli user-settings update-intercept PERSON_ID --no-enabled
+
+# Enable call intercept with full incoming/outgoing config (requires --json-body)
+wxcli user-settings update-intercept PERSON_ID --json-body '{
+  "enabled": true,
+  "incoming": {
+    "type": "INTERCEPT_ALL",
+    "voicemailEnabled": true,
+    "announcements": {
+      "greeting": "DEFAULT",
+      "newNumber": {"enabled": true, "destination": "+12125559999"},
+      "zeroTransfer": {"enabled": true, "destination": "+12125550000"}
+    }
+  },
+  "outgoing": {
+    "type": "ALLOW_LOCAL_ONLY",
+    "transferEnabled": false
+  }
+}'
+
+# Upload a custom intercept greeting
+wxcli user-settings configure-call-intercept PERSON_ID
+```
+
+### Raw HTTP
+
+#### Read Call Intercept Settings
+
+```
+GET https://webexapis.com/v1/people/{personId}/features/intercept
+```
+
+```python
+result = api.session.rest_get(f"{BASE}/people/{person_id}/features/intercept")
+# Response:
+# {
+#   "enabled": false,
+#   "incoming": {
+#     "type": "INTERCEPT_ALL",
+#     "voicemailEnabled": false,
+#     "announcements": {
+#       "greeting": "DEFAULT",
+#       "fileName": "",
+#       "newNumber": {"enabled": false, "destination": ""},
+#       "zeroTransfer": {"enabled": false, "destination": ""}
+#     }
+#   },
+#   "outgoing": {
+#     "type": "INTERCEPT_ALL",
+#     "transferEnabled": false,
+#     "destination": ""
+#   }
+# }
+```
+
+#### Configure Call Intercept Settings
+
+```
+PUT https://webexapis.com/v1/people/{personId}/features/intercept
+```
+
+```python
+body = {
+    "enabled": True,
+    "incoming": {
+        "type": "INTERCEPT_ALL",
+        "voicemailEnabled": True,
+        "announcements": {
+            "greeting": "DEFAULT",
+            "newNumber": {"enabled": False},
+            "zeroTransfer": {"enabled": False}
+        }
+    },
+    "outgoing": {
+        "type": "INTERCEPT_ALL",
+        "transferEnabled": False
+    }
+}
+api.session.rest_put(f"{BASE}/people/{person_id}/features/intercept", json=body)
+```
+
+#### Upload Custom Intercept Greeting
+
+```
+POST https://webexapis.com/v1/people/{personId}/features/intercept/actions/announcementUpload/invoke
+```
+
+Multipart/form-data with `.wav` file. Uses `rest_post` with file upload.
+
+**Gotchas:**
+- `incoming.announcements.fileName` is read-only; do not include in PUT body.
+- `incoming.type` values: `"INTERCEPT_ALL"`, `"ALLOW_ALL"`.
+- `outgoing.type` values: `"INTERCEPT_ALL"`, `"ALLOW_LOCAL_ONLY"`.
+- The JSON key for intercept type is `type` (not `interceptType`), matching the SDK's JSON alias.
+
 ---
 
 ## 9. Monitoring
@@ -772,6 +1475,77 @@ MonitoringApi.configure(entity_id: str, settings: Monitoring, org_id: str = None
   }
   ```
 
+### CLI Examples
+
+```bash
+# Read monitoring settings for a person
+wxcli user-settings list-monitoring PERSON_ID
+
+# Read monitoring settings as JSON
+wxcli user-settings list-monitoring PERSON_ID -o json
+
+# Enable call park notification
+wxcli user-settings update-monitoring PERSON_ID --enable-call-park-notification
+
+# Disable call park notification
+wxcli user-settings update-monitoring PERSON_ID --no-enable-call-park-notification
+
+# Update monitored elements list (requires --json-body for element IDs)
+wxcli user-settings update-monitoring PERSON_ID --json-body '{
+  "enableCallParkNotification": true,
+  "monitoredElements": ["PERSON_ID_1", "PERSON_ID_2", "CPE_ID_1"]
+}'
+```
+
+### Raw HTTP
+
+#### Read Monitoring Settings
+
+```
+GET https://webexapis.com/v1/people/{personId}/features/monitoring
+```
+
+```python
+result = api.session.rest_get(f"{BASE}/people/{person_id}/features/monitoring")
+# Response:
+# {
+#   "enableCallParkNotification": true,
+#   "monitoredElements": [
+#     {
+#       "member": {
+#         "id": "person-id", "firstName": "Jane", "lastName": "Doe",
+#         "phoneNumber": "+12223334444", "extension": "1234",
+#         "locationId": "location-id"
+#       }
+#     },
+#     {
+#       "callparkextension": {
+#         "id": "cpe-id", "name": "CPE 1001", "extension": "1001"
+#       }
+#     }
+#   ]
+# }
+```
+
+#### Configure Monitoring Settings
+
+```
+PUT https://webexapis.com/v1/people/{personId}/features/monitoring
+```
+
+```python
+body = {
+    "enableCallParkNotification": True,
+    "monitoredElements": ["person-id-1", "person-id-2", "cpe-id-1"]
+}
+api.session.rest_put(f"{BASE}/people/{person_id}/features/monitoring", json=body)
+```
+
+**Gotchas:**
+- Maximum 50 monitored elements.
+- For updates, pass a flat list of IDs (person, place, or call park extension IDs). Reads return full objects with nested `member` or `callparkextension` details.
+- The JSON key for call park extensions is `callparkextension` (lowercase, no hyphen).
+
 ---
 
 ## 10. Push-to-Talk
@@ -827,6 +1601,72 @@ PushToTalkApi.configure(entity_id: str, settings: PushToTalkSettings, org_id: st
 - Members are flattened to a list of IDs before sending (extracted from `MonitoredMember.member_id` or passed as strings).
 - Serializes with `exclude_none=False` and `exclude_unset=True`, so explicitly set `None` values are preserved in the request.
 
+### CLI Examples
+
+```bash
+# Read push-to-talk settings for a person
+wxcli user-settings list-push-to-talk PERSON_ID
+
+# Read push-to-talk settings as JSON
+wxcli user-settings list-push-to-talk PERSON_ID -o json
+
+# Enable push-to-talk with auto-answer
+wxcli user-settings update-push-to-talk PERSON_ID --allow-auto-answer
+
+# Disable push-to-talk auto-answer
+wxcli user-settings update-push-to-talk PERSON_ID --no-allow-auto-answer
+
+# Full push-to-talk config with connection type and members (requires --json-body)
+wxcli user-settings update-push-to-talk PERSON_ID --json-body '{
+  "allowAutoAnswer": true,
+  "connectionType": "TWO_WAY",
+  "accessType": "ALLOW_MEMBERS",
+  "members": ["PERSON_ID_1", "PERSON_ID_2"]
+}'
+```
+
+### Raw HTTP
+
+#### Read Push-to-Talk Settings
+
+```
+GET https://webexapis.com/v1/people/{personId}/features/pushToTalk
+```
+
+```python
+result = api.session.rest_get(f"{BASE}/people/{person_id}/features/pushToTalk")
+# Response:
+# {
+#   "allowAutoAnswer": true,
+#   "connectionType": "TWO_WAY",
+#   "accessType": "ALLOW_MEMBERS",
+#   "members": [
+#     {"id": "person-id", "firstName": "Jane", "lastName": "Doe", ...}
+#   ]
+# }
+```
+
+#### Configure Push-to-Talk Settings
+
+```
+PUT https://webexapis.com/v1/people/{personId}/features/pushToTalk
+```
+
+```python
+body = {
+    "allowAutoAnswer": True,
+    "connectionType": "TWO_WAY",
+    "accessType": "ALLOW_MEMBERS",
+    "members": ["person-id-1", "person-id-2"]
+}
+api.session.rest_put(f"{BASE}/people/{person_id}/features/pushToTalk", json=body)
+```
+
+**Gotchas:**
+- `members` accepts a flat list of person IDs for updates, even though reads return full member objects.
+- `connectionType` values: `"ONE_WAY"`, `"TWO_WAY"`.
+- `accessType` values: `"ALLOW_MEMBERS"`, `"BLOCK_MEMBERS"`.
+
 ---
 
 ## 11. Music on Hold
@@ -874,6 +1714,73 @@ MusicOnHoldApi.configure(entity_id: str, settings: MusicOnHold, org_id: str = No
 
 - **Scopes:** `spark-admin:telephony_config_write`
 - **Prerequisite:** Music on hold must be enabled at the location level for the person-level setting to take effect.
+
+### CLI Examples
+
+```bash
+# Read music on hold settings for a person
+wxcli user-settings show-music-on-hold PERSON_ID
+
+# Read music on hold settings as JSON
+wxcli user-settings show-music-on-hold PERSON_ID -o json
+
+# Enable music on hold with default greeting
+wxcli user-settings update-music-on-hold PERSON_ID --moh-enabled --greeting DEFAULT
+
+# Enable music on hold with custom greeting
+wxcli user-settings update-music-on-hold PERSON_ID --moh-enabled --greeting CUSTOM
+
+# Disable music on hold
+wxcli user-settings update-music-on-hold PERSON_ID --no-moh-enabled
+
+# Full music on hold config with audio file reference (requires --json-body)
+wxcli user-settings update-music-on-hold PERSON_ID --json-body '{
+  "mohEnabled": true,
+  "greeting": "CUSTOM",
+  "audioAnnouncementFile": {"id": "ANNOUNCEMENT_FILE_ID"}
+}'
+```
+
+### Raw HTTP
+
+> **Note:** Music on Hold uses the `telephony/config/people` path, not `people/{id}/features`.
+
+#### Read Music on Hold Settings
+
+```
+GET https://webexapis.com/v1/telephony/config/people/{personId}/musicOnHold
+```
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/people/{person_id}/musicOnHold")
+# Response:
+# {
+#   "mohEnabled": true,
+#   "mohLocationEnabled": true,
+#   "greeting": "DEFAULT",
+#   "audioAnnouncementFile": {...}
+# }
+```
+
+#### Configure Music on Hold Settings
+
+```
+PUT https://webexapis.com/v1/telephony/config/people/{personId}/musicOnHold
+```
+
+```python
+body = {
+    "mohEnabled": True,
+    "greeting": "DEFAULT",
+    "audioAnnouncementFile": {"id": "announcement-file-id"}
+}
+api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/musicOnHold", json=body)
+```
+
+**Gotchas:**
+- `mohLocationEnabled` is read-only; do not include in PUT body.
+- Person-level MoH only works if MoH is also enabled at the location level (`mohLocationEnabled` must be `true`).
+- Uses `spark-admin:telephony_config_read`/`write` scopes (not `people_read`/`write`).
 
 ---
 
@@ -948,7 +1855,7 @@ Not all settings apply equally to all entity types:
 | Voicemail | Yes | Yes | Yes |
 | Caller ID | Yes | Yes | Yes |
 | Agent Caller ID | Yes | -- | Yes |
-| Anonymous Call Rejection | <!-- NEEDS VERIFICATION --> | Yes (documented) | -- |
+| Anonymous Call Rejection | No (admin `/people/{id}` endpoint does not exist; self via `/me` only) | Yes (Professional-licensed workspaces only) | -- | <!-- Verified via live API 2026-03-19 -->
 | Privacy | Yes | Yes | Yes |
 | Barge-In | Yes | Yes | Yes |
 | Call Recording | Yes | Yes | Yes |
@@ -956,6 +1863,20 @@ Not all settings apply equally to all entity types:
 | Monitoring | Yes | Yes | -- |
 | Push-to-Talk | Yes | Yes | Yes |
 | Music on Hold | Yes | Yes | Yes |
+
+---
+
+## Gotchas (Cross-Cutting)
+
+- **Read-only fields cause silent failures.** Every PUT endpoint in this group has read-only fields that must be excluded from the request body. If you include them, the API may return 400 or silently ignore the entire request. Key offenders: `greetingUploaded`, `systemMaxNumberOfRings`, `voiceMessageForwardingEnabled` (voicemail); `types`, `locationExternalCallerIdName` (caller ID); `serviceProvider`, `externalGroup`, `externalIdentifier` (call recording); `fileName` (call intercept); `mohLocationEnabled` (music on hold).
+- **Nested settings require `--json-body`.** The wxcli generator skips deeply nested object/array body fields. For voicemail (sendBusyCalls, sendUnansweredCalls, notifications, etc.), call intercept (incoming/outgoing), call recording (notification, repeat, startStopAnnouncement), monitoring (monitoredElements), push-to-talk (members), and privacy (monitoringAgents), use `--json-body` with the full JSON payload.
+- **Three different URL path patterns.** Most features use `people/{id}/features/{feature}`, but Agent Caller ID uses `telephony/config/people/{id}/agent/...`, Music on Hold uses `telephony/config/people/{id}/musicOnHold`, and Voicemail Passcode uses `telephony/config/people/{id}/voicemail/passcode`. The corresponding scopes differ too (`telephony_config_*` vs `people_*`).
+- **Scope mismatch between read and write.** Agent Caller ID uses `people_read` for listing available IDs but `telephony_config_read` for reading the current selection. Always check the specific scope required per method.
+- **Music on Hold depends on location-level setting.** Even if `mohEnabled` is `true` for a person, MoH will not play unless `mohLocationEnabled` is also `true` at the location level. The person-level API cannot change the location-level setting.
+- **`notification.type` null serialization.** Call Recording's `notification.type` returns the string `"None"` on reads but expects JSON `null` on writes. In wxcli, pass `"type": null` in `--json-body`.
+- **Anonymous Call Rejection has NO admin-level person endpoint.** Live API testing confirms that `GET /v1/people/{personId}/features/anonymousCallReject` and `GET /v1/telephony/config/people/{personId}/anonymousCallReject` both return 404. The only working paths are: (1) workspace admin: `/telephony/config/workspaces/{workspaceId}/anonymousCallReject` (requires Professional-licensed workspace, error 25409 otherwise), and (2) self-service: `/telephony/config/people/me/settings/anonymousCallReject` (requires calling-licensed user token with `spark:telephony_config_read/write`). The wxcli CLI only exposes it under `workspace-settings`, not `user-settings`. <!-- Verified via live API 2026-03-19 -->
+- **Monitoring has a 50-element maximum.** The `monitoredElements` list accepts at most 50 entries (persons, places, virtual lines, and call park extensions combined). The API does not surface this limit in error messages clearly.
+- **Members lists return objects but accept IDs.** Privacy (`monitoringAgents`), Monitoring (`monitoredElements`), and Push-to-Talk (`members`) all return full member objects on reads but accept flat lists of ID strings on writes.
 
 ---
 

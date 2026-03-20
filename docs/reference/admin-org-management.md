@@ -2,6 +2,16 @@
 
 Organizations, org settings, contacts, roles, and domain management for Webex admin operations.
 
+## Table of Contents
+
+1. [Organizations](#1-organizations)
+2. [Organization Settings](#2-organization-settings)
+3. [Organization Contacts](#3-organization-contacts)
+4. [Roles](#4-roles)
+5. [Domain Management](#5-domain-management)
+6. [Recipes](#6-recipes)
+7. [Gotchas](#7-gotchas)
+
 ## Sources
 
 - OpenAPI spec: `webex-admin.json` -- Organizations, Organization Settings, Organization Contacts, Roles, Domain Management tags
@@ -17,8 +27,8 @@ Organizations, org settings, contacts, roles, and domain management for Webex ad
 | `identity:organizations_read` | Read organization details and settings. Required for `organizations list`, `organizations show`, `org-settings show`. |
 | `identity:organizations_rw` | Write organization settings and manage domains. Required for `org-settings create`, all `domains` commands. |
 | `identity:contacts_rw` | Create, update, delete organization contacts. Required for all `org-contacts` write commands. |
-| `identity:contacts_read` | Read organization contacts. Required for `org-contacts list`, `org-contacts show`. <!-- NEEDS VERIFICATION --> |
-| (admin token) | `roles list` and `roles show` require a valid admin token. No additional scopes documented. <!-- NEEDS VERIFICATION --> |
+| `identity:contacts_read` | Read organization contacts. Required for `org-contacts list`, `org-contacts show`. Without this scope (or `identity:contacts_rw`), the API returns 403 Forbidden. A standard admin token alone is not sufficient. <!-- Verified via live API 2026-03-19: admin token without identity:contacts_read scope gets 403 --> |
+| (admin token) | `roles list` and `roles show` require a valid admin token. No additional scopes documented. <!-- Verified via OpenAPI spec (webex-admin.json): "Must be called by an admin user." No scopes listed. 2026-03-19 --> |
 | (full admin) | `organizations delete` requires full administrator privileges. |
 
 **Note:** Scope names for organizations and domains use the `identity:` prefix, not the `spark-admin:` prefix used by Calling APIs. This is a common source of 401/403 errors when reusing Calling tokens for admin operations.
@@ -79,6 +89,12 @@ curl -s -X DELETE -H "Authorization: Bearer $TOKEN" \
   "https://webexapis.com/v1/organizations/$ORG_ID"
 ```
 
+### Gotchas
+
+- **`organizations delete` is destructive and irreversible.** Deleting an organization removes all users, licenses, devices, and configuration permanently. The CLI prompts for confirmation unless `--force` is passed. There is no undo.
+
+- **`organizations list` typically returns one org.** Unless your token is a partner/MSP token with cross-org access, you will only see the single organization the token belongs to.
+
 ---
 
 ## 2. Organization Settings
@@ -134,6 +150,12 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" \
   -d '{"key": "callingBehavior", "value": true}' \
   "https://webexapis.com/v1/settings/organizations/$ORG_ID/settings"
 ```
+
+### Gotchas
+
+- **`org-settings create` is POST-as-upsert.** Despite the command name `create`, this endpoint creates the setting if it does not exist or updates it if it already does. There is no separate `update` command. The HTTP method is POST, not PUT or PATCH.
+
+- **`org-settings show` value type.** The `--value/--no-value` flag on `org-settings create` only supports boolean settings. The OpenAPI schema (`updateOrgSettingObject`) defines the `value` field as `type: boolean`. For any non-boolean values, use `--json-body`. <!-- Verified via OpenAPI spec (webex-admin.json): updateOrgSettingObject schema defines value as type:boolean. 2026-03-19 -->
 
 ---
 
@@ -288,6 +310,14 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" \
   "https://webexapis.com/v1/contacts/organizations/$ORG_ID/contacts/bulk/delete"
 ```
 
+### Gotchas
+
+- **`org-contacts list` uses a search endpoint.** The list command hits `/contacts/search`, not a plain list endpoint. Without any filters (`--keyword`, `--source`), it returns all contacts, but the response key is `result`, not `items`. The CLI handles this automatically. <!-- Verified via source code 2026-03-19 -->
+
+- **`org-contacts create` requires `--schemas` and `--source`.** Both are mandatory. The schema value is always `"urn:cisco:codev:identity:contact:core:1.0"`. Source must be `CH` (Control Hub) or `Webex4Broadworks`.
+
+- **Bulk operations (`create-bulk`, `create-delete`) require `--json-body`.** The CLI flags for these commands only accept `--schemas`. The actual contact list or contact ID list must be passed via `--json-body` with the full JSON payload.
+
 ---
 
 ## 4. Roles
@@ -441,6 +471,12 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" \
   "https://webexapis.com/v1/identity/organizations/$ORG_ID/actions/unclaimDomain" | jq .
 ```
 
+### Gotchas
+
+- **Domain commands are all POST, not GET/PUT/DELETE.** Every domain management command uses POST to an action-style URL (e.g., `/actions/verifyDomain`). This is an RPC-style API, not REST-style.
+
+- **DNS propagation delay.** After adding the TXT record for domain verification, allow time for DNS propagation before calling `verify-domain`. If verification fails, wait and retry -- it can take up to 48 hours in worst cases. The OpenAPI spec documents two errors: 400 ("The domain can't be verified. This error happens if the user didn't request a token before trying to verify the domain") and 409 ("The domain has already been claimed by another organization"). The `verify-domain` endpoint requires `identity:organizations_rw` scope; without it, the API returns 401 with error code 200003 ("Sorry, you don't have sufficient privileges"). The exact error body for DNS-not-yet-propagated (as distinct from the 400 "didn't request a token" error) could not be tested without a real domain setup. <!-- Partially verified via live API 2026-03-19: confirmed 401/200003 without identity:organizations_rw scope. DNS propagation error body still unverified — would require adding a real domain TXT record -->
+
 ---
 
 ## 6. Recipes
@@ -538,25 +574,9 @@ wxcli organizations show $ORG_ID -o json
 
 ## 7. Gotchas
 
-- **`org-settings create` is POST-as-upsert.** Despite the command name `create`, this endpoint creates the setting if it does not exist or updates it if it already does. There is no separate `update` command. The HTTP method is POST, not PUT or PATCH.
-
-- **`organizations delete` is destructive and irreversible.** Deleting an organization removes all users, licenses, devices, and configuration permanently. The CLI prompts for confirmation unless `--force` is passed. There is no undo.
+Cross-cutting gotchas that apply across multiple sections. Section-specific gotchas are inline above.
 
 - **Scope confusion: `identity:` vs `spark-admin:`.** Organization, settings, contacts, and domain APIs use `identity:*` scopes (e.g., `identity:organizations_read`). Webex Calling APIs use `spark-admin:*` scopes. A token with only `spark-admin:` scopes will get 401/403 on organization management endpoints. Verify your integration or service app has the correct `identity:` scopes.
-
-- **`org-contacts list` uses a search endpoint.** The list command hits `/contacts/search`, not a plain list endpoint. Without any filters (`--keyword`, `--source`), it returns all contacts, but the response key is `result`, not `items`. The CLI handles this automatically. <!-- Verified via source code 2026-03-19 -->
-
-- **`org-contacts create` requires `--schemas` and `--source`.** Both are mandatory. The schema value is always `"urn:cisco:codev:identity:contact:core:1.0"`. Source must be `CH` (Control Hub) or `Webex4Broadworks`.
-
-- **Bulk operations (`create-bulk`, `create-delete`) require `--json-body`.** The CLI flags for these commands only accept `--schemas`. The actual contact list or contact ID list must be passed via `--json-body` with the full JSON payload.
-
-- **Domain commands are all POST, not GET/PUT/DELETE.** Every domain management command uses POST to an action-style URL (e.g., `/actions/verifyDomain`). This is an RPC-style API, not REST-style.
-
-- **DNS propagation delay.** After adding the TXT record for domain verification, allow time for DNS propagation before calling `verify-domain`. If verification fails, wait and retry -- it can take up to 48 hours in worst cases. <!-- NEEDS VERIFICATION: exact error returned on premature verification attempt -->
-
-- **`org-settings show` value type.** The `--value/--no-value` flag on `org-settings create` only supports boolean settings. For string or complex values, use `--json-body`. <!-- NEEDS VERIFICATION: does the API support non-boolean settings via the simple key/value interface? -->
-
-- **`organizations list` typically returns one org.** Unless your token is a partner/MSP token with cross-org access, you will only see the single organization the token belongs to.
 
 ---
 

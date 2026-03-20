@@ -2,6 +2,11 @@
 
 Reference for Webex messaging infrastructure management. Covers the 40 commands across 7 CLI groups that an IT admin or space manager uses to create and manage spaces, messages, memberships, teams, and enterprise content. Sourced from the Webex Messaging API (OpenAPI spec: `webex-messaging.json`).
 
+## Sources
+
+- OpenAPI spec: `webex-messaging.json`
+- [developer.webex.com Messaging APIs](https://developer.webex.com/docs/api/v1/messages)
+
 ---
 
 ## Token Type Matrix
@@ -470,9 +475,7 @@ Same parameters as create, all optional. Pass only the fields you want to change
 
 ### Required Scopes
 
-<!-- NEEDS VERIFICATION: Confirm exact required OAuth scopes for ECM endpoints. -->
-
-ECM operations require an admin token with `spark-admin:` scopes. Standard user tokens are insufficient.
+ECM operations require an admin token with standard `spark-admin:` scopes (e.g., `spark-admin:rooms_read`). No special ECM-specific scopes are needed -- the `/room/linkedFolders` endpoint works with a full admin token using standard room scopes. Standard user tokens are insufficient. <!-- Verified via live API 2026-03-19 -->
 
 ### Raw HTTP
 
@@ -506,7 +509,7 @@ api.session.rest_delete(f"{BASE}/room/linkedFolders/{folder_id}")
 - **`--display-name` should match the actual folder name in the ECM backend** to avoid confusion for end users.
 - **Unlinking a folder removes the link but does not delete the files** in SharePoint/OneDrive.
 
-<!-- NEEDS VERIFICATION: Confirm whether ECM supports Box in addition to SharePoint/OneDrive, and confirm the exact format of --content-url for each provider. -->
+**ECM provider support:** The OpenAPI spec and schema definitions reference only Microsoft SharePoint and OneDrive. The `driveId` and `itemId` fields are described as "Sharepoint or OneDrive" identifiers collected via the MS Graph API, and all examples use `sharepoint.com` URLs. Box is not supported as an ECM provider for folder linking. <!-- Verified via OpenAPI spec (webex-messaging.json) 2026-03-19 -->
 
 ---
 
@@ -581,7 +584,7 @@ avail = api.session.rest_get(f"{BASE}/clusters/{cluster_id}/availability",
 - **Requires admin token.** HDS monitoring is not available via user or bot tokens.
 - **IDs are required positional arguments** for all `hds` commands (e.g., `hds show ORG_ID`, `hds show-clusters CLUSTER_ID`). The org ID is available from `wxcli organizations list`.
 
-<!-- NEEDS VERIFICATION: Confirm whether HDS API requires a specific admin role beyond full admin, such as Compliance Officer or Security role. -->
+HDS endpoints work with a standard full admin token -- no special admin role (e.g., Compliance Officer) is required. The `/hybrid/clusters` endpoint returns 200 with a full admin token. <!-- Verified via live API 2026-03-19 -->
 
 ---
 
@@ -589,7 +592,7 @@ avail = api.session.rest_get(f"{BASE}/clusters/{cluster_id}/availability",
 
 All messaging commands support `--output json|table`. Use `--output json` for scripting and piping results to other tools.
 
-<!-- NEEDS VERIFICATION: Confirm messaging API rate limits. Webex messaging APIs typically enforce ~5 requests/second for bot tokens with exponential backoff. When bulk-creating spaces or adding members, use `sleep 1` between operations for safety. -->
+<!-- NEEDS VERIFICATION: Specific numeric rate limits (~5 req/s for bot tokens) not yet confirmed via live testing. The OpenAPI spec confirms 429 responses with Retry-After headers but does not document per-token-type rates. Safely testing rate limits requires a bot token and rapid-fire requests, which risks temporary throttling. Skipped for now. -->
 
 ### Bulk Create Spaces from a List
 
@@ -664,6 +667,24 @@ for m in members:
         print(m['id'])
 "
 ```
+
+---
+
+## Gotchas (Cross-Cutting)
+
+These issues span multiple messaging API surfaces. Check per-section Gotchas for endpoint-specific notes.
+
+1. **Rate limits apply across all messaging endpoints.** Bot tokens have lower rate limits than user/admin tokens (exact numbers not officially documented — honor `Retry-After` headers). When bulk-creating spaces, adding members, or sending messages in a loop, add a short delay (e.g., `sleep 1`) between operations. A 429 response includes a `Retry-After` header — always honor it.
+
+2. **Pagination is cursor-based, not offset-based.** All `list` commands use `items` arrays with `Link` headers for the next page. The CLI handles pagination internally via `--max` (API page size) and `--limit` (total result cap). For raw HTTP, follow the `Link: <url>; rel="next"` header to walk through pages.
+
+3. **Membership sync delays on team operations.** Adding a member to a team auto-adds them to all team spaces, but the space-level membership may take a few seconds to propagate. If you add a team member and immediately try to post a message as that user in a team space, the message may fail with 403 until the membership propagates.
+
+4. **Bot vs user vs admin token capabilities differ significantly.** See the Token Type Matrix at the top of this doc before every operation. Bots cannot manage teams. Admins cannot send messages (only list via compliance). Users cannot perform ECM or HDS operations.
+
+5. **Direct (1:1) spaces have special behavior.** They cannot be deleted, cannot be renamed (title is derived from participant names), and are auto-created when you send a message via `--to-person-email` or `--to-person-id`. There is no explicit "create direct space" operation.
+
+6. **IDs are Base64-encoded and org-scoped.** All Webex resource IDs (room, person, membership, team) are long Base64 strings. They are not transferable between orgs. When scripting, always resolve IDs dynamically rather than hardcoding them.
 
 ---
 

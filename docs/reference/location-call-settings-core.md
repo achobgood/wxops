@@ -1,5 +1,10 @@
 # Location Call Settings — Core Settings & Voicemail
 
+## Sources
+- wxc_sdk v1.30.0
+- OpenAPI spec: webex-cloud-calling.json
+- developer.webex.com Location Call Settings APIs
+
 Reference document covering the SDK APIs for location-level call settings, voicemail policies (location and org), voicemail rules, voice messaging, and voice portal configuration.
 
 **SDK source module:** `wxc_sdk.telephony.location` (and related telephony modules)
@@ -187,6 +192,38 @@ api.telephony.location.update(
 
 **Note:** Modifying `connection` is only supported for local PSTN types `TRUNK` and `ROUTE_GROUP`.
 
+#### CLI Examples
+
+```bash
+# List all locations with Webex Calling details
+wxcli location-settings list-1
+
+# List locations filtered by name
+wxcli location-settings list-1 --name "San Jose"
+
+# Get calling details for a specific location
+wxcli location-settings show Y2lzY29zcGFyazovL...
+
+# Enable a location for Webex Calling
+wxcli location-settings create \
+  --id Y2lzY29zcGFyazovL... \
+  --name "San Jose HQ" \
+  --time-zone "America/Los_Angeles" \
+  --preferred-language "en_us" \
+  --announcement-language "en_us"
+
+# Update location calling details (outside dial digit, routing prefix)
+wxcli location-settings update Y2lzY29zcGFyazovL... \
+  --outside-dial-digit "9" \
+  --enforce-outside-dial-digit \
+  --routing-prefix "8001" \
+  --external-caller-id-name "Acme Corp"
+
+# Update location with JSON body for complex settings
+wxcli location-settings update Y2lzY29zcGFyazovL... \
+  --json-body '{"announcementLanguage": "en_us", "chargeNumber": "+14085551234"}'
+```
+
 ---
 
 ### Caller ID
@@ -253,6 +290,22 @@ def update(
 
 **Scope:** `spark-admin:telephony_config_write`
 
+#### CLI Examples
+
+```bash
+# Read internal dialing configuration for a location
+wxcli location-call-handling show Y2lzY29zcGFyazovL...
+
+# Enable routing of unknown extensions to a trunk
+wxcli location-call-handling update Y2lzY29zcGFyazovL... \
+  --enable-unknown-extension-route-policy \
+  --json-body '{"unknownExtensionRouteIdentity": {"id": "TRUNK_ID", "type": "TRUNK"}}'
+
+# Disable unknown extension routing
+wxcli location-call-handling update Y2lzY29zcGFyazovL... \
+  --no-enable-unknown-extension-route-policy
+```
+
 ---
 
 ### Call Intercept
@@ -305,6 +358,26 @@ def call_intercept_available_phone_numbers(
 
 **Scope:** `spark-admin:telephony_config_read`
 
+#### CLI Examples
+
+```bash
+# Read call intercept settings for a location
+wxcli location-call-handling show-intercept Y2lzY29zcGFyazovL...
+
+# Enable call intercept for all users at a location
+wxcli location-call-handling update-intercept Y2lzY29zcGFyazovL... --enabled
+
+# Enable intercept with voicemail routing via JSON body
+wxcli location-call-handling update-intercept Y2lzY29zcGFyazovL... \
+  --json-body '{"enabled": true, "incoming": {"type": "INTERCEPT_ALL", "voicemailEnabled": true}}'
+
+# Disable call intercept
+wxcli location-call-handling update-intercept Y2lzY29zcGFyazovL... --no-enabled
+
+# List available phone numbers for call intercept
+wxcli location-settings list-available-numbers-call-intercept Y2lzY29zcGFyazovL...
+```
+
 ---
 
 ### Music on Hold
@@ -354,6 +427,21 @@ def update(
 ```
 
 **Scope:** `spark-admin:telephony_config_write`
+
+#### CLI Examples
+
+```bash
+# Read music on hold settings for a location
+wxcli location-settings show-music-on-hold Y2lzY29zcGFyazovL...
+
+# Enable music on hold with system greeting
+wxcli location-settings update-music-on-hold Y2lzY29zcGFyazovL... \
+  --moh-enabled --greeting DEFAULT
+
+# Switch to custom greeting
+wxcli location-settings update-music-on-hold Y2lzY29zcGFyazovL... \
+  --moh-enabled --greeting CUSTOM
+```
 
 ---
 
@@ -485,6 +573,25 @@ def ecbn_available_phone_numbers(
 | `location_member_info` | `LocationECBNLocationMember` | Member-level ECBN data (phone_number, first/last name, member_id, member_type, effective_level, effective_value, quality) |
 | `selected` | `CallBackSelected` | Which number type is selected |
 
+#### CLI Examples
+
+```bash
+# Read ECBN settings for a location
+wxcli location-settings show-emergency-callback-number Y2lzY29zcGFyazovL...
+
+# Update ECBN to use the location's main number
+wxcli location-settings update-emergency-callback-number Y2lzY29zcGFyazovL... \
+  --json-body '{"selected": "LOCATION_NUMBER"}'
+
+# Update ECBN to use a specific member's number
+wxcli location-settings update-emergency-callback-number Y2lzY29zcGFyazovL... \
+  --location-member-id MEMBER_ID \
+  --json-body '{"selected": "LOCATION_MEMBER_NUMBER", "locationMemberId": "MEMBER_ID"}'
+
+# List available ECBN phone numbers
+wxcli location-settings list-available-numbers-emergency-callback-number Y2lzY29zcGFyazovL...
+```
+
 ---
 
 ### Announcement Language
@@ -512,6 +619,16 @@ def change_announcement_language(
 
 **Scope:** `spark-admin:telephony_config_write`
 
+#### CLI Examples
+
+```bash
+# Change announcement language for existing people and features at a location
+wxcli location-settings change-announcement-language Y2lzY29zcGFyazovL... \
+  --announcement-language-code "en_us" \
+  --agent-enabled true \
+  --service-enabled true
+```
+
 ---
 
 ### Call Captions
@@ -526,7 +643,7 @@ def change_announcement_language(
 | `org_transcripts_enabled` | `bool` | Org-level transcripts (read-only) |
 | `use_org_settings_enabled` | `bool` | `True` = org settings override location settings |
 
-**Note:** Not supported for locations in India. <!-- NEEDS VERIFICATION: exact country restrictions -->
+**Note:** Not supported for locations in India. <!-- Verified via wxc_sdk source (location/__init__.py docstring) 2026-03-19 -->
 
 #### `get_call_captions_settings`
 
@@ -550,6 +667,23 @@ def update_call_captions_settings(
 ```
 
 Only location-level fields and `use_org_settings_enabled` are sent on update; org-level fields are excluded.
+
+#### CLI Examples
+
+```bash
+# Read call captions settings for a location
+wxcli location-settings show-call-captions Y2lzY29zcGFyazovL...
+
+# Enable location-level closed captions and transcripts
+wxcli location-settings update-call-captions Y2lzY29zcGFyazovL... \
+  --location-closed-captions-enabled \
+  --location-transcripts-enabled \
+  --no-use-org-settings-enabled
+
+# Use org-level settings instead of location overrides
+wxcli location-settings update-call-captions Y2lzY29zcGFyazovL... \
+  --use-org-settings-enabled
+```
 
 ---
 
@@ -596,6 +730,13 @@ def safe_delete_check_before_disabling_calling_location(
 
 **Scope:** `spark-admin:telephony_config_read`
 
+#### CLI Examples
+
+```bash
+# Check if a location can be safely disabled for calling
+wxcli location-settings safe-delete-check Y2lzY29zcGFyazovL...
+```
+
 ---
 
 ### Extension Validation & Password Generation
@@ -629,6 +770,411 @@ def generate_password(
 **Returns:** The generated example SIP password string.
 
 **Scope:** `spark-admin:telephony_config_write`
+
+#### CLI Examples
+
+```bash
+# Validate extensions at a location
+wxcli location-settings validate-extensions Y2lzY29zcGFyazovL... \
+  --json-body '{"extensions": ["1000", "1001", "1002"]}'
+
+# Generate an example SIP password for a location
+wxcli location-call-handling generate-example-password Y2lzY29zcGFyazovL...
+```
+
+---
+
+### Raw HTTP
+<!-- Updated by playbook session 2026-03-18 -->
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()  # auth via WEBEX_ACCESS_TOKEN env var
+BASE = "https://webexapis.com/v1"
+```
+
+All location-level call settings use raw HTTP via `api.session.rest_*()` methods. Full URLs are required. No auto-pagination -- pass `max=1000` for list endpoints. Responses are JSON dicts. Errors raise `RestError`.
+
+#### Location Calling Config (List / Get / Enable / Update)
+
+**List locations with calling details:**
+```python
+params = {"max": 1000}
+result = api.session.rest_get(f"{BASE}/telephony/config/locations", params=params)
+locations = result.get("locations", [])
+# Each item: {"id", "name", "announcementLanguage", "callingLineId", "connection", ...}
+```
+
+**Get a single location's calling details:**
+```python
+loc = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}")
+```
+
+**Enable a location for calling:**
+```python
+body = {
+    "id": location_id,          # existing location ID from Locations API
+    "name": "San Jose HQ",
+    "timeZone": "America/Los_Angeles",
+    "preferredLanguage": "en_us",
+    "announcementLanguage": "en_us"
+}
+result = api.session.rest_post(f"{BASE}/telephony/config/locations", json=body)
+```
+
+**Update location calling details:**
+```python
+body = {
+    "announcementLanguage": "en_us",
+    "outsideDialDigit": "9",
+    "enforceOutsideDialDigit": True,
+    "routingPrefix": "8001",
+    "externalCallerIdName": "Acme Corp"
+}
+api.session.rest_put(f"{BASE}/telephony/config/locations/{loc_id}", json=body)
+# Returns batchJobId if async update, otherwise None
+```
+
+#### Internal Dialing
+
+**Read internal dialing settings:**
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/internalDialing")
+# {"enableUnknownExtensionRoutePolicy": bool, "unknownExtensionRouteIdentity": {...}}
+```
+
+**Update internal dialing:**
+```python
+body = {
+    "enableUnknownExtensionRoutePolicy": True,
+    "unknownExtensionRouteIdentity": {"id": trunk_id, "type": "TRUNK"}
+}
+api.session.rest_put(f"{BASE}/telephony/config/locations/{loc_id}/internalDialing", json=body)
+```
+
+#### Call Intercept
+
+**Read call intercept:**
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/intercept")
+```
+
+**Update call intercept:**
+```python
+body = {"enabled": True, "incoming": {"type": "INTERCEPT_ALL", "voicemailEnabled": True}}
+api.session.rest_put(f"{BASE}/telephony/config/locations/{loc_id}/intercept", json=body)
+```
+
+**Available intercept phone numbers:**
+```python
+result = api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{loc_id}/callIntercept/availableNumbers",
+    params={"max": 1000}
+)
+numbers = result.get("availableNumbers", [])
+```
+
+#### Music on Hold
+
+**Read MoH settings:**
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/musicOnHold")
+# {"mohEnabled": bool, "greeting": "SYSTEM"|"CUSTOM", "audioFile": {...}, "playlist": {...}}
+```
+
+**Update MoH:**
+```python
+body = {"mohEnabled": True, "greeting": "SYSTEM"}
+api.session.rest_put(f"{BASE}/telephony/config/locations/{loc_id}/musicOnHold", json=body)
+```
+
+#### Emergency Callback Number (ECBN)
+
+**Read ECBN:**
+```python
+result = api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{loc_id}/features/emergencyCallbackNumber"
+)
+```
+
+**Update ECBN:**
+```python
+body = {"selected": "LOCATION_NUMBER"}
+# Or: {"selected": "LOCATION_MEMBER_NUMBER", "locationMemberId": member_id}
+api.session.rest_put(
+    f"{BASE}/telephony/config/locations/{loc_id}/features/emergencyCallbackNumber", json=body
+)
+```
+
+**ECBN available phone numbers:**
+```python
+result = api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{loc_id}/emergencyCallbackNumber/availableNumbers",
+    params={"max": 1000}
+)
+```
+
+#### Announcement Language
+
+**Change announcement language for existing entities at a location:**
+```python
+body = {
+    "announcementLanguageCode": "en_us",
+    "agentEnabled": True,       # change for people/workspaces
+    "serviceEnabled": True      # change for features (AA, CQ, etc.)
+}
+api.session.rest_post(
+    f"{BASE}/telephony/config/locations/{loc_id}/actions/modifyAnnouncementLanguage/invoke",
+    json=body
+)
+```
+
+> **Gotcha:** Use lowercase language codes (`en_us`, not `en_US`). The API rejects uppercase variants. Also, `announcementLanguage` may return `None` even when set -- this is a known API quirk.
+
+#### Call Captions
+
+**Read call captions settings:**
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/callCaptions")
+# {"locationClosedCaptionsEnabled", "locationTranscriptsEnabled",
+#  "orgClosedCaptionsEnabled", "orgTranscriptsEnabled", "useOrgSettingsEnabled"}
+```
+
+**Update call captions:**
+```python
+body = {
+    "locationClosedCaptionsEnabled": True,
+    "locationTranscriptsEnabled": True,
+    "useOrgSettingsEnabled": False
+}
+api.session.rest_put(f"{BASE}/telephony/config/locations/{loc_id}/callCaptions", json=body)
+```
+
+#### Device Settings
+
+**Read location device overrides:**
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/devices/settings")
+```
+
+#### Safe Delete Check
+
+**Check if location can be safely disabled:**
+```python
+result = api.session.rest_post(
+    f"{BASE}/telephony/config/locations/{loc_id}/actions/precheckForDeletion/invoke", json={}
+)
+# {"locationDeleteStatus": "BLOCKED"|"UNBLOCKED"|"FORCE_REQUIRED", "blocking": {...}, ...}
+```
+
+**Disable a calling location (async job):**
+```python
+body = {"locationId": loc_id, "locationName": "San Jose HQ", "forceDelete": False}
+result = api.session.rest_post(
+    f"{BASE}/telephony/config/jobs/locations/deleteCallingLocation", json=body
+)
+job_id = result.get("id")
+```
+
+**Job management:**
+```python
+# List jobs
+api.session.rest_get(f"{BASE}/telephony/config/jobs/locations/deleteCallingLocation")
+# Get job status
+api.session.rest_get(f"{BASE}/telephony/config/jobs/locations/deleteCallingLocation/{job_id}")
+# Get job errors
+api.session.rest_get(f"{BASE}/telephony/config/jobs/locations/deleteCallingLocation/{job_id}/errors")
+# Pause job
+api.session.rest_post(f"{BASE}/telephony/config/jobs/locations/deleteCallingLocation/{job_id}/actions/pause/invoke", json={})
+# Resume job
+api.session.rest_post(f"{BASE}/telephony/config/jobs/locations/deleteCallingLocation/{job_id}/actions/resume/invoke", json={})
+```
+
+#### CLI Examples — Disable Calling Location Jobs
+
+```bash
+# Safe delete check before disabling a location
+wxcli location-settings safe-delete-check Y2lzY29zcGFyazovL...
+
+# Disable a calling location
+wxcli location-settings create-delete-calling-location \
+  --location-id Y2lzY29zcGFyazovL... \
+  --location-name "San Jose HQ"
+
+# Force-disable a calling location (when features like trunks exist)
+wxcli location-settings create-delete-calling-location \
+  --location-id Y2lzY29zcGFyazovL... \
+  --location-name "San Jose HQ" \
+  --force-delete
+
+# List disable calling location jobs
+wxcli location-settings list-delete-calling-location
+
+# Get disable calling location job status
+wxcli location-settings show-delete-calling-location JOB_ID
+
+# Get job errors
+wxcli location-settings list-errors JOB_ID
+
+# Pause a job
+wxcli location-settings pause-a-disable JOB_ID
+
+# Resume a paused job
+wxcli location-settings resume-a-paused JOB_ID
+```
+
+#### Extension Validation
+
+**Validate extensions at a location:**
+```python
+body = {"extensions": ["1000", "1001", "1002"]}
+result = api.session.rest_post(
+    f"{BASE}/telephony/config/locations/{loc_id}/actions/validateExtensions/invoke", json=body
+)
+```
+
+**Validate extensions org-wide:**
+```python
+body = {"extensions": ["1000", "1001"]}
+result = api.session.rest_post(
+    f"{BASE}/telephony/config/actions/validateExtensions/invoke", json=body
+)
+```
+
+#### Private Network Connect
+
+**Read PNC settings:**
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/privateNetworkConnect")
+```
+
+**Update PNC settings:**
+```python
+body = {"networkConnectionType": "PRIVATE_NETWORK"}
+api.session.rest_put(f"{BASE}/telephony/config/locations/{loc_id}/privateNetworkConnect", json=body)
+```
+
+#### CLI Examples — Private Network Connect
+
+```bash
+# Read private network connect settings
+wxcli location-settings show-private-network-connect Y2lzY29zcGFyazovL...
+
+# Update private network connect
+wxcli location-settings update-private-network-connect Y2lzY29zcGFyazovL... \
+  --json-body '{"networkConnectionType": "PRIVATE_NETWORK"}'
+```
+
+#### Routing Prefix Jobs
+
+**List update routing prefix jobs:**
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/jobs/updateRoutingPrefix")
+```
+
+**Get job status / errors:**
+```python
+api.session.rest_get(f"{BASE}/telephony/config/jobs/updateRoutingPrefix/{job_id}")
+api.session.rest_get(f"{BASE}/telephony/config/jobs/updateRoutingPrefix/{job_id}/errors")
+```
+
+#### Available Phone Numbers
+
+Several endpoints return available phone numbers for different purposes. All follow the same pattern:
+
+| Purpose | URL path |
+|---------|----------|
+| External Caller ID | `telephony/config/locations/{locId}/externalCallerId/availableNumbers` |
+| Location main number | `telephony/config/locations/{locId}/availableNumbers` |
+| Webex Go | `telephony/config/locations/{locId}/webexGo/availableNumbers` |
+| ECBN | `telephony/config/locations/{locId}/emergencyCallbackNumber/availableNumbers` |
+| Call Intercept | `telephony/config/locations/{locId}/callIntercept/availableNumbers` |
+| Charge Number | `telephony/config/locations/{locId}/chargeNumber/availableNumbers` |
+| Route Choices | `telephony/config/routeChoices` |
+
+All accept `max`, `start`, `phoneNumber`, `ownerName` query params (availability varies by endpoint).
+
+#### CLI Examples — Available Phone Numbers
+
+```bash
+# List phone numbers available for external caller ID
+wxcli location-settings list-available-numbers-external-caller-id Y2lzY29zcGFyazovL...
+
+# List available phone numbers for a location's main number
+wxcli location-settings list-available-numbers-locations Y2lzY29zcGFyazovL...
+
+# List Webex Go available phone numbers
+wxcli location-settings list-available-numbers-webex-go Y2lzY29zcGFyazovL...
+
+# List available charge numbers
+wxcli location-settings list-available-numbers-charge-number Y2lzY29zcGFyazovL...
+
+# List route choices
+wxcli location-settings list-route-choices
+```
+
+#### Receptionist Contact Directories
+
+**Create directory:**
+```python
+body = {"name": "Front Desk Contacts", "contacts": [{"id": person_id}]}
+result = api.session.rest_post(
+    f"{BASE}/telephony/config/locations/{loc_id}/receptionistContacts/directories", json=body
+)
+new_id = result.get("id")
+```
+
+**List directories:**
+```python
+result = api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{loc_id}/receptionistContacts/directories"
+)
+dirs = result.get("directories", [])
+```
+
+**Get directory details:**
+```python
+result = api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{loc_id}/receptionistContacts/directories/{dir_id}"
+)
+```
+
+**Update directory (full replacement):**
+```python
+body = {"name": "Updated Name", "contacts": [{"id": person_id_1}, {"id": person_id_2}]}
+api.session.rest_put(
+    f"{BASE}/telephony/config/locations/{loc_id}/receptionistContacts/directories/{dir_id}",
+    json=body
+)
+```
+
+**Delete directory:**
+```python
+api.session.rest_delete(
+    f"{BASE}/telephony/config/locations/{loc_id}/receptionistContacts/directories/{dir_id}"
+)
+```
+
+#### CLI Examples — Receptionist Contact Directories
+
+```bash
+# List receptionist contact directories for a location
+wxcli location-settings list-directories Y2lzY29zcGFyazovL...
+
+# Get details for a specific directory
+wxcli location-settings show-directories Y2lzY29zcGFyazovL... --json-body '...'
+
+# Create a new receptionist contact directory
+wxcli location-settings create-directories Y2lzY29zcGFyazovL... \
+  --json-body '{"name": "Front Desk Contacts", "contacts": [{"id": "PERSON_ID"}]}'
+
+# Update a directory (full replacement of contacts)
+wxcli location-settings update-directories Y2lzY29zcGFyazovL... \
+  --json-body '{"name": "Updated Name", "contacts": [{"id": "PERSON_ID_1"}, {"id": "PERSON_ID_2"}]}'
+
+# Delete a receptionist contact directory
+wxcli location-settings delete Y2lzY29zcGFyazovL...
+```
 
 ---
 
@@ -690,7 +1236,7 @@ def delete_receptionist_contact_directory(location_id, directory_id, org_id=None
 def modify_receptionist_contact_directory(location_id, directory_id, name, contacts, org_id=None) -> str
 ```
 
-Note: `modify` performs a **full replacement** of the contacts list (not incremental). The details API has a limit of 2000 users/features per location. <!-- NEEDS VERIFICATION: exact error code 25395 threshold -->
+Note: `modify` performs a **full replacement** of the contacts list (not incremental). The details API is supported for orgs with fewer than 2000 users or location-based calling features; orgs exceeding this threshold get error 25395. <!-- Verified via wxc_sdk source (location/__init__.py docstring) 2026-03-19 -->
 
 ---
 
@@ -735,11 +1281,41 @@ def update(
 
 **Scope:** `spark-admin:telephony_config_write`
 
+#### CLI Examples
+
+```bash
+# Read location voicemail settings
+wxcli location-voicemail show Y2lzY29zcGFyazovL...
+
+# Enable voicemail transcription for a location
+wxcli location-voicemail update Y2lzY29zcGFyazovL... --voicemail-transcription-enabled
+
+# Disable voicemail transcription
+wxcli location-voicemail update Y2lzY29zcGFyazovL... --no-voicemail-transcription-enabled
+```
+
+---
+
+### Raw HTTP — Location Voicemail
+<!-- Updated by playbook session 2026-03-18 -->
+
+**Read location voicemail settings:**
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/voicemail")
+# {"voicemailTranscriptionEnabled": bool}
+```
+
+**Update location voicemail:**
+```python
+body = {"voicemailTranscriptionEnabled": True}
+api.session.rest_put(f"{BASE}/telephony/config/locations/{loc_id}/voicemail", json=body)
+```
+
 ---
 
 ### Organisation Voicemail Settings
 
-**API path:** `api.telephony.organisation_voicemail` <!-- NEEDS VERIFICATION: exact attribute name on the telephony API -->
+**API path:** `api.telephony.organisation_voicemail` <!-- Verified via wxc_sdk telephony/__init__.py 2026-03-19 -->
 
 **Source:** `wxc_sdk.telephony.organisation_vm`
 
@@ -789,9 +1365,32 @@ def update(
 
 ---
 
+### Raw HTTP — Organisation Voicemail
+<!-- Updated by playbook session 2026-03-18 -->
+
+**Read org voicemail settings:**
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/voicemail/settings")
+# {"messageExpiryEnabled", "numberOfDaysForMessageExpiry", "strictDeletionEnabled",
+#  "voiceMessageForwardingEnabled"}
+```
+
+**Update org voicemail settings:**
+```python
+body = {
+    "messageExpiryEnabled": True,
+    "numberOfDaysForMessageExpiry": 30,
+    "strictDeletionEnabled": False,
+    "voiceMessageForwardingEnabled": True
+}
+api.session.rest_put(f"{BASE}/telephony/config/voicemail/settings", json=body)
+```
+
+---
+
 ## 3. Voicemail Rules (Org-Level Passcode Policy)
 
-**API path:** `api.telephony.voicemail_rules` <!-- NEEDS VERIFICATION: exact attribute name on the telephony API -->
+**API path:** `api.telephony.voicemail_rules` <!-- Verified via wxc_sdk telephony/__init__.py 2026-03-19 -->
 
 **Source:** `wxc_sdk.telephony.vm_rules`
 
@@ -901,9 +1500,35 @@ def update(
 
 ---
 
+### Raw HTTP — Voicemail Rules
+<!-- Updated by playbook session 2026-03-18 -->
+
+**Read org voicemail passcode rules:**
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/voicemail/rules")
+# {"defaultVoicemailPinRules": {...}, "expirePasscode": {...},
+#  "changePasscode": {...}, "blockPreviousPasscodes": {...}}
+```
+
+**Update org voicemail rules:**
+```python
+body = {
+    "defaultVoicemailPinEnabled": True,
+    "defaultVoicemailPin": "654321",
+    "expirePasscode": {"enabled": True, "numberOfDays": 90},
+    "changePasscode": {"enabled": False, "numberOfDays": 1},
+    "blockPreviousPasscodes": {"enabled": True, "numberOfPasscodes": 5}
+}
+api.session.rest_put(f"{BASE}/telephony/config/voicemail/rules", json=body)
+```
+
+> **Gotcha:** The `defaultVoicemailPinRules` field is **read-only** and excluded from update payloads. Set default PINs via the top-level `defaultVoicemailPinEnabled` and `defaultVoicemailPin` fields instead.
+
+---
+
 ## 4. Voice Messaging (User-Level)
 
-**API path:** `api.telephony.voice_messaging` <!-- NEEDS VERIFICATION: exact attribute name -->
+**API path:** `api.telephony.voice_messaging` <!-- Verified via wxc_sdk telephony/__init__.py 2026-03-19 -->
 
 **Source:** `wxc_sdk.telephony.voice_messaging`
 
@@ -1003,9 +1628,39 @@ Mark a specific message (or all messages) as unread. **Scope:** `spark:calls_wri
 
 ---
 
+### Raw HTTP — Voice Messaging
+<!-- Updated by playbook session 2026-03-18 -->
+
+Voice messaging is user-scoped (not admin). Uses `spark:calls_read` and `spark:calls_write` scopes.
+
+**Get voicemail summary:**
+```python
+result = api.session.rest_get(f"{BASE}/telephony/voiceMessages/summary")
+# {"newMessages", "oldMessages", "newUrgentMessages", "oldUrgentMessages"}
+```
+
+**List voicemail messages:**
+```python
+result = api.session.rest_get(f"{BASE}/telephony/voiceMessages", params={"max": 100})
+messages = result.get("items", [])
+```
+
+**Delete a voicemail message:**
+```python
+api.session.rest_delete(f"{BASE}/telephony/voiceMessages/{message_id}")
+```
+
+**Mark as read / unread:**
+```python
+api.session.rest_put(f"{BASE}/telephony/voiceMessages/{message_id}/markAsRead")
+api.session.rest_put(f"{BASE}/telephony/voiceMessages/{message_id}/markAsUnread")
+```
+
+---
+
 ## 5. Voice Portal
 
-**API path:** `api.telephony.voiceportal` <!-- NEEDS VERIFICATION: exact attribute name -->
+**API path:** `api.telephony.voiceportal` <!-- Verified via wxc_sdk telephony/__init__.py 2026-03-19 -->
 
 **Source:** `wxc_sdk.telephony.voiceportal`
 
@@ -1105,6 +1760,159 @@ Retrieve the voice portal passcode rules for a location.
 
 **Scope:** `spark-admin:telephony_config_read`
 
+#### CLI Examples
+
+```bash
+# Read voice portal settings for a location
+wxcli location-voicemail show-voice-portal Y2lzY29zcGFyazovL...
+
+# Update voice portal settings
+wxcli location-voicemail update-voice-portal Y2lzY29zcGFyazovL... \
+  --name "Voice Portal" \
+  --extension "9999" \
+  --language-code "en_us" \
+  --dial-by-name "Voice Portal"
+
+# Read voice portal passcode rules
+wxcli location-voicemail show-passcode-rules Y2lzY29zcGFyazovL...
+
+# List available phone numbers for voice portal
+wxcli location-voicemail list-available-numbers-voice-portal Y2lzY29zcGFyazovL...
+```
+
+---
+
+### Raw HTTP — Voice Portal
+<!-- Updated by playbook session 2026-03-18 -->
+
+**Read voice portal settings:**
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/voicePortal")
+# {"id", "name", "languageCode", "extension", "phoneNumber", "firstName", "lastName",
+#  "directLineCallerIdName", "dialByName"}
+```
+
+**Update voice portal:**
+```python
+body = {
+    "name": "Voice Portal",
+    "extension": "9999",
+    "languageCode": "en_us",
+    "dialByName": "Voice Portal"
+}
+api.session.rest_put(f"{BASE}/telephony/config/locations/{loc_id}/voicePortal", json=body)
+```
+
+> **Gotcha:** To change the portal passcode via raw HTTP, include `newPasscode` and `confirmPasscode` in the body (the SDK wraps this for you, but raw HTTP requires both fields).
+
+**Read voice portal passcode rules:**
+```python
+result = api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{loc_id}/voicePortal/passcodeRules"
+)
+```
+
+**Available phone numbers for voice portal:**
+```python
+result = api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{loc_id}/voicePortal/availableNumbers",
+    params={"max": 1000}
+)
+numbers = result.get("availableNumbers", [])
+```
+
+### Raw HTTP — Voicemail Groups
+<!-- Updated by playbook session 2026-03-18 -->
+
+Voicemail groups are location-scoped features for shared voicemail boxes.
+
+**List voicemail groups:**
+```python
+params = {"locationId": loc_id, "max": 1000}
+result = api.session.rest_get(f"{BASE}/telephony/config/voicemailGroups", params=params)
+groups = result.get("voicemailGroups", [])
+```
+
+**Get voicemail group details:**
+```python
+result = api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{loc_id}/voicemailGroups/{vmg_id}"
+)
+```
+
+**Create voicemail group:**
+```python
+body = {
+    "name": "Sales VM Group",
+    "extension": "2000",
+    "passcode": "123456",
+    "languageCode": "en_us"
+}
+result = api.session.rest_post(
+    f"{BASE}/telephony/config/locations/{loc_id}/voicemailGroups", json=body
+)
+new_id = result.get("id")
+```
+
+**Update voicemail group:**
+```python
+body = {"name": "Updated Sales VM", "enabled": True, "greeting": "CUSTOM"}
+api.session.rest_put(
+    f"{BASE}/telephony/config/locations/{loc_id}/voicemailGroups/{vmg_id}", json=body
+)
+```
+
+**Delete voicemail group:**
+```python
+api.session.rest_delete(
+    f"{BASE}/telephony/config/locations/{loc_id}/voicemailGroups/{vmg_id}"
+)
+```
+
+**Available phone numbers for voicemail groups:**
+```python
+# Regular available numbers
+api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{loc_id}/voicemailGroups/availableNumbers",
+    params={"max": 1000}
+)
+# Fax message available numbers
+api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{loc_id}/voicemailGroups/faxMessage/availableNumbers",
+    params={"max": 1000}
+)
+```
+
+#### CLI Examples — Voicemail Groups
+
+```bash
+# List voicemail groups for a location
+wxcli location-voicemail list --location-id Y2lzY29zcGFyazovL...
+
+# Get voicemail group details
+wxcli location-voicemail show-voicemail-groups Y2lzY29zcGFyazovL...
+
+# Create a voicemail group
+wxcli location-voicemail create Y2lzY29zcGFyazovL... \
+  --name "Sales VM Group" \
+  --extension "2000" \
+  --passcode "123456" \
+  --language-code "en_us"
+
+# Update a voicemail group
+wxcli location-voicemail update-voicemail-groups Y2lzY29zcGFyazovL... \
+  --json-body '{"name": "Updated Sales VM", "enabled": true}'
+
+# Delete a voicemail group
+wxcli location-voicemail delete Y2lzY29zcGFyazovL...
+
+# List available phone numbers for voicemail groups
+wxcli location-voicemail list-available-numbers-voicemail-groups Y2lzY29zcGFyazovL...
+
+# List fax message available phone numbers
+wxcli location-voicemail list-available-numbers-fax-message Y2lzY29zcGFyazovL...
+```
+
 ---
 
 ## API Access Path Summary
@@ -1130,7 +1938,56 @@ Retrieve the voice portal passcode rules for a location.
 | Voice messaging (user) | `api.telephony.voice_messaging.summary/list/delete/mark_as_read/mark_as_unread()` | calls_read/write |
 | Voice portal | `api.telephony.voiceportal.read/update/passcode_rules/available_phone_numbers()` | read/write |
 
-<!-- NEEDS VERIFICATION: The exact attribute names on the top-level telephony API object (e.g., api.telephony.organisation_voicemail vs api.telephony.org_voicemail) should be confirmed against the TelephonyApi class definition in wxc_sdk/telephony/__init__.py -->
+<!-- Verified: all attribute names confirmed against wxc_sdk telephony/__init__.py 2026-03-19: organisation_voicemail, voicemail_rules, voice_messaging, voiceportal -->
+
+---
+
+## Raw HTTP URL Pattern Summary
+<!-- Updated by playbook session 2026-03-18 -->
+
+| Area | URL Pattern | Methods |
+|------|-------------|---------|
+| Location calling config | `telephony/config/locations` | GET (list), POST (enable) |
+| Location details | `telephony/config/locations/{locId}` | GET, PUT |
+| Internal dialing | `telephony/config/locations/{locId}/internalDialing` | GET, PUT |
+| Call intercept | `telephony/config/locations/{locId}/intercept` | GET, PUT |
+| Music on hold | `telephony/config/locations/{locId}/musicOnHold` | GET, PUT |
+| ECBN | `telephony/config/locations/{locId}/features/emergencyCallbackNumber` | GET, PUT |
+| Call captions | `telephony/config/locations/{locId}/callCaptions` | GET, PUT |
+| Announcement language | `telephony/config/locations/{locId}/actions/modifyAnnouncementLanguage/invoke` | POST |
+| Private network connect | `telephony/config/locations/{locId}/privateNetworkConnect` | GET, PUT |
+| Safe delete precheck | `telephony/config/locations/{locId}/actions/precheckForDeletion/invoke` | POST |
+| Validate extensions | `telephony/config/locations/{locId}/actions/validateExtensions/invoke` | POST |
+| Validate extensions (org) | `telephony/config/actions/validateExtensions/invoke` | POST |
+| Location voicemail | `telephony/config/locations/{locId}/voicemail` | GET, PUT |
+| Voice portal | `telephony/config/locations/{locId}/voicePortal` | GET, PUT |
+| Voice portal passcode rules | `telephony/config/locations/{locId}/voicePortal/passcodeRules` | GET |
+| Org voicemail settings | `telephony/config/voicemail/settings` | GET, PUT |
+| Org voicemail rules | `telephony/config/voicemail/rules` | GET, PUT |
+| Voicemail groups (list) | `telephony/config/voicemailGroups` | GET |
+| Voicemail groups (CRUD) | `telephony/config/locations/{locId}/voicemailGroups/{vmgId}` | GET, PUT, DELETE |
+| Voicemail groups (create) | `telephony/config/locations/{locId}/voicemailGroups` | POST |
+| Receptionist directories | `telephony/config/locations/{locId}/receptionistContacts/directories` | GET, POST |
+| Receptionist directory | `telephony/config/locations/{locId}/receptionistContacts/directories/{dirId}` | GET, PUT, DELETE |
+| Delete calling location job | `telephony/config/jobs/locations/deleteCallingLocation` | GET, POST |
+| Routing prefix jobs | `telephony/config/jobs/updateRoutingPrefix` | GET |
+
+## Raw HTTP Gotchas
+<!-- Updated by playbook session 2026-03-18 -->
+
+1. **Lowercase language codes** -- The API rejects `en_US`; use `en_us` instead. Applies to both `announcementLanguage` on location updates and `announcementLanguageCode` on the language change action.
+2. **`announcementLanguage` returns None** -- Even when a language is set, the GET response may return `null` for this field. This is a known API quirk.
+3. **Voice portal passcode requires two fields** -- When changing passcode via raw HTTP, you must send both `newPasscode` and `confirmPasscode`. The SDK handles this automatically but raw HTTP does not.
+4. **Receptionist directory modify is full replacement** -- PUT on a directory replaces the entire contacts list. Always include the full desired contacts array.
+5. **No auto-pagination** -- All list endpoints require manual `max` and `start` params. Set `max=1000` for maximum page size.
+6. **Action endpoints use POST** -- `validateExtensions`, `modifyAnnouncementLanguage`, `precheckForDeletion`, job pause/resume all use POST, not GET or PUT.
+
+## CLI Files
+
+| CLI Group | File |
+|-----------|------|
+| `location-call-settings` | `src/wxcli/commands/location_call_settings.py` |
+| `location-call-settings-voicemail` | `src/wxcli/commands/location_call_settings_voicemail.py` |
 
 ---
 

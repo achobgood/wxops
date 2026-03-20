@@ -2,6 +2,12 @@
 
 This document covers every authentication method available for the Webex Calling APIs, including token types, OAuth flows, scope requirements, and the `wxc_sdk` Python SDK patterns for each.
 
+## Sources
+
+- wxc_sdk v1.30.0
+- OpenAPI specs: webex-cloud-calling.json, webex-admin.json
+- developer.webex.com Authentication APIs
+
 ---
 
 ## Table of Contents
@@ -14,8 +20,9 @@ This document covers every authentication method available for the Webex Calling
 6. [Guest Issuer Tokens](#guest-issuer-tokens)
 7. [Calling-Related Scopes](#calling-related-scopes)
 8. [wxc_sdk Auth Setup](#wxc_sdk-auth-setup)
-9. [Token Refresh Flow](#token-refresh-flow)
-10. [Common Auth Errors](#common-auth-errors)
+9. [Raw HTTP via api.session](#raw-http-via-apisession)
+10. [Token Refresh Flow](#token-refresh-flow)
+11. [Common Auth Errors](#common-auth-errors)
 
 ---
 
@@ -132,15 +139,20 @@ redirect_uri=http://localhost:6001/redirect
 
 ### PKCE Support
 
-Webex supports **Proof Key for Code Exchange (PKCE)** for enhanced security in the Authorization Code flow. <!-- NEEDS VERIFICATION: specific PKCE parameters (code_challenge, code_challenge_method) and whether wxc_sdk supports PKCE natively -->
+Webex supports **Proof Key for Code Exchange (PKCE)** for enhanced security in the Authorization Code flow.
 
 ### OpenID Connect Discovery
 
 Endpoint locations and server capabilities are available at:
 ```
-https://webexapis.com/v1/.well-known/openid-configuration
+https://idbroker.webex.com/idb/.well-known/openid-configuration
 ```
-<!-- NEEDS VERIFICATION: exact URL path for the discovery endpoint -->
+
+This returns a standard OpenID Connect discovery document including `authorization_endpoint`, `token_endpoint`, `userinfo_endpoint`, `jwks_uri`, supported scopes (`openid`, `email`, `profile`, `phone`, `address`), and `code_challenge_methods_supported` (`plain`, `S256`). <!-- Corrected via live API 2026-03-19: the URL was listed as webexapis.com/v1/... but the actual working endpoint is idbroker.webex.com/idb/... -->
+
+### Gotchas
+
+- **wxc_sdk does not support PKCE natively.** The `Integration.auth_url()` method builds the authorization URL with only `client_id`, `response_type`, `redirect_uri`, `scope`, and `state` — no `code_challenge` or `code_challenge_method` parameters. The `tokens_from_code()` method does not send a `code_verifier`. To use PKCE with Webex, you would need to construct the authorization URL and token exchange manually. <!-- Verified via wxc_sdk source (integration/__init__.py) 2026-03-19 -->
 
 ---
 
@@ -231,8 +243,6 @@ Bots are special Webex identities with their own access token.
 - Bots can interact with messaging, spaces, and webhooks
 - Bot tokens have **limited scope for Calling APIs** — bots cannot place or manage calls on behalf of users
 
-<!-- NEEDS VERIFICATION: exact list of calling-related scopes available to bots, if any -->
-
 **wxc_sdk usage:**
 
 ```python
@@ -242,6 +252,10 @@ api = WebexSimpleApi(tokens='BOT_ACCESS_TOKEN')
 ```
 
 Since bot tokens never expire, no refresh logic is needed.
+
+### Gotchas
+
+- **Bot calling scopes unverified.** The exact list of calling-related scopes available to bots (if any) has not been confirmed. The developer.webex.com docs list scopes with a `show_for_app_type` property for "integration" and "serviceApp" but do not enumerate bot-specific scopes. Calling scopes like `spark:calls_read` and `spark:calls_write` appear to be user-level scopes for integrations. Bots likely cannot use calling scopes since they don't act on behalf of a user, but this has not been confirmed with a live bot token. <!-- NEEDS VERIFICATION: requires live API testing with a bot token. Developer docs do not enumerate bot-specific scopes. Checked 2026-03-19. -->
 
 ---
 
@@ -254,7 +268,9 @@ Guest Issuer tokens create temporary, anonymous guest users for scenarios like c
 - Guest tokens are short-lived
 - **Not applicable to Webex Calling APIs** — guests cannot access telephony features
 
-<!-- NEEDS VERIFICATION: exact guest token lifetime -->
+### Gotchas
+
+- **Guest token lifetime is variable, set by `expiresIn` in the response.** The OpenAPI spec example shows `expiresIn: 64799` (~18 hours), but the actual lifetime is returned per-token at creation time via the `expiresIn` field. The SDK `Guest` model exposes this as `expires_in` and computes `expires_at` from it. There is no single fixed lifetime — it depends on org/service-app configuration. <!-- Verified via OpenAPI spec (webex-admin.json Guest schema) and wxc_sdk source (guests/__init__.py) 2026-03-19 -->
 
 ---
 
@@ -442,6 +458,124 @@ TOKEN_INTEGRATION_CLIENT_SCOPES=spark:calls_read spark:calls_write spark:people_
 
 ---
 
+## Raw HTTP via api.session
+
+<!-- Added by playbook session 2026-03-18 -->
+
+The wxc_sdk `WebexSimpleApi` object is not just an SDK client — it also provides a pre-authenticated HTTP session you can use to call **any** Webex API endpoint directly, without going through typed SDK methods. This is the pattern used by the wxcli auto-generated commands.
+
+### Why Use Raw HTTP
+
+- **Coverage gaps:** The SDK may not yet wrap every Webex Calling endpoint. Raw HTTP lets you call any documented (or undocumented) API.
+- **Exact control:** You send the exact JSON body and query params the API expects, with no SDK data model translation.
+- **Same auth:** The session inherits all authentication, token refresh, rate-limit retry, and concurrency control from the `WebexSimpleApi` you already set up.
+
+### How It Works
+
+Initialize `WebexSimpleApi` using any auth method from the sections above. Then use `api.session.rest_*()` methods for direct HTTP calls:
+
+```python
+from wxc_sdk import WebexSimpleApi
+
+# Auth via environment variable (same as SDK usage)
+# export WEBEX_ACCESS_TOKEN=YOUR_TOKEN
+api = WebexSimpleApi()
+
+BASE = "https://webexapis.com/v1"
+
+# GET — list people
+result = api.session.rest_get(f"{BASE}/people", params={"max": 100})
+# result is a parsed JSON dict, e.g. {"items": [...]}
+
+# POST — create a resource
+body = {"displayName": "Test User", "emails": ["test@example.com"]}
+result = api.session.rest_post(f"{BASE}/people", json=body)
+
+# PUT — update a resource
+api.session.rest_put(f"{BASE}/people/{person_id}", json=updated_body)
+
+# DELETE — remove a resource
+api.session.rest_delete(f"{BASE}/people/{person_id}")
+```
+
+### Available Session Methods
+
+| Method | HTTP Verb | Returns | Notes |
+|--------|-----------|---------|-------|
+| `api.session.rest_get(url, params=...)` | GET | Parsed JSON dict | Use `params` for query string |
+| `api.session.rest_post(url, json=...)` | POST | Parsed JSON dict | Use `json` for request body |
+| `api.session.rest_put(url, json=...)` | PUT | Parsed JSON dict or `None` | Use `json` for request body |
+| `api.session.rest_delete(url)` | DELETE | `None` | No response body |
+
+### Key Constraints
+
+- **Full URLs required:** You must provide the complete URL including `https://webexapis.com/v1/...`. The session does not prepend a base URL.
+- **No auto-pagination:** Unlike typed SDK methods (e.g., `api.people.list()`), raw HTTP calls return a single page. To paginate, pass `max=1000` and handle `next` links yourself.
+- **Responses are plain dicts:** Results are parsed JSON dictionaries, not SDK model objects. Access fields with bracket notation (`result["items"]`), not dot notation.
+- **Errors raise `RestError`:** All HTTP errors (401, 403, 404, 429, etc.) raise `wxc_sdk.rest.RestError`, just like typed SDK calls.
+
+### Auth Inheritance
+
+The session inherits every auth behavior from `WebexSimpleApi`:
+
+| Feature | Behavior with raw HTTP |
+|---------|----------------------|
+| `WEBEX_ACCESS_TOKEN` env var | Works — session reads the token automatically |
+| `Tokens` object with refresh | Works — session refreshes transparently before expired requests |
+| Service app tokens | Works — same `Integration.refresh()` flow, then pass `Tokens` to `WebexSimpleApi` |
+| `retry_429=True` | Works — session retries rate-limited requests automatically |
+| `concurrent_requests=10` | Works — session enforces the semaphore on raw HTTP calls too |
+| Debug logging | Works — `Authorization` headers are masked as `Bearer ***` |
+
+### Complete Example: Service App + Raw HTTP
+
+```python
+import os
+from wxc_sdk import WebexSimpleApi
+from wxc_sdk.integration import Integration
+from wxc_sdk.tokens import Tokens
+
+# Set up service app auth (identical to SDK pattern)
+tokens = Tokens(refresh_token=os.getenv('SERVICE_APP_REFRESH_TOKEN'))
+integration = Integration(
+    client_id=os.getenv('SERVICE_APP_CLIENT_ID'),
+    client_secret=os.getenv('SERVICE_APP_CLIENT_SECRET'),
+    scopes=[],
+    redirect_url=None
+)
+integration.refresh(tokens=tokens)
+
+# Use the authenticated session for raw HTTP calls
+BASE = "https://webexapis.com/v1"
+
+with WebexSimpleApi(tokens=tokens) as api:
+    # List all locations
+    locations = api.session.rest_get(
+        f"{BASE}/locations", params={"max": 1000}
+    )
+    for loc in locations.get("items", []):
+        print(f"{loc['name']} ({loc['id']})")
+
+    # Read telephony config for a location
+    loc_id = locations["items"][0]["id"]
+    tele = api.session.rest_get(
+        f"{BASE}/telephony/config/locations/{loc_id}"
+    )
+    print(f"Calling line ID: {tele.get('callingLineId')}")
+```
+
+### When to Use SDK Methods vs Raw HTTP
+
+| Situation | Use |
+|-----------|-----|
+| Endpoint is wrapped by wxc_sdk (e.g., `api.people.list()`) | SDK method — typed, paginated, validated |
+| Endpoint is not in wxc_sdk yet | Raw HTTP via `api.session.rest_*()` |
+| You need exact control over request body/params | Raw HTTP |
+| You need auto-pagination over large result sets | SDK method (handles `next` links automatically) |
+| Building CLI commands from Postman collections | Raw HTTP (the wxcli auto-gen pattern) |
+
+---
+
 ## Token Refresh Flow
 
 ### How the SDK Handles Refresh
@@ -626,6 +760,15 @@ The SDK masks `Authorization` headers as `Bearer ***` and redacts `access_token`
 | Chatbot responding to messages | Bot Token | Does not expire, but limited calling access |
 | One-off script during development | Personal Access Token or `WEBEX_ACCESS_TOKEN` env var | Use env var to avoid token in source code |
 | CI/CD pipeline | Service App | Store credentials in secrets manager |
+
+---
+
+## Gotchas (Cross-Cutting)
+
+- **call-controls requires user-level OAuth.** Admin tokens and service-app tokens get HTTP 400 "Target user not authorized" on `/telephony/calls` endpoints. Use a calling-licensed user's OAuth token for call control operations.
+- **`spark-admin:` scopes require full org admin.** If the authorizing user is a read-only admin or compliance officer, requests to admin endpoints will return 403 even with the correct scopes listed on the integration.
+- **Personal access tokens carry all scopes silently.** A personal access token for an org admin includes all `spark-admin:` scopes without requesting them, which can mask scope-related bugs that appear only in production integrations.
+- **Service app refresh tokens can expire.** Although the initial refresh token is long-lived, if it is not used within its expiry window the service app must be re-authorized by an org admin.
 
 ---
 

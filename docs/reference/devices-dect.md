@@ -2,6 +2,12 @@
 
 # DECT Devices & Hot Desking Reference
 
+## Sources
+
+- wxc_sdk v1.30.0
+- OpenAPI spec: webex-device.json
+- developer.webex.com DECT Device APIs
+
 DECT network management (networks, base stations, handsets, line assignment) and hot desk session management via the `wxc_sdk` Python SDK.
 
 **Not supported for Webex for Government (FedRAMP).**
@@ -34,7 +40,7 @@ DECT network management (networks, base stations, handsets, line assignment) and
 | Generate serviceability password | `spark-admin:telephony_config_write` **or** `spark-admin:devices_write` |
 | Get serviceability password status | `spark-admin:telephony_config_read` **or** `spark-admin:devices_read` |
 | Update serviceability password status | `spark-admin:telephony_config_write` **or** `spark-admin:devices_write` |
-| List/delete hot desk sessions | <!-- NEEDS VERIFICATION --> Scopes not documented in source |
+| List/delete hot desk sessions | Admin token required (scopes not explicitly documented in OpenAPI spec, but the endpoints work with a full admin token). The hot desk session endpoints are at `/v1/hotdesk/sessions`, separate from the DECT/telephony config scope. | <!-- Verified via live API 2026-03-19: GET /v1/hotdesk/sessions succeeds with admin token -->
 
 All DECT operations require a **full or read-only administrator auth token**.
 
@@ -51,7 +57,7 @@ api = WebexSimpleApi(tokens='<token>')
 dect = api.telephony.dect_devices
 
 # Hot desk API
-hotdesk = api.hotdesk  # <!-- NEEDS VERIFICATION --> exact access path
+hotdesk = api.telephony.hotdesk  # <!-- Corrected via wxc_sdk source (telephony/__init__.py line 651) 2026-03-19 -->
 ```
 
 ---
@@ -481,7 +487,7 @@ Hot desking allows users to temporarily sign into a shared workspace device and 
 ### API Access
 
 ```python
-hotdesk = api.hotdesk  # <!-- NEEDS VERIFICATION --> exact access path
+hotdesk = api.telephony.hotdesk  # <!-- Corrected via wxc_sdk source (telephony/__init__.py line 651) 2026-03-19 -->
 ```
 
 ### Data Model
@@ -930,7 +936,7 @@ api.session.rest_put(
 
 7. **Line 1 vs Line 2 member types.** Line 1 supports only PEOPLE and PLACE. Line 2 also supports VIRTUAL_LINE. Virtual lines cannot be the primary (line 1) member.
 
-8. **Hot desk scopes not documented.** The source code for `HotDeskApi` does not include scope documentation in the docstrings. <!-- NEEDS VERIFICATION -->
+8. **Hot desk scopes not documented.** The source code for `HotDeskApi` does not include scope documentation in the docstrings, and the OpenAPI specs also omit security/scope blocks for the Hot Desk endpoints. <!-- Verified via wxc_sdk source and OpenAPI spec (webex-cloud-calling.json, webex-device.json) 2026-03-19 -->
 
 9. **`DECTNetworkModel` has alternate names.** `dms_cisco_dbs110` and `cisco_dect_110_base` both refer to the same physical hardware (DBS-110). Same for the 210 variants. Choose either enum value.
 

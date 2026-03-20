@@ -1,3 +1,5 @@
+<!-- Updated by playbook session 2026-03-18 -->
+
 # Reporting & Analytics
 
 CDR feed, report templates, report generation/download, and call quality/queue/AA statistics for Webex Calling.
@@ -36,7 +38,7 @@ CDR feed, report templates, report generation/download, and call quality/queue/A
 | Method | `GET` |
 
 - **CDR Feed** (`cdr_feed`) — Pull records for a specific time window. Best for batch/historical pulls.
-- **CDR Stream** (`cdr_stream`) — For more up-to-date records. <!-- NEEDS VERIFICATION: exact latency difference vs cdr_feed -->
+- **CDR Stream** (`cdr_stream`) — Returns records based on their **insertion time** into the Webex Calling cloud (when data became available), vs CDR Feed which uses the call's actual start/end time. CDR Stream is better for near-real-time monitoring since it returns records as soon as they are ingested, regardless of when the call occurred. CDR Feed is better for historical/batch pulls where you want all calls within a specific time window. <!-- Verified via OpenAPI spec 2026-03-19: cdr_feed filters by call time period, cdr_stream filters by insertion time into Webex cloud -->
 
 If the region's servers do not host the organization's data, an **HTTP 451** is returned. The response body contains the correct regional endpoint to use instead.
 
@@ -95,6 +97,44 @@ start = end - timedelta(hours=2)
 
 for cdr in api.cdr.get_cdr_history(start_time=start, end_time=end):
     print(f"{cdr.start_time} | {cdr.direction} | {cdr.calling_number} -> {cdr.called_number} | {cdr.duration}s")
+```
+
+### CLI Examples
+
+```bash
+# Pull CDR feed for a 2-hour window (batch/historical)
+wxcli cdr list \
+  --start-time "2026-03-17T14:00:00.000Z" \
+  --end-time "2026-03-17T16:00:00.000Z"
+
+# Pull CDR feed filtered by location
+wxcli cdr list \
+  --start-time "2026-03-17T14:00:00.000Z" \
+  --end-time "2026-03-17T16:00:00.000Z" \
+  --locations "San Jose,Austin"
+
+# Pull CDR feed with JSON output for scripting
+wxcli cdr list \
+  --start-time "2026-03-17T14:00:00.000Z" \
+  --end-time "2026-03-17T16:00:00.000Z" \
+  -o json
+
+# Pull CDR feed with pagination control
+wxcli cdr list \
+  --start-time "2026-03-17T14:00:00.000Z" \
+  --end-time "2026-03-17T16:00:00.000Z" \
+  --max 500 --limit 100
+
+# Pull near-real-time CDR stream
+wxcli cdr list-cdr_stream \
+  --start-time "2026-03-17T14:00:00.000Z" \
+  --end-time "2026-03-17T16:00:00.000Z"
+
+# CDR stream filtered by location with JSON output
+wxcli cdr list-cdr_stream \
+  --start-time "2026-03-17T14:00:00.000Z" \
+  --end-time "2026-03-17T16:00:00.000Z" \
+  --locations "Denver" -o json
 ```
 
 ### CDR Record Fields
@@ -336,7 +376,17 @@ class ReportTemplate(ApiModel):
 | **Auto-attendant Stats Summary** | AA call volume and menu usage | Call volume, handling metrics, caller menu selections |
 | **Auto-attendant Business & After-Hours Key Details** | AA interaction patterns by time period | Business hours vs. after-hours key press patterns |
 
-<!-- NEEDS VERIFICATION: exact template IDs for each of the 8 Calling templates — IDs are org-specific or may change. Use list_templates() to discover them at runtime. The blog shows ID 130 for Call Queue Stats as an example. -->
+**Note:** Template IDs are dynamic and may vary by organization. Always use `list_templates()` (or the `GET /report/templates` endpoint) to discover IDs at runtime. The OpenAPI spec example shows ID 130, but actual IDs should not be hardcoded. <!-- Verified via OpenAPI spec (webex-admin.json /report/templates example) and wxc_sdk source (reports/__init__.py) 2026-03-19 -->
+
+### CLI Examples
+
+```bash
+# List all available report templates (JSON output)
+wxcli report-templates show
+
+# List report templates in table format
+wxcli report-templates show -o table
+```
 
 ### Usage Example
 
@@ -356,9 +406,26 @@ Create, list, poll, download, and delete generated reports. Reports are CSV file
 ### Constraints
 
 - **Maximum 50 reports** can exist at any time. Delete old reports to free quota.
-- Each report can be downloaded up to 30 times. <!-- NEEDS VERIFICATION: download count limit -->
+- Each report can be downloaded up to 30 times. <!-- Verified via Cisco documentation (developer.webex.com/blog/exploring-the-webex-calling-reports-and-analytics-apis) 2026-03-19 -->
 - CSV reports for Webex services are only supported for **North American** organizations. Other regions return blank CSVs for Webex-service reports.
 - Reports are delivered in **ZIP format** (Content-Type: `application/zip` or `application/octet-stream`).
+
+### CLI Examples
+
+```bash
+# Create a report from a template (e.g., template ID 130 = Call Queue Stats)
+wxcli reports create --template-id 130 \
+  --start-date "2026-03-01" --end-date "2026-03-15"
+
+# Create a Detailed Call History report
+wxcli reports create --template-id 25 \
+  --start-date "2026-03-01" --end-date "2026-03-07"
+
+# Create a report using full JSON body
+wxcli reports create --json-body '{"templateId": 130, "startDate": "2026-03-01", "endDate": "2026-03-15"}'
+```
+
+**Note:** The CLI `reports` group currently has `create` only. To list, poll, or delete reports, use the Raw HTTP or SDK methods below. To download report CSVs, use the SDK `ReportsApi.download()` method.
 
 ### Create a Report
 
@@ -488,6 +555,23 @@ for cdr in cdrs:
 
 ## 4. Complete Workflow: Generate and Download a Report
 
+### CLI Workflow
+
+```bash
+# Step 1: Discover available templates
+wxcli report-templates show -o json
+
+# Step 2: Create the report (use the template ID from step 1)
+wxcli reports create --template-id 130 \
+  --start-date "2026-03-01" --end-date "2026-03-15"
+# Note the report ID from the response
+
+# Steps 3-5 (poll, download, delete): Use SDK or Raw HTTP methods below.
+# The CLI does not yet have list/show/download/delete commands for reports.
+```
+
+### SDK Workflow
+
 ```python
 from wxc_sdk import WebexSimpleApi
 from datetime import date
@@ -547,6 +631,17 @@ api.reports.delete(report_id=report_id)
 
 Use the **CDR Feed** for near-real-time monitoring, or the **Calling Media Quality** / **Calling Quality** report templates for historical analysis.
 
+```bash
+# Pull recent CDR records to check for failures (adjust times to last hour)
+wxcli cdr list \
+  --start-time "2026-03-17T15:00:00.000Z" \
+  --end-time "2026-03-17T16:00:00.000Z" -o json
+
+# Create a Calling Media Quality report for historical analysis
+wxcli reports create --template-id 26 \
+  --start-date "2026-03-01" --end-date "2026-03-15"
+```
+
 ```python
 # Find calls with poor outcomes in the last hour
 from datetime import datetime, timedelta, timezone
@@ -566,6 +661,12 @@ for c in failed_calls:
 
 Generate a **Call Queue Agent Stats** report:
 
+```bash
+# Create a Call Queue Agent Stats report
+wxcli reports create --template-id 131 \
+  --start-date "2026-02-01" --end-date "2026-02-28"
+```
+
 ```python
 agent_template = next(t for t in templates if t.title and 'Agent Stats' in t.title)
 report_id = api.reports.create(
@@ -580,11 +681,23 @@ report_id = api.reports.create(
 
 Generate a **Call Queue Stats** report for queue-level KPIs: incoming call volume, wait times, abandonment rates, handling efficiency.
 
+```bash
+# Create a Call Queue Stats report
+wxcli reports create --template-id 130 \
+  --start-date "2026-02-01" --end-date "2026-02-28"
+```
+
 ### Auto-Attendant Analytics
 
 Use **Auto-attendant Stats Summary** for overall AA performance, or **Auto-attendant Business & After-Hours Key Details** to analyze DTMF key press patterns across business hours vs. after-hours.
 
 The CDR field `auto_attendant_key_pressed` is also available in real-time CDR records.
+
+```bash
+# Create an Auto-Attendant Stats Summary report
+wxcli reports create --template-id 132 \
+  --start-date "2026-02-01" --end-date "2026-02-28"
+```
 
 ### Billing / Cost Analysis
 
@@ -599,9 +712,30 @@ international = [
 
 PSTN vendor fields (`pstn_vendor_name`, `pstn_legal_entity`, `pstn_provider_id`) provide carrier-level detail for cost attribution.
 
+```bash
+# Pull CDR records and filter by international calls using JSON output + jq
+wxcli cdr list \
+  --start-time "2026-03-17T14:00:00.000Z" \
+  --end-time "2026-03-17T16:00:00.000Z" -o json
+```
+
 ### Call Recording Audit
 
 Filter by recording fields to audit recording compliance:
+
+```bash
+# Pull CDR records to audit recording outcomes
+wxcli cdr list \
+  --start-time "2026-03-17T14:00:00.000Z" \
+  --end-time "2026-03-17T16:00:00.000Z" -o json
+
+# List calling recordings to check status
+wxcli recordings list --service-type calling --status available
+
+# Get recording audit summaries for compliance review
+wxcli recording-report list \
+  --from "2026-03-01T00:00:00Z" --to "2026-03-17T00:00:00Z"
+```
 
 ```python
 failed_recordings = [
@@ -637,6 +771,376 @@ The SDK source code flags several discrepancies between Webex API documentation 
 - **Report quota:** The 50-report limit is hard. Always delete reports after downloading to avoid hitting the cap.
 - **Pro Pack requirement:** The Reports API (templates, create, list, download, delete) requires the Pro Pack license. The CDR Feed API does not require Pro Pack but does require the admin role to be explicitly enabled.
 - **Async download not implemented:** The SDK's async variant of `ReportsApi.download()` raises `NotImplementedError`. Use the sync API for report downloads.
+
+---
+
+## 9. Raw HTTP Endpoints
+<!-- Updated by playbook session 2026-03-18 -->
+
+All endpoints below use the `api.session.rest_*` methods from `wxc_sdk`. URLs confirmed from working CLI implementations.
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi(tokens='<token>')
+BASE = "https://webexapis.com/v1"
+```
+
+### Detailed Call History (CDR)
+
+**Important:** The CDR endpoints use a different base URL than the standard Webex API. `startTime` and `endTime` are required and must be in ISO 8601 format (e.g., `2026-03-17T14:00:00.000Z`). The time window cannot exceed 12 hours.
+
+#### CDR Feed (Batch/Historical)
+
+```
+GET https://webexapis.com/v1/cdr_feed
+```
+
+```python
+params = {
+    "startTime": "2026-03-17T14:00:00.000Z",  # ISO 8601 — required
+    "endTime": "2026-03-17T16:00:00.000Z",     # ISO 8601 — required
+    # "locations": "San Jose,Austin",           # optional, up to 10 comma-separated
+    "max": 1000                                 # no auto-pagination
+}
+result = api.session.rest_get(f"{BASE}/cdr_feed", params=params)
+# Returns: {"items": [{"Start time": "...", "Answer time": "...", ...}, ...]}
+```
+
+#### CDR Stream (Near-Real-Time)
+
+```
+GET https://webexapis.com/v1/cdr_stream
+```
+
+```python
+params = {
+    "startTime": "2026-03-17T14:00:00.000Z",
+    "endTime": "2026-03-17T16:00:00.000Z",
+    "max": 1000
+}
+result = api.session.rest_get(f"{BASE}/cdr_stream", params=params)
+# Same response format as cdr_feed
+```
+
+### Report Templates
+
+```
+GET https://webexapis.com/v1/report/templates
+```
+
+```python
+result = api.session.rest_get(f"{BASE}/report/templates")
+# Returns: {"items": [{"Id": 130, "title": "Call Queue Stats", "service": "Webex Calling", ...}, ...]}
+# Note: API returns "Id" (capital I), not "id"
+```
+
+### Reports
+
+#### List Reports
+
+```
+GET https://webexapis.com/v1/reports
+```
+
+```python
+params = {
+    # "reportId": "report_id",
+    # "service": "Webex Calling",
+    # "templateId": "130",
+    # "from": "2026-03-01",         # from and to must be provided together
+    # "to": "2026-03-17",
+    "max": 1000
+}
+result = api.session.rest_get(f"{BASE}/reports", params=params)
+```
+
+#### Get Report Details
+
+```
+GET https://webexapis.com/v1/reports/{reportId}
+```
+
+```python
+result = api.session.rest_get(f"{BASE}/reports/{report_id}")
+# Returns: {"Id": "...", "title": "...", "status": "done", "downloadURL": "https://...", ...}
+# Poll until status == "done", then use downloadURL to fetch the CSV ZIP
+```
+
+#### Create a Report
+
+```
+POST https://webexapis.com/v1/reports
+```
+
+```python
+body = {
+    "templateId": 130,              # from report/templates list
+    "startDate": "2026-03-01",      # YYYY-MM-DD
+    "endDate": "2026-03-15"         # YYYY-MM-DD
+    # "siteList": "site_url"        # required only for Webex Meetings templates
+}
+result = api.session.rest_post(f"{BASE}/reports", json=body)
+# Returns: {"items": {"Id": "report_id_here"}}
+```
+
+#### Delete a Report
+
+```
+DELETE https://webexapis.com/v1/reports/{reportId}
+```
+
+```python
+api.session.rest_delete(f"{BASE}/reports/{report_id}")
+```
+
+### Converged Recordings
+
+#### CLI Examples
+
+```bash
+# List all available recordings
+wxcli recordings list
+
+# List calling recordings in a date range
+wxcli recordings list \
+  --from "2026-03-01T00:00:00Z" --to "2026-03-17T00:00:00Z" \
+  --service-type calling
+
+# List recordings filtered by status and format
+wxcli recordings list --status available --format MP3
+
+# List recordings by location and owner type
+wxcli recordings list --location-id "Y2lz...bG9j" --owner-type user
+
+# List recordings in JSON format with pagination
+wxcli recordings list --service-type calling -o json --limit 50
+
+# List recordings for admin/compliance (all users in org)
+wxcli recordings list-converged-recordings \
+  --from "2026-03-01T00:00:00Z" --to "2026-03-17T00:00:00Z"
+
+# Get details for a specific recording
+wxcli recordings show "Y2lz...cmVj"
+
+# Get recording metadata
+wxcli recordings show-metadata "Y2lz...cmVj"
+
+# Delete a recording
+wxcli recordings delete "Y2lz...cmVj"
+
+# Reassign recordings from one owner to another
+wxcli recordings create \
+  --owner-email "oldowner@company.com" \
+  --reassign-owner-email "newowner@company.com"
+
+# Move recordings to recycle bin
+wxcli recordings create-soft-delete \
+  --json-body '{"trashAll": true, "ownerEmail": "user@company.com"}'
+
+# Restore recordings from recycle bin
+wxcli recordings create-restore \
+  --json-body '{"restoreAll": true, "ownerEmail": "user@company.com"}'
+
+# Purge recordings permanently from recycle bin
+wxcli recordings create-purge \
+  --json-body '{"purgeAll": true, "ownerEmail": "user@company.com"}'
+```
+
+#### List Recordings (User)
+
+```
+GET https://webexapis.com/v1/convergedRecordings
+```
+
+```python
+params = {
+    # "from": "2026-03-01T00:00:00Z",
+    # "to": "2026-03-17T00:00:00Z",
+    # "status": "available",
+    # "serviceType": "calling",
+    # "format": "MP3",
+    # "ownerType": "user",
+    # "storageRegion": "US",
+    # "locationId": "location_id",
+    # "topic": "search_term",
+    "max": 1000
+}
+result = api.session.rest_get(f"{BASE}/convergedRecordings", params=params)
+```
+
+#### List Recordings (Admin/Compliance)
+
+```
+GET https://webexapis.com/v1/admin/convergedRecordings
+```
+
+```python
+params = {
+    # "ownerId": "user_id",
+    # "ownerEmail": "user@company.com",
+    # All same params as user endpoint above
+    "max": 1000
+}
+result = api.session.rest_get(f"{BASE}/admin/convergedRecordings", params=params)
+```
+
+#### Get Recording Details
+
+```
+GET https://webexapis.com/v1/convergedRecordings/{recordingId}
+```
+
+```python
+result = api.session.rest_get(f"{BASE}/convergedRecordings/{recording_id}")
+```
+
+#### Delete a Recording
+
+```
+DELETE https://webexapis.com/v1/convergedRecordings/{recordingId}
+```
+
+```python
+api.session.rest_delete(f"{BASE}/convergedRecordings/{recording_id}")
+```
+
+#### Get Recording Metadata
+
+```
+GET https://webexapis.com/v1/convergedRecordings/{recordingId}/metadata
+```
+
+```python
+params = {"showAllTypes": "true"}  # optional — show all attribute types
+result = api.session.rest_get(f"{BASE}/convergedRecordings/{recording_id}/metadata", params=params)
+```
+
+#### Reassign Recordings
+
+```
+POST https://webexapis.com/v1/convergedRecordings/reassign
+```
+
+```python
+body = {
+    "reassignOwnerEmail": "newowner@company.com",
+    "ownerEmail": "oldowner@company.com"
+    # or "ownerID": "user_id"
+}
+result = api.session.rest_post(f"{BASE}/convergedRecordings/reassign", json=body)
+```
+
+#### Move Recordings to Recycle Bin
+
+```
+POST https://webexapis.com/v1/convergedRecordings/softDelete
+```
+
+```python
+body = {
+    "trashAll": True,
+    "ownerEmail": "user@company.com"
+}
+result = api.session.rest_post(f"{BASE}/convergedRecordings/softDelete", json=body)
+```
+
+#### Restore Recordings from Recycle Bin
+
+```
+POST https://webexapis.com/v1/convergedRecordings/restore
+```
+
+```python
+body = {
+    "restoreAll": True,
+    "ownerEmail": "user@company.com"
+}
+result = api.session.rest_post(f"{BASE}/convergedRecordings/restore", json=body)
+```
+
+#### Purge Recordings from Recycle Bin
+
+```
+POST https://webexapis.com/v1/convergedRecordings/purge
+```
+
+```python
+body = {
+    "purgeAll": True,
+    "ownerEmail": "user@company.com"
+}
+result = api.session.rest_post(f"{BASE}/convergedRecordings/purge", json=body)
+```
+
+### Recording Reports
+
+#### CLI Examples
+
+```bash
+# List recording audit report summaries
+wxcli recording-report list \
+  --from "2026-03-01T00:00:00Z" --to "2026-03-17T00:00:00Z"
+
+# List recording audit summaries for a specific host
+wxcli recording-report list --host-email "host@company.com"
+
+# Get recording audit report access details
+wxcli recording-report list-access-detail --recording-id "Y2lz...cmVj"
+
+# List meeting archive summaries
+wxcli recording-report list-meeting-archive-summaries
+
+# Get meeting archive details
+wxcli recording-report show "Y2lz...YXJj"
+```
+
+#### Access Summary
+
+```
+GET https://webexapis.com/v1/recordingReport/accessSummary
+```
+
+```python
+params = {
+    # "recordingId": "recording_id",
+    "max": 1000
+}
+result = api.session.rest_get(f"{BASE}/recordingReport/accessSummary", params=params)
+```
+
+#### Access Detail
+
+```
+GET https://webexapis.com/v1/recordingReport/accessDetail
+```
+
+```python
+params = {
+    # "recordingId": "recording_id",
+    "max": 1000
+}
+result = api.session.rest_get(f"{BASE}/recordingReport/accessDetail", params=params)
+```
+
+#### Meeting Archive Summaries
+
+```
+GET https://webexapis.com/v1/recordingReport/meetingArchiveSummaries
+```
+
+```python
+result = api.session.rest_get(f"{BASE}/recordingReport/meetingArchiveSummaries", params={"max": 1000})
+```
+
+#### Meeting Archive Detail
+
+```
+GET https://webexapis.com/v1/recordingReport/meetingArchives/{archiveId}
+```
+
+```python
+result = api.session.rest_get(f"{BASE}/recordingReport/meetingArchives/{archive_id}")
+```
 
 ---
 

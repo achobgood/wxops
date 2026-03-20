@@ -1,7 +1,25 @@
 <!-- Updated by playbook session 2026-03-18 -->
 # Webhooks & Telephony Events Reference
 
+## Sources
+
+- wxc_sdk v1.30.0
+- OpenAPI spec: webex-cloud-calling.json
+- developer.webex.com Webhooks APIs
+
 Webex webhooks deliver real-time notifications to your application when resources change. This document covers webhook CRUD operations and the `telephony_calls` resource events specific to Webex Calling.
+
+## Table of Contents
+
+1. [Webhook CRUD Operations](#1-webhook-crud-operations)
+2. [Webhook Data Model](#2-webhook-data-model)
+3. [Webhook Resources (All Available)](#3-webhook-resources-all-available)
+4. [Telephony Call Events](#4-telephony-call-events)
+5. [Filtering Telephony Webhooks](#5-filtering-telephony-webhooks)
+6. [Webhook Setup: Step-by-Step](#6-webhook-setup-step-by-step)
+7. [Webhook Event Data Class Hierarchy](#7-webhook-event-data-class-hierarchy)
+8. [Webhook Security: HMAC Signature Verification](#8-webhook-security-hmac-signature-verification)
+9. [Key Gotchas](#9-key-gotchas)
 
 ---
 
@@ -291,7 +309,7 @@ The `telephony_calls` resource uses the standard webhook event types (`created`,
 | `deleted` | `disconnected` | A call ended (hung up) |
 | `deleted` | `forwarded` | A call was forwarded away from the user |
 
-<!-- NEEDS VERIFICATION: The exact mapping of webhook event types (created/updated/deleted) to telephony eventType values may include additional eventType values not listed here. The above is based on the CallState enum values documented in call-control.md and observed patterns. Consult the Webex developer docs for the definitive list. -->
+<!-- Partial verification 2026-03-19: event_type is a free-form str (not an enum), so additional values beyond those listed may appear. The listed values (alerting, answered, connected, held, remoteHeld, resumed, recording, disconnected, forwarded) match the wxc_sdk TelephonyEventData class and Webex developer docs. Full confirmation requires receiving live call events. -->
 
 ### Event Payload Structure
 
@@ -377,13 +395,14 @@ The messaging webhook resources (`messages`, `memberships`, `rooms`, `attachment
 
 **Critical gotcha for `messages` webhooks:** The webhook payload does NOT include the message text when the receiving token is a bot. The bot must call `GET /messages/{messageId}` (or `wxcli messages show MESSAGE_ID`) to retrieve the actual message content. This is the standard bot pattern: webhook fires → bot fetches message → bot processes text.
 
-<!-- NEEDS VERIFICATION: Confirm exact data fields in webhook payloads for messaging resources. The fields below are based on Webex API documentation patterns. -->
+<!-- Verified: messages, memberships, and attachmentActions data fields confirmed via wxc_sdk source (MessagesData, MembershipsData, AttachmentActionData classes) 2026-03-19. rooms data fields unverifiable (no RoomsData class in SDK). -->
 
 #### messages Resource
 
 | Webhook `event` | When It Fires |
 |-----------------|---------------|
 | `created` | A message was posted to a space |
+| `updated` | A message was edited | <!-- Verified via wxc_sdk firehose.py example 2026-03-19 -->
 | `deleted` | A message was deleted from a space |
 
 **Event payload `data` fields:**
@@ -396,6 +415,8 @@ The messaging webhook resources (`messages`, `memberships`, `rooms`, `attachment
 | `personId` | str | Person who sent the message |
 | `personEmail` | str | Email of the sender |
 | `created` | datetime | When the message was created |
+
+<!-- Verified via wxc_sdk MessagesData class 2026-03-19 -->
 
 **Note:** `text` is NOT included in the webhook payload for bot tokens (security measure). Always call `wxcli messages show MESSAGE_ID` to retrieve the text.
 
@@ -420,9 +441,15 @@ wxcli messages show MESSAGE_ID
 | `roomId` | str | Space the membership is in |
 | `personId` | str | Person whose membership changed |
 | `personEmail` | str | Email of the person |
+| `personDisplayName` | str (optional) | Display name of the person |
+| `personOrgId` | str (optional) | Organization ID of the person |
 | `isModerator` | bool | Whether the person is a moderator |
-| `isMonitor` | bool | Whether the person is a monitor |
+| `isMonitor` | bool | Whether the person is a monitor (deprecated) |
+| `isRoomHidden` | bool (optional) | Whether the direct type room is hidden |
+| `roomType` | str (optional) | Type of room (`direct` or `group`) |
 | `created` | datetime | When the membership was created |
+
+<!-- Verified via wxc_sdk MembershipsData class (inherits Membership) 2026-03-19 -->
 
 #### rooms Resource
 
@@ -432,6 +459,8 @@ wxcli messages show MESSAGE_ID
 | `updated` | A space was modified (title, lock status, etc.) |
 
 **Event payload `data` fields:**
+
+<!-- Partial verification 2026-03-19: Rooms webhook creation confirmed via live API. The Webex Filtering Webhooks guide confirms `type` and `isLocked` as valid rooms filter fields, implying these are present in the data payload. Full data field confirmation requires receiving a live rooms event. -->
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -460,6 +489,8 @@ wxcli messages show MESSAGE_ID
 | `roomId` | str | Space where the card was submitted |
 | `created` | datetime | When the action was submitted |
 
+<!-- Verified via wxc_sdk AttachmentActionData class 2026-03-19 -->
+
 **Note:** `inputs` (the user's form values) are NOT included in the webhook payload. Call `wxcli attachment-actions show ACTION_ID` to retrieve the submitted values.
 
 **CLI to fetch card response inputs:**
@@ -479,6 +510,8 @@ Filters use the format: `fieldName=value` or `fieldName=value1,value2` for multi
 
 **Available filters for `telephony_calls`:**
 
+<!-- Verified via live API 2026-03-19: API error message confirms exactly these 5 filters. All 5 tested and accepted. -->
+
 | Filter | Example | Description |
 |--------|---------|-------------|
 | `personality` | `personality=terminator` | Only incoming calls |
@@ -486,20 +519,26 @@ Filters use the format: `fieldName=value` or `fieldName=value1,value2` for multi
 | `state` | `state=connected` | Only connected state events |
 | `callType` | `callType=external` | Only external calls |
 | `personId` | `personId=Y2lzY29z...` | Only events for a specific person |
-
-<!-- NEEDS VERIFICATION: The exact filter field names and supported combinations for telephony_calls may differ from the above. Consult the Webex developer docs filtering guide for the definitive list. -->
+| `address` | `address=+15551234567` | Only events for a specific phone number or SIP address |
 
 **Available filters for messaging resources:**
 
-<!-- NEEDS VERIFICATION: Confirm exact filter field names for messaging webhook resources. -->
+<!-- Verified via live API 2026-03-19: API error messages confirm complete filter lists for messages and memberships. mentionedPeople=me, personEmail, roomId all tested and accepted. -->
 
 | Resource | Filter | Example | Description |
 |----------|--------|---------|-------------|
 | `messages` | `roomId` | `roomId=Y2lz...` | Only messages in a specific space |
+| `messages` | `roomType` | `roomType=group` | Only messages in `direct` or `group` spaces |
 | `messages` | `personId` | `personId=Y2lz...` | Only messages from a specific person |
+| `messages` | `personEmail` | `personEmail=user@example.com` | Only messages from a specific email |
 | `messages` | `mentionedPeople` | `mentionedPeople=me` | Only messages that @mention someone (use `me` for the authenticated user) |
+| `messages` | `mentionedGroups` | `mentionedGroups=all` | Only messages that @mention a group (e.g., `all`) |
+| `messages` | `hasFiles` | `hasFiles=true` | Only messages with file attachments |
+| `messages` | `hasAttachments` | `hasAttachments=true` | Only messages with adaptive card attachments |
 | `memberships` | `roomId` | `roomId=Y2lz...` | Only membership changes in a specific space |
 | `memberships` | `personId` | `personId=Y2lz...` | Only membership changes for a specific person |
+| `memberships` | `personEmail` | `personEmail=user@example.com` | Only membership changes for a specific email |
+| `memberships` | `isModerator` | `isModerator=true` | Only moderator status changes |
 
 **Example: Create a webhook for incoming calls only:**
 ```python
@@ -732,7 +771,7 @@ def verify_webhook_signature(request_body: bytes, signature: str, secret: str) -
     return hmac.compare_digest(expected, signature)
 ```
 
-<!-- NEEDS VERIFICATION: Confirm the exact HMAC algorithm (SHA1 vs SHA256) and header name used for webhook signature verification. The above is based on established Webex webhook documentation patterns. -->
+<!-- Partial verification 2026-03-19: Webhook creation with secret confirmed via live API (secret is echoed back in the response). X-Spark-Signature with HMAC-SHA1 is the established pattern from Webex developer documentation and community resources but cannot be confirmed from SDK/OpenAPI source code alone. Full confirmation requires receiving a signed webhook delivery and inspecting the header. -->
 
 ---
 

@@ -1,6 +1,12 @@
 # Additional Call Features Reference
 
-Comprehensive reference for Webex Calling Paging Groups, Call Park, Call Park Extensions, Call Pickup, Voicemail Groups, and CX Essentials using the `wxc_sdk`.
+## Sources
+
+- wxc_sdk v1.30.0
+- OpenAPI spec: webex-cloud-calling.json
+- developer.webex.com Call Features APIs
+
+Comprehensive reference for Webex Calling Paging Groups, Call Park, Call Park Extensions, Call Pickup, Voicemail Groups, CX Essentials, Operating Modes, Call Recording, Announcements/Playlists, Single Number Reach, and Virtual Extensions using the `wxc_sdk`. Each section includes both SDK signatures and Raw HTTP examples.
 
 ---
 
@@ -14,8 +20,13 @@ Comprehensive reference for Webex Calling Paging Groups, Call Park, Call Park Ex
 6. [Call Pickup](#call-pickup)
 7. [Voicemail Groups](#voicemail-groups)
 8. [CX Essentials](#cx-essentials)
-9. [Data Models Quick Reference](#data-models-quick-reference)
-10. [Dependencies & Relationships](#dependencies--relationships)
+9. [Operating Modes](#operating-modes)
+10. [Call Recording (Org-Level)](#call-recording-org-level)
+11. [Announcements & Playlists](#announcements--playlists)
+12. [Single Number Reach](#single-number-reach)
+13. [Virtual Extensions](#virtual-extensions)
+14. [Data Models Quick Reference](#data-models-quick-reference)
+15. [Dependencies & Relationships](#dependencies--relationships)
 
 ---
 
@@ -210,6 +221,93 @@ Lists service and standard numbers available for assignment as the paging group'
 - **Originators**: People/workspaces who can initiate a page. Set via `originators` field as a list of `PagingAgent` with `agent_id` populated.
 - **Targets**: People/workspaces/virtual lines who receive the page broadcast. Set via `targets` field. Up to 75 targets.
 - On create/update, pass agent IDs only. On read (details), full agent info is returned.
+
+### Raw HTTP
+
+<!-- Updated by playbook session 2026-03-18 -->
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+```
+
+**List Paging Groups** (org-wide, filterable by location):
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/paging",
+    params={"locationId": loc_id, "name": "Warehouse", "max": 1000})
+items = result["paging"]  # response key: "paging"
+# Each item: {id, name, extension, phoneNumber, enabled, locationId, locationName, routingPrefix, esn, tollFreeNumber}
+```
+
+**Get Paging Group Details:**
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/paging/{paging_id}")
+# Returns full object including originators[], targets[] with firstName, lastName, type, phoneNumber, extension
+```
+
+**Create Paging Group** -- required: `name`, one of `phoneNumber`/`extension`:
+
+```python
+body = {
+    "name": "Warehouse Page",
+    "extension": "8100",
+    "languageCode": "en_us",
+    "originatorCallerIdEnabled": True,  # required if originators are set
+    "originators": [{"id": person_id}],
+    "targets": [{"id": person_id}, {"id": workspace_id}]
+}
+result = api.session.rest_post(f"{BASE}/telephony/config/locations/{loc_id}/paging", json=body)
+paging_id = result["id"]
+```
+
+**Update Paging Group:**
+
+```python
+api.session.rest_put(f"{BASE}/telephony/config/locations/{loc_id}/paging/{paging_id}",
+    json={"name": "Updated Name", "enabled": True})
+```
+
+**Delete Paging Group:**
+
+```python
+api.session.rest_delete(f"{BASE}/telephony/config/locations/{loc_id}/paging/{paging_id}")
+```
+
+**Get Available Phone Numbers:**
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/paging/availableNumbers",
+    params={"max": 1000})
+items = result["availableNumbers"]
+```
+
+### CLI Examples
+
+```bash
+# List all paging groups (org-wide)
+wxcli paging-group list
+
+# List paging groups filtered by location
+wxcli paging-group list --location-id <loc_id>
+
+# Get details for a specific paging group
+wxcli paging-group show --location-id <loc_id> --paging-group-id <pg_id>
+
+# Create a paging group
+wxcli paging-group create --location-id <loc_id> --name "Warehouse Page" --extension "8100"
+
+# Update a paging group
+wxcli paging-group update --location-id <loc_id> --paging-group-id <pg_id> --name "Updated Page"
+
+# Delete a paging group
+wxcli paging-group delete --location-id <loc_id> --paging-group-id <pg_id>
+
+# List available phone numbers for paging group assignment
+wxcli paging-group list-available-numbers --location-id <loc_id>
+```
 
 ---
 
@@ -409,6 +507,121 @@ Call Parks themselves do not have phone numbers or extensions directly. They are
 - Use `available_agents()` to discover eligible agents at a location.
 - Use `available_recalls()` to discover hunt groups eligible as recall destinations.
 
+### Raw HTTP
+
+<!-- Updated by playbook session 2026-03-18 -->
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+```
+
+**List Call Parks** (location-scoped):
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/callParks",
+    params={"name": "Lobby", "order": "ASC", "max": 1000})
+items = result["callParks"]  # response key: "callParks"
+# Each item: {id, name}
+```
+
+**Get Call Park Details:**
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/callParks/{park_id}")
+# Returns: name, recall, agents[], callParkExtensions[], parkOnAgentsEnabled
+```
+
+**Create Call Park** -- required: `name`, `recall` with `option`:
+
+```python
+body = {
+    "name": "Lobby Park",
+    "recall": {"option": "ALERT_PARKING_USER_ONLY"},  # required
+    "parkOnAgentsEnabled": True,
+    "agents": [{"id": person_id}],
+    "callParkExtensions": [{"id": cpe_id}]
+}
+result = api.session.rest_post(f"{BASE}/telephony/config/locations/{loc_id}/callParks", json=body)
+park_id = result["id"]
+```
+
+**Update Call Park** (ID changes when name changes):
+
+```python
+result = api.session.rest_put(f"{BASE}/telephony/config/locations/{loc_id}/callParks/{park_id}",
+    json={"name": "New Name", "parkOnAgentsEnabled": False})
+# New park_id returned if name changed
+```
+
+**Delete Call Park:**
+
+```python
+api.session.rest_delete(f"{BASE}/telephony/config/locations/{loc_id}/callParks/{park_id}")
+```
+
+**Get Available Agents:**
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/callParks/availableUsers",
+    params={"name": "John", "max": 1000})
+items = result["availableUsers"]  # response key: "availableUsers"
+```
+
+**Get Available Recall Hunt Groups:**
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/callParks/availableRecallHuntGroups",
+    params={"max": 1000})
+items = result["availableRecallHuntGroups"]
+```
+
+**Get Location Call Park Settings:**
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/callParks/settings")
+# Returns: callParkRecall, callParkSettings (ringPattern, recallTime, huntWaitTime)
+```
+
+**Update Location Call Park Settings:**
+
+```python
+api.session.rest_put(f"{BASE}/telephony/config/locations/{loc_id}/callParks/settings",
+    json={"callParkSettings": {"recallTime": 60, "huntWaitTime": 60}})
+```
+
+### CLI Examples
+
+```bash
+# List call parks at a location
+wxcli call-park list --location-id <loc_id>
+
+# Get details for a call park
+wxcli call-park show --location-id <loc_id> --call-park-id <park_id>
+
+# Create a call park
+wxcli call-park create --location-id <loc_id> --name "Lobby Park" --json-body '{"recall": {"option": "ALERT_PARKING_USER_ONLY"}}'
+
+# Update a call park
+wxcli call-park update --location-id <loc_id> --call-park-id <park_id> --name "New Park Name"
+
+# Delete a call park
+wxcli call-park delete --location-id <loc_id> --call-park-id <park_id>
+
+# List available agents for call park
+wxcli call-park list-available-users --location-id <loc_id>
+
+# List available recall hunt groups
+wxcli call-park list-available-recall-hunt-groups --location-id <loc_id>
+
+# Get location-level call park settings
+wxcli call-park show-settings --location-id <loc_id>
+
+# Update location-level call park settings
+wxcli call-park update-settings --location-id <loc_id> --json-body '{"callParkSettings": {"recallTime": 60}}'
+```
+
 ---
 
 ## Call Park Extensions
@@ -516,6 +729,72 @@ This is a lightweight model -- just a name and extension. The `CallParkExtension
 ### Member Management
 
 Call Park Extensions do not have members. They are simple extension holders assigned to Call Park groups (see the `call_park_extensions` field on `CallPark`).
+
+### Raw HTTP
+
+<!-- Updated by playbook session 2026-03-18 -->
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+```
+
+**List Call Park Extensions** (org-wide, filterable by location):
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/callParkExtensions",
+    params={"locationId": loc_id, "name": "Park", "max": 1000})
+items = result["callParkExtensions"]  # response key: "callParkExtensions"
+# Each item: {id, name, extension, locationId, locationName}
+```
+
+**Get Call Park Extension Details:**
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/callParkExtensions/{cpe_id}")
+# Returns: name, extension
+```
+
+**Create Call Park Extension** -- required: `name`, `extension`:
+
+```python
+result = api.session.rest_post(f"{BASE}/telephony/config/locations/{loc_id}/callParkExtensions",
+    json={"name": "Park Slot 1", "extension": "7001"})
+cpe_id = result["id"]
+```
+
+**Update Call Park Extension:**
+
+```python
+api.session.rest_put(f"{BASE}/telephony/config/locations/{loc_id}/callParkExtensions/{cpe_id}",
+    json={"name": "Park Slot A", "extension": "7002"})
+```
+
+**Delete Call Park Extension:**
+
+```python
+api.session.rest_delete(f"{BASE}/telephony/config/locations/{loc_id}/callParkExtensions/{cpe_id}")
+```
+
+### CLI Examples
+
+```bash
+# List call park extensions
+wxcli call-park list-call-park-extensions --location-id <loc_id>
+
+# Get details for a call park extension
+wxcli call-park show-call-park-extensions --location-id <loc_id> --call-park-extension-id <cpe_id>
+
+# Create a call park extension
+wxcli call-park create-call-park-extensions --location-id <loc_id> --name "Park Slot 1" --extension "7001"
+
+# Update a call park extension
+wxcli call-park update-call-park-extensions --location-id <loc_id> --call-park-extension-id <cpe_id> --name "Park Slot A"
+
+# Delete a call park extension
+wxcli call-park delete-call-park-extensions --location-id <loc_id> --call-park-extension-id <cpe_id>
+```
 
 ---
 
@@ -643,17 +922,95 @@ Returns people, workspaces, and virtual lines eligible to be added to pickup gro
 
 ### Phone Number / Extension Assignment
 
-Call Pickup groups do not have their own phone numbers or extensions. They are groupings of agents -- members pick up ringing calls within the group using a feature access code (e.g., `*98`).
-
-<!-- NEEDS VERIFICATION: exact feature access code for call pickup -->
+Call Pickup groups do not have their own phone numbers or extensions. They are groupings of agents -- members pick up ringing calls within the group using the feature access code `*98`. <!-- Verified via Cisco documentation (help.webex.com/en-US/article/0zgzwj) 2026-03-19 -->
 
 ### Member Management
 
 - **Agents**: People, workspaces, and virtual lines. Set via the `agents` field (list of IDs on create/update).
-- Use `available_agents()` to discover eligible agents at a location that are not yet assigned to another pickup group.
-- A user can only belong to **one** call pickup group at a time.
+- Use `available_agents()` to discover eligible agents at a location that are not yet assigned to another pickup group. The API excludes already-assigned agents from the results.
+- A user can only belong to **one** call pickup group at a time. Attempting to add an already-assigned user returns error 4471: "User ... is already assigned to pickup group ...". <!-- Verified via live API 2026-03-19 -->
 
-<!-- NEEDS VERIFICATION: one-pickup-group-per-user constraint -->
+### Raw HTTP
+
+<!-- Updated by playbook session 2026-03-18 -->
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+```
+
+**List Call Pickups** (location-scoped):
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/callPickups",
+    params={"name": "Sales", "order": "ASC", "max": 1000})
+items = result["callPickups"]  # response key: "callPickups"
+# Each item: {id, name}
+```
+
+**Get Call Pickup Details:**
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/callPickups/{pickup_id}")
+# Returns: name, notificationType, notificationDelayTimerSeconds, agents[]
+```
+
+**Create Call Pickup** -- required: `name`:
+
+```python
+body = {
+    "name": "Sales Pickup",
+    "notificationType": "AUDIO_AND_VISUAL",
+    "notificationDelayTimerSeconds": 6,
+    "agents": [{"id": person_id}]
+}
+result = api.session.rest_post(f"{BASE}/telephony/config/locations/{loc_id}/callPickups", json=body)
+pickup_id = result["id"]
+```
+
+**Update Call Pickup** (ID changes when name changes):
+
+```python
+api.session.rest_put(f"{BASE}/telephony/config/locations/{loc_id}/callPickups/{pickup_id}",
+    json={"name": "New Name", "notificationType": "NONE"})
+```
+
+**Delete Call Pickup:**
+
+```python
+api.session.rest_delete(f"{BASE}/telephony/config/locations/{loc_id}/callPickups/{pickup_id}")
+```
+
+**Get Available Agents:**
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/callPickups/availableUsers",
+    params={"name": "Jane", "max": 1000})
+items = result["availableUsers"]  # response key: "availableUsers"
+```
+
+### CLI Examples
+
+```bash
+# List call pickups at a location
+wxcli call-pickup list --location-id <loc_id>
+
+# Get details for a call pickup group
+wxcli call-pickup show --location-id <loc_id> --call-pickup-id <pickup_id>
+
+# Create a call pickup group
+wxcli call-pickup create --location-id <loc_id> --name "Sales Pickup"
+
+# Update a call pickup group
+wxcli call-pickup update --location-id <loc_id> --call-pickup-id <pickup_id> --name "New Name"
+
+# Delete a call pickup group
+wxcli call-pickup delete --location-id <loc_id> --call-pickup-id <pickup_id>
+
+# List available agents for call pickup
+wxcli call-pickup list-available-users --location-id <loc_id>
+```
 
 ---
 
@@ -814,7 +1171,7 @@ Lists numbers available to be assigned as the voicemail group's fax message phon
 | `transfer_to_number` | `VoicemailTransferToNumber` | **Yes** (set by factory) | Transfer settings |
 | `email_copy_of_message` | `VoicemailCopyOfMessage` | **Yes** (set by factory) | Email copy settings |
 | `voice_message_forwarding_enabled` | `bool` | No | Enable/disable voice message forwarding |
-| `time_zone` | `str` | No | <!-- NEEDS VERIFICATION: undocumented field --> |
+| `time_zone` | `str` | No | Undocumented field -- present in API response and wxc_sdk model (`# TODO: undocumented`) but absent from OpenAPI spec `GetLocationVoicemailGroupObject` schema. <!-- Verified via wxc_sdk source (voicemail_groups.py:95-96) and OpenAPI spec 2026-03-19 --> |
 | `direct_line_caller_id_name` | `DirectLineCallerIdName` | No | Replaces deprecated first/last name |
 | `dial_by_name` | `str` | No | Name for dial-by-name directory |
 
@@ -871,6 +1228,112 @@ The `VoicemailGroupDetail.create()` factory sets these defaults:
 ### Member Management
 
 Voicemail Groups do not have explicit member lists. They are shared voicemail boxes that are **assigned to** other features (auto attendants, call queues, hunt groups) or users through those features' overflow/no-answer settings.
+
+### Raw HTTP
+
+<!-- Updated by playbook session 2026-03-18 -->
+
+The Voicemail Groups CLI uses SDK methods (not raw HTTP) for most operations. The SDK base is `telephony/config/voicemailGroups`. The underlying API URLs are:
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+```
+
+**List Voicemail Groups** (org-wide):
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/voicemailGroups",
+    params={"locationId": loc_id, "name": "Support", "max": 1000})
+items = result["voicemailGroups"]  # response key: "voicemailGroups"
+# Each item: {id, name, locationName, locationId, extension, phoneNumber, routingPrefix, esn, enabled, tollFreeNumber}
+```
+
+**Get Voicemail Group Details:**
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/voicemailGroups/{vg_id}")
+# Returns: name, extension, passcode, languageCode, messageStorage, notifications, faxMessage, etc.
+```
+
+**Create Voicemail Group** -- requires 7+ fields (name, extension, passcode, languageCode, messageStorage, notifications, faxMessage, transferToNumber, emailCopyOfMessage):
+
+```python
+body = {
+    "name": "Support VM",
+    "extension": "8200",
+    "passcode": "740384",         # 6+ digits, no sequential/repeating patterns
+    "languageCode": "en_us",
+    "messageStorage": {"storageType": "INTERNAL"},
+    "notifications": {"enabled": False},
+    "faxMessage": {"enabled": False},
+    "transferToNumber": {"enabled": False},
+    "emailCopyOfMessage": {"enabled": False}
+}
+result = api.session.rest_post(f"{BASE}/telephony/config/locations/{loc_id}/voicemailGroups", json=body)
+vg_id = result["id"]
+```
+
+**Gotcha**: The wxc_sdk `VoicemailGroupDetail.for_create()` method has a bug -- missing `by_alias=True`, which sends snake_case keys instead of camelCase. Workaround: `model_dump(mode='json', by_alias=True, exclude_unset=True)`.
+
+**Update Voicemail Group:**
+
+```python
+api.session.rest_put(f"{BASE}/telephony/config/locations/{loc_id}/voicemailGroups/{vg_id}",
+    json={"name": "New Name", "enabled": True})
+```
+
+**Delete Voicemail Group:**
+
+```python
+api.session.rest_delete(f"{BASE}/telephony/config/locations/{loc_id}/voicemailGroups/{vg_id}")
+```
+
+**Get Available Phone Numbers:**
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/voicemailGroups/availablePhoneNumbers",
+    params={"max": 1000})
+items = result["phoneNumbers"]
+```
+
+**Get Fax Message Available Phone Numbers:**
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/voicemailGroups/faxMessage/availablePhoneNumbers",
+    params={"max": 1000})
+items = result["phoneNumbers"]
+```
+
+### CLI Examples
+
+Voicemail Group commands are under the `location-voicemail` command group.
+
+```bash
+# List voicemail groups (org-wide or filtered by location)
+wxcli location-voicemail list --location-id <loc_id>
+
+# Get details for a voicemail group
+wxcli location-voicemail show-voicemail-groups --location-id <loc_id> --voicemail-group-id <vg_id>
+
+# Create a voicemail group
+wxcli location-voicemail create --location-id <loc_id> --name "Support VM" --extension "8200" \
+  --json-body '{"passcode": "740384", "languageCode": "en_us", "messageStorage": {"storageType": "INTERNAL"}, "notifications": {"enabled": false}, "faxMessage": {"enabled": false}, "transferToNumber": {"enabled": false}, "emailCopyOfMessage": {"enabled": false}}'
+
+# Update a voicemail group
+wxcli location-voicemail update-voicemail-groups --location-id <loc_id> --voicemail-group-id <vg_id> \
+  --name "New Name"
+
+# Delete a voicemail group
+wxcli location-voicemail delete --location-id <loc_id> --voicemail-group-id <vg_id>
+
+# List available phone numbers for voicemail group assignment
+wxcli location-voicemail list-available-numbers-voicemail-groups --location-id <loc_id>
+
+# List available phone numbers for fax message
+wxcli location-voicemail list-available-numbers-fax-message --location-id <loc_id>
+```
 
 ---
 
@@ -1162,6 +1625,776 @@ Returns queues that are not yet assigned to this wrap-up reason and can be added
 | `phone_number` | `str` | Queue phone number |
 | `extension` | `int` | Queue extension |
 
+### Raw HTTP (CX Essentials)
+
+<!-- Updated by playbook session 2026-03-18 -->
+
+CX Essentials APIs operate on call queues. The base URL pattern is `telephony/config/cxEssentials/...` or queue-scoped paths.
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+```
+
+**Note**: CX Essentials operations require CX Essentials licensing. Screen pop, queue recording, and wrap-up reasons are all per-queue settings -- call queues must exist first.
+
+### CLI Examples
+
+```bash
+# List all wrap-up reasons (org-level)
+wxcli cx-essentials list
+
+# Get details for a wrap-up reason
+wxcli cx-essentials show --wrap-up-reason-id <reason_id>
+
+# Create a wrap-up reason
+wxcli cx-essentials create --name "Customer Inquiry"
+
+# Update a wrap-up reason
+wxcli cx-essentials update --wrap-up-reason-id <reason_id> --name "Updated Reason"
+
+# Delete a wrap-up reason
+wxcli cx-essentials delete --wrap-up-reason-id <reason_id>
+
+# Validate a wrap-up reason name
+wxcli cx-essentials validate-wrap-up --name "New Reason Name"
+
+# List available queues for a wrap-up reason
+wxcli cx-essentials list-available-queues --wrap-up-reason-id <reason_id>
+
+# Get wrap-up reason settings for a queue
+wxcli cx-essentials list-settings --location-id <loc_id> --queue-id <queue_id>
+
+# Update wrap-up reason settings for a queue
+wxcli cx-essentials update-settings --location-id <loc_id> --queue-id <queue_id> \
+  --json-body '{"wrapupTimerEnabled": true, "wrapupTimer": 60}'
+
+# Get screen pop configuration for a queue
+wxcli cx-essentials show-screen-pop --location-id <loc_id> --queue-id <queue_id>
+
+# Update screen pop configuration for a queue
+wxcli cx-essentials update-screen-pop --location-id <loc_id> --queue-id <queue_id> \
+  --json-body '{"enabled": true, "screenPopUrl": "https://crm.example.com/pop"}'
+
+# List available agents (optionally filter by CX Essentials license)
+wxcli cx-essentials list-available-agents --location-id <loc_id>
+```
+
+---
+
+## Operating Modes
+
+<!-- Updated by playbook session 2026-03-18 -->
+
+### Overview
+
+Operating Modes define time-of-day schedules (business hours, after hours, holidays) that control call routing behavior for features like auto attendants and call queues. They can be defined at the organization level and assigned to locations.
+
+Types: `SAME_HOURS_DAILY`, `DIFFERENT_HOURS_DAILY`, `HOLIDAY`.
+
+### Raw HTTP
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+```
+
+**List Operating Modes** (org-wide):
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/operatingModes",
+    params={"name": "Business", "limitToLocationId": loc_id,
+            "limitToOrgLevelEnabled": "true", "order": "ASC", "max": 1000})
+items = result["operatingModes"]  # response key: "operatingModes"
+# Each item: {id, name}
+```
+
+**Get Operating Mode Details:**
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/operatingModes/{mode_id}")
+# Returns full schedule configuration
+```
+
+**Create Operating Mode** -- required: `name`, `type`, `level`:
+
+```python
+body = {
+    "name": "Business Hours",
+    "type": "SAME_HOURS_DAILY",       # SAME_HOURS_DAILY | DIFFERENT_HOURS_DAILY | HOLIDAY
+    "level": "ORGANIZATION",           # required: must be ORGANIZATION
+    "locationId": loc_id               # optional: scope to a location
+}
+result = api.session.rest_post(f"{BASE}/telephony/config/operatingModes/", json=body)
+mode_id = result["id"]
+```
+
+**Update Operating Mode:**
+
+```python
+api.session.rest_put(f"{BASE}/telephony/config/operatingModes/{mode_id}",
+    json={"name": "Updated Hours"})
+```
+
+**Delete Operating Mode:**
+
+```python
+api.session.rest_delete(f"{BASE}/telephony/config/operatingModes/{mode_id}")
+```
+
+**Create Holiday** (HOLIDAY type only) -- required: `name`, `startDate`, `endDate`, `allDayEnabled`:
+
+```python
+body = {
+    "name": "Christmas 2026",
+    "allDayEnabled": True,
+    "startDate": "2026-12-25",   # note: startDate/endDate, not date
+    "endDate": "2026-12-25"
+}
+result = api.session.rest_post(f"{BASE}/telephony/config/operatingModes/{mode_id}/holidays", json=body)
+holiday_id = result["id"]
+```
+
+**Get / Update / Delete Holiday:**
+
+```python
+# Get
+result = api.session.rest_get(f"{BASE}/telephony/config/operatingModes/{mode_id}/holidays/{holiday_id}")
+
+# Update
+api.session.rest_put(f"{BASE}/telephony/config/operatingModes/{mode_id}/holidays/{holiday_id}",
+    json={"name": "New Year", "startDate": "2027-01-01", "endDate": "2027-01-01", "allDayEnabled": True})
+
+# Delete
+api.session.rest_delete(f"{BASE}/telephony/config/operatingModes/{mode_id}/holidays/{holiday_id}")
+```
+
+**List Available Operating Modes for Location:**
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/operatingModes/availableOperatingModes",
+    params={"max": 1000})
+items = result["availableOperatingModes"]
+```
+
+**Get Operating Mode Call Forward Available Numbers:**
+
+```python
+result = api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{loc_id}/operatingModes/callForwarding/availableNumbers",
+    params={"max": 1000})
+items = result["availableNumbers"]
+```
+
+### CLI Examples
+
+```bash
+# List operating modes (org-wide)
+wxcli operating-modes list
+
+# List operating modes filtered by location
+wxcli operating-modes list --limit-to-location-id <loc_id>
+
+# Get details for an operating mode
+wxcli operating-modes show --operating-mode-id <mode_id>
+
+# Create an operating mode
+wxcli operating-modes create --name "Business Hours" --type "SAME_HOURS_DAILY" --level "ORGANIZATION"
+
+# Update an operating mode
+wxcli operating-modes update --operating-mode-id <mode_id> --name "Updated Hours"
+
+# Delete an operating mode
+wxcli operating-modes delete --operating-mode-id <mode_id>
+
+# Create a holiday on a HOLIDAY-type operating mode
+wxcli operating-modes create-holidays --operating-mode-id <mode_id> \
+  --name "Christmas 2026" --all-day-enabled --start-date "2026-12-25" --end-date "2026-12-25"
+
+# Get holiday details
+wxcli operating-modes show-holidays --operating-mode-id <mode_id> --holiday-id <holiday_id>
+
+# Update a holiday
+wxcli operating-modes update-holidays --operating-mode-id <mode_id> --holiday-id <holiday_id> \
+  --name "New Year" --start-date "2027-01-01" --end-date "2027-01-01"
+
+# Delete a holiday
+wxcli operating-modes delete-holidays --operating-mode-id <mode_id> --holiday-id <holiday_id>
+
+# List available operating modes for a location
+wxcli operating-modes list-available-operating-modes --location-id <loc_id>
+
+# Get available call forward numbers for operating modes
+wxcli operating-modes list-available-numbers --location-id <loc_id>
+```
+
+### Gotchas
+
+- OM create requires `level=ORGANIZATION` -- other values fail.
+- `type` must be one of: `SAME_HOURS_DAILY`, `DIFFERENT_HOURS_DAILY`, `HOLIDAY`.
+- `sameHoursDaily` needs actual `DaySchedule` hours configured to take effect.
+- Holiday create uses `startDate`/`endDate` fields (not `date`), plus `allDayEnabled`.
+- Holidays can only be added to `HOLIDAY` type operating modes.
+
+---
+
+## Call Recording (Org-Level)
+
+<!-- Updated by playbook session 2026-03-18 -->
+
+### Overview
+
+Organization-level call recording settings control global recording behavior. Per-queue recording is managed through CX Essentials (see above). Per-person recording is managed through person call settings.
+
+### Raw HTTP
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+```
+
+**Get Org Call Recording Settings:**
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/callRecording")
+# Returns: enabled, record, vendor info, etc.
+```
+
+**Update Org Call Recording Settings:**
+
+```python
+api.session.rest_put(f"{BASE}/telephony/config/callRecording",
+    json={"enabled": True})
+```
+
+**Get Call Recording Terms of Service:**
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/callRecording/vendors/{vendor_id}/termsOfService")
+```
+
+### CLI Examples
+
+```bash
+# Get org-level call recording settings
+wxcli call-recording show
+
+# Update org-level call recording settings
+wxcli call-recording update --json-body '{"enabled": true}'
+
+# Get call recording terms of service
+wxcli call-recording show-terms-of-service --vendor-id <vendor_id>
+
+# Update call recording terms of service
+wxcli call-recording update-terms-of-service --vendor-id <vendor_id> --json-body '{"termsOfServiceEnabled": true}'
+
+# Get org-level compliance announcement settings
+wxcli call-recording show-compliance-announcement-call-recording
+
+# Update org-level compliance announcement settings
+wxcli call-recording update-compliance-announcement-call-recording --json-body '{"enabled": true}'
+
+# Get location-level compliance announcement settings
+wxcli call-recording show-compliance-announcement-call-recording-1 --location-id <loc_id>
+
+# Update location-level compliance announcement settings
+wxcli call-recording update-compliance-announcement-call-recording-1 --location-id <loc_id> --json-body '{"enabled": true}'
+
+# List call recording regions
+wxcli call-recording list
+
+# List call recording vendors for a location
+wxcli call-recording list-vendors --location-id <loc_id>
+
+# Get org-level call recording vendors
+wxcli call-recording show-vendors
+
+# Set call recording vendor for a location
+wxcli call-recording update-vendor-call-recording --location-id <loc_id> --json-body '{"vendorId": "<vendor_id>"}'
+
+# List call recording jobs
+wxcli call-recording list-call-recording
+
+# Get job status of a call recording job
+wxcli call-recording show-call-recording --job-id <job_id>
+```
+
+---
+
+## Announcements & Playlists
+
+<!-- Updated by playbook session 2026-03-18 -->
+
+### Overview
+
+The Announcement Repository stores binary audio greeting files (WAV, WMA) used by auto attendants, call queues, hunt groups, and other features. Announcements can be managed at the organization level or scoped to a location. Playlists group multiple announcements for sequential playback.
+
+### Raw HTTP
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+```
+
+#### Announcements
+
+**List Announcements** (org-level, filterable by location):
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/announcements",
+    params={"locationId": loc_id, "fileName": "greeting", "fileType": "WAV",
+            "name": "Welcome", "order": "fileName", "max": 1000})
+items = result["announcements"]  # response key: "announcements"
+# Each item: {id, name, fileName, fileSize, mediaFileType, level, locationId, locationName}
+```
+
+**Get Announcement Details:**
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/announcements/{ann_id}")
+# Org-level announcement
+```
+
+**Get Location-Level Announcement Details:**
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/announcements/{ann_id}")
+```
+
+**Update Announcement** (org-level):
+
+```python
+api.session.rest_put(f"{BASE}/telephony/config/announcements/{ann_id}", json={...})
+```
+
+**Update Announcement** (location-level):
+
+```python
+api.session.rest_put(f"{BASE}/telephony/config/locations/{loc_id}/announcements/{ann_id}", json={...})
+```
+
+**Delete Announcement** (org-level):
+
+```python
+api.session.rest_delete(f"{BASE}/telephony/config/announcements/{ann_id}")
+```
+
+**Delete Announcement** (location-level):
+
+```python
+api.session.rest_delete(f"{BASE}/telephony/config/locations/{loc_id}/announcements/{ann_id}")
+```
+
+**Get Repository Usage** (org-level):
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/announcements/usage")
+items = result["usage"]
+```
+
+**Get Repository Usage** (location-level):
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/announcements/usage")
+items = result["usage"]
+```
+
+**Note**: Announcement upload (create) requires multipart/form-data with the binary file. The raw HTTP `rest_post` method may not support file uploads directly -- use the SDK's upload methods or construct multipart requests manually.
+
+#### Playlists
+
+**List Playlists:**
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/announcements/playlists",
+    params={"max": 1000})
+items = result["playlists"]  # response key: "playlists"
+```
+
+**Get Playlist Details:**
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/announcements/playlists/{playlist_id}")
+```
+
+**Create Playlist:**
+
+```python
+result = api.session.rest_post(f"{BASE}/telephony/config/announcements/playlists",
+    json={"name": "Hold Music"})
+playlist_id = result["id"]
+```
+
+**Update Playlist:**
+
+```python
+api.session.rest_put(f"{BASE}/telephony/config/announcements/playlists/{playlist_id}",
+    json={"name": "Updated Playlist"})
+```
+
+**Delete Playlist:**
+
+```python
+api.session.rest_delete(f"{BASE}/telephony/config/announcements/playlists/{playlist_id}")
+```
+
+**List Playlist Locations:**
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/announcements/playlists/{playlist_id}/locations",
+    params={"max": 1000})
+items = result["locations"]
+```
+
+**Update Playlist Locations:**
+
+```python
+api.session.rest_put(f"{BASE}/telephony/config/announcements/playlists/{playlist_id}/locations",
+    json={"locationIds": [loc_id_1, loc_id_2]})
+```
+
+### CLI Examples
+
+#### Announcements
+
+```bash
+# List announcements (org-level, optionally filtered by location)
+wxcli announcements list --location-id <loc_id>
+
+# Get org-level announcement details
+wxcli announcements show-announcements-config --announcement-id <ann_id>
+
+# Get location-level announcement details
+wxcli announcements show-announcements-locations --location-id <loc_id> --announcement-id <ann_id>
+
+# Update an org-level announcement
+wxcli announcements update --announcement-id <ann_id> --json-body '{"name": "Updated Greeting"}'
+
+# Update a location-level announcement
+wxcli announcements update-announcements --location-id <loc_id> --announcement-id <ann_id> --json-body '{"name": "Updated"}'
+
+# Delete an org-level announcement
+wxcli announcements delete --announcement-id <ann_id>
+
+# Delete a location-level announcement
+wxcli announcements delete-announcements --location-id <loc_id> --announcement-id <ann_id>
+
+# Get org-level repository usage
+wxcli announcements show
+
+# Get location-level repository usage
+wxcli announcements show-usage --location-id <loc_id>
+```
+
+#### Playlists
+
+```bash
+# List announcement playlists
+wxcli announcement-playlists list
+
+# Get playlist details
+wxcli announcement-playlists show --playlist-id <playlist_id>
+
+# Create a playlist
+wxcli announcement-playlists create --name "Hold Music"
+
+# Update a playlist
+wxcli announcement-playlists update --playlist-id <playlist_id> --name "Updated Playlist"
+
+# Delete a playlist
+wxcli announcement-playlists delete --playlist-id <playlist_id>
+
+# List playlist locations
+wxcli announcement-playlists list-playlists --playlist-id <playlist_id>
+
+# Update playlist locations
+wxcli announcement-playlists update-playlists --playlist-id <playlist_id> \
+  --json-body '{"locationIds": ["<loc_id_1>", "<loc_id_2>"]}'
+```
+
+---
+
+## Single Number Reach
+
+<!-- Updated by playbook session 2026-03-18 -->
+
+### Overview
+
+Single Number Reach (Office Anywhere) allows a person to receive calls on alternate phone numbers (mobile, home) when their primary Webex line rings. Calls are forwarded simultaneously or sequentially to the configured numbers.
+
+### Raw HTTP
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+```
+
+**Get Single Number Reach Settings for a Person:**
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/people/{person_id}/singleNumberReach")
+# Returns: alertAllNumbersForClickToDialCallsEnabled, numbers[]
+```
+
+**Update Single Number Reach Settings for a Person:**
+
+```python
+api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/singleNumberReach",
+    json={"alertAllNumbersForClickToDialCallsEnabled": True})
+```
+
+**Create a Single Number Reach Number:**
+
+```python
+body = {
+    "phoneNumber": "+14155559999",
+    "enabled": True,
+    "name": "Mobile",
+    "doNotForwardCallsEnabled": False,
+    "answerConfirmationEnabled": True
+}
+result = api.session.rest_post(
+    f"{BASE}/telephony/config/people/{person_id}/singleNumberReach/numbers", json=body)
+```
+
+**Update a Single Number Reach Number:**
+
+```python
+api.session.rest_put(
+    f"{BASE}/telephony/config/people/{person_id}/singleNumberReach/numbers/{number_id}",
+    json={"enabled": False, "name": "Home"})
+```
+
+**Delete a Single Number Reach Number:**
+
+```python
+api.session.rest_delete(
+    f"{BASE}/telephony/config/people/{person_id}/singleNumberReach/numbers/{number_id}")
+```
+
+**Get Available Phone Numbers for Single Number Reach:**
+
+```python
+result = api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{loc_id}/singleNumberReach/availableNumbers",
+    params={"max": 1000})
+items = result["availableNumbers"]
+```
+
+### CLI Examples
+
+```bash
+# Get single number reach settings for a person
+wxcli single-number-reach list-single-number-reach --person-id <person_id>
+
+# Create a single number reach number for a person
+wxcli single-number-reach create --person-id <person_id> \
+  --json-body '{"phoneNumber": "+14155559999", "enabled": true, "name": "Mobile", "answerConfirmationEnabled": true}'
+
+# Update single number reach settings for a person
+wxcli single-number-reach update --person-id <person_id> \
+  --json-body '{"alertAllNumbersForClickToDialCallsEnabled": true}'
+
+# Update a specific single number reach number
+wxcli single-number-reach update-numbers --person-id <person_id> --number-id <number_id> \
+  --json-body '{"enabled": false, "name": "Home"}'
+
+# Delete a single number reach number
+wxcli single-number-reach delete --person-id <person_id> --number-id <number_id>
+
+# List available phone numbers for single number reach
+wxcli single-number-reach list --location-id <loc_id>
+```
+
+---
+
+## Virtual Extensions
+
+<!-- Updated by playbook session 2026-03-18 -->
+
+### Overview
+
+Virtual Extensions are directory entries with extensions (and optionally phone numbers) that are not tied to a person, workspace, or device. They appear in the dial-by-name directory and can be used for call routing. Virtual Extension Ranges allow bulk creation with a shared prefix.
+
+### Raw HTTP
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()
+BASE = "https://webexapis.com/v1"
+```
+
+#### Virtual Extensions
+
+**List Virtual Extensions** (org-wide, filterable):
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/virtualExtensions",
+    params={"locationId": loc_id, "name": "Lobby", "extension": "9000",
+            "orgLevelOnly": "true", "max": 1000})
+items = result["virtualExtensions"]  # response key: "virtualExtensions"
+# Each item: {id, displayName, firstName, lastName, extension, phoneNumber, locationId, locationName}
+```
+
+**Get Virtual Extension Details:**
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/virtualExtensions/{ext_id}")
+```
+
+**Create Virtual Extension:**
+
+```python
+body = {
+    "displayName": "Lobby Directory",
+    "firstName": "Lobby",
+    "lastName": "Directory",
+    "extension": "9000",
+    "phoneNumber": "+14155551000",   # optional
+    "locationId": loc_id             # optional
+}
+result = api.session.rest_post(f"{BASE}/telephony/config/virtualExtensions", json=body)
+ext_id = result["id"]
+```
+
+**Update Virtual Extension:**
+
+```python
+api.session.rest_put(f"{BASE}/telephony/config/virtualExtensions/{ext_id}",
+    json={"displayName": "New Name", "extension": "9001"})
+```
+
+**Delete Virtual Extension:**
+
+```python
+api.session.rest_delete(f"{BASE}/telephony/config/virtualExtensions/{ext_id}")
+```
+
+**Get Virtual Extension Settings** (org-level):
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/virtualExtensions/settings")
+# Returns: mode (e.g., "STANDARD")
+```
+
+**Update Virtual Extension Settings:**
+
+```python
+api.session.rest_put(f"{BASE}/telephony/config/virtualExtensions/settings",
+    json={"mode": "STANDARD"})
+```
+
+**Validate External Phone Numbers:**
+
+```python
+result = api.session.rest_post(
+    f"{BASE}/telephony/config/virtualExtensions/actions/validateNumbers/invoke",
+    json={"phoneNumbers": ["+14155551234"]})
+```
+
+#### Virtual Extension Ranges
+
+**List Virtual Extension Ranges:**
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/virtualExtensionRanges",
+    params={"name": "Sales", "prefix": "90", "locationId": loc_id, "max": 1000})
+items = result["virtualExtensionRanges"]  # response key: "virtualExtensionRanges"
+```
+
+**Get Virtual Extension Range Details:**
+
+```python
+result = api.session.rest_get(f"{BASE}/telephony/config/virtualExtensionRanges/{range_id}")
+```
+
+**Create Virtual Extension Range:**
+
+```python
+result = api.session.rest_post(f"{BASE}/telephony/config/virtualExtensionRanges",
+    json={"name": "Sales Range", "prefix": "90", "locationId": loc_id})
+range_id = result["id"]
+```
+
+**Update Virtual Extension Range:**
+
+```python
+api.session.rest_put(f"{BASE}/telephony/config/virtualExtensionRanges/{range_id}/",
+    json={"name": "Updated Range", "prefix": "91", "action": "REPLACE"})
+```
+
+**Delete Virtual Extension Range:**
+
+```python
+api.session.rest_delete(f"{BASE}/telephony/config/virtualExtensionRanges/{range_id}")
+```
+
+**Validate Range Prefix:**
+
+```python
+result = api.session.rest_post(
+    f"{BASE}/telephony/config/virtualExtensionRanges/actions/validate/invoke",
+    json={"locationId": loc_id, "name": "Test Range", "prefix": "90"})
+```
+
+### CLI Examples
+
+#### Virtual Extensions
+
+```bash
+# List virtual extensions (org-wide, filterable)
+wxcli virtual-extensions list --location-id <loc_id>
+
+# Get details for a virtual extension
+wxcli virtual-extensions show --virtual-extension-id <ext_id>
+
+# Create a virtual extension
+wxcli virtual-extensions create --display-name "Lobby Directory" --extension "9000" --location-id <loc_id>
+
+# Update a virtual extension
+wxcli virtual-extensions update --virtual-extension-id <ext_id> --display-name "New Name"
+
+# Delete a virtual extension
+wxcli virtual-extensions delete --virtual-extension-id <ext_id>
+
+# Get virtual extension settings (org-level)
+wxcli virtual-extensions show-settings
+
+# Update virtual extension settings
+wxcli virtual-extensions update-settings --json-body '{"mode": "STANDARD"}'
+
+# Validate external phone numbers
+wxcli virtual-extensions validate-an-external --json-body '{"phoneNumbers": ["+14155551234"]}'
+```
+
+#### Virtual Extension Ranges
+
+```bash
+# List virtual extension ranges
+wxcli virtual-extensions list-virtual-extension-ranges --location-id <loc_id>
+
+# Get details for a virtual extension range
+wxcli virtual-extensions show-virtual-extension-ranges --virtual-extension-range-id <range_id>
+
+# Create a virtual extension range
+wxcli virtual-extensions create-virtual-extension-ranges --name "Sales Range" --prefix "90" --location-id <loc_id>
+
+# Update a virtual extension range
+wxcli virtual-extensions update-virtual-extension-ranges --virtual-extension-range-id <range_id> \
+  --json-body '{"name": "Updated Range", "prefix": "91", "action": "REPLACE"}'
+
+# Delete a virtual extension range
+wxcli virtual-extensions delete-virtual-extension-ranges --virtual-extension-range-id <range_id>
+
+# Validate a range prefix
+wxcli virtual-extensions validate-the-prefix --json-body '{"locationId": "<loc_id>", "name": "Test Range", "prefix": "90"}'
+```
+
 ---
 
 ## Data Models Quick Reference
@@ -1242,6 +2475,19 @@ CX Essentials ────────── Call Queues (screen pop, recording,
 5. **Voicemail Groups are location-scoped**: Created within a location, but listed org-wide.
 6. **Paging Groups are location-scoped**: Created within a location, but can be listed org-wide.
 7. **ID instability for Call Park and Call Pickup**: The IDs for Call Park and Call Pickup entities change when their names are modified. Always re-fetch the ID after a name change.
+
+---
+
+## Gotchas (Cross-Cutting)
+
+- **ID instability**: Call Park and Call Pickup IDs change when the entity name is modified. Always re-fetch the ID after a name update.
+- **Agent serialization**: For Paging Groups, Call Parks, and Call Pickups, the `agents`/`originators`/`targets` fields accept flat lists of IDs on create/update, but return full agent objects on read. Do not pass full objects back on write.
+- **Location-scoped features listed org-wide**: Paging Groups and Voicemail Groups can be listed org-wide (no `locationId` required), but Call Parks and Call Pickups require `locationId` for list operations.
+- **Nested settings require `--json-body`**: Features with complex nested body fields (voicemail group create, call park recall, screen pop, wrap-up settings) need `--json-body` in the CLI because the generator skips deeply nested object/array fields.
+- **Voicemail Group create is strict**: Requires 7+ fields (name, extension, passcode, languageCode, messageStorage, notifications, faxMessage, transferToNumber, emailCopyOfMessage). The wxc_sdk `VoicemailGroupDetail.for_create()` has a bug (missing `by_alias=True`); use `--json-body` via CLI or `model_dump(by_alias=True)` via SDK.
+- **CX Essentials requires licensing**: Screen pop, queue recording, and wrap-up reasons require CX Essentials licensing. Call queues must exist before configuring these features.
+- **Call Park requires recall**: Creating a Call Park without a `recall` option (e.g., `ALERT_PARKING_USER_ONLY`) will be rejected by the API.
+- **Announcement upload requires multipart/form-data**: The CLI and raw HTTP `rest_post` may not support binary file uploads directly. Use the SDK upload methods or construct multipart requests manually.
 
 ---
 

@@ -511,8 +511,11 @@ The `subscribe()` method accepts an event package name. The primary package:
 | Package | Description |
 |---------|-------------|
 | `Advanced Call` | All call-related events (originate, ring, answer, hold, transfer, release, hook status, etc.) |
+| `Call Center Queue` | Call Queue / ACD events (calls entering queue, queue state changes, etc.) |
 
-<!-- NEEDS VERIFICATION: confirm full list of available event packages (e.g., "Basic Call", "Call Center", "Do Not Disturb", etc.) — the source code only demonstrates "Advanced Call" -->
+<!-- Verified via wxcadm source + docs (queue_block_callers.rst, xsi.rst) 2026-03-19: "Advanced Call" and "Call Center Queue" confirmed as valid packages. wxcadm passes the package name directly to the BroadWorks XSI server without validation, so additional packages may exist depending on BroadWorks configuration. -->
+
+> **Note:** wxcadm does not validate event package names — it passes whatever string you provide to the XSI server. The two packages shown above are confirmed in wxcadm examples. Additional BroadWorks-defined packages may be available depending on your org's configuration.
 
 ### Subscription Scopes
 
@@ -550,8 +553,11 @@ Additional event types you will see in practice:
 | `xsi:CallTransferredEvent` | Call is transferred |
 | `xsi:CallSubscriptionEvent` | Subscription state change |
 | `xsi:ChannelTerminatedEvent` | Channel was closed (not queued — handled internally) |
+| `xsi:ACDCallAddedEvent` | Call added to a Call Queue (requires "Call Center Queue" subscription) |
 
-<!-- NEEDS VERIFICATION: confirm the complete event type list from the BroadWorks XSI schema -->
+<!-- Verified via wxcadm source + docs 2026-03-19: event types above confirmed in wxcadm source code (xsi.py line 340 for ChannelTerminatedEvent) and docs (xsi.rst, queue_block_callers.rst, care_facility.rst). The complete BroadWorks XSI event type list is defined by the BroadWorks XSI schema, not by wxcadm — additional event types may appear depending on BroadWorks version and subscribed packages. -->
+
+> **Note:** The event types listed above are confirmed from wxcadm source and documentation. The full set of possible event types is defined by the BroadWorks XSI schema and may include additional types not shown here. Use the `@xsi1:type` field in each event for runtime discovery.
 
 ### Event Payload Structure
 
@@ -590,7 +596,7 @@ Events are delivered as Python OrderedDicts (parsed from XML via `xmltodict`). T
 }
 ```
 
-<!-- NEEDS VERIFICATION: exact payload field names vary by event type and BroadWorks version — use the actual event data for field discovery -->
+<!-- Verified via wxcadm source (xsi.py lines 334-356) 2026-03-19: the general payload structure above matches the xmltodict parsing in _channel_daemon. Field names xsi:Event, @xsi1:type, xsi:eventID, xsi:channelId are confirmed in source. The exact fields within xsi:eventData vary by event type (e.g., "Advanced Call" events use xsi:call with xsi:callId, while "Call Center Queue" events use xsi:queueEntry with xsi:remoteParty). Use actual event data for complete field discovery. -->
 
 ### Event Processing Best Practices
 
@@ -735,7 +741,7 @@ call.transfer("2345")   # Transfer to an agent
 call.hangup()            # Release the call
 ```
 
-Call Queue calls support basic call control (transfer, hangup) but not all operations available to regular user calls. <!-- NEEDS VERIFICATION: confirm exact subset of call controls available for Call Queue calls -->
+Call Queue calls support basic call control (transfer, hangup) but not all operations available to regular user calls. The wxcadm source confirms that Call Queue calls use a different URL base (`/v2.0/callcenter/{id}/calls` vs `/v2.0/user/{id}/calls`) and that the `transfer()` method sends the address as `phoneno` instead of `address` for Call Queue calls. The exact subset of operations the XSI server accepts on the callcenter endpoint is server-determined. <!-- Corrected via wxcadm source (xsi.py lines 1112-1114, 1303-1304, docstring at line 619) 2026-03-19: the docstring states "not all call controls are available to a Call Queue call, but the basic ones, including Transfer, are available." Transfer is confirmed working in the queue_block_callers.rst example. The full Call class methods are available in code, but the XSI server may reject operations not supported on callcenter endpoints. -->
 
 ---
 

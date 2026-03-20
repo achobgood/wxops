@@ -5,6 +5,25 @@ Developer reference for building Webex bots and integrations. Covers bot fundame
 
 For space/team/membership CRUD, see [`messaging-spaces.md`](messaging-spaces.md).
 
+## Sources
+
+- OpenAPI spec: `webex-messaging.json`
+- developer.webex.com Messaging APIs
+- Webex Bot Framework documentation
+
+## Required Scopes
+
+| Command Group | Bot Token | User Token | Admin Token |
+|--------------|-----------|-----------|-------------|
+| `messages` (create/list/get/delete) | `spark:messages_write`, `spark:messages_read` | `spark:messages_write`, `spark:messages_read` | Not supported (use compliance API) |
+| `attachment-actions` (show/create) | `spark:messages_read` | `spark:messages_read` | Not supported |
+| `room-tabs` (CRUD) | Not supported | `spark:rooms_read`, `spark:rooms_write` (moderator required) | `spark-admin:rooms_read`, `spark-admin:rooms_write` |
+| `webhooks` (CRUD) | `spark:webhooks_read`, `spark:webhooks_write` | `spark:webhooks_read`, `spark:webhooks_write` | `spark:webhooks_read`, `spark:webhooks_write` |
+| `rooms` (create/list) | `spark:rooms_read`, `spark:rooms_write` | `spark:rooms_read`, `spark:rooms_write` | `spark-admin:rooms_read`, `spark-admin:rooms_write` |
+| `memberships` (CRUD) | `spark:memberships_read` (read only; cannot add/remove except self) | `spark:memberships_read`, `spark:memberships_write` | `spark-admin:memberships_read`, `spark-admin:memberships_write` |
+
+> **Note:** Bot tokens have a fixed scope set — you cannot request additional scopes beyond what is granted at bot creation. User and admin tokens must explicitly request the scopes listed above during the OAuth flow.
+
 ---
 
 ## 1. Bot Fundamentals
@@ -54,7 +73,7 @@ The `/people/me` endpoint (called by `wxcli whoami`) returns a `type` field:
 
 The key discriminator: if `type` is `bot`, it is a bot token. If `type` is `person`, check the intended scopes — admin vs. regular user depends on token scopes, not the `/people/me` type field.
 
-<!-- NEEDS VERIFICATION: Confirm that `wxcli whoami` exposes the `type` field from /people/me response. If it only shows a subset of fields, document which fields are visible and how to distinguish bot from user. -->
+> **`wxcli whoami` does not display the `type` field.** It shows display name, email, org ID, roles, and token expiry. To distinguish bot from user via CLI, use `wxcli people list-me -o json` and check the `type` field in the JSON output, or call `/people/me` via Raw HTTP and inspect the `type` field directly. <!-- Corrected via wxcli source (main.py lines 28-58, people.py line 239) and OpenAPI spec Person schema 2026-03-19 -->
 
 ---
 
@@ -86,6 +105,64 @@ wxcli messages create --json-body '{
 **Critical:** The `text` field is required even when sending a card. It is the fallback for clients that cannot render adaptive cards (email notifications, older Webex versions, API consumers). Omitting it is not an error but the card may be invisible to some recipients.
 
 For the complete card payload, see the recipe catalog in Section 3.
+
+### Raw HTTP
+
+**Send a message with an adaptive card:**
+
+```
+POST https://webexapis.com/v1/messages
+Authorization: Bearer BOT_OR_USER_TOKEN
+Content-Type: application/json
+
+{
+  "roomId": "ROOM_ID",
+  "text": "Fallback text for clients that cannot render cards",
+  "attachments": [{
+    "contentType": "application/vnd.microsoft.card.adaptive",
+    "content": { ... card payload ... }
+  }]
+}
+```
+
+```bash
+curl -X POST "https://webexapis.com/v1/messages" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "roomId": "ROOM_ID",
+    "text": "Fallback text for clients that cannot render cards",
+    "attachments": [{
+      "contentType": "application/vnd.microsoft.card.adaptive",
+      "content": {
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "type": "AdaptiveCard",
+        "version": "1.3",
+        "body": [
+          {"type": "TextBlock", "text": "Hello from Raw HTTP", "weight": "Bolder"}
+        ]
+      }
+    }]
+  }'
+```
+
+**Send a plain text message:**
+
+```bash
+curl -X POST "https://webexapis.com/v1/messages" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"roomId": "ROOM_ID", "text": "Hello, plain text message"}'
+```
+
+**Send a markdown message:**
+
+```bash
+curl -X POST "https://webexapis.com/v1/messages" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"roomId": "ROOM_ID", "markdown": "**Bold** and _italic_ message"}'
+```
 
 ---
 
@@ -464,13 +541,91 @@ wxcli attachment-actions show ACTION_ID
 # Response inputs: {"environment": "staging"}
 ```
 
+### Raw HTTP — Sending Cards
+
+All card recipes use the same endpoint. The only variable is the card payload in the `attachments` array.
+
+```
+POST https://webexapis.com/v1/messages
+Authorization: Bearer BOT_OR_USER_TOKEN
+Content-Type: application/json
+```
+
+**Notification card (Recipe 1):**
+
+```bash
+curl -X POST "https://webexapis.com/v1/messages" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "roomId": "ROOM_ID",
+    "text": "Build notification",
+    "attachments": [{
+      "contentType": "application/vnd.microsoft.card.adaptive",
+      "content": {
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "type": "AdaptiveCard",
+        "version": "1.3",
+        "body": [
+          {"type": "TextBlock", "text": "Build Passed", "size": "Large", "weight": "Bolder", "color": "Good"},
+          {"type": "FactSet", "facts": [
+            {"title": "Repository", "value": "myapp"},
+            {"title": "Branch", "value": "main"},
+            {"title": "Commit", "value": "a1b2c3d"},
+            {"title": "Duration", "value": "2m 14s"}
+          ]}
+        ],
+        "actions": [
+          {"type": "Action.OpenUrl", "title": "View Dashboard", "url": "https://ci.example.com/builds/123"}
+        ]
+      }
+    }]
+  }'
+```
+
+**Approval flow (Recipe 2):**
+
+```bash
+curl -X POST "https://webexapis.com/v1/messages" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "roomId": "ROOM_ID",
+    "text": "Approval request pending",
+    "attachments": [{
+      "contentType": "application/vnd.microsoft.card.adaptive",
+      "content": {
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "type": "AdaptiveCard",
+        "version": "1.3",
+        "body": [
+          {"type": "TextBlock", "text": "Change Approval Required", "size": "Large", "weight": "Bolder"},
+          {"type": "TextBlock", "text": "A change request requires your approval.", "wrap": true},
+          {"type": "FactSet", "facts": [
+            {"title": "Requester", "value": "Alice Smith"},
+            {"title": "Change ID", "value": "CHG-00412"},
+            {"title": "Description", "value": "Upgrade firewall firmware"},
+            {"title": "Window", "value": "2026-03-20 02:00 UTC"}
+          ]}
+        ],
+        "actions": [
+          {"type": "Action.Submit", "title": "Approve", "data": {"decision": "approved", "changeId": "CHG-00412"}},
+          {"type": "Action.Submit", "title": "Reject", "style": "destructive", "data": {"decision": "rejected", "changeId": "CHG-00412"}}
+        ]
+      }
+    }]
+  }'
+```
+
+**Form / survey (Recipe 3), incident alert (Recipe 5), dropdown menu (Recipe 6):** Same endpoint and pattern — replace the `content` object with the corresponding card payload from the recipe above.
+
 ---
 
 ## 4. Webex Adaptive Cards — Supported Features and Gaps
 
 Webex supports **Adaptive Cards schema version 1.3**.
 
-<!-- NEEDS VERIFICATION: Confirm exact Webex Adaptive Cards support level and gaps against https://developer.webex.com/docs/buttons-and-cards -->
+Adaptive Cards with `"version": "1.3"` are accepted by the Webex Messages API, including `Action.ToggleVisibility` (a 1.2+ feature). Card was sent successfully to a test room with HTTP 200. <!-- Verified via live API 2026-03-19 -->
 
 ### Supported Elements
 
@@ -577,6 +732,43 @@ After `wxcli attachment-actions show ACTION_ID`, the `inputs` field maps to the 
 | Incident Alert (Recipe 5) | `{"action": "acknowledge", "incidentId": "INC-20260319-001"}` |
 | Dropdown Menu (Recipe 6) | `{"environment": "staging"}` |
 
+### Raw HTTP
+
+**Get attachment action details:**
+
+```
+GET https://webexapis.com/v1/attachment/actions/{actionId}
+Authorization: Bearer BOT_OR_USER_TOKEN
+```
+
+```bash
+curl -s "https://webexapis.com/v1/attachment/actions/ACTION_ID" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Returns `id`, `type`, `messageId`, `inputs`, `personId`, `roomId`, `created`.
+
+**Create an attachment action (programmatic/testing):**
+
+```
+POST https://webexapis.com/v1/attachment/actions
+Authorization: Bearer BOT_OR_USER_TOKEN
+Content-Type: application/json
+
+{
+  "type": "submit",
+  "messageId": "MSG_ID",
+  "inputs": {"decision": "approved"}
+}
+```
+
+```bash
+curl -X POST "https://webexapis.com/v1/attachment/actions" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"type": "submit", "messageId": "MSG_ID", "inputs": {"decision": "approved"}}'
+```
+
 ---
 
 ## 6. Room Tabs (`room-tabs` CLI group — 5 commands)
@@ -631,6 +823,64 @@ wxcli room-tabs delete TAB_ID --force
 ```
 
 Without `--force`, the CLI prompts for confirmation.
+
+### Raw HTTP
+
+**List tabs in a space:**
+
+```
+GET https://webexapis.com/v1/room/tabs?roomId={roomId}
+Authorization: Bearer USER_TOKEN
+```
+
+```bash
+curl -s "https://webexapis.com/v1/room/tabs?roomId=ROOM_ID" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+**Create a tab:**
+
+```
+POST https://webexapis.com/v1/room/tabs
+Authorization: Bearer USER_TOKEN
+Content-Type: application/json
+
+{
+  "roomId": "ROOM_ID",
+  "contentUrl": "https://dashboard.example.com/calls",
+  "displayName": "Call Dashboard"
+}
+```
+
+```bash
+curl -X POST "https://webexapis.com/v1/room/tabs" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"roomId": "ROOM_ID", "contentUrl": "https://dashboard.example.com/calls", "displayName": "Call Dashboard"}'
+```
+
+**Get tab details:**
+
+```bash
+curl -s "https://webexapis.com/v1/room/tabs/TAB_ID" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+**Update a tab:**
+
+```bash
+curl -X PUT "https://webexapis.com/v1/room/tabs/TAB_ID" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"roomId": "ROOM_ID", "contentUrl": "https://dashboard.example.com/v2/calls", "displayName": "Call Dashboard"}'
+```
+
+**Delete a tab:**
+
+```bash
+curl -X DELETE "https://webexapis.com/v1/room/tabs/TAB_ID" \
+  -H "Authorization: Bearer $TOKEN"
+```
 
 ---
 
@@ -743,6 +993,58 @@ When a calling issue is detected, automatically create an incident space, add re
 
 For space and membership management commands (`rooms create`, `memberships create`), see [`messaging-spaces.md`](messaging-spaces.md).
 
+### Raw HTTP — Cross-Domain Patterns
+
+The cross-domain recipes above chain multiple API calls. Here are the Raw HTTP equivalents for the key operations used in these recipes.
+
+**Create a webhook (for telephony or messaging events):**
+
+```bash
+curl -X POST "https://webexapis.com/v1/webhooks" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Queue Monitor",
+    "targetUrl": "https://your-bot.com/webhook",
+    "resource": "telephony_calls",
+    "event": "updated"
+  }'
+```
+
+**Send a 1:1 message by person ID:**
+
+```bash
+curl -X POST "https://webexapis.com/v1/messages" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"toPersonId": "PERSON_ID", "text": "You have a new voicemail"}'
+```
+
+**Create an incident space:**
+
+```bash
+curl -X POST "https://webexapis.com/v1/rooms" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Incident-2026-03-19-CQ-Overflow"}'
+```
+
+**Add a member to a space:**
+
+```bash
+curl -X POST "https://webexapis.com/v1/memberships" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"roomId": "ROOM_ID", "personEmail": "oncall@example.com"}'
+```
+
+**Get attachment action response (after webhook fires):**
+
+```bash
+curl -s "https://webexapis.com/v1/attachment/actions/ACTION_ID" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
 ---
 
 ## 8. Webhook Signpost
@@ -758,6 +1060,24 @@ wxcli webhooks create \
   --resource messages \
   --event created
 ```
+
+---
+
+## Gotchas (Cross-Cutting)
+
+1. **Bot rate limits.** Bots share the same rate limits as other API consumers: 5 requests/second per token for most endpoints. Bursting messages (e.g., posting alerts to many spaces simultaneously) will hit 429 responses. Implement exponential backoff with jitter. The `Retry-After` header tells you how long to wait.
+
+2. **Webhook reliability.** Webex retries failed webhook deliveries (non-2xx responses) but with limited retries. If your webhook endpoint is down for extended periods, events are lost. Webex marks webhooks as `disabled` after sustained delivery failures — monitor webhook status with `wxcli webhooks list` and re-enable by updating the webhook. There is no replay/catch-up mechanism for missed events.
+
+3. **Card rendering differences across clients.** Adaptive cards render differently on Webex desktop (Windows/Mac), mobile (iOS/Android), and web. Key differences: `ColumnSet` alignment, `color` property appearance on dark vs. light themes, and `Input.Date`/`Input.Time` picker UX. Always test interactive cards on all target client types before deploying to production.
+
+4. **Card payload size limit (4KB).** Cards exceeding 4KB silently fail to render — the message is delivered with only the fallback `text` visible. Large FactSet entries and embedded Base64 images are the most common culprits. Keep cards compact; link to external content via `Action.OpenUrl` instead of embedding it.
+
+5. **Bot cannot see all messages in group spaces.** Bots only receive messages where they are explicitly @mentioned. In 1:1 spaces, bots receive all messages. This is by design and cannot be changed via scopes or configuration. Design bot interaction flows around the @mention pattern in group spaces.
+
+6. **Attachment action retrieval requires the original bot/user token.** Only the bot or user that posted the original card message can call `GET /attachment/actions/{id}` to retrieve the user's response. A different bot or user token gets 404.
+
+7. **`Action.Submit` data vs. inputs.** The `data` object on `Action.Submit` is merged with the user's input values when retrieved via the attachment actions API. If a `data` key has the same name as an `Input` field `id`, the input value takes precedence. Use distinct key names to avoid collisions.
 
 ---
 

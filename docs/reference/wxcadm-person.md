@@ -6,6 +6,24 @@ This document covers every class, method, and property in the wxcadm `person` mo
 
 ---
 
+<!-- Updated by playbook session 2026-03-18 -->
+## When to Use wxcadm vs Raw HTTP
+
+wxcadm Person has 34 call settings methods, but most wrap standard Webex REST endpoints that raw HTTP can call directly. The truly unique capabilities are the ones worth using wxcadm for.
+
+| Use wxcadm when | Use raw HTTP when |
+|---|---|
+| You need **XSI session management** — `start_xsi()` has no raw HTTP equivalent | You're reading/writing standard person call settings (forwarding, voicemail, DND, etc.) |
+| You need **reverse membership lookups** — `person.hunt_groups`, `person.call_queues` search the org for you | You're doing targeted CRUD on a known person ID |
+| You want **`get_full_config()`** to batch-fetch all settings at once | You want to read/write a single setting without loading the full person object |
+| You need **`ecbn_null_change()`** — a backend bug workaround not in wxc_sdk | You're building automation that needs predictable, minimal API calls |
+| You want **`ApplicationLineAssignments`** for shared call appearance management | You're working with well-documented endpoints that don't need convenience wrappers |
+| You need **`spark_id`** decoding or **`set_calling_only()`** license cleanup | You want Pydantic-typed responses (use wxc_sdk models with raw HTTP instead) |
+
+> **Note:** The playbook uses raw HTTP via `api.session.rest_*()` for standard person CRUD and call settings. wxcadm is used for its truly unique capabilities: XSI integration, reverse group lookups, `ecbn_null_change()`, `get_full_config()` batch fetch, and `ApplicationLineAssignments`. Convenience methods like `set_caller_id()` and `enable_call_recording()` are nice but replaceable with raw HTTP + the correct payload.
+
+---
+
 ## Table of Contents
 
 - [PersonList](#personlist)
@@ -223,7 +241,7 @@ def role_names(self) -> Optional[list]
 
 Returns a list of role name strings by resolving role IDs against `self.org.roles`. Returns `None` if the person has no roles.
 
-> **Note:** There is a bug in the source — `return roles` is inside the `for` loop, so only the first role is ever returned. <!-- NEEDS VERIFICATION -->
+> **Note:** There is a bug in the source — `return roles` is inside the `for` loop (line 483 of person.py), so only the first role is ever returned. <!-- Verified via wxcadm source 2026-03-19 -->
 
 ##### `delete`
 
@@ -1138,7 +1156,7 @@ Accessed via `Person.single_number_reach` property.
 | `set_do_not_forward_calls` | `(enabled: bool) -> bool` | Toggle call forwarding prevention |
 | `delete` | `() -> bool` | Delete the SNR number |
 
-> **Note:** In `set_do_not_forward_calls`, the source code sets `self.answer_confirmation = enabled` instead of `self.do_not_forward_calls = enabled`. This appears to be a copy-paste bug — the API call itself sends the correct payload. <!-- NEEDS VERIFICATION -->
+> **Note:** In `set_do_not_forward_calls`, the source code sets `self.answer_confirmation = enabled` instead of `self.do_not_forward_calls = enabled` (line 2547 of person.py). This is a confirmed copy-paste bug — the API call itself sends the correct `doNotForwardCallsEnabled` payload, but the local instance attribute is stale after the call. <!-- Verified via wxcadm source 2026-03-19 -->
 
 ---
 
@@ -1188,18 +1206,18 @@ For the complete person settings surface, see the wxc_sdk person-call-settings d
 |---------|--------------|-------------------|
 | User CRUD | `PersonList.create()`, `Person.delete()`, `Person.update_person()` | `PeopleApi.create()`, `.delete()`, `.update()` |
 | License management | `assign_wxc()`, `unassign_wxc()`, `set_calling_only()` | Manual via `PeopleApi.update()` |
-| Voicemail greeting upload | `upload_busy_greeting()`, `upload_no_answer_greeting()` | `PersonSettingsApi.voicemail.configure()` <!-- NEEDS VERIFICATION --> |
+| Voicemail greeting upload | `upload_busy_greeting()`, `upload_no_answer_greeting()` | `VoicemailApi.configure_busy_greeting()` / `.configure_no_answer_greeting()` <!-- Corrected via wxc_sdk source 2026-03-19 --> |
 | Caller ID (friendly) | `set_caller_id(name, number)` with keyword shortcuts | Must build payload manually for `PersonSettingsApi.caller_id.configure()` |
 | Call recording (friendly) | `enable_call_recording(type=..., transcribe=..., ai_summary=...)` | Must build `CallRecordingSetting` model manually |
 | XSI session | `start_xsi()` — built-in XSI integration | Not available |
 | Spark ID decode | `spark_id` property (base64 decode) | Not available |
-| ECBN management | `ecbn` property, `set_ecbn()`, `ecbn_null_change()` | `PersonSettingsApi.ecbn` <!-- NEEDS VERIFICATION --> |
-| Single Number Reach | `single_number_reach` property with full `SnrNumber` management | `PersonSettingsApi` <!-- NEEDS VERIFICATION --> |
-| Application line assignments | `ApplicationLineAssignments` with add/remove/configure | Not directly exposed as a convenience class <!-- NEEDS VERIFICATION --> |
+| ECBN management | `ecbn` property, `set_ecbn()`, `ecbn_null_change()` | `PersonSettingsApi.ecbn` (`ECBNApi`) <!-- Verified via wxc_sdk source 2026-03-19 --> |
+| Single Number Reach | `single_number_reach` property with full `SnrNumber` management | `PersonSettingsApi.single_number_reach` (`SingleNumberReachApi`) <!-- Verified via wxc_sdk source 2026-03-19 --> |
+| Application line assignments | `ApplicationLineAssignments` with add/remove/configure | `PersonSettingsApi.app_shared_line` (`AppSharedLineApi`) — has `search_members()`, `get_members()`, `update_members()` <!-- Corrected via wxc_sdk source 2026-03-19 --> |
 | Hunt Group / Call Queue membership | `hunt_groups`, `call_queues` properties (reverse lookup) | Must query `HuntGroupApi` / `CallQueueApi` directly |
 | Monitoring (who monitors whom) | `monitoring` property, `get_monitored_by()` | `PersonSettingsApi.monitoring` |
-| User Groups | `UserGroups`/`UserGroup` classes with CRUD | `GroupApi` <!-- NEEDS VERIFICATION --> |
-| Voice Messages (Me scope) | `Me.get_voice_messages()`, `Me.voicemail_summary` | `TelephonyApi.voicemail` <!-- NEEDS VERIFICATION --> |
+| User Groups | `UserGroups`/`UserGroup` classes with CRUD | `GroupsApi` (at `api.groups`) — list, create, get, update, delete, members <!-- Corrected via wxc_sdk source 2026-03-19 --> |
+| Voice Messages (Me scope) | `Me.get_voice_messages()`, `Me.voicemail_summary` | `TelephonyApi.voice_messaging` (`VoiceMessagingApi`) — `.summary()`, `.list()`, `.delete()`, `.mark_as_read()`, `.mark_as_unread()` <!-- Corrected via wxc_sdk source 2026-03-19 --> |
 
 ### wxcadm-Unique Capabilities
 
@@ -1217,6 +1235,15 @@ These features have no direct wxc_sdk equivalent or are significantly more conve
 10. **`ApplicationLineAssignments`** — manages shared call appearances on the desktop client with `add()`, line labels, hotline, and call decline settings
 
 ---
+
+## Gotchas
+
+- **`role_names()` returns only the first role.** <!-- Verified via wxcadm source 2026-03-19 --> The source code has `return roles` inside the `for` loop (line 483 of person.py), so it exits after resolving the first role ID instead of collecting all of them.
+- **`SnrNumber.set_do_not_forward_calls()` has a confirmed copy-paste bug.** <!-- Verified via wxcadm source 2026-03-19 --> The method sets `self.answer_confirmation = enabled` instead of `self.do_not_forward_calls = enabled` on the local instance (line 2547 of person.py). The API payload is correct, but the local state is stale after the call.
+- **Reverse group lookups are slow on large orgs.** `person.hunt_groups` and `person.call_queues` iterate every hunt group/call queue in the org and check each agent list. On orgs with many groups, this generates significant API traffic.
+- **`push_call_recording()` silently strips Dubber keys.** The method removes `serviceProvider`, `externalGroup`, and `externalIdentifier` before PUT, since the API rejects them. If you build a config dict from a GET response and push it back, this is handled automatically, but be aware the round-trip is not lossless.
+- **wxc_sdk equivalents have been verified and corrected.** <!-- Verified via wxc_sdk source 2026-03-19 --> Key corrections: voicemail greeting upload uses `VoicemailApi.configure_busy_greeting()` / `.configure_no_answer_greeting()`; application line assignments use `AppSharedLineApi` (not "not exposed"); groups use `GroupsApi` (not `GroupApi`); voice messages use `TelephonyApi.voice_messaging` (not `.voicemail`).
+- **`get_full_config()` returns `False` silently for non-WxC users.** If you call it on a person without a Webex Calling license, it returns `False` instead of raising an exception. Check the return value or verify `person.wxc` first.
 
 ## See Also
 

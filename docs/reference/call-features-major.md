@@ -2,6 +2,12 @@
 
 Reference for Webex Calling's three major call-routing features. Sourced from the `wxc_sdk` Python SDK.
 
+## Sources
+
+- wxc_sdk v1.30.0
+- OpenAPI spec: webex-cloud-calling.json
+- developer.webex.com Call Features APIs
+
 ---
 
 ## Table of Contents
@@ -131,6 +137,137 @@ AutoAttendant.create(name="Main Menu",
 ### Forwarding
 
 Auto attendants have a `forwarding` sub-API (instance of `ForwardingApi` with `FeatureSelector.auto_attendants`). See [Shared Forwarding API](#4-shared-forwarding-api).
+
+### Raw HTTP
+<!-- Updated by playbook session 2026-03-18 -->
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()  # auth via WEBEX_ACCESS_TOKEN env var
+BASE = "https://webexapis.com/v1"
+```
+
+**List auto attendants:**
+```python
+params = {"locationId": loc_id, "max": 1000}
+result = api.session.rest_get(f"{BASE}/telephony/config/autoAttendants", params=params)
+aas = result.get("autoAttendants", [])
+# Each item: {"id", "name", "locationId", "locationName", "phoneNumber", "extension", "enabled", ...}
+```
+
+**Get details:**
+```python
+aa = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/autoAttendants/{aa_id}")
+```
+
+**Create auto attendant:**
+```python
+body = {
+    "name": "Main Menu",
+    "extension": "1000",
+    "businessSchedule": "Business Hours",          # must reference existing schedule
+    "businessHoursMenu": {
+        "greeting": "DEFAULT",
+        "extensionEnabled": True,
+        "keyConfigurations": [{"key": "0", "action": "EXIT"}]
+    },
+    "afterHoursMenu": {
+        "greeting": "DEFAULT",
+        "extensionEnabled": True,
+        "keyConfigurations": [{"key": "0", "action": "EXIT"}]
+    }
+}
+result = api.session.rest_post(f"{BASE}/telephony/config/locations/{loc_id}/autoAttendants", json=body)
+new_id = result.get("id")
+```
+
+Required fields: `name`, `extension` (or `phoneNumber`), `businessSchedule`, `businessHoursMenu`, `afterHoursMenu`. Both menus need `greeting`, `extensionEnabled`, and at least one `keyConfigurations` entry.
+
+**Update auto attendant:**
+```python
+body = {"name": "Updated Menu Name"}  # partial update — only changed fields
+api.session.rest_put(f"{BASE}/telephony/config/locations/{loc_id}/autoAttendants/{aa_id}", json=body)
+```
+
+**Delete auto attendant:**
+```python
+api.session.rest_delete(f"{BASE}/telephony/config/locations/{loc_id}/autoAttendants/{aa_id}")
+```
+
+**Get call forwarding settings:**
+```python
+fwd = api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{loc_id}/autoAttendants/{aa_id}/callForwarding"
+)
+```
+
+### CLI Examples
+
+```bash
+# List all auto attendants (org-wide)
+wxcli auto-attendant list
+
+# List auto attendants at a specific location
+wxcli auto-attendant list --location-id Y2lzY29zcGFyazovL...
+
+# Filter by name
+wxcli auto-attendant list --name "Main Menu"
+
+# Get details for a specific auto attendant (JSON output)
+wxcli auto-attendant show Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_AA_ID
+
+# Create a minimal auto attendant (basic fields only)
+wxcli auto-attendant create Y2lzY29zcGFyazovL_LOC_ID \
+  --name "Main Menu" \
+  --extension "1000" \
+  --business-schedule "Business Hours"
+
+# Create with full menu configuration via --json-body
+wxcli auto-attendant create Y2lzY29zcGFyazovL_LOC_ID --json-body '{
+  "name": "Main Menu",
+  "extension": "1000",
+  "businessSchedule": "Business Hours",
+  "businessHoursMenu": {
+    "greeting": "DEFAULT",
+    "extensionEnabled": true,
+    "keyConfigurations": [
+      {"key": "1", "action": "TRANSFER_WITHOUT_PROMPT", "value": "2000"},
+      {"key": "2", "action": "TRANSFER_WITHOUT_PROMPT", "value": "3000"},
+      {"key": "0", "action": "TRANSFER_TO_OPERATOR", "value": ""}
+    ]
+  },
+  "afterHoursMenu": {
+    "greeting": "DEFAULT",
+    "extensionEnabled": true,
+    "keyConfigurations": [{"key": "0", "action": "EXIT", "value": ""}]
+  }
+}'
+
+# Update basic fields (name, extension)
+wxcli auto-attendant update Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_AA_ID \
+  --name "Updated Main Menu"
+
+# Update menu configuration via --json-body (required for menu changes)
+wxcli auto-attendant update Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_AA_ID --json-body '{
+  "businessHoursMenu": {
+    "greeting": "DEFAULT",
+    "extensionEnabled": true,
+    "keyConfigurations": [
+      {"key": "1", "action": "TRANSFER_WITHOUT_PROMPT", "value": "2000"},
+      {"key": "0", "action": "EXIT", "value": ""}
+    ]
+  }
+}'
+
+# Delete an auto attendant
+wxcli auto-attendant delete Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_AA_ID --force
+
+# Get call forwarding settings
+wxcli auto-attendant show-call-forwarding Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_AA_ID
+
+# List announcement files
+wxcli auto-attendant list-announcements Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_AA_ID
+```
 
 ---
 
@@ -324,7 +461,7 @@ Agents can be people, workspaces, or virtual lines. The `Agent` model (from `hg_
 | `details()` | `details(id, has_cx_essentials=None, max_=50, start=0, org_id=None) -> CallQueueAgentDetail` | Get agent detail with their queue assignments |
 | `update_call_queue_settings()` | `update_call_queue_settings(id, settings: list[AgentCallQueueSetting], has_cx_essentials=None, org_id=None)` | Update an agent's join status across multiple queues |
 
-**Known SDK note:** The decoded value of the agent's `id` and the `type` returned are always `PEOPLE`, even for workspaces or virtual lines. This is a known platform issue. <!-- NEEDS VERIFICATION: check if this has been fixed in newer API versions -->
+**Known SDK note:** The decoded value of the agent's `id` and the `type` returned are always `PEOPLE`, even for workspaces or virtual lines. This is a known platform issue that persists as of 2026-03-19. The OpenAPI spec defines `MemberType` as `["PEOPLE", "PLACE"]` and `GetPersonPlaceVirtualLineCallQueueObject.type` as `["PEOPLE", "PLACE", "VIRTUAL_LINE"]`, but the live API returns `"type": "PEOPLE"` for all agent types in queue detail responses. The `availableUsers` endpoint correctly returns `PLACE` and `VIRTUAL_LINE` types, but once assigned to a queue the type collapses to `PEOPLE`. <!-- Verified via live API 2026-03-19: all agents in queue detail response return type=PEOPLE; availableUsers endpoint returns correct types -->
 
 <!-- Verified via CLI implementation 2026-03-17: Call Queue update — sending the full details object back fails because callingLineIdPolicy=CUSTOM with no phone number causes a validation error. Must use a partial CallQueue object with only the changed fields. -->
 
@@ -454,6 +591,170 @@ Same pattern as auto attendants:
 | `play_tone_to_agent_for_silent_monitoring_enabled` | `bool` | |
 | `play_tone_to_agent_for_supervisor_coaching_enabled` | `bool` | |
 
+### Raw HTTP
+<!-- Updated by playbook session 2026-03-18 -->
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()  # auth via WEBEX_ACCESS_TOKEN env var
+BASE = "https://webexapis.com/v1"
+```
+
+**List call queues:**
+```python
+params = {"locationId": loc_id, "max": 1000}
+result = api.session.rest_get(f"{BASE}/telephony/config/queues", params=params)
+queues = result.get("queues", [])
+# Each item: {"id", "name", "locationId", "locationName", "phoneNumber", "extension", "enabled", ...}
+```
+
+**Get details:**
+```python
+cq = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/queues/{queue_id}")
+```
+
+**Create call queue:**
+```python
+body = {
+    "name": "Support Queue",
+    "extension": "2000",
+    "callPolicies": {
+        "routingType": "PRIORITY_BASED",
+        "policy": "CIRCULAR"
+    }
+}
+result = api.session.rest_post(f"{BASE}/telephony/config/locations/{loc_id}/queues", json=body)
+new_id = result.get("id")
+```
+
+Required fields: `name`, `extension` (or `phoneNumber`), `callPolicies` (with `routingType` and `policy`).
+
+**Update call queue:**
+```python
+body = {"name": "Updated Queue Name"}  # partial update — only changed fields
+api.session.rest_put(f"{BASE}/telephony/config/locations/{loc_id}/queues/{queue_id}", json=body)
+```
+
+Gotcha: sending the full details object back on update fails with "Missing callingLineIdPhoneNumber" when `callingLineIdPolicy` is `CUSTOM`. Always use a partial object with only the fields you want to change.
+
+**Delete call queue:**
+```python
+api.session.rest_delete(f"{BASE}/telephony/config/locations/{loc_id}/queues/{queue_id}")
+```
+
+**Add/remove agents via raw HTTP:**
+```python
+# Get current details, modify agents, send partial update
+cq = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/queues/{queue_id}")
+agents = cq.get("agents", [])
+agents.append({"id": person_id})
+api.session.rest_put(
+    f"{BASE}/telephony/config/locations/{loc_id}/queues/{queue_id}",
+    json={"agents": agents}
+)
+```
+
+**Call queue policy sub-APIs:**
+```python
+# Holiday service
+hs = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/queues/{queue_id}/holidayService")
+api.session.rest_put(f"{BASE}/telephony/config/locations/{loc_id}/queues/{queue_id}/holidayService", json=body)
+
+# Night service
+ns = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/queues/{queue_id}/nightService")
+api.session.rest_put(f"{BASE}/telephony/config/locations/{loc_id}/queues/{queue_id}/nightService", json=body)
+
+# Stranded calls
+sc = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/queues/{queue_id}/strandedCalls")
+api.session.rest_put(f"{BASE}/telephony/config/locations/{loc_id}/queues/{queue_id}/strandedCalls", json=body)
+
+# Forced forward
+ff = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/queues/{queue_id}/forcedForward")
+api.session.rest_put(f"{BASE}/telephony/config/locations/{loc_id}/queues/{queue_id}/forcedForward", json=body)
+```
+
+**Call forwarding settings:**
+```python
+fwd = api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{loc_id}/queues/{queue_id}/callForwarding"
+)
+```
+
+### CLI Examples
+
+```bash
+# List all call queues (org-wide)
+wxcli call-queue list
+
+# List call queues at a specific location
+wxcli call-queue list --location-id Y2lzY29zcGFyazovL...
+
+# Filter by name
+wxcli call-queue list --name "Support Queue"
+
+# Get details for a specific call queue
+wxcli call-queue show Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_QUEUE_ID
+
+# Create a basic call queue
+wxcli call-queue create Y2lzY29zcGFyazovL_LOC_ID \
+  --name "Support Queue" \
+  --extension "2000"
+
+# Create a call queue with agents and routing policy via --json-body
+wxcli call-queue create Y2lzY29zcGFyazovL_LOC_ID --json-body '{
+  "name": "Support Queue",
+  "extension": "2000",
+  "callPolicies": {
+    "routingType": "PRIORITY_BASED",
+    "policy": "CIRCULAR"
+  },
+  "queueSettings": {
+    "queueSize": 15,
+    "overflow": {
+      "action": "PERFORM_BUSY_TREATMENT"
+    }
+  },
+  "agents": [
+    {"id": "PERSON_ID_1"},
+    {"id": "PERSON_ID_2"}
+  ]
+}'
+
+# Update basic fields
+wxcli call-queue update Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_QUEUE_ID \
+  --name "Renamed Queue" --enabled
+
+# Update agents or complex settings via --json-body (partial update)
+wxcli call-queue update Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_QUEUE_ID --json-body '{
+  "agents": [
+    {"id": "PERSON_ID_1"},
+    {"id": "PERSON_ID_2"},
+    {"id": "PERSON_ID_3"}
+  ]
+}'
+
+# Delete a call queue
+wxcli call-queue delete Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_QUEUE_ID --force
+
+# List all call queue agents (org-wide or filtered)
+wxcli call-queue list-agents
+wxcli call-queue list-agents --queue-id Y2lzY29zcGFyazovL_QUEUE_ID
+
+# Get call forwarding settings
+wxcli call-queue show-call-forwarding Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_QUEUE_ID
+
+# View holiday service settings
+wxcli call-queue list-holiday-service Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_QUEUE_ID
+
+# View night service, stranded calls, forced forward
+wxcli call-queue list-night-service Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_QUEUE_ID
+wxcli call-queue list-stranded-calls Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_QUEUE_ID
+wxcli call-queue list-forced-forward Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_QUEUE_ID
+
+# List available agents for a location
+wxcli call-queue list-available-agents-queues --location-id Y2lzY29zcGFyazovL_LOC_ID
+```
+
 ---
 
 ## 3. Hunt Groups
@@ -558,6 +859,141 @@ api.telephony.huntgroup.update(location_id=loc_id, huntgroup_id=hg_id, update=hg
 
 Hunt groups have a `forwarding` sub-API (instance of `ForwardingApi` with `FeatureSelector.huntgroups`). See [Shared Forwarding API](#4-shared-forwarding-api).
 
+### Raw HTTP
+<!-- Updated by playbook session 2026-03-18 -->
+
+```python
+from wxc_sdk import WebexSimpleApi
+api = WebexSimpleApi()  # auth via WEBEX_ACCESS_TOKEN env var
+BASE = "https://webexapis.com/v1"
+```
+
+**List hunt groups:**
+```python
+params = {"locationId": loc_id, "max": 1000}
+result = api.session.rest_get(f"{BASE}/telephony/config/huntGroups", params=params)
+hgs = result.get("huntGroups", [])
+# Each item: {"id", "name", "locationId", "locationName", "phoneNumber", "extension", "enabled", ...}
+```
+
+**Get details:**
+```python
+hg = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/huntGroups/{hg_id}")
+```
+
+**Create hunt group:**
+```python
+body = {
+    "name": "Sales Team",
+    "extension": "3000"
+}
+result = api.session.rest_post(f"{BASE}/telephony/config/locations/{loc_id}/huntGroups", json=body)
+new_id = result.get("id")
+```
+
+Required fields: `name`, `extension` (or `phoneNumber`). `callPolicies` defaults to `CIRCULAR` if not provided. Agents are optional at creation -- can be added later via update.
+
+**Update hunt group:**
+```python
+body = {"name": "Updated Team Name"}  # partial update — only changed fields
+api.session.rest_put(f"{BASE}/telephony/config/locations/{loc_id}/huntGroups/{hg_id}", json=body)
+```
+
+**Delete hunt group:**
+```python
+api.session.rest_delete(f"{BASE}/telephony/config/locations/{loc_id}/huntGroups/{hg_id}")
+```
+
+**Add/remove agents via raw HTTP:**
+```python
+hg = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/huntGroups/{hg_id}")
+agents = hg.get("agents", [])
+agents.append({"id": person_id})
+api.session.rest_put(
+    f"{BASE}/telephony/config/locations/{loc_id}/huntGroups/{hg_id}",
+    json={"agents": agents}
+)
+```
+
+**Call forwarding settings:**
+```python
+fwd = api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{loc_id}/huntGroups/{hg_id}/callForwarding"
+)
+```
+
+### CLI Examples
+
+```bash
+# List all hunt groups (org-wide)
+wxcli hunt-group list
+
+# List hunt groups at a specific location
+wxcli hunt-group list --location-id Y2lzY29zcGFyazovL...
+
+# Filter by name
+wxcli hunt-group list --name "Sales Team"
+
+# Get details for a specific hunt group
+wxcli hunt-group show Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_HG_ID
+
+# Create a basic hunt group
+wxcli hunt-group create Y2lzY29zcGFyazovL_LOC_ID \
+  --name "Sales Team" \
+  --extension "3000" \
+  --enabled
+
+# Create with agents and call policies via --json-body
+wxcli hunt-group create Y2lzY29zcGFyazovL_LOC_ID --json-body '{
+  "name": "Sales Team",
+  "extension": "3000",
+  "enabled": true,
+  "callPolicies": {
+    "policy": "SIMULTANEOUS",
+    "noAnswer": {
+      "nextAgentEnabled": true,
+      "nextAgentRings": 3,
+      "forwardEnabled": true,
+      "destination": "+15551234567",
+      "numberOfRings": 10
+    }
+  },
+  "agents": [
+    {"id": "PERSON_ID_1"},
+    {"id": "PERSON_ID_2"}
+  ]
+}'
+
+# Update basic fields
+wxcli hunt-group update Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_HG_ID \
+  --name "Renamed Team" --enabled
+
+# Update agents via --json-body (partial update)
+wxcli hunt-group update Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_HG_ID --json-body '{
+  "agents": [
+    {"id": "PERSON_ID_1"},
+    {"id": "PERSON_ID_2"},
+    {"id": "PERSON_ID_3"}
+  ]
+}'
+
+# Delete a hunt group
+wxcli hunt-group delete Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_HG_ID --force
+
+# Get call forwarding settings
+wxcli hunt-group show-call-forwarding Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_HG_ID
+
+# Create a selective call forwarding rule
+wxcli hunt-group create-selective-rules Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_HG_ID --json-body '{
+  "name": "After Hours Rule",
+  "enabled": true,
+  "businessSchedule": "Business Hours",
+  "forwardTo": {"selection": "FORWARD_TO_SPECIFIED_NUMBER", "phoneNumber": "+15559876543"},
+  "callsFrom": {"selection": "ANY"},
+  "callsTo": {"selection": "ANY"}
+}'
+```
+
 ---
 
 ## 4. Shared Forwarding API
@@ -615,6 +1051,111 @@ Base: `telephony/config/locations/{locationId}/{feature}/{featureId}/callForward
 | `forward_to` | `ForwardTo` | `FORWARD_TO_DEFAULT_NUMBER`, `FORWARD_TO_SPECIFIED_NUMBER`, or `DO_NOT_FORWARD` |
 | `calls_to` | `ForwardCallsTo` | Which incoming numbers trigger the rule |
 | `calls_from` | `CallsFrom` | `ANY` or `CUSTOM` with specific numbers |
+
+### Raw HTTP
+<!-- Updated by playbook session 2026-03-18 -->
+
+The forwarding URL pattern is the same for all three features -- substitute the feature path segment:
+
+| Feature | Path segment |
+|---------|-------------|
+| Auto Attendant | `autoAttendants` |
+| Call Queue | `queues` |
+| Hunt Group | `huntGroups` |
+
+```python
+BASE = "https://webexapis.com/v1"
+feature = "autoAttendants"  # or "queues" or "huntGroups"
+feature_id = aa_id           # or queue_id or hg_id
+
+# Get forwarding settings
+fwd = api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{loc_id}/{feature}/{feature_id}/callForwarding"
+)
+
+# Update forwarding settings
+api.session.rest_put(
+    f"{BASE}/telephony/config/locations/{loc_id}/{feature}/{feature_id}/callForwarding",
+    json={"always": {"enabled": True, "destination": "+15551234567"}}
+)
+
+# Create selective forwarding rule
+rule_body = {
+    "name": "After Hours Rule",
+    "enabled": True,
+    "businessSchedule": "Business Hours",
+    "forwardTo": {"selection": "FORWARD_TO_SPECIFIED_NUMBER", "phoneNumber": "+15559876543"},
+    "callsFrom": {"selection": "ANY"},
+    "callsTo": {"selection": "ANY"}
+}
+result = api.session.rest_post(
+    f"{BASE}/telephony/config/locations/{loc_id}/{feature}/{feature_id}/callForwarding/selectiveRules",
+    json=rule_body
+)
+rule_id = result.get("id")
+
+# Get / update / delete a selective rule
+rule = api.session.rest_get(
+    f"{BASE}/telephony/config/locations/{loc_id}/{feature}/{feature_id}/callForwarding/selectiveRules/{rule_id}"
+)
+api.session.rest_put(
+    f"{BASE}/telephony/config/locations/{loc_id}/{feature}/{feature_id}/callForwarding/selectiveRules/{rule_id}",
+    json={"enabled": False}
+)
+api.session.rest_delete(
+    f"{BASE}/telephony/config/locations/{loc_id}/{feature}/{feature_id}/callForwarding/selectiveRules/{rule_id}"
+)
+```
+
+Gotcha: when you update a selective rule's `name`, the rule ID changes. The update response returns the new ID.
+
+### CLI Examples
+
+The forwarding commands follow the same pattern across all three features. Substitute the feature command group (`auto-attendant`, `call-queue`, or `hunt-group`).
+
+```bash
+# Get call forwarding settings (same pattern for all three features)
+wxcli auto-attendant show-call-forwarding LOC_ID AA_ID
+wxcli call-queue show-call-forwarding LOC_ID QUEUE_ID
+wxcli hunt-group show-call-forwarding LOC_ID HG_ID
+
+# Update call forwarding — enable always-forward via --json-body
+wxcli auto-attendant update-call-forwarding LOC_ID AA_ID --json-body '{
+  "always": {"enabled": true, "destination": "+15551234567"}
+}'
+
+wxcli call-queue update-call-forwarding LOC_ID QUEUE_ID --json-body '{
+  "always": {"enabled": true, "destination": "+15551234567"}
+}'
+
+wxcli hunt-group update-call-forwarding LOC_ID HG_ID --json-body '{
+  "always": {"enabled": true, "destination": "+15551234567"}
+}'
+
+# Create a selective forwarding rule
+wxcli auto-attendant create-selective-rules LOC_ID AA_ID \
+  --name "After Hours Rule" --enabled --business-schedule "Business Hours"
+
+# Create a selective rule with full config via --json-body
+wxcli call-queue create-selective-rules LOC_ID QUEUE_ID --json-body '{
+  "name": "Holiday Redirect",
+  "enabled": true,
+  "holidaySchedule": "Company Holidays",
+  "forwardTo": {"selection": "FORWARD_TO_SPECIFIED_NUMBER", "phoneNumber": "+15559876543"},
+  "callsFrom": {"selection": "ANY"},
+  "callsTo": {"selection": "ANY"}
+}'
+
+# Get, update, and delete selective rules
+wxcli hunt-group show-selective-rules LOC_ID HG_ID RULE_ID
+wxcli hunt-group update-selective-rules LOC_ID HG_ID RULE_ID --json-body '{"enabled": false}'
+wxcli hunt-group delete-selective-rules LOC_ID HG_ID RULE_ID --force
+
+# Switch to normal operating mode
+wxcli auto-attendant switch-mode-for LOC_ID AA_ID
+wxcli call-queue switch-mode-for LOC_ID QUEUE_ID
+wxcli hunt-group switch-mode-for LOC_ID HG_ID
+```
 
 ---
 
@@ -706,6 +1247,18 @@ When creating/updating, only `agent_id` is required. Set `weight` or `skill_leve
 8. **Audio files** -- custom greetings require announcement audio files to be uploaded via Control Hub first (API upload not supported).
 9. **FedRAMP** -- `directLineCallerIdName`, `customName`, and `dialByName` are not available in Webex for Government. Use `firstName`/`lastName` instead.
 
+### Auto Attendant API Gotchas <!-- Verified via CLI implementation 2026-03-18 -->
+
+10. **`wxcli auto-attendants update` only supports basic fields** -- the CLI `update` command accepts `--name`, `--extension`, `--phone-number`, `--enabled` only. Menu configuration (`businessHoursMenu`, `afterHoursMenu`) requires raw HTTP PUT to `telephony/config/locations/{locationId}/autoAttendants/{aaId}`.
+
+11. **`keyConfigurations.value` is mandatory in PUT** -- even for actions that don't use a destination (`TRANSFER_TO_OPERATOR`, `REPEAT_MENU`, `NAME_DIALING`, `EXTENSION_DIALING`), the `value` field must be present. Use `""` (empty string) for these actions. Omitting `value` or sending `null` causes error `25008 Missing Mandatory field name: HoursMenu.keyConfigurations.value`.
+
+12. **`TRANSFER_TO_MAILBOX` requires a non-empty `value`** -- empty string `""` is rejected. Use the target AA's own extension (e.g., `"8000"`) to route to the AA's own voicemail. This is the extension of the auto attendant whose mailbox should receive the call.
+
+13. **There is no `holidayMenu` field in the AA PUT body** -- the `holidayMenu` field is silently ignored by the API. The `afterHoursMenu` applies to both after-hours and holiday schedule periods. If you need different routing on holidays vs. after-hours, you need two separate auto attendants (one for after-hours, one for holidays).
+
+14. **After-hours phone numbers are normalized on read-back** -- a number sent as `+19195559876` returns as `+1-9195559876` in GET responses. Do not use the GET value as input to a subsequent PUT; use the original format.
+
 ---
 
 ## Appendix: Feature Comparison
@@ -731,6 +1284,22 @@ When creating/updating, only `agent_id` is required. Set `weight` or `skill_leve
 | Max agents (CIRCULAR/REGULAR/UNIFORM) | N/A | 1,000 | 1,000 |
 | Shared forwarding API | Yes | Yes | Yes |
 | Announcement file management | Yes | Yes | No |
+
+---
+
+## Gotchas (Cross-Cutting)
+
+1. **Partial updates are safer than full-object PUTs.** For all three features (AA, CQ, HG), sending the full GET response back as a PUT body can trigger validation errors on read-only or computed fields (e.g., `callingLineIdPolicy=CUSTOM` without a phone number on CQ). Always send only the fields you want to change.
+
+2. **`--json-body` is required for nested settings.** The CLI generator skips deeply nested object/array body fields. Menu configurations (AA), queue settings with announcements (CQ), and call policies with no-answer/bounce config (HG) all require `--json-body '{ ... }'` instead of individual flags.
+
+3. **Phone numbers normalize differently on read-back.** Numbers sent as `+19195559876` may return as `+1-9195559876` in GET responses. Do not round-trip GET values into PUT requests without stripping the dashes.
+
+4. **Agents share the same model but differ in behavior.** The `Agent` object is used by both CQ and HG, but `joinEnabled` only applies to call queues, and `skillLevel` only applies to `SKILL_BASED` routing in CQ. Sending these fields to the wrong feature is silently ignored.
+
+5. **Selective forwarding rule IDs change on name update.** Across all three features, renaming a selective forwarding rule changes its ID. The update response returns the new ID — capture it if you need to reference the rule again.
+
+6. **Audio file upload is not supported via API.** Custom greetings and announcements for AA and CQ require uploading audio files through Webex Control Hub. The API only supports listing and deleting existing announcement files.
 
 ---
 
