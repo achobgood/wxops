@@ -114,20 +114,66 @@ This table shows the 31 most commonly used groups. Run `wxcli --help` to see all
 
 ## Claude Code Integration
 
-This repo includes a [Claude Code](https://claude.com/claude-code) playbook that provides guided assistance for Webex Calling configuration:
+This repo includes an AI playbook for [Claude Code](https://claude.com/claude-code) that turns your terminal into a guided Webex Calling configuration assistant.
 
-```bash
-# Start the builder agent (walks you through the full workflow)
-/wxc-calling-builder
+### What is the Playbook?
 
-# Debug a failing configuration
-/wxc-calling-debug
+A guided AI assistant that walks you through Webex Calling configuration end-to-end. It interviews you about what you want to build, generates a deployment plan, executes `wxcli` commands on your behalf, and verifies the results. Think of it as a Webex Calling expert sitting next to you in the terminal.
+
+### What's Included
+
+- **1 builder agent** (`/agents` → wxc-calling-builder) — the main entry point that drives the full workflow
+- **14 specialized skills** covering: provisioning, call features, routing, devices, device platform, call settings, call control, reporting, identity/SCIM, licensing, audit/compliance, messaging spaces, messaging bots, and debugging
+- **29 reference docs** in `docs/reference/` documenting every Webex Calling API surface with SDK method signatures and raw HTTP examples
+
+### How to Use It
+
+1. Install [Claude Code](https://claude.com/claude-code)
+2. `cd` into this repo
+3. Run `claude` to start Claude Code
+4. Use `/agents` and select **wxc-calling-builder** to begin
+5. Or use `/wxc-calling-debug` to troubleshoot a specific issue
+
+### Without Claude Code
+
+The AI playbook is optional — everything else works standalone:
+
+- **wxcli** is a regular Python CLI tool. Install it and use it directly.
+- The **29 reference docs** in `docs/reference/` are a comprehensive API knowledge base, useful for any developer working with Webex APIs.
+- The **OpenAPI specs** (`webex-*.json`) can be imported into Postman or any API client.
+
+## Project Architecture
+
+```
+webexCalling/
+├── src/wxcli/                    # CLI source (Click + wxc-sdk REST client)
+│   ├── main.py                   # Entry point — registers 100 command groups
+│   ├── auth.py                   # Token storage and API client init
+│   ├── output.py                 # Table/JSON output formatting
+│   └── commands/                 # 100 generated command files (one per API group)
+├── tools/                        # Code generator pipeline
+│   ├── generate_commands.py      # Orchestrator: OpenAPI → Click commands
+│   ├── openapi_parser.py         # Parses OpenAPI 3.0 specs into Endpoint objects
+│   ├── command_renderer.py       # Renders Endpoints into Python command files
+│   └── field_overrides.yaml      # Table columns, display config, bug fixes
+├── webex-*.json                  # 4 OpenAPI 3.0 specs (calling, admin, device, messaging)
+├── docs/reference/               # 29 API reference docs (SDK + raw HTTP)
+├── .claude/agents/               # Claude Code builder agent
+└── .claude/skills/               # 14 Claude Code skills
 ```
 
-The playbook includes:
-- An agent workflow that interviews you, designs a deployment plan, executes via wxcli, and verifies results
-- 14 specialized skills covering calling, admin, devices, messaging, and debugging
-- 29 reference docs covering every Webex Calling API surface with raw HTTP examples
+**Key design decisions:**
+
+- **Commands are generated, never hand-edited.** Fix bugs in `field_overrides.yaml` and regenerate with `tools/generate_commands.py`.
+- **The CLI uses raw HTTP** via wxc-sdk's REST client, not the SDK's typed methods. This gives 100% API coverage without waiting for SDK updates.
+- **Reference docs serve both humans and AI.** Developers can read them directly; the playbook loads them as context for guided configuration.
+
+## Known Limitations
+
+- **Call control commands require a user-level OAuth token.** Admin and service app tokens return `400 "Target user not authorized"`. Use a personal access token from the user who will control calls.
+- **Complex nested settings need `--json-body`.** Call forwarding rules, agent lists, voicemail config, and similar deeply nested structures can't be expressed as CLI flags — pass the full JSON body instead.
+- **6 person call settings are user-only.** `simultaneousRing`, `sequentialRing`, `priorityAlert`, `callNotify`, `anonymousCallReject`, and `callPolicies` only work with user-level tokens, not admin tokens.
+- **CDR/analytics endpoints require the `analytics:read_all` scope**, which standard admin tokens may not include.
 
 ## Requirements
 
