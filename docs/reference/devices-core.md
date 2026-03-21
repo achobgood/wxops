@@ -858,6 +858,12 @@ def get_location_device_settings(
 
 > **Gotcha — Background image upload is multipart:** The upload endpoint requires multipart form data, not JSON. Max 625 KB, `.jpeg` or `.png` only. Max 100 images per org. Use the SDK method for file handling rather than raw HTTP.
 
+#### Beta: Dynamic Settings Validation Schema
+
+> **Beta API** — May change without notice.
+
+- `GET /telephony/config/devices/dynamicSettings/validationSchema` — Returns the JSON schema used to validate device dynamic settings payloads. Useful for building validation into provisioning tools before submitting device config changes.
+
 ---
 
 ## 4. Code Examples

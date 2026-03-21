@@ -967,6 +967,17 @@ body = {
 api.session.rest_put(f"{BASE}/people/{person_id}/features/bargeIn", json=body)
 ```
 
+#### Beta: User Self-Service Barge-In
+
+> **Beta API** — May change without notice.
+
+Users can read/modify their own barge-in settings via user-level OAuth:
+
+- `GET /telephony/config/people/me/settings/bargeIn`
+- `PUT /telephony/config/people/me/settings/bargeIn`
+
+The admin-path equivalent at `/people/{personId}/features/bargeIn` remains the stable, non-beta option for admin-managed configuration.
+
 ---
 
 ## 7. Call Recording
