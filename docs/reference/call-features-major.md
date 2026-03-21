@@ -132,7 +132,7 @@ AutoAttendant.create(name="Main Menu",
 
 - `list_announcement_files(location_id, auto_attendant_id, org_id=None) -> list[AnnAudioFile]`
 - `delete_announcement_file(location_id, auto_attendant_id, file_name, org_id=None)`
-- **Upload is not supported via API** -- must use Webex Control Hub.
+- **Upload is supported via the Announcement Repository API** (`POST /telephony/config/announcements` or `POST /telephony/config/locations/{locationId}/announcements` with multipart/form-data). See [location-call-settings-media.md](location-call-settings-media.md) section 1. <!-- Corrected 2026-03-21 -->
 
 ### Forwarding
 
@@ -570,7 +570,7 @@ Temporarily diverts all incoming calls to a destination. Calls already in the qu
 
 `Announcement` model: `name` (alias: `fileName`), `size` (alias: `fileSize`)
 
-**Upload is not supported via API** -- must use Webex Control Hub.
+**Upload is supported via the Announcement Repository API** (`POST /telephony/config/announcements` or `POST /telephony/config/locations/{locationId}/announcements` with multipart/form-data). See [location-call-settings-media.md](location-call-settings-media.md) section 1. <!-- Corrected 2026-03-21 -->
 
 ### Phone Number/Extension Assignment
 
@@ -1244,7 +1244,7 @@ When creating/updating, only `agent_id` is required. Set `weight` or `skill_leve
 
 ### Auto Attendant Specific
 
-8. **Audio files** -- custom greetings require announcement audio files to be uploaded via Control Hub first (API upload not supported).
+8. **Audio files** -- custom greetings require announcement audio files uploaded via the Announcement Repository API (`POST /telephony/config/announcements` with multipart/form-data). See [location-call-settings-media.md](location-call-settings-media.md) section 1 for upload details. WAV and WMA formats supported.
 9. **FedRAMP** -- `directLineCallerIdName`, `customName`, and `dialByName` are not available in Webex for Government. Use `firstName`/`lastName` instead.
 
 ### Auto Attendant API Gotchas <!-- Verified via CLI implementation 2026-03-18 -->
@@ -1299,7 +1299,7 @@ When creating/updating, only `agent_id` is required. Set `weight` or `skill_leve
 
 5. **Selective forwarding rule IDs change on name update.** Across all three features, renaming a selective forwarding rule changes its ID. The update response returns the new ID — capture it if you need to reference the rule again.
 
-6. **Audio file upload is not supported via API.** Custom greetings and announcements for AA and CQ require uploading audio files through Webex Control Hub. The API only supports listing and deleting existing announcement files.
+6. **Audio file upload IS supported via API.** Use the Announcement Repository API (`POST /telephony/config/announcements` or `POST /telephony/config/locations/{locationId}/announcements`) with multipart/form-data encoding. Supports WAV and WMA formats. See [location-call-settings-media.md](location-call-settings-media.md) section 1 for full upload details and examples. <!-- Corrected 2026-03-21: was incorrectly stated as not supported -->
 
 ---
 
