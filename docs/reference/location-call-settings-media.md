@@ -249,6 +249,46 @@ result = api.session.rest_get(
 
 **Gotcha:** Upload and modify (file replacement) use `multipart/form-data` with `audio/wav` content type. The SDK handles this via `upload_announcement()` and `modify()`. For raw HTTP, you would need to construct the multipart body manually -- the `rest_put`/`rest_post` JSON helpers do not handle file uploads.
 
+### CLI Examples
+
+```bash
+# List all org-level announcements
+wxcli announcements list
+
+# List announcements for a specific location
+wxcli announcements list --location-id Y2lzY29zcGFyazovL_LOC_ID
+
+# List all announcements across all locations
+wxcli announcements list --location-id all
+
+# Filter by file name or announcement name
+wxcli announcements list --file-name "greeting.wav"
+wxcli announcements list --name "Welcome Greeting"
+
+# Get org-level repository usage (total space, limits)
+wxcli announcements show
+
+# Get details for an org-level announcement
+wxcli announcements show-announcements-config Y2lzY29zcGFyazovL_ANN_ID
+
+# Get details for a location-level announcement
+wxcli announcements show-announcements-locations Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_ANN_ID
+
+# Get repository usage for a specific location
+wxcli announcements show-usage Y2lzY29zcGFyazovL_LOC_ID
+
+# Delete an org-level announcement
+wxcli announcements delete Y2lzY29zcGFyazovL_ANN_ID --force
+
+# Delete a location-level announcement
+wxcli announcements delete-announcements Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_ANN_ID --force
+
+# Update an org-level announcement (metadata via --json-body)
+wxcli announcements update Y2lzY29zcGFyazovL_ANN_ID --json-body '{"name": "Updated Greeting"}'
+```
+
+> **Note:** File upload (creating new announcements) requires `multipart/form-data` which the CLI does not support. Use the SDK `upload_announcement()` method or raw HTTP with `curl` for uploads.
+
 ### 1.4 Key Patterns
 
 - **Org vs. location scoping:** Every method takes an optional `location_id`. When `None`, the operation targets the org-level repository. When set, it targets that location's repository.
@@ -482,6 +522,37 @@ api.session.rest_put(
 
 **Gotcha:** Location assignment is a full replace, not incremental. Always GET current locations first, then PUT the complete list including any new additions.
 <!-- Updated by playbook session 2026-03-18 -->
+
+### CLI Examples
+
+```bash
+# List all playlists in the org
+wxcli announcement-playlists list
+
+# Get details for a specific playlist (includes announcement list)
+wxcli announcement-playlists show Y2lzY29zcGFyazovL_PLAYLIST_ID
+
+# Create a playlist (announcement IDs must be passed via --json-body)
+wxcli announcement-playlists create --name "Hold Music Rotation" \
+  --json-body '{"name": "Hold Music Rotation", "announcementIds": ["ANN_ID_1", "ANN_ID_2"]}'
+
+# Update a playlist name
+wxcli announcement-playlists update Y2lzY29zcGFyazovL_PLAYLIST_ID --name "New Playlist Name"
+
+# Update a playlist's announcements via --json-body
+wxcli announcement-playlists update Y2lzY29zcGFyazovL_PLAYLIST_ID \
+  --json-body '{"name": "Hold Music Rotation", "announcementIds": ["ANN_ID_1", "ANN_ID_3"]}'
+
+# Delete a playlist
+wxcli announcement-playlists delete Y2lzY29zcGFyazovL_PLAYLIST_ID --force
+
+# List locations assigned to a playlist
+wxcli announcement-playlists list-playlists Y2lzY29zcGFyazovL_PLAYLIST_ID
+
+# Assign a playlist to locations (full replace — include ALL desired location IDs)
+wxcli announcement-playlists update-playlists Y2lzY29zcGFyazovL_PLAYLIST_ID \
+  --json-body '{"locationIds": ["LOC_ID_1", "LOC_ID_2"]}'
+```
 
 ### CLI: `cq-playlists` (Call Queue Playlist Usage)
 
@@ -1072,6 +1143,61 @@ api.session.rest_delete(
 <!-- Verified via CLI implementation 2026-03-17 -->
 
 **Gotcha:** The `ScheduleApi` import path is `wxc_sdk.common.schedules`, NOT `wxc_sdk.telephony.schedules`.
+
+### CLI Examples
+
+```bash
+# List all schedules for a location
+wxcli location-schedules list Y2lzY29zcGFyazovL_LOC_ID
+
+# List only business hours schedules
+wxcli location-schedules list Y2lzY29zcGFyazovL_LOC_ID --type businessHours
+
+# List only holiday schedules
+wxcli location-schedules list Y2lzY29zcGFyazovL_LOC_ID --type holidays
+
+# Filter by schedule name
+wxcli location-schedules list Y2lzY29zcGFyazovL_LOC_ID --name "National Holidays"
+
+# Get schedule details (includes events); type is "businessHours" or "holidays"
+wxcli location-schedules show Y2lzY29zcGFyazovL_LOC_ID holidays Y2lzY29zcGFyazovL_SCHED_ID
+
+# Create a holiday schedule (events can be added later)
+wxcli location-schedules create Y2lzY29zcGFyazovL_LOC_ID \
+  --type holidays --name "National Holidays"
+
+# Create a business hours schedule with events via --json-body
+wxcli location-schedules create Y2lzY29zcGFyazovL_LOC_ID \
+  --type businessHours --name "Office Hours" \
+  --json-body '{
+    "type": "businessHours",
+    "name": "Office Hours",
+    "events": [
+      {"name": "Monday AM", "startDate": "2026-01-05", "endDate": "2026-01-05",
+       "startTime": "09:00", "endTime": "12:00"}
+    ]
+  }'
+
+# Add an all-day holiday event to an existing schedule
+wxcli location-schedules create-events Y2lzY29zcGFyazovL_LOC_ID holidays Y2lzY29zcGFyazovL_SCHED_ID \
+  --name "Independence Day" --start-date 2026-07-04 --end-date 2026-07-04 --all-day-enabled
+
+# Add a timed event (business hours block)
+wxcli location-schedules create-events Y2lzY29zcGFyazovL_LOC_ID businessHours Y2lzY29zcGFyazovL_SCHED_ID \
+  --name "Monday AM" --start-date 2026-01-05 --end-date 2026-01-05 \
+  --start-time "09:00" --end-time "12:00"
+
+# Get details for a specific event
+wxcli location-schedules show-events Y2lzY29zcGFyazovL_LOC_ID holidays Y2lzY29zcGFyazovL_SCHED_ID Y2lzY29zcGFyazovL_EVENT_ID
+
+# Delete an event from a schedule
+wxcli location-schedules delete-events Y2lzY29zcGFyazovL_LOC_ID holidays Y2lzY29zcGFyazovL_SCHED_ID Y2lzY29zcGFyazovL_EVENT_ID --force
+
+# Delete an entire schedule
+wxcli location-schedules delete Y2lzY29zcGFyazovL_LOC_ID holidays Y2lzY29zcGFyazovL_SCHED_ID --force
+```
+
+> **Note:** Schedule and event IDs are name-derived (base64-encoded). Renaming a schedule or event changes its ID -- always re-fetch the ID after a name change.
 
 ### 4.4 Endpoint URL Structure
 
