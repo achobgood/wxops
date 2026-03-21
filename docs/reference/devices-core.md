@@ -221,6 +221,65 @@ def create_by_mac_address(
 
 > **Gotcha — Two device API surfaces:** `api.devices` (`/v1/devices`) manages cloud device entities (CRUD, tags, activation). `api.telephony.devices` (`/v1/telephony/config/devices`) manages Webex Calling config (members, settings, layout, line keys). These are separate API surfaces with potentially different device IDs — use `callingDeviceId` for telephony config endpoints.
 
+### 1.5 CLI Examples
+
+CLI group: `wxcli devices` (6 commands)
+
+```bash
+# List all devices in the org
+wxcli devices list
+
+# List only phones (exclude RoomOS devices)
+wxcli devices list --type phone
+
+# List devices for a specific person
+wxcli devices list --person-id PERSON_ID
+
+# List devices in a workspace
+wxcli devices list --workspace-id WORKSPACE_ID
+
+# Filter by display name, connection status, or location
+wxcli devices list --display-name "Lobby Phone"
+wxcli devices list --connection-status connected
+wxcli devices list --location-id LOCATION_ID
+
+# Filter by tag (comma-separated for AND logic)
+wxcli devices list --tag "floor-3,building-a"
+
+# Filter by MAC address
+wxcli devices list --mac AABBCCDDEEFF
+
+# Get full device details (JSON output)
+wxcli devices show DEVICE_ID
+
+# Get device details in table format
+wxcli devices show DEVICE_ID -o table
+
+# Create a device by MAC address (for a workspace)
+wxcli devices create --mac AABBCCDDEEFF --model "DMS Cisco 8845" --workspace-id WORKSPACE_ID
+
+# Create a device by MAC for a person
+wxcli devices create --mac AABBCCDDEEFF --model "DMS Cisco 8845" --person-id PERSON_ID
+
+# Create a 3rd-party device (requires SIP password)
+wxcli devices create --mac AABBCCDDEEFF --model "DMS Cisco 8845" --person-id PERSON_ID --password "sip_pass"
+
+# Generate an activation code for a workspace (RoomOS — no model needed)
+wxcli devices create-activation-code --workspace-id WORKSPACE_ID
+
+# Generate an activation code for a phone (model required)
+wxcli devices create-activation-code --person-id PERSON_ID --model "DMS Cisco 8845"
+
+# Modify device tags (add, remove, or replace)
+wxcli devices update DEVICE_ID --op add --json-body '[{"op":"add","path":"tags","value":["floor-3","building-a"]}]'
+
+# Delete a device (with confirmation prompt)
+wxcli devices delete DEVICE_ID
+
+# Delete a device (skip confirmation)
+wxcli devices delete DEVICE_ID --force
+```
+
 ---
 
 ## 2. DeviceConfigurationsApi (RoomOS / Config-Service Settings)
@@ -326,6 +385,31 @@ ops = [
 ]
 result = api.device_configurations.update(device_id='DEVICE_ID', operations=ops)
 ```
+
+### 2.4 CLI Examples
+
+CLI group: `wxcli device-configurations` (2 commands)
+
+```bash
+# List all configurations for a device
+wxcli device-configurations show --device-id DEVICE_ID
+
+# Filter configurations by key (exact match)
+wxcli device-configurations show --device-id DEVICE_ID --key "Conference.MaxReceiveCallRate"
+
+# Filter configurations by wildcard
+wxcli device-configurations show --device-id DEVICE_ID --key "Audio.Ultrasound.*"
+
+# Update a configuration value (replace)
+wxcli device-configurations update --device-id DEVICE_ID \
+  --json-body '[{"op":"replace","path":"Conference.MaxReceiveCallRate/sources/configured/value","value":6000}]'
+
+# Revert a configuration to default (remove)
+wxcli device-configurations update --device-id DEVICE_ID \
+  --json-body '[{"op":"remove","path":"Audio.Ultrasound.MaxVolume/sources/configured/value"}]'
+```
+
+> **Note:** The `show` command name is slightly misleading — it lists all configurations for the device (equivalent to the SDK's `list()` method). The `--key` filter supports absolute paths, wildcards (`*`), and index ranges (`[1..3]`).
 
 ---
 
@@ -857,6 +941,136 @@ def get_location_device_settings(
 > **Gotcha — Apply changes after updates:** After updating device settings, members, or layout, call `apply_changes()` (or `.../actions/applyChanges/invoke` via raw HTTP) to push the configuration to the physical device.
 
 > **Gotcha — Background image upload is multipart:** The upload endpoint requires multipart form data, not JSON. Max 625 KB, `.jpeg` or `.png` only. Max 100 images per org. Use the SDK method for file handling rather than raw HTTP.
+
+### 3.5 CLI Examples
+
+Two CLI groups cover this API surface: `wxcli device-settings` (47 commands) and `wxcli device-dynamic-settings` (10 commands).
+
+#### Device Members & Lines (`device-settings`)
+
+```bash
+# List members (lines) on a device
+wxcli device-settings list DEVICE_ID
+
+# Get count of members on a device
+wxcli device-settings show DEVICE_ID
+
+# Search available members to add as shared lines
+wxcli device-settings list-available-members DEVICE_ID
+
+# Search available members filtered by name or usage type
+wxcli device-settings list-available-members DEVICE_ID --member-name "Jane" --usage-type SHARED_LINE
+
+# Search available members in a specific location
+wxcli device-settings list-available-members DEVICE_ID --location-id LOCATION_ID
+
+# Update members on a device (requires --json-body)
+wxcli device-settings update DEVICE_ID --json-body '{
+  "members": [
+    {"id": "PERSON_ID_1", "port": 1, "lineType": "PRIMARY", "primaryOwner": true},
+    {"id": "PERSON_ID_2", "port": 2, "lineType": "SHARED_LINE", "primaryOwner": false}
+  ]
+}'
+
+# Apply configuration changes to the physical device
+wxcli device-settings apply-changes-for DEVICE_ID
+```
+
+#### Person & Workspace Devices (`device-settings`)
+
+```bash
+# List devices assigned to a person
+wxcli device-settings list-devices-people PERSON_ID
+
+# List devices assigned to a workspace
+wxcli device-settings list-devices-workspaces WORKSPACE_ID
+
+# Get Webex Calling device details (3rd-party device info)
+wxcli device-settings show-devices DEVICE_ID
+
+# Get device settings (MPP/ATA customization)
+wxcli device-settings show-settings-devices DEVICE_ID
+
+# Get user device count (total devices + applications)
+wxcli device-settings show-count-devices PERSON_ID
+```
+
+#### Device Layout (`device-settings`)
+
+```bash
+# Get device layout (line keys and KEM keys)
+wxcli device-settings list-layout DEVICE_ID
+
+# Update device layout (requires --json-body for line key assignments)
+wxcli device-settings update-layout DEVICE_ID --json-body '{
+  "layoutMode": "CUSTOM",
+  "lineKeys": [
+    {"lineKeyIndex": 1, "lineKeyType": "PRIMARY_LINE"},
+    {"lineKeyIndex": 2, "lineKeyType": "SPEED_DIAL", "lineKeyLabel": "Lobby", "lineKeyValue": "2000"},
+    {"lineKeyIndex": 3, "lineKeyType": "MONITOR"}
+  ]
+}'
+
+# Enable user reorder on a device layout
+wxcli device-settings update-layout DEVICE_ID --user-reorder-enabled
+```
+
+#### Line Key Templates (`device-settings`)
+
+```bash
+# List all line key templates
+wxcli device-settings list-line-key-templates
+
+# Get line key template details
+wxcli device-settings show-line-key-templates TEMPLATE_ID
+
+# Apply a line key template to devices
+wxcli device-settings create-apply-line-key-template \
+  --action APPLY_TEMPLATE --template-id TEMPLATE_ID
+
+# Apply template, excluding devices with custom layouts
+wxcli device-settings create-apply-line-key-template \
+  --action APPLY_TEMPLATE --template-id TEMPLATE_ID --exclude-devices-with-custom-layout
+```
+
+#### MAC Validation (`device-settings`)
+
+```bash
+# Validate MAC addresses (requires --json-body)
+wxcli device-settings validate-a-list --json-body '{
+  "macs": ["AABBCCDDEEFF", "112233445566", "INVALID"]
+}'
+```
+
+#### Dynamic Device Settings (`device-dynamic-settings`)
+
+```bash
+# List supported devices for dynamic settings
+wxcli device-dynamic-settings list
+
+# Filter supported devices by type (e.g., MPP phones)
+wxcli device-dynamic-settings list --type MPP
+
+# Get settings groups (tabs/groups structure)
+wxcli device-dynamic-settings list-settings-groups
+
+# Get settings groups for a specific device model
+wxcli device-dynamic-settings list-settings-groups \
+  --family-or-model-display-name "Cisco 8845" --include-settings-type ALL
+
+# Get org-level (customer) dynamic settings for a device model
+wxcli device-dynamic-settings get-customer-device \
+  --json-body '{"familyOrModelDisplayName": "Cisco 8845"}'
+
+# Get location-level dynamic settings
+wxcli device-dynamic-settings get-location-device LOCATION_ID \
+  --json-body '{"familyOrModelDisplayName": "Cisco 8845"}'
+
+# Get dynamic settings for a specific device
+wxcli device-dynamic-settings get-device-dynamic DEVICE_ID
+```
+
+> **Tip:** After updating device members, settings, or layout, always run `wxcli device-settings apply-changes-for DEVICE_ID` to push the configuration to the physical device.
 
 #### Beta: Dynamic Settings Validation Schema
 
