@@ -302,6 +302,57 @@ api.telephony.prem_pstn.dial_plan.modify_patterns(
 )
 ```
 
+### CLI Examples
+
+```bash
+# List all dial plans
+wxcli call-routing list-dial-plans
+
+# Filter dial plans by name
+wxcli call-routing list-dial-plans --dial-plan-name "US-Outbound"
+
+# Filter by trunk name
+wxcli call-routing list-dial-plans --trunk-name "HQ-LGW-01"
+
+# Filter by route group name
+wxcli call-routing list-dial-plans --route-group-name "US-East-RG"
+
+# Get dial plan details
+wxcli call-routing show-dial-plans Y2lzY29zcGFyazovL_DIAL_PLAN_ID
+
+# Create a dial plan (patterns require --json-body since dialPatterns is an array)
+wxcli call-routing create --name "US-Outbound" --route-id Y2lzY29zcGFyazovL_TRUNK_ID
+
+# Create with dial patterns via --json-body
+wxcli call-routing create --json-body '{
+  "name": "US-Outbound",
+  "routeId": "Y2lzY29zcGFyazovL_TRUNK_ID",
+  "routeType": "TRUNK",
+  "dialPatterns": ["+1!", "+44!"]
+}'
+
+# Update a dial plan name or route assignment
+wxcli call-routing update-dial-plans Y2lzY29zcGFyazovL_DIAL_PLAN_ID \
+  --name "US-Outbound-v2" --route-id Y2lzY29zcGFyazovL_NEW_TRUNK_ID
+
+# Modify dial patterns (add/delete patterns on an existing dial plan)
+wxcli call-routing update Y2lzY29zcGFyazovL_DIAL_PLAN_ID --json-body '{
+  "dialPatterns": [
+    {"dialPattern": "+44!", "action": "ADD"},
+    {"dialPattern": "+1!", "action": "DELETE"}
+  ]
+}'
+
+# Delete all dial patterns from a dial plan
+wxcli call-routing update Y2lzY29zcGFyazovL_DIAL_PLAN_ID --delete-all-dial-patterns
+
+# Validate dial patterns before creating a dial plan
+wxcli call-routing validate-a-dial --json-body '{"dialPatterns": ["+1408!", "+44!", "9XXX"]}'
+
+# Delete a dial plan
+wxcli call-routing delete Y2lzY29zcGFyazovL_DIAL_PLAN_ID --force
+```
+
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
 
@@ -604,6 +655,78 @@ print(f"Line/Port: {detail.line_port}")
 print(f"OTG/DTG: {detail.otg_dtg_id}")
 ```
 
+### CLI Examples
+
+```bash
+# List all trunks
+wxcli call-routing list-trunks
+
+# Filter trunks by name
+wxcli call-routing list-trunks --name "HQ-LGW"
+
+# Filter by location
+wxcli call-routing list-trunks --location-name "Raleigh"
+
+# Filter by trunk type
+wxcli call-routing list-trunks --trunk-type REGISTERING
+
+# Get trunk details
+wxcli call-routing show-trunks Y2lzY29zcGFyazovL_TRUNK_ID
+
+# List available trunk types and their device types
+wxcli call-routing list-trunk-types
+
+# Create a registering trunk (Cisco CUBE Local Gateway)
+wxcli call-routing create-trunks --name "HQ-LGW-01" \
+  --location-id Y2lzY29zcGFyazovL_LOC_ID \
+  --password "SecurePass123!"
+
+# Create a certificate-based trunk with FQDN
+wxcli call-routing create-trunks --name "HQ-SBC-01" \
+  --location-id Y2lzY29zcGFyazovL_LOC_ID \
+  --password "SecurePass123!" \
+  --address "sbc.example.com" \
+  --domain "example.com" \
+  --port 5061 \
+  --max-concurrent-calls 100
+
+# Create with full JSON body (includes device type and dual identity)
+wxcli call-routing create-trunks --json-body '{
+  "name": "HQ-LGW-02",
+  "locationId": "Y2lzY29zcGFyazovL_LOC_ID",
+  "password": "SecurePass123!",
+  "trunkType": "REGISTERING",
+  "dualIdentitySupportEnabled": true,
+  "deviceType": "Cisco Unified Border Element"
+}'
+
+# Update a trunk (rename and change password)
+wxcli call-routing update-trunks Y2lzY29zcGFyazovL_TRUNK_ID \
+  --name "HQ-LGW-01-v2" --password "NewPass456!"
+
+# Validate FQDN and domain before creating a certificate-based trunk
+wxcli call-routing validate-local-gateway \
+  --address "sbc.example.com" --domain "example.com" --port 5061
+
+# Get trunk usage count (how many dial plans, route groups, etc. use it)
+wxcli call-routing show Y2lzY29zcGFyazovL_TRUNK_ID
+
+# List dial plans using this trunk
+wxcli call-routing list Y2lzY29zcGFyazovL_TRUNK_ID
+
+# List route groups using this trunk
+wxcli call-routing list-usage-route-group Y2lzY29zcGFyazovL_TRUNK_ID
+
+# List locations using this trunk as PSTN connection
+wxcli call-routing list-usage-pstn-connection-trunks Y2lzY29zcGFyazovL_TRUNK_ID
+
+# List call-to-extension locations for this trunk
+wxcli call-routing list-usage-call-to-extension-trunks Y2lzY29zcGFyazovL_TRUNK_ID
+
+# Delete a trunk
+wxcli call-routing delete-trunks Y2lzY29zcGFyazovL_TRUNK_ID --force
+```
+
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
 
@@ -813,6 +936,61 @@ rg_id = api.telephony.prem_pstn.route_group.create(route_group=rg)
 # Check what's using this route group
 usage = api.telephony.prem_pstn.route_group.usage(rg_id=rg_id)
 print(f"Dial plans: {usage.dial_plan_count}, Route lists: {usage.route_list_count}")
+```
+
+### CLI Examples
+
+```bash
+# List all route groups
+wxcli call-routing list-route-groups
+
+# Filter by name
+wxcli call-routing list-route-groups --name "US-East"
+
+# Get route group details (includes trunk assignments)
+wxcli call-routing show-route-groups Y2lzY29zcGFyazovL_RG_ID
+
+# Create a route group with trunk assignments (requires --json-body for localGateways array)
+wxcli call-routing create-route-groups --json-body '{
+  "name": "US-East-RG",
+  "localGateways": [
+    {"id": "Y2lzY29zcGFyazovL_PRIMARY_TRUNK_ID", "priority": "1"},
+    {"id": "Y2lzY29zcGFyazovL_BACKUP_TRUNK_ID", "priority": "2"}
+  ]
+}'
+
+# Create with just a name (trunks can be added later via update)
+wxcli call-routing create-route-groups --name "US-East-RG"
+
+# Update a route group (rename or change trunk assignments)
+wxcli call-routing update-route-groups Y2lzY29zcGFyazovL_RG_ID \
+  --name "US-East-RG-v2"
+
+# Update trunk assignments via --json-body
+wxcli call-routing update-route-groups Y2lzY29zcGFyazovL_RG_ID --json-body '{
+  "name": "US-East-RG-v2",
+  "localGateways": [
+    {"id": "Y2lzY29zcGFyazovL_PRIMARY_TRUNK_ID", "priority": "1"}
+  ]
+}'
+
+# Get route group usage count
+wxcli call-routing show-usage Y2lzY29zcGFyazovL_RG_ID
+
+# List dial plan locations using this route group
+wxcli call-routing list-usage-dial-plan Y2lzY29zcGFyazovL_RG_ID
+
+# List PSTN connection locations using this route group
+wxcli call-routing list-usage-pstn-connection-route-groups Y2lzY29zcGFyazovL_RG_ID
+
+# List route lists using this route group
+wxcli call-routing list-usage-route-list Y2lzY29zcGFyazovL_RG_ID
+
+# List call-to-extension locations using this route group
+wxcli call-routing list-usage-call-to-extension-route-groups Y2lzY29zcGFyazovL_RG_ID
+
+# Delete a route group
+wxcli call-routing delete-route-groups Y2lzY29zcGFyazovL_RG_ID --force
 ```
 
 ### Raw HTTP
@@ -1029,6 +1207,49 @@ for r in result:
     print(f"{r.number}: {r.number_status} - {r.message}")
 ```
 
+### CLI Examples
+
+```bash
+# List all route lists
+wxcli call-routing list-route-lists
+
+# Filter by name
+wxcli call-routing list-route-lists --name "US-East-Numbers"
+
+# Filter by location
+wxcli call-routing list-route-lists --location-id Y2lzY29zcGFyazovL_LOC_ID
+
+# Get route list details
+wxcli call-routing show-route-lists Y2lzY29zcGFyazovL_RL_ID
+
+# Create a route list
+wxcli call-routing create-route-lists \
+  --name "US-East-Numbers" \
+  --location-id Y2lzY29zcGFyazovL_LOC_ID \
+  --route-group-id Y2lzY29zcGFyazovL_RG_ID
+
+# Update a route list (rename or change route group)
+wxcli call-routing update-route-lists Y2lzY29zcGFyazovL_RL_ID \
+  --name "US-East-Numbers-v2"
+
+# List numbers assigned to a route list
+wxcli call-routing list-numbers Y2lzY29zcGFyazovL_RL_ID
+
+# Add/delete numbers on a route list (requires --json-body for numbers array)
+wxcli call-routing update-numbers Y2lzY29zcGFyazovL_RL_ID --json-body '{
+  "numbers": [
+    {"number": "+19195551234", "action": "ADD"},
+    {"number": "+19195555678", "action": "ADD"}
+  ]
+}'
+
+# Delete all numbers from a route list
+wxcli call-routing update-numbers Y2lzY29zcGFyazovL_RL_ID --delete-all-numbers
+
+# Delete a route list
+wxcli call-routing delete-route-lists Y2lzY29zcGFyazovL_RL_ID --force
+```
+
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
 
@@ -1204,6 +1425,61 @@ tp_id_loc = api.telephony.call_routing.tp.create(
     pattern=pattern_loc,
     location_id=location_id
 )
+```
+
+### CLI Examples
+
+```bash
+# List all translation patterns (org-level and location-level)
+wxcli call-routing list-translation-patterns
+
+# Filter to org-level patterns only
+wxcli call-routing list-translation-patterns --limit-to-org-level-enabled true
+
+# Filter to patterns at a specific location
+wxcli call-routing list-translation-patterns \
+  --limit-to-location-id Y2lzY29zcGFyazovL_LOC_ID
+
+# Filter by name or matching pattern
+wxcli call-routing list-translation-patterns --name "Strip-9-Prefix"
+wxcli call-routing list-translation-patterns --matching-pattern "9XXX"
+
+# Get org-level translation pattern details
+wxcli call-routing show-translation-patterns-call-routing Y2lzY29zcGFyazovL_TP_ID
+
+# Get location-level translation pattern details (location_id then translation_id)
+wxcli call-routing show-translation-patterns-call-routing-1 \
+  Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_TP_ID
+
+# Create an org-level translation pattern (strip leading 9)
+wxcli call-routing create-translation-patterns-call-routing \
+  --name "Strip-9-Prefix" \
+  --matching-pattern "9XXX" \
+  --replacement-pattern "XXX"
+
+# Create a location-level translation pattern
+wxcli call-routing create-translation-patterns-call-routing-1 Y2lzY29zcGFyazovL_LOC_ID \
+  --name "Local-Rewrite" \
+  --matching-pattern "+1919555XXXX" \
+  --replacement-pattern "555XXXX"
+
+# Update an org-level translation pattern
+wxcli call-routing update-translation-patterns-call-routing Y2lzY29zcGFyazovL_TP_ID \
+  --name "Strip-9-Prefix-v2" \
+  --matching-pattern "9XXX" \
+  --replacement-pattern "XXX"
+
+# Update a location-level translation pattern (location_id then translation_id)
+wxcli call-routing update-translation-patterns-call-routing-1 \
+  Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_TP_ID \
+  --name "Local-Rewrite-v2"
+
+# Delete an org-level translation pattern
+wxcli call-routing delete-translation-patterns-call-routing Y2lzY29zcGFyazovL_TP_ID --force
+
+# Delete a location-level translation pattern (location_id then translation_id)
+wxcli call-routing delete-translation-patterns-call-routing-1 \
+  Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_TP_ID --force
 ```
 
 ### Raw HTTP
@@ -1765,6 +2041,43 @@ if result.call_source_info:
         print(f"Route list: {csi.route_list_name}")
     if csi.dial_plan_name:
         print(f"Dial plan: {csi.dial_plan_name}, Pattern: {csi.dial_pattern}")
+```
+
+### CLI Examples
+
+```bash
+# Test call routing from a user to an external number
+wxcli call-routing test-call-routing \
+  --originator-id Y2lzY29zcGFyazovL_PERSON_ID \
+  --destination "+19195551234"
+
+# Test with applied services (shows translation patterns, intercept, permissions)
+wxcli call-routing test-call-routing \
+  --originator-id Y2lzY29zcGFyazovL_PERSON_ID \
+  --destination "+19195551234" \
+  --include-applied-services true
+
+# Test routing from a trunk (inbound from PSTN)
+wxcli call-routing test-call-routing \
+  --originator-id Y2lzY29zcGFyazovL_TRUNK_ID \
+  --originator-number "+14085559999" \
+  --destination "+19195551234"
+
+# Test using full JSON body (originatorType defaults to PEOPLE per OpenAPI spec)
+wxcli call-routing test-call-routing --json-body '{
+  "originatorId": "Y2lzY29zcGFyazovL_PERSON_ID",
+  "originatorType": "PEOPLE",
+  "destination": "+19195551234",
+  "includeAppliedServices": true
+}'
+
+# Test inbound from trunk via JSON body
+wxcli call-routing test-call-routing --json-body '{
+  "originatorId": "Y2lzY29zcGFyazovL_TRUNK_ID",
+  "originatorType": "TRUNK",
+  "destination": "+19195551234",
+  "originatorNumber": "+14085559999"
+}'
 ```
 
 ### Raw HTTP
