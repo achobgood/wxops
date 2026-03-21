@@ -1329,3 +1329,4 @@ api.person_settings.feature_access.update(person_id, settings)
 ## See Also
 
 - **[Location Call Settings — Advanced](location-call-settings-advanced.md)** — Location-level supervisor settings and related administrative controls
+- **[self-service-call-settings.md](self-service-call-settings.md)** -- User-level `/people/me/` endpoints for self-service call settings, including 6 user-only settings with no admin path.

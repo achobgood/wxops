@@ -1895,3 +1895,4 @@ Not all settings apply equally to all entity types:
 
 - **[Location Call Settings — Core](location-call-settings-core.md)** — Location-level voicemail policies (transcription toggle), org-wide voicemail settings (expiry, forwarding), and location-level call intercept that govern person-level defaults
 - **[Location Call Settings — Advanced](location-call-settings-advanced.md)** — Location/org-level call recording vendor settings that must be configured before per-person recording works
+- **[self-service-call-settings.md](self-service-call-settings.md)** -- User-level `/people/me/` endpoints for self-service call settings, including 6 user-only settings with no admin path.
