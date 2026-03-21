@@ -46,6 +46,8 @@ Service apps, authorizations, user lifecycle operations, recordings management, 
 
 Service apps are machine-to-machine integrations that act on behalf of an organization without a user context. An admin authorizes the service app in Control Hub, then the app exchanges its credentials for a short-lived access token scoped to the target org.
 
+> **Creating a service app?** There is no API for registration — it must be done manually. See [authentication.md → Creating & Registering a Service App](authentication.md#creating--registering-a-service-app) for the full step-by-step guide covering developer portal registration, Control Hub authorization, and token generation.
+
 Authorizations track which OAuth integrations and service apps have been granted access to a user or organization. The `authorizations` group lets admins audit and revoke these grants.
 
 ### CLI Commands
@@ -618,17 +620,19 @@ For calling-specific report creation and download, see [reporting-analytics.md](
 
 3. **Service app tokens are short-lived.** The token returned by `service-apps create` expires quickly (typically minutes, not hours). Your automation must handle token refresh by calling `service-apps create` again before expiration. The admin must have pre-authorized the service app in Control Hub -- the CLI cannot perform that step.
 
-4. **`admin-recordings create` is a soft-delete, not a true create.** Despite the command name (`create` maps to POST), this moves recordings into the recycle bin. It does not create a recording. The `--json-body` must include the `recordingIds` array. Similarly, `create-restore` and `create-purge` are POST operations that restore from or permanently delete the recycle bin.
+4. **Client secret and refresh token are shown only once.** When registering a service app on developer.webex.com, the client secret is displayed only at creation time. Similarly, when generating tokens after admin authorization, the refresh token is shown only once. Copy both immediately and store securely. If lost, you must regenerate credentials (client secret) or re-authorize and generate new tokens (refresh token). <!-- Verified via developer.webex.com docs 2026-03-20 -->
 
-5. **Two delete commands for recordings.** `admin-recordings delete` (admin hard-delete by recording ID) vs `admin-recordings delete-recordings` (delete with host-email context). The former is admin-only; the latter can specify a host email for user-context deletion.
+5. **`admin-recordings create` is a soft-delete, not a true create.** Despite the command name (`create` maps to POST), this moves recordings into the recycle bin. It does not create a recording. The `--json-body` must include the `recordingIds` array. Similarly, `create-restore` and `create-purge` are POST operations that restore from or permanently delete the recycle bin.
 
-6. **`report-templates show` actually lists templates.** The command is named `show` (maps to GET on a list endpoint) but returns all available report templates, not a single template. Use this to discover template IDs, then use `reports` commands from the calling spec to create and download reports.
+6. **Two delete commands for recordings.** `admin-recordings delete` (admin hard-delete by recording ID) vs `admin-recordings delete-recordings` (delete with host-email context). The former is admin-only; the latter can specify a host email for user-context deletion.
 
-7. **Data source `--token-lifetime-minutes` controls JWT expiry.** The token Webex creates for authenticating to your webhook URL expires after this many minutes. Set it long enough to avoid gaps in data delivery, but short enough for security. Must be refreshed before expiration by updating the data source.
+7. **`report-templates show` actually lists templates.** The command is named `show` (maps to GET on a list endpoint) but returns all available report templates, not a single template. Use this to discover template IDs, then use `reports` commands from the calling spec to create and download reports.
 
-8. **Resource group memberships v1 vs v2.** `list-v2` adds the `--type` filter (User/Workspace) and `--id` filter that v1 lacks. Prefer `list-v2` for new implementations.
+8. **Data source `--token-lifetime-minutes` controls JWT expiry.** The token Webex creates for authenticating to your webhook URL expires after this many minutes. Set it long enough to avoid gaps in data delivery, but short enough for security. Must be refreshed before expiration by updating the data source.
 
-9. **`admin-recordings list` vs `list-recordings-admin`.** Both list recordings, but `list` is user-scoped (uses `--host-email`) while `list-recordings-admin` is admin/compliance-scoped (searches across all users in the org without requiring a host email).
+9. **Resource group memberships v1 vs v2.** `list-v2` adds the `--type` filter (User/Workspace) and `--id` filter that v1 lacks. Prefer `list-v2` for new implementations.
+
+10. **`admin-recordings list` vs `list-recordings-admin`.** Both list recordings, but `list` is user-scoped (uses `--host-email`) while `list-recordings-admin` is admin/compliance-scoped (searches across all users in the org without requiring a host email).
 
 ---
 

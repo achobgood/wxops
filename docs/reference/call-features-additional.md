@@ -1459,7 +1459,7 @@ GET  /v1/telephony/config/locations/{locationId}/queues/{queueId}/cxEssentials/c
 PUT  /v1/telephony/config/locations/{locationId}/queues/{queueId}/cxEssentials/callRecordings
 ```
 
-GET response / PUT body fields: `enabled` (bool), `record` (str: Always/Never/OnDemand), `notificationEnabled` (bool), `notificationType` (str: Beep), `startStopAnnouncementEnabled` (bool).
+GET response / PUT body fields: `enabled` (bool), `record` (str: Always/Never/OnDemand), `notification` (object: `{enabled, type}`), `repeat` (object: `{enabled, interval}`), `startStopAnnouncement` (object: `{internalCallsEnabled, pstnCallsEnabled}`), `serviceProvider` (str), `externalGroup` (str), `externalIdentifier` (str). <!-- Verified via live API 2026-03-21 -->
 
 Scope: `spark-admin:people_read` (GET), `spark-admin:people_write` (PUT).
 
