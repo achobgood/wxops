@@ -242,6 +242,165 @@ vm_settings = api.telephony.virtual_lines.voicemail.read(entity_id=vl_id)
 api.telephony.virtual_lines.forwarding.configure(entity_id=vl_id, ...)
 ```
 
+### CLI Examples
+
+The `virtual-line-settings` command group covers virtual line CRUD and all call settings (63 commands total). The commands mirror the person settings commands in `user-settings`.
+
+#### Virtual Line CRUD
+
+```bash
+# List all virtual lines
+wxcli virtual-line-settings list
+
+# List virtual lines at a specific location
+wxcli virtual-line-settings list --location-id Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzU2Nzg=
+
+# List virtual lines with filters
+wxcli virtual-line-settings list --owner-name "Sales" --has-device-assigned true
+
+# Show details for a virtual line
+wxcli virtual-line-settings show-virtual-lines Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0
+
+# Create a virtual line (firstName, lastName, locationId required; phoneNumber or extension required)
+wxcli virtual-line-settings create \
+  --first-name "Sales" --last-name "Line" \
+  --location-id Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzU2Nzg= \
+  --extension 8500 --phone-number "+15551234567"
+
+# Create with caller ID overrides
+wxcli virtual-line-settings create \
+  --first-name "Front" --last-name "Desk" \
+  --location-id Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzU2Nzg= \
+  --extension 8000 \
+  --caller-id-first-name "Main" --caller-id-last-name "Office" \
+  --caller-id-number "+15559999999"
+
+# Update a virtual line
+wxcli virtual-line-settings update-virtual-lines Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0 \
+  --first-name "Sales" --last-name "Main Line" --extension 8501
+
+# Update time zone and announcement language
+wxcli virtual-line-settings update-virtual-lines Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0 \
+  --time-zone "America/Chicago" --announcement-language "en_us"
+
+# Delete a virtual line
+wxcli virtual-line-settings delete Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0
+
+# Delete without confirmation prompt
+wxcli virtual-line-settings delete Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0 --force
+
+# Get phone number assigned to a virtual line
+wxcli virtual-line-settings show-number Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0
+
+# List devices assigned to a virtual line
+wxcli virtual-line-settings list-devices Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0
+```
+
+#### Call Handling Settings
+
+```bash
+# Read call forwarding settings
+wxcli virtual-line-settings show-call-forwarding Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0
+
+# Enable always-forward (nested settings require --json-body)
+wxcli virtual-line-settings update-call-forwarding Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0 \
+  --json-body '{"callForwarding":{"always":{"enabled":true,"destination":"+15551234567","ringReminderEnabled":true}}}'
+
+# Enable no-answer forwarding with 5 rings
+wxcli virtual-line-settings update-call-forwarding Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0 \
+  --json-body '{"callForwarding":{"noAnswer":{"enabled":true,"destination":"+15556667777","numberOfRings":5}}}'
+
+# Enable business continuity forwarding
+wxcli virtual-line-settings update-call-forwarding Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0 \
+  --json-body '{"businessContinuity":{"enabled":true,"destination":"+18889990000"}}'
+
+# Read call waiting settings
+wxcli virtual-line-settings show-call-waiting Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0
+
+# Enable call waiting
+wxcli virtual-line-settings update-call-waiting Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0 --enabled
+
+# Disable call waiting
+wxcli virtual-line-settings update-call-waiting Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0 --no-enabled
+
+# Read DND settings
+wxcli virtual-line-settings show-do-not-disturb Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0
+
+# Enable DND with ring splash
+wxcli virtual-line-settings update-do-not-disturb Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0 \
+  --enabled --ring-splash-enabled
+
+# Disable DND
+wxcli virtual-line-settings update-do-not-disturb Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0 --no-enabled
+```
+
+#### Voicemail & Media Settings
+
+```bash
+# Read voicemail settings
+wxcli virtual-line-settings show-voicemail Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0
+
+# Enable voicemail with default greetings (nested settings require --json-body)
+wxcli virtual-line-settings update-voicemail Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0 \
+  --json-body '{"enabled":true,"sendBusyCalls":{"enabled":true,"greeting":"DEFAULT"},"sendUnansweredCalls":{"enabled":true,"greeting":"DEFAULT","numberOfRings":3}}'
+
+# Enable voicemail with simple flag (just enable/disable)
+wxcli virtual-line-settings update-voicemail Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0 --enabled
+
+# Read caller ID settings
+wxcli virtual-line-settings list-caller-id Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0
+
+# Update caller ID to use direct line
+wxcli virtual-line-settings update-caller-id-virtual-lines Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0 \
+  --selected DIRECT_LINE
+
+# Update caller ID to use a custom number
+wxcli virtual-line-settings update-caller-id-virtual-lines Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0 \
+  --selected CUSTOM --custom-number "+15559999999" \
+  --first-name "Sales" --last-name "Department"
+
+# Read call recording settings
+wxcli virtual-line-settings show Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0
+
+# Enable call recording (always record)
+wxcli virtual-line-settings update Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0 \
+  --enabled --record "Always"
+
+# Enable call recording with voicemail recording
+wxcli virtual-line-settings update Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0 \
+  --enabled --record "Always" --record-voicemail-enabled
+```
+
+#### Permissions & Other Settings
+
+```bash
+# Read incoming permission settings
+wxcli virtual-line-settings show-incoming-permission Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0
+
+# Read outgoing permission settings
+wxcli virtual-line-settings list-outgoing-permission Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0
+
+# Read barge-in settings
+wxcli virtual-line-settings show-barge-in Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0
+
+# Read call intercept settings
+wxcli virtual-line-settings show-intercept Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0
+
+# Read music on hold settings
+wxcli virtual-line-settings show-music-on-hold Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0
+
+# List DECT network handsets assigned to a virtual line
+wxcli virtual-line-settings list-dect-networks Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0
+
+# Enable directory search visibility
+wxcli virtual-line-settings update-directory-search Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0 --enabled
+
+# Disable directory search visibility
+wxcli virtual-line-settings update-directory-search Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0 --no-enabled
+```
+
+> **Note:** The `show` and `update` commands in `virtual-line-settings` map to call recording settings (not virtual line details). Use `show-virtual-lines` and `update-virtual-lines` for virtual line details.
+
 ### Data Models
 
 #### VirtualLine
@@ -415,6 +574,95 @@ VirtualExtensionsApi.validate_external_phone_number(
 ```
 
 Pre-check that external numbers are properly formatted, eligible, and not already in use before assigning them as virtual extensions.
+
+### CLI Examples
+
+The `virtual-extensions` command group covers virtual extension CRUD, ranges, settings, and validation (14 commands).
+
+#### Individual Virtual Extensions
+
+```bash
+# List all virtual extensions
+wxcli virtual-extensions list
+
+# List virtual extensions filtered by location
+wxcli virtual-extensions list --location-id Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzU2Nzg=
+
+# List org-level virtual extensions only
+wxcli virtual-extensions list --org-level-only true
+
+# Filter by name or extension number
+wxcli virtual-extensions list --name "Alice" --extension 7001
+
+# Show details for a virtual extension
+wxcli virtual-extensions show Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfRVhULzEyMzQ=
+
+# Create a virtual extension (displayName, phoneNumber, extension required)
+wxcli virtual-extensions create \
+  --display-name "Alice Remote" --phone-number "+15559876543" --extension 7001 \
+  --first-name "Alice" --last-name "Remote"
+
+# Create a location-level virtual extension
+wxcli virtual-extensions create \
+  --display-name "Branch PBX" --phone-number "+15551112222" --extension 7050 \
+  --location-id Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzU2Nzg=
+
+# Update a virtual extension
+wxcli virtual-extensions update Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfRVhULzEyMzQ= \
+  --display-name "Alice Remote (Updated)" --phone-number "+15559876544"
+
+# Delete a virtual extension
+wxcli virtual-extensions delete Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfRVhULzEyMzQ=
+
+# Delete without confirmation prompt
+wxcli virtual-extensions delete Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfRVhULzEyMzQ= --force
+
+# Validate external phone numbers before creating extensions
+wxcli virtual-extensions validate-an-external \
+  --json-body '{"phoneNumbers":["+15551112222","+15553334444"]}'
+```
+
+#### Extension Settings (Mode)
+
+```bash
+# Show current virtual extension mode (STANDARD or ENHANCED)
+wxcli virtual-extensions show-settings
+
+# Update virtual extension mode
+wxcli virtual-extensions update-settings --mode STANDARD
+```
+
+#### Virtual Extension Ranges
+
+```bash
+# List all virtual extension ranges
+wxcli virtual-extensions list-virtual-extension-ranges
+
+# Show details for a range
+wxcli virtual-extensions show-virtual-extension-ranges Y2lzY29zcGFyazovL3VzL1JBTkdFLzEyMzQ=
+
+# Create a range with wildcard patterns (patterns via --json-body)
+wxcli virtual-extensions create-virtual-extension-ranges \
+  --name "Remote Office Block" --prefix "+15559870000" \
+  --json-body '{"patterns":["70XX","71XX"]}'
+
+# Create a location-level range
+wxcli virtual-extensions create-virtual-extension-ranges \
+  --name "Branch Block" --prefix "+15559870000" \
+  --location-id Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzU2Nzg= \
+  --json-body '{"patterns":["80XX"]}'
+
+# Update a range (add new patterns)
+wxcli virtual-extensions update-virtual-extension-ranges Y2lzY29zcGFyazovL3VzL1JBTkdFLzEyMzQ= \
+  --action ADD --json-body '{"patterns":["72XX"]}'
+
+# Delete a range
+wxcli virtual-extensions delete-virtual-extension-ranges Y2lzY29zcGFyazovL3VzL1JBTkdFLzEyMzQ=
+
+# Validate a range before creating
+wxcli virtual-extensions validate-the-prefix \
+  --json-body '{"name":"Test Range","prefix":"+15559870000","patterns":["70XX"]}'
+```
 
 ### Virtual Extension Ranges
 
