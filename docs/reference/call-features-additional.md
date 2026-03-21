@@ -1339,6 +1339,8 @@ wxcli location-voicemail list-available-numbers-fax-message --location-id <loc_i
 
 ## Customer Assist (CX Essentials)
 
+> **Not to be confused with Webex Contact Center (WxCC).** Customer Assist (formerly CX Essentials) is a Webex Calling add-on for basic queue supervision and agent experience. Webex Contact Center is a separate product with its own developer portal at `developer.webex-cx.com`, separate APIs, and separate licensing. This playbook covers Customer Assist only.
+
 ### Overview
 
 Webex **Customer Assist** (formerly Customer Experience Essentials / CX Essentials) provides enhanced queue capabilities beyond the Customer Experience Basic suite. It adds features such as:
