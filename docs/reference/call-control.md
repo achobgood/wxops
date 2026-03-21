@@ -16,15 +16,16 @@ Webex Calling Call Control APIs enable 3rd-party applications to manage calls on
 
 1. [Required Scopes](#required-scopes)
 2. [Raw HTTP Reference](#raw-http-reference-all-call-control-endpoints)
-3. [Call Connection](#1-call-connection)
-4. [Mid-Call Actions](#2-mid-call-actions)
-5. [Call Details & History](#3-call-details--history)
-6. [Data Models](#4-data-models)
-7. [Service App / Admin API](#5-service-app--admin-api-call-controls-members)
-8. [Additional API: External Voicemail MWI](#6-additional-api-external-voicemail-mwi)
-9. [Common Use Cases](#7-common-use-cases)
-10. [Key Gotchas](#8-key-gotchas)
-11. [See Also](#see-also)
+3. [CLI Examples](#cli-examples)
+4. [Call Connection](#1-call-connection)
+5. [Mid-Call Actions](#2-mid-call-actions)
+6. [Call Details & History](#3-call-details--history)
+7. [Data Models](#4-data-models)
+8. [Service App / Admin API](#5-service-app--admin-api-call-controls-members)
+9. [Additional API: External Voicemail MWI](#6-additional-api-external-voicemail-mwi)
+10. [Common Use Cases](#7-common-use-cases)
+11. [Key Gotchas](#8-key-gotchas)
+12. [See Also](#see-also)
 
 ---
 
@@ -185,6 +186,223 @@ api.session.rest_post(f"{BASE}/telephony/externalVoicemail/mwi", json=body, para
 6. **Members API does not have `lineOwnerId`** -- the member_id in the URL serves the same purpose.
 7. **No pagination on call list** -- `list_calls` returns all active calls for the user (typically a small number).
 8. **History max 20 per type** -- `list_call_history` returns at most 20 records per type (placed/missed/received), max 60 total.
+
+---
+
+## CLI Examples
+
+> **Important:** Call control commands require a **user-level OAuth token**, not an admin token. Admin tokens return 400 "Target user not authorized". Configure wxcli with a user's personal access token: `wxcli configure`.
+
+### Command Reference
+
+All 29 commands in the `call-controls` group:
+
+| Command | Description | Key Options |
+|---------|-------------|-------------|
+| `create` | Dial | `--destination` (required), `--endpoint-id`, `--line-owner-id` |
+| `create-answer-calls` | Answer | `--call-id` (required), `--endpoint-id`, `--line-owner-id` |
+| `create-reject` | Reject | `--call-id` (required), `--action`, `--line-owner-id` |
+| `create-hangup-calls` | Hangup | `--call-id` (required), `--line-owner-id` |
+| `create-hold` | Hold | `--call-id` (required), `--line-owner-id` |
+| `create-resume` | Resume | `--call-id` (required), `--line-owner-id` |
+| `create-mute` | Mute | `--call-id` (required), `--line-owner-id` |
+| `create-unmute` | Unmute | `--call-id` (required), `--line-owner-id` |
+| `create-divert` | Divert | `--call-id` (required), `--destination`, `--to-voicemail`, `--line-owner-id` |
+| `create-transfer` | Transfer | `--call-id1`, `--call-id2`, `--destination`, `--line-owner-id` |
+| `create-park` | Park | `--call-id` (required), `--destination`, `--is-group-park`, `--line-owner-id` |
+| `create-retrieve` | Retrieve | `--destination`, `--endpoint-id`, `--line-owner-id` |
+| `create-pull` | Pull | `--endpoint-id`, `--line-owner-id` |
+| `create-push` | Push | `--call-id`, `--line-owner-id` |
+| `create-pickup` | Pickup | `--target`, `--endpoint-id`, `--line-owner-id` |
+| `create-barge-in` | Barge In | `--target` (required), `--endpoint-id`, `--line-owner-id` |
+| `create-start-recording` | Start Recording | `--call-id`, `--line-owner-id` |
+| `create-stop-recording` | Stop Recording | `--call-id`, `--line-owner-id` |
+| `create-pause-recording` | Pause Recording | `--call-id`, `--line-owner-id` |
+| `create-resume-recording` | Resume Recording | `--call-id`, `--line-owner-id` |
+| `create-transmit-dtmf` | Transmit DTMF | `--call-id`, `--dtmf`, `--line-owner-id` |
+| `list` | List Calls | `--line-owner-id`, `-o table\|json` |
+| `show` | Get Call Details | `CALL_ID` (positional, required), `--line-owner-id`, `-o table\|json` |
+| `list-history` | List Call History | `--type placed\|missed\|received`, `-o table\|json` |
+| `create-dial` | Dial by Member ID | `MEMBER_ID` (positional), `--destination` (required), `--endpoint-id` |
+| `create-answer-members` | Answer by Member ID | `MEMBER_ID` (positional), `--call-id` (required), `--endpoint-id` |
+| `create-hangup-members` | Hangup by Member ID | `MEMBER_ID` (positional), `--call-id` (required) |
+| `list-calls` | List Calls by Member ID | `MEMBER_ID` (positional), `-o table\|json` |
+| `show-calls` | Get Call Details by Member ID | `MEMBER_ID` `CALL_ID` (positional), `-o table\|json` |
+
+### Call Connection
+
+```bash
+# Dial a number (rings all user devices, then places outbound call)
+wxcli call-controls create --destination "+12223334444"
+
+# Dial an extension
+wxcli call-controls create --destination "1234"
+
+# Dial on a specific device/app
+wxcli call-controls create --destination "+12223334444" --endpoint-id Y2lzY29zcGFyay...
+
+# Answer an incoming call
+wxcli call-controls create-answer-calls --call-id Y2lzY29zcGFyay...
+
+# Answer on a specific device
+wxcli call-controls create-answer-calls --call-id Y2lzY29zcGFyay... --endpoint-id Y2lzY29zcGFyay...
+
+# Reject an incoming call (defaults to busy)
+wxcli call-controls create-reject --call-id Y2lzY29zcGFyay...
+
+# Reject with a specific action (busy, temporarilyUnavailable, ignore)
+wxcli call-controls create-reject --call-id Y2lzY29zcGFyay... --action temporarilyUnavailable
+
+# Hang up a call
+wxcli call-controls create-hangup-calls --call-id Y2lzY29zcGFyay...
+
+# Pick up a call from your call pickup group
+wxcli call-controls create-pickup
+
+# Pick up a call from a specific user
+wxcli call-controls create-pickup --target "+12223334444"
+
+# Divert a call to another number
+wxcli call-controls create-divert --call-id Y2lzY29zcGFyay... --destination "+15551234567"
+
+# Divert a call to voicemail
+wxcli call-controls create-divert --call-id Y2lzY29zcGFyay... --to-voicemail
+```
+
+### Mid-Call Actions
+
+```bash
+# Hold a call
+wxcli call-controls create-hold --call-id Y2lzY29zcGFyay...
+
+# Resume a held call
+wxcli call-controls create-resume --call-id Y2lzY29zcGFyay...
+
+# Mute a call
+wxcli call-controls create-mute --call-id Y2lzY29zcGFyay...
+
+# Unmute a call
+wxcli call-controls create-unmute --call-id Y2lzY29zcGFyay...
+```
+
+### Transfer
+
+```bash
+# Auto transfer (user has exactly 2 calls -- they are merged automatically)
+wxcli call-controls create-transfer
+
+# Consultative/attended transfer (specify both call IDs)
+wxcli call-controls create-transfer --call-id1 Y2lzY29zcGFyay_call1... --call-id2 Y2lzY29zcGFyay_call2...
+
+# Mute transfer (transfer to a new destination; waits for answer)
+wxcli call-controls create-transfer --call-id1 Y2lzY29zcGFyay... --destination "+15551234567"
+```
+
+### Park / Retrieve
+
+```bash
+# Park a call (parks against self; returns the park extension number)
+wxcli call-controls create-park --call-id Y2lzY29zcGFyay...
+
+# Park a call at a specific extension
+wxcli call-controls create-park --call-id Y2lzY29zcGFyay... --destination "7001"
+
+# Park using the call park group (auto-selects an available slot)
+wxcli call-controls create-park --call-id Y2lzY29zcGFyay... --is-group-park
+
+# Retrieve a parked call (use the park number from the park response)
+wxcli call-controls create-retrieve --destination "7001"
+```
+
+### Recording Control
+
+```bash
+# Start recording (user must have "On Demand" recording mode)
+wxcli call-controls create-start-recording --call-id Y2lzY29zcGFyay...
+
+# Pause recording (e.g., for sensitive info like credit card numbers)
+wxcli call-controls create-pause-recording --call-id Y2lzY29zcGFyay...
+
+# Resume recording
+wxcli call-controls create-resume-recording --call-id Y2lzY29zcGFyay...
+
+# Stop recording
+wxcli call-controls create-stop-recording --call-id Y2lzY29zcGFyay...
+```
+
+### Other Actions
+
+```bash
+# Transmit DTMF tones (comma = pause between digits)
+wxcli call-controls create-transmit-dtmf --call-id Y2lzY29zcGFyay... --dtmf "1,234"
+
+# Pull a call to a different device (move call between desk phone, mobile, desktop)
+wxcli call-controls create-pull --endpoint-id Y2lzY29zcGFyay...
+
+# Push a call to the executive (executive-assistant feature only)
+wxcli call-controls create-push --call-id Y2lzY29zcGFyay...
+
+# Barge in on another user's active call
+wxcli call-controls create-barge-in --target "+12223334444"
+```
+
+### Call Details & History
+
+```bash
+# List all active calls
+wxcli call-controls list
+wxcli call-controls list -o json
+
+# Get details for a specific active call
+wxcli call-controls show Y2lzY29zcGFyay...
+wxcli call-controls show Y2lzY29zcGFyay... -o table
+
+# List call history (all types -- placed, missed, received; max 20 each)
+wxcli call-controls list-history
+
+# List only missed calls
+wxcli call-controls list-history --type missed
+
+# List only placed calls as JSON
+wxcli call-controls list-history --type placed -o json
+```
+
+### Service App / Members API
+
+> These commands use `spark-admin:calls_read` / `spark-admin:calls_write` scopes and operate on behalf of a person, workspace, or virtual line by member ID.
+
+```bash
+# Dial on behalf of a user (Service App token required)
+wxcli call-controls create-dial <member_id> --destination "+12223334444"
+
+# Answer a call on behalf of a user
+wxcli call-controls create-answer-members <member_id> --call-id Y2lzY29zcGFyay...
+
+# Hang up a call on behalf of a user
+wxcli call-controls create-hangup-members <member_id> --call-id Y2lzY29zcGFyay...
+
+# List active calls for a user
+wxcli call-controls list-calls <member_id>
+
+# Get call details for a specific call on a user
+wxcli call-controls show-calls <member_id> Y2lzY29zcGFyay...
+```
+
+### Hold, Consult, Transfer Pattern (CLI Workflow)
+
+A common call center pattern: put the caller on hold, dial a consult target, then transfer both calls together.
+
+```bash
+# Step 1: Put the current call on hold
+wxcli call-controls create-hold --call-id <caller_call_id>
+
+# Step 2: Dial the transfer target
+wxcli call-controls create --destination "+15551234567"
+# Note the new call_id from the response
+
+# Step 3: After speaking with the transfer target, transfer both calls
+wxcli call-controls create-transfer --call-id1 <caller_call_id> --call-id2 <consult_call_id>
+```
 
 ---
 
@@ -853,6 +1071,25 @@ CallsApi.update_external_voicemail_mwi(
 ```
 
 **Scope required:** `spark-admin:calls_write`
+
+### CLI: `external-voicemail` (MWI Control)
+
+The `external-voicemail` CLI group sets or clears the Message Waiting Indicator (MWI) for a person or workspace. Requires a Service App token with `spark-admin:calls_write` scope.
+
+| Command | Description |
+|---------|-------------|
+| `external-voicemail create` | Set or clear MWI status for a user or workspace |
+
+```bash
+# Set MWI (light the voicemail indicator) for a user
+wxcli external-voicemail create --id <person_id> --action SET
+
+# Clear MWI (turn off the voicemail indicator) for a user
+wxcli external-voicemail create --id <person_id> --action CLEAR
+
+# Set MWI for a workspace phone
+wxcli external-voicemail create --id <workspace_id> --action SET
+```
 
 ---
 
