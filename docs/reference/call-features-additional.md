@@ -6,7 +6,7 @@
 - OpenAPI spec: webex-cloud-calling.json
 - developer.webex.com Call Features APIs
 
-Comprehensive reference for Webex Calling Paging Groups, Call Park, Call Park Extensions, Call Pickup, Voicemail Groups, CX Essentials, Operating Modes, Call Recording, Announcements/Playlists, Single Number Reach, and Virtual Extensions using the `wxc_sdk`. Each section includes both SDK signatures and Raw HTTP examples.
+Comprehensive reference for Webex Calling Paging Groups, Call Park, Call Park Extensions, Call Pickup, Voicemail Groups, Customer Assist (formerly CX Essentials), Operating Modes, Call Recording, Announcements/Playlists, Single Number Reach, and Virtual Extensions using the `wxc_sdk`. Each section includes both SDK signatures and Raw HTTP examples.
 
 ---
 
@@ -57,10 +57,10 @@ api.telephony.cx_essentials         # CustomerExperienceEssentialsApi
 |-----------|-------|
 | Read paging groups, call parks, call pickups, call park extensions, voicemail groups | `spark-admin:telephony_config_read` |
 | Create/update/delete paging groups, call parks, call pickups, call park extensions, voicemail groups | `spark-admin:telephony_config_write` |
-| Read CX Essentials queue recording | `spark-admin:people_read` |
-| Configure CX Essentials queue recording | `spark-admin:people_write` |
-| Read CX Essentials wrap-up reasons, screen pop, available agents | `spark-admin:telephony_config_read` |
-| Modify CX Essentials wrap-up reasons, screen pop | `spark-admin:telephony_config_write` |
+| Read Customer Assist queue recording | `spark-admin:people_read` |
+| Configure Customer Assist queue recording | `spark-admin:people_write` |
+| Read Customer Assist wrap-up reasons, screen pop, available agents | `spark-admin:telephony_config_read` |
+| Modify Customer Assist wrap-up reasons, screen pop | `spark-admin:telephony_config_write` |
 
 All APIs accept an optional `org_id` parameter, allowing partner administrators to operate on a customer organization.
 
@@ -1346,9 +1346,9 @@ Webex **Customer Assist** (formerly Customer Experience Essentials / CX Essentia
 - **Screen Pop**: Pop a URL (CRM, ticketing system) when an agent receives a queued call
 - **Queue Call Recording**: Hosted call recording for quality assurance, compliance, and training
 - **Wrap-Up Reasons**: Post-call categorization codes that agents select after ending a call
-- **CX Essentials Agent Licensing**: Ability to query agents with CX Essentials licenses
+- **Customer Assist Agent Licensing**: Ability to query agents with Customer Assist licenses
 
-These APIs are distinct from Customer Experience Basic and require CX Essentials licensing.
+These APIs are distinct from Customer Experience Basic and require Customer Assist licensing.
 
 ### SDK API Class
 
@@ -1402,7 +1402,7 @@ def modify_screen_pop_configuration(
 
 ### Available Agents
 
-#### List CX Essentials Available Agents
+#### List Customer Assist Available Agents
 
 ```python
 def available_agents(
@@ -1413,7 +1413,7 @@ def available_agents(
 ) -> Generator[AvailableAgent, None, None]
 ```
 
-- `has_cx_essentials=True`: Returns only agents with CX Essentials license.
+- `has_cx_essentials=True`: Returns only agents with Customer Assist (formerly CX Essentials) license.
 - `has_cx_essentials=False`: Returns only agents with CX Basic license.
 - Omit for all agents.
 
@@ -1576,7 +1576,7 @@ def available_queues(
 
 Returns queues that are not yet assigned to this wrap-up reason and can be added.
 
-### CX Essentials Data Models
+### Customer Assist Data Models
 
 #### `WrapUpReason` (List Model)
 
@@ -1636,11 +1636,11 @@ Returns queues that are not yet assigned to this wrap-up reason and can be added
 | `phone_number` | `str` | Queue phone number |
 | `extension` | `int` | Queue extension |
 
-### Raw HTTP (CX Essentials)
+### Raw HTTP (Customer Assist)
 
 <!-- Updated by playbook session 2026-03-18 -->
 
-CX Essentials APIs operate on call queues. The base URL pattern is `telephony/config/cxEssentials/...` or queue-scoped paths.
+Customer Assist (formerly CX Essentials) APIs operate on call queues. The base URL pattern is `telephony/config/cxEssentials/...` or queue-scoped paths.
 
 ```python
 from wxc_sdk import WebexSimpleApi
@@ -1648,7 +1648,7 @@ api = WebexSimpleApi()
 BASE = "https://webexapis.com/v1"
 ```
 
-**Note**: CX Essentials operations require CX Essentials licensing. Screen pop, queue recording, and wrap-up reasons are all per-queue settings -- call queues must exist first.
+**Note**: Customer Assist operations require Customer Assist licensing. Screen pop, queue recording, and wrap-up reasons are all per-queue settings -- call queues must exist first.
 
 ### CLI Examples
 
@@ -1688,7 +1688,7 @@ wxcli cx-essentials show-screen-pop LOCATION_ID QUEUE_ID -o json
 wxcli cx-essentials update-screen-pop LOCATION_ID QUEUE_ID \
   --json-body '{"enabled": true, "screenPopUrl": "https://crm.example.com/pop"}'
 
-# List available agents (optionally filter by CX Essentials license)
+# List available agents (optionally filter by Customer Assist license)
 wxcli cx-essentials list-available-agents LOCATION_ID
 
 # Get queue call recording settings
@@ -1864,7 +1864,7 @@ wxcli operating-modes list-available-numbers --location-id <loc_id>
 
 ### Overview
 
-Organization-level call recording settings control global recording behavior. Per-queue recording is managed through CX Essentials (see above). Per-person recording is managed through person call settings.
+Organization-level call recording settings control global recording behavior. Per-queue recording is managed through Customer Assist (see above). Per-person recording is managed through person call settings.
 
 ### Raw HTTP
 
@@ -2427,7 +2427,7 @@ wxcli virtual-extensions validate-the-prefix --json-body '{"locationId": "<loc_i
 | `UserType` | Paging | Enum for person vs. workspace |
 | `DirectLineCallerIdName` | Paging, Voicemail Groups | Caller ID name settings (replaces deprecated first/last name) |
 | `AvailableNumber` | Paging, Voicemail Groups | Available phone number for assignment |
-| `CallRecordingSetting` | CX Essentials (Queue Recording) | Full call recording configuration (see fields below) |
+| `CallRecordingSetting` | Customer Assist (Queue Recording) | Full call recording configuration (see fields below) |
 
 #### `CallRecordingSetting` Fields
 
@@ -2477,19 +2477,19 @@ Voicemail Group ──────── Assigned to auto attendants, call queue
     |
     +──── Available Numbers (for primary and fax)
 
-CX Essentials ────────── Call Queues (screen pop, recording, wrap-up per queue)
+Customer Assist ─────── Call Queues (screen pop, recording, wrap-up per queue)
     |
     +──── Wrap-Up Reasons (org-level, assigned to queues)
     |
-    +──── Available Agents (CX Essentials or Basic licensed)
+    +──── Available Agents (Customer Assist or Basic licensed)
 ```
 
 ### Key Dependency Notes
 
 1. **Call Park requires Call Park Extensions**: You create Call Park Extensions first, then assign them to Call Park groups.
 2. **Call Park recall requires Hunt Groups**: If using `ALERT_PARKING_USER_FIRST_THEN_HUNT_GROUP` or `ALERT_HUNT_GROUP_ONLY`, a Hunt Group must exist at the location.
-3. **CX Essentials requires Call Queues**: Screen pop, queue recording, and wrap-up reasons are all per-queue configurations. Call queues must be created first.
-4. **CX Essentials requires licensing**: The `has_cx_essentials` filter on `available_agents()` distinguishes between CX Essentials and CX Basic licensed agents.
+3. **Customer Assist requires Call Queues**: Screen pop, queue recording, and wrap-up reasons are all per-queue configurations. Call queues must be created first.
+4. **Customer Assist requires licensing**: The `has_cx_essentials` filter on `available_agents()` distinguishes between Customer Assist and CX Basic licensed agents.
 5. **Voicemail Groups are location-scoped**: Created within a location, but listed org-wide.
 6. **Paging Groups are location-scoped**: Created within a location, but can be listed org-wide.
 7. **ID instability for Call Park and Call Pickup**: The IDs for Call Park and Call Pickup entities change when their names are modified. Always re-fetch the ID after a name change.
@@ -2503,7 +2503,7 @@ CX Essentials ────────── Call Queues (screen pop, recording,
 - **Location-scoped features listed org-wide**: Paging Groups and Voicemail Groups can be listed org-wide (no `locationId` required), but Call Parks and Call Pickups require `locationId` for list operations.
 - **Nested settings require `--json-body`**: Features with complex nested body fields (voicemail group create, call park recall, screen pop, wrap-up settings) need `--json-body` in the CLI because the generator skips deeply nested object/array fields.
 - **Voicemail Group create is strict**: Requires 7+ fields (name, extension, passcode, languageCode, messageStorage, notifications, faxMessage, transferToNumber, emailCopyOfMessage). The wxc_sdk `VoicemailGroupDetail.for_create()` has a bug (missing `by_alias=True`); use `--json-body` via CLI or `model_dump(by_alias=True)` via SDK.
-- **CX Essentials requires licensing**: Screen pop, queue recording, and wrap-up reasons require CX Essentials licensing. Call queues must exist before configuring these features.
+- **Customer Assist requires licensing**: Screen pop, queue recording, and wrap-up reasons require Customer Assist licensing. Call queues must exist before configuring these features.
 - **Call Park requires recall**: Creating a Call Park without a `recall` option (e.g., `ALERT_PARKING_USER_ONLY`) will be rejected by the API.
 - **Announcement upload requires multipart/form-data**: The CLI and raw HTTP `rest_post` may not support binary file uploads directly. Use the SDK upload methods or construct multipart requests manually.
 
@@ -2511,6 +2511,6 @@ CX Essentials ────────── Call Queues (screen pop, recording,
 
 ## See Also
 
-- [Major Call Features](call-features-major.md) -- Auto Attendants, Call Queues, and Hunt Groups (Call Park recall references Hunt Groups; CX Essentials extends Call Queues; Voicemail Groups can be assigned to AA/CQ/HG)
+- [Major Call Features](call-features-major.md) -- Auto Attendants, Call Queues, and Hunt Groups (Call Park recall references Hunt Groups; Customer Assist extends Call Queues; Voicemail Groups can be assigned to AA/CQ/HG)
 - [Call Routing & PSTN](call-routing.md) -- dial plans, trunks, and routing chain (Paging Groups and Voicemail Groups with phone numbers participate in call routing)
 - [Provisioning Reference](provisioning.md) -- creating locations and users (all features in this doc are location-scoped and require existing locations)

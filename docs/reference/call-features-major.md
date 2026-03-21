@@ -314,7 +314,7 @@ Use a call queue when callers should wait on hold until an agent is free (suppor
 | `allow_agent_join_enabled` | `bool` | No | Let agents join/unjoin |
 | `phone_number_for_outgoing_calls_enabled` | `bool` | No | Allow queue number for outbound caller ID |
 | `department` | `IdAndName` | No | |
-| `has_cx_essentials` | `bool` | No | Customer Experience Essentials license flag |
+| `has_cx_essentials` | `bool` | No | Customer Assist (formerly CX Essentials) license flag |
 
 **Convenience constructor:**
 ```python
@@ -1236,7 +1236,7 @@ When creating/updating, only `agent_id` is required. Set `weight` or `skill_leve
 
 4. **Agents** -- must be existing people, workspaces, or virtual lines. Users with Webex Calling Standard license are excluded from available agents.
 5. **Queue size** -- must be specified either via `queue_size` parameter or a `QueueSettings` object.
-6. **CX Essentials** -- if creating a CX Essentials queue, agents must have the Customer Experience Essentials license.
+6. **Customer Assist** -- if creating a Customer Assist (formerly CX Essentials) queue, agents must have the Customer Assist license.
 
 ### Hunt Group Specific
 
@@ -1306,6 +1306,6 @@ When creating/updating, only `agent_id` is required. Set `weight` or `skill_leve
 ## See Also
 
 - [Provisioning Reference](provisioning.md) -- creating locations and users (prerequisites for all features in this doc)
-- [Additional Call Features](call-features-additional.md) -- Paging Groups, Call Park, Call Pickup, Voicemail Groups, and CX Essentials (Call Park recall uses Hunt Groups; Voicemail Groups can serve as overflow destinations for CQ/HG)
+- [Additional Call Features](call-features-additional.md) -- Paging Groups, Call Park, Call Pickup, Voicemail Groups, and Customer Assist (Call Park recall uses Hunt Groups; Voicemail Groups can serve as overflow destinations for CQ/HG)
 - [Call Routing & PSTN](call-routing.md) -- dial plans, trunks, and route lists (AA/CQ/HG phone numbers participate in the call routing chain)
 - [Location Call Settings: Media](location-call-settings-media.md) -- schedule management (business hours and holiday schedules used by AA menus and CQ/HG policies)

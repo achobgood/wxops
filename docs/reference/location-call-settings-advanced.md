@@ -658,7 +658,7 @@ Used for both supervisor and agent listings.
 | `routing_prefix` | `str` | Location routing prefix |
 | `esn` | `str` | Routing prefix + extension |
 | `type` | `UserType` | Person, workspace, or virtual line |
-| `has_cx_essentials` | `bool` | Has CX Essentials license |
+| `has_cx_essentials` | `bool` | Has Customer Assist (formerly CX Essentials) license |
 | `agent_count` | `int` | Agents managed (supervisors only) |
 
 #### `IdAndAction`
@@ -750,7 +750,7 @@ wxcli call-queue delete-supervisors-config --force
 - **`create()` takes agent IDs as a flat `list[str]`**, not `IdAndAction` objects. The SDK wraps them as `[{'id': agent_id}]` internally.
 - **`assign_unassign_agents()`** uses `IdAndAction` with `PatternAction.ADD` or `PatternAction.DELETE` to add/remove agents in a single call. Returns `None` if all succeed, or a list of `SupervisorAgentStatus` with per-agent error details.
 - **`delete_bulk()`** has a `delete_all` parameter. When set to `True`, the `supervisors_ids` array is ignored and **all supervisors in the org are removed**. Use with extreme caution.
-- **CX Essentials vs. CX Basic**: The `has_cx_essentials` parameter gates which license tier you are querying/modifying. When `True`, returns/operates on CX Essentials supervisors only. When omitted or `False`, operates on CX Basic.
+- **Customer Assist vs. CX Basic**: The `has_cx_essentials` parameter gates which license tier you are querying/modifying. When `True`, returns/operates on Customer Assist supervisors only. When omitted or `False`, operates on CX Basic.
 - **`details()`** returns a generator of the supervisor's assigned **agents** (not the supervisor's own details). The item key is `agents`.
 
 ---

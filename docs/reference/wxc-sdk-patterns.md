@@ -296,7 +296,7 @@ The `TelephonyApi` object is the gateway to all calling features. Key sub-proper
 - `api.telephony.callpark_extension` -- Call park extensions
 - `api.telephony.callqueue` -- Call queue CRUD, agents
 - `api.telephony.conference` -- Conference controls
-- `api.telephony.cx_essentials` -- Customer Experience Essentials
+- `api.telephony.cx_essentials` -- Customer Assist (formerly CX Essentials)
 - `api.telephony.dect_devices` -- DECT device management
 - `api.telephony.devices` -- Telephony device details, members, MAC validation
 - `api.telephony.emergency_address` -- Emergency address management
