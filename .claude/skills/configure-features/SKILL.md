@@ -29,7 +29,6 @@ wxcli whoami
 If this fails, stop and resolve authentication first (`wxcli configure`). Required scopes:
 - **Read**: `spark-admin:telephony_config_read`
 - **Write**: `spark-admin:telephony_config_write`
-- **CX Essentials recording**: `spark-admin:people_read` / `spark-admin:people_write`
 
 ## Step 3: Identify which feature(s) to configure
 
@@ -44,7 +43,7 @@ Ask the user which feature they want to create. Present this decision matrix if 
 | Park a call on an extension for someone else to pick up | **Call Park** |
 | Let team members answer each other's ringing phones | **Call Pickup** |
 | Shared voicemail box for a team or feature | **Voicemail Group** |
-| Screen pop, queue recording, or wrap-up reasons on a CQ | **CX Essentials** |
+| Screen pop, recording, wrap-up, supervisors on a CQ | **Customer Assist** (use `customer-assist` skill) |
 
 ## Step 4: Check prerequisites
 
@@ -99,7 +98,7 @@ wxcli numbers list --location-id LOCATION_ID --output json
 | **Call Park** | Call Park Extensions should be created first. Recall to hunt group requires an existing HG. |
 | **Call Pickup** | A user can only belong to one pickup group at a time. |
 | **Voicemail Group** | Extension is required. Passcode is required. |
-| **CX Essentials** | Call Queue must exist first. Requires CX Essentials licensing. |
+| **Customer Assist** | Call Queue must exist first. Requires CX Essentials licensing. See `customer-assist` skill. |
 
 ## Step 5: Gather configuration and present deployment plan -- [SHOW BEFORE EXECUTING]
 
@@ -368,72 +367,13 @@ Optional flags: `--phone-number`, `--first-name`, `--last-name`.
 
 ---
 
-### CX Essentials
+### CX Essentials (Customer Assist)
 
-CX Essentials enhances existing Call Queues. The queue must exist first.
+Customer Assist (formerly CX Essentials) has its own dedicated skill with full coverage of screen pop, wrap-up reasons, queue call recording, supervisors, and available agents.
 
-> **CLI commands now available:** Use `wxcli cx-essentials` for wrap-up reasons, screen pop, and settings. <!-- Updated by playbook session 2026-03-18 -->
+> **Use the `customer-assist` skill** for all Customer Assist configuration.
 
-**Three sub-features:**
-
-#### Screen Pop
-Pop a URL when agent receives a queued call:
-
-```bash
-# View current screen pop config
-wxcli cx-essentials show-screen-pop LOCATION_ID QUEUE_ID --output json
-
-# Update screen pop config
-wxcli cx-essentials update-screen-pop LOCATION_ID QUEUE_ID \
-  --enabled --screen-pop-url "https://crm.example.com/lookup"
-```
-
-**Raw HTTP alternative** (if CLI doesn't cover all fields):
-```python
-from wxc_sdk.telephony.cx_essentials import ScreenPopConfiguration
-
-config = ScreenPopConfiguration(
-    enabled=True,
-    screen_pop_url='https://crm.example.com/lookup',
-    desktop_label='Customer Lookup',
-    query_params={'caller_id': '{{callerNumber}}'}
-)
-api.telephony.cx_essentials.modify_screen_pop_configuration(
-    location_id=location_id, queue_id=queue_id, settings=config
-)
-```
-
-#### Queue Call Recording
-```python
-recording = api.telephony.cx_essentials.callqueue_recording.read(
-    location_id=location_id, queue_id=queue_id
-)
-recording.enabled = True
-recording.record = 'Always'
-api.telephony.cx_essentials.callqueue_recording.configure(
-    location_id=location_id, queue_id=queue_id, recording=recording
-)
-```
-
-#### Wrap-Up Reasons
-Create org-level reasons, then assign to queues:
-```python
-# Create a reason
-reason_id = api.telephony.cx_essentials.wrapup_reasons.create(
-    name='Issue Resolved',
-    description='Customer issue was resolved on the call',
-    queues=[queue_id]
-)
-
-# Configure queue wrap-up settings
-api.telephony.cx_essentials.wrapup_reasons.update_queue_settings(
-    location_id=location_id,
-    queue_id=queue_id,
-    wrapup_reasons=[reason_id],
-    wrapup_timer_enabled=True,
-    wrapup_timer=60
-)
-```
+The call queue itself is still created here (see Call Queue section above). Once the queue exists, switch to the `customer-assist` skill to configure Customer Assist features on it.
 
 ---
 
@@ -541,7 +481,7 @@ Next steps:
 7. **CQ routing policy limits** -- `SIMULTANEOUS` max 50 agents; `WEIGHTED` max 100 agents; `CIRCULAR`/`REGULAR`/`UNIFORM` max 1,000 agents.
 8. **Paging Group: originators require update** -- the CLI create command does not accept originator/target lists; use `wxcli paging-group update` after creation.
 9. **Call Pickup one-group-per-user constraint** -- a user can only belong to one pickup group.
-10. **CX Essentials requires existing Call Queues** -- screen pop, recording, and wrap-up reasons are per-queue configurations. Use `wxcli cx-essentials` commands.
+10. **Customer Assist (CX Essentials) has its own skill.** Use the `customer-assist` skill for screen pop, wrap-up, queue recording, and supervisor configuration. Call queue creation stays in this skill.
 11. **Hunt Group holiday/night service** uses forwarding rules (schedule-based), not a dedicated policy API like Call Queues have.
 12. **Voicemail Group passcode is required** on create -- the CLI enforces this via `--passcode` (required option).
 13. **AA create: menus are auto-populated by the CLI.** The CLI provides default menus (key 0 = EXIT, extension dialing enabled) so the create command succeeds. Customize menus via `wxcli auto-attendant update` after creation.
