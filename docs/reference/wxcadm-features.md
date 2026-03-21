@@ -154,7 +154,7 @@ Call Queues distribute incoming calls to a pool of agents with configurable rout
 
 ### OrgQueueSettings
 
-Dataclass (decorated with `@dataclass_json`) for org-wide queue settings. Related to Customer Experience Essentials features.
+Dataclass (decorated with `@dataclass_json`) for org-wide queue settings. Related to Customer Assist (formerly CX Essentials) features.
 
 **Attributes:**
 

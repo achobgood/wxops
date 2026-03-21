@@ -108,7 +108,7 @@ wxcli numbers-api list --location-id LOC_ID  # Get number inventory
 | `single-number-reach` | Single number reach settings |
 | `call-recording` | Call recording settings |
 | `pstn` | PSTN connection management |
-| `cx-essentials` | CX Essentials (screen pop, wrap-up, supervisors) |
+| `cx-essentials` | Customer Assist (screen pop, wrap-up, supervisors) |
 
 This table shows the 31 most commonly used groups. Run `wxcli --help` to see all ~100 groups, which also cover admin, device, and messaging APIs.
 

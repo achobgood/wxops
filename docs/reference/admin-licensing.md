@@ -34,7 +34,7 @@ Webex organizations contain a mix of license types. Common ones relevant to call
 | Webex Calling - Professional | Full calling features: extension, DID, voicemail, call forwarding, device support |
 | Webex Calling - Standard | Basic calling with limited features (no voicemail, restricted forwarding) |
 | Webex Calling - Common Area | For shared devices (lobby phones, break rooms) |
-| CX Essentials | Contact center agent capabilities on top of Calling Professional |
+| Customer Assist (formerly CX Essentials) | Contact center agent capabilities on top of Calling Professional |
 | Webex Attendant Console | Receptionist console (requires Calling Professional as prerequisite) |
 | Webex Meetings | Meeting host licenses (various tiers) |
 | Webex Messaging | Messaging/spaces licenses (free and paid tiers) |
@@ -294,9 +294,9 @@ The PATCH endpoint returns specific error codes for assignment failures:
 | 400112 | Cannot downgrade Calling Professional to Standard |
 | 400404 | Cannot have both Calling Professional and Standard simultaneously |
 | 400406 | Cannot have both Calling Standard and Attendant Console |
-| 400407 | Cannot have both Calling Standard and CX Essentials |
+| 400407 | Cannot have both Calling Standard and Customer Assist |
 | 400408 | Attendant Console requires Calling Professional as prerequisite |
-| 400410 | Cannot downgrade CX Essentials to Calling Standard |
+| 400410 | Cannot downgrade Customer Assist to Calling Standard |
 | 400411 | Calling license missing required `properties` (locationId/phoneNumber/extension) |
 | 400413 | Exclusive license conflict (only one from a set can be assigned) |
 | 700003 | Free messaging license required before paid messaging |
@@ -400,7 +400,7 @@ wxcli licenses-api update --json-body '{
 
 3. **206 Partial Content is not an error.** The PATCH endpoint can return HTTP 206 when some licenses in the request succeeded but others failed. Always compare the returned `licenses` array against what you requested to identify which ones failed.
 
-4. **License conflicts are strictly enforced.** A user cannot hold both Calling Professional and Calling Standard, or Calling Standard and CX Essentials. The API returns specific 400-level error codes for each conflict type (see Error Codes table above).
+4. **License conflicts are strictly enforced.** A user cannot hold both Calling Professional and Calling Standard, or Calling Standard and Customer Assist. The API returns specific 400-level error codes for each conflict type (see Error Codes table above).
 
 ---
 
