@@ -31,6 +31,10 @@ Workspaces represent physical places where people work — conference rooms, mee
 - [Required Scopes](#required-scopes)
 - [Code Examples](#code-examples)
 - [Raw HTTP](#raw-http)
+- [CLI Examples](#cli-examples)
+  - [Workspaces CRUD](#workspaces-crud)
+  - [Workspace Settings](#workspace-settings)
+  - [Workspace Locations (Legacy)](#workspace-locations-legacy)
 
 ---
 
@@ -947,6 +951,381 @@ api.session.rest_put(f"{BASE}/telephony/config/workspaces/{workspace_id}/devices
 
 ---
 
+## CLI Examples
+
+Three `wxcli` command groups cover workspace operations:
+
+| CLI Group | Commands | Purpose |
+|-----------|----------|---------|
+| `wxcli workspaces` | 6 | Workspace CRUD + capabilities |
+| `wxcli workspace-settings` | 96 | Workspace call settings (mirrors person settings) |
+| `wxcli workspace-locations` | 10 | Legacy workspace locations + floors |
+
+### Workspaces CRUD
+
+```bash
+# List all workspaces (table output by default)
+wxcli workspaces list
+
+# List Webex Calling workspaces only
+wxcli workspaces list --calling webexCalling
+
+# List workspaces at a specific location
+wxcli workspaces list --location-id <location_id>
+
+# List workspaces with device details included
+wxcli workspaces list --calling webexCalling --include-devices true
+
+# Filter by workspace type (desk, meetingRoom, huddle, focus, open, other)
+wxcli workspaces list --type meetingRoom
+
+# Filter by supported device type
+wxcli workspaces list --supported-devices phones
+
+# Show workspace details (JSON output by default)
+wxcli workspaces show <workspace_id>
+
+# Show workspace details in table format
+wxcli workspaces show <workspace_id> -o table
+
+# Get workspace capabilities (sensor/feature support)
+wxcli workspaces show-capabilities <workspace_id>
+
+# Create a workspace (simple — flat options)
+wxcli workspaces create --display-name "Lobby Phone" --type desk --capacity 1
+
+# Create a Webex Calling workspace (requires --json-body for nested calling config)
+wxcli workspaces create --json-body '{
+  "displayName": "Conference Room B",
+  "locationId": "<location_id>",
+  "type": "meetingRoom",
+  "capacity": 10,
+  "supportedDevices": "phones",
+  "calling": {
+    "type": "webexCalling",
+    "webexCalling": {
+      "extension": "2050",
+      "locationId": "<location_id>"
+    }
+  }
+}'
+
+# Update a workspace display name
+wxcli workspaces update <workspace_id> --display-name "Lobby Phone (Updated)"
+
+# Update workspace type and capacity
+wxcli workspaces update <workspace_id> --type meetingRoom --capacity 12
+
+# Enable hotdesking on a workspace
+wxcli workspaces update <workspace_id> --hotdesking-status on
+
+# Delete a workspace (prompts for confirmation)
+wxcli workspaces delete <workspace_id>
+
+# Delete without confirmation prompt
+wxcli workspaces delete <workspace_id> --force
+```
+
+### Workspace Settings
+
+> **License note:** Most `/telephony/config/workspaces/{id}/` settings require **Professional** license. Basic workspaces only support `musicOnHold` and `doNotDisturb` at this path. For Basic workspaces, use the `/workspaces/{id}/features/` path family (callForwarding, callWaiting, callerId, intercept, monitoring). See the [endpoint access by license tier table](#key-patterns-and-gotchas) in Gotchas for the full matrix.
+
+The `wxcli workspace-settings` group has 96 commands mirroring person call settings. All take a `workspace_id` as a positional argument.
+
+#### Call Handling
+
+```bash
+# ── Call Forwarding ──────────────────────────────────────────────
+# Show call forwarding settings
+wxcli workspace-settings show <workspace_id>
+
+# Enable always-forward to a destination (nested config requires --json-body)
+wxcli workspace-settings update <workspace_id> --json-body '{
+  "callForwarding": {
+    "always": {
+      "enabled": true,
+      "destination": "+15551234567",
+      "ringReminderEnabled": true
+    }
+  }
+}'
+
+# Enable busy-forward and no-answer-forward
+wxcli workspace-settings update <workspace_id> --json-body '{
+  "callForwarding": {
+    "busy": {"enabled": true, "destination": "+15559876543"},
+    "noAnswer": {"enabled": true, "destination": "+15559876543", "numberOfRings": 5}
+  },
+  "businessContinuity": {"enabled": true, "destination": "+15550001111"}
+}'
+
+# ── Call Waiting ─────────────────────────────────────────────────
+# Show call waiting settings
+wxcli workspace-settings show-call-waiting <workspace_id>
+
+# Enable call waiting
+wxcli workspace-settings update-call-waiting <workspace_id> --enabled
+
+# Disable call waiting
+wxcli workspace-settings update-call-waiting <workspace_id> --no-enabled
+
+# ── Do Not Disturb ───────────────────────────────────────────────
+# Show DND settings (works on Basic + Professional)
+wxcli workspace-settings show-do-not-disturb <workspace_id>
+
+# Enable DND with ring splash
+wxcli workspace-settings update-do-not-disturb <workspace_id> --enabled --ring-splash-enabled
+
+# Disable DND
+wxcli workspace-settings update-do-not-disturb <workspace_id> --no-enabled
+
+# ── Call Intercept ───────────────────────────────────────────────
+# Show intercept settings
+wxcli workspace-settings show-intercept <workspace_id>
+
+# Enable call intercept (simple toggle)
+wxcli workspace-settings update-intercept <workspace_id> --enabled
+
+# Enable with full config (intercept all incoming, allow outgoing to a destination)
+wxcli workspace-settings update-intercept <workspace_id> --json-body '{
+  "enabled": true,
+  "incoming": {
+    "type": "INTERCEPT_ALL",
+    "voicemailEnabled": true
+  },
+  "outgoing": {
+    "type": "INTERCEPT_ALL",
+    "transferEnabled": true,
+    "destination": "+15551234567"
+  }
+}'
+
+# Disable call intercept
+wxcli workspace-settings update-intercept <workspace_id> --no-enabled
+```
+
+#### Voicemail & Media
+
+```bash
+# ── Voicemail (Professional license required) ────────────────────
+# Show voicemail settings
+wxcli workspace-settings show-voicemail <workspace_id>
+
+# Enable voicemail with send-all-calls
+wxcli workspace-settings update-voicemail <workspace_id> --json-body '{
+  "enabled": true,
+  "sendAllCalls": {"enabled": false},
+  "sendBusyCalls": {"enabled": true, "greeting": "DEFAULT"},
+  "sendUnansweredCalls": {"enabled": true, "greeting": "DEFAULT", "numberOfRings": 6}
+}'
+
+# Disable voicemail
+wxcli workspace-settings update-voicemail <workspace_id> --no-enabled
+
+# ── Caller ID ────────────────────────────────────────────────────
+# Show caller ID settings
+wxcli workspace-settings list <workspace_id>
+
+# Set caller ID to direct line
+wxcli workspace-settings update-caller-id <workspace_id> --selected DIRECT_LINE
+
+# Set caller ID to location number
+wxcli workspace-settings update-caller-id <workspace_id> \
+  --selected LOCATION_NUMBER \
+  --external-caller-id-name-policy LOCATION
+
+# Set caller ID to custom number
+wxcli workspace-settings update-caller-id <workspace_id> \
+  --selected CUSTOM --custom-number "+15551234567"
+
+# ── Music on Hold (works on Basic + Professional) ────────────────
+# Show music on hold settings
+wxcli workspace-settings show-music-on-hold <workspace_id>
+
+# Enable music on hold with default greeting
+wxcli workspace-settings update-music-on-hold <workspace_id> --moh-enabled --greeting DEFAULT
+
+# Enable with custom audio file
+wxcli workspace-settings update-music-on-hold <workspace_id> --json-body '{
+  "mohEnabled": true,
+  "greeting": "CUSTOM",
+  "audioAnnouncementFile": {
+    "id": "<announcement_file_id>",
+    "fileName": "lobby-music.wav",
+    "mediaFileType": "WAV",
+    "level": "ORGANIZATION"
+  }
+}'
+
+# Disable music on hold
+wxcli workspace-settings update-music-on-hold <workspace_id> --no-moh-enabled
+
+# ── Call Recording (Professional license required) ───────────────
+# Show call recording settings
+wxcli workspace-settings show-call-recordings <workspace_id>
+
+# Enable always-on recording
+wxcli workspace-settings update-call-recordings <workspace_id> --enabled --record Always
+
+# Enable on-demand recording with voicemail recording
+wxcli workspace-settings update-call-recordings <workspace_id> \
+  --enabled --record "On Demand with User Initiated Start" --record-voicemail-enabled
+
+# Enable with notification beep and start/stop announcements
+wxcli workspace-settings update-call-recordings <workspace_id> --json-body '{
+  "enabled": true,
+  "record": "Always",
+  "recordVoicemailEnabled": true,
+  "notification": {"type": "Beep", "enabled": true},
+  "startStopAnnouncement": {
+    "internalCallsEnabled": true,
+    "pstnCallsEnabled": true
+  }
+}'
+
+# Disable call recording
+wxcli workspace-settings update-call-recordings <workspace_id> --no-enabled
+```
+
+#### Permissions
+
+```bash
+# ── Incoming Permissions ─────────────────────────────────────────
+# Show incoming permission settings
+wxcli workspace-settings show-incoming-permission <workspace_id>
+
+# ── Outgoing Permissions ─────────────────────────────────────────
+# Show outgoing permission settings (table output by default)
+wxcli workspace-settings list-outgoing-permission <workspace_id>
+
+# Show in JSON
+wxcli workspace-settings list-outgoing-permission <workspace_id> -o json
+
+# ── Access Codes ─────────────────────────────────────────────────
+# List access codes for outgoing permissions
+wxcli workspace-settings list-access-codes <workspace_id>
+
+# ── Anonymous Call Reject (Professional license required) ────────
+# Show anonymous call reject settings
+wxcli workspace-settings show-anonymous-call-reject <workspace_id>
+
+# ── Barge In (Professional license required) ─────────────────────
+# Show barge-in settings
+wxcli workspace-settings show-barge-in <workspace_id>
+
+# ── Privacy (Professional license required) ──────────────────────
+# Show privacy settings
+wxcli workspace-settings list-privacy <workspace_id>
+```
+
+#### Behavior & Numbers
+
+```bash
+# ── Monitoring (BLF) ────────────────────────────────────────────
+# Show monitoring settings
+wxcli workspace-settings show-monitoring <workspace_id>
+
+# ── Numbers ──────────────────────────────────────────────────────
+# List phone numbers assigned to a workspace
+wxcli workspace-settings list-numbers <workspace_id>
+
+# Assign an alternate number (nested config requires --json-body)
+wxcli workspace-settings update-numbers <workspace_id> --json-body '{
+  "distinctiveRingEnabled": true,
+  "phoneNumbers": [
+    {
+      "action": "ADD",
+      "directNumber": "+15551234567",
+      "extension": "2051",
+      "primary": false
+    }
+  ]
+}'
+
+# Remove a number
+wxcli workspace-settings update-numbers <workspace_id> --json-body '{
+  "phoneNumbers": [
+    {
+      "action": "DELETE",
+      "directNumber": "+15551234567"
+    }
+  ]
+}'
+
+# List available phone numbers for a workspace
+wxcli workspace-settings list-available-numbers-workspaces <workspace_id>
+
+# List available ECBN numbers
+wxcli workspace-settings list-available-numbers-emergency-callback-number <workspace_id>
+
+# List available call forwarding numbers
+wxcli workspace-settings list-available-numbers-call-forwarding <workspace_id>
+```
+
+#### Full Command Reference
+
+All 96 `workspace-settings` commands:
+
+| Category | Commands |
+|----------|----------|
+| **Call Forwarding** | `show`, `update` |
+| **Call Waiting** | `show-call-waiting`, `update-call-waiting` |
+| **Caller ID** | `list` (show), `update-caller-id` |
+| **Monitoring** | `show-monitoring`, `update-monitoring` |
+| **Numbers** | `list-numbers`, `update-numbers` |
+| **Incoming Permissions** | `show-incoming-permission`, `update-incoming-permission` |
+| **Outgoing Permissions** | `list-outgoing-permission`, `update-outgoing-permission` |
+| **Access Codes** | `list-access-codes`, `create`, `update-access-codes`, `delete`, `delete-access-codes` |
+| **Intercept** | `show-intercept`, `update-intercept`, `upload-call-intercept` |
+| **Auto Transfer Numbers** | `show-auto-transfer-numbers`, `update-auto-transfer-numbers` |
+| **Music on Hold** | `show-music-on-hold`, `update-music-on-hold` |
+| **Digit Patterns** | `list-digit-patterns`, `create-digit-patterns`, `show-digit-patterns`, `update-digit-patterns-outgoing-permission`, `update-digit-patterns-outgoing-permission-1`, `delete-digit-patterns-outgoing-permission`, `delete-digit-patterns-outgoing-permission-1` |
+| **Call Recording** | `show-call-recordings`, `update-call-recordings` |
+| **Anonymous Call Reject** | `show-anonymous-call-reject`, `update-anonymous-call-reject` |
+| **Barge In** | `show-barge-in`, `update-barge-in` |
+| **DND** | `show-do-not-disturb`, `update-do-not-disturb` |
+| **Call Bridge** | `show-call-bridge`, `update-call-bridge` |
+| **Push to Talk** | `list-push-to-talk`, `update-push-to-talk` |
+| **Privacy** | `list-privacy`, `update-privacy` |
+| **Voicemail** | `show-voicemail`, `update-voicemail`, `update-passcode`, `configure-busy-voicemail`, `configure-no-answer` |
+| **Sequential Ring** | `list-sequential-ring`, `update-sequential-ring`, `show-criteria-sequential-ring`, `update-criteria-sequential-ring`, `delete-criteria-sequential-ring`, `create-criteria-sequential-ring` |
+| **Call Policies** | `show-call-policies`, `update-call-policies` |
+| **Simultaneous Ring** | `list-simultaneous-ring`, `update-simultaneous-ring`, `show-criteria-simultaneous-ring`, `update-criteria-simultaneous-ring`, `delete-criteria-simultaneous-ring`, `create-criteria-simultaneous-ring` |
+| **Selective Reject** | `list-selective-reject`, `update-selective-reject`, `show-criteria-selective-reject`, `update-criteria-selective-reject`, `delete-criteria-selective-reject`, `create-criteria-selective-reject` |
+| **Selective Accept** | `list-selective-accept`, `update-selective-accept`, `show-criteria-selective-accept`, `update-criteria-selective-accept`, `delete-criteria-selective-accept`, `create-criteria-selective-accept` |
+| **Priority Alert** | `list-priority-alert`, `update-priority-alert`, `show-criteria-priority-alert`, `update-criteria-priority-alert`, `delete-criteria-priority-alert`, `create-criteria-priority-alert` |
+| **Selective Forward** | `list-selective-forward`, `update-selective-forward`, `show-criteria-selective-forward`, `update-criteria-selective-forward`, `delete-criteria-selective-forward`, `create-criteria-selective-forward` |
+| **Available Numbers** | `list-available-numbers-workspaces`, `list-available-numbers-emergency-callback-number`, `list-available-numbers-call-forwarding`, `list-available-numbers-call-intercept`, `list-available-numbers-fax-message`, `list-available-numbers-secondary` |
+
+### Workspace Locations (Legacy)
+
+> **Deprecation note:** Workspace Locations is a legacy API. Prefer `wxcli locations` for new work.
+
+```bash
+# List all workspace locations
+wxcli workspace-locations list
+
+# Filter by country
+wxcli workspace-locations list --country-code US
+
+# Filter by city
+wxcli workspace-locations list --city-name "San Francisco"
+
+# Filter by display name
+wxcli workspace-locations list --display-name "HQ"
+
+# Show workspace location details
+wxcli workspace-locations show <location_id>
+
+# List floors for a workspace location
+wxcli workspace-locations list-floors <location_id>
+
+# Show floor details
+wxcli workspace-locations show-floors <location_id> <floor_id>
+```
+
+---
+
 ## Key Patterns and Gotchas
 
 1. **`location_id` vs `workspace_location_id`** — Always use `location_id` (from the `/locations` API). `workspace_location_id` is legacy and deprecated.
@@ -989,6 +1368,35 @@ api.session.rest_put(f"{BASE}/telephony/config/workspaces/{workspace_id}/devices
     | `/telephony/config/workspaces/{id}/selectiveReject` | 405 | Yes |
     | `/telephony/config/workspaces/{id}/selectiveAccept` | 405 | Yes |
     | `/telephony/config/workspaces/{id}/callRecording` | 404 | May not exist |
+
+## CLI: `workspace-metrics` (Workspace Sensor Metrics)
+
+The `workspace-metrics` CLI group retrieves environmental sensor data and usage duration metrics from workspace devices (RoomOS endpoints with sensors).
+
+| Command | Description |
+|---------|-------------|
+| `workspace-metrics list` | Get workspace sensor metrics (sound, temperature, humidity, etc.) |
+| `workspace-metrics list-workspace-duration-metrics` | Get workspace usage duration metrics (time used, time booked) |
+
+```bash
+# Get temperature readings for a workspace (last 24 hours, daily aggregation)
+wxcli workspace-metrics list --workspace-id <workspace_id> --metric-name temperature --aggregation daily
+
+# Get people count data in Fahrenheit
+wxcli workspace-metrics list --workspace-id <workspace_id> --metric-name peopleCount --aggregation hourly
+
+# Get ambient noise levels with a time range
+wxcli workspace-metrics list --workspace-id <workspace_id> --metric-name ambientNoise \
+  --from 2026-03-01T00:00:00Z --to 2026-03-21T00:00:00Z
+
+# Get workspace usage duration (how long the room was actually used)
+wxcli workspace-metrics list-workspace-duration-metrics --workspace-id <workspace_id> \
+  --measurement timeUsed --aggregation daily
+
+# Get booked vs used comparison
+wxcli workspace-metrics list-workspace-duration-metrics --workspace-id <workspace_id> \
+  --measurement timeBooked --aggregation daily
+```
 
 ---
 
