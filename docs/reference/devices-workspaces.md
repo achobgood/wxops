@@ -1253,7 +1253,7 @@ wxcli workspace-settings update-numbers <workspace_id> --json-body '{
 }'
 
 # List available phone numbers for a workspace
-wxcli workspace-settings list-available-numbers-workspaces <workspace_id>
+wxcli workspace-settings list-available-numbers-workspaces
 
 # List available ECBN numbers
 wxcli workspace-settings list-available-numbers-emergency-callback-number <workspace_id>
