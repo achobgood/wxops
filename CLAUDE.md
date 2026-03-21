@@ -24,7 +24,8 @@ Use `/wxc-calling-debug` to troubleshoot a failing configuration (this one is a 
 |------|---------|
 | `.claude/agents/wxc-calling-builder.md` | Main builder agent — drives the full workflow |
 | `.claude/skills/provision-calling/` | Skill: provision users, locations, licenses |
-| `.claude/skills/configure-features/` | Skill: set up call features (AA, CQ, HG, etc.) |
+| `.claude/skills/configure-features/` | Skill: set up call features (AA, CQ, HG, etc.; CX Essentials → see customer-assist skill) |
+| `.claude/skills/customer-assist/`      | Skill: configure Customer Assist (screen pop, wrap-up, recording, supervisors) |
 | `.claude/skills/manage-call-settings/` | Skill: configure person/workspace call settings |
 | `.claude/skills/configure-routing/` | Skill: configure routing (trunks, dial plans, PSTN) |
 | `.claude/skills/manage-devices/` | Skill: manage devices (phones, DECT, workspaces) |
@@ -137,16 +138,13 @@ Use `/wxc-calling-debug` to troubleshoot a failing configuration (this one is a 
 
 ### Known issues
 
-1. **call-controls requires user-level OAuth.** Admin tokens get 400 "Target user not authorized". Don't use `wxcli call-controls` with admin/service-app tokens.
-2. **Complex nested settings need `--json-body`.** The generator skips deeply nested object/array body fields. For call forwarding, voicemail, monitoring, and similar nested settings, use `--json-body '{"key": {...}}'`.
-3. **my-settings and mode-management require calling-licensed user.** All `/people/me/*` endpoints return 404 (error 4008) if the authenticated user doesn't have a Webex Calling license. Test with a calling user's token, not the admin token.
+1. **call-controls requires user-level OAuth.** Admin tokens get 400 "Target user not authorized". The CLI now detects this error and prints a tip about needing user-level OAuth.
+2. **Complex nested settings need `--json-body`.** The generator skips deeply nested object/array body fields. Commands with nested fields now show an example JSON snippet in `--help` output (e.g., `wxcli user-settings update-call-forwarding --help`).
+3. **my-settings and mode-management require calling-licensed user.** All `/people/me/*` endpoints return 404 (error 4008) if the authenticated user doesn't have a Webex Calling license. The CLI now detects this error and prints a tip.
 4. **6 person settings are user-only (no admin path).** `simultaneousRing`, `sequentialRing`, `priorityAlert`, `callNotify`, `anonymousCallReject`, and `callPolicies` only exist at `/telephony/config/people/me/settings/{feature}`. Admin tokens get 404. Use user-level OAuth for these.
 5. **Two path families for person settings.** Classic settings use `/people/{personId}/features/{feature}`. Newer settings use `/telephony/config/people/{personId}/{feature}`. Some names differ between families: `intercept` (not `callIntercept`), `reception` (not `receptionist`), `applications` (not `applicationServicesSettings`), `autoTransferNumbers` (not `transferNumbers`), `pushToTalk` (not `pushToTalkSettings`).
-6. **SCIM endpoints use a different base URL.** SCIM API paths start with `/identity/scim/` not `/v1/identity/scim/`. The `/v1/` prefix must not be prepended.
-7. **~~`audit-events` and `security-audit` commands need `--org-id`~~** (RESOLVED). Both commands now expose `--org-id` as a required option. The generator's global `omit_query_params: [orgId]` is overridden via `keep_query_params: [orgId]` in `field_overrides.yaml` for these two tags.
-8. **~~CDR endpoints use wrong base URL~~** (RESOLVED). CDR commands now correctly use `analytics-calling.webexapis.com/v1` via the `ANALYTICS_PREFIXES` mechanism in `command_renderer.py`. CDR also requires `analytics:read_all` scope which admin tokens may not have.
-9. **Workspace `/telephony/config/` settings require Professional license.** Most workspace call settings under `/telephony/config/workspaces/{id}/` return 405 "Invalid Professional Place" for Basic-licensed workspaces. Only `musicOnHold` and `doNotDisturb` work on Basic. The `/workspaces/{id}/features/` path family (callForwarding, callWaiting, callerId, intercept, monitoring) works on Basic.
-10. **Default table columns show empty for settings endpoints.** Settings endpoints return objects without `id`/`name` fields, so the default table columns display empty. Use `-o json` for these. This affects user-settings, workspace-settings, virtual-line-settings show commands.
+6. **Workspace `/telephony/config/` settings require Professional license.** Most workspace call settings under `/telephony/config/workspaces/{id}/` return 405 "Invalid Professional Place" for Basic-licensed workspaces. Only `musicOnHold` and `doNotDisturb` work on Basic. The `/workspaces/{id}/features/` path family (callForwarding, callWaiting, callerId, intercept, monitoring) works on Basic. The CLI now detects this error and prints a tip.
+7. **Settings endpoints now support table output.** Settings-get commands (show-*) now accept `-o table` and auto-detect columns from the response data. List commands with non-standard response shapes (no `id`/`name` fields) also auto-detect columns.
 
 ### Generator rules
 
