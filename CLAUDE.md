@@ -200,7 +200,7 @@ Whenever you discover a technical detail through implementation — a gotcha, a 
 1. **Check the relevant reference doc first.** Use the See Also links at the bottom of each doc to find related docs. Key docs by area:
    - Provisioning: `docs/reference/provisioning.md`
    - Call features (AA/CQ/HG): `docs/reference/call-features-major.md`, `call-features-additional.md`
-   - Person settings: `docs/reference/person-call-settings-*.md` (4 files: handling, media, permissions, behavior)
+   - Person settings: `docs/reference/person-call-settings-*.md` (4 files: handling, media, permissions, behavior) + `self-service-call-settings.md`
    - Location settings: `docs/reference/location-call-settings-*.md` (3 files: core, media, advanced)
    - Devices: `docs/reference/devices-*.md` (4 files: core, dect, workspaces, platform)
    - Routing: `docs/reference/call-routing.md`

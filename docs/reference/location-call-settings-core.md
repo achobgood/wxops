@@ -1982,12 +1982,53 @@ wxcli location-voicemail list-available-numbers-fax-message Y2lzY29zcGFyazovL...
 5. **No auto-pagination** -- All list endpoints require manual `max` and `start` params. Set `max=1000` for maximum page size.
 6. **Action endpoints use POST** -- `validateExtensions`, `modifyAnnouncementLanguage`, `precheckForDeletion`, job pause/resume all use POST, not GET or PUT.
 
+## CLI: `calling-service` (Org-Level Calling Service Settings)
+
+The `calling-service` CLI group covers org-level voicemail settings, voicemail rules, music on hold configuration, large organization status, and call captions. These are org-wide settings, not per-location.
+
+| Command | Description |
+|---------|-------------|
+| `calling-service list` | List announcement languages |
+| `calling-service show` | Get org voicemail settings |
+| `calling-service update` | Update org voicemail settings |
+| `calling-service show-rules` | Get org voicemail rules (passcode policy) |
+| `calling-service update-rules` | Update org voicemail rules |
+| `calling-service show-settings` | Get org music on hold configuration |
+| `calling-service update-settings` | Update org music on hold configuration |
+| `calling-service show-large-org-status` | Get large organization status |
+| `calling-service show-call-captions` | Get org call captions settings |
+| `calling-service update-call-captions` | Update org call captions settings |
+
+```bash
+# List available announcement languages
+wxcli calling-service list
+
+# Get org-level voicemail settings
+wxcli calling-service show
+
+# Enable voicemail message expiry after 30 days
+wxcli calling-service update --message-expiry-enabled --number-of-days-for-message-expiry 30
+
+# Get org music on hold configuration
+wxcli calling-service show-settings
+
+# Check if this org qualifies as a large organization
+wxcli calling-service show-large-org-status
+
+# Get org call captions settings
+wxcli calling-service show-call-captions
+
+# Enable org-level closed captions and transcripts
+wxcli calling-service update-call-captions --org-closed-captions-enabled --org-transcripts-enabled
+```
+
 ## CLI Files
 
 | CLI Group | File |
 |-----------|------|
 | `location-call-settings` | `src/wxcli/commands/location_call_settings.py` |
 | `location-call-settings-voicemail` | `src/wxcli/commands/location_call_settings_voicemail.py` |
+| `calling-service` | `src/wxcli/commands/calling_service.py` |
 
 ---
 
