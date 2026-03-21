@@ -176,6 +176,56 @@ def delete_dect_network(
 ) -> None
 ```
 
+### CLI Examples
+
+```bash
+# List all DECT networks in the org
+wxcli dect-devices list
+
+# List DECT networks filtered by location
+wxcli dect-devices list --location-id <location_id>
+
+# List DECT networks filtered by name
+wxcli dect-devices list --name "Building A"
+
+# Show details of a specific DECT network
+wxcli dect-devices show <location_id> <dect_network_id>
+
+# Show details as JSON
+wxcli dect-devices show <location_id> <dect_network_id> -o json
+
+# Create a DECT network (DBS-210 multi-cell with shared access code)
+wxcli dect-devices create <location_id> \
+  --name "Building A DECT" \
+  --model "DMS Cisco DBS210" \
+  --default-access-code-enabled \
+  --default-access-code "1234"
+
+# Create a DECT network (DBS-110 single-cell with display name)
+wxcli dect-devices create <location_id> \
+  --name "Lobby DECT" \
+  --model "DMS Cisco DBS110" \
+  --default-access-code-enabled \
+  --default-access-code "5678" \
+  --display-name "Lobby"
+
+# Update a DECT network name and access code
+wxcli dect-devices update <location_id> <dect_network_id> \
+  --name "Building A DECT v2" \
+  --default-access-code-enabled \
+  --default-access-code "9999"
+
+# Disable shared access code (switches to per-handset auto-generated codes)
+wxcli dect-devices update <location_id> <dect_network_id> \
+  --no-default-access-code-enabled
+
+# Delete a DECT network (with confirmation prompt)
+wxcli dect-devices delete <location_id> <dect_network_id>
+
+# Delete a DECT network (skip confirmation)
+wxcli dect-devices delete <location_id> <dect_network_id> --force
+```
+
 ---
 
 ## Base Station Management
@@ -248,6 +298,35 @@ def delete_base_station(
     base_station_id: str,
     org_id: str = None
 ) -> None
+```
+
+### CLI Examples
+
+```bash
+# List base stations in a DECT network
+wxcli dect-devices list-base-stations <location_id> <dect_network_id>
+
+# List base stations as JSON
+wxcli dect-devices list-base-stations <location_id> <dect_network_id> -o json
+
+# Show details of a specific base station
+wxcli dect-devices show-base-stations <location_id> <dect_network_id> <base_station_id>
+
+# Create base stations (bulk by MAC, requires --json-body)
+wxcli dect-devices create-base-stations <location_id> <dect_network_id> \
+  --json-body '{"baseStationMacs":["AABBCCDDEEFF","112233445566"]}'
+
+# Delete a specific base station
+wxcli dect-devices delete-base-stations-dect-networks-1 <location_id> <dect_network_id> <base_station_id>
+
+# Delete a specific base station (skip confirmation)
+wxcli dect-devices delete-base-stations-dect-networks-1 <location_id> <dect_network_id> <base_station_id> --force
+
+# Delete ALL base stations in a DECT network
+wxcli dect-devices delete-base-stations-dect-networks <location_id> <dect_network_id>
+
+# Delete ALL base stations (skip confirmation)
+wxcli dect-devices delete-base-stations-dect-networks <location_id> <dect_network_id> --force
 ```
 
 ---
@@ -362,6 +441,63 @@ def delete_handsets(
 
 If `delete_all` is `True`, the `handset_ids` array is ignored and all handsets in the network are deleted.
 
+### CLI Examples
+
+```bash
+# List all handsets in a DECT network
+wxcli dect-devices list-handsets <location_id> <dect_network_id>
+
+# List handsets as JSON
+wxcli dect-devices list-handsets <location_id> <dect_network_id> -o json
+
+# List handsets filtered by base station
+wxcli dect-devices list-handsets <location_id> <dect_network_id> \
+  --basestation-id <base_station_id>
+
+# List handsets filtered by member (person, workspace, or virtual line)
+wxcli dect-devices list-handsets <location_id> <dect_network_id> \
+  --member-id <person_id>
+
+# Show details of a specific handset
+wxcli dect-devices show-handsets <location_id> <dect_network_id> <handset_id>
+
+# Add a single handset with one line
+wxcli dect-devices create-handsets <location_id> <dect_network_id> \
+  --line1-member-id <person_id> \
+  --custom-display-name "Reception"
+
+# Add a single handset with two lines (line 2 can be a virtual line)
+wxcli dect-devices create-handsets <location_id> <dect_network_id> \
+  --line1-member-id <person_id> \
+  --line2-member-id <virtual_line_id> \
+  --custom-display-name "Front Desk"
+
+# Update handset line assignment and display name
+wxcli dect-devices update-handsets <location_id> <dect_network_id> <handset_id> \
+  --line1-member-id <new_person_id> \
+  --custom-display-name "Updated Name"
+
+# Update handset to add a second line
+wxcli dect-devices update-handsets <location_id> <dect_network_id> <handset_id> \
+  --line2-member-id <virtual_line_id>
+
+# Delete a single handset
+wxcli dect-devices delete-handsets-dect-networks <location_id> <dect_network_id> <handset_id>
+
+# Delete a single handset (skip confirmation)
+wxcli dect-devices delete-handsets-dect-networks <location_id> <dect_network_id> <handset_id> --force
+
+# Delete multiple handsets (bulk)
+wxcli dect-devices delete-handsets-dect-networks-1 <location_id> <dect_network_id>
+
+# Delete multiple handsets (skip confirmation)
+wxcli dect-devices delete-handsets-dect-networks-1 <location_id> <dect_network_id> --force
+
+# Bulk add handsets (up to 50, requires --json-body)
+wxcli dect-devices create-bulk <location_id> <dect_network_id> \
+  --json-body '{"items":[{"line1MemberId":"<person_id_1>","customDisplayName":"User 1"},{"line1MemberId":"<person_id_2>","line2MemberId":"<vl_id>","customDisplayName":"User 2"}]}'
+```
+
 ---
 
 ## Association Queries
@@ -398,6 +534,19 @@ def dect_networks_associated_with_virtual_line(
 ) -> list[AssignedDectNetwork]
 ```
 
+### CLI Examples
+
+```bash
+# List DECT networks associated with a person
+wxcli dect-devices list-dect-networks-people <person_id>
+
+# List DECT networks associated with a workspace
+wxcli dect-devices list-dect-networks-workspaces <workspace_id>
+
+# Output as JSON
+wxcli dect-devices list-dect-networks-people <person_id> -o json
+```
+
 ---
 
 ## Available Members Search
@@ -429,6 +578,37 @@ def available_members(
 | `usage_type` | Filter by `UsageType` -- eligible as device owner or shared line |
 
 Returns a **Generator** (paginated). Yields `AvailableMember` instances.
+
+### CLI Examples
+
+```bash
+# Search all available members for DECT line assignment
+wxcli dect-devices list-available-members
+
+# Search by member name
+wxcli dect-devices list-available-members --member-name "Jane"
+
+# Search by phone number
+wxcli dect-devices list-available-members --phone-number "+1555"
+
+# Search by extension
+wxcli dect-devices list-available-members --extension "1001"
+
+# Filter by location
+wxcli dect-devices list-available-members --location-id <location_id>
+
+# Exclude virtual lines (for line 1 assignment — virtual lines can only be line 2)
+wxcli dect-devices list-available-members --exclude-virtual-line true
+
+# Filter by usage type (device owner vs shared line)
+wxcli dect-devices list-available-members --usage-type DEVICE_OWNER
+
+# Sort by first name instead of last name (default)
+wxcli dect-devices list-available-members --order fname
+
+# Output as JSON
+wxcli dect-devices list-available-members --member-name "Jane" -o json
+```
 
 ---
 
@@ -477,6 +657,22 @@ def update_dect_serviceability_password_status(
 When `enabled` is `False`, the Cisco-owned password is required for serviceability access instead.
 
 **Warning:** Enabling or disabling the password can **reboot the entire network**.
+
+### CLI Examples
+
+```bash
+# Generate and enable a serviceability password (WARNING: may reboot DECT network)
+wxcli dect-devices generate-and-enable <location_id> <dect_network_id>
+
+# Check serviceability password status (enabled/disabled)
+wxcli dect-devices show-serviceability-password <location_id> <dect_network_id>
+
+# Enable serviceability password (WARNING: may reboot DECT network)
+wxcli dect-devices update-serviceability-password <location_id> <dect_network_id> --enabled
+
+# Disable serviceability password (WARNING: may reboot DECT network)
+wxcli dect-devices update-serviceability-password <location_id> <dect_network_id> --no-enabled
+```
 
 ---
 
