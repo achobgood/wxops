@@ -62,8 +62,8 @@ Use an auto attendant when you need an IVR-style front door: "Press 1 for Sales,
 | `time_zone` | `str` | No | |
 | `alternate_numbers` | `list[AlternateNumber]` | No | Only in details(), up to 10 |
 | `first_name` / `last_name` | `str` | No | **Deprecated** -- use `direct_line_caller_id_name` and `dial_by_name` instead |
-| `direct_line_caller_id_name` | `DirectLineCallerIdName` | No | Not supported in FedRAMP |
-| `dial_by_name` | `str` | No | Not supported in FedRAMP |
+| `direct_line_caller_id_name` | `DirectLineCallerIdName` | No | Not supported in FedRAMP. See [authentication.md → FedRAMP](authentication.md#webex-for-government-fedramp) for all FedRAMP restrictions. |
+| `dial_by_name` | `str` | No | Not supported in FedRAMP. See [authentication.md → FedRAMP](authentication.md#webex-for-government-fedramp) for all FedRAMP restrictions. |
 
 <!-- Verified via CLI implementation 2026-03-17: Auto Attendant create requires businessHoursMenu and afterHoursMenu (each with greeting=DEFAULT, extensionEnabled=true, at least one keyConfiguration), AND businessSchedule referencing an existing schedule name. All three are mandatory for a successful create. -->
 
@@ -1245,7 +1245,7 @@ When creating/updating, only `agent_id` is required. Set `weight` or `skill_leve
 ### Auto Attendant Specific
 
 8. **Audio files** -- custom greetings require announcement audio files uploaded via the Announcement Repository API (`POST /telephony/config/announcements` with multipart/form-data). See [location-call-settings-media.md](location-call-settings-media.md) section 1 for upload details. WAV and WMA formats supported.
-9. **FedRAMP** -- `directLineCallerIdName`, `customName`, and `dialByName` are not available in Webex for Government. Use `firstName`/`lastName` instead.
+9. **FedRAMP** -- `directLineCallerIdName`, `customName`, and `dialByName` are not available in Webex for Government. Use `firstName`/`lastName` instead. See [authentication.md → FedRAMP](authentication.md#webex-for-government-fedramp) for all FedRAMP restrictions.
 
 ### Auto Attendant API Gotchas <!-- Verified via CLI implementation 2026-03-18 -->
 

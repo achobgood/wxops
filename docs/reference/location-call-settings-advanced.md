@@ -28,7 +28,7 @@ Reference for advanced location-level and org-level call settings managed throug
 
 **SDK module:** `wxc_sdk.telephony.call_recording`
 **API class:** `CallRecordingSettingsApi` (base: `telephony/config`)
-**Not supported** for Webex for Government (FedRAMP).
+**Not supported** for Webex for Government (FedRAMP). See [authentication.md → FedRAMP](authentication.md#webex-for-government-fedramp) for all FedRAMP restrictions.
 
 Call recording supports multiple third-party vendors. The org has an overall default vendor, but individual locations can override to a different vendor.
 
@@ -1176,7 +1176,14 @@ class HotDeskingSigninViaVoicePortalApi:
     def user_update(self, person_id: str, setting: HotDeskingVoicePortalSetting, org_id: str = None)
 ```
 
-### 7.4 CLI Examples
+### 7.4 CLI: `hot-desking-portal`
+
+| Command | Description |
+|---------|-------------|
+| `hot-desking-portal show <location_id>` | Get voice portal hot desking settings for a location |
+| `hot-desking-portal update <location_id>` | Update voice portal hot desking settings for a location |
+| `hot-desking-portal show-guest <person_id>` | Get voice portal hot desking settings for a user |
+| `hot-desking-portal update-guest <person_id>` | Update voice portal hot desking settings for a user |
 
 ```bash
 # Get hot desking voice portal settings for a location

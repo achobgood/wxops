@@ -10,7 +10,7 @@
 
 DECT network management (networks, base stations, handsets, line assignment) and hot desk session management via the `wxc_sdk` Python SDK.
 
-**Not supported for Webex for Government (FedRAMP).**
+**Not supported for Webex for Government (FedRAMP).** See [authentication.md → FedRAMP](authentication.md#webex-for-government-fedramp) for all FedRAMP restrictions.
 
 ---
 
