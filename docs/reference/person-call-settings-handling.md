@@ -37,6 +37,25 @@ Not all person call handling endpoints support admin-level access. Four features
 
 > **Call Notify** (`callNotify`) is a user-only feature not yet documented in this file. It follows the same criteria-based pattern as Priority Alert but sends email/text notifications instead of changing ring patterns.
 
+### Beta: User Self-Service Endpoints
+
+> **Beta API** — These endpoints are tagged as beta and may change without notice.
+
+The following settings are available as user self-service endpoints (`/telephony/config/people/me/settings/...`) but are currently in beta:
+
+| Setting | GET | PUT | Path Suffix |
+|---------|-----|-----|-------------|
+| Call Policies | Yes | Yes | `callPolicies` |
+| Executive Screening | Yes | Yes | `executive/screening` |
+| Executive Call Filtering | Yes | Yes | `executive/callFiltering` |
+| Call Filtering Criteria | Yes | Yes (+ POST/DELETE) | `executive/callFiltering/criteria/{id}` |
+| Do Not Disturb | Yes | Yes | `doNotDisturb` |
+| Executive Alert | Yes | Yes | `executive/alert` |
+| Country Config | Yes | - | `../countries/{countryCode}` |
+| Announcement Languages | Yes | - | `../announcementLanguages` |
+
+These require **user-level OAuth** (not admin tokens). The admin-path equivalents (`/people/{personId}/...`) exist for DND, executive screening/filtering, and executive alert but NOT for call policies.
+
 ---
 
 ## Required Scopes
