@@ -628,6 +628,8 @@ wxcli conference delete
 
 ## 4. Supervisors
 
+> For the full Customer Assist setup workflow including supervisors, use the **customer-assist** skill.
+
 **SDK module:** `wxc_sdk.telephony.supervisor`
 **API class:** `SupervisorApi` (base: `telephony/config/supervisors`)
 
@@ -710,15 +712,37 @@ class SupervisorApi:
 
 ### 4.4 CLI Examples
 
-There is no dedicated `wxcli` supervisor command group. Use the SDK methods or Raw HTTP calls documented above. The related `cx-essentials` group covers CX Essentials wrap-up reasons, screen pop, and available agents:
+Supervisor commands are under the `wxcli call-queue` group. **For Customer Assist supervisors, always include `--has-cx-essentials true`.**
 
 ```bash
-# List available CX Essentials agents at a location
-wxcli cx-essentials list-available-agents <location_id>
+# List all Customer Assist supervisors
+wxcli call-queue list-supervisors --has-cx-essentials true
 
-# List CX Essentials agents with CX Essentials license only
-wxcli cx-essentials list-available-agents <location_id> --has-cx-essentials true
+# List available supervisors (not yet assigned)
+wxcli call-queue list-available-supervisors --has-cx-essentials true
+
+# List available agents for supervisor assignment
+wxcli call-queue list-available-agents-supervisors --has-cx-essentials true
+
+# Create a supervisor with agents
+wxcli call-queue create-supervisors --has-cx-essentials true \
+  --id SUPERVISOR_PERSON_ID --json-body '{"agents": [{"id": "AGENT_ID"}]}'
+
+# Show supervisor's assigned agents
+wxcli call-queue show-supervisors SUPERVISOR_ID --has-cx-essentials true -o json
+
+# Update supervisor's agents (incremental add/remove)
+wxcli call-queue update-supervisors SUPERVISOR_ID --has-cx-essentials true \
+  --json-body '{"agents": [{"id": "AGENT_ID", "action": "ADD"}]}'
+
+# Delete a specific supervisor
+wxcli call-queue delete-supervisors-config-1 SUPERVISOR_ID --force
+
+# Delete supervisors in bulk
+wxcli call-queue delete-supervisors-config --force
 ```
+
+> **WARNING:** `delete-supervisors-config --force` without specifying IDs may remove **all supervisors in the org**. Always confirm scope before executing.
 
 ### 4.5 Key Behaviors
 
