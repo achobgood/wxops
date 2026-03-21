@@ -8,7 +8,7 @@
 
 Reference for managing audio media (announcements, playlists), time-based routing (schedules), and outgoing-permission bypass codes at the location and org level via the `wxc_sdk`.
 
-> **Not supported for Webex for Government (FedRAMP)** — Announcements and Playlists APIs are explicitly excluded.
+> **Not supported for Webex for Government (FedRAMP)** — Announcements and Playlists APIs are explicitly excluded. See [authentication.md → FedRAMP](authentication.md#webex-for-government-fedramp) for all FedRAMP restrictions.
 
 ---
 
@@ -482,6 +482,25 @@ api.session.rest_put(
 
 **Gotcha:** Location assignment is a full replace, not incremental. Always GET current locations first, then PUT the complete list including any new additions.
 <!-- Updated by playbook session 2026-03-18 -->
+
+### CLI: `cq-playlists` (Call Queue Playlist Usage)
+
+The `cq-playlists` CLI group lets you check which call queues or locations reference a specific playlist.
+
+| Command | Description |
+|---------|-------------|
+| `cq-playlists list <playlist_id>` | Get playlist usage (which queues/locations reference a playlist) |
+
+```bash
+# See which features use a specific playlist
+wxcli cq-playlists list <playlist_id>
+
+# Filter to see only location-level usage
+wxcli cq-playlists list <playlist_id> --playlist-usage-type location
+
+# Filter to see only feature-level usage (call queues, auto attendants)
+wxcli cq-playlists list <playlist_id> --playlist-usage-type feature
+```
 
 ### 2.4 Key Patterns
 

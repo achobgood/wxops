@@ -1707,6 +1707,8 @@ wxcli cx-essentials update-queue-recording LOCATION_ID QUEUE_ID \
 
 <!-- Updated by playbook session 2026-03-18 -->
 
+> **Not supported for Webex for Government (FedRAMP).** See [authentication.md → FedRAMP](authentication.md#webex-for-government-fedramp) for all FedRAMP restrictions.
+
 ### Overview
 
 Operating Modes define time-of-day schedules (business hours, after hours, holidays) that control call routing behavior for features like auto attendants and call queues. They can be defined at the organization level and assigned to locations.

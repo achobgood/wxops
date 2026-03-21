@@ -363,7 +363,7 @@ api.session.rest_put(url, json=body)
 
 Controls the UC-One call bridge feature (stutter dial tone when a person is bridged on an active shared line call).
 
-**Not supported for Webex for Government (FedRAMP).**
+**Not supported for Webex for Government (FedRAMP).** See [authentication.md → FedRAMP](authentication.md#webex-for-government-fedramp) for all FedRAMP restrictions.
 
 Also used for virtual lines.
 
@@ -1022,7 +1022,7 @@ Known setting names: `HIDE_WEBEX_APP`. Set `value` to `null` to delete the setti
 ### OrgMSTeamsSettingApi (Org-level)
 
 **Base**: `ApiChild`, base=`'telephony/config/settings/msTeams'`
-**Not supported for Webex for Government (FedRAMP).**
+**Not supported for Webex for Government (FedRAMP).** See [authentication.md → FedRAMP](authentication.md#webex-for-government-fedramp) for all FedRAMP restrictions.
 
 #### read
 
@@ -1070,6 +1070,29 @@ result = api.session.rest_get(url)
 url = f"{BASE}/telephony/config/settings/msTeams"
 body = {"settingName": "PRESENCE_SYNC", "value": True}
 api.session.rest_put(url, json=body)
+```
+
+### CLI: `client-settings` (Org-Level MS Teams Settings)
+
+The `client-settings` CLI group manages org-level MS Teams integration settings. These are the same settings documented above for `OrgMSTeamsSettingApi`, exposed as CLI commands.
+
+| Command | Description |
+|---------|-------------|
+| `client-settings list` | Get org MS Teams settings |
+| `client-settings update` | Update org MS Teams settings |
+
+```bash
+# Get current org-level MS Teams settings
+wxcli client-settings list
+
+# Enable presence sync between Webex and MS Teams
+wxcli client-settings update --setting-name PRESENCE_SYNC --value
+
+# Hide the Webex app for MS Teams users (org-wide)
+wxcli client-settings update --setting-name HIDE_WEBEX_APP --value
+
+# Disable the HIDE_WEBEX_APP setting
+wxcli client-settings update --setting-name HIDE_WEBEX_APP --no-value
 ```
 
 ---

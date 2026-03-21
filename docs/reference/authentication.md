@@ -169,6 +169,66 @@ Service apps are designed for **machine-to-machine** scenarios where no interact
 | Admin approval | User grants scopes | Org admin authorizes the app |
 | Use case | User-facing apps | Backend automation, scheduled jobs |
 
+### Creating & Registering a Service App
+
+Service app creation is a 3-step process spanning two portals: the Developer Portal (registration) and Control Hub (authorization).
+
+#### Step 1: Register on developer.webex.com
+
+1. Log into [developer.webex.com](https://developer.webex.com)
+2. Click your avatar (top right) → **My Webex Apps**
+3. Click **Create a New App**
+4. Select **Create a Service App**
+5. Fill in the registration form:
+   - **App Name** — displayed to admins during authorization
+   - **Description** — what the app does
+   - **Logo** — appears in Control Hub when admins review the app
+   - **Scopes** — select the permissions your app needs (see [Calling-Related Scopes](#calling-related-scopes) below)
+6. Click **Create** (or **Add Service App**)
+7. **Immediately copy and save the Client Secret** — it is shown only once and cannot be retrieved later
+
+You now have a **Client ID** and **Client Secret**. The app is registered but not yet authorized for any org.
+
+#### Step 2: Authorize in Control Hub
+
+An org Full Admin must authorize the service app before it can access that org's data.
+
+1. Log into [admin.webex.com](https://admin.webex.com)
+2. Navigate to **Management → Apps → Service Apps** tab
+3. Find your service app in the list
+4. Click it and select **Authorize**
+5. Review the requested scopes
+6. Click **Save**
+
+The authorization is recorded in Admin Audit events. Any admin can later enable/disable the app from this same page.
+
+#### Step 3: Generate Tokens
+
+1. Return to [developer.webex.com](https://developer.webex.com) → **My Webex Apps** → your service app
+2. In the **Org Authorizations** section, select your organization
+3. Enter your **Client Secret**
+4. Click **Generate Tokens**
+5. You receive:
+   - **Access Token** (valid 14 days)
+   - **Refresh Token** (valid 90 days)
+6. **Immediately copy and save the Refresh Token** — it is shown only once
+
+Your service app is now ready to make API calls. Use the refresh token to obtain new access tokens programmatically (see below).
+
+#### Scope Restrictions for Service Apps
+
+Not all scopes work with service apps:
+
+| Restriction | Detail |
+|-------------|--------|
+| XSI scopes | Not supported |
+| Analytics scopes | Not supported |
+| Organization contacts | Cannot manage |
+| CDR records | Cannot query |
+| Meeting scopes | Limited to `adminOnBehalf` functions (require `hostEmail` parameter) |
+| Compliance scopes (`spark-compliance:*`) | Require Full Admin with Compliance Officer role |
+| Scope string length | Limited to ~880 characters total — only request what you need |
+
 ### Authentication Flow
 
 Service apps receive a **refresh token**, **client ID**, and **client secret** upon creation. They obtain access tokens by calling the same token endpoint used for integration refresh:
@@ -183,6 +243,22 @@ refresh_token=SERVICE_APP_REFRESH_TOKEN
 ```
 
 The response includes a new `access_token` (and potentially a renewed `refresh_token`).
+
+### Token Lifecycle
+
+| Token | Lifetime | Renewal |
+|-------|----------|---------|
+| Access token | 14 days | Refresh using refresh token |
+| Refresh token | 90 days | Automatically renewed each time you generate a new access token |
+| Client secret | Does not expire | Regenerate via developer portal if compromised |
+
+**For long-lived automations**, Webex recommends a 3-tier pattern:
+
+1. **Tier 1:** Use the service app's refresh token to get new access tokens (normal operation)
+2. **Tier 2:** If the refresh token expires (90 days unused), use the Applications API with a separate OAuth integration to regenerate it
+3. **Tier 3:** The OAuth integration's own refresh token, refreshed by your token manager
+
+This requires two Webex apps: your working service app and a token-manager integration. See the [Service App Token Management blog post](https://developer.webex.com/blog/service-app-token-management-a-developer-s-guide-to-automation) for details.
 
 ### Environment Variables (Convention from wxc_sdk examples)
 
@@ -769,6 +845,54 @@ The SDK masks `Authorization` headers as `Bearer ***` and redacts `access_token`
 - **`spark-admin:` scopes require full org admin.** If the authorizing user is a read-only admin or compliance officer, requests to admin endpoints will return 403 even with the correct scopes listed on the integration.
 - **Personal access tokens carry all scopes silently.** A personal access token for an org admin includes all `spark-admin:` scopes without requesting them, which can mask scope-related bugs that appear only in production integrations.
 - **Service app refresh tokens can expire.** Although the initial refresh token is long-lived, if it is not used within its expiry window the service app must be re-authorized by an org admin.
+
+---
+
+## Webex for Government (FedRAMP)
+
+Webex for Government is a parallel deployment with separate URLs and feature restrictions.
+
+### Base URLs
+
+| Service | Standard | FedRAMP |
+|---------|----------|---------|
+| API | `webexapis.com/v1` | `api-usgov.webex.com/v1` |
+| Control Hub | `admin.webex.com` | `admin-usgov.webex.com` |
+| Developer Portal | `developer.webex.com` | `developer-usgov.webex.com` |
+| CDR/Analytics | `analytics.webexapis.com` | `analytics-calling-gov.webexapis.com` |
+
+### Feature Restrictions
+
+These features/APIs are **not supported** in FedRAMP deployments:
+
+| Feature | Reference Doc | Notes |
+|---------|---------------|-------|
+| DECT Devices | [devices-dect.md](devices-dect.md) | Entire DECT API excluded |
+| Announcements & Playlists | [location-call-settings-media.md](location-call-settings-media.md) | Upload and playlist APIs excluded |
+| Call Recording (location-level) | [location-call-settings-advanced.md](location-call-settings-advanced.md) | Recording vendor config excluded |
+| Caller Reputation | [location-call-settings-advanced.md](location-call-settings-advanced.md) | Provider config excluded |
+| Operating Modes | [call-features-additional.md](call-features-additional.md) | Mode management excluded |
+| Hot Desking | [devices-dect.md](devices-dect.md) | Hot desk portal excluded |
+| AA `directLineCallerIdName` | [call-features-major.md](call-features-major.md) | Use `firstName`/`lastName` instead |
+| AA `dialByName` | [call-features-major.md](call-features-major.md) | Not available |
+| 3rd-party device SIP mgmt | [devices-core.md](devices-core.md) | `line_port`, `sip_user_name` retrieval and SIP password modification |
+| UC-One settings | [person-call-settings-behavior.md](person-call-settings-behavior.md) | UC Manager Profile config |
+| MS Teams integration | [person-call-settings-behavior.md](person-call-settings-behavior.md) | MS Teams calling settings |
+
+### Authentication Differences
+
+- **Service App tokens** (`spark:applications_token` scope): NOT supported in FedRAMP
+- **Bot/Integration creation**: Must use REST API (`POST /applications`), not the developer portal UI
+- **Application webhooks** (`application:webhooks_write/read`): NOT supported
+
+### wxcli Usage
+
+Set the base URL before running commands:
+
+```bash
+# Configure wxcli for FedRAMP
+wxcli configure --base-url https://api-usgov.webex.com/v1
+```
 
 ---
 

@@ -554,7 +554,7 @@ Scope: `spark-admin:telephony_config_read`
 def details(self, device_id: str, org_id: str = None) -> TelephonyDeviceDetails
 ```
 
-Retrieves third-party device management info (line_port, sip_user_name, outbound_proxy). Not supported for FedRAMP.
+Retrieves third-party device management info (line_port, sip_user_name, outbound_proxy). Not supported for FedRAMP. See [authentication.md → FedRAMP](authentication.md#webex-for-government-fedramp) for all FedRAMP restrictions.
 
 Scope: `spark-admin:telephony_config_read`
 
@@ -566,7 +566,7 @@ def update_third_party_device(
 )
 ```
 
-Modify a 3rd-party device's SIP password. Not supported for FedRAMP.
+Modify a 3rd-party device's SIP password. Not supported for FedRAMP. See [authentication.md → FedRAMP](authentication.md#webex-for-government-fedramp) for all FedRAMP restrictions.
 
 Scope: `spark-admin:telephony_config_write`
 
