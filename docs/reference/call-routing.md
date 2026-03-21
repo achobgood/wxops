@@ -1975,6 +1975,10 @@ You cannot create a standalone dial plan without a route choice. The dial plan m
 
 The `test_call_routing` API requires the `originatorId` to be a valid calling-enabled user. Passing a non-calling user's ID returns `404 "Originator not found"`. Always verify the user has a Webex Calling license and location assigned before using them as an originator.
 
+### 4. Number porting and ordering are Control Hub only
+
+The API manages PSTN connections, trunks, and routing for numbers that already exist in the org. To port in new numbers or order from Cisco Calling Plan, use Control Hub or contact Cisco PTS.
+
 ---
 
 ## See Also

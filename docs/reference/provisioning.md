@@ -1082,6 +1082,10 @@ The manage numbers jobs list endpoint returns its results under the key `items`,
 
 The manage numbers job creation body expects a `numberList` array where each element contains `locationId` and `numbers`. Do not use `phoneNumbers` as the key -- the API will reject or ignore it.
 
+### Number porting has no public API
+
+Number port-in requests, LOA submission, porting status tracking, and new number ordering from Cisco Calling Plan are all done through the Control Hub UI or via Cisco's PTS (PSTN Technical Support) team. The Numbers API (`wxcli numbers`) only manages numbers *after* they are ported in or provisioned — it cannot initiate a port.
+
 ---
 
 ## See Also
