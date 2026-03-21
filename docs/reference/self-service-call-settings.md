@@ -55,12 +55,14 @@ These 6 settings exist **only** at `/telephony/config/people/me/settings/{featur
 
 | Setting | GET | PUT | Criteria CRUD | Tag |
 |---------|-----|-----|---------------|-----|
-| simultaneousRing | Yes | Yes | List/Create/Get/Update/Delete | Call Settings For Me |
-| sequentialRing | Yes | Yes | List/Create/Get/Update/Delete | Call Settings For Me |
-| priorityAlert | Yes | Yes | List/Create/Get/Update/Delete | Call Settings For Me |
-| callNotify | Yes | Yes | List/Create/Get/Update/Delete | Call Settings For Me |
-| anonymousCallReject | Yes | Yes | — | Call Settings For Me |
+| simultaneousRing | Yes | Yes | Create/Get/Update/Delete | Call Settings For Me Phase 4 |
+| sequentialRing | Yes | Yes | Create/Get/Update/Delete | Call Settings For Me With UserHub Phase3 |
+| priorityAlert | Yes | Yes | Create/Get/Update/Delete | Call Settings For Me With UserHub Phase2 |
+| callNotify | Yes | Yes | Create/Get/Update/Delete | Call Settings For Me With UserHub Phase2 |
+| anonymousCallReject | Yes | Yes | — | Call Settings For Me With UserHub Phase3 |
 | callPolicies | Yes | Yes | — | Beta Call Settings For Me With Userhub Phase1 |
+
+> **Note:** There is no standalone "List criteria" endpoint. Criteria are returned as a `criterias` array in the parent GET response (e.g., `GET /me/settings/simultaneousRing` includes all criteria in its response body).
 
 ### 2.1 Simultaneous Ring
 
@@ -523,14 +525,13 @@ Content-Type: application/json
 
 ## 8. Queue & Agent
 
-Settings related to call queue agent behavior, calling services status, and call captions.
+Settings related to call queue agent behavior and calling services status.
 
 ### Endpoint Table
 
 | Setting | GET | PUT | Path Suffix | Admin Equivalent |
 |---------|-----|-----|-------------|-----------------|
 | Call Center (Queue Agent) | Yes | Yes | `settings/queues` | — |
-| Call Captions | Yes | — | `settings/callCaptions` | `/telephony/config/people/{personId}/callCaptions` |
 | Calling Services | Yes | — | `settings/services` | — |
 
 ### Raw HTTP — Read My Call Center Settings
@@ -793,7 +794,7 @@ Master mapping of every `/me/` endpoint to its admin equivalent. Path suffixes a
 
 9. **Two schedule path families.** User schedules are at `schedules/{scheduleType}/{scheduleId}`, while location-level schedules (read-only to the user) are at `locations/schedules/{scheduleType}/{scheduleId}`.
 
-10. **Criteria CRUD pattern.** Seven settings use the criteria sub-resource pattern (simultaneousRing, sequentialRing, priorityAlert, callNotify, selectiveAccept, selectiveForward, selectiveReject, and executive callFiltering). GET on the parent resource returns a `criterias` array with summary objects. Full CRUD on individual criteria uses the `/criteria/{id}` sub-path.
+10. **Criteria CRUD pattern.** Eight settings use the criteria sub-resource pattern (simultaneousRing, sequentialRing, priorityAlert, callNotify, selectiveAccept, selectiveForward, selectiveReject, and executive callFiltering). GET on the parent resource returns a `criterias` array with summary objects. Full CRUD on individual criteria uses the `/criteria/{id}` sub-path.
 
 ---
 
