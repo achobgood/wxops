@@ -19,10 +19,11 @@ User, license, and location provisioning for Webex Calling via the `wxc_sdk` Pyt
 3. [Licenses API](#licenses-api)
 4. [Locations API](#locations-api)
 5. [Organization API](#organization-api)
-6. [Provisioning Workflow](#provisioning-workflow)
-7. [Data Models](#data-models)
-8. [Gotchas](#gotchas) (cross-cutting)
-9. [See Also](#see-also)
+6. [Numbers API](#numbers-api)
+7. [Provisioning Workflow](#provisioning-workflow)
+8. [Data Models](#data-models)
+9. [Gotchas](#gotchas) (cross-cutting)
+10. [See Also](#see-also)
 
 ---
 
@@ -241,6 +242,69 @@ me = api.session.rest_get(f"{BASE}/people/me", params={
 - Response key for list is `items`, not `people`
 - No auto-pagination -- use `max=1000` for large orgs
 - Update is a raw PUT -- you must include all fields (GET first, modify, PUT back)
+
+### CLI Examples
+
+```bash
+# ── List all people (table output) ────────────────────────────────
+wxcli people list
+
+# ── List with calling data (shows locationId, extension) ─────────
+wxcli people list --calling-data true
+
+# ── Search by email ───────────────────────────────────────────────
+wxcli people list --email jsmith@example.com
+
+# ── Search by display name (prefix match) ─────────────────────────
+wxcli people list --display-name "John"
+
+# ── List people at a specific location ────────────────────────────
+wxcli people list --location-id <location_id> --calling-data true
+
+# ── Get person details (JSON output) ──────────────────────────────
+wxcli people show <person_id>
+
+# ── Get person details as table ────────────────────────────────────
+wxcli people show <person_id> -o table
+
+# ── Get current user details ──────────────────────────────────────
+wxcli people list-me --calling-data true
+
+# ── Create a person ───────────────────────────────────────────────
+wxcli people create --first-name "John" --last-name "Smith" \
+  --display-name "John Smith" --location-id <location_id> \
+  --extension "1001"
+
+# ── Create with full JSON body (for emails, licenses, phoneNumbers)
+wxcli people create --json-body '{
+  "emails": ["jsmith@example.com"],
+  "displayName": "John Smith",
+  "firstName": "John",
+  "lastName": "Smith",
+  "licenses": ["<calling_license_id>"],
+  "locationId": "<location_id>",
+  "extension": "1001",
+  "phoneNumbers": [{"type": "work", "value": "+15551234567"}]
+}'
+
+# ── Update a person ───────────────────────────────────────────────
+wxcli people update <person_id> --extension "2002"
+wxcli people update <person_id> --display-name "John A. Smith"
+wxcli people update <person_id> --department "Engineering" --title "Senior Engineer"
+
+# ── Delete a person ───────────────────────────────────────────────
+wxcli people delete <person_id>
+
+# ── Delete without confirmation prompt ────────────────────────────
+wxcli people delete <person_id> --force
+```
+
+**CLI notes:**
+- `wxcli people list` defaults to table output (`-o table`); use `-o json` for full JSON.
+- `wxcli people show` defaults to JSON output; use `-o table` for a summary view.
+- The `--calling-data true` flag is the CLI equivalent of `calling_data=True` in the SDK. Pass it when you need calling fields (locationId, extension, phoneNumbers).
+- For create/update operations with complex nested fields (emails, licenses, phoneNumbers), use `--json-body` with the full JSON payload.
+- The `--limit` and `--offset` flags control client-side pagination of results.
 
 ### Gotchas
 
@@ -666,6 +730,51 @@ api.session.rest_put(
 - The `safe_delete_check` response uses field `locationDeleteStatus` (not `status`), with value `"UNBLOCKED"` or `"BLOCKED"` (gotcha #17)
 - The `address` field in raw HTTP is a nested object with `address1`, `city`, `state`, `postalCode`, `country`. The SDK flattens these to top-level kwargs in `locations.create()`.
 
+### CLI Examples
+
+```bash
+# ── List all locations ────────────────────────────────────────────
+wxcli locations-api list
+
+# ── Filter locations by name (case-insensitive contains match) ────
+wxcli locations-api list --name "headquarters"
+
+# ── List locations as JSON ────────────────────────────────────────
+wxcli locations-api list -o json
+
+# ── Get location details ──────────────────────────────────────────
+wxcli locations-api show <location_id>
+
+# ── Get location details as table ─────────────────────────────────
+wxcli locations-api show <location_id> -o table
+
+# ── Create a location (all required fields) ───────────────────────
+wxcli locations-api create \
+  --name "San Jose Office" \
+  --time-zone "America/Los_Angeles" \
+  --preferred-language "en_us" \
+  --announcement-language "en_us" \
+  --json-body '{
+    "address": {
+      "address1": "123 Main St",
+      "city": "San Jose",
+      "state": "CA",
+      "postalCode": "95113",
+      "country": "US"
+    }
+  }'
+
+# ── Update a location ────────────────────────────────────────────
+wxcli locations-api update <location_id> --name "San Jose HQ"
+wxcli locations-api update <location_id> --time-zone "America/New_York"
+```
+
+**CLI notes:**
+- The `locations-api` group is the OpenAPI-generated version. There is also a `locations` group -- prefer `locations-api` for consistency.
+- `wxcli locations-api create` requires `--name`, `--time-zone`, `--preferred-language`, and `--announcement-language`. The address must be passed via `--json-body` since it is a nested object.
+- Use lowercase language codes (e.g., `en_us` not `en_US`) for `--announcement-language` to avoid "Invalid Language Code" errors when later enabling calling.
+- Location names must be 80 characters or fewer if the location will be enabled for Webex Calling.
+
 ### Floors
 
 Locations support floor management for workspace organization:
@@ -793,6 +902,78 @@ api.session.rest_delete(f"{BASE}/organizations/{org_id}")
 - `callingData` is a string `"true"`, not a Python bool
 - Response key for list is `items`, not `organizations`
 - XSI field names are camelCase in raw JSON: `xsiActionsEndpoint`, `xsiEventsEndpoint`, `xsiEventsChannelEndpoint`, `xsiDomain`
+
+---
+
+## Numbers API
+
+Base path: `/v1/telephony/config/numbers` (list) and `/v1/telephony/config/locations/{locationId}/numbers` (add/activate/remove)
+
+Numbers must be added to a location's inventory before they can be assigned to users or workspaces. The Numbers API manages the phone number lifecycle: adding numbers to locations, activating/deactivating them, and removing them.
+
+### CLI Examples
+
+```bash
+# ── List all phone numbers in the org ─────────────────────────────
+wxcli numbers-api list
+
+# ── List numbers for a specific location ──────────────────────────
+wxcli numbers-api list --location-id <location_id>
+
+# ── Search for a specific phone number ────────────────────────────
+wxcli numbers-api list --phone-number "+15551234567"
+
+# ── List only available (unassigned) numbers ──────────────────────
+wxcli numbers-api list --available true
+
+# ── Filter by number state ────────────────────────────────────────
+wxcli numbers-api list --state ACTIVE
+wxcli numbers-api list --state INACTIVE
+
+# ── Filter by owner type ──────────────────────────────────────────
+wxcli numbers-api list --owner-type PEOPLE
+wxcli numbers-api list --owner-type PLACE
+
+# ── Filter by number type ────────────────────────────────────────
+wxcli numbers-api list --number-type NUMBER
+wxcli numbers-api list --number-type EXTENSION
+
+# ── List numbers as JSON ──────────────────────────────────────────
+wxcli numbers-api list -o json
+
+# ── Add phone numbers to a location ───────────────────────────────
+wxcli numbers-api create <location_id> --json-body '{
+  "phoneNumbers": ["+15551234567", "+15551234568"]
+}'
+
+# ── Activate numbers in a location ────────────────────────────────
+wxcli numbers-api update <location_id> --action ACTIVATE --json-body '{
+  "phoneNumbers": ["+15551234567"]
+}'
+
+# ── Deactivate numbers in a location ──────────────────────────────
+wxcli numbers-api update <location_id> --action DEACTIVATE --json-body '{
+  "phoneNumbers": ["+15551234567"]
+}'
+
+# ── Remove phone numbers from a location ──────────────────────────
+wxcli numbers-api delete <location_id>
+
+# ── Remove without confirmation prompt ────────────────────────────
+wxcli numbers-api delete <location_id> --force
+
+# ── Validate phone numbers before adding ──────────────────────────
+wxcli numbers-api validate-phone-numbers --json-body '{
+  "phoneNumbers": ["+15551234567", "+15551234568"]
+}'
+```
+
+**CLI notes:**
+- The `numbers-api` group is the OpenAPI-generated version. There is also a `numbers` group -- prefer `numbers-api` for consistency.
+- `wxcli numbers-api list` returns org-wide numbers by default. Use `--location-id` to scope to a specific location.
+- Adding and activating numbers requires `--json-body` with a `phoneNumbers` array since the CLI cannot flatten nested array body fields into flags.
+- Numbers must be added to a location (`create`) and activated (`update --action ACTIVATE`) before they can be assigned to users.
+- Use `validate-phone-numbers` to check number validity before adding them to avoid errors.
 
 ---
 
