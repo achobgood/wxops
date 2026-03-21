@@ -19,7 +19,7 @@ Comprehensive reference for Webex Calling Paging Groups, Call Park, Call Park Ex
 5. [Call Park Extensions](#call-park-extensions)
 6. [Call Pickup](#call-pickup)
 7. [Voicemail Groups](#voicemail-groups)
-8. [CX Essentials](#cx-essentials)
+8. [Customer Assist (CX Essentials)](#customer-assist-cx-essentials)
 9. [Operating Modes](#operating-modes)
 10. [Call Recording (Org-Level)](#call-recording-org-level)
 11. [Announcements & Playlists](#announcements--playlists)
@@ -1337,11 +1337,11 @@ wxcli location-voicemail list-available-numbers-fax-message --location-id <loc_i
 
 ---
 
-## CX Essentials
+## Customer Assist (CX Essentials)
 
 ### Overview
 
-Webex **Customer Experience Essentials** provides enhanced queue capabilities beyond the Customer Experience Basic suite. It adds features such as:
+Webex **Customer Assist** (formerly Customer Experience Essentials / CX Essentials) provides enhanced queue capabilities beyond the Customer Experience Basic suite. It adds features such as:
 
 - **Screen Pop**: Pop a URL (CRM, ticketing system) when an agent receives a queued call
 - **Queue Call Recording**: Hosted call recording for quality assurance, compliance, and training
@@ -1449,6 +1449,17 @@ def configure(
 **Scope**: `spark-admin:people_write`
 
 **Note**: A person with a Webex Calling Standard license is eligible for call recording only when the recording vendor is Webex.
+
+#### Raw HTTP
+
+```
+GET  /v1/telephony/config/locations/{locationId}/queues/{queueId}/cxEssentials/callRecordings
+PUT  /v1/telephony/config/locations/{locationId}/queues/{queueId}/cxEssentials/callRecordings
+```
+
+GET response / PUT body fields: `enabled` (bool), `record` (str: Always/Never/OnDemand), `notificationEnabled` (bool), `notificationType` (str: Beep), `startStopAnnouncementEnabled` (bool).
+
+Scope: `spark-admin:people_read` (GET), `spark-admin:people_write` (PUT).
 
 ### Wrap-Up Reasons
 
@@ -1646,39 +1657,46 @@ BASE = "https://webexapis.com/v1"
 wxcli cx-essentials list
 
 # Get details for a wrap-up reason
-wxcli cx-essentials show --wrap-up-reason-id <reason_id>
+wxcli cx-essentials show REASON_ID -o json
 
 # Create a wrap-up reason
 wxcli cx-essentials create --name "Customer Inquiry"
 
 # Update a wrap-up reason
-wxcli cx-essentials update --wrap-up-reason-id <reason_id> --name "Updated Reason"
+wxcli cx-essentials update REASON_ID --name "Updated Reason"
 
 # Delete a wrap-up reason
-wxcli cx-essentials delete --wrap-up-reason-id <reason_id>
+wxcli cx-essentials delete REASON_ID --force
 
 # Validate a wrap-up reason name
 wxcli cx-essentials validate-wrap-up --name "New Reason Name"
 
 # List available queues for a wrap-up reason
-wxcli cx-essentials list-available-queues --wrap-up-reason-id <reason_id>
+wxcli cx-essentials list-available-queues REASON_ID
 
 # Get wrap-up reason settings for a queue
-wxcli cx-essentials list-settings --location-id <loc_id> --queue-id <queue_id>
+wxcli cx-essentials list-settings LOCATION_ID QUEUE_ID -o json
 
 # Update wrap-up reason settings for a queue
-wxcli cx-essentials update-settings --location-id <loc_id> --queue-id <queue_id> \
+wxcli cx-essentials update-settings LOCATION_ID QUEUE_ID \
   --json-body '{"wrapupTimerEnabled": true, "wrapupTimer": 60}'
 
 # Get screen pop configuration for a queue
-wxcli cx-essentials show-screen-pop --location-id <loc_id> --queue-id <queue_id>
+wxcli cx-essentials show-screen-pop LOCATION_ID QUEUE_ID -o json
 
 # Update screen pop configuration for a queue
-wxcli cx-essentials update-screen-pop --location-id <loc_id> --queue-id <queue_id> \
+wxcli cx-essentials update-screen-pop LOCATION_ID QUEUE_ID \
   --json-body '{"enabled": true, "screenPopUrl": "https://crm.example.com/pop"}'
 
 # List available agents (optionally filter by CX Essentials license)
-wxcli cx-essentials list-available-agents --location-id <loc_id>
+wxcli cx-essentials list-available-agents LOCATION_ID
+
+# Get queue call recording settings
+wxcli cx-essentials show-queue-recording LOCATION_ID QUEUE_ID -o json
+
+# Update queue call recording settings
+wxcli cx-essentials update-queue-recording LOCATION_ID QUEUE_ID \
+  --enabled --record Always
 ```
 
 ---
