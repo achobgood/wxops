@@ -34,13 +34,16 @@ def _path_var_to_param(var: str) -> str:
     return camel_to_snake(var)
 
 
-def _render_imports() -> str:
-    return '''import json
+def _render_imports(include_org_id: bool = False) -> str:
+    lines = '''import json
 import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 '''
+    if include_org_id:
+        lines += 'from wxcli.config import get_org_id\n'
+    return lines
 
 
 def _render_url_expr(url_path: str, path_vars: list[str]) -> str:
@@ -76,6 +79,16 @@ def _render_error_handler(indent: str = "    ") -> str:
 {indent}    else:
 {indent}        typer.echo(f"Error: {{e}}", err=True)
 {indent}    raise typer.Exit(1)'''
+
+
+def _render_auto_inject_params(ep: Endpoint) -> list[str]:
+    """Return lines to inject auto-inject params from config."""
+    lines = []
+    if "orgId" in getattr(ep, "auto_inject_params", []):
+        lines.append("    org_id = get_org_id()")
+        lines.append("    if org_id is not None:")
+        lines.append('        params["orgId"] = org_id')
+    return lines
 
 
 PYTHON_KEYWORDS = {
@@ -202,6 +215,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
         "    api = get_api(debug=debug)",
         f'    url = f"{url_expr}"',
         *param_build,
+        *_render_auto_inject_params(ep),
         "    try:",
         "        result = api.session.rest_get(url, params=params)",
         _render_error_handler("    "),
@@ -243,7 +257,11 @@ def _render_show_command(ep: Endpoint, folder_overrides: dict | None = None) -> 
         '            print_json(result)',
     ]
 
-    if qp_build:
+    has_params = bool(qp_build) or bool(_render_auto_inject_params(ep))
+    auto_inject = _render_auto_inject_params(ep)
+
+    if has_params:
+        param_init = qp_build if qp_build else ["    params = {}"]
         lines = [
             f'@app.command("{ep.command_name}")',
             f"def {func_name}(",
@@ -252,7 +270,8 @@ def _render_show_command(ep: Endpoint, folder_overrides: dict | None = None) -> 
             _render_docstring(ep),
             "    api = get_api(debug=debug)",
             f'    url = f"{url_expr}"',
-            *qp_build,
+            *param_init,
+            *auto_inject,
             "    try:",
             "        result = api.session.rest_get(url, params=params)",
             _render_error_handler("    "),
@@ -343,7 +362,11 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
         else:
             body_build.append(f'        if {param} is not None:\n            body["{bf.name}"] = {param}')
 
-    post_call = "result = api.session.rest_post(url, json=body)" if not qp_build else "result = api.session.rest_post(url, json=body, params=params)"
+    has_params = bool(qp_build) or bool(_render_auto_inject_params(ep))
+    auto_inject = _render_auto_inject_params(ep)
+    if not qp_build and has_params:
+        qp_build = ["    params = {}"]
+    post_call = "result = api.session.rest_post(url, json=body)" if not has_params else "result = api.session.rest_post(url, json=body, params=params)"
 
     lines = [
         f'@app.command("{ep.command_name}")',
@@ -354,6 +377,7 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
         "    api = get_api(debug=debug)",
         f'    url = f"{url_expr}"',
         *qp_build,
+        *auto_inject,
         *body_build,
         "    try:",
         f"        {post_call}",
@@ -395,8 +419,12 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
             continue
         body_build.append(f'        if {param} is not None:\n            body["{bf.name}"] = {param}')
 
+    has_params = bool(qp_build) or bool(_render_auto_inject_params(ep))
+    auto_inject = _render_auto_inject_params(ep)
+    if not qp_build and has_params:
+        qp_build = ["    params = {}"]
     rest_method = "rest_patch" if ep.method == "PATCH" else "rest_put"
-    method_call = f"result = api.session.{rest_method}(url, json=body)" if not qp_build else f"result = api.session.{rest_method}(url, json=body, params=params)"
+    method_call = f"result = api.session.{rest_method}(url, json=body)" if not has_params else f"result = api.session.{rest_method}(url, json=body, params=params)"
 
     lines = [
         f'@app.command("{ep.command_name}")',
@@ -407,6 +435,7 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
         "    api = get_api(debug=debug)",
         f'    url = f"{url_expr}"',
         *qp_build,
+        *auto_inject,
         *body_build,
         "    try:",
         f"        {method_call}",
@@ -437,7 +466,11 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
         confirm_line = '        typer.confirm("Delete this resource?", abort=True)'
         echo_line = '    typer.echo("Deleted.")'
 
-    delete_call = "api.session.rest_delete(url)" if not qp_build else "api.session.rest_delete(url, params=params)"
+    has_params = bool(qp_build) or bool(_render_auto_inject_params(ep))
+    auto_inject = _render_auto_inject_params(ep)
+    if not qp_build and has_params:
+        qp_build = ["    params = {}"]
+    delete_call = "api.session.rest_delete(url)" if not has_params else "api.session.rest_delete(url, params=params)"
 
     lines = [
         f'@app.command("{ep.command_name}")',
@@ -450,6 +483,7 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
         "    api = get_api(debug=debug)",
         f'    url = f"{url_expr}"',
         *qp_build,
+        *auto_inject,
         "    try:",
         f"        {delete_call}",
         _render_error_handler("    "),
@@ -487,7 +521,11 @@ def _render_action_command(ep: Endpoint, folder_overrides: dict | None = None) -
             continue
         body_build.append(f'        if {param} is not None:\n            body["{bf.name}"] = {param}')
 
-    post_call = "result = api.session.rest_post(url, json=body)" if not qp_build else "result = api.session.rest_post(url, json=body, params=params)"
+    has_params = bool(qp_build) or bool(_render_auto_inject_params(ep))
+    auto_inject = _render_auto_inject_params(ep)
+    if not qp_build and has_params:
+        qp_build = ["    params = {}"]
+    post_call = "result = api.session.rest_post(url, json=body)" if not has_params else "result = api.session.rest_post(url, json=body, params=params)"
 
     lines = [
         f'@app.command("{ep.command_name}")',
@@ -498,6 +536,7 @@ def _render_action_command(ep: Endpoint, folder_overrides: dict | None = None) -
         "    api = get_api(debug=debug)",
         f'    url = f"{url_expr}"',
         *qp_build,
+        *auto_inject,
         *body_build,
         "    try:",
         f"        {post_call}",
@@ -523,8 +562,11 @@ def render_command_file(
     folder_name: str, endpoints: list[Endpoint], folder_overrides: dict
 ) -> str:
     _, cli_name = folder_name_to_module(folder_name)
+    needs_org_id = any(
+        "orgId" in getattr(ep, "auto_inject_params", []) for ep in endpoints
+    )
     sections = [
-        _render_imports(),
+        _render_imports(include_org_id=needs_org_id),
         f'app = typer.Typer(help="Manage Webex Calling {cli_name}.")\n',
     ]
 
