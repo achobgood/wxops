@@ -276,6 +276,9 @@ def list_floors(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
     except RestError as e:
@@ -315,6 +318,10 @@ def create_floors(
     """Create a Location Floor."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/locations/{location_id}/floors"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     if json_body:
         body = json.loads(json_body)
     else:
@@ -324,7 +331,7 @@ def create_floors(
         if display_name is not None:
             body["displayName"] = display_name
     try:
-        result = api.session.rest_post(url, json=body)
+        result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -361,8 +368,12 @@ def show_floors(
     """Get Location Floor Details."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/locations/{location_id}/floors/{floor_id}"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -404,6 +415,10 @@ def update_floors(
     """Update a Location Floor."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/locations/{location_id}/floors/{floor_id}"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     if json_body:
         body = json.loads(json_body)
     else:
@@ -413,7 +428,7 @@ def update_floors(
         if display_name is not None:
             body["displayName"] = display_name
     try:
-        result = api.session.rest_put(url, json=body)
+        result = api.session.rest_put(url, json=body, params=params)
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -447,8 +462,12 @@ def delete_floors(
         typer.confirm(f"Delete {floor_id}?", abort=True)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/locations/{location_id}/floors/{floor_id}"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
-        api.session.rest_delete(url)
+        api.session.rest_delete(url, params=params)
     except RestError as e:
         err = str(e)
         if "25008" in err:

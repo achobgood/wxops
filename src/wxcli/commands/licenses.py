@@ -1,5 +1,6 @@
 import typer
 from wxcli.auth import get_api
+from wxcli.config import get_org_id
 from wxcli.output import print_table, print_json
 
 app = typer.Typer(help="List and inspect Webex licenses.")
@@ -14,7 +15,11 @@ def list_licenses(
 ):
     """List available licenses."""
     api = get_api(debug=debug)
-    licenses = list(api.licenses.list())
+    org_id = get_org_id()
+    list_kwargs = {}
+    if org_id:
+        list_kwargs["org_id"] = org_id
+    licenses = list(api.licenses.list(**list_kwargs))
 
     if calling_only:
         licenses = [lic for lic in licenses if "calling" in (lic.name or "").lower()]

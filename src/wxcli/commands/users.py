@@ -2,6 +2,7 @@ import typer
 from wxc_sdk.people import Person
 
 from wxcli.auth import get_api
+from wxcli.config import get_org_id
 from wxcli.output import print_table, print_json
 
 app = typer.Typer(help="Manage Webex Calling users.")
@@ -24,6 +25,10 @@ def list_users(
         kwargs["calling_data"] = True
     if email:
         kwargs["email"] = email
+
+    org_id = get_org_id()
+    if org_id:
+        kwargs["org_id"] = org_id
 
     users = list(api.people.list(**kwargs))
 

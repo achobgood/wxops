@@ -343,6 +343,10 @@ def create_manage_numbers(
     """Initiate Number Jobs\n\nExample --json-body:\n  '{"operation":"...","targetLocationId":"...","numberUsageType":"...","numberList":[{"locationId":"...","numbers":"..."}]}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/jobs/numbers/manageNumbers"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     if json_body:
         body = json.loads(json_body)
     else:
@@ -354,7 +358,7 @@ def create_manage_numbers(
         if number_usage_type is not None:
             body["numberUsageType"] = number_usage_type
     try:
-        result = api.session.rest_post(url, json=body)
+        result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -390,8 +394,12 @@ def show(
     """Get Manage Numbers Job Status."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/jobs/numbers/manageNumbers/{job_id}"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
         err = str(e)
         if "25008" in err:
