@@ -271,8 +271,8 @@ Four hand-coded files need manual updates.
 |------|-------------|----------------------|---------------------------------------|--------|
 | `commands/users.py` | wxc_sdk methods | `list_users` (`api.people.list`) | `show_user` (person_id scoped), `create_user`, `update_user`, `delete_user` | Add `org_id=get_org_id()` to `list` call only |
 | `commands/licenses.py` | wxc_sdk methods | `list_licenses` (`api.licenses.list`) | `show_license` (license_id scoped) | Add `org_id=get_org_id()` to `list` call only |
-| `commands/locations.py` | Raw HTTP (`api.session.rest_get`) | All 5 commands (list, show, create, update, delete) | — | Add `params["orgId"]` injection (same pattern as generated commands) |
-| `commands/numbers.py` | Raw HTTP (`api.session.rest_*`) | All 10 commands: `create`, `update`, `delete`, `validate-phone-numbers`, `list`, `list-manage-numbers`, `create-manage-numbers`, `show`, `pause-the-manage`, `resume-the-manage`, `list-errors` | — | Add `params["orgId"]` injection; for methods without existing `params` dict (create, update, delete, validate, create-manage, pause, resume), create `params = {}` and pass `params=params` |
+| `commands/locations.py` | Raw HTTP (`api.session.rest_get`) | All 10 commands: `list`, `create`, `show`, `update`, `delete`, `list-floors`, `create-floors`, `show-floors`, `update-floors`, `delete-floors` | — | Add `params["orgId"]` injection (same pattern as generated commands); 8 of 10 commands lack `params` dict — create one |
+| `commands/numbers.py` | Raw HTTP (`api.session.rest_*`) | All 11 commands: `create`, `update`, `delete`, `validate-phone-numbers`, `list`, `list-manage-numbers`, `create-manage-numbers`, `show`, `pause-the-manage`, `resume-the-manage`, `list-errors` | — | Add `params["orgId"]` injection; 8 of 11 commands lack `params` dict — create one |
 
 Each file gets the import `from wxcli.config import get_org_id`.
 
