@@ -10,7 +10,7 @@ app = typer.Typer(help="Manage Webex Calling meeting-qualities.")
 
 @app.command("list")
 def cmd_list(
-    meeting_id: str = typer.Option(None, "--meeting-id", help="Unique identifier for the specific meeting instance. **Note:"),
+    meeting_id: str = typer.Option(..., "--meeting-id", help="Unique identifier for the specific meeting instance. **Note:"),
     max: str = typer.Option(None, "--max", help="Limit the maximum number of media sessions in the response."),
     offset: str = typer.Option(None, "--offset", help="Offset from the first result that you want to fetch."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
@@ -32,13 +32,24 @@ def cmd_list(
     try:
         result = api.session.rest_get(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("items", result if isinstance(result, list) else [])
+    result = result or []
+    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:

@@ -453,8 +453,7 @@
 # Global settings
 # ═══════════════════════════════════════════════════════════════════════════════
 
-omit_query_params:
-  - orgId
+omit_query_params: []
 
 # Tags to skip entirely (glob patterns matched against OpenAPI tag names)
 skip_tags:

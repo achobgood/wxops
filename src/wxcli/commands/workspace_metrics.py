@@ -10,8 +10,8 @@ app = typer.Typer(help="Manage Webex Calling workspace-metrics.")
 
 @app.command("list")
 def cmd_list(
-    workspace_id: str = typer.Option(None, "--workspace-id", help="ID of the workspace to get metrics for."),
-    metric_name: str = typer.Option(None, "--metric-name", help="Choices: soundLevel, ambientNoise, temperature, humidity, tvoc, peopleCount"),
+    workspace_id: str = typer.Option(..., "--workspace-id", help="ID of the workspace to get metrics for."),
+    metric_name: str = typer.Option(..., "--metric-name", help="Choices: soundLevel, ambientNoise, temperature, humidity, tvoc, peopleCount"),
     aggregation: str = typer.Option(None, "--aggregation", help="Choices: none, hourly, daily"),
     from_param: str = typer.Option(None, "--from", help="List only data points after a specific date and time (ISO 86"),
     to: str = typer.Option(None, "--to", help="List data points before a specific date and time (ISO 8601 t"),
@@ -47,13 +47,24 @@ def cmd_list(
     try:
         result = api.session.rest_get(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("items", result if isinstance(result, list) else [])
+    result = result or []
+    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -63,7 +74,7 @@ def cmd_list(
 
 @app.command("list-workspace-duration-metrics")
 def list_workspace_duration_metrics(
-    workspace_id: str = typer.Option(None, "--workspace-id", help="ID of the workspace to get metrics for."),
+    workspace_id: str = typer.Option(..., "--workspace-id", help="ID of the workspace to get metrics for."),
     aggregation: str = typer.Option(None, "--aggregation", help="Choices: hourly, daily"),
     measurement: str = typer.Option(None, "--measurement", help="Choices: timeUsed, timeBooked"),
     from_param: str = typer.Option(None, "--from", help="Include data points after a specific date and time (ISO 8601"),
@@ -94,13 +105,24 @@ def list_workspace_duration_metrics(
     try:
         result = api.session.rest_get(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("items", result if isinstance(result, list) else [])
+    result = result or []
+    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
