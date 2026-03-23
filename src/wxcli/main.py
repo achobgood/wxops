@@ -2,8 +2,8 @@ import typer
 from datetime import datetime, timezone
 
 from wxcli import __version__
-from wxcli.auth import get_api
-from wxcli.config import get_expires_at
+from wxcli.auth import get_api, resolve_token
+from wxcli.config import get_expires_at, get_org_id, get_org_name, save_org
 
 app = typer.Typer(
     name="wxcli",
@@ -36,6 +36,11 @@ def whoami(
     typer.echo(f"User:  {me.display_name} ({me.emails[0]})")
     typer.echo(f"Org:   {me.org_id}")
 
+    target_org_id = get_org_id()
+    target_org_name = get_org_name()
+    if target_org_id:
+        typer.echo(f"Target: {target_org_id}  ({target_org_name})")
+
     roles = getattr(me, "roles", None)
     if roles:
         typer.echo(f"Roles: {', '.join(roles)}")
@@ -56,6 +61,68 @@ def whoami(
                 typer.echo(f"Token: expires in {hours}h {minutes}m")
         except ValueError:
             pass
+
+
+@app.command("switch-org")
+def switch_org(
+    org_id: str = typer.Argument(None, help="orgId to switch to (skip interactive prompt)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Switch target organization for partner multi-org tokens."""
+    from wxc_sdk import WebexSimpleApi
+
+    token = resolve_token()
+    if not token:
+        typer.echo("Error: No token found. Run 'wxcli configure' first.", err=True)
+        raise typer.Exit(1)
+
+    api = WebexSimpleApi(tokens=token)
+
+    if org_id:
+        # Direct switch — resolve org name
+        try:
+            org = api.session.rest_get(f"https://webexapis.com/v1/organizations/{org_id}")
+            org_name = org.get("displayName", "Unknown")
+        except Exception:
+            org_name = "Unknown"
+        save_org(org_id, org_name)
+        typer.echo(f"Target org set: {org_name} ({org_id})")
+        return
+
+    # Interactive — list orgs
+    try:
+        result = api.session.rest_get("https://webexapis.com/v1/organizations")
+        items = result.get("items", []) if isinstance(result, dict) else []
+    except Exception as e:
+        typer.echo(f"Error listing organizations: {e}", err=True)
+        raise typer.Exit(1)
+
+    if len(items) <= 1:
+        typer.echo("Single-org token — no org switching needed.")
+        return
+
+    typer.echo(f"\nAvailable organizations:\n")
+    for i, org in enumerate(items, 1):
+        name = org.get("displayName", "Unknown")
+        oid = org.get("id", "")
+        typer.echo(f"  {i}. {name:<30s} ({oid})")
+
+    typer.echo()
+    choice = typer.prompt(f"Select target org [1-{len(items)}]", type=int)
+    if choice < 1 or choice > len(items):
+        typer.echo("Invalid selection.", err=True)
+        raise typer.Exit(1)
+
+    selected = items[choice - 1]
+    save_org(selected.get("id"), selected.get("displayName"))
+    typer.echo(f"\nTarget org set: {selected.get('displayName')} ({selected.get('id')})")
+
+
+@app.command("clear-org")
+def clear_org():
+    """Clear target organization — commands will target your own org."""
+    save_org(None, None)
+    typer.echo("Cleared target org. Commands will now target your own organization.")
 
 
 # Hand-coded modules
