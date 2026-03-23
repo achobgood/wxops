@@ -69,6 +69,19 @@ After configuring, verify with:
 wxcli whoami
 ```
 
+### 2b. Target Org Confirmation (Partner Tokens)
+
+After `wxcli whoami` succeeds, check the output for a "Target:" line:
+
+**If a "Target:" line is present** (multi-org token with orgId set):
+1. Display to the user: "You are targeting **[org_name]** (`[org_id]`). All commands in this session will operate on this organization."
+2. Ask: "Is this the correct target org? (yes/no)"
+3. If **no**: run `wxcli switch-org` to let them pick a different org, then re-run `wxcli whoami` and re-confirm
+4. If **yes**: proceed to the interview phase
+5. **Do not proceed until the user confirms the target org.**
+
+**If no "Target:" line appears**: single-org token, proceed normally to the interview phase.
+
 ### 3. Existing Design Docs
 
 Check `docs/plans/` for existing deployment plans:
