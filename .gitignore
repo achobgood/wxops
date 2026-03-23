@@ -26,3 +26,8 @@ tests/**/__pycache__/
 
 # Generated HTML visualizations
 *pipeline-visual*.html
+
+# Dev-only docs (design prompts, plans, parked items)
+docs/prompts/
+docs/superpowers/
+docs/later/
