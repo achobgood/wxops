@@ -80,15 +80,20 @@ def get_tags(spec: dict) -> list[str]:
 
 
 def parse_parameters(
-    params: list[dict], spec: dict, omit_query_params: list[str] | None = None
-) -> tuple[list[str], list[EndpointField]]:
-    """Parse OpenAPI parameters into (path_vars, query_params).
+    params: list[dict], spec: dict, omit_query_params: list[str] | None = None,
+    auto_inject_params: set[str] | None = None,
+) -> tuple[list[str], list[EndpointField], list[str]]:
+    """Parse OpenAPI parameters into (path_vars, query_params, auto_inject_names).
 
     Path params become path_vars list of variable names.
     Query params become EndpointField list with type, description, required, enum.
-    Params in omit_query_params are skipped.
+    Params in omit_query_params are skipped entirely.
+    Params in auto_inject_params are separated into auto_inject_names and not
+    added to query_params (they will be injected from config at runtime).
     """
     omit = set(omit_query_params or [])
+    auto_inject = auto_inject_params or set()
+    auto_inject_names: list[str] = []
     path_vars: list[str] = []
     query_params: list[EndpointField] = []
 
@@ -106,6 +111,9 @@ def parse_parameters(
         elif location == "query":
             if name in omit:
                 continue
+            if name in auto_inject:
+                auto_inject_names.append(name)
+                continue
             field_type = _openapi_type_to_field_type(schema)
             enum_values = schema.get("enum")
             desc = param.get("description", "")[:120]
@@ -121,7 +129,7 @@ def parse_parameters(
                 )
             )
 
-    return path_vars, query_params
+    return path_vars, query_params, auto_inject_names
 
 
 def _openapi_type_to_field_type(schema: dict) -> str:
@@ -403,10 +411,13 @@ def parse_operation(
     op: dict,
     spec: dict,
     omit_query_params: list[str] | None = None,
+    auto_inject_params: set[str] | None = None,
 ) -> Endpoint:
     """Convert one OpenAPI operation to an Endpoint dataclass."""
     params = op.get("parameters", [])
-    path_vars, query_params = parse_parameters(params, spec, omit_query_params)
+    path_vars, query_params, auto_inject_names = parse_parameters(
+        params, spec, omit_query_params, auto_inject_params
+    )
     body_fields = parse_request_body(op, spec)
 
     command_type = detect_command_type(method, path, op, spec)
@@ -442,6 +453,7 @@ def parse_operation(
         response_id_key=response_id_key,
         deprecated=deprecated,
         json_body_example=json_body_example,
+        auto_inject_params=auto_inject_names,
     )
 
 
@@ -449,6 +461,7 @@ def parse_tag(
     tag: str,
     spec: dict,
     omit_query_params: list[str] | None = None,
+    auto_inject_params: set[str] | None = None,
     seen_operation_ids: set[str] | None = None,
 ) -> tuple[list[Endpoint], list[str]]:
     """Parse all operations for a given tag into Endpoint list.
@@ -491,7 +504,7 @@ def parse_tag(
                 )
                 continue
 
-            ep = parse_operation(method, path, op, spec, omit_query_params)
+            ep = parse_operation(method, path, op, spec, omit_query_params, auto_inject_params)
             ep.command_name = _derive_command_name(
                 ep.command_type, ep.raw_path, ep.name, seen_types
             )

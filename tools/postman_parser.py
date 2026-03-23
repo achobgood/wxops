@@ -37,6 +37,7 @@ class Endpoint:
     response_id_key: str | None = None
     deprecated: bool = False
     json_body_example: str | None = None
+    auto_inject_params: list[str] = field(default_factory=list)
 
 
 def camel_to_kebab(name: str) -> str:

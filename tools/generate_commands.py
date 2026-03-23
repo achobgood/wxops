@@ -45,14 +45,12 @@ def generate_tag(
     seen_op_ids: set,
 ) -> tuple[str, str, int]:
     """Generate commands for one tag. Returns (module_name, cli_name, command_count)."""
-    omit_qp = list(overrides.get("omit_query_params", ["orgId"]))
-    # Per-tag keep_query_params overrides the global omit list
+    omit_qp = list(overrides.get("omit_query_params", []))
+    auto_inject_qp = set(overrides.get("auto_inject_from_config", ["orgId"]))
     folder_ovr = overrides.get(tag_name, {})
-    keep_qp = set(folder_ovr.get("keep_query_params", []))
-    if keep_qp:
-        omit_qp = [p for p in omit_qp if p not in keep_qp]
     endpoints, skipped_uploads = parse_tag(
-        tag_name, spec, omit_query_params=omit_qp, seen_operation_ids=seen_op_ids
+        tag_name, spec, omit_query_params=omit_qp,
+        auto_inject_params=auto_inject_qp, seen_operation_ids=seen_op_ids
     )
 
     # Apply endpoint-level overrides (table_columns, url_overrides)
