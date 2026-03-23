@@ -1,0 +1,553 @@
+# ── field_overrides.yaml ──
+# Overrides for the wxcli OpenAPI-based generator (tools/generate_commands.py).
+#
+# The OpenAPI spec now provides: response schemas, required fields, command types,
+# enum values, and descriptions. This file only contains what the spec does NOT provide:
+#
+#   table_columns       — display columns for CLI table output (per-group or per-command)
+#   skip_tags           — glob patterns for OpenAPI tags to skip entirely
+#   tag_merge           — merge split tags into one CLI group
+#   cli_name_overrides  — human-friendly CLI group names (tag → CLI name)
+#   omit_query_params   — query params stripped from all commands
+#
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Table columns — display preferences for CLI table output
+# ═══════════════════════════════════════════════════════════════════════════════
+
+"Report Templates":
+  list:
+    table_columns:
+      - ["ID", "Id"]
+      - ["Title", "title"]
+      - ["Service", "service"]
+      - ["Max Days", "maxDays"]
+
+"Reports: Detailed Call History":
+  list:
+    table_columns:
+      - ["Start Time", "startTime"]
+      - ["Calling Number", "callingNumber"]
+      - ["Called Number", "calledNumber"]
+      - ["Duration", "duration"]
+      - ["Direction", "direction"]
+      - ["Call Type", "callType"]
+
+"Features:  Auto Attendant":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Extension", "extension"]
+      - ["Enabled", "enabled"]
+
+"Features:  Call Queue":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Extension", "extension"]
+      - ["Enabled", "enabled"]
+  add_query_params:
+    delete-supervisors-config:
+      - {name: hasCxEssentials, type: str, description: "Include Customer Assist supervisors when true."}
+    delete-supervisors-config-1:
+      - {name: hasCxEssentials, type: str, description: "Include Customer Assist supervisors when true."}
+
+"Features:  Call Park":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Name", "name"]
+
+"Features:  Hunt Group":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Extension", "extension"]
+      - ["Enabled", "enabled"]
+
+"Features:  Call Pickup":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Name", "name"]
+
+"Features:  Paging Group":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Extension", "extension"]
+      - ["Enabled", "enabled"]
+
+"Call Routing":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Type", "type"]
+
+"DECT Devices Settings":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Model", "model"]
+
+"Numbers":
+  table_columns:
+    list:
+      - ["Phone Number", "phoneNumber"]
+      - ["Extension", "extension"]
+      - ["State", "state"]
+      - ["Owner Type", "owner.type"]
+      - ["Owner Name", "owner.firstName"]
+    list-manage-numbers:
+      - ["ID", "id"]
+      - ["Operation", "operationType"]
+      - ["Status", "latestExecutionStatus"]
+
+"User Call Settings":
+  table_columns:
+    list-numbers:
+      - ["Number", "directNumber"]
+      - ["Extension", "extension"]
+      - ["Primary", "primary"]
+    list-schedules:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Type", "type"]
+      - ["Level", "level"]
+
+"Call Controls":
+  table_columns:
+    list:
+      - ["Call ID", "callId"]
+      - ["Personality", "personality"]
+      - ["State", "state"]
+      - ["Remote Party", "remoteParty.name"]
+    list-history:
+      - ["ID", "id"]
+      - ["Direction", "direction"]
+      - ["Call Type", "callType"]
+      - ["Start", "startTime"]
+    list-calls:
+      - ["Call ID", "callId"]
+      - ["Personality", "personality"]
+      - ["State", "state"]
+
+"Workspaces":
+  table_columns:
+    list:
+      - ["ID", "id"]
+      - ["Display Name", "displayName"]
+      - ["Type", "type"]
+      - ["Calling", "calling.type"]
+
+"Location Call Settings":
+  table_columns:
+    list-available-numbers-external-caller-id:
+      - ["Phone Number", "phoneNumber"]
+      - ["State", "state"]
+    list-available-numbers-locations:
+      - ["Phone Number", "phoneNumber"]
+      - ["State", "state"]
+    list-available-numbers-webex-go:
+      - ["Phone Number", "phoneNumber"]
+      - ["State", "state"]
+    list-available-numbers-emergency-callback-number:
+      - ["Phone Number", "phoneNumber"]
+      - ["State", "state"]
+    list-available-numbers-call-intercept:
+      - ["Phone Number", "phoneNumber"]
+      - ["State", "state"]
+    list-available-numbers-charge-number:
+      - ["Phone Number", "phoneNumber"]
+      - ["State", "state"]
+    list-update-routing-prefix:
+      - ["ID", "id"]
+      - ["Status", "latestExecutionStatus"]
+    list-delete-calling-location:
+      - ["ID", "id"]
+      - ["Status", "latestExecutionStatus"]
+
+"Location Call Settings: Call Handling":
+  table_columns:
+    list-access-codes:
+      - ["Code", "code"]
+      - ["Description", "description"]
+    list-digit-patterns:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Pattern", "pattern"]
+      - ["Action", "action"]
+    list:
+      - ["Call Type", "callType"]
+      - ["Action", "action"]
+      - ["Transfer", "transferEnabled"]
+
+"Device Call Settings":
+  table_columns:
+    list:
+      - ["ID", "id"]
+      - ["First Name", "firstName"]
+      - ["Last Name", "lastName"]
+      - ["Extension", "extension"]
+      - ["Line Type", "lineType"]
+    list-available-members:
+      - ["ID", "id"]
+      - ["First Name", "firstName"]
+      - ["Last Name", "lastName"]
+      - ["Extension", "extension"]
+      - ["Member Type", "memberType"]
+    list-supported-devices-config:
+      - ["Model", "model"]
+      - ["Display Name", "displayName"]
+      - ["Type", "type"]
+    list-supported-devices-dects:
+      - ["Model", "model"]
+      - ["Display Name", "displayName"]
+      - ["Base Stations", "numberOfSupportedBaseStations"]
+    list-supported-devices-dect-networks:
+      - ["Model", "model"]
+      - ["Display Name", "displayName"]
+      - ["Base Stations", "numberOfSupportedBaseStations"]
+    list-devices-people:
+      - ["ID", "id"]
+      - ["Model", "model"]
+      - ["MAC", "mac"]
+      - ["Type", "type"]
+    list-devices-workspaces:
+      - ["ID", "id"]
+      - ["Model", "model"]
+      - ["MAC", "mac"]
+      - ["Type", "type"]
+    list-line-key-templates:
+      - ["ID", "id"]
+      - ["Template Name", "templateName"]
+      - ["Device Model", "deviceModel"]
+      - ["Display Name", "userDisplayName"]
+    list-apply-line-key-template:
+      - ["ID", "id"]
+      - ["Status", "latestExecutionStatus"]
+    list-rebuild-phones:
+      - ["ID", "id"]
+      - ["Status", "latestExecutionStatus"]
+
+"PSTN":
+  command_type_overrides:
+    list-connection: "settings-get"
+  table_columns:
+    list:
+      - ["Type", "type"]
+      - ["Name", "name"]
+      - ["ID", "id"]
+
+"Features: Single Number Reach":
+  table_columns:
+    list:
+      - ["Phone Number", "phoneNumber"]
+      - ["State", "state"]
+
+"Features: Virtual Extensions":
+  table_columns:
+    list:
+      - ["ID", "id"]
+      - ["Name", "displayName"]
+      - ["Extension", "extension"]
+      - ["Phone Number", "phoneNumber"]
+
+"Features: Call Recording":
+  table_columns:
+    list-regions:
+      - ["Code", "code"]
+      - ["Name", "name"]
+      - ["Default", "defaultEnabled"]
+    list-vendor-users-call-recording:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Email", "email"]
+    list-vendor-users-call-recording-1:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Email", "email"]
+
+"People":
+  table_columns:
+    list:
+      - ["ID", "id"]
+      - ["Display Name", "displayName"]
+      - ["Email", "emails[0]"]
+
+"Devices":
+  table_columns:
+    list:
+      - ["ID", "id"]
+      - ["Display Name", "displayName"]
+      - ["Product", "product"]
+      - ["MAC", "mac"]
+
+"Calling Service Settings":
+  table_columns:
+    list:
+      - ["Name", "name"]
+      - ["Code", "code"]
+
+"Virtual Line Call Settings":
+  table_columns:
+    list-available-numbers-fax-message:
+      - ["Phone Number", "phoneNumber"]
+      - ["State", "state"]
+    list-available-numbers-call-forwarding:
+      - ["Phone Number", "phoneNumber"]
+      - ["State", "state"]
+    list-available-numbers-virtual-lines:
+      - ["Phone Number", "phoneNumber"]
+      - ["State", "state"]
+    list-available-numbers-emergency-callback-number:
+      - ["Phone Number", "phoneNumber"]
+      - ["State", "state"]
+    list-available-numbers-call-intercept:
+      - ["Phone Number", "phoneNumber"]
+      - ["State", "state"]
+
+"Workspace Call Settings":
+  table_columns:
+    list:
+      - ["Number", "directNumber"]
+      - ["Extension", "extension"]
+
+"Features: Customer Experience Essentials":
+  table_columns:
+    list:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Queues Assigned", "numberOfQueuesAssigned"]
+    list-available-agents:
+      - ["ID", "id"]
+      - ["Display Name", "displayName"]
+
+"Device Call Settings With Device Dynamic Settings":
+  table_columns:
+    list:
+      - ["Model", "model"]
+      - ["Display Name", "displayName"]
+      - ["Type", "type"]
+
+"Licenses":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Total Units", "totalUnits"]
+      - ["Consumed", "consumedUnits"]
+
+"Organizations":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Display Name", "displayName"]
+
+"SCIM 2 Users":
+  response_list_keys:
+    list: "Resources"
+  table_columns:
+    list:
+      - ["ID", "id"]
+      - ["Display Name", "displayName"]
+      - ["User Name", "userName"]
+      - ["Active", "active"]
+
+"SCIM 2 Groups":
+  response_list_keys:
+    list: "Resources"
+    list-members: "members"
+
+"Admin Audit Events":
+  keep_query_params:
+    - orgId
+
+"Security Audit Events":
+  keep_query_params:
+    - orgId
+
+"Roles":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Name", "name"]
+
+"Groups":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Display Name", "displayName"]
+      - ["Member Count", "memberSize"]
+
+"Workspace Locations":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Display Name", "displayName"]
+      - ["City", "address.city"]
+
+"Rooms":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Title", "title"]
+      - ["Type", "type"]
+
+"Teams":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Name", "name"]
+
+"Messages":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Person Email", "personEmail"]
+      - ["Text", "text"]
+
+"Webhooks":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Target URL", "targetUrl"]
+      - ["Resource", "resource"]
+
+"Authorizations":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Application", "applicationName"]
+      - ["Type", "type"]
+      - ["Client ID", "clientId"]
+
+"Memberships":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Person", "personDisplayName"]
+      - ["Email", "personEmail"]
+      - ["Moderator", "isModerator"]
+
+"Workspace Metrics":
+  table_columns:
+    list:
+      - ["Start", "start"]
+      - ["End", "end"]
+      - ["Metric", "metricName"]
+      - ["Value", "value"]
+    list-workspace-duration-metrics:
+      - ["Start", "start"]
+      - ["End", "end"]
+      - ["Duration", "duration"]
+
+"Recordings":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Topic", "topic"]
+      - ["Format", "format"]
+      - ["Created", "timeRecorded"]
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Global settings
+# ═══════════════════════════════════════════════════════════════════════════════
+
+omit_query_params:
+  - orgId
+
+# Tags to skip entirely (glob patterns matched against OpenAPI tag names)
+skip_tags:
+  - "Beta *"
+  - "Call Settings For Me*"
+  - "* Phase*"
+  # Cross-spec overlaps (identical endpoints already generated from calling spec)
+  - "Partner Reports/Templates"
+  - "Recording Report"
+  - "Reports"
+  - "People"
+  - "Devices"
+  - "Device Call Settings"
+  - "Device Call Settings With Device Dynamic Settings"
+  - "Hot Desk"
+  - "Workspaces"
+
+# Merge split tags into a single CLI group
+tag_merge:
+  "User Call Settings":
+    - "User Call Settings (1/2)"
+    - "User Call Settings (2/2)"
+  "Workspace Call Settings":
+    - "Workspace Call Settings (1/2)"
+    - "Workspace Call Settings (2/2)"
+
+# Human-friendly CLI group names (OpenAPI tag → CLI name)
+cli_name_overrides:
+  "Features:  Auto Attendant": "auto-attendant"
+  "Features:  Call Queue": "call-queue"
+  "Features:  Hunt Group": "hunt-group"
+  "Features:  Call Park": "call-park"
+  "Features:  Call Pickup": "call-pickup"
+  "Features:  Paging Group": "paging-group"
+  "Features: Announcement Playlist": "announcement-playlists"
+  "Features: Announcement Repository": "announcements"
+  "Features: Call Recording": "call-recording"
+  "Features: Customer Experience Essentials": "cx-essentials"
+  "Features: Hot Desking Sign-in via Voice Portal": "hot-desking-portal"
+  "Features: Operating Modes": "operating-modes"
+  "Features: Single Number Reach": "single-number-reach"
+  "Features: Virtual Extensions": "virtual-extensions"
+  "Location Call Settings:  Schedules": "location-schedules"
+  "Location Call Settings:  Voicemail": "location-voicemail"
+  "Location Call Settings: Call Handling": "location-call-handling"
+  "Reports: Detailed Call History": "cdr"
+  "User Call Settings": "user-settings"
+  "Workspace Call Settings": "workspace-settings"
+  "DECT Devices Settings": "dect-devices"
+  "Device Call Settings": "device-settings"
+  "Emergency Services Settings": "emergency-services"
+  "Calling Service Settings": "calling-service"
+  "Caller Reputation Provider": "caller-reputation"
+  "Call Queue Settings with Playlist Settings": "cq-playlists"
+  "Device Call Settings With Device Dynamic Settings": "device-dynamic-settings"
+  "Partner Reports/Templates": "partner-reports"
+  "Report Templates": "report-templates"
+  "Recording Report": "recording-report"
+  "Conference Controls": "conference"
+  "Converged Recordings": "recordings"
+  "External Voicemail": "external-voicemail"
+  "Client Call Settings": "client-settings"
+  "Virtual Line Call Settings": "virtual-line-settings"
+  "Mode Management": "mode-management"
+  "Hot Desk": "hot-desk"
+  "Location Call Settings": "location-settings"
+  "Call Routing": "call-routing"
+  "Call Controls": "call-controls"
+  # Admin spec overrides
+  "API - Domain Management": "domains"
+  "Admin Audit Events": "audit-events"
+  "Bulk Manage SCIM 2 Users and Groups": "scim-bulk"
+  "Historical Analytics APIs": "analytics"
+  "Identity Organization": "identity-org"
+  "Licenses": "licenses-api"
+  "Organization Contacts": "org-contacts"
+  "Partner Administrators": "partner-admins"
+  "Recordings": "admin-recordings"
+  "SCIM 2 Groups": "scim-groups"
+  "SCIM 2 Schemas": "scim-schemas"
+  "SCIM 2 Users": "scim-users"
+  "Security Audit Events": "security-audit"
+  "Send Activation Email": "activation-email"
+  "Settings": "org-settings"
+  # Messaging spec overrides
+  "Attachment Actions": "attachment-actions"
+  "ECM folder linking": "ecm"
+  "Team Memberships": "team-memberships"
