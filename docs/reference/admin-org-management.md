@@ -93,7 +93,7 @@ curl -s -X DELETE -H "Authorization: Bearer $TOKEN" \
 
 - **`organizations delete` is destructive and irreversible.** Deleting an organization removes all users, licenses, devices, and configuration permanently. The CLI prompts for confirmation unless `--force` is passed. There is no undo.
 
-- **`organizations list` typically returns one org.** Unless your token is a partner/MSP token with cross-org access, you will only see the single organization the token belongs to.
+- **`organizations list` typically returns one org.** Unless your token is a partner/MSP token with cross-org access, you will only see the single organization the token belongs to. Partner tokens return multiple orgs — wxcli uses this behavior for multi-org detection: if `organizations list` returns more than one result, wxcli treats the token as a partner token and prompts for customer org selection during `wxcli configure`. <!-- Verified via CLI implementation 2026-03-23 -->
 
 ---
 

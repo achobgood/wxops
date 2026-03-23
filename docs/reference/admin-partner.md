@@ -21,6 +21,8 @@ Partner/VAR/MSP multi-tenant management -- customer org management, admin assign
 
 **Token requirement:** A standard org admin token will not work. You must authenticate as a partner administrator with access to the partner organization. Service app tokens scoped to a single customer org will also fail.
 
+**wxcli multi-org support:** wxcli natively handles partner token org targeting. Run `wxcli configure` to auto-detect your multi-org token and select a target customer org. Use `wxcli switch-org` to change the active org and `wxcli clear-org` to reset. Once configured, `orgId` is injected automatically on all applicable commands — no extra flags required. See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for full details. <!-- Verified via CLI implementation 2026-03-23 -->
+
 ---
 
 ## 1. Partner Admins (`partner-admins`)
