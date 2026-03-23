@@ -3,6 +3,7 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
+from wxcli.config import get_org_id
 
 
 app = typer.Typer(help="Manage Webex Calling operating-modes.")
@@ -11,7 +12,7 @@ app = typer.Typer(help="Manage Webex Calling operating-modes.")
 @app.command("list")
 def cmd_list(
     name: str = typer.Option(None, "--name", help="List `operating modes` whose name contains this string."),
-    limit_to_location_id: str = typer.Option(None, "--limit-to-location-id", help="Location query parameter to filter the `operating modes` fro"),
+    limit_to_location_id: str = typer.Option(..., "--limit-to-location-id", help="Location query parameter to filter the `operating modes` fro"),
     limit_to_org_level_enabled: str = typer.Option(None, "--limit-to-org-level-enabled", help="If true, only return `operating modes` defined at the organi"),
     max: str = typer.Option(None, "--max", help="Maximum number of `operating modes` to return in a single pa"),
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
@@ -41,16 +42,30 @@ def cmd_list(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("operatingModes", result if isinstance(result, list) else [])
+    result = result or []
+    items = result.get("operatingModes", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -67,16 +82,38 @@ def show(
     """Get Details for an Operating Mode."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/operatingModes/{mode_id}"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    print_json(result)
+    if output == "json":
+        print_json(result)
+    else:
+        if isinstance(result, dict):
+            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
+        elif isinstance(result, list):
+            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
+        else:
+            print_json(result)
 
 
 
@@ -87,9 +124,13 @@ def update(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify an Operating Mode."""
+    """Modify an Operating Mode\n\nExample --json-body:\n  '{"name":"...","sameHoursDaily":{"mondayToFriday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"saturdayToSunday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."}},"differentHoursDaily":{"sunday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"monday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"tuesday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"wednesday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"thursday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"friday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."}},"holidays":[{"name":"...","allDayEnabled":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"..."}],"callForwarding":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/operatingModes/{mode_id}"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     if json_body:
         body = json.loads(json_body)
     else:
@@ -97,11 +138,21 @@ def update(
         if name is not None:
             body["name"] = name
     try:
-        result = api.session.rest_put(url, json=body)
+        result = api.session.rest_put(url, json=body, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -120,12 +171,26 @@ def delete(
         typer.confirm(f"Delete {mode_id}?", abort=True)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/operatingModes/{mode_id}"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
-        api.session.rest_delete(url)
+        api.session.rest_delete(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -140,9 +205,13 @@ def create(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create an Operating Mode."""
+    """Create an Operating Mode\n\nExample --json-body:\n  '{"name":"...","type":"SAME_HOURS_DAILY","level":"ORGANIZATION","locationId":"...","sameHoursDaily":{"mondayToFriday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"saturdayToSunday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."}},"differentHoursDaily":{"sunday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"monday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"tuesday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"wednesday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"thursday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"friday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."}}}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/operatingModes/"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     if json_body:
         body = json.loads(json_body)
     else:
@@ -152,16 +221,28 @@ def create(
         if location_id is not None:
             body["locationId"] = location_id
     try:
-        result = api.session.rest_post(url, json=body)
+        result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     if isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
+    elif not result or result == {}:
+        typer.echo("Created.")
     else:
         print_json(result)
 
@@ -177,16 +258,38 @@ def show_holidays(
     """Get details for an Operating Mode Holiday."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/operatingModes/{mode_id}/holidays/{holiday_id}"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    print_json(result)
+    if output == "json":
+        print_json(result)
+    else:
+        if isinstance(result, dict):
+            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
+        elif isinstance(result, list):
+            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
+        else:
+            print_json(result)
 
 
 
@@ -203,9 +306,13 @@ def update_holidays(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify an Operating Mode Holiday."""
+    """Modify an Operating Mode Holiday\n\nExample --json-body:\n  '{"name":"...","allDayEnabled":true,"startDate":"...","endDate":"...","startTime":"...","endTime":"..."}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/operatingModes/{mode_id}/holidays/{holiday_id}"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     if json_body:
         body = json.loads(json_body)
     else:
@@ -223,11 +330,21 @@ def update_holidays(
         if end_time is not None:
             body["endTime"] = end_time
     try:
-        result = api.session.rest_put(url, json=body)
+        result = api.session.rest_put(url, json=body, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -247,12 +364,26 @@ def delete_holidays(
         typer.confirm(f"Delete {holiday_id}?", abort=True)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/operatingModes/{mode_id}/holidays/{holiday_id}"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
-        api.session.rest_delete(url)
+        api.session.rest_delete(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -272,9 +403,13 @@ def create_holidays(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create an Operating Mode Holiday."""
+    """Create an Operating Mode Holiday\n\nExample --json-body:\n  '{"name":"...","allDayEnabled":true,"startDate":"...","endDate":"...","startTime":"...","endTime":"..."}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/operatingModes/{mode_id}/holidays"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     if json_body:
         body = json.loads(json_body)
     else:
@@ -292,16 +427,28 @@ def create_holidays(
         if end_time is not None:
             body["endTime"] = end_time
     try:
-        result = api.session.rest_post(url, json=body)
+        result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     if isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
+    elif not result or result == {}:
+        typer.echo("Created.")
     else:
         print_json(result)
 
@@ -323,16 +470,30 @@ def list_available_operating_modes(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("operatingModes", result if isinstance(result, list) else [])
+    result = result or []
+    items = result.get("operatingModes", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -371,16 +532,30 @@ def list_available_numbers(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("phoneNumbers", result if isinstance(result, list) else [])
+    result = result or []
+    items = result.get("phoneNumbers", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:

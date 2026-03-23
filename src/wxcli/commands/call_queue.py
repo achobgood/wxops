@@ -3,6 +3,7 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
+from wxcli.config import get_org_id
 
 
 app = typer.Typer(help="Manage Webex Calling call-queue.")
@@ -47,16 +48,30 @@ def cmd_list(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("queues", result if isinstance(result, list) else [])
+    result = result or []
+    items = result.get("queues", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -83,12 +98,15 @@ def create(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Call Queue with Customer Experience Essentials."""
+    """Create a Call Queue with Customer Experience Essentials\n\nExample --json-body:\n  '{"name":"...","phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"..."}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues"
     params = {}
     if has_cx_essentials is not None:
         params["hasCxEssentials"] = has_cx_essentials
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     if json_body:
         body = json.loads(json_body)
     else:
@@ -120,14 +138,26 @@ def create(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     if isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
+    elif not result or result == {}:
+        typer.echo("Created.")
     else:
         print_json(result)
 
@@ -147,16 +177,37 @@ def show(
     params = {}
     if has_cx_essentials is not None:
         params["hasCxEssentials"] = has_cx_essentials
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    print_json(result)
+    if output == "json":
+        print_json(result)
+    else:
+        if isinstance(result, dict):
+            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
+        elif isinstance(result, list):
+            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
+        else:
+            print_json(result)
 
 
 
@@ -181,9 +232,13 @@ def update(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Call Queue."""
+    """Update a Call Queue\n\nExample --json-body:\n  '{"enabled":true,"name":"...","languageCode":"...","firstName":"...","lastName":"...","timeZone":"..."}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     if json_body:
         body = json.loads(json_body)
     else:
@@ -217,11 +272,21 @@ def update(
         if dial_by_name is not None:
             body["dialByName"] = dial_by_name
     try:
-        result = api.session.rest_put(url, json=body)
+        result = api.session.rest_put(url, json=body, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -241,12 +306,26 @@ def delete(
         typer.confirm(f"Delete {queue_id}?", abort=True)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
-        api.session.rest_delete(url)
+        api.session.rest_delete(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -271,16 +350,30 @@ def list_announcements(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("announcements", result if isinstance(result, list) else [])
+    result = result or []
+    items = result.get("announcements", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -301,12 +394,26 @@ def delete_announcements(
         typer.confirm(f"Delete {file_name}?", abort=True)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/announcements/{file_name}"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
-        api.session.rest_delete(url)
+        api.session.rest_delete(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -324,16 +431,38 @@ def show_call_forwarding(
     """Get Call Forwarding Settings for a Call Queue."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/callForwarding"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    print_json(result)
+    if output == "json":
+        print_json(result)
+    else:
+        if isinstance(result, dict):
+            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
+        elif isinstance(result, list):
+            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
+        else:
+            print_json(result)
 
 
 
@@ -344,19 +473,33 @@ def update_call_forwarding(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Call Forwarding Settings for a Call Queue."""
+    """Update Call Forwarding Settings for a Call Queue\n\nExample --json-body:\n  '{"callForwarding":{"always":{"enabled":"...","destination":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"..."},"selective":{"enabled":"...","destination":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"..."},"rules":["..."],"modes":["..."]}}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/callForwarding"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     if json_body:
         body = json.loads(json_body)
     else:
         body = {}
     try:
-        result = api.session.rest_put(url, json=body)
+        result = api.session.rest_put(url, json=body, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -375,9 +518,13 @@ def create_selective_rules(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Selective Call Forwarding Rule for a Call Queue."""
+    """Create a Selective Call Forwarding Rule for a Call Queue\n\nExample --json-body:\n  '{"name":"...","enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":"...","unavailableNumberEnabled":"...","numbers":"..."}}}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/callForwarding/selectiveRules"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     if json_body:
         body = json.loads(json_body)
     else:
@@ -391,16 +538,28 @@ def create_selective_rules(
         if business_schedule is not None:
             body["businessSchedule"] = business_schedule
     try:
-        result = api.session.rest_post(url, json=body)
+        result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     if isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
+    elif not result or result == {}:
+        typer.echo("Created.")
     else:
         print_json(result)
 
@@ -417,16 +576,38 @@ def show_selective_rules(
     """Get Selective Call Forwarding Rule for a Call Queue."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/callForwarding/selectiveRules/{rule_id}"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    print_json(result)
+    if output == "json":
+        print_json(result)
+    else:
+        if isinstance(result, dict):
+            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
+        elif isinstance(result, list):
+            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
+        else:
+            print_json(result)
 
 
 
@@ -442,9 +623,13 @@ def update_selective_rules(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Selective Call Forwarding Rule for a Call Queue."""
+    """Update a Selective Call Forwarding Rule for a Call Queue\n\nExample --json-body:\n  '{"name":"...","enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":"...","unavailableNumberEnabled":"...","numbers":"..."}}}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/callForwarding/selectiveRules/{rule_id}"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     if json_body:
         body = json.loads(json_body)
     else:
@@ -458,11 +643,21 @@ def update_selective_rules(
         if business_schedule is not None:
             body["businessSchedule"] = business_schedule
     try:
-        result = api.session.rest_put(url, json=body)
+        result = api.session.rest_put(url, json=body, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -483,12 +678,26 @@ def delete_selective_rules(
         typer.confirm(f"Delete {rule_id}?", abort=True)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/callForwarding/selectiveRules/{rule_id}"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
-        api.session.rest_delete(url)
+        api.session.rest_delete(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -513,16 +722,30 @@ def list_holiday_service(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("audioFiles", result if isinstance(result, list) else [])
+    result = result or []
+    items = result.get("audioFiles", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -544,9 +767,13 @@ def update_holiday_service(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Call Queue Holiday Service."""
+    """Update a Call Queue Holiday Service\n\nExample --json-body:\n  '{"holidayServiceEnabled":true,"action":"BUSY","holidayScheduleLevel":"LOCATION","holidayScheduleName":"...","transferPhoneNumber":"...","playAnnouncementBeforeEnabled":true}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/holidayService"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     if json_body:
         body = json.loads(json_body)
     else:
@@ -566,11 +793,21 @@ def update_holiday_service(
         if audio_message_selection is not None:
             body["audioMessageSelection"] = audio_message_selection
     try:
-        result = api.session.rest_put(url, json=body)
+        result = api.session.rest_put(url, json=body, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -595,16 +832,30 @@ def list_night_service(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("audioFiles", result if isinstance(result, list) else [])
+    result = result or []
+    items = result.get("audioFiles", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -629,9 +880,13 @@ def update_night_service(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Call Queue Night Service."""
+    """Update a Call Queue Night Service\n\nExample --json-body:\n  '{"nightServiceEnabled":true,"action":"BUSY","transferPhoneNumber":"...","playAnnouncementBeforeEnabled":true,"announcementMode":"NORMAL","audioMessageSelection":"DEFAULT"}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/nightService"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     if json_body:
         body = json.loads(json_body)
     else:
@@ -657,11 +912,21 @@ def update_night_service(
         if manual_audio_message_selection is not None:
             body["manualAudioMessageSelection"] = manual_audio_message_selection
     try:
-        result = api.session.rest_put(url, json=body)
+        result = api.session.rest_put(url, json=body, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -686,16 +951,30 @@ def list_forced_forward(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("audioFiles", result if isinstance(result, list) else [])
+    result = result or []
+    items = result.get("audioFiles", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -714,9 +993,13 @@ def update_forced_forward(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Call Queue Forced Forward service."""
+    """Update a Call Queue Forced Forward service\n\nExample --json-body:\n  '{"forcedForwardEnabled":true,"transferPhoneNumber":"...","playAnnouncementBeforeEnabled":true,"audioMessageSelection":"DEFAULT","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"...","level":"..."}]}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/forcedForward"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     if json_body:
         body = json.loads(json_body)
     else:
@@ -730,11 +1013,21 @@ def update_forced_forward(
         if audio_message_selection is not None:
             body["audioMessageSelection"] = audio_message_selection
     try:
-        result = api.session.rest_put(url, json=body)
+        result = api.session.rest_put(url, json=body, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -759,16 +1052,30 @@ def list_stranded_calls(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("audioFiles", result if isinstance(result, list) else [])
+    result = result or []
+    items = result.get("audioFiles", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -786,9 +1093,13 @@ def update_stranded_calls(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Call Queue Stranded Calls service."""
+    """Update a Call Queue Stranded Calls service\n\nExample --json-body:\n  '{"action":"NONE","transferPhoneNumber":"...","audioMessageSelection":"DEFAULT","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"...","level":"..."}]}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/strandedCalls"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     if json_body:
         body = json.loads(json_body)
     else:
@@ -800,11 +1111,21 @@ def update_stranded_calls(
         if audio_message_selection is not None:
             body["audioMessageSelection"] = audio_message_selection
     try:
-        result = api.session.rest_put(url, json=body)
+        result = api.session.rest_put(url, json=body, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -837,16 +1158,30 @@ def list_available_numbers_queues(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("phoneNumbers", result if isinstance(result, list) else [])
+    result = result or []
+    items = result.get("phoneNumbers", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -879,16 +1214,30 @@ def list_available_numbers_alternate(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("phoneNumbers", result if isinstance(result, list) else [])
+    result = result or []
+    items = result.get("phoneNumbers", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -927,16 +1276,30 @@ def list_available_numbers_call_forwarding(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("phoneNumbers", result if isinstance(result, list) else [])
+    result = result or []
+    items = result.get("phoneNumbers", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -946,7 +1309,7 @@ def list_available_numbers_call_forwarding(
 
 @app.command("list-available-agents-queues")
 def list_available_agents_queues(
-    location_id: str = typer.Option(None, "--location-id", help="The location ID of the call queue. Temporary mandatory query"),
+    location_id: str = typer.Option(..., "--location-id", help="The location ID of the call queue. Temporary mandatory query"),
     max: str = typer.Option(None, "--max", help="Limit the number of objects returned to this maximum count."),
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
     name: str = typer.Option(None, "--name", help="Search based on name (user first and last name combination)."),
@@ -977,16 +1340,30 @@ def list_available_agents_queues(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("agents", result if isinstance(result, list) else [])
+    result = result or []
+    items = result.get("agents", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -1027,16 +1404,30 @@ def list_supervisors(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("supervisors", result if isinstance(result, list) else [])
+    result = result or []
+    items = result.get("supervisors", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -1051,12 +1442,15 @@ def create_supervisors(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Supervisor with Customer Experience Essentials."""
+    """Create a Supervisor with Customer Experience Essentials\n\nExample --json-body:\n  '{"id":"...","agents":[{"id":"..."}]}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/supervisors"
     params = {}
     if has_cx_essentials is not None:
         params["hasCxEssentials"] = has_cx_essentials
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     if json_body:
         body = json.loads(json_body)
     else:
@@ -1066,14 +1460,26 @@ def create_supervisors(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     if isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
+    elif not result or result == {}:
+        typer.echo("Created.")
     else:
         print_json(result)
 
@@ -1081,6 +1487,7 @@ def create_supervisors(
 
 @app.command("delete-supervisors-config")
 def delete_supervisors_config(
+    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Include Customer Assist supervisors when true."),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1089,12 +1496,28 @@ def delete_supervisors_config(
         typer.confirm("Delete this resource?", abort=True)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/supervisors"
+    params = {}
+    if has_cx_essentials is not None:
+        params["hasCxEssentials"] = has_cx_essentials
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
-        api.session.rest_delete(url)
+        api.session.rest_delete(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -1130,16 +1553,37 @@ def show_supervisors(
         params["order"] = order
     if has_cx_essentials is not None:
         params["hasCxEssentials"] = has_cx_essentials
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    print_json(result)
+    if output == "json":
+        print_json(result)
+    else:
+        if isinstance(result, dict):
+            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
+        elif isinstance(result, list):
+            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
+        else:
+            print_json(result)
 
 
 
@@ -1150,12 +1594,15 @@ def update_supervisors(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Assign or Unassign Agents to Supervisor with Customer Experience Essentials."""
+    """Assign or Unassign Agents to Supervisor with Customer Experience Essentials\n\nExample --json-body:\n  '{"agents":[{"id":"...","action":"..."}]}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/supervisors/{supervisor_id}"
     params = {}
     if has_cx_essentials is not None:
         params["hasCxEssentials"] = has_cx_essentials
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     if json_body:
         body = json.loads(json_body)
     else:
@@ -1163,9 +1610,19 @@ def update_supervisors(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -1176,6 +1633,7 @@ def update_supervisors(
 @app.command("delete-supervisors-config-1")
 def delete_supervisors_config_1(
     supervisor_id: str = typer.Argument(help="supervisorId"),
+    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Include Customer Assist supervisors when true."),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1184,12 +1642,28 @@ def delete_supervisors_config_1(
         typer.confirm(f"Delete {supervisor_id}?", abort=True)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/supervisors/{supervisor_id}"
+    params = {}
+    if has_cx_essentials is not None:
+        params["hasCxEssentials"] = has_cx_essentials
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
-        api.session.rest_delete(url)
+        api.session.rest_delete(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -1230,16 +1704,30 @@ def list_available_supervisors(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("supervisors", result if isinstance(result, list) else [])
+    result = result or []
+    items = result.get("supervisors", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -1280,16 +1768,30 @@ def list_available_agents_supervisors(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("agents", result if isinstance(result, list) else [])
+    result = result or []
+    items = result.get("agents", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -1339,16 +1841,30 @@ def list_agents(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("agents", result if isinstance(result, list) else [])
+    result = result or []
+    items = result.get("agents", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -1375,16 +1891,37 @@ def show_agents(
         params["max"] = max
     if start is not None:
         params["start"] = start
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    print_json(result)
+    if output == "json":
+        print_json(result)
+    else:
+        if isinstance(result, dict):
+            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
+        elif isinstance(result, list):
+            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
+        else:
+            print_json(result)
 
 
 
@@ -1395,12 +1932,15 @@ def update_settings(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update an Agent's Settings of One or More Call Queues with Customer Experience Essentials."""
+    """Update an Agent's Settings of One or More Call Queues with Customer Experience Essentials\n\nExample --json-body:\n  '{"settings":[{"queueId":"...","joinEnabled":"..."}]}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/queues/agents/{id}/settings"
     params = {}
     if has_cx_essentials is not None:
         params["hasCxEssentials"] = has_cx_essentials
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     if json_body:
         body = json.loads(json_body)
     else:
@@ -1408,9 +1948,19 @@ def update_settings(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -1428,16 +1978,30 @@ def switch_mode_for(
     """Switch Mode for Call Forwarding Settings for a Call Queue."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/callForwarding/actions/switchMode/invoke"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     if json_body:
         body = json.loads(json_body)
     else:
         body = {}
     try:
-        result = api.session.rest_post(url, json=body)
+        result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)

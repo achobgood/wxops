@@ -17,7 +17,7 @@ def get_domain_verification(
 ):
     """Get Domain Verification Token."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/identity/organizations/{org_id}/actions/getDomainVerificationToken"
+    url = f"https://webexapis.com/identity/organizations/{org_id}/actions/getDomainVerificationToken"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -27,9 +27,19 @@ def get_domain_verification(
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -48,7 +58,7 @@ def verify_domain(
 ):
     """Verify Domain."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/identity/organizations/{org_id}/actions/verifyDomain"
+    url = f"https://webexapis.com/identity/organizations/{org_id}/actions/verifyDomain"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -62,9 +72,19 @@ def verify_domain(
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -80,9 +100,9 @@ def claim_domain(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Claim Domain."""
+    """Claim Domain\n\nExample --json-body:\n  '{"data":[{"domain":"..."}],"forceDomainClaim":true,"claimDomainOnly":true}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/identity/organizations/{org_id}/actions/claimDomain"
+    url = f"https://webexapis.com/identity/organizations/{org_id}/actions/claimDomain"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -94,9 +114,19 @@ def claim_domain(
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -114,7 +144,7 @@ def unverify_domain(
 ):
     """Unverify Domain."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/identity/organizations/{org_id}/actions/unverifyDomain"
+    url = f"https://webexapis.com/identity/organizations/{org_id}/actions/unverifyDomain"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -126,9 +156,19 @@ def unverify_domain(
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -145,7 +185,7 @@ def unclaim_domain(
 ):
     """Unclaim Domain."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/identity/organizations/{org_id}/actions/unclaimDomain"
+    url = f"https://webexapis.com/identity/organizations/{org_id}/actions/unclaimDomain"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -155,9 +195,19 @@ def unclaim_domain(
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)

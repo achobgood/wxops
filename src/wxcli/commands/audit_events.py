@@ -3,6 +3,7 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
+from wxcli.config import get_org_id
 
 
 app = typer.Typer(help="Manage Webex Calling admin-audit-events.")
@@ -10,7 +11,6 @@ app = typer.Typer(help="Manage Webex Calling admin-audit-events.")
 
 @app.command("list")
 def cmd_list(
-    org_id: str = typer.Option(..., "--org-id", help="List events in this organization, by ID."),
     from_param: str = typer.Option(..., "--from", help="List events which occurred after a specific date and time."),
     to: str = typer.Option(..., "--to", help="List events which occurred before a specific date and time."),
     actor_id: str = typer.Option(None, "--actor-id", help="List events performed by this person, by ID."),
@@ -25,8 +25,6 @@ def cmd_list(
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/adminAudit/events"
     params = {}
-    if org_id is not None:
-        params["orgId"] = org_id
     if from_param is not None:
         params["from"] = from_param
     if to is not None:
@@ -41,16 +39,30 @@ def cmd_list(
         params["eventCategories"] = event_categories
     if limit > 0:
         params["max"] = limit
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("items", result if isinstance(result, list) else [])
+    result = result or []
+    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -76,13 +88,24 @@ def list_event_categories(
     try:
         result = api.session.rest_get(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("eventCategories", result if isinstance(result, list) else [])
+    result = result or []
+    items = result.get("eventCategories", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:

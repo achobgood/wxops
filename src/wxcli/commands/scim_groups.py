@@ -54,13 +54,24 @@ def cmd_list(
     try:
         result = api.session.rest_get(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    items = result.get("Resources", result if isinstance(result, list) else [])
+    result = result or []
+    items = result.get("Resources", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -76,7 +87,7 @@ def create(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a group."""
+    """Create a group\n\nExample --json-body:\n  '{"schemas":["..."],"displayName":"...","externalId":"...","members":[{"value":"...","type":"..."}],"urn:scim:schemas:extension:cisco:webexidentity:2.0:Group":{"usage":"...","owners":["..."],"inheritances":["..."],"managedBy":["..."]}}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/identity/scim/{org_id}/v2/Groups"
     if json_body:
@@ -90,14 +101,26 @@ def create(
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     if isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
+    elif not result or result == {}:
+        typer.echo("Created.")
     else:
         print_json(result)
 
@@ -120,13 +143,31 @@ def show(
     try:
         result = api.session.rest_get(url, params=params)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    print_json(result)
+    if output == "json":
+        print_json(result)
+    else:
+        if isinstance(result, dict):
+            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
+        elif isinstance(result, list):
+            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
+        else:
+            print_json(result)
 
 
 
@@ -139,7 +180,7 @@ def update(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a group with PUT."""
+    """Update a group with PUT\n\nExample --json-body:\n  '{"schemas":["..."],"displayName":"...","externalId":"...","members":[{"value":"...","type":"..."}],"urn:scim:schemas:extension:cisco:webexidentity:2.0:Group":{"usage":"...","owners":["..."],"inheritances":["..."],"managedBy":["..."]}}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/identity/scim/{org_id}/v2/Groups/{group_id}"
     if json_body:
@@ -153,9 +194,19 @@ def update(
     try:
         result = api.session.rest_put(url, json=body)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -170,7 +221,7 @@ def update_groups(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a group with PATCH."""
+    """Update a group with PATCH\n\nExample --json-body:\n  '{"schemas":["..."],"Operations":[{"op":"...","path":"...","value":"..."}]}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/identity/scim/{org_id}/v2/Groups/{group_id}"
     if json_body:
@@ -180,9 +231,19 @@ def update_groups(
     try:
         result = api.session.rest_patch(url, json=body)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -205,55 +266,22 @@ def delete(
     try:
         api.session.rest_delete(url)
     except RestError as e:
-        if "25008" in str(e):
+        err = str(e)
+        if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
             typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     typer.echo(f"Deleted: {group_id}")
-
-
-
-@app.command("list-members")
-def list_members(
-    org_id: str = typer.Argument(help="orgId"),
-    group_id: str = typer.Argument(help="groupId"),
-    start_index: str = typer.Option(None, "--start-index", help="The index to start for group pagination."),
-    count: str = typer.Option(None, "--count", help="Non-negative integer that specifies the desired number of se"),
-    member_type: str = typer.Option(None, "--member-type", help="Filter the members by member type. Sample data: `user`, `mac"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Get Group Members."""
-    api = get_api(debug=debug)
-    url = f"https://webexapis.com/identity/scim/{org_id}/v2/Groups/{group_id}/Members"
-    params = {}
-    if start_index is not None:
-        params["startIndex"] = start_index
-    if count is not None:
-        params["count"] = count
-    if member_type is not None:
-        params["memberType"] = member_type
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
-    try:
-        result = api.session.rest_get(url, params=params)
-    except RestError as e:
-        if "25008" in str(e):
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    items = result.get("members", result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
