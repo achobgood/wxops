@@ -32,3 +32,6 @@ docs/prompts/
 docs/superpowers/
 docs/later/
 docs/plans/cucm-pipeline/
+
+# Tests (dev-only, not needed for playbook runtime)
+tests/
