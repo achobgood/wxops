@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wxcli:*)",
+      "Bash(which wxcli:*)",
+      "Bash(pip install -e:*)",
+      "Bash(pip3 install -e:*)",
+      "Bash(pip3.11 install -e:*)"
+    ]
+  }
+}

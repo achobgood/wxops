@@ -123,16 +123,20 @@ A guided AI assistant that walks you through Webex Calling configuration end-to-
 ### What's Included
 
 - **1 builder agent** (`/agents` → wxc-calling-builder) — the main entry point that drives the full workflow
-- **14 specialized skills** covering: provisioning, call features, routing, devices, device platform, call settings, call control, reporting, identity/SCIM, licensing, audit/compliance, messaging spaces, messaging bots, and debugging
+- **16 specialized skills** covering: provisioning, call features, Customer Assist, routing, devices, device platform, call settings, call control, reporting, identity/SCIM, licensing, audit/compliance, messaging spaces, messaging bots, debugging, and a seven-advisors decision framework
 - **29 reference docs** in `docs/reference/` documenting every Webex Calling API surface with SDK method signatures and raw HTTP examples
+- **Shared permissions** (`.claude/settings.json`) that pre-approve `wxcli` commands so Claude Code doesn't prompt you for every CLI execution
 
 ### How to Use It
 
 1. Install [Claude Code](https://claude.com/claude-code)
-2. `cd` into this repo
-3. Run `claude` to start Claude Code
-4. Use `/agents` and select **wxc-calling-builder** to begin
-5. Or use `/wxc-calling-debug` to troubleshoot a specific issue
+2. Clone this repo and `cd` into it
+3. Install the CLI: `pip install -e .`
+4. Run `claude` to start Claude Code
+5. Use `/agents` and select **wxc-calling-builder** to begin
+6. Or use `/wxc-calling-debug` to troubleshoot a specific issue
+
+The repo includes a `.claude/settings.json` that pre-approves common commands (`wxcli`, `pip install`, `which`). This means the playbook agent can run `wxcli` commands without prompting you for permission each time. You can review or customize these permissions in `.claude/settings.json`. Any personal overrides go in `.claude/settings.local.json` (gitignored).
 
 ### Without Claude Code
 
@@ -158,8 +162,9 @@ webexCalling/
 │   └── field_overrides.yaml      # Table columns, display config, bug fixes
 ├── webex-*.json                  # 4 OpenAPI 3.0 specs (calling, admin, device, messaging)
 ├── docs/reference/               # 29 API reference docs (SDK + raw HTTP)
+├── .claude/settings.json          # Shared permissions (pre-approves wxcli commands)
 ├── .claude/agents/               # Claude Code builder agent
-└── .claude/skills/               # 14 Claude Code skills
+└── .claude/skills/               # 16 Claude Code skills
 ```
 
 **Key design decisions:**
