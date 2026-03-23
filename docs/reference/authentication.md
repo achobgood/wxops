@@ -16,9 +16,10 @@ This document covers every authentication method available for the Webex Calling
 2. [Personal Access Tokens](#personal-access-tokens)
 3. [OAuth Integrations](#oauth-integrations)
 4. [Service Apps](#service-apps)
-5. [Bot Tokens](#bot-tokens)
-6. [Guest Issuer Tokens](#guest-issuer-tokens)
-7. [Calling-Related Scopes](#calling-related-scopes)
+5. [Partner/Multi-Org Tokens](#partnerulti-org-tokens)
+6. [Bot Tokens](#bot-tokens)
+7. [Guest Issuer Tokens](#guest-issuer-tokens)
+8. [Calling-Related Scopes](#calling-related-scopes)
 8. [wxc_sdk Auth Setup](#wxc_sdk-auth-setup)
 9. [Raw HTTP via api.session](#raw-http-via-apisession)
 10. [Token Refresh Flow](#token-refresh-flow)
@@ -305,6 +306,41 @@ The SDK example caches tokens to a YML file keyed by `client_id` to avoid unnece
 if tokens.expires_in is not None and tokens.remaining < 24 * 60 * 60:
     tokens = get_access_token(client_id=client_id, client_secret=client_secret, refresh=refresh)
 ```
+
+---
+
+## Partner/Multi-Org Tokens
+
+Partner/VAR/MSP admins hold tokens that have access to multiple customer organizations. Most Webex API endpoints accept an `orgId` query parameter to target a specific customer org; without it, the API defaults to the partner's own org (usually not what you want).
+
+<!-- Verified via CLI implementation 2026-03-23 -->
+
+### How wxcli handles partner tokens
+
+wxcli detects multi-org tokens automatically and manages `orgId` injection transparently:
+
+| Command | Purpose |
+|---------|---------|
+| `wxcli configure` | Detects whether the token has multi-org access. If so, lists available customer orgs and prompts you to select one. The chosen `orgId` is saved to the config file. |
+| `wxcli switch-org` | Change the active target org at any time without re-running `configure`. |
+| `wxcli clear-org` | Remove the saved `orgId` to revert to single-org (partner-org) behavior. |
+| `wxcli whoami` | Shows a "Target: <org name>" line when a target org is set. |
+
+Once a target org is configured, 668 of 804 generated commands automatically inject `orgId` from config on every API call that accepts the parameter — no `--org-id` flag required. The four hand-coded command files (users, licenses, locations, numbers) also inject `orgId` the same way.
+
+### Builder agent behavior
+
+When the builder agent detects a partner token (section 2b of its workflow), it pauses and requires explicit org confirmation before proceeding. This prevents accidentally configuring the wrong customer org.
+
+### Scopes for partner tokens
+
+Partner tokens use the same `spark-admin:` scopes as regular admin tokens. No additional scopes are required to access customer org data — the token type (partner) is what grants cross-org access, not a special scope.
+
+### Gotchas
+
+- **`organizations list` returns multiple orgs for partner tokens.** wxcli uses this call to detect partner tokens: if the response contains more than one org, it treats the token as multi-org and prompts for selection. Single-org admins always see exactly one result.
+- **Some endpoints do not accept `orgId`.** The 136 of 804 endpoints that do not accept `orgId` operate in the context of the token's own org. These are typically endpoints that are inherently org-scoped (e.g., `/v1/organizations/{orgId}/...` where the org is a path param, not a query param).
+- **Service app tokens scoped to a single customer org** behave like single-org tokens and do not trigger multi-org detection.
 
 ---
 

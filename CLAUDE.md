@@ -113,6 +113,35 @@ Use `/wxc-calling-debug` to troubleshoot a failing configuration (this one is a 
 | `webex-device.json` | OpenAPI 3.0 spec — device management APIs |
 | `webex-messaging.json` | OpenAPI 3.0 spec — messaging/rooms/teams APIs |
 
+### CUCM→Webex Migration Tool (Phases 01-06 built, Phase 07+ remaining)
+
+The migration tool is a hand-coded module at `src/wxcli/migration/` that will plug into the CLI as `wxcli cucm <command>`. It does NOT use the auto-generator. **740 tests passing.**
+
+| Path | Purpose |
+|------|---------|
+| `docs/plans/cucm-migration-roadmap.md` | **Master roadmap** — what's done, what's ready, what's next. Start here. |
+| `docs/plans/cucm-wxc-migration.md` | Full migration design spec (module structure is stale — pipeline docs are authoritative) |
+| `docs/plans/cucm-pipeline-architecture.md` | Pipeline architecture summary — SQLite store, two-pass ELT, linter-pattern analyzers, NetworkX DAG |
+| `docs/plans/cucm-pipeline/01-07 + 03b` | 8 detailed architecture docs (data representation, normalization, analyzers, mappers, CSS decomposition, dependency graph, decision workflow, idempotency) |
+| `docs/prompts/` | Design + build prompts (execution prompts, review swarms, guardrails) |
+| `docs/prompts/design-guardrails.md` | Shared guardrails for all design sessions (hallucination prevention, citation requirements, checklist-before-writing) |
+| `src/wxcli/migration/models.py` | Canonical data models — 20 types, DecisionType (15 values), Decision, MapperResult, TransformResult |
+| `src/wxcli/migration/store.py` | SQLite-backed store — objects, cross_refs, decisions, journal, merge_log, merge_decisions() |
+| `src/wxcli/migration/extract/` | Phase 03 — AXL connection, 8 extractors, discovery pipeline |
+| `src/wxcli/migration/transform/normalizers.py` | Phase 04 — 24 Pass 1 normalizers |
+| `src/wxcli/migration/transform/cross_reference.py` | Phase 04 — CrossReferenceBuilder (26 relationships + 3 enrichments) |
+| `src/wxcli/migration/transform/pipeline.py` | Phase 04 — `normalize_discovery()` entry point |
+| `src/wxcli/migration/transform/mappers/` | Phase 05 — 9 mappers + base.py + engine.py |
+| `src/wxcli/migration/transform/analyzers/` | Phase 06 — 12 analyzers (3 analyzer-owned + 9 mapper-owned) |
+| `src/wxcli/migration/transform/analysis_pipeline.py` | Phase 06 — Orchestrator: run analyzers → merge → auto-rules |
+| `src/wxcli/migration/transform/rules.py` | Phase 05 — Auto-resolution rules (type-based matching) |
+| `src/wxcli/migration/transform/decisions.py` | Phase 05 — Decision query/formatting helpers |
+
+**Where the design spec and pipeline architecture docs conflict, the pipeline architecture docs are authoritative.**
+
+Each subdirectory has its own CLAUDE.md (local context) and TODO.md (outstanding work).
+See `docs/plans/cucm-migration-roadmap.md` for the master project status.
+
 ### Tools
 
 | Path | Purpose |
@@ -136,6 +165,21 @@ Use `/wxc-calling-debug` to troubleshoot a failing configuration (this one is a 
 - **Live API sweep Batch 1 (2026-03-19):** Tested ~60 CLI commands and ~36 person endpoints. Found 9 CLI bugs (5 response key, 2 SCIM URL, 2 missing params) and 6 user-only person endpoints. All documented in reference docs.
 - **Live API sweep Batch 2 (2026-03-19):** Tested user-settings (~12 cmds), workspace-settings (~12 cmds), virtual-line-settings (~6 cmds), device-settings (~4 cmds), device-dynamic-settings, call-routing (5 list cmds), calling-service, caller-reputation, client-settings, hot-desking-portal, report-templates, CDR, admin-recordings, resource-groups, resource-group-memberships, hybrid-clusters/connectors, and workspace endpoint existence via curl. Found 3 CLI bugs (CDR wrong base URL, null result traceback, report-templates misclassified as singleton). Fixed in generator: analytics base URL support, null result guard, direct-array-response list classification. Mapped workspace endpoint access by license tier (Basic vs Professional).
 - **Live API sweep Batch 3 (2026-03-20):** Tested location-settings (~15 cmds), location-schedules, location-voicemail (~10 cmds), emergency-services (~15 cmds), dect-devices full CRUD lifecycle (create network → add handsets with 2 lines → update → bulk add → delete), call-recording (~10 cmds), organizations, roles, org-contacts, device-configurations, xapi, workspace-personalization. No new CLI bugs found. Full DECT create/read/update/delete cycle verified. Base station MACs require Cisco manufacturing database (Bifrost) — can't use fake MACs.
+- **Live API sweep Batch 4 (2026-03-21):** Customer Assist (cx-essentials) end-to-end: screen pop, wrap-up reasons, queue call recording (2 new commands), supervisors, available agents. Found 6 CLI bugs (list table column, validate output, list-settings response shape, missing error 28018 handling, wrong queue recording JSON example, update-settings missing 28018). Found 2 generator issues (supervisor delete missing hasCxEssentials param, create output for empty dict). Found 3 API behaviors: CX queues hidden from default `call-queue list`, CX queue creation requires `callPolicies`, supervisor delete returns 204 but supervisor persists (workaround: remove agents via update). All CLI bugs fixed, generator enhanced with `add_query_params` override.
+
+### Partner Multi-Org Support
+
+wxcli supports partner/VAR/MSP admins who manage multiple customer orgs with a single partner token.
+
+- **`wxcli configure`** — detects multi-org tokens automatically and prompts for org selection. The selected `orgId` is saved to the config file.
+- **`wxcli switch-org`** — change the active target org at any time.
+- **`wxcli clear-org`** — remove the saved `orgId` to revert to single-org behavior.
+- **`wxcli whoami`** — shows a "Target:" line when an org is set.
+- **668 of 804 generated commands** auto-inject `orgId` from config on endpoints that accept it. No flag is required — the parameter is injected transparently.
+- **4 hand-coded command files** (users, licenses, locations, numbers) also inject `orgId` from config.
+- The builder agent has a blocking org confirmation step at session start (section 2b) when a partner token is detected.
+
+See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for full details.
 
 ### Known issues
 
@@ -146,10 +190,13 @@ Use `/wxc-calling-debug` to troubleshoot a failing configuration (this one is a 
 5. **Two path families for person settings.** Classic settings use `/people/{personId}/features/{feature}`. Newer settings use `/telephony/config/people/{personId}/{feature}`. Some names differ between families: `intercept` (not `callIntercept`), `reception` (not `receptionist`), `applications` (not `applicationServicesSettings`), `autoTransferNumbers` (not `transferNumbers`), `pushToTalk` (not `pushToTalkSettings`).
 6. **Workspace `/telephony/config/` settings require Professional license.** Most workspace call settings under `/telephony/config/workspaces/{id}/` return 405 "Invalid Professional Place" for Basic-licensed workspaces. Only `musicOnHold` and `doNotDisturb` work on Basic. The `/workspaces/{id}/features/` path family (callForwarding, callWaiting, callerId, intercept, monitoring) works on Basic. The CLI now detects this error and prints a tip.
 7. **Settings endpoints now support table output.** Settings-get commands (show-*) now accept `-o table` and auto-detect columns from the response data. List commands with non-standard response shapes (no `id`/`name` fields) also auto-detect columns.
+8. **Customer Assist queues are hidden from default `call-queue list`.** Must pass `--has-cx-essentials true` to see them. CX queue creation requires `callPolicies` via `--json-body`. Error 28018 ("CX Essentials is not enabled for this Call center") means the queue isn't a Customer Assist queue. The CLI detects this and prints a tip.
+9. **Supervisor delete returns 204 but supervisor persists.** `delete-supervisors-config-1 --has-cx-essentials true` gets 204 from the API but the supervisor remains. Workaround: use `update-supervisors` with `action: DELETE` on each agent — removing the last agent auto-removes the supervisor.
 
 ### Generator rules
 
 - **Never hand-edit generated files.** Fix bugs by updating `tools/field_overrides.yaml` and regenerating.
+- **`auto_inject_from_config`** — `field_overrides.yaml` supports an `auto_inject_from_config: ["orgId"]` key per endpoint. Parameters listed here are omitted from `--help` and injected automatically from the saved config at runtime. This replaces the older `omit_query_params` approach for `orgId`.
 - **Spec files:** 4 OpenAPI 3.0 specs in project root (`webex-cloud-calling.json`, `webex-admin.json`, `webex-device.json`, `webex-messaging.json`)
 - Regenerate one tag: `PYTHONPATH=. python3.11 tools/generate_commands.py --spec webex-cloud-calling.json --tag "Tag Name"`
 - Regenerate one spec (all tags): `PYTHONPATH=. python3.11 tools/generate_commands.py --spec webex-cloud-calling.json --all`
