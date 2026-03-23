@@ -34,9 +34,6 @@ docs/plans/2026-03-18-multi-tier-call-flow*.md
 # CUCM migration module (work in progress)
 src/wxcli/migration/
 
-# Generator tooling (dev-only)
-tools/
-
 # Tests (dev-only)
 tests/
 
