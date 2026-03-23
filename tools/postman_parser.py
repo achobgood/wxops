@@ -111,7 +111,7 @@ def _dedup_command_names(endpoints: list) -> None:
 def load_overrides(path: str | Path) -> dict:
     path = Path(path)
     if not path.exists():
-        return {"skip_folders": [], "omit_query_params": ["orgId"]}
+        return {"skip_folders": [], "omit_query_params": [], "auto_inject_from_config": ["orgId"]}
     with open(path) as f:
         return yaml.safe_load(f) or {}
 
