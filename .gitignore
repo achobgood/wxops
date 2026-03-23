@@ -23,3 +23,6 @@ build/
 # Tool caches
 tools/__pycache__/
 tests/**/__pycache__/
+
+# Generated HTML visualizations
+*pipeline-visual*.html
