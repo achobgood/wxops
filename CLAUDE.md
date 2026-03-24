@@ -202,6 +202,7 @@ See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for fu
 ### Generator rules
 
 - **Never hand-edit generated files.** Fix bugs by updating `tools/field_overrides.yaml` and regenerating.
+- **Never create new hand-written command files.** 4 legacy hand-written files exist (`users.py`, `locations.py`, `numbers.py`, `licenses.py`) — these are a known drift risk that miss generator improvements. All new commands must go through the generator. If a generated command needs custom behavior, use `field_overrides.yaml`. These 4 files are queued for replacement (see roadmap).
 - **`auto_inject_from_config`** — `field_overrides.yaml` supports an `auto_inject_from_config: ["orgId"]` key per endpoint. Parameters listed here are omitted from `--help` and injected automatically from the saved config at runtime. This replaces the older `omit_query_params` approach for `orgId`.
 - **Spec files:** 4 OpenAPI 3.0 specs in project root (`webex-cloud-calling.json`, `webex-admin.json`, `webex-device.json`, `webex-messaging.json`)
 - Regenerate one tag: `PYTHONPATH=. python3.11 tools/generate_commands.py --spec webex-cloud-calling.json --tag "Tag Name"`

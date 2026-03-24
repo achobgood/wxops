@@ -86,6 +86,7 @@ def cmd_list(
 def create(
     org_id: str = typer.Argument(help="orgId"),
     user_name: str = typer.Option(None, "--user-name", help="(required) A unique identifier for the user that authenticates the user"),
+    user_type: str = typer.Option(None, "--user-type", help="(required) Choices: user, room, external_calling, calling_service"),
     title: str = typer.Option(None, "--title", help="The user's business title.  Examples of a title is \"Business"),
     active: bool = typer.Option(None, "--active/--no-active", help="A boolean value of \"true\" or \"false\" indicating whether the"),
     preferred_language: str = typer.Option(None, "--preferred-language", help="User's preferred language. Acceptable values are based on th"),
@@ -107,6 +108,8 @@ def create(
         body = {}
         if user_name is not None:
             body["userName"] = user_name
+        if user_type is not None:
+            body["userType"] = user_type
         if title is not None:
             body["title"] = title
         if active is not None:
@@ -125,7 +128,7 @@ def create(
             body["displayName"] = display_name
         if nick_name is not None:
             body["nickName"] = nick_name
-        _missing = [f for f in ['userName'] if f not in body or body[f] is None]
+        _missing = [f for f in ['userName', 'userType'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
             raise typer.Exit(1)
@@ -203,6 +206,7 @@ def update(
     org_id: str = typer.Argument(help="orgId"),
     user_id: str = typer.Argument(help="userId"),
     user_name: str = typer.Option(None, "--user-name", help="A unique identifier for the user and authenticates the user"),
+    user_type: str = typer.Option(None, "--user-type", help="Choices: user, room, external_calling, calling_service"),
     title: str = typer.Option(None, "--title", help="The user's business title.  Examples of a title is \"Business"),
     active: bool = typer.Option(None, "--active/--no-active", help="A boolean value of \"true\" or \"false\" indicating whether the"),
     preferred_language: str = typer.Option(None, "--preferred-language", help="User's preferred language.  Acceptable values for this field"),
@@ -224,6 +228,8 @@ def update(
         body = {}
         if user_name is not None:
             body["userName"] = user_name
+        if user_type is not None:
+            body["userType"] = user_type
         if title is not None:
             body["title"] = title
         if active is not None:

@@ -232,19 +232,25 @@ def parse_request_body(
     fields: list[EndpointField] = []
 
     for name, prop in properties.items():
-        # Resolve property-level $ref
+        # Resolve property-level $ref — check if it's a simple type or true object
         if "$ref" in prop:
-            # Nested object reference
-            fields.append(
-                EndpointField(
-                    name=name,
-                    python_name=camel_to_kebab(name),
-                    field_type="object",
-                    description=prop.get("description", "")[:120],
-                    required=name in required_fields,
+            resolved = resolve_ref(spec, prop["$ref"])
+            resolved_type = resolved.get("type", "object")
+            if resolved_type in ("string", "integer", "number", "boolean"):
+                # Simple type behind $ref (e.g., enum) — treat as normal field
+                prop = {**resolved, "description": prop.get("description") or resolved.get("description", "")}
+            else:
+                # Truly nested object/array
+                fields.append(
+                    EndpointField(
+                        name=name,
+                        python_name=camel_to_kebab(name),
+                        field_type="object",
+                        description=prop.get("description", "")[:120],
+                        required=name in required_fields,
+                    )
                 )
-            )
-            continue
+                continue
 
         field_type = _openapi_type_to_field_type(prop)
         enum_values = prop.get("enum")

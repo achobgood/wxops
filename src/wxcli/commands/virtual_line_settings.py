@@ -2321,6 +2321,8 @@ def list_push_to_talk(
 def update_push_to_talk(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     allow_auto_answer: bool = typer.Option(None, "--allow-auto-answer/--no-allow-auto-answer", help="`true` if Push-to-Talk feature is enabled."),
+    connection_type: str = typer.Option(None, "--connection-type", help="Choices: ONE_WAY, TWO_WAY"),
+    access_type: str = typer.Option(None, "--access-type", help="Choices: ALLOW_MEMBERS, BLOCK_MEMBERS"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -2337,6 +2339,10 @@ def update_push_to_talk(
         body = {}
         if allow_auto_answer is not None:
             body["allowAutoAnswer"] = allow_auto_answer
+        if connection_type is not None:
+            body["connectionType"] = connection_type
+        if access_type is not None:
+            body["accessType"] = access_type
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except RestError as e:

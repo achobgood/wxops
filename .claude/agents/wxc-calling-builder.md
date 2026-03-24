@@ -417,6 +417,19 @@ Before executing commands for any domain, **read the relevant skill file**. The 
 4. If a command fails, read the debug skill for diagnosis
 5. If the skill references a raw HTTP fallback, check `docs/reference/wxc-sdk-patterns.md`
 
+### Source of Truth Precedence
+
+When information conflicts between sources, trust them in this order:
+
+1. **`wxcli <command> --help`** — the running code; always current
+2. **Skills** — verified against live APIs; contain exact command examples
+3. **Reference docs** — comprehensive but can lag behind skill and CLI updates
+4. **Your training data** — least reliable; NEVER trust over the above three
+
+Example: if a reference doc says `wxcli locations-api list` but the skill says `wxcli locations list`, run `wxcli locations list --help` to see which exists. If `--help` confirms `locations list` works, use that regardless of what the reference doc says.
+
+When you find a conflict, fix the stale source if possible (update the reference doc or flag it to the user). Do not silently use the wrong command.
+
 ### Multiple Skills Per Plan
 
 Most builds touch multiple domains. Load skills as you enter each domain's steps:
@@ -537,7 +550,22 @@ curl -s -H "Authorization: Bearer $TOKEN" https://webexapis.com/v1/...
 ```
 The config file structure is `profiles.<profile_name>.token` (not a top-level `access_token` key). Default profile is `default`.
 
-Run `wxcli <group> --help` to discover available commands. Run `wxcli <group> <command> --help` for options.
+### Command Verification (Anti-Hallucination)
+
+**NEVER guess command names, flag names, or argument order.** The CLI has 100 command groups and 800+ commands — your training data WILL be wrong about specific names. Before running any wxcli command for the first time in a session:
+
+1. **Verify the command group exists:** `wxcli <group> --help`
+2. **Verify the command exists:** `wxcli <group> <command> --help`
+3. **Check required arguments and flags** in the `--help` output before constructing the command
+
+**Common hallucination patterns to avoid:**
+- Inventing flags: `--location` (wrong) vs `--location-id` (right)
+- Singular vs plural: `delete-route-group` (wrong) vs `delete-route-groups` (right)
+- Assuming `-o json` works on all commands (action/POST commands don't support it)
+- Guessing `--json-body` structure instead of reading the example in `--help`
+- Inventing commands like `wxcli users assign-license` (doesn't exist — licenses are assigned via `wxcli licenses-api update`)
+
+**When a skill provides exact command examples, trust the skill.** Skills are verified against live APIs. When operating without a skill (ad-hoc requests), always check `--help` first.
 
 ### Design Doc Requirement
 ALWAYS save the deployment plan to `docs/plans/` before starting execution. This is the compaction recovery safety net. If context resets mid-execution without a saved plan, all progress context is lost.

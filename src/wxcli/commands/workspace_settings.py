@@ -2214,6 +2214,8 @@ def list_push_to_talk(
 def update_push_to_talk(
     workspace_id: str = typer.Argument(help="workspaceId"),
     allow_auto_answer: bool = typer.Option(None, "--allow-auto-answer/--no-allow-auto-answer", help="`true` if Push-to-Talk feature is enabled."),
+    connection_type: str = typer.Option(None, "--connection-type", help="Choices: ONE_WAY, TWO_WAY"),
+    access_type: str = typer.Option(None, "--access-type", help="Choices: ALLOW_MEMBERS, BLOCK_MEMBERS"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -2230,6 +2232,10 @@ def update_push_to_talk(
         body = {}
         if allow_auto_answer is not None:
             body["allowAutoAnswer"] = allow_auto_answer
+        if connection_type is not None:
+            body["connectionType"] = connection_type
+        if access_type is not None:
+            body["accessType"] = access_type
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except RestError as e:
@@ -3113,6 +3119,9 @@ def update_criteria_simultaneous_ring(
     workspace_id: str = typer.Argument(help="workspaceId"),
     id: str = typer.Argument(help="id"),
     schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the location's schedule which determines when the si"),
+    schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP"),
+    calls_from: str = typer.Option(None, "--calls-from", help="Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables calls from anonymous callers."),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables calls even if callers are unavailable."),
     ring_enabled: bool = typer.Option(None, "--ring-enabled/--no-ring-enabled", help="When set to `true` simultaneous ringing criteria is enabled"),
@@ -3132,6 +3141,12 @@ def update_criteria_simultaneous_ring(
         body = {}
         if schedule_name is not None:
             body["scheduleName"] = schedule_name
+        if schedule_type is not None:
+            body["scheduleType"] = schedule_type
+        if schedule_level is not None:
+            body["scheduleLevel"] = schedule_level
+        if calls_from is not None:
+            body["callsFrom"] = calls_from
         if anonymous_callers_enabled is not None:
             body["anonymousCallersEnabled"] = anonymous_callers_enabled
         if unavailable_callers_enabled is not None:
@@ -3204,6 +3219,9 @@ def delete_criteria_simultaneous_ring(
 def create_criteria_simultaneous_ring(
     workspace_id: str = typer.Argument(help="workspaceId"),
     schedule_name: str = typer.Option(None, "--schedule-name", help="(required) Name of the location's schedule which determines when the si"),
+    schedule_type: str = typer.Option(None, "--schedule-type", help="(required) Choices: businessHours, holidays"),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="(required) Choices: GROUP"),
+    calls_from: str = typer.Option(None, "--calls-from", help="(required) Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables calls from anonymous callers. Value for"),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables calls even if callers are unavailable."),
     ring_enabled: bool = typer.Option(None, "--ring-enabled/--no-ring-enabled", help="(required) When set to `true` simultaneous ringing criteria is enabled"),
@@ -3223,13 +3241,19 @@ def create_criteria_simultaneous_ring(
         body = {}
         if schedule_name is not None:
             body["scheduleName"] = schedule_name
+        if schedule_type is not None:
+            body["scheduleType"] = schedule_type
+        if schedule_level is not None:
+            body["scheduleLevel"] = schedule_level
+        if calls_from is not None:
+            body["callsFrom"] = calls_from
         if anonymous_callers_enabled is not None:
             body["anonymousCallersEnabled"] = anonymous_callers_enabled
         if unavailable_callers_enabled is not None:
             body["unavailableCallersEnabled"] = unavailable_callers_enabled
         if ring_enabled is not None:
             body["ringEnabled"] = ring_enabled
-        _missing = [f for f in ['scheduleName', 'ringEnabled'] if f not in body or body[f] is None]
+        _missing = [f for f in ['scheduleName', 'scheduleType', 'scheduleLevel', 'callsFrom', 'ringEnabled'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
             raise typer.Exit(1)
@@ -3401,6 +3425,9 @@ def update_criteria_selective_reject(
     workspace_id: str = typer.Argument(help="workspaceId"),
     id: str = typer.Argument(help="id"),
     schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the location's schedule which determines when the se"),
+    schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP"),
+    calls_from: str = typer.Option(None, "--calls-from", help="Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS, FORWARDED"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables calls from anonymous callers."),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables calls even if callers are unavailable."),
     reject_enabled: bool = typer.Option(None, "--reject-enabled/--no-reject-enabled", help="Choose to reject (if `rejectEnabled` = `true`) or not to rej"),
@@ -3420,6 +3447,12 @@ def update_criteria_selective_reject(
         body = {}
         if schedule_name is not None:
             body["scheduleName"] = schedule_name
+        if schedule_type is not None:
+            body["scheduleType"] = schedule_type
+        if schedule_level is not None:
+            body["scheduleLevel"] = schedule_level
+        if calls_from is not None:
+            body["callsFrom"] = calls_from
         if anonymous_callers_enabled is not None:
             body["anonymousCallersEnabled"] = anonymous_callers_enabled
         if unavailable_callers_enabled is not None:
@@ -3492,6 +3525,9 @@ def delete_criteria_selective_reject(
 def create_criteria_selective_reject(
     workspace_id: str = typer.Argument(help="workspaceId"),
     schedule_name: str = typer.Option(None, "--schedule-name", help="(required) Name of the location's schedule which determines when the se"),
+    schedule_type: str = typer.Option(None, "--schedule-type", help="(required) Choices: businessHours, holidays"),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="(required) Choices: GROUP"),
+    calls_from: str = typer.Option(None, "--calls-from", help="(required) Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS, FORWARDED"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables calls from anonymous callers. Value for"),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables calls even if callers are unavailable."),
     reject_enabled: bool = typer.Option(None, "--reject-enabled/--no-reject-enabled", help="(required) Choose to reject (if `rejectEnabled` = `true`) or not to rej"),
@@ -3511,13 +3547,19 @@ def create_criteria_selective_reject(
         body = {}
         if schedule_name is not None:
             body["scheduleName"] = schedule_name
+        if schedule_type is not None:
+            body["scheduleType"] = schedule_type
+        if schedule_level is not None:
+            body["scheduleLevel"] = schedule_level
+        if calls_from is not None:
+            body["callsFrom"] = calls_from
         if anonymous_callers_enabled is not None:
             body["anonymousCallersEnabled"] = anonymous_callers_enabled
         if unavailable_callers_enabled is not None:
             body["unavailableCallersEnabled"] = unavailable_callers_enabled
         if reject_enabled is not None:
             body["rejectEnabled"] = reject_enabled
-        _missing = [f for f in ['scheduleName', 'rejectEnabled'] if f not in body or body[f] is None]
+        _missing = [f for f in ['scheduleName', 'scheduleType', 'scheduleLevel', 'callsFrom', 'rejectEnabled'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
             raise typer.Exit(1)
@@ -3732,6 +3774,9 @@ def update_criteria_selective_accept(
     workspace_id: str = typer.Argument(help="workspaceId"),
     id: str = typer.Argument(help="id"),
     schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the location's schedule which determines when the se"),
+    schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP"),
+    calls_from: str = typer.Option(None, "--calls-from", help="Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS, FORWARDED"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables calls from anonymous callers."),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables calls even if callers are unavailable."),
     accept_enabled: bool = typer.Option(None, "--accept-enabled/--no-accept-enabled", help="Choose to accept (if `acceptEnabled` = `true`) or not to acc"),
@@ -3751,6 +3796,12 @@ def update_criteria_selective_accept(
         body = {}
         if schedule_name is not None:
             body["scheduleName"] = schedule_name
+        if schedule_type is not None:
+            body["scheduleType"] = schedule_type
+        if schedule_level is not None:
+            body["scheduleLevel"] = schedule_level
+        if calls_from is not None:
+            body["callsFrom"] = calls_from
         if anonymous_callers_enabled is not None:
             body["anonymousCallersEnabled"] = anonymous_callers_enabled
         if unavailable_callers_enabled is not None:
@@ -3823,6 +3874,9 @@ def delete_criteria_selective_accept(
 def create_criteria_selective_accept(
     workspace_id: str = typer.Argument(help="workspaceId"),
     schedule_name: str = typer.Option(None, "--schedule-name", help="(required) Name of the location's schedule which determines when the se"),
+    schedule_type: str = typer.Option(None, "--schedule-type", help="(required) Choices: businessHours, holidays"),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="(required) Choices: GROUP"),
+    calls_from: str = typer.Option(None, "--calls-from", help="(required) Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS, FORWARDED"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables calls from anonymous callers. Value for"),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables calls even if callers are unavailable."),
     accept_enabled: bool = typer.Option(None, "--accept-enabled/--no-accept-enabled", help="(required) Choose to accept (if `acceptEnabled` = `true`) or not to acc"),
@@ -3842,13 +3896,19 @@ def create_criteria_selective_accept(
         body = {}
         if schedule_name is not None:
             body["scheduleName"] = schedule_name
+        if schedule_type is not None:
+            body["scheduleType"] = schedule_type
+        if schedule_level is not None:
+            body["scheduleLevel"] = schedule_level
+        if calls_from is not None:
+            body["callsFrom"] = calls_from
         if anonymous_callers_enabled is not None:
             body["anonymousCallersEnabled"] = anonymous_callers_enabled
         if unavailable_callers_enabled is not None:
             body["unavailableCallersEnabled"] = unavailable_callers_enabled
         if accept_enabled is not None:
             body["acceptEnabled"] = accept_enabled
-        _missing = [f for f in ['scheduleName', 'acceptEnabled'] if f not in body or body[f] is None]
+        _missing = [f for f in ['scheduleName', 'scheduleType', 'scheduleLevel', 'callsFrom', 'acceptEnabled'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
             raise typer.Exit(1)
@@ -4020,6 +4080,9 @@ def update_criteria_priority_alert(
     workspace_id: str = typer.Argument(help="workspaceId"),
     id: str = typer.Argument(help="id"),
     schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the location's schedule which determines when the pr"),
+    schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP"),
+    calls_from: str = typer.Option(None, "--calls-from", help="Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables calls from anonymous callers."),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables calls even if callers are unavailable."),
     notification_enabled: bool = typer.Option(None, "--notification-enabled/--no-notification-enabled", help="When set to `true` priority alerting criteria is enabled for"),
@@ -4039,6 +4102,12 @@ def update_criteria_priority_alert(
         body = {}
         if schedule_name is not None:
             body["scheduleName"] = schedule_name
+        if schedule_type is not None:
+            body["scheduleType"] = schedule_type
+        if schedule_level is not None:
+            body["scheduleLevel"] = schedule_level
+        if calls_from is not None:
+            body["callsFrom"] = calls_from
         if anonymous_callers_enabled is not None:
             body["anonymousCallersEnabled"] = anonymous_callers_enabled
         if unavailable_callers_enabled is not None:
@@ -4111,6 +4180,9 @@ def delete_criteria_priority_alert(
 def create_criteria_priority_alert(
     workspace_id: str = typer.Argument(help="workspaceId"),
     schedule_name: str = typer.Option(None, "--schedule-name", help="(required) Name of the location's schedule which determines when the pr"),
+    schedule_type: str = typer.Option(None, "--schedule-type", help="(required) Choices: businessHours, holidays"),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="(required) Choices: GROUP"),
+    calls_from: str = typer.Option(None, "--calls-from", help="(required) Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables calls from anonymous callers. Value for"),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables calls even if callers are unavailable."),
     notification_enabled: bool = typer.Option(None, "--notification-enabled/--no-notification-enabled", help="(required) When set to `true` priority alerting criteria is enabled for"),
@@ -4130,13 +4202,19 @@ def create_criteria_priority_alert(
         body = {}
         if schedule_name is not None:
             body["scheduleName"] = schedule_name
+        if schedule_type is not None:
+            body["scheduleType"] = schedule_type
+        if schedule_level is not None:
+            body["scheduleLevel"] = schedule_level
+        if calls_from is not None:
+            body["callsFrom"] = calls_from
         if anonymous_callers_enabled is not None:
             body["anonymousCallersEnabled"] = anonymous_callers_enabled
         if unavailable_callers_enabled is not None:
             body["unavailableCallersEnabled"] = unavailable_callers_enabled
         if notification_enabled is not None:
             body["notificationEnabled"] = notification_enabled
-        _missing = [f for f in ['scheduleName', 'notificationEnabled'] if f not in body or body[f] is None]
+        _missing = [f for f in ['scheduleName', 'scheduleType', 'scheduleLevel', 'callsFrom', 'notificationEnabled'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
             raise typer.Exit(1)
@@ -4319,6 +4397,9 @@ def update_criteria_selective_forward(
     forward_to_phone_number: str = typer.Option(None, "--forward-to-phone-number", help="Phone number to forward calls to during this schedule."),
     destination_voicemail_enabled: bool = typer.Option(None, "--destination-voicemail-enabled/--no-destination-voicemail-enabled", help="Enables forwarding for all calls to voicemail. This option i"),
     schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the location's schedule which determines when the se"),
+    schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP"),
+    calls_from: str = typer.Option(None, "--calls-from", help="Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS, ANY_INTERNAL, ANY_EXTERNAL"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables selective forward to calls from anonymo"),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables selective forward to calls if the calle"),
     forward_enabled: bool = typer.Option(None, "--forward-enabled/--no-forward-enabled", help="Indicates whether the calls, that fit within these parameter"),
@@ -4342,6 +4423,12 @@ def update_criteria_selective_forward(
             body["destinationVoicemailEnabled"] = destination_voicemail_enabled
         if schedule_name is not None:
             body["scheduleName"] = schedule_name
+        if schedule_type is not None:
+            body["scheduleType"] = schedule_type
+        if schedule_level is not None:
+            body["scheduleLevel"] = schedule_level
+        if calls_from is not None:
+            body["callsFrom"] = calls_from
         if anonymous_callers_enabled is not None:
             body["anonymousCallersEnabled"] = anonymous_callers_enabled
         if unavailable_callers_enabled is not None:
@@ -4416,6 +4503,9 @@ def create_criteria_selective_forward(
     forward_to_phone_number: str = typer.Option(None, "--forward-to-phone-number", help="Phone number to forward calls to during this schedule."),
     destination_voicemail_enabled: bool = typer.Option(None, "--destination-voicemail-enabled/--no-destination-voicemail-enabled", help="Enables forwarding for all calls to voicemail. This option i"),
     schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the location's schedule which determines when the se"),
+    schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP"),
+    calls_from: str = typer.Option(None, "--calls-from", help="(required) Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS, ANY_INTERNAL, ANY_EXTERNAL"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables selective forward to calls from anonymo"),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables selective forward to calls if the calle"),
     forward_enabled: bool = typer.Option(None, "--forward-enabled/--no-forward-enabled", help="Indicates whether the calls, that fit within these parameter"),
@@ -4439,12 +4529,22 @@ def create_criteria_selective_forward(
             body["destinationVoicemailEnabled"] = destination_voicemail_enabled
         if schedule_name is not None:
             body["scheduleName"] = schedule_name
+        if schedule_type is not None:
+            body["scheduleType"] = schedule_type
+        if schedule_level is not None:
+            body["scheduleLevel"] = schedule_level
+        if calls_from is not None:
+            body["callsFrom"] = calls_from
         if anonymous_callers_enabled is not None:
             body["anonymousCallersEnabled"] = anonymous_callers_enabled
         if unavailable_callers_enabled is not None:
             body["unavailableCallersEnabled"] = unavailable_callers_enabled
         if forward_enabled is not None:
             body["forwardEnabled"] = forward_enabled
+        _missing = [f for f in ['callsFrom'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:

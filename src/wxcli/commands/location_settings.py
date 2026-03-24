@@ -527,6 +527,7 @@ def show_emergency_callback_number(
 @app.command("update-emergency-callback-number")
 def update_emergency_callback_number(
     location_id: str = typer.Argument(help="locationId"),
+    selected: str = typer.Option(None, "--selected", help="Choices: LOCATION_NUMBER, LOCATION_MEMBER_NUMBER"),
     location_member_id: str = typer.Option(None, "--location-member-id", help="Member ID of user/place/virtual line/hunt group within the l"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -542,6 +543,8 @@ def update_emergency_callback_number(
         body = json.loads(json_body)
     else:
         body = {}
+        if selected is not None:
+            body["selected"] = selected
         if location_member_id is not None:
             body["locationMemberId"] = location_member_id
     try:
