@@ -67,6 +67,10 @@
       - ["Name", "name"]
       - ["Extension", "extension"]
       - ["Enabled", "enabled"]
+  body_defaults:
+    create:
+      callPolicies:
+        policy: "CIRCULAR"
 
 "Features:  Call Pickup":
   list:

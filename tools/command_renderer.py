@@ -426,6 +426,13 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
         qp_build = ["    params = {}"]
     post_call = "result = api.session.rest_post(url, json=body)" if not has_params else "result = api.session.rest_post(url, json=body, params=params)"
 
+    # Render body_defaults: inject required nested defaults after body is built
+    # (applies to both --json-body and flag-built bodies)
+    body_default_lines: list[str] = []
+    bd = (folder_overrides or {}).get("body_defaults", {}).get(ep.command_name, {})
+    for key, default_val in bd.items():
+        body_default_lines.append(f'    body.setdefault({key!r}, {default_val!r})')
+
     lines = [
         f'@app.command("{ep.command_name}")',
         f"def {func_name}(",
@@ -437,6 +444,7 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
         *qp_build,
         *auto_inject,
         *body_build,
+        *body_default_lines,
         "    try:",
         f"        {post_call}",
         _render_error_handler("    "),

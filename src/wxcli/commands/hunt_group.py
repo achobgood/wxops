@@ -124,6 +124,7 @@ def create(
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
             raise typer.Exit(1)
+    body.setdefault('callPolicies', {'policy': 'CIRCULAR'})
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
