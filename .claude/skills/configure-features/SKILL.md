@@ -222,7 +222,7 @@ Collect from user:
 
 **CLI command:**
 
-> **NOTE:** The CLI automatically provides default `callPolicies` (PRIORITY_BASED routing, CIRCULAR policy) so the create succeeds. Agents are added after creation.
+> **NOTE:** The API may accept call queue creates without `callPolicies` for non-CX queues (using server-side defaults), but the spec marks it required. For CX Essentials queues, `callPolicies` is strictly required — pass via `--json-body`. Agents are added after creation.
 
 ```bash
 wxcli call-queue create LOCATION_ID \
@@ -267,7 +267,7 @@ Collect from user:
 
 **Key difference from Call Queue:** Hunt groups ring agents directly -- no queue hold, no announcements chain, no agent join/unjoin.
 
-**CLI command:**
+**CLI command (simple — uses CLI defaults for callPolicies):**
 
 ```bash
 wxcli hunt-group create LOCATION_ID \
@@ -275,6 +275,49 @@ wxcli hunt-group create LOCATION_ID \
   --extension 3000 \
   --enabled
 ```
+
+> **NOTE:** The CLI auto-injects a default `callPolicies` (CIRCULAR policy, advance to next agent after 3 rings, no forwarding) when not provided. This covers simple creates. For custom policies, use `--json-body`.
+
+**CLI command (full control — custom policy and no-answer behavior):**
+
+```bash
+wxcli hunt-group create LOCATION_ID --json-body '{
+  "name": "Sales Team",
+  "extension": "3000",
+  "enabled": true,
+  "callPolicies": {
+    "policy": "REGULAR",
+    "noAnswer": {
+      "nextAgentEnabled": true,
+      "nextAgentRings": 3,
+      "forwardEnabled": false,
+      "numberOfRings": 15,
+      "destinationVoicemailEnabled": false
+    }
+  },
+  "agents": [{"id": "AGENT_PERSON_ID"}]
+}'
+```
+
+**callPolicies structure (required by API):**
+
+| Field | Required | Notes |
+|-------|:--------:|-------|
+| `policy` | Yes | `CIRCULAR`, `REGULAR`, `SIMULTANEOUS` (max 50 agents), `UNIFORM`, `WEIGHTED` (max 100 agents) |
+| `noAnswer.nextAgentEnabled` | Yes | Advance to next agent after rings |
+| `noAnswer.nextAgentRings` | Yes | Rings before advancing (when nextAgentEnabled) |
+| `noAnswer.forwardEnabled` | Yes | Forward unanswered calls to destination |
+| `noAnswer.numberOfRings` | Yes | Rings before forwarding (when forwardEnabled) |
+| `noAnswer.destinationVoicemailEnabled` | Yes | Send to destination's voicemail |
+| `noAnswer.destination` | No | Forward-to number (required when forwardEnabled=true) |
+| `waitingEnabled` | No | false = "advance when busy" |
+| `groupBusyEnabled` | No | Set hunt group status to busy |
+| `busyRedirect.enabled` | No | Divert calls when all agents busy |
+| `busyRedirect.destination` | No | Busy redirect number |
+| `businessContinuityRedirect.enabled` | No | Fallback when phones disconnected |
+| `businessContinuityRedirect.destination` | No | Business continuity number |
+
+**CUCM migration mapping:** Map `CanonicalHuntGroup.policy` → `callPolicies.policy`, and `CanonicalHuntGroup.no_answer_rings` → `callPolicies.noAnswer.nextAgentRings`.
 
 Optional flags: `--phone-number`.
 
