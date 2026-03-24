@@ -201,6 +201,14 @@ REPEAT:
        - For user:create, also pass CALLING_LICENSE_ID
        - The domain skill will build and execute the correct CLI command(s)
 
+       **IMPORTANT:** Always pass ALL non-null fields from the canonical data to the
+       domain skill. Do not omit fields because they seem optional — the domain skill
+       decides what's needed. Common fields that MUST be passed when present:
+       - `trunk_type` for trunks (REGISTERING or CERTIFICATE_BASED)
+       - `business_schedule` for auto attendants (schedule name)
+       - `schedule_type` for schedules (businessHours or holidays)
+       - `location_id` for location-scoped resources
+
     5. Capture the Webex resource ID from the domain skill's output
 
     6. Record the result:
@@ -237,7 +245,7 @@ This table is the PRIMARY execution mechanism. The pipeline says WHAT. The domai
 | pickup_group | create | configure-features | Agents need person IDs |
 | paging_group | create | configure-features | Targets and originators need person IDs |
 | operating_mode | create | configure-features | Schedule — level must be ORGANIZATION |
-| schedule | create | configure-features | Must exist before AA references it |
+| schedule | create | configure-features | Location schedule — requires locationId, type (businessHours/holidays), and events with recurWeekly recurrence. Must exist before AA references it |
 | trunk | create | configure-routing | Type and location immutable after creation. Requires locationId |
 | route_group | create | configure-routing | Requires at least one gateway member |
 | dial_plan | create | configure-routing | Org-wide. Patterns as array |
@@ -272,10 +280,35 @@ This table is the PRIMARY execution mechanism. The pipeline says WHAT. The domai
 > "Create a hunt group with:
 >  - name: [data.name]
 >  - extension: [data.extension]
+>  - enabled: [data.enabled]
 >  - locationId: [resolved_deps → location webex_id]
->  - agents: [list of person Webex IDs from resolved_deps]
->  - policy: [data.callPolicies.policy]
->  The configure-features skill handles agent assignment."
+>  - agents: [list of person Webex IDs from resolved_deps as {"id": "WEBEX_ID"}]
+>  - callPolicies.policy: [data.policy] (CIRCULAR, REGULAR, SIMULTANEOUS, UNIFORM, WEIGHTED)
+>  - callPolicies.noAnswer.nextAgentEnabled: true
+>  - callPolicies.noAnswer.nextAgentRings: [data.no_answer_rings or 3]
+>  - callPolicies.noAnswer.forwardEnabled: false
+>  - callPolicies.noAnswer.numberOfRings: 15
+>  - callPolicies.noAnswer.destinationVoicemailEnabled: false
+>  The configure-features skill handles the full callPolicies structure.
+>  The CLI auto-injects a default callPolicies if omitted, but always pass
+>  the canonical policy to preserve the CUCM source configuration."
+
+**trunk:create:**
+> "Create a trunk with:
+>  - name: [data.name]
+>  - locationId: [resolved_deps → location webex_id]
+>  - trunkType: [data.trunk_type]  ← REQUIRED, always pass from metadata
+>  - password: [data.password]     ← REQUIRED for REGISTERING type
+>  - address: [data.address]       ← only for CERTIFICATE_BASED
+>  The configure-routing skill handles trunk type and authentication."
+
+**schedule:create:**
+> "Create a location schedule with:
+>  - locationId: [data.location_id]
+>  - name: [data.name]
+>  - type: [data.schedule_type] (businessHours or holidays)
+>  - events: [data.events] — must use recurWeekly recurrence, NOT recurForEver
+>  The configure-features skill handles location schedule creation."
 
 ### 4c. Error handling
 
