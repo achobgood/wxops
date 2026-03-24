@@ -53,15 +53,23 @@ Before configuring any feature, verify these exist:
 wxcli locations list --output json
 ```
 
-### 4b. Call queue exists
+### 4b. Customer Assist queue exists
 
-All Customer Assist features are per-queue configurations:
+All Customer Assist features are per-queue configurations. **Customer Assist queues are separate from regular queues** — they do not appear in the default `call-queue list` output.
 
 ```bash
-wxcli call-queue list --location-id LOCATION_ID --output json
+# List Customer Assist queues (MUST use --has-cx-essentials true)
+wxcli call-queue list --has-cx-essentials true --output json
 ```
 
-If no queue exists, create one first using the `configure-features` skill.
+If no Customer Assist queue exists, create one. **Customer Assist queues require `callPolicies` via `--json-body`:**
+
+```bash
+wxcli call-queue create LOCATION_ID --name "Queue Name" --has-cx-essentials true \
+  --json-body '{"name":"Queue Name","extension":"XXXX","callPolicies":{"policy":"SIMULTANEOUS"}}'
+```
+
+> **IMPORTANT:** A regular queue (created without `--has-cx-essentials true`) will return error 28018 on all Customer Assist endpoints. The queue must be created with the `--has-cx-essentials true` flag. The `callPolicies` field is mandatory for Customer Assist queues but not for regular queues.
 
 ### 4c. Customer Assist licensing
 
@@ -231,9 +239,9 @@ wxcli cx-essentials update-queue-recording LOCATION_ID QUEUE_ID \
 wxcli cx-essentials update-queue-recording LOCATION_ID QUEUE_ID --json-body '{
   "enabled": true,
   "record": "Always",
-  "notificationEnabled": true,
-  "notificationType": "Beep",
-  "startStopAnnouncementEnabled": false
+  "notification": {"enabled": true, "type": "Beep"},
+  "repeat": {"enabled": false, "interval": 15},
+  "startStopAnnouncement": {"internalCallsEnabled": false, "pstnCallsEnabled": false}
 }'
 ```
 
@@ -269,9 +277,9 @@ wxcli call-queue list-available-agents-supervisors --has-cx-essentials true
 
 # --- Create ---
 
-# Create a supervisor with agents
+# Create a supervisor with agents (--id is required AND must be in --json-body)
 wxcli call-queue create-supervisors --has-cx-essentials true \
-  --id SUPERVISOR_PERSON_ID --json-body '{"agents": [{"id": "AGENT_ID_1"}, {"id": "AGENT_ID_2"}]}'
+  --id SUPERVISOR_PERSON_ID --json-body '{"id": "SUPERVISOR_PERSON_ID", "agents": [{"id": "AGENT_ID_1"}, {"id": "AGENT_ID_2"}]}'
 
 # --- Read ---
 
@@ -291,10 +299,10 @@ wxcli call-queue update-supervisors SUPERVISOR_ID --has-cx-essentials true --jso
 # --- Delete ---
 
 # Delete a specific supervisor
-wxcli call-queue delete-supervisors-config-1 SUPERVISOR_ID --force
+wxcli call-queue delete-supervisors-config-1 SUPERVISOR_ID --has-cx-essentials true --force
 
 # Delete supervisors in bulk
-wxcli call-queue delete-supervisors-config --force
+wxcli call-queue delete-supervisors-config --has-cx-essentials true --force
 ```
 
 > **WARNING:** `delete-supervisors-config --force` without specifying IDs may remove **all supervisors in the org**. Always confirm scope before executing. Omitting `--force` triggers a confirmation prompt.
@@ -349,6 +357,7 @@ Proceed? (yes/no)
 ## Step 6: Execute via wxcli
 
 Run commands sequentially. Handle errors explicitly:
+- **400 with code 28018**: Customer Assist is not enabled on this queue — create the queue with `--has-cx-essentials true` or use a Customer Assist queue (see Step 4b)
 - **401/403**: Token expired or insufficient scopes — run `wxcli configure`
 - **409**: Name or resource conflict — ask user for alternate
 - **400**: Validation error — read the error message and fix the parameter
@@ -407,7 +416,7 @@ Next steps:
 
 ## Critical Rules
 
-1. **All Customer Assist features require an existing call queue.** Screen pop, queue recording, and wrap-up reasons are per-queue configurations — they cannot exist without a queue. Create the queue first using the `configure-features` skill.
+1. **All Customer Assist features require a Customer Assist queue.** Screen pop, queue recording, and wrap-up reasons are per-queue configurations. The queue must be created with `--has-cx-essentials true` — a regular queue returns error 28018. Use `wxcli call-queue list --has-cx-essentials true` to find existing Customer Assist queues (they are hidden from the default `call-queue list`).
 2. **Always show the deployment plan** (Step 5) and wait for user confirmation before executing.
 3. **Always pass `--has-cx-essentials true` on supervisor commands.** Without it, commands default to CX Basic supervisors. This applies to `list-supervisors`, `create-supervisors`, `show-supervisors`, `update-supervisors`, `list-available-supervisors`, and `list-available-agents-supervisors`.
 4. **Supervisor commands live under `wxcli call-queue`, not `wxcli cx-essentials`.** The supervisor API base path (`/telephony/config/supervisors`) was grouped with call queues in the OpenAPI spec. The `cx-essentials` group handles wrap-up reasons, screen pop, queue recording, and available agents.
@@ -421,6 +430,11 @@ Next steps:
 12. **`queues` array on wrap-up reason create requires `--json-body`.** To assign a reason to specific queues on creation, use `--json-body`. Alternatively, create the reason first, then assign queues via `update`.
 13. **Runtime supervisor capabilities are automatic.** Silent monitor, whisper coach, barge in, and take over activate once the supervisor-agent relationship is configured. No additional API setup is needed.
 14. **Recording vendor must be configured first.** Queue call recording depends on an org-level or location-level recording vendor configuration. Check with `wxcli call-recording show-settings -o json` before enabling queue recording.
+15. **Customer Assist queues are hidden from default `call-queue list`.** You must pass `--has-cx-essentials true` to see them. Without the flag, only regular (non-Customer Assist) queues are returned.
+16. **Queue recording response uses nested objects.** The API returns `notification: {enabled, type}`, `repeat: {enabled, interval}`, and `startStopAnnouncement: {internalCallsEnabled, pstnCallsEnabled}` — not flat fields. Use the nested structure in `--json-body`.
+17. **`create-supervisors` requires `id` in both `--id` flag and `--json-body`.** The `--id` flag is a required CLI option. When using `--json-body`, include `"id"` in the JSON body too, since `--json-body` overrides flag-built body fields.
+18. **To remove a Customer Assist supervisor, remove all their agents first.** The DELETE endpoint (`delete-supervisors-config-1`) returns 204 but the supervisor may persist. Instead, use `update-supervisors` with `action: DELETE` on each agent. When the last agent is removed, the supervisor is automatically deleted. <!-- Verified via live API 2026-03-21: update-supervisors DELETE on last agent causes supervisor to vanish; direct DELETE returns 204 but supervisor persists -->
+19. **Customer Assist queue creation requires `callPolicies`.** Unlike regular queues, CX queues require the `callPolicies` field (e.g., `{"policy":"SIMULTANEOUS"}`). This must be passed via `--json-body` since it's not available as a CLI flag.
 
 ---
 

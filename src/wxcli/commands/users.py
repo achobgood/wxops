@@ -56,6 +56,7 @@ def list_users(
 @app.command("show")
 def show_user(
     user_id: str = typer.Argument(help="User/Person ID"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Show details for a single user."""
@@ -87,10 +88,10 @@ def create_user(
     if license_id:
         settings.licenses = [license_id]
 
-    # Fix 12: Include extension at creation time when calling_data=True
+    # Include extension at creation time when calling_data=True
     calling_data = bool(location_id or license_id)
     if extension and calling_data:
-        settings.phone_numbers = [{"primary": True, "extension": extension}]
+        settings.extension = extension
 
     person = api.people.create(settings=settings, calling_data=calling_data)
 

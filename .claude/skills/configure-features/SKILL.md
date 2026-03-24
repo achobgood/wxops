@@ -87,18 +87,61 @@ For AA, CQ, HG, Paging, VM Groups -- check available numbers at the location:
 wxcli numbers list --location-id LOCATION_ID --output json
 ```
 
-### 4d. Feature-specific prerequisites
+### 4d. Feature-specific prerequisites — verify before creating
 
-| Feature | Additional Prerequisites |
-|---------|------------------------|
-| **Auto Attendant** | Business hours schedule must exist. Custom greetings must be uploaded via Control Hub (API upload not supported). |
-| **Call Queue** | Agents must have Webex Calling Professional license. CX Essentials queue requires CX Essentials license on agents. |
-| **Hunt Group** | None beyond location + agents. Can be created with zero agents. |
-| **Paging Group** | If originators are set, `originator_caller_id_enabled` is required. |
-| **Call Park** | Call Park Extensions should be created first. Recall to hunt group requires an existing HG. |
-| **Call Pickup** | A user can only belong to one pickup group at a time. |
-| **Voicemail Group** | Extension is required. Passcode is required. |
-| **Customer Assist** | Call Queue must exist first. Requires CX Essentials licensing. See `customer-assist` skill. |
+**Run the verification command for each prerequisite before creating the feature.** Missing prerequisites cause 400 errors that waste an API call and require diagnosis.
+
+#### Auto Attendant
+
+| Prerequisite | Verification | If missing |
+|-------------|-------------|-----------|
+| Business hours schedule | `wxcli location-schedules list LOCATION_ID -o json` — look for a schedule with `type: businessHours` | Create one first: `wxcli location-schedules create LOCATION_ID --name "Business Hours" --type businessHours --json-body '{...}'` |
+| Holiday schedule (optional) | Same command — look for `type: holidays` | Create if needed for holiday service routing |
+| Custom greetings | Cannot be verified via API | Upload via Control Hub (API upload not supported) |
+
+#### Call Queue
+
+| Prerequisite | Verification | If missing |
+|-------------|-------------|-----------|
+| Agents have Professional license | `wxcli users list -o json` — for each agent, check license type. OR `wxcli licenses list -o json` and cross-reference | Assign Professional license via `manage-licensing` skill before adding as agent |
+| CX Essentials license (for CX queues) | Same license check — look for CX Essentials license | Assign via `manage-licensing` skill. Without it, error 28018 on any CX operation |
+| `callPolicies` in create body (CX queues) | N/A — CX queues require `callPolicies` in the `--json-body` at creation time | Include `"callPolicies": {...}` in the create body. See `customer-assist` skill for format |
+
+#### Hunt Group
+
+No additional prerequisites beyond location + agents. Can be created with zero agents.
+
+#### Paging Group
+
+| Prerequisite | Verification | If missing |
+|-------------|-------------|-----------|
+| Originators/targets exist | `wxcli users list --calling-enabled -o json` | Originators and targets are added via `wxcli paging-group update` AFTER creation (not in the create call) |
+
+#### Call Park
+
+| Prerequisite | Verification | If missing |
+|-------------|-------------|-----------|
+| Hunt group exists (for recall) | `wxcli hunt-group list --location-id LOCATION_ID -o json` | Create the hunt group first, then configure call park recall to reference it |
+
+#### Call Pickup
+
+| Prerequisite | Verification | If missing |
+|-------------|-------------|-----------|
+| Users not already in another pickup group | `wxcli call-pickup list LOCATION_ID -o json` — check member lists for the target user | Remove user from existing group before adding to new one |
+
+#### Voicemail Group
+
+| Prerequisite | Verification | If missing |
+|-------------|-------------|-----------|
+| Extension available | `wxcli numbers list --location-id LOCATION_ID -o json` | Choose an unused extension |
+| Passcode format | N/A — validate locally | 6+ digits, no repeating sequences (e.g., `111111` is rejected). Use a pattern like `740384` |
+
+#### Customer Assist (CX Essentials)
+
+| Prerequisite | Verification | If missing |
+|-------------|-------------|-----------|
+| Call queue exists | `wxcli call-queue list --location-id LOCATION_ID -o json` | Create the queue first in this skill, then switch to `customer-assist` skill |
+| Queue is CX-enabled | `wxcli call-queue list --has-cx-essentials true -o json` | CX queues are hidden from default list. If queue doesn't appear, it wasn't created as a CX queue |
 
 ## Step 5: Gather configuration and present deployment plan -- [SHOW BEFORE EXECUTING]
 
@@ -416,9 +459,19 @@ Proceed? (yes/no)
 Run the creation command. If the feature requires multiple steps (e.g., agents added after CQ/HG creation), execute them in order.
 
 Handle errors explicitly:
-- **401/403**: Token expired or insufficient scopes -- run `wxcli configure` to re-authenticate
-- **409**: Name or extension conflict -- ask user for alternate
-- **400**: Validation error -- read the error message and fix the parameter
+
+**Generic errors:**
+- **401/403**: Token expired or insufficient scopes — run `wxcli configure` to re-authenticate. Required scope: `spark-admin:telephony_config_write`.
+- **409**: Name or extension conflict — ask user for alternate name/extension.
+- **400**: Validation error — read the error message and fix the parameter.
+
+**Feature-specific errors:**
+- **400 on AA create (schedule reference):** The business hours schedule doesn't exist or the schedule ID is wrong. Verify with `wxcli location-schedules list LOCATION_ID -o json`.
+- **400 on CQ create (missing callPolicies):** CX Essentials queues require `callPolicies` in the create body. Add via `--json-body`.
+- **400 on CQ update (callingLineIdPolicy=CUSTOM):** Sending the full queue object on update triggers this. Use individual flags (`--name`, `--extension`) instead of `--json-body` with the full object. The CLI handles partial updates automatically.
+- **28018 on CX operations:** "CX Essentials is not enabled for this Call center" — the queue isn't a CX queue. Must pass `--has-cx-essentials true` on list commands and create with `callPolicies`.
+- **400 on VM Group create (passcode):** Passcode doesn't meet requirements: 6+ digits, no repeating sequences, no common patterns.
+- **ID changed after rename (Call Park, Call Pickup):** These features generate new IDs when renamed. Always re-fetch the list after a rename: `wxcli call-park list LOCATION_ID -o json`.
 
 ## Step 7: Verify creation
 
@@ -487,6 +540,14 @@ Next steps:
 13. **AA create: menus are auto-populated by the CLI.** The CLI provides default menus (key 0 = EXIT, extension dialing enabled) so the create command succeeds. Customize menus via `wxcli auto-attendant update` after creation.
 14. **CQ update uses partial objects.** The CLI `update` command avoids the `callingLineIdPolicy=CUSTOM` 400 error by sending only changed fields.
 15. **VM Group SDK bug is handled by the CLI.** The `wxcli location-voicemail create` command works around the `by_alias=True` bug internally.
+16. **Location-scoped deletes take LOCATION_ID as the FIRST argument** — `wxcli hunt-group delete --force LOCATION_ID HG_ID`, not `wxcli hunt-group delete --force HG_ID`. This applies to all location-scoped features: hunt-group, auto-attendant, call-queue, paging-group, call-park, call-pickup, location-voicemail, location-schedules.
+17. **Always use `--force` for programmatic deletes** — Without `--force`, delete commands prompt `[y/N]` which blocks non-interactive execution.
+18. **Cross-skill handoffs:**
+    - CX Essentials configuration → `customer-assist` skill (screen pop, wrap-up, recording, supervisors)
+    - Person/workspace call settings → `manage-call-settings` skill (voicemail, forwarding, DND, etc.)
+    - Routing (trunks, dial plans, PSTN) → `configure-routing` skill
+    - Device provisioning → `manage-devices` skill
+    - Location teardown → `provision-calling` skill (Operation D: Teardown)
 
 ---
 

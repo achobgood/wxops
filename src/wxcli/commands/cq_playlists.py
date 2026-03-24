@@ -13,7 +13,7 @@ def cmd_list(
     play_list_id: str = typer.Argument(help="playListId"),
     playlist_usage_type: str = typer.Option(None, "--playlist-usage-type", help="Choices: feature, location"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

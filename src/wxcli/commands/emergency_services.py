@@ -111,7 +111,7 @@ def show(
 
 @app.command("create")
 def create(
-    email: str = typer.Option(..., "--email", help="The email for the RedSky account administrator."),
+    email: str = typer.Option(None, "--email", help="(required) The email for the RedSky account administrator."),
     partner_redsky_org_id: str = typer.Option(None, "--partner-redsky-org-id", help="New organization is created under this partner organization"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -131,6 +131,10 @@ def create(
             body["email"] = email
         if partner_redsky_org_id is not None:
             body["partnerRedskyOrgId"] = partner_redsky_org_id
+        _missing = [f for f in ['email'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -472,7 +476,7 @@ def update_status_red_sky_1(
 @app.command("create-building")
 def create_building(
     location_id: str = typer.Argument(help="locationId"),
-    alerting_email: str = typer.Option(..., "--alerting-email", help="Email that is used to create alerts in RedSky. At least one"),
+    alerting_email: str = typer.Option(None, "--alerting-email", help="(required) Email that is used to create alerts in RedSky. At least one"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -489,6 +493,10 @@ def create_building(
         body = {}
         if alerting_email is not None:
             body["alertingEmail"] = alerting_email
+        _missing = [f for f in ['alertingEmail'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:

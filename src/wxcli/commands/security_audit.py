@@ -17,7 +17,7 @@ def cmd_list(
     max: str = typer.Option(None, "--max", help="Limit the maximum number of events in the response. The maxi"),
     event_categories: str = typer.Option(None, "--event-categories", help="List events, by event categories."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

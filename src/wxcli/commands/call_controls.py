@@ -11,7 +11,7 @@ app = typer.Typer(help="Manage Webex Calling call-controls.")
 
 @app.command("create")
 def create(
-    destination: str = typer.Option(..., "--destination", help="The destination to be dialed. The destination can be digits"),
+    destination: str = typer.Option(None, "--destination", help="(required) The destination to be dialed. The destination can be digits"),
     endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the call. The"),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -30,6 +30,10 @@ def create(
             body["endpointId"] = endpoint_id
         if line_owner_id is not None:
             body["lineOwnerId"] = line_owner_id
+        _missing = [f for f in ['destination'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -62,7 +66,7 @@ def create(
 
 @app.command("create-answer-calls")
 def create_answer_calls(
-    call_id: str = typer.Option(..., "--call-id", help="The call identifier of the call to be answered."),
+    call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to be answered."),
     endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to answer the call on. T"),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -81,6 +85,10 @@ def create_answer_calls(
             body["endpointId"] = endpoint_id
         if line_owner_id is not None:
             body["lineOwnerId"] = line_owner_id
+        _missing = [f for f in ['callId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -111,7 +119,7 @@ def create_answer_calls(
 
 @app.command("create-reject")
 def create_reject(
-    call_id: str = typer.Option(..., "--call-id", help="The call identifier of the call to be rejected."),
+    call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to be rejected."),
     action: str = typer.Option(None, "--action", help="The rejection action to apply to the call. The busy action i"),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -130,6 +138,10 @@ def create_reject(
             body["action"] = action
         if line_owner_id is not None:
             body["lineOwnerId"] = line_owner_id
+        _missing = [f for f in ['callId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -160,7 +172,7 @@ def create_reject(
 
 @app.command("create-hangup-calls")
 def create_hangup_calls(
-    call_id: str = typer.Option(..., "--call-id", help="The call identifier of the call to hangup."),
+    call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to hangup."),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -176,6 +188,10 @@ def create_hangup_calls(
             body["callId"] = call_id
         if line_owner_id is not None:
             body["lineOwnerId"] = line_owner_id
+        _missing = [f for f in ['callId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -206,7 +222,7 @@ def create_hangup_calls(
 
 @app.command("create-hold")
 def create_hold(
-    call_id: str = typer.Option(..., "--call-id", help="The call identifier of the call to hold."),
+    call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to hold."),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -222,6 +238,10 @@ def create_hold(
             body["callId"] = call_id
         if line_owner_id is not None:
             body["lineOwnerId"] = line_owner_id
+        _missing = [f for f in ['callId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -252,7 +272,7 @@ def create_hold(
 
 @app.command("create-resume")
 def create_resume(
-    call_id: str = typer.Option(..., "--call-id", help="The call identifier of the call to resume."),
+    call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to resume."),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -268,6 +288,10 @@ def create_resume(
             body["callId"] = call_id
         if line_owner_id is not None:
             body["lineOwnerId"] = line_owner_id
+        _missing = [f for f in ['callId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -298,7 +322,7 @@ def create_resume(
 
 @app.command("create-mute")
 def create_mute(
-    call_id: str = typer.Option(..., "--call-id", help="The call identifier of the call to mute."),
+    call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to mute."),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -314,6 +338,10 @@ def create_mute(
             body["callId"] = call_id
         if line_owner_id is not None:
             body["lineOwnerId"] = line_owner_id
+        _missing = [f for f in ['callId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -344,7 +372,7 @@ def create_mute(
 
 @app.command("create-unmute")
 def create_unmute(
-    call_id: str = typer.Option(..., "--call-id", help="The call identifier of the call to unmute."),
+    call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to unmute."),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -360,6 +388,10 @@ def create_unmute(
             body["callId"] = call_id
         if line_owner_id is not None:
             body["lineOwnerId"] = line_owner_id
+        _missing = [f for f in ['callId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -390,7 +422,7 @@ def create_unmute(
 
 @app.command("create-divert")
 def create_divert(
-    call_id: str = typer.Option(..., "--call-id", help="The call identifier of the call to divert."),
+    call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to divert."),
     destination: str = typer.Option(None, "--destination", help="The destination to divert the call to. If toVoicemail is fal"),
     to_voicemail: bool = typer.Option(None, "--to-voicemail/--no-to-voicemail", help="If set to true, the call is diverted to voicemail. If no des"),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
@@ -412,6 +444,10 @@ def create_divert(
             body["toVoicemail"] = to_voicemail
         if line_owner_id is not None:
             body["lineOwnerId"] = line_owner_id
+        _missing = [f for f in ['callId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -496,7 +532,7 @@ def create_transfer(
 
 @app.command("create-park")
 def create_park(
-    call_id: str = typer.Option(..., "--call-id", help="The call identifier of the call to park."),
+    call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to park."),
     destination: str = typer.Option(None, "--destination", help="Identifes where the call is to be parked. If not provided, t"),
     is_group_park: bool = typer.Option(None, "--is-group-park/--no-is-group-park", help="If set to`true`, the call is parked against an automatically"),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
@@ -518,6 +554,10 @@ def create_park(
             body["isGroupPark"] = is_group_park
         if line_owner_id is not None:
             body["lineOwnerId"] = line_owner_id
+        _missing = [f for f in ['callId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -929,7 +969,7 @@ def create_pickup(
 
 @app.command("create-barge-in")
 def create_barge_in(
-    target: str = typer.Option(..., "--target", help="Identifies the user to barge-in on. The target can be digits"),
+    target: str = typer.Option(None, "--target", help="(required) Identifies the user to barge-in on. The target can be digits"),
     endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the barge-in."),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -948,6 +988,10 @@ def create_barge_in(
             body["endpointId"] = endpoint_id
         if line_owner_id is not None:
             body["lineOwnerId"] = line_owner_id
+        _missing = [f for f in ['target'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -982,7 +1026,7 @@ def create_barge_in(
 def cmd_list(
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1072,7 +1116,7 @@ def show(
 def list_history(
     type_param: str = typer.Option(None, "--type", help="Choices: placed, missed, received"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1165,7 +1209,7 @@ def create_pull(
 @app.command("create-dial")
 def create_dial(
     member_id: str = typer.Argument(help="memberId"),
-    destination: str = typer.Option(..., "--destination", help="The destination to be dialed. The destination can be digits"),
+    destination: str = typer.Option(None, "--destination", help="(required) The destination to be dialed. The destination can be digits"),
     endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the call. The"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1185,6 +1229,10 @@ def create_dial(
             body["destination"] = destination
         if endpoint_id is not None:
             body["endpointId"] = endpoint_id
+        _missing = [f for f in ['destination'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -1218,7 +1266,7 @@ def create_dial(
 @app.command("create-answer-members")
 def create_answer_members(
     member_id: str = typer.Argument(help="memberId"),
-    call_id: str = typer.Option(..., "--call-id", help="The call identifier of the call to be answered."),
+    call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to be answered."),
     endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to answer the call on. T"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1238,6 +1286,10 @@ def create_answer_members(
             body["callId"] = call_id
         if endpoint_id is not None:
             body["endpointId"] = endpoint_id
+        _missing = [f for f in ['callId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -1269,7 +1321,7 @@ def create_answer_members(
 @app.command("create-hangup-members")
 def create_hangup_members(
     member_id: str = typer.Argument(help="memberId"),
-    call_id: str = typer.Option(..., "--call-id", help="The call identifier of the call to hangup."),
+    call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to hangup."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1286,6 +1338,10 @@ def create_hangup_members(
         body = {}
         if call_id is not None:
             body["callId"] = call_id
+        _missing = [f for f in ['callId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -1318,7 +1374,7 @@ def create_hangup_members(
 def list_calls(
     member_id: str = typer.Argument(help="memberId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

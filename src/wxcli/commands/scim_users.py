@@ -22,7 +22,7 @@ def cmd_list(
     include_group_details: str = typer.Option(None, "--include-group-details", help="Define whether the group information with details needs to b"),
     group_usage_types: str = typer.Option(None, "--group-usage-types", help="Returns groups with details of the specified group type."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -85,7 +85,7 @@ def cmd_list(
 @app.command("create")
 def create(
     org_id: str = typer.Argument(help="orgId"),
-    user_name: str = typer.Option(..., "--user-name", help="A unique identifier for the user that authenticates the user"),
+    user_name: str = typer.Option(None, "--user-name", help="(required) A unique identifier for the user that authenticates the user"),
     title: str = typer.Option(None, "--title", help="The user's business title.  Examples of a title is \"Business"),
     active: bool = typer.Option(None, "--active/--no-active", help="A boolean value of \"true\" or \"false\" indicating whether the"),
     preferred_language: str = typer.Option(None, "--preferred-language", help="User's preferred language. Acceptable values are based on th"),
@@ -125,6 +125,10 @@ def create(
             body["displayName"] = display_name
         if nick_name is not None:
             body["nickName"] = nick_name
+        _missing = [f for f in ['userName'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:

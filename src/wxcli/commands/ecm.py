@@ -12,7 +12,7 @@ app = typer.Typer(help="Manage Webex Calling ecm-folder-linking.")
 def cmd_list(
     room_id: str = typer.Option(..., "--room-id", help="ID of the room for which to list the ECM folder."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -27,7 +27,14 @@ def cmd_list(
     if offset > 0:
         params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        if limit > 0:
+            result = api.session.rest_get(url, params=params)
+            result = result or {}
+            items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+        else:
+            if "max" not in params:
+                params["max"] = 1000
+            items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -45,8 +52,6 @@ def cmd_list(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -56,12 +61,12 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    room_id: str = typer.Option(..., "--room-id", help="A unique identifier for the room."),
-    content_url: str = typer.Option(..., "--content-url", help="URL of the ECM folder."),
-    display_name: str = typer.Option(..., "--display-name", help="This should match the folder name in the ECM backend."),
-    drive_id: str = typer.Option(..., "--drive-id", help="Sharepoint or OneDrive drive id. It can be queried via MS Gr"),
-    item_id: str = typer.Option(..., "--item-id", help="Sharepoint or OneDrive item id. It can be queried via MS Gra"),
-    default_folder: str = typer.Option(..., "--default-folder", help="Makes the folder the default storage for the space."),
+    room_id: str = typer.Option(None, "--room-id", help="(required) A unique identifier for the room."),
+    content_url: str = typer.Option(None, "--content-url", help="(required) URL of the ECM folder."),
+    display_name: str = typer.Option(None, "--display-name", help="(required) This should match the folder name in the ECM backend."),
+    drive_id: str = typer.Option(None, "--drive-id", help="(required) Sharepoint or OneDrive drive id. It can be queried via MS Gr"),
+    item_id: str = typer.Option(None, "--item-id", help="(required) Sharepoint or OneDrive item id. It can be queried via MS Gra"),
+    default_folder: str = typer.Option(None, "--default-folder", help="(required) Makes the folder the default storage for the space."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -84,6 +89,10 @@ def create(
             body["itemId"] = item_id
         if default_folder is not None:
             body["defaultFolder"] = default_folder
+        _missing = [f for f in ['roomId', 'contentUrl', 'displayName', 'driveId', 'itemId', 'defaultFolder'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:

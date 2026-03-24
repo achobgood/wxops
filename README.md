@@ -67,7 +67,7 @@ wxcli locations create --help
 ```bash
 wxcli locations list --calling-only        # Get location IDs
 wxcli users list --location LOC_ID         # Get person IDs
-wxcli numbers-api list --location-id LOC_ID  # Get number inventory
+wxcli numbers list --location-id LOC_ID  # Get number inventory
 ```
 
 ### Tips
@@ -84,7 +84,7 @@ wxcli numbers-api list --location-id LOC_ID  # Get number inventory
 | `users` | Create, list, manage users |
 | `licenses` | List and inspect licenses |
 | `numbers` | Manage phone numbers |
-| `numbers-api` | Add, remove, validate numbers |
+| `numbers` | Add, remove, validate numbers |
 | `location-schedules` | Business hours and holiday schedules |
 | `auto-attendant` | IVR menus with key-press routing |
 | `call-queue` | Hold callers until an agent is free |

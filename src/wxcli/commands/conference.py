@@ -12,7 +12,7 @@ app = typer.Typer(help="Manage Webex Calling conference-controls.")
 def cmd_list(
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -136,7 +136,7 @@ def delete(
 
 @app.command("create-add-participant")
 def create_add_participant(
-    call_id: str = typer.Option(..., "--call-id", help="The call identifier of the participant to add."),
+    call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the participant to add."),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -152,6 +152,10 @@ def create_add_participant(
             body["callId"] = call_id
         if line_owner_id is not None:
             body["lineOwnerId"] = line_owner_id
+        _missing = [f for f in ['callId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -268,7 +272,7 @@ def create_unmute(
 
 @app.command("create-deafen")
 def create_deafen(
-    call_id: str = typer.Option(..., "--call-id", help="The call identifier of the participant to deafen."),
+    call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the participant to deafen."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -281,6 +285,10 @@ def create_deafen(
         body = {}
         if call_id is not None:
             body["callId"] = call_id
+        _missing = [f for f in ['callId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -311,7 +319,7 @@ def create_deafen(
 
 @app.command("create-undeafen")
 def create_undeafen(
-    call_id: str = typer.Option(..., "--call-id", help="The call identifier of the participant to undeafen."),
+    call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the participant to undeafen."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -324,6 +332,10 @@ def create_undeafen(
         body = {}
         if call_id is not None:
             body["callId"] = call_id
+        _missing = [f for f in ['callId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:

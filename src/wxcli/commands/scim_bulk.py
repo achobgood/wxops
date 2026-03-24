@@ -11,7 +11,7 @@ app = typer.Typer(help="Manage Webex Calling bulk-manage-scim-2-users-and-groups
 @app.command("create")
 def create(
     org_id: str = typer.Argument(help="orgId"),
-    fail_on_errors: str = typer.Option(..., "--fail-on-errors", help="An integer specifying the maximum number of errors that the"),
+    fail_on_errors: str = typer.Option(None, "--fail-on-errors", help="(required) An integer specifying the maximum number of errors that the"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -24,6 +24,10 @@ def create(
         body = {}
         if fail_on_errors is not None:
             body["failOnErrors"] = fail_on_errors
+        _missing = [f for f in ['failOnErrors'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:

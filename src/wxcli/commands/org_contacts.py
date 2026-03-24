@@ -11,7 +11,7 @@ app = typer.Typer(help="Manage Webex Calling organization-contacts.")
 @app.command("create")
 def create(
     org_id: str = typer.Argument(help="orgId"),
-    schemas: str = typer.Option(..., "--schemas", help="\"urn:cisco:codev:identity:contact:core:1.0\"."),
+    schemas: str = typer.Option(None, "--schemas", help="(required) \"urn:cisco:codev:identity:contact:core:1.0\"."),
     display_name: str = typer.Option(None, "--display-name", help="The full name of the contact."),
     first_name: str = typer.Option(None, "--first-name", help="The first name of the contact."),
     last_name: str = typer.Option(None, "--last-name", help="The last name of the contact."),
@@ -20,7 +20,7 @@ def create(
     address: str = typer.Option(None, "--address", help="Contact's address."),
     avatar_url: str = typer.Option(None, "--avatar-url", help="The URL to the person's avatar in PNG format."),
     primary_contact_method: str = typer.Option(None, "--primary-contact-method", help="Choices: SIPADDRESS, EMAIL, PHONE, IMS"),
-    source: str = typer.Option(..., "--source", help="Choices: CH, Webex4Broadworks"),
+    source: str = typer.Option(None, "--source", help="(required) Choices: CH, Webex4Broadworks"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -51,6 +51,10 @@ def create(
             body["primaryContactMethod"] = primary_contact_method
         if source is not None:
             body["source"] = source
+        _missing = [f for f in ['schemas', 'source'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -280,7 +284,7 @@ def cmd_list(
 @app.command("create-bulk")
 def create_bulk(
     org_id: str = typer.Argument(help="orgId"),
-    schemas: str = typer.Option(..., "--schemas", help="\"urn:cisco:codev:identity:contact:core:1.0\"."),
+    schemas: str = typer.Option(None, "--schemas", help="(required) \"urn:cisco:codev:identity:contact:core:1.0\"."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -293,6 +297,10 @@ def create_bulk(
         body = {}
         if schemas is not None:
             body["schemas"] = schemas
+        _missing = [f for f in ['schemas'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -324,7 +332,7 @@ def create_bulk(
 @app.command("create-delete")
 def create_delete(
     org_id: str = typer.Argument(help="orgId"),
-    schemas: str = typer.Option(..., "--schemas", help="\"urn:cisco:codev:identity:contact:core:1.0\"."),
+    schemas: str = typer.Option(None, "--schemas", help="(required) \"urn:cisco:codev:identity:contact:core:1.0\"."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -337,6 +345,10 @@ def create_delete(
         body = {}
         if schemas is not None:
             body["schemas"] = schemas
+        _missing = [f for f in ['schemas'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:

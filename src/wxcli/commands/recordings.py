@@ -21,7 +21,7 @@ def cmd_list(
     location_id: str = typer.Option(None, "--location-id", help="Fetch recordings for users in a particular Webex Calling loc"),
     topic: str = typer.Option(None, "--topic", help="Recording's topic. If specified, the API filters recordings"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -54,7 +54,12 @@ def cmd_list(
     if offset > 0:
         params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        if limit > 0:
+            result = api.session.rest_get(url, params=params)
+            result = result or {}
+            items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+        else:
+            items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -72,8 +77,6 @@ def cmd_list(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -96,7 +99,7 @@ def list_converged_recordings(
     location_id: str = typer.Option(None, "--location-id", help="Fetch recordings for users in a particular Webex Calling loc"),
     topic: str = typer.Option(None, "--topic", help="Recording's topic. If specified, the API filters recordings"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -133,7 +136,12 @@ def list_converged_recordings(
     if offset > 0:
         params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        if limit > 0:
+            result = api.session.rest_get(url, params=params)
+            result = result or {}
+            items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+        else:
+            items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -151,8 +159,6 @@ def list_converged_recordings(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -282,7 +288,7 @@ def show_metadata(
 def create(
     owner_email: str = typer.Option(None, "--owner-email", help="Recording owner email."),
     owner_id: str = typer.Option(None, "--owner-id", help="Recording owner ID. Can be a user, a virtual line, or a work"),
-    reassign_owner_email: str = typer.Option(..., "--reassign-owner-email", help="New owner of the recordings."),
+    reassign_owner_email: str = typer.Option(None, "--reassign-owner-email", help="(required) New owner of the recordings."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -299,6 +305,10 @@ def create(
             body["ownerID"] = owner_id
         if reassign_owner_email is not None:
             body["reassignOwnerEmail"] = reassign_owner_email
+        _missing = [f for f in ['reassignOwnerEmail'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:

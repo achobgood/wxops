@@ -12,11 +12,11 @@ app = typer.Typer(help="Manage Webex Calling dect-devices-settings.")
 @app.command("create")
 def create(
     location_id: str = typer.Argument(help="locationId"),
-    name: str = typer.Option(..., "--name", help="Name of the DECT network. Min and max length supported for t"),
+    name: str = typer.Option(None, "--name", help="(required) Name of the DECT network. Min and max length supported for t"),
     display_name: str = typer.Option(None, "--display-name", help="Add a default name (11 characters max) to display for all ha"),
-    model: str = typer.Option(..., "--model", help="Choices: DMS Cisco DBS110, Cisco DECT 110 Base, DMS Cisco DBS210, Cisco DECT 210 Base"),
-    default_access_code_enabled: bool = typer.Option(..., "--default-access-code-enabled", help="If set to true, need to provide a default access code that w"),
-    default_access_code: str = typer.Option(..., "--default-access-code", help="If `defaultAccessCodeEnabled` is set to true, then provide a"),
+    model: str = typer.Option(None, "--model", help="(required) Choices: DMS Cisco DBS110, Cisco DECT 110 Base, DMS Cisco DBS210, Cisco DECT 210 Base"),
+    default_access_code_enabled: bool = typer.Option(None, "--default-access-code-enabled/--no-default-access-code-enabled", help="(required) If set to true, need to provide a default access code that w"),
+    default_access_code: str = typer.Option(None, "--default-access-code", help="(required) If `defaultAccessCodeEnabled` is set to true, then provide a"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -41,6 +41,10 @@ def create(
             body["defaultAccessCodeEnabled"] = default_access_code_enabled
         if default_access_code is not None:
             body["defaultAccessCode"] = default_access_code
+        _missing = [f for f in ['name', 'model', 'defaultAccessCodeEnabled', 'defaultAccessCode'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -76,7 +80,7 @@ def cmd_list(
     name: str = typer.Option(None, "--name", help="List of DECT networks with this name."),
     location_id: str = typer.Option(None, "--location-id", help="List of DECT networks at this location."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -265,7 +269,7 @@ def list_base_stations(
     location_id: str = typer.Argument(help="locationId"),
     dect_network_id: str = typer.Argument(help="dectNetworkId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -488,7 +492,7 @@ def list_handsets(
     basestation_id: str = typer.Option(None, "--basestation-id", help="Search handset details in the specified DECT base station ID"),
     member_id: str = typer.Option(None, "--member-id", help="ID of the member of the handset. Members can be of type PEOP"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -539,9 +543,9 @@ def list_handsets(
 def create_handsets(
     location_id: str = typer.Argument(help="locationId"),
     dect_network_id: str = typer.Argument(help="dectNetworkId"),
-    line1_member_id: str = typer.Option(..., "--line1-member-id", help="ID of the member on line1 of the handset. Members can be PEO"),
+    line1_member_id: str = typer.Option(None, "--line1-member-id", help="(required) ID of the member on line1 of the handset. Members can be PEO"),
     line2_member_id: str = typer.Option(None, "--line2-member-id", help="ID of the member on line2 of the handset. Members can be PEO"),
-    custom_display_name: str = typer.Option(..., "--custom-display-name", help="Custom display name on the handset. Min and max length suppo"),
+    custom_display_name: str = typer.Option(None, "--custom-display-name", help="(required) Custom display name on the handset. Min and max length suppo"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -562,6 +566,10 @@ def create_handsets(
             body["line2MemberId"] = line2_member_id
         if custom_display_name is not None:
             body["customDisplayName"] = custom_display_name
+        _missing = [f for f in ['line1MemberId', 'customDisplayName'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -818,7 +826,7 @@ def create_bulk(
 def list_dect_networks_people(
     person_id: str = typer.Argument(help="personId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -865,7 +873,7 @@ def list_dect_networks_people(
 def list_dect_networks_workspaces(
     workspace_id: str = typer.Argument(help="workspaceId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -920,7 +928,7 @@ def list_available_members(
     exclude_virtual_line: str = typer.Option(None, "--exclude-virtual-line", help="If true, search results will exclude virtual lines in the me"),
     usage_type: str = typer.Option(None, "--usage-type", help="Choices: DEVICE_OWNER, SHARED_LINE"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

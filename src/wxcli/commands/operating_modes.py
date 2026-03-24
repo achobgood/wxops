@@ -18,7 +18,7 @@ def cmd_list(
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
     order: str = typer.Option(None, "--order", help="Sort the list of `operating modes` based on `name`, either a"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -200,7 +200,7 @@ def delete(
 
 @app.command("create")
 def create(
-    name: str = typer.Option(..., "--name", help="Unique name for the `operating mode`."),
+    name: str = typer.Option(None, "--name", help="(required) Unique name for the `operating mode`."),
     location_id: str = typer.Option(None, "--location-id", help="Unique identifier of the location. Mandatory if level is `LO"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -220,6 +220,10 @@ def create(
             body["name"] = name
         if location_id is not None:
             body["locationId"] = location_id
+        _missing = [f for f in ['name'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -394,10 +398,10 @@ def delete_holidays(
 @app.command("create-holidays")
 def create_holidays(
     mode_id: str = typer.Argument(help="modeId"),
-    name: str = typer.Option(..., "--name", help="Name of the holiday."),
-    all_day_enabled: bool = typer.Option(..., "--all-day-enabled", help="Specifies if the `operating mode holiday` schedule event is"),
-    start_date: str = typer.Option(..., "--start-date", help="Start date of the `operating mode holiday`."),
-    end_date: str = typer.Option(..., "--end-date", help="End date of the `operating mode holiday`."),
+    name: str = typer.Option(None, "--name", help="(required) Name of the holiday."),
+    all_day_enabled: bool = typer.Option(None, "--all-day-enabled/--no-all-day-enabled", help="(required) Specifies if the `operating mode holiday` schedule event is"),
+    start_date: str = typer.Option(None, "--start-date", help="(required) Start date of the `operating mode holiday`."),
+    end_date: str = typer.Option(None, "--end-date", help="(required) End date of the `operating mode holiday`."),
     start_time: str = typer.Option(None, "--start-time", help="Start time for the `operating mode holiday`. Mandatory if `a"),
     end_time: str = typer.Option(None, "--end-time", help="End time for the `operating mode holiday`. Mandatory if `all"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -426,6 +430,10 @@ def create_holidays(
             body["startTime"] = start_time
         if end_time is not None:
             body["endTime"] = end_time
+        _missing = [f for f in ['name', 'allDayEnabled', 'startDate', 'endDate'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -458,7 +466,7 @@ def create_holidays(
 def list_available_operating_modes(
     location_id: str = typer.Argument(help="locationId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -510,7 +518,7 @@ def list_available_numbers(
     owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
     extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `exten"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

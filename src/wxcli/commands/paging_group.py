@@ -17,7 +17,7 @@ def cmd_list(
     name: str = typer.Option(None, "--name", help="Return only paging groups with the matching name."),
     phone_number: str = typer.Option(None, "--phone-number", help="Return only paging groups with matching primary phone number"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -43,7 +43,12 @@ def cmd_list(
     if org_id is not None:
         params["orgId"] = org_id
     try:
-        result = api.session.rest_get(url, params=params)
+        if limit > 0:
+            result = api.session.rest_get(url, params=params)
+            result = result or {}
+            items = result.get("locationPaging", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+        else:
+            items = list(api.session.follow_pagination(url=url, params=params, item_key="locationPaging"))
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -61,8 +66,6 @@ def cmd_list(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    result = result or []
-    items = result.get("locationPaging", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -73,7 +76,7 @@ def cmd_list(
 @app.command("create")
 def create(
     location_id: str = typer.Argument(help="locationId"),
-    name: str = typer.Option(..., "--name", help="Unique name for the paging group. Minimum length is 1. Maxim"),
+    name: str = typer.Option(None, "--name", help="(required) Unique name for the paging group. Minimum length is 1. Maxim"),
     phone_number: str = typer.Option(None, "--phone-number", help="Paging group phone number. Minimum length is 1. Maximum leng"),
     extension: str = typer.Option(None, "--extension", help="Paging group extension. Minimum length is 2. Maximum length"),
     language_code: str = typer.Option(None, "--language-code", help="Language code."),
@@ -111,6 +114,10 @@ def create(
             body["originatorCallerIdEnabled"] = originator_caller_id_enabled
         if dial_by_name is not None:
             body["dialByName"] = dial_by_name
+        _missing = [f for f in ['name'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -298,7 +305,7 @@ def list_available_numbers(
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

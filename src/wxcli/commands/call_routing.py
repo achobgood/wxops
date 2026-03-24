@@ -68,7 +68,7 @@ def cmd_list(
     order: str = typer.Option(None, "--order", help="Order the trunks according to the designated fields.  Availa"),
     name: str = typer.Option(None, "--name", help="Return the list of trunks matching the local gateway names"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -123,7 +123,7 @@ def cmd_list(
 def list_usage_pstn_connection_trunks(
     trunk_id: str = typer.Argument(help="trunkId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -170,7 +170,7 @@ def list_usage_pstn_connection_trunks(
 def list_usage_route_group(
     trunk_id: str = typer.Argument(help="trunkId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -348,7 +348,7 @@ def list_dial_plans(
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
     order: str = typer.Option(None, "--order", help="Order the dial plans according to the designated fields.  Av"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -405,8 +405,8 @@ def list_dial_plans(
 
 @app.command("create")
 def create(
-    name: str = typer.Option(..., "--name", help="A unique name for the dial plan."),
-    route_id: str = typer.Option(..., "--route-id", help="ID of route type associated with the dial plan."),
+    name: str = typer.Option(None, "--name", help="(required) A unique name for the dial plan."),
+    route_id: str = typer.Option(None, "--route-id", help="(required) ID of route type associated with the dial plan."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -425,6 +425,10 @@ def create(
             body["name"] = name
         if route_id is not None:
             body["routeId"] = route_id
+        _missing = [f for f in ['name', 'routeId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -638,7 +642,7 @@ def list_trunks(
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
     order: str = typer.Option(None, "--order", help="Order the trunks according to the designated fields.  Availa"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -695,9 +699,9 @@ def list_trunks(
 
 @app.command("create-trunks")
 def create_trunks(
-    name: str = typer.Option(..., "--name", help="A unique name for the trunk."),
-    location_id: str = typer.Option(..., "--location-id", help="ID of location associated with the trunk."),
-    password: str = typer.Option(..., "--password", help="A password to use on the trunk."),
+    name: str = typer.Option(None, "--name", help="(required) A unique name for the trunk."),
+    location_id: str = typer.Option(None, "--location-id", help="(required) ID of location associated with the trunk."),
+    password: str = typer.Option(None, "--password", help="(required) A password to use on the trunk."),
     dual_identity_support_enabled: bool = typer.Option(None, "--dual-identity-support-enabled/--no-dual-identity-support-enabled", help="Dual Identity Support setting impacts the handling of the Fr"),
     device_type: str = typer.Option(None, "--device-type", help="Device type assosiated with trunk."),
     address: str = typer.Option(None, "--address", help="FQDN or SRV address. Required to create a static certificate"),
@@ -736,6 +740,10 @@ def create_trunks(
             body["port"] = port
         if max_concurrent_calls is not None:
             body["maxConcurrentCalls"] = max_concurrent_calls
+        _missing = [f for f in ['name', 'locationId', 'password'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -901,7 +909,7 @@ def delete_trunks(
 @app.command("list-trunk-types")
 def list_trunk_types(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -951,7 +959,7 @@ def list_route_groups(
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
     order: str = typer.Option(None, "--order", help="Order the route groups according to designated fields.  Avai"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1004,7 +1012,7 @@ def list_route_groups(
 
 @app.command("create-route-groups")
 def create_route_groups(
-    name: str = typer.Option(..., "--name", help="A unique name for the Route Group."),
+    name: str = typer.Option(None, "--name", help="(required) A unique name for the Route Group."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1021,6 +1029,10 @@ def create_route_groups(
         body = {}
         if name is not None:
             body["name"] = name
+        _missing = [f for f in ['name'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -1226,7 +1238,7 @@ def list_usage_call_to_extension_route_groups(
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
     order: str = typer.Option(None, "--order", help="Order the locations according to designated fields.  Availab"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1285,7 +1297,7 @@ def list_usage_dial_plan(
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
     order: str = typer.Option(None, "--order", help="Order the locations according to designated fields.  Availab"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1344,7 +1356,7 @@ def list_usage_pstn_connection_route_groups(
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
     order: str = typer.Option(None, "--order", help="Order the locations according to designated fields.  Availab"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1403,7 +1415,7 @@ def list_usage_route_list(
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
     order: str = typer.Option(None, "--order", help="Order the locations according to designated fields.  Availab"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1462,7 +1474,7 @@ def list_route_lists(
     name: str = typer.Option(None, "--name", help="Return the list of Route List matching the route list name."),
     location_id: str = typer.Option(None, "--location-id", help="Return the list of Route Lists matching the location id."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1517,9 +1529,9 @@ def list_route_lists(
 
 @app.command("create-route-lists")
 def create_route_lists(
-    name: str = typer.Option(..., "--name", help="Name of the Route List"),
-    location_id: str = typer.Option(..., "--location-id", help="Location associated with the Route List."),
-    route_group_id: str = typer.Option(..., "--route-group-id", help="ID of the route group associated with Route List."),
+    name: str = typer.Option(None, "--name", help="(required) Name of the Route List"),
+    location_id: str = typer.Option(None, "--location-id", help="(required) Location associated with the Route List."),
+    route_group_id: str = typer.Option(None, "--route-group-id", help="(required) ID of the route group associated with Route List."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1540,6 +1552,10 @@ def create_route_lists(
             body["locationId"] = location_id
         if route_group_id is not None:
             body["routeGroupId"] = route_group_id
+        _missing = [f for f in ['name', 'locationId', 'routeGroupId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -1704,7 +1720,7 @@ def list_numbers(
     number: str = typer.Option(None, "--number", help="Number assigned to the route list."),
     order: str = typer.Option(None, "--order", help="Order the Route Lists according to number, ascending or desc"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1806,7 +1822,7 @@ def list_usage_call_to_extension_trunks(
     order: str = typer.Option(None, "--order", help="Order the trunks according to the designated fields.  Availa"),
     name: str = typer.Option(None, "--name", help="Return the list of trunks matching the local gateway names"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1867,7 +1883,7 @@ def list_translation_patterns(
     name: str = typer.Option(None, "--name", help="Only return translation patterns with the matching `name`."),
     matching_pattern: str = typer.Option(None, "--matching-pattern", help="Only return translation patterns with the matching `matching"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1926,9 +1942,9 @@ def list_translation_patterns(
 
 @app.command("create-translation-patterns-call-routing")
 def create_translation_patterns_call_routing(
-    name: str = typer.Option(..., "--name", help="Name given to a translation pattern for an organization."),
-    matching_pattern: str = typer.Option(..., "--matching-pattern", help="Matching pattern given to a translation pattern for an organ"),
-    replacement_pattern: str = typer.Option(..., "--replacement-pattern", help="Replacement pattern given to a translation pattern for an or"),
+    name: str = typer.Option(None, "--name", help="(required) Name given to a translation pattern for an organization."),
+    matching_pattern: str = typer.Option(None, "--matching-pattern", help="(required) Matching pattern given to a translation pattern for an organ"),
+    replacement_pattern: str = typer.Option(None, "--replacement-pattern", help="(required) Replacement pattern given to a translation pattern for an or"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1949,6 +1965,10 @@ def create_translation_patterns_call_routing(
             body["matchingPattern"] = matching_pattern
         if replacement_pattern is not None:
             body["replacementPattern"] = replacement_pattern
+        _missing = [f for f in ['name', 'matchingPattern', 'replacementPattern'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -2111,9 +2131,9 @@ def delete_translation_patterns_call_routing(
 @app.command("create-translation-patterns-call-routing-1")
 def create_translation_patterns_call_routing_1(
     location_id: str = typer.Argument(help="locationId"),
-    name: str = typer.Option(..., "--name", help="A name given to a translation pattern for a location."),
-    matching_pattern: str = typer.Option(..., "--matching-pattern", help="A matching pattern given to a translation pattern for a loca"),
-    replacement_pattern: str = typer.Option(..., "--replacement-pattern", help="A replacement pattern given to a translation pattern for a l"),
+    name: str = typer.Option(None, "--name", help="(required) A name given to a translation pattern for a location."),
+    matching_pattern: str = typer.Option(None, "--matching-pattern", help="(required) A matching pattern given to a translation pattern for a loca"),
+    replacement_pattern: str = typer.Option(None, "--replacement-pattern", help="(required) A replacement pattern given to a translation pattern for a l"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -2134,6 +2154,10 @@ def create_translation_patterns_call_routing_1(
             body["matchingPattern"] = matching_pattern
         if replacement_pattern is not None:
             body["replacementPattern"] = replacement_pattern
+        _missing = [f for f in ['name', 'matchingPattern', 'replacementPattern'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:

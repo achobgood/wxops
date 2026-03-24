@@ -16,7 +16,7 @@ def cmd_list(
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -68,9 +68,9 @@ def cmd_list(
 @app.command("create")
 def create(
     person_id: str = typer.Argument(help="personId"),
-    phone_number: str = typer.Option(..., "--phone-number", help="Personal phone number used as single Number Reach."),
-    enabled: bool = typer.Option(..., "--enabled", help="A flag to enable or disable single Number Reach."),
-    name: str = typer.Option(..., "--name", help="Name of the single number reach phone number entry."),
+    phone_number: str = typer.Option(None, "--phone-number", help="(required) Personal phone number used as single Number Reach."),
+    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="(required) A flag to enable or disable single Number Reach."),
+    name: str = typer.Option(None, "--name", help="(required) Name of the single number reach phone number entry."),
     do_not_forward_calls_enabled: bool = typer.Option(None, "--do-not-forward-calls-enabled/--no-do-not-forward-calls-enabled", help="If enabled, the call forwarding settings of provided phone N"),
     answer_confirmation_enabled: bool = typer.Option(None, "--answer-confirmation-enabled/--no-answer-confirmation-enabled", help="If enabled, the call recepient will be prompted to press a k"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -93,6 +93,10 @@ def create(
             body["doNotForwardCallsEnabled"] = do_not_forward_calls_enabled
         if answer_confirmation_enabled is not None:
             body["answerConfirmationEnabled"] = answer_confirmation_enabled
+        _missing = [f for f in ['phoneNumber', 'enabled', 'name'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -125,7 +129,7 @@ def create(
 def list_single_number_reach(
     person_id: str = typer.Argument(help="personId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

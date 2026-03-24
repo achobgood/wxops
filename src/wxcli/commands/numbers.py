@@ -201,7 +201,7 @@ def cmd_list(
     included_telephony_types: str = typer.Option(None, "--included-telephony-types", help="Returns the list of phone numbers that are of given `include"),
     service_number: str = typer.Option(None, "--service-number", help="Returns the list of service phone numbers."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -285,7 +285,7 @@ def list_manage_numbers(
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of jobs. Default"),
     max: str = typer.Option(None, "--max", help="Limit the number of jobs returned to this maximum count. Def"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -334,7 +334,7 @@ def list_manage_numbers(
 
 @app.command("create-manage-numbers")
 def create_manage_numbers(
-    operation: str = typer.Option(..., "--operation", help="The kind of operation to be carried out."),
+    operation: str = typer.Option(None, "--operation", help="(required) The kind of operation to be carried out."),
     target_location_id: str = typer.Option(None, "--target-location-id", help="Mandatory for a `MOVE` operation. The target location within"),
     number_usage_type: str = typer.Option(None, "--number-usage-type", help="The number usage type. Mandatory for `NUMBER_USAGE_CHANGE` o"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -343,10 +343,6 @@ def create_manage_numbers(
     """Initiate Number Jobs\n\nExample --json-body:\n  '{"operation":"...","targetLocationId":"...","numberUsageType":"...","numberList":[{"locationId":"...","numbers":"..."}]}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/jobs/numbers/manageNumbers"
-    params = {}
-    org_id = get_org_id()
-    if org_id is not None:
-        params["orgId"] = org_id
     if json_body:
         body = json.loads(json_body)
     else:
@@ -357,8 +353,12 @@ def create_manage_numbers(
             body["targetLocationId"] = target_location_id
         if number_usage_type is not None:
             body["numberUsageType"] = number_usage_type
+        _missing = [f for f in ['operation'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
-        result = api.session.rest_post(url, json=body, params=params)
+        result = api.session.rest_post(url, json=body)
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -394,12 +394,8 @@ def show(
     """Get Manage Numbers Job Status."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/jobs/numbers/manageNumbers/{job_id}"
-    params = {}
-    org_id = get_org_id()
-    if org_id is not None:
-        params["orgId"] = org_id
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -515,7 +511,7 @@ def list_errors(
     start: str = typer.Option(None, "--start", help="Specifies the error offset from the first result that you wa"),
     max: str = typer.Option(None, "--max", help="Specifies the maximum number of records that you want to fet"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

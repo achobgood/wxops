@@ -253,7 +253,7 @@ def cmd_list(
     max: str = typer.Option(None, "--max", help="Limit the maximum number of events in the response. The maxi"),
     start: str = typer.Option(None, "--start", help="Offset from the first result that you want to fetch."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -467,13 +467,13 @@ def delete(
 @app.command("create")
 def create(
     location_id: str = typer.Argument(help="locationId"),
-    name: str = typer.Option(..., "--name", help="Set name to create new voicemail group for a particular loca"),
+    name: str = typer.Option(None, "--name", help="(required) Set name to create new voicemail group for a particular loca"),
     phone_number: str = typer.Option(None, "--phone-number", help="Set voicemail group phone number for this particular locatio"),
-    extension: str = typer.Option(..., "--extension", help="Set unique voicemail group extension number for this particu"),
+    extension: str = typer.Option(None, "--extension", help="(required) Set unique voicemail group extension number for this particu"),
     first_name: str = typer.Option(None, "--first-name", help="Set voicemail group caller ID first name. This field has bee"),
     last_name: str = typer.Option(None, "--last-name", help="Set voicemail group called ID last name. This field has been"),
-    passcode: str = typer.Option(..., "--passcode", help="Set passcode to access voicemail group when calling."),
-    language_code: str = typer.Option(..., "--language-code", help="Language code for voicemail group audio announcement."),
+    passcode: str = typer.Option(None, "--passcode", help="(required) Set passcode to access voicemail group when calling."),
+    language_code: str = typer.Option(None, "--language-code", help="(required) Language code for voicemail group audio announcement."),
     dial_by_name: str = typer.Option(None, "--dial-by-name", help="The name to be used for dial by name functions.  Characters"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -505,6 +505,10 @@ def create(
             body["languageCode"] = language_code
         if dial_by_name is not None:
             body["dialByName"] = dial_by_name
+        _missing = [f for f in ['name', 'extension', 'passcode', 'languageCode'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -540,7 +544,7 @@ def list_available_numbers_fax_message(
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -596,7 +600,7 @@ def list_available_numbers_voicemail_groups(
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -652,7 +656,7 @@ def list_available_numbers_voice_portal(
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

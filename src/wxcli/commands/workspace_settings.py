@@ -184,7 +184,7 @@ def update_call_waiting(
 def cmd_list(
     workspace_id: str = typer.Argument(help="workspaceId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -385,7 +385,7 @@ def update_monitoring(
 def list_numbers(
     workspace_id: str = typer.Argument(help="workspaceId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -528,7 +528,7 @@ def update_incoming_permission(
 def list_outgoing_permission(
     workspace_id: str = typer.Argument(help="workspaceId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -621,7 +621,7 @@ def update_outgoing_permission(
 def list_access_codes(
     workspace_id: str = typer.Argument(help="workspaceId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -667,8 +667,8 @@ def list_access_codes(
 @app.command("create")
 def create(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    code: str = typer.Option(..., "--code", help="An Access code."),
-    description: str = typer.Option(..., "--description", help="The description of the access code."),
+    code: str = typer.Option(None, "--code", help="(required) An Access code."),
+    description: str = typer.Option(None, "--description", help="(required) The description of the access code."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -687,6 +687,10 @@ def create(
             body["code"] = code
         if description is not None:
             body["description"] = description
+        _missing = [f for f in ['code', 'description'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -1109,7 +1113,7 @@ def delete_access_codes(
 def list_digit_patterns(
     workspace_id: str = typer.Argument(help="workspaceId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1155,10 +1159,10 @@ def list_digit_patterns(
 @app.command("create-digit-patterns")
 def create_digit_patterns(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    name: str = typer.Option(..., "--name", help="A unique name for the digit pattern."),
-    pattern: str = typer.Option(..., "--pattern", help="The digit pattern to be matched with the input number."),
-    action: str = typer.Option(..., "--action", help="Choices: ALLOW, BLOCK, AUTH_CODE, TRANSFER_NUMBER_1, TRANSFER_NUMBER_2, TRANSFER_NUMBER_3"),
-    transfer_enabled: bool = typer.Option(..., "--transfer-enabled", help="If `true`, allows transfer and forwarding for the call type."),
+    name: str = typer.Option(None, "--name", help="(required) A unique name for the digit pattern."),
+    pattern: str = typer.Option(None, "--pattern", help="(required) The digit pattern to be matched with the input number."),
+    action: str = typer.Option(None, "--action", help="(required) Choices: ALLOW, BLOCK, AUTH_CODE, TRANSFER_NUMBER_1, TRANSFER_NUMBER_2, TRANSFER_NUMBER_3"),
+    transfer_enabled: bool = typer.Option(None, "--transfer-enabled/--no-transfer-enabled", help="(required) If `true`, allows transfer and forwarding for the call type."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1181,6 +1185,10 @@ def create_digit_patterns(
             body["action"] = action
         if transfer_enabled is not None:
             body["transferEnabled"] = transfer_enabled
+        _missing = [f for f in ['name', 'pattern', 'action', 'transferEnabled'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -1567,7 +1575,7 @@ def list_available_numbers_workspaces(
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1626,7 +1634,7 @@ def list_available_numbers_emergency_callback_number(
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
     owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1686,7 +1694,7 @@ def list_available_numbers_call_forwarding(
     owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
     extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `exten"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1748,7 +1756,7 @@ def list_available_numbers_call_intercept(
     owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
     extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `exten"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -2159,7 +2167,7 @@ def update_call_bridge(
 def list_push_to_talk(
     workspace_id: str = typer.Argument(help="workspaceId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -2249,7 +2257,7 @@ def update_push_to_talk(
 def list_privacy(
     workspace_id: str = typer.Argument(help="workspaceId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -2793,10 +2801,10 @@ def create_criteria_sequential_ring(
     schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the location's schedule which determines when the se"),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: holidays, businessHours"),
     schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP"),
-    calls_from: str = typer.Option(..., "--calls-from", help="Choices: SELECT_PHONE_NUMBERS, ANY_PHONE_NUMBER"),
+    calls_from: str = typer.Option(None, "--calls-from", help="(required) Choices: SELECT_PHONE_NUMBERS, ANY_PHONE_NUMBER"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true` incoming calls from private numbers are allowed."),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true` incoming calls from unavailable numbers are allo"),
-    ring_enabled: bool = typer.Option(..., "--ring-enabled", help="When set to `true` sequential ringing is enabled for calls t"),
+    ring_enabled: bool = typer.Option(None, "--ring-enabled/--no-ring-enabled", help="(required) When set to `true` sequential ringing is enabled for calls t"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -2825,6 +2833,10 @@ def create_criteria_sequential_ring(
             body["unavailableCallersEnabled"] = unavailable_callers_enabled
         if ring_enabled is not None:
             body["ringEnabled"] = ring_enabled
+        _missing = [f for f in ['callsFrom', 'ringEnabled'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -2857,7 +2869,7 @@ def create_criteria_sequential_ring(
 def list_sequential_ring(
     workspace_id: str = typer.Argument(help="workspaceId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -2959,7 +2971,7 @@ def update_sequential_ring(
 def list_simultaneous_ring(
     workspace_id: str = typer.Argument(help="workspaceId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -3191,10 +3203,10 @@ def delete_criteria_simultaneous_ring(
 @app.command("create-criteria-simultaneous-ring")
 def create_criteria_simultaneous_ring(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    schedule_name: str = typer.Option(..., "--schedule-name", help="Name of the location's schedule which determines when the si"),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="(required) Name of the location's schedule which determines when the si"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables calls from anonymous callers. Value for"),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables calls even if callers are unavailable."),
-    ring_enabled: bool = typer.Option(..., "--ring-enabled", help="When set to `true` simultaneous ringing criteria is enabled"),
+    ring_enabled: bool = typer.Option(None, "--ring-enabled/--no-ring-enabled", help="(required) When set to `true` simultaneous ringing criteria is enabled"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -3217,6 +3229,10 @@ def create_criteria_simultaneous_ring(
             body["unavailableCallersEnabled"] = unavailable_callers_enabled
         if ring_enabled is not None:
             body["ringEnabled"] = ring_enabled
+        _missing = [f for f in ['scheduleName', 'ringEnabled'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -3249,7 +3265,7 @@ def create_criteria_simultaneous_ring(
 def list_selective_reject(
     workspace_id: str = typer.Argument(help="workspaceId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -3475,10 +3491,10 @@ def delete_criteria_selective_reject(
 @app.command("create-criteria-selective-reject")
 def create_criteria_selective_reject(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    schedule_name: str = typer.Option(..., "--schedule-name", help="Name of the location's schedule which determines when the se"),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="(required) Name of the location's schedule which determines when the se"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables calls from anonymous callers. Value for"),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables calls even if callers are unavailable."),
-    reject_enabled: bool = typer.Option(..., "--reject-enabled", help="Choose to reject (if `rejectEnabled` = `true`) or not to rej"),
+    reject_enabled: bool = typer.Option(None, "--reject-enabled/--no-reject-enabled", help="(required) Choose to reject (if `rejectEnabled` = `true`) or not to rej"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -3501,6 +3517,10 @@ def create_criteria_selective_reject(
             body["unavailableCallersEnabled"] = unavailable_callers_enabled
         if reject_enabled is not None:
             body["rejectEnabled"] = reject_enabled
+        _missing = [f for f in ['scheduleName', 'rejectEnabled'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -3576,7 +3596,7 @@ def update_numbers(
 def list_selective_accept(
     workspace_id: str = typer.Argument(help="workspaceId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -3802,10 +3822,10 @@ def delete_criteria_selective_accept(
 @app.command("create-criteria-selective-accept")
 def create_criteria_selective_accept(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    schedule_name: str = typer.Option(..., "--schedule-name", help="Name of the location's schedule which determines when the se"),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="(required) Name of the location's schedule which determines when the se"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables calls from anonymous callers. Value for"),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables calls even if callers are unavailable."),
-    accept_enabled: bool = typer.Option(..., "--accept-enabled", help="Choose to accept (if `acceptEnabled` = `true`) or not to acc"),
+    accept_enabled: bool = typer.Option(None, "--accept-enabled/--no-accept-enabled", help="(required) Choose to accept (if `acceptEnabled` = `true`) or not to acc"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -3828,6 +3848,10 @@ def create_criteria_selective_accept(
             body["unavailableCallersEnabled"] = unavailable_callers_enabled
         if accept_enabled is not None:
             body["acceptEnabled"] = accept_enabled
+        _missing = [f for f in ['scheduleName', 'acceptEnabled'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -3860,7 +3884,7 @@ def create_criteria_selective_accept(
 def list_priority_alert(
     workspace_id: str = typer.Argument(help="workspaceId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -4086,10 +4110,10 @@ def delete_criteria_priority_alert(
 @app.command("create-criteria-priority-alert")
 def create_criteria_priority_alert(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    schedule_name: str = typer.Option(..., "--schedule-name", help="Name of the location's schedule which determines when the pr"),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="(required) Name of the location's schedule which determines when the pr"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables calls from anonymous callers. Value for"),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables calls even if callers are unavailable."),
-    notification_enabled: bool = typer.Option(..., "--notification-enabled", help="When set to `true` priority alerting criteria is enabled for"),
+    notification_enabled: bool = typer.Option(None, "--notification-enabled/--no-notification-enabled", help="(required) When set to `true` priority alerting criteria is enabled for"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -4112,6 +4136,10 @@ def create_criteria_priority_alert(
             body["unavailableCallersEnabled"] = unavailable_callers_enabled
         if notification_enabled is not None:
             body["notificationEnabled"] = notification_enabled
+        _missing = [f for f in ['scheduleName', 'notificationEnabled'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -4144,7 +4172,7 @@ def create_criteria_priority_alert(
 def list_selective_forward(
     workspace_id: str = typer.Argument(help="workspaceId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -4452,7 +4480,7 @@ def list_available_numbers_fax_message(
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -4508,7 +4536,7 @@ def list_available_numbers_secondary(
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

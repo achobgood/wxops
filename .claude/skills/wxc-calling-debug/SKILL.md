@@ -98,7 +98,7 @@ When you know the failing API endpoint, use this logic to verify scope access:
    # Test people scope
    wxcli users list
    # Test calls scope (requires user-level OAuth — see special cases below)
-   wxcli call-controls list-calls
+   wxcli call-controls list
    ```
 4. **Diagnose 403s** — if the test command returns 403:
    - Personal token: user may not be a full org admin (required for `spark-admin:` scopes)
@@ -298,6 +298,18 @@ wxcli auto-attendant create LOC_ID --name "Test" --extension 9999 --business-sch
 # If a user operation fails, check the user exists and has calling
 wxcli users show USER_ID --output json --debug
 ```
+
+#### Fallback: Quick curl test (for Content-Type or header issues)
+
+If the CLI sends wrong headers (e.g., wrong Content-Type for JSON Patch endpoints), use curl to test the raw request:
+
+```bash
+TOKEN=$(python3.11 -c "import json; print(json.load(open('$HOME/.wxcli/config.json'))['profiles']['default']['token'])")
+curl -s -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  https://webexapis.com/v1/...
+```
+
+The config file structure is `profiles.<profile_name>.token` (not a top-level `access_token` key). Default profile is `default`.
 
 #### Fallback: Advanced SDK Debugging (when CLI doesn't give enough detail)
 

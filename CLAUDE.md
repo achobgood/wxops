@@ -29,7 +29,7 @@ Use `/wxc-calling-debug` to troubleshoot a failing configuration (this one is a 
 | `.claude/skills/manage-call-settings/` | Skill: configure person/workspace call settings |
 | `.claude/skills/configure-routing/` | Skill: configure routing (trunks, dial plans, PSTN) |
 | `.claude/skills/manage-devices/` | Skill: manage devices (phones, DECT, workspaces) |
-| `.claude/skills/device-platform/` | Skill: manage RoomOS device configs, workspace personalization, xAPI |
+| `.claude/skills/device-platform/` | Skill: manage RoomOS device configs, workspace personalization, xAPI; also 9800-series phones (9811/9821/9841/9851/9861/9871) |
 | `.claude/skills/call-control/` | Skill: real-time call control, webhooks, XSI |
 | `.claude/skills/reporting/` | Skill: CDR, queue stats, call quality, reports |
 | `.claude/skills/wxc-calling-debug/` | Skill: debug failing configurations |
@@ -38,6 +38,7 @@ Use `/wxc-calling-debug` to troubleshoot a failing configuration (this one is a 
 | `.claude/skills/manage-licensing/` | Skill: license audit, assignment, reclamation |
 | `.claude/skills/messaging-spaces/` | Skill: manage spaces, teams, memberships, ECM, HDS |
 | `.claude/skills/messaging-bots/` | Skill: build bots, adaptive cards, webhooks, cross-domain integrations |
+| `.claude/skills/cucm-migrate/` | Skill: execute CUCM-to-Webex migration from exported deployment plan |
 
 ### Reference Docs — wxc_sdk (Official Cisco SDK)
 
@@ -113,34 +114,37 @@ Use `/wxc-calling-debug` to troubleshoot a failing configuration (this one is a 
 | `webex-device.json` | OpenAPI 3.0 spec — device management APIs |
 | `webex-messaging.json` | OpenAPI 3.0 spec — messaging/rooms/teams APIs |
 
-### CUCM→Webex Migration Tool (Phases 01-06 built, Phase 07+ remaining)
+### CUCM→Webex Migration Tool (All 11 phases complete)
 
-The migration tool is a hand-coded module at `src/wxcli/migration/` that will plug into the CLI as `wxcli cucm <command>`. It does NOT use the auto-generator. **740 tests passing.**
+The migration tool is at `src/wxcli/migration/` and wired into the CLI as `wxcli cucm <command>`. It does NOT use the auto-generator. **1294 tests passing.** Use `/cucm-migrate` to execute a migration after running the pipeline.
 
 | Path | Purpose |
 |------|---------|
 | `docs/plans/cucm-migration-roadmap.md` | **Master roadmap** — what's done, what's ready, what's next. Start here. |
-| `docs/plans/cucm-wxc-migration.md` | Full migration design spec (module structure is stale — pipeline docs are authoritative) |
 | `docs/plans/cucm-pipeline-architecture.md` | Pipeline architecture summary — SQLite store, two-pass ELT, linter-pattern analyzers, NetworkX DAG |
-| `docs/plans/cucm-pipeline/01-07 + 03b` | 8 detailed architecture docs (data representation, normalization, analyzers, mappers, CSS decomposition, dependency graph, decision workflow, idempotency) |
-| `docs/prompts/` | Design + build prompts (execution prompts, review swarms, guardrails) |
-| `docs/prompts/design-guardrails.md` | Shared guardrails for all design sessions (hallucination prevention, citation requirements, checklist-before-writing) |
-| `src/wxcli/migration/models.py` | Canonical data models — 20 types, DecisionType (15 values), Decision, MapperResult, TransformResult |
+| `docs/plans/cucm-pipeline/01-07 + 03b` | 8 detailed architecture docs |
+| `src/wxcli/commands/cucm.py` | Phases 08+10 — CLI: 13 commands (init, discover, normalize, map, analyze, plan, preflight, decisions, decide, export, inventory, status, config) |
+| `src/wxcli/commands/cucm_config.py` | Phase 08 — Config management helpers |
+| `src/wxcli/migration/models.py` | Canonical data models — 20 types, DecisionType (16 values), Decision, MapperResult, TransformResult |
 | `src/wxcli/migration/store.py` | SQLite-backed store — objects, cross_refs, decisions, journal, merge_log, merge_decisions() |
-| `src/wxcli/migration/extract/` | Phase 03 — AXL connection, 8 extractors, discovery pipeline |
+| `src/wxcli/migration/cucm/` | Phase 03 — AXL connection, 8 extractors, discovery pipeline |
 | `src/wxcli/migration/transform/normalizers.py` | Phase 04 — 24 Pass 1 normalizers |
 | `src/wxcli/migration/transform/cross_reference.py` | Phase 04 — CrossReferenceBuilder (26 relationships + 3 enrichments) |
 | `src/wxcli/migration/transform/pipeline.py` | Phase 04 — `normalize_discovery()` entry point |
 | `src/wxcli/migration/transform/mappers/` | Phase 05 — 9 mappers + base.py + engine.py |
 | `src/wxcli/migration/transform/analyzers/` | Phase 06 — 12 analyzers (3 analyzer-owned + 9 mapper-owned) |
-| `src/wxcli/migration/transform/analysis_pipeline.py` | Phase 06 — Orchestrator: run analyzers → merge → auto-rules |
-| `src/wxcli/migration/transform/rules.py` | Phase 05 — Auto-resolution rules (type-based matching) |
-| `src/wxcli/migration/transform/decisions.py` | Phase 05 — Decision query/formatting helpers |
+| `src/wxcli/migration/transform/analysis_pipeline.py` | Phase 06 — Orchestrator: run analyzers → merge → auto-rules + resolve_and_cascade() |
+| `src/wxcli/migration/execute/` | Phase 07 — planner.py, dependency.py (NetworkX DAG), batch.py |
+| `src/wxcli/migration/export/` | Phase 09 — command_builder.py (27 op→wxcli mappings), deployment_plan.py, json/csv exports |
+| `src/wxcli/migration/preflight/` | Phase 10 — checks.py (8 preflight checks), runner.py (orchestrator), CLI `wxcli cucm preflight` |
+| `.claude/skills/cucm-migrate/SKILL.md` | Phase 11 — 6-step execution skill: preflight → plan summary → batch execute → delegate → report |
 
 **Where the design spec and pipeline architecture docs conflict, the pipeline architecture docs are authoritative.**
 
 Each subdirectory has its own CLAUDE.md (local context) and TODO.md (outstanding work).
 See `docs/plans/cucm-migration-roadmap.md` for the master project status.
+
+**To run a migration:** `wxcli cucm init` → `discover` → `normalize` → `map` → `analyze` → `decisions` → `plan` → `preflight` → `export` → then invoke `/cucm-migrate`.
 
 ### Tools
 
@@ -166,6 +170,7 @@ See `docs/plans/cucm-migration-roadmap.md` for the master project status.
 - **Live API sweep Batch 2 (2026-03-19):** Tested user-settings (~12 cmds), workspace-settings (~12 cmds), virtual-line-settings (~6 cmds), device-settings (~4 cmds), device-dynamic-settings, call-routing (5 list cmds), calling-service, caller-reputation, client-settings, hot-desking-portal, report-templates, CDR, admin-recordings, resource-groups, resource-group-memberships, hybrid-clusters/connectors, and workspace endpoint existence via curl. Found 3 CLI bugs (CDR wrong base URL, null result traceback, report-templates misclassified as singleton). Fixed in generator: analytics base URL support, null result guard, direct-array-response list classification. Mapped workspace endpoint access by license tier (Basic vs Professional).
 - **Live API sweep Batch 3 (2026-03-20):** Tested location-settings (~15 cmds), location-schedules, location-voicemail (~10 cmds), emergency-services (~15 cmds), dect-devices full CRUD lifecycle (create network → add handsets with 2 lines → update → bulk add → delete), call-recording (~10 cmds), organizations, roles, org-contacts, device-configurations, xapi, workspace-personalization. No new CLI bugs found. Full DECT create/read/update/delete cycle verified. Base station MACs require Cisco manufacturing database (Bifrost) — can't use fake MACs.
 - **Live API sweep Batch 4 (2026-03-21):** Customer Assist (cx-essentials) end-to-end: screen pop, wrap-up reasons, queue call recording (2 new commands), supervisors, available agents. Found 6 CLI bugs (list table column, validate output, list-settings response shape, missing error 28018 handling, wrong queue recording JSON example, update-settings missing 28018). Found 2 generator issues (supervisor delete missing hasCxEssentials param, create output for empty dict). Found 3 API behaviors: CX queues hidden from default `call-queue list`, CX queue creation requires `callPolicies`, supervisor delete returns 204 but supervisor persists (workaround: remove agents via update). All CLI bugs fixed, generator enhanced with `add_query_params` override.
+- **Test bed expansion (2026-03-24):** Added 15 new + 5 modified objects to CUCM test bed (10.201.123.107) for pipeline coverage gaps: 2 blocking partitions in CSSes (CSSMapper CallingPermission), 2 common-area phones (WorkspaceMapper), 2nd pickup group, 2nd CTI Route Point, 2 holiday time periods (HOLIDAY OperatingMode), time schedule→partition wiring. Script: `tests/migration/cucm/provision_testbed_phase9.py`. Discovered 4 AXL gotchas (pickup group members, CTI RP protocol, TimePeriod enums). Pipeline gaps: no PagingGroup AXL object (needs InformaCast), no Unity Connection for CUPI voicemail extraction.
 
 ### Partner Multi-Org Support
 
@@ -192,6 +197,7 @@ See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for fu
 7. **Settings endpoints now support table output.** Settings-get commands (show-*) now accept `-o table` and auto-detect columns from the response data. List commands with non-standard response shapes (no `id`/`name` fields) also auto-detect columns.
 8. **Customer Assist queues are hidden from default `call-queue list`.** Must pass `--has-cx-essentials true` to see them. CX queue creation requires `callPolicies` via `--json-body`. Error 28018 ("CX Essentials is not enabled for this Call center") means the queue isn't a Customer Assist queue. The CLI detects this and prints a tip.
 9. **Supervisor delete returns 204 but supervisor persists.** `delete-supervisors-config-1 --has-cx-essentials true` gets 204 from the API but the supervisor remains. Workaround: use `update-supervisors` with `action: DELETE` on each agent — removing the last agent auto-removes the supervisor.
+10. **CUCM CallPickupGroup creation with members fails on CUCM 15.0.** The AXL `addCallPickupGroup` operation with `<members>` containing `<directoryNumber>` fails with a null priority foreign key constraint. Workaround: create the pickup group empty, then use `updateLine` with `callPickupGroupName` to assign members at the line level. Affects both wxcadm and raw AXL calls.
 
 ### Generator rules
 

@@ -18,7 +18,7 @@ def cmd_list(
     unit: str = typer.Option(None, "--unit", help="Choices: celsius, fahrenheit"),
     sort_by: str = typer.Option(None, "--sort-by", help="Choices: newestFirst, oldestFirst"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -80,7 +80,7 @@ def list_workspace_duration_metrics(
     from_param: str = typer.Option(None, "--from", help="Include data points after a specific date and time (ISO 8601"),
     to: str = typer.Option(None, "--to", help="Include data points before a specific date and time (ISO 860"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

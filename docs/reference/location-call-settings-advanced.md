@@ -736,13 +736,20 @@ wxcli call-queue update-supervisors SUPERVISOR_ID --has-cx-essentials true \
   --json-body '{"agents": [{"id": "AGENT_ID", "action": "ADD"}]}'
 
 # Delete a specific supervisor
-wxcli call-queue delete-supervisors-config-1 SUPERVISOR_ID --force
+wxcli call-queue delete-supervisors-config-1 SUPERVISOR_ID --has-cx-essentials true --force
 
 # Delete supervisors in bulk
-wxcli call-queue delete-supervisors-config --force
+wxcli call-queue delete-supervisors-config --has-cx-essentials true --force
+
+# RECOMMENDED: Remove supervisor by removing all agents (more reliable)
+wxcli call-queue update-supervisors SUPERVISOR_ID --has-cx-essentials true \
+  --json-body '{"agents": [{"id": "AGENT_ID", "action": "DELETE"}]}'
+# When last agent is removed, supervisor is auto-deleted
 ```
 
 > **WARNING:** `delete-supervisors-config --force` without specifying IDs may remove **all supervisors in the org**. Always confirm scope before executing.
+
+> **GOTCHA:** `delete-supervisors-config-1` returns 204 but the Customer Assist supervisor may persist. The reliable method is to remove all agents via `update-supervisors` with `action: DELETE` — when the last agent is removed, the supervisor is automatically deleted. <!-- Verified via live API 2026-03-21 -->
 
 ### 4.5 Key Behaviors
 
@@ -1466,6 +1473,7 @@ Note that Conference Controls uses **user-level** scopes (`spark:calls_*`), not 
 - **Score thresholds are strings.** The caller reputation `callBlockScoreThreshold` and `callAllowScoreThreshold` fields are string-typed, not integers. Pass them as quoted values in both CLI and raw HTTP.
 - **`delete_bulk` supervisors has a nuke option.** Setting `delete_all: true` on `delete_bulk()` ignores the provided ID list and removes ALL supervisors in the org. Double-check before using.
 - **Hot desking has two levels.** The location setting enables the feature globally for the location; the user-level setting controls whether a specific user can act as a hot desking guest. Both must be enabled for a user to hot-desk at that location.
+- **TimePeriod AXL field constraints.** The `monthOfYear` field uses 3-letter abbreviations only (`Dec`, `Jan`, `Feb`, etc., not full names like `December`). The `startTime`/`endTime` fields only accept on-the-hour values per the `TypeTimeOfDay` enum — values like `23:59` or `17:30` are rejected. For date-specific (holiday) time periods, use `monthOfYear` + `dayOfMonth` with valid time range (e.g., `08:00`–`17:00`). <!-- Verified via test bed expansion 2026-03-24 -->
 
 ---
 

@@ -84,7 +84,7 @@ wxcli users show PERSON_ID --output json
 ```bash
 # Verify number is in location inventory before assigning to a user
 # Numbers must be added to location first via numbers-manage commands
-wxcli numbers-api create LOCATION_ID --json-body '{"phoneNumbers": ["+15551234567"], "numberType": "DID"}'
+wxcli numbers create LOCATION_ID --json-body '{"phoneNumbers": ["+15551234567"], "numberType": "DID"}'
 ```
 
 ## Step 5: Build deployment plan — [SHOW BEFORE EXECUTING]
@@ -230,6 +230,89 @@ done
 
 > **Raw HTTP fallback for bulk operations:** For large batches (20+ users), the async Python SDK pattern provides better performance with concurrent requests and automatic 429 retry handling. See `docs/reference/wxc-sdk-patterns.md` for the `AsWebexSimpleApi` async pattern with `concurrent_requests=10..40`.
 
+### Operation F: Teardown / Delete Location
+
+**When to use:** Deleting a location, cleaning up a migration test, or decommissioning a site.
+
+**⚠ Calling-enabled locations cannot be deleted via API** (gotcha #6). The final location delete requires Control Hub. This workflow removes all blocking references so the location is ready for manual deletion.
+
+#### Step 1: Enumerate ALL references upfront
+
+Run ALL of these checks before deleting anything. Collect the full list of resources to delete.
+
+```bash
+LOC=<LOCATION_ID>
+
+# Layer 1: Features
+wxcli hunt-group list --location-id $LOC -o json 2>&1
+wxcli call-queue list --location-id $LOC -o json 2>&1
+wxcli call-queue list --location-id $LOC --has-cx-essentials true -o json 2>&1
+wxcli auto-attendant list --location-id $LOC -o json 2>&1
+wxcli paging-group list --location-id $LOC -o json 2>&1
+wxcli call-park list --location-id $LOC -o json 2>&1
+wxcli call-pickup list $LOC -o json 2>&1
+wxcli location-voicemail list-voicemail-groups $LOC -o json 2>&1
+
+# Layer 2: Routing
+wxcli call-routing list-trunks -o json 2>&1       # filter by location in output
+wxcli call-routing list-route-groups -o json 2>&1  # check which reference trunks in this location
+wxcli call-routing list -o json 2>&1               # dial plans
+wxcli call-routing list-route-lists -o json 2>&1   # route lists
+
+# Layer 3: Supporting resources
+wxcli virtual-extensions list --location-id $LOC -o json 2>&1
+wxcli location-schedules list $LOC -o json 2>&1
+wxcli operating-modes list --location-id $LOC -o json 2>&1
+
+# Layer 4: Users
+wxcli users list --location-id $LOC -o json 2>&1
+
+# Layer 5: Workspaces
+wxcli workspaces list -o json 2>&1  # filter by locationId in output
+```
+
+Present the full inventory to the user before proceeding.
+
+#### Step 2: Delete in dependency order
+
+Delete resources **layer by layer, top to bottom**. Within routing (Layer 2), delete in **reverse creation order**: PSTN Connection → Route Lists → Dial Plans → Route Groups → Trunks.
+
+**Critical rules for delete commands:**
+- **Always use `--force`** to skip interactive confirmation
+- **Location-scoped features take `LOCATION_ID` as the FIRST argument:** `wxcli hunt-group delete --force LOCATION_ID FEATURE_ID`
+- **Routing deletes use plural names:** `delete-route-groups` not `delete-route-group`, `delete-trunks` not `delete-trunk`
+- **Check `--help` if unsure about argument order**
+
+```bash
+# Layer 1 example:
+wxcli hunt-group delete --force $LOC <HG_ID>
+wxcli auto-attendant delete --force $LOC <AA_ID>
+wxcli call-pickup delete --force $LOC <PICKUP_ID>
+
+# Layer 2 (reverse order):
+wxcli call-routing delete-route-groups --force <RG_ID>
+wxcli call-routing delete-trunks --force <TRUNK_ID>
+
+# Layer 3:
+wxcli virtual-extensions delete --force <VE_ID>
+wxcli location-schedules delete --force $LOC <TYPE> <SCHEDULE_ID>
+
+# Layer 4:
+wxcli users delete --force <USER_ID>
+```
+
+#### Step 3: Attempt location delete
+
+```bash
+wxcli locations delete --force $LOC
+```
+
+If this returns 409 "being referenced", run the enumeration checks from Step 1 again — something was missed. Common gotchas:
+- CX Essentials queues hidden from default `call-queue list` (need `--has-cx-essentials true`)
+- Operating modes referencing deleted schedules
+- Workspaces/places still assigned to the location
+- **Calling enablement** — if all resources are gone and the 409 persists, calling is still enabled on the location. This requires Control Hub to resolve.
+
 ## Step 7: Verify results
 
 Always read back the created/updated resources to confirm.
@@ -288,7 +371,7 @@ Next steps:
 
 6. **Calling-enabled locations cannot be deleted via API** — Returns 409 Conflict. Must use Control Hub.
 
-7. **Phone numbers must be in location inventory first** — Before assigning a DID to a user, add it via `wxcli numbers-api create LOCATION_ID`.
+7. **Phone numbers must be in location inventory first** — Before assigning a DID to a user, add it via `wxcli numbers create LOCATION_ID`.
 
 8. **POST/PUT may partially succeed** — A 400 response on user create/update may have still created/modified the resource. Always verify with a subsequent GET before retrying.
 
@@ -299,6 +382,12 @@ Next steps:
 11. **Log all operations** — Print what you're about to do before each CLI command, and print the result after. This creates an audit trail for troubleshooting.
 
 12. **For bulk operations (20+ users), consider the async Python SDK** — wxcli runs one command at a time. For large batches, the `AsWebexSimpleApi` async pattern in `docs/reference/wxc-sdk-patterns.md` is significantly faster.
+
+13. **Location-scoped feature deletes require LOCATION_ID as FIRST argument** — `wxcli hunt-group delete --force LOCATION_ID HG_ID`, not `wxcli hunt-group delete --force HG_ID`. The LOCATION_ID comes before the feature ID.
+
+14. **Always use `--force` for programmatic deletes** — Without `--force`, delete commands prompt `[y/N]` which blocks non-interactive execution.
+
+15. **Routing delete commands use PLURAL names** — `delete-route-groups`, `delete-trunks`, `delete-route-lists`. The singular form (`delete-route-group`) does not exist.
 
 ---
 
@@ -319,9 +408,13 @@ When a wxcli command fails:
 1. Run with `--debug` for raw HTTP details
 2. Invoke `/wxc-calling-debug` for systematic diagnosis
 
+**D. 409 Conflict (50003 "Location is being referenced")**
+
+The location still has dependent resources. Run the teardown enumeration from Operation F, Step 1 to find what's blocking. If all resources are deleted and the 409 persists, calling is still enabled on the location — this requires Control Hub.
+
 Provisioning-specific errors:
 - 400 on `users create`: Check email format, verify no existing user with same email
-- 400 on `numbers-api create`: Check E.164 format (+1XXXXXXXXXX), verify number not already assigned
+- 400 on `numbers create`: Check E.164 format (+1XXXXXXXXXX), verify number not already assigned
 - 403: Check token has `spark-admin:people_write` and `spark-admin:telephony_config_write` scopes
 - 409: User/location already exists — GET current state first
 

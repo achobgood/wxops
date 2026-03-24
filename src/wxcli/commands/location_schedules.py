@@ -17,7 +17,7 @@ def cmd_list(
     name: str = typer.Option(None, "--name", help="Only return schedules with the matching name."),
     type_param: str = typer.Option(None, "--type", help="Choices: businessHours, holidays"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -41,7 +41,12 @@ def cmd_list(
     if org_id is not None:
         params["orgId"] = org_id
     try:
-        result = api.session.rest_get(url, params=params)
+        if limit > 0:
+            result = api.session.rest_get(url, params=params)
+            result = result or {}
+            items = result.get("schedules", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+        else:
+            items = list(api.session.follow_pagination(url=url, params=params, item_key="schedules"))
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -59,8 +64,6 @@ def cmd_list(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    result = result or []
-    items = result.get("schedules", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -71,8 +74,8 @@ def cmd_list(
 @app.command("create")
 def create(
     location_id: str = typer.Argument(help="locationId"),
-    type_param: str = typer.Option(..., "--type", help="Choices: businessHours, holidays"),
-    name: str = typer.Option(..., "--name", help="Unique name for the schedule."),
+    type_param: str = typer.Option(None, "--type", help="(required) Choices: businessHours, holidays"),
+    name: str = typer.Option(None, "--name", help="(required) Unique name for the schedule."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -91,6 +94,10 @@ def create(
             body["type"] = type_param
         if name is not None:
             body["name"] = name
+        _missing = [f for f in ['type', 'name'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -404,9 +411,9 @@ def create_events(
     location_id: str = typer.Argument(help="locationId"),
     type: str = typer.Argument(help="type"),
     schedule_id: str = typer.Argument(help="scheduleId"),
-    name: str = typer.Option(..., "--name", help="Name for the event."),
-    start_date: str = typer.Option(..., "--start-date", help="Start Date of Event."),
-    end_date: str = typer.Option(..., "--end-date", help="End Date of Event."),
+    name: str = typer.Option(None, "--name", help="(required) Name for the event."),
+    start_date: str = typer.Option(None, "--start-date", help="(required) Start Date of Event."),
+    end_date: str = typer.Option(None, "--end-date", help="(required) End Date of Event."),
     start_time: str = typer.Option(None, "--start-time", help="Start time of event. Mandatory if the event is not all day."),
     end_time: str = typer.Option(None, "--end-time", help="End time of event. Mandatory if the event is not all day."),
     all_day_enabled: bool = typer.Option(None, "--all-day-enabled/--no-all-day-enabled", help="An indication of whether given event is an all-day event or"),
@@ -436,6 +443,10 @@ def create_events(
             body["endTime"] = end_time
         if all_day_enabled is not None:
             body["allDayEnabled"] = all_day_enabled
+        _missing = [f for f in ['name', 'startDate', 'endDate'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:

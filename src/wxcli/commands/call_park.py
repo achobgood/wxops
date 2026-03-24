@@ -17,7 +17,7 @@ def cmd_list(
     order: str = typer.Option(None, "--order", help="Sort the list of call parks by name, either ASC or DSC. Defa"),
     name: str = typer.Option(None, "--name", help="Return the list of call parks that contains the given name."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -71,7 +71,7 @@ def cmd_list(
 @app.command("create")
 def create(
     location_id: str = typer.Argument(help="locationId"),
-    name: str = typer.Option(..., "--name", help="Unique name for the call park. The maximum length is 80."),
+    name: str = typer.Option(None, "--name", help="(required) Unique name for the call park. The maximum length is 80."),
     park_on_agents_enabled: bool = typer.Option(None, "--park-on-agents-enabled/--no-park-on-agents-enabled", help="Whether or not the calls will be parked on agents as a desti"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -91,6 +91,10 @@ def create(
             body["name"] = name
         if park_on_agents_enabled is not None:
             body["parkOnAgentsEnabled"] = park_on_agents_enabled
+        _missing = [f for f in ['name'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -260,7 +264,7 @@ def list_available_users(
     phone_number: str = typer.Option(None, "--phone-number", help="Only return available agents with the matching primary numbe"),
     order: str = typer.Option(None, "--order", help="Order the available agents according to the designated field"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -323,7 +327,7 @@ def list_available_recall_hunt_groups(
     name: str = typer.Option(None, "--name", help="Only return available recall hunt groups with the matching n"),
     order: str = typer.Option(None, "--order", help="Order the available recall hunt groups according to the desi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -468,7 +472,7 @@ def list_call_park_extensions(
     name: str = typer.Option(None, "--name", help="Only return call park extensions with the matching name."),
     order: str = typer.Option(None, "--order", help="Order the available agents according to the designated field"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -498,7 +502,12 @@ def list_call_park_extensions(
     if org_id is not None:
         params["orgId"] = org_id
     try:
-        result = api.session.rest_get(url, params=params)
+        if limit > 0:
+            result = api.session.rest_get(url, params=params)
+            result = result or {}
+            items = result.get("callParkExtensions", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+        else:
+            items = list(api.session.follow_pagination(url=url, params=params, item_key="callParkExtensions"))
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -516,8 +525,6 @@ def list_call_park_extensions(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    result = result or []
-    items = result.get("callParkExtensions", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -659,8 +666,8 @@ def delete_call_park_extensions(
 @app.command("create-call-park-extensions")
 def create_call_park_extensions(
     location_id: str = typer.Argument(help="locationId"),
-    name: str = typer.Option(..., "--name", help="Name for the call park extension. The maximum length is 30."),
-    extension: str = typer.Option(..., "--extension", help="Unique extension which will be assigned to call park extensi"),
+    name: str = typer.Option(None, "--name", help="(required) Name for the call park extension. The maximum length is 30."),
+    extension: str = typer.Option(None, "--extension", help="(required) Unique extension which will be assigned to call park extensi"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -679,6 +686,10 @@ def create_call_park_extensions(
             body["name"] = name
         if extension is not None:
             body["extension"] = extension
+        _missing = [f for f in ['name', 'extension'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:

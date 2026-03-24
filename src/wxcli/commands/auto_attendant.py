@@ -17,7 +17,7 @@ def cmd_list(
     name: str = typer.Option(None, "--name", help="Only return auto attendants with the matching name."),
     phone_number: str = typer.Option(None, "--phone-number", help="Only return auto attendants with the matching phone number."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -43,7 +43,12 @@ def cmd_list(
     if org_id is not None:
         params["orgId"] = org_id
     try:
-        result = api.session.rest_get(url, params=params)
+        if limit > 0:
+            result = api.session.rest_get(url, params=params)
+            result = result or {}
+            items = result.get("autoAttendants", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+        else:
+            items = list(api.session.follow_pagination(url=url, params=params, item_key="autoAttendants"))
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -61,8 +66,6 @@ def cmd_list(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    result = result or []
-    items = result.get("autoAttendants", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -234,13 +237,13 @@ def delete(
 @app.command("create")
 def create(
     location_id: str = typer.Argument(help="locationId"),
-    name: str = typer.Option(..., "--name", help="Unique name for the auto attendant."),
+    name: str = typer.Option(None, "--name", help="(required) Unique name for the auto attendant."),
     phone_number: str = typer.Option(None, "--phone-number", help="Auto attendant phone number.  Either `phoneNumber` or `exten"),
     extension: str = typer.Option(None, "--extension", help="Auto attendant extension.  Either `phoneNumber` or `extensio"),
     first_name: str = typer.Option(None, "--first-name", help="First name defined for an auto attendant. This field has bee"),
     last_name: str = typer.Option(None, "--last-name", help="Last name defined for an auto attendant. This field has been"),
     language_code: str = typer.Option(None, "--language-code", help="Announcement language code for the auto attendant."),
-    business_schedule: str = typer.Option(..., "--business-schedule", help="Business hours defined for the auto attendant."),
+    business_schedule: str = typer.Option(None, "--business-schedule", help="(required) Business hours defined for the auto attendant."),
     holiday_schedule: str = typer.Option(None, "--holiday-schedule", help="Holiday defined for the auto attendant."),
     extension_dialing: str = typer.Option(None, "--extension-dialing", help="Choices: ENTERPRISE, GROUP"),
     name_dialing: str = typer.Option(None, "--name-dialing", help="Choices: ENTERPRISE, GROUP"),
@@ -284,6 +287,10 @@ def create(
             body["timeZone"] = time_zone
         if dial_by_name is not None:
             body["dialByName"] = dial_by_name
+        _missing = [f for f in ['name', 'businessSchedule'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -402,7 +409,7 @@ def update_call_forwarding(
 def create_selective_rules(
     location_id: str = typer.Argument(help="locationId"),
     auto_attendant_id: str = typer.Argument(help="autoAttendantId"),
-    name: str = typer.Option(..., "--name", help="Unique name for the selective rule in the auto attendant."),
+    name: str = typer.Option(None, "--name", help="(required) Unique name for the selective rule in the auto attendant."),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Reflects if rule is enabled."),
     business_schedule: str = typer.Option(None, "--business-schedule", help="Name of the location's business schedule which determines wh"),
     holiday_schedule: str = typer.Option(None, "--holiday-schedule", help="Name of the location's holiday schedule which determines whe"),
@@ -428,6 +435,10 @@ def create_selective_rules(
             body["businessSchedule"] = business_schedule
         if holiday_schedule is not None:
             body["holidaySchedule"] = holiday_schedule
+        _missing = [f for f in ['name'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -603,7 +614,7 @@ def list_available_numbers_auto_attendants(
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -659,7 +670,7 @@ def list_available_numbers_alternate(
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -717,7 +728,7 @@ def list_available_numbers_call_forwarding(
     owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
     extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `exten"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -856,7 +867,7 @@ def list_announcements(
     location_id: str = typer.Argument(help="locationId"),
     auto_attendant_id: str = typer.Argument(help="autoAttendantId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

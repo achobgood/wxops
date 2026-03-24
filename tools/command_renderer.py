@@ -176,7 +176,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
 
     params.append('    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),')
     if "limit" not in query_param_names:
-        params.append('    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),')
+        params.append('    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),')
     if "offset" not in query_param_names:
         params.append('    offset: int = typer.Option(0, "--offset", help="Start offset"),')
     params.append('    debug: bool = typer.Option(False, "--debug"),')
@@ -206,26 +206,77 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
         else:
             col_str = '[("ID", "id"), ("Name", "name")]'
 
-    lines = [
-        f'@app.command("{ep.command_name}")',
-        f"def {func_name}(",
-        *params,
-        "):",
-        _render_docstring(ep),
-        "    api = get_api(debug=debug)",
-        f'    url = f"{url_expr}"',
-        *param_build,
-        *_render_auto_inject_params(ep),
-        "    try:",
-        "        result = api.session.rest_get(url, params=params)",
-        _render_error_handler("    "),
-        f'    result = result or []',
-    f'    items = result.get("{list_key}", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])',
-        '    if output == "json":',
-        "        print_json(items)",
-        "    else:",
-        f"        print_table(items, columns={col_str}, limit={'limit' if 'limit' not in query_param_names else '0'})",
-    ]
+    # Check if endpoint defines its own 'max' query param (varying API limits: 500, 1000, etc.)
+    has_spec_max = any(qp.name == "max" for qp in ep.query_params)
+
+    if ep.paginates:
+        # Paginating endpoint: use follow_pagination for complete results
+        # When limit is 0 (default), paginate all pages
+        # When limit > 0, request that many per page and stop after one page (backward compat)
+        if has_spec_max:
+            # Endpoint has its own max param — don't override, let API use its default page size
+            max_inject = []
+        else:
+            # Endpoint has no max param — inject max=1000 for efficiency
+            max_inject = [
+                f'            if "max" not in params:',
+                f'                params["max"] = 1000',
+            ]
+        fetch_block = [
+            "    try:",
+            f'        if limit > 0:',
+            f'            result = api.session.rest_get(url, params=params)',
+            f'            result = result or {{}}',
+            f'            items = result.get("{list_key}", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])',
+            f'        else:',
+            *max_inject,
+            f'            items = list(api.session.follow_pagination(url=url, params=params, item_key="{list_key}"))',
+        ]
+    else:
+        # Non-paginating endpoint: single call (all results in one response)
+        fetch_block = [
+            "    try:",
+            "        result = api.session.rest_get(url, params=params)",
+        ]
+
+    if ep.paginates:
+        lines = [
+            f'@app.command("{ep.command_name}")',
+            f"def {func_name}(",
+            *params,
+            "):",
+            _render_docstring(ep),
+            "    api = get_api(debug=debug)",
+            f'    url = f"{url_expr}"',
+            *param_build,
+            *_render_auto_inject_params(ep),
+            *fetch_block,
+            _render_error_handler("    "),
+            '    if output == "json":',
+            "        print_json(items)",
+            "    else:",
+            f"        print_table(items, columns={col_str}, limit={'limit' if 'limit' not in query_param_names else '0'})",
+        ]
+    else:
+        lines = [
+            f'@app.command("{ep.command_name}")',
+            f"def {func_name}(",
+            *params,
+            "):",
+            _render_docstring(ep),
+            "    api = get_api(debug=debug)",
+            f'    url = f"{url_expr}"',
+            *param_build,
+            *_render_auto_inject_params(ep),
+            *fetch_block,
+            _render_error_handler("    "),
+            f'    result = result or []',
+        f'    items = result.get("{list_key}", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])',
+            '    if output == "json":',
+            "        print_json(items)",
+            "    else:",
+            f"        print_table(items, columns={col_str}, limit={'limit' if 'limit' not in query_param_names else '0'})",
+        ]
     return "\n".join(lines)
 
 
@@ -329,21 +380,21 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
     qp_defs, qp_build = _render_query_params(ep)
     params.extend(qp_defs)
 
+    # All body fields are optional at the CLI level (--json-body bypasses them).
+    # Required fields are validated at runtime when --json-body is not used.
+    required_body_field_names = []
     for bf in ep.body_fields:
         param = _safe_param_name(bf.python_name)
         if bf.field_type == "object" or bf.field_type == "array":
             continue
         help_text = _enum_help(bf)
         if bf.required:
-            if bf.field_type == "bool":
-                params.append(f'    {param}: bool = typer.Option(..., "--{bf.python_name}", help="{help_text}"),')
-            else:
-                params.append(f'    {param}: str = typer.Option(..., "--{bf.python_name}", help="{help_text}"),')
+            required_body_field_names.append(bf.name)
+            help_text = f"(required) {help_text}" if help_text else "(required)"
+        if bf.field_type == "bool":
+            params.append(f'    {param}: bool = typer.Option(None, "--{bf.python_name}/--no-{bf.python_name}", help="{help_text}"),')
         else:
-            if bf.field_type == "bool":
-                params.append(f'    {param}: bool = typer.Option(None, "--{bf.python_name}/--no-{bf.python_name}", help="{help_text}"),')
-            else:
-                params.append(f'    {param}: str = typer.Option(None, "--{bf.python_name}", help="{help_text}"),')
+            params.append(f'    {param}: str = typer.Option(None, "--{bf.python_name}", help="{help_text}"),')
 
     params.append('    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),')
     params.append('    debug: bool = typer.Option(False, "--debug"),')
@@ -361,6 +412,13 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
             body_build.append(f'        if {param} is not None:\n            body["{bf.name}"] = {param}')
         else:
             body_build.append(f'        if {param} is not None:\n            body["{bf.name}"] = {param}')
+    # Runtime validation: check required fields when --json-body is not used
+    if required_body_field_names:
+        req_list = repr(required_body_field_names)
+        body_build.append(f'        _missing = [f for f in {req_list} if f not in body or body[f] is None]')
+        body_build.append('        if _missing:')
+        body_build.append('            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)')
+        body_build.append('            raise typer.Exit(1)')
 
     has_params = bool(qp_build) or bool(_render_auto_inject_params(ep))
     auto_inject = _render_auto_inject_params(ep)
@@ -389,6 +447,7 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
 
 def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -> str:
     func_name = _safe_func_name(ep.command_name)
+    is_json_patch = ep.content_type == "application/json-patch+json"
     params = []
     for var in ep.path_vars:
         param = _path_var_to_param(var)
@@ -397,34 +456,67 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
     qp_defs, qp_build = _render_query_params(ep)
     params.extend(qp_defs)
 
-    for bf in ep.body_fields:
-        param = _safe_param_name(bf.python_name)
-        if bf.field_type in ("object", "array"):
-            continue
-        help_text = _enum_help(bf)
-        if bf.field_type == "bool":
-            params.append(f'    {param}: bool = typer.Option(None, "--{bf.python_name}/--no-{bf.python_name}", help="{help_text}"),')
-        else:
+    if is_json_patch:
+        # JSON Patch endpoints: --op, --path, --value flags that build a patch array
+        for bf in ep.body_fields:
+            param = _safe_param_name(bf.python_name)
+            if bf.field_type in ("object", "array"):
+                continue
+            help_text = _enum_help(bf)
             params.append(f'    {param}: str = typer.Option(None, "--{bf.python_name}", help="{help_text}"),')
+        params.append('    value: str = typer.Option(None, "--value", help="Value for replace op (JSON-parsed: string, number, bool, or array)"),')
+    else:
+        for bf in ep.body_fields:
+            param = _safe_param_name(bf.python_name)
+            if bf.field_type in ("object", "array"):
+                continue
+            help_text = _enum_help(bf)
+            if bf.field_type == "bool":
+                params.append(f'    {param}: bool = typer.Option(None, "--{bf.python_name}/--no-{bf.python_name}", help="{help_text}"),')
+            else:
+                params.append(f'    {param}: str = typer.Option(None, "--{bf.python_name}", help="{help_text}"),')
 
     params.append('    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),')
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
     url_expr = _render_url_expr(ep.url_path, ep.path_vars)
 
-    body_build = ["    if json_body:", "        body = json.loads(json_body)", "    else:", "        body = {}"]
-    for bf in ep.body_fields:
-        param = _safe_param_name(bf.python_name)
-        if bf.field_type in ("object", "array"):
-            continue
-        body_build.append(f'        if {param} is not None:\n            body["{bf.name}"] = {param}')
+    if is_json_patch:
+        # JSON Patch: --json-body passes through as-is; flags build [{op, path, value}]
+        body_build = [
+            "    if json_body:",
+            "        body = json.loads(json_body)",
+            "    else:",
+            "        patch_op = {}",
+        ]
+        for bf in ep.body_fields:
+            param = _safe_param_name(bf.python_name)
+            if bf.field_type in ("object", "array"):
+                continue
+            body_build.append(f'        if {param} is not None:\n            patch_op["{bf.name}"] = {param}')
+        body_build.extend([
+            '        if value is not None:',
+            '            try:',
+            '                patch_op["value"] = json.loads(value)',
+            '            except json.JSONDecodeError:',
+            '                patch_op["value"] = value',
+            '        body = [patch_op]',
+        ])
+    else:
+        body_build = ["    if json_body:", "        body = json.loads(json_body)", "    else:", "        body = {}"]
+        for bf in ep.body_fields:
+            param = _safe_param_name(bf.python_name)
+            if bf.field_type in ("object", "array"):
+                continue
+            body_build.append(f'        if {param} is not None:\n            body["{bf.name}"] = {param}')
 
     has_params = bool(qp_build) or bool(_render_auto_inject_params(ep))
     auto_inject = _render_auto_inject_params(ep)
     if not qp_build and has_params:
         qp_build = ["    params = {}"]
     rest_method = "rest_patch" if ep.method == "PATCH" else "rest_put"
-    method_call = f"result = api.session.{rest_method}(url, json=body)" if not has_params else f"result = api.session.{rest_method}(url, json=body, params=params)"
+    ct_kwarg = ', content_type="application/json-patch+json"' if is_json_patch and rest_method == "rest_patch" else ""
+    method_call = f"result = api.session.{rest_method}(url, json=body{ct_kwarg})" if not has_params else f"result = api.session.{rest_method}(url, json=body, params=params{ct_kwarg})"
 
     lines = [
         f'@app.command("{ep.command_name}")',

@@ -23,7 +23,7 @@ def cmd_list(
     has_extension_assigned: str = typer.Option(None, "--has-extension-assigned", help="If `true`, includes only virtual lines with an extension ass"),
     has_dn_assigned: str = typer.Option(None, "--has-dn-assigned", help="If `true`, includes only virtual lines with an assigned dire"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -61,7 +61,12 @@ def cmd_list(
     if org_id is not None:
         params["orgId"] = org_id
     try:
-        result = api.session.rest_get(url, params=params)
+        if limit > 0:
+            result = api.session.rest_get(url, params=params)
+            result = result or {}
+            items = result.get("virtualLines", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+        else:
+            items = list(api.session.follow_pagination(url=url, params=params, item_key="virtualLines"))
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -79,8 +84,6 @@ def cmd_list(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    result = result or []
-    items = result.get("virtualLines", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -90,12 +93,12 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    first_name: str = typer.Option(..., "--first-name", help="First name defined for a virtual line. Minimum length is 1."),
-    last_name: str = typer.Option(..., "--last-name", help="Last name defined for a virtual line. Minimum length is 1. M"),
+    first_name: str = typer.Option(None, "--first-name", help="(required) First name defined for a virtual line. Minimum length is 1."),
+    last_name: str = typer.Option(None, "--last-name", help="(required) Last name defined for a virtual line. Minimum length is 1. M"),
     display_name: str = typer.Option(None, "--display-name", help="Display name defined for a virtual line."),
     phone_number: str = typer.Option(None, "--phone-number", help="Phone number of a virtual line. Minimum length is 1. Maximum"),
     extension: str = typer.Option(None, "--extension", help="Extension of a virtual line. Minimum length is 2. Maximum le"),
-    location_id: str = typer.Option(..., "--location-id", help="ID of location for virtual line."),
+    location_id: str = typer.Option(None, "--location-id", help="(required) ID of location for virtual line."),
     caller_id_last_name: str = typer.Option(None, "--caller-id-last-name", help="Last name used in the Calling Line ID and for dial-by-name f"),
     caller_id_first_name: str = typer.Option(None, "--caller-id-first-name", help="First name used in the Calling Line ID and for dial-by-name"),
     caller_id_number: str = typer.Option(None, "--caller-id-number", help="Phone number to appear as the CLID for all calls. Minimum le"),
@@ -131,6 +134,10 @@ def create(
             body["callerIdFirstName"] = caller_id_first_name
         if caller_id_number is not None:
             body["callerIdNumber"] = caller_id_number
+        _missing = [f for f in ['firstName', 'lastName', 'locationId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -495,7 +502,7 @@ def update_directory_search(
 def list_devices(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -542,7 +549,7 @@ def list_devices(
 def list_dect_networks(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -589,7 +596,7 @@ def list_dect_networks(
 def list_caller_id(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -979,7 +986,7 @@ def update_incoming_permission(
 def list_outgoing_permission(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1072,7 +1079,7 @@ def update_outgoing_permission(
 def list_access_codes(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1118,8 +1125,8 @@ def list_access_codes(
 @app.command("create-access-codes")
 def create_access_codes(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
-    code: str = typer.Option(..., "--code", help="An Access code."),
-    description: str = typer.Option(..., "--description", help="The description of the access code."),
+    code: str = typer.Option(None, "--code", help="(required) An Access code."),
+    description: str = typer.Option(None, "--description", help="(required) The description of the access code."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1138,6 +1145,10 @@ def create_access_codes(
             body["code"] = code
         if description is not None:
             body["description"] = description
+        _missing = [f for f in ['code', 'description'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -1344,7 +1355,7 @@ def update_auto_transfer_numbers(
 def list_digit_patterns(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1390,10 +1401,10 @@ def list_digit_patterns(
 @app.command("create-digit-patterns")
 def create_digit_patterns(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
-    name: str = typer.Option(..., "--name", help="A unique name for the digit pattern."),
-    pattern: str = typer.Option(..., "--pattern", help="The digit pattern to be matched with the input number."),
-    action: str = typer.Option(..., "--action", help="Choices: ALLOW, BLOCK, AUTH_CODE, TRANSFER_NUMBER_1, TRANSFER_NUMBER_2, TRANSFER_NUMBER_3"),
-    transfer_enabled: bool = typer.Option(..., "--transfer-enabled", help="If `true`, allows transfer and forwarding for the call type."),
+    name: str = typer.Option(None, "--name", help="(required) A unique name for the digit pattern."),
+    pattern: str = typer.Option(None, "--pattern", help="(required) The digit pattern to be matched with the input number."),
+    action: str = typer.Option(None, "--action", help="(required) Choices: ALLOW, BLOCK, AUTH_CODE, TRANSFER_NUMBER_1, TRANSFER_NUMBER_2, TRANSFER_NUMBER_3"),
+    transfer_enabled: bool = typer.Option(None, "--transfer-enabled/--no-transfer-enabled", help="(required) If `true`, allows transfer and forwarding for the call type."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1416,6 +1427,10 @@ def create_digit_patterns(
             body["action"] = action
         if transfer_enabled is not None:
             body["transferEnabled"] = transfer_enabled
+        _missing = [f for f in ['name', 'pattern', 'action', 'transferEnabled'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -1793,7 +1808,7 @@ def configure_call_intercept(
 def list_available_caller_ids(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -2259,7 +2274,7 @@ def update_music_on_hold(
 def list_push_to_talk(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -2526,7 +2541,7 @@ def update_barge_in(
 def list_privacy(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -2628,7 +2643,7 @@ def list_available_numbers_fax_message(
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -2686,7 +2701,7 @@ def list_available_numbers_call_forwarding(
     owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
     extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `exten"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -2746,7 +2761,7 @@ def list_available_numbers_virtual_lines(
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching phone"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -2805,7 +2820,7 @@ def list_available_numbers_emergency_callback_number(
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
     owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -2865,7 +2880,7 @@ def list_available_numbers_call_intercept(
     owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
     extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `exten"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
