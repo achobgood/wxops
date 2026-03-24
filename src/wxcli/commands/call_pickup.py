@@ -75,6 +75,7 @@ def create(
     notification_type: str = typer.Option(None, "--notification-type", help="Choices: NONE, AUDIO_ONLY, VISUAL_ONLY, AUDIO_AND_VISUAL"),
     notification_delay_timer_seconds: str = typer.Option(None, "--notification-delay-timer-seconds", help="After the number of seconds given by the `notificationDelayT"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create a Call Pickup\n\nExample --json-body:\n  '{"name":"...","notificationType":"NONE","notificationDelayTimerSeconds":0,"agents":["..."]}'."""
@@ -117,7 +118,9 @@ def create(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")

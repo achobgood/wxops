@@ -91,6 +91,7 @@ def create(
     extension: str = typer.Option(None, "--extension", help="(required) Extension of the virtual extension."),
     location_id: str = typer.Option(None, "--location-id", help="ID of the location to which the virtual extension is assigne"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create a Virtual Extension."""
@@ -139,7 +140,9 @@ def create(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -482,6 +485,7 @@ def create_virtual_extension_ranges(
     prefix: str = typer.Option(None, "--prefix", help="(required) Prefix used for a virtual extension range. Prefix works in S"),
     location_id: str = typer.Option(None, "--location-id", help="ID of the location to which the virtual extension range is a"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create a Virtual Extension Range\n\nExample --json-body:\n  '{"name":"...","prefix":"...","patterns":["..."],"locationId":"..."}'."""
@@ -524,7 +528,9 @@ def create_virtual_extension_ranges(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")

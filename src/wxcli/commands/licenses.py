@@ -1,50 +1,150 @@
+import json
 import typer
+from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
-from wxcli.config import get_org_id
 from wxcli.output import print_table, print_json
+from wxcli.config import get_org_id
 
-app = typer.Typer(help="List and inspect Webex licenses.")
+
+app = typer.Typer(help="Manage Webex Calling licenses.")
 
 
 @app.command("list")
-def list_licenses(
-    calling_only: bool = typer.Option(False, "--calling-only", help="Only calling-related licenses"),
-    output: str = typer.Option("table", "--output", "-o"),
-    limit: int = typer.Option(50, "--limit"),
+def cmd_list(
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List available licenses."""
+    """List Licenses."""
     api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/licenses"
+    params = {}
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
     org_id = get_org_id()
-    list_kwargs = {}
-    if org_id:
-        list_kwargs["org_id"] = org_id
-    licenses = list(api.licenses.list(**list_kwargs))
-
-    if calling_only:
-        licenses = [lic for lic in licenses if "calling" in (lic.name or "").lower()]
-
+    if org_id is not None:
+        params["orgId"] = org_id
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    result = result or []
+    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
-        print_json(licenses)
+        print_json(items)
     else:
-        print_table(
-            licenses,
-            columns=[
-                ("ID", "license_id"),
-                ("Name", "name"),
-                ("Total", "total_units"),
-                ("Consumed", "consumed_units"),
-            ],
-            limit=limit,
-        )
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Total Units', 'totalUnits'), ('Consumed', 'consumedUnits')], limit=limit)
+
 
 
 @app.command("show")
-def show_license(
-    license_id: str = typer.Argument(help="License ID"),
+def show(
+    license_id: str = typer.Argument(help="licenseId"),
+    include_assigned_to: str = typer.Option(None, "--include-assigned-to", help="Choices: user"),
+    next: str = typer.Option(None, "--next", help="List the next set of users. Applicable only if `includeAssig"),
+    limit: str = typer.Option(None, "--limit", help="A limit on the number of users to be returned in the respons"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Show details for a single license."""
+    """Get License Details."""
     api = get_api(debug=debug)
-    lic = api.licenses.details(license_id=license_id)
-    print_json(lic)
+    url = f"https://webexapis.com/v1/licenses/{license_id}"
+    params = {}
+    if include_assigned_to is not None:
+        params["includeAssignedTo"] = include_assigned_to
+    if next is not None:
+        params["next"] = next
+    if limit is not None:
+        params["limit"] = limit
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if output == "json":
+        print_json(result)
+    else:
+        if isinstance(result, dict):
+            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
+        elif isinstance(result, list):
+            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
+        else:
+            print_json(result)
+
+
+
+@app.command("update")
+def update(
+    email: str = typer.Option(None, "--email", help="Email address of the user."),
+    person_id: str = typer.Option(None, "--person-id", help="A unique identifier for the user."),
+    org_id: str = typer.Option(None, "--org-id", help="The ID of the organization to which the licenses and siteUrl"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Assign Licenses to Users\n\nExample --json-body:\n  '{"email":"...","personId":"...","orgId":"...","licenses":[{"id":"...","operation":"...","properties":"..."}],"siteUrls":[{"siteUrl":"...","accountType":"...","operation":"..."}]}'."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/licenses/users"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if email is not None:
+            body["email"] = email
+        if person_id is not None:
+            body["personId"] = person_id
+        if org_id is not None:
+            body["orgId"] = org_id
+    try:
+        result = api.session.rest_patch(url, json=body)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+

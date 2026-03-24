@@ -81,6 +81,7 @@ def create(
     text: str = typer.Option(None, "--text", help="The message, in plain text. If `markdown` is specified this"),
     markdown: str = typer.Option(None, "--markdown", help="The message, in Markdown format. The maximum message length"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create a Message\n\nExample --json-body:\n  '{"roomId":"...","parentId":"...","toPersonId":"...","toPersonEmail":"...","text":"...","markdown":"..."}'."""
@@ -121,7 +122,9 @@ def create(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")

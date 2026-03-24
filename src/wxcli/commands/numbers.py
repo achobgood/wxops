@@ -18,6 +18,7 @@ def create(
     subscription_id: str = typer.Option(None, "--subscription-id", help="The `subscriptionId` to be used for the mobile number order."),
     carrier_id: str = typer.Option(None, "--carrier-id", help="The `carrierId` to be used for the mobile number order."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Add Phone Numbers to a location\n\nExample --json-body:\n  '{"phoneNumbers":["..."],"numberType":"TOLLFREE","numberUsageType":"NONE","state":"ACTIVE","subscriptionId":"...","carrierId":"..."}'."""
@@ -60,7 +61,9 @@ def create(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -347,6 +350,7 @@ def create_manage_numbers(
     target_location_id: str = typer.Option(None, "--target-location-id", help="Mandatory for a `MOVE` operation. The target location within"),
     number_usage_type: str = typer.Option(None, "--number-usage-type", help="The number usage type. Mandatory for `NUMBER_USAGE_CHANGE` o"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Initiate Number Jobs\n\nExample --json-body:\n  '{"operation":"...","targetLocationId":"...","numberUsageType":"...","numberList":[{"locationId":"...","numbers":"..."}]}'."""
@@ -385,7 +389,9 @@ def create_manage_numbers(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")

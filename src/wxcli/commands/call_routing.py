@@ -412,6 +412,7 @@ def create(
     route_id: str = typer.Option(None, "--route-id", help="(required) ID of route type associated with the dial plan."),
     route_type: str = typer.Option(None, "--route-type", help="(required) Choices: ROUTE_GROUP, TRUNK"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create a Dial Plan\n\nExample --json-body:\n  '{"name":"...","routeId":"...","routeType":"ROUTE_GROUP","dialPatterns":["..."]}'."""
@@ -454,7 +455,9 @@ def create(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -720,6 +723,7 @@ def create_trunks(
     max_concurrent_calls: str = typer.Option(None, "--max-concurrent-calls", help="Max Concurrent call. Required to create a static certificate"),
     p_charge_info_support_policy: str = typer.Option(None, "--p-charge-info-support-policy", help="Choices: DISABLED, ASSERTED_IDENTITY, CONFIGURABLE_CHARGE_NUMBER"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create a Trunk\n\nExample --json-body:\n  '{"name":"...","locationId":"...","password":"...","dualIdentitySupportEnabled":true,"trunkType":"REGISTERING","deviceType":"..."}'."""
@@ -778,7 +782,9 @@ def create_trunks(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -1032,6 +1038,7 @@ def list_route_groups(
 def create_route_groups(
     name: str = typer.Option(None, "--name", help="(required) A unique name for the Route Group."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create Route Group for a Organization\n\nExample --json-body:\n  '{"name":"...","localGateways":[{"id":"...","name":"...","locationId":"...","priority":"..."}]}'."""
@@ -1070,7 +1077,9 @@ def create_route_groups(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -1551,6 +1560,7 @@ def create_route_lists(
     location_id: str = typer.Option(None, "--location-id", help="(required) Location associated with the Route List."),
     route_group_id: str = typer.Option(None, "--route-group-id", help="(required) ID of the route group associated with Route List."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create a Route List."""
@@ -1593,7 +1603,9 @@ def create_route_lists(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -1964,6 +1976,7 @@ def create_translation_patterns_call_routing(
     matching_pattern: str = typer.Option(None, "--matching-pattern", help="(required) Matching pattern given to a translation pattern for an organ"),
     replacement_pattern: str = typer.Option(None, "--replacement-pattern", help="(required) Replacement pattern given to a translation pattern for an or"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create a Translation Pattern for an Organization."""
@@ -2006,7 +2019,9 @@ def create_translation_patterns_call_routing(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -2153,6 +2168,7 @@ def create_translation_patterns_call_routing_1(
     matching_pattern: str = typer.Option(None, "--matching-pattern", help="(required) A matching pattern given to a translation pattern for a loca"),
     replacement_pattern: str = typer.Option(None, "--replacement-pattern", help="(required) A replacement pattern given to a translation pattern for a l"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create a Translation Pattern for a Location."""
@@ -2195,7 +2211,9 @@ def create_translation_patterns_call_routing_1(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")

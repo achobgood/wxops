@@ -70,6 +70,7 @@ def create(
     secret: str = typer.Option(None, "--secret", help="Secret used to generate payload signature."),
     owned_by: str = typer.Option(None, "--owned-by", help="Specify `org` when creating an org/admin level webhook. Supp"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create a Webhook."""
@@ -116,7 +117,9 @@ def create(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")

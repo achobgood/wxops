@@ -74,6 +74,7 @@ def create(
     name: str = typer.Option(None, "--name", help="(required) Unique name for the call park. The maximum length is 80."),
     park_on_agents_enabled: bool = typer.Option(None, "--park-on-agents-enabled/--no-park-on-agents-enabled", help="Whether or not the calls will be parked on agents as a desti"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create a Call Park\n\nExample --json-body:\n  '{"name":"...","recall":{"huntGroupId":"...","option":"ALERT_PARKING_USER_ONLY"},"agents":["..."],"parkOnAgentsEnabled":true,"callParkExtensions":["..."]}'."""
@@ -114,7 +115,9 @@ def create(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -669,6 +672,7 @@ def create_call_park_extensions(
     name: str = typer.Option(None, "--name", help="(required) Name for the call park extension. The maximum length is 30."),
     extension: str = typer.Option(None, "--extension", help="(required) Unique extension which will be assigned to call park extensi"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create a Call Park Extension."""
@@ -709,7 +713,9 @@ def create_call_park_extensions(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
