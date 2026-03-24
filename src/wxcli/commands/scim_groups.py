@@ -21,7 +21,7 @@ def cmd_list(
     include_members: str = typer.Option(None, "--include-members", help="Default \"false\". If false, no members returned."),
     member_type: str = typer.Option(None, "--member-type", help="Filter the members by member type. Sample data: `user`, `mac"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -82,7 +82,7 @@ def cmd_list(
 @app.command("create")
 def create(
     org_id: str = typer.Argument(help="orgId"),
-    display_name: str = typer.Option(..., "--display-name", help="A human-readable name for the Group."),
+    display_name: str = typer.Option(None, "--display-name", help="(required) A human-readable name for the Group."),
     external_id: str = typer.Option(None, "--external-id", help="An identifier for the resource as defined by the provisionin"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -98,6 +98,10 @@ def create(
             body["displayName"] = display_name
         if external_id is not None:
             body["externalId"] = external_id
+        _missing = [f for f in ['displayName'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:

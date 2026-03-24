@@ -17,7 +17,7 @@ def cmd_list(
     order: str = typer.Option(None, "--order", help="Sort the list of call pickups by name, either ASC or DSC. De"),
     name: str = typer.Option(None, "--name", help="Return the list of call pickups that contains the given name"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -71,7 +71,7 @@ def cmd_list(
 @app.command("create")
 def create(
     location_id: str = typer.Argument(help="locationId"),
-    name: str = typer.Option(..., "--name", help="Unique name for the call pickup. The maximum length is 80."),
+    name: str = typer.Option(None, "--name", help="(required) Unique name for the call pickup. The maximum length is 80."),
     notification_type: str = typer.Option(None, "--notification-type", help="Choices: NONE, AUDIO_ONLY, VISUAL_ONLY, AUDIO_AND_VISUAL"),
     notification_delay_timer_seconds: str = typer.Option(None, "--notification-delay-timer-seconds", help="After the number of seconds given by the `notificationDelayT"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -94,6 +94,10 @@ def create(
             body["notificationType"] = notification_type
         if notification_delay_timer_seconds is not None:
             body["notificationDelayTimerSeconds"] = notification_delay_timer_seconds
+        _missing = [f for f in ['name'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -266,7 +270,7 @@ def list_available_users(
     phone_number: str = typer.Option(None, "--phone-number", help="Only return available agents with the matching primary numbe"),
     order: str = typer.Option(None, "--order", help="Order the available agents according to the designated field"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

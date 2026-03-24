@@ -14,7 +14,7 @@ def cmd_list(
     person_id: str = typer.Option(None, "--person-id", help="List authorizations for this user id."),
     person_email: str = typer.Option(None, "--person-email", help="List authorizations for this user email."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

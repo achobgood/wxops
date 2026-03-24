@@ -57,7 +57,7 @@ def show(
 @app.command("create")
 def create(
     command_name: str = typer.Argument(help="commandName"),
-    device_id: str = typer.Option(..., "--device-id", help="The unique identifier for the Webex RoomOS Device."),
+    device_id: str = typer.Option(None, "--device-id", help="(required) The unique identifier for the Webex RoomOS Device."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -70,6 +70,10 @@ def create(
         body = {}
         if device_id is not None:
             body["deviceId"] = device_id
+        _missing = [f for f in ['deviceId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:

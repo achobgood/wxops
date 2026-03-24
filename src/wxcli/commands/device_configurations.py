@@ -59,6 +59,7 @@ def update(
     device_id: str = typer.Option(..., "--device-id", help="Update device configurations by device ID."),
     op: str = typer.Option(None, "--op", help="Choices: remove, replace"),
     path: str = typer.Option(None, "--path", help="Only paths ending in `/sources/configured/value` are support"),
+    value: str = typer.Option(None, "--value", help="Value for replace op (JSON-parsed: string, number, bool, or array)"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -71,13 +72,19 @@ def update(
     if json_body:
         body = json.loads(json_body)
     else:
-        body = {}
+        patch_op = {}
         if op is not None:
-            body["op"] = op
+            patch_op["op"] = op
         if path is not None:
-            body["path"] = path
+            patch_op["path"] = path
+        if value is not None:
+            try:
+                patch_op["value"] = json.loads(value)
+            except json.JSONDecodeError:
+                patch_op["value"] = value
+        body = [patch_op]
     try:
-        result = api.session.rest_patch(url, json=body, params=params)
+        result = api.session.rest_patch(url, json=body, params=params, content_type="application/json-patch+json")
     except RestError as e:
         err = str(e)
         if "25008" in err:

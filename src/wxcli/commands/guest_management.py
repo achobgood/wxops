@@ -10,8 +10,8 @@ app = typer.Typer(help="Manage Webex Calling guest-management.")
 
 @app.command("create")
 def create(
-    subject: str = typer.Option(..., "--subject", help="The unique and external identifier of the guest."),
-    display_name: str = typer.Option(..., "--display-name", help="The display name shown in the Webex application."),
+    subject: str = typer.Option(None, "--subject", help="(required) The unique and external identifier of the guest."),
+    display_name: str = typer.Option(None, "--display-name", help="(required) The display name shown in the Webex application."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -26,6 +26,10 @@ def create(
             body["subject"] = subject
         if display_name is not None:
             body["displayName"] = display_name
+        _missing = [f for f in ['subject', 'displayName'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -57,7 +61,7 @@ def create(
 @app.command("list")
 def cmd_list(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

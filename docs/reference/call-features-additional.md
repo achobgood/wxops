@@ -1699,7 +1699,27 @@ wxcli cx-essentials show-queue-recording LOCATION_ID QUEUE_ID -o json
 # Update queue call recording settings
 wxcli cx-essentials update-queue-recording LOCATION_ID QUEUE_ID \
   --enabled --record Always
+
+# --- Queue Discovery & Creation ---
+
+# List Customer Assist queues (hidden from default call-queue list!)
+wxcli call-queue list --has-cx-essentials true -o json
+
+# Create a Customer Assist queue (requires callPolicies via --json-body)
+wxcli call-queue create LOCATION_ID --name "Queue Name" --has-cx-essentials true \
+  --json-body '{"name":"Queue Name","extension":"XXXX","callPolicies":{"policy":"SIMULTANEOUS"}}'
+
+# --- Supervisor Cleanup ---
+
+# To remove a supervisor, remove all agents via update (not delete endpoint)
+wxcli call-queue update-supervisors SUPERVISOR_ID --has-cx-essentials true \
+  --json-body '{"agents":[{"id":"AGENT_ID","action":"DELETE"}]}'
+# When last agent is removed, supervisor is auto-deleted
 ```
+
+> **GOTCHA:** Customer Assist queues do not appear in the default `wxcli call-queue list` output. You must pass `--has-cx-essentials true` to see them. Using CX Essentials endpoints on a regular queue returns error 28018. <!-- Verified via live API 2026-03-21 -->
+
+> **GOTCHA:** `delete-supervisors-config-1` returns 204 but the supervisor persists. Use `update-supervisors` with `action: DELETE` on each agent instead — removing the last agent auto-removes the supervisor. <!-- Verified via live API 2026-03-21 -->
 
 ---
 
@@ -2510,6 +2530,8 @@ Customer Assist ─────── Call Queues (screen pop, recording, wrap-u
 - **Customer Assist requires licensing**: Screen pop, queue recording, and wrap-up reasons require Customer Assist licensing. Call queues must exist before configuring these features.
 - **Call Park requires recall**: Creating a Call Park without a `recall` option (e.g., `ALERT_PARKING_USER_ONLY`) will be rejected by the API.
 - **Announcement upload requires multipart/form-data**: The CLI and raw HTTP `rest_post` may not support binary file uploads directly. Use the SDK upload methods or construct multipart requests manually.
+- **CallPickupGroup AXL creation with members fails on CUCM 15.0.** The `addCallPickupGroup` AXL operation with `<members>` containing `<directoryNumber>` elements fails with a null priority foreign key constraint (`pickupgroupmember.priority`). Workaround: create the pickup group empty, then add members via `updateLine` with `callPickupGroupName` on each member DN. Verified on CUCM 15.0.1.13901(2). <!-- Verified via test bed expansion 2026-03-24 -->
+- **No native PagingGroup AXL object type.** CUCM does not expose paging groups through AXL (`listPagingGroup`/`getPagingGroup` do not exist). Paging requires third-party systems (InformaCast, Cisco Paging Server). The migration pipeline's `CanonicalPagingGroup` type exists for manual/CSV import but cannot be auto-extracted from CUCM. <!-- Verified via test bed expansion 2026-03-24 -->
 
 ---
 

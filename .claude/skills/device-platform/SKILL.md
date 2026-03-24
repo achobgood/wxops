@@ -4,6 +4,7 @@ description: |
   Manage RoomOS device configurations, workspace personalization, and xAPI device control
   using wxcli CLI commands. Covers device software configuration templates, user-to-workspace
   personalization, and programmatic device command execution and status queries.
+  Also covers 9800-series phones (9811, 9821, 9841, 9851, 9861, 9871) which use RoomOS config keys, not telephony device settings.
   Guides the user from prerequisites through execution and verification.
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [device-platform-operation]
@@ -49,11 +50,11 @@ Ask the user what they want to do. Present this decision matrix if they are unsu
 | Query device status (volume, call state, network, room analytics) | xAPI status query | `wxcli xapi show` |
 | Build a device automation/integration | xAPI (combination) | `wxcli xapi show` + `wxcli xapi create` |
 
-**If the user asks about phone provisioning, activation codes, DECT, line keys, or hot desking**, redirect them to the `manage-devices` skill. This skill covers device SOFTWARE (RoomOS configs, personalization, xAPI), not device HARDWARE provisioning.
+**If the user asks about MPP phone (68xx/78xx/88xx) provisioning, activation codes, DECT, line keys, or hot desking**, redirect them to the `manage-devices` skill. Note: 9800-series phones (9811, 9821, 9841, 9851, 9861, 9871) are handled HERE — they use RoomOS config keys despite being `productType: phone`. This skill covers device SOFTWARE (RoomOS configs, personalization, xAPI), not device HARDWARE provisioning.
 
 ## Step 4: Check prerequisites
 
-### 4a. Device exists and is cloud-registered RoomOS
+### 4a. Device exists and uses RoomOS configuration model
 
 All 3 APIs require a device ID. Get it from `wxcli devices list`:
 
@@ -61,7 +62,10 @@ All 3 APIs require a device ID. Get it from `wxcli devices list`:
 wxcli devices list --output json
 ```
 
-- Confirm the target device is a RoomOS device (Room, Board, or Desk series), **not** an MPP phone
+- Confirm the target device uses the RoomOS configuration model. Valid devices:
+  - **RoomOS devices:** Room, Board, or Desk series (`productType: roomdesk`)
+  - **9800-series phones:** Cisco 9811, 9821, 9841, 9851, 9861, 9871 (`productType: phone` but runs PhoneOS/RoomOS)
+- **MPP phones (68xx, 78xx, 88xx) and ATAs do NOT use this API.** Redirect to `manage-devices` skill for those.
 - Capture `device_id` for use in subsequent commands
 - If the user does not have any devices, direct them to the `manage-devices` skill to create or activate one first
 

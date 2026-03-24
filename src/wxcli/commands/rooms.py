@@ -18,7 +18,7 @@ def cmd_list(
     sort_by: str = typer.Option(None, "--sort-by", help="Choices: id, lastactivity, created"),
     max: str = typer.Option(None, "--max", help="Limit the maximum number of rooms in the response. Value mus"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -45,7 +45,12 @@ def cmd_list(
     if offset > 0:
         params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        if limit > 0:
+            result = api.session.rest_get(url, params=params)
+            result = result or {}
+            items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+        else:
+            items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -63,8 +68,6 @@ def cmd_list(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -74,7 +77,7 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    title: str = typer.Option(..., "--title", help="A user-friendly name for the room."),
+    title: str = typer.Option(None, "--title", help="(required) A user-friendly name for the room."),
     team_id: str = typer.Option(None, "--team-id", help="The ID for the team with which this room is associated."),
     classification_id: str = typer.Option(None, "--classification-id", help="The `classificationId` for the room."),
     is_locked: bool = typer.Option(None, "--is-locked/--no-is-locked", help="Set the space as locked/moderated and the creator becomes a"),
@@ -105,6 +108,10 @@ def create(
             body["description"] = description
         if is_announcement_only is not None:
             body["isAnnouncementOnly"] = is_announcement_only
+        _missing = [f for f in ['title'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:

@@ -11,7 +11,7 @@ app = typer.Typer(help="Manage Webex Calling workspace-personalization.")
 @app.command("create")
 def create(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    email: str = typer.Option(..., "--email", help="The user that the device will become personalised for."),
+    email: str = typer.Option(None, "--email", help="(required) The user that the device will become personalised for."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -24,6 +24,10 @@ def create(
         body = {}
         if email is not None:
             body["email"] = email
+        _missing = [f for f in ['email'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:

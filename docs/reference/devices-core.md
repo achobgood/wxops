@@ -1259,6 +1259,54 @@ WebexSimpleApi
 
 ---
 
+### 5a. Device Settings API Router
+
+Before attempting to read or change device-level settings, determine which API surface the device uses. The wrong API returns 400 — there is no fallback or auto-detection.
+
+#### Quick router (by model family)
+
+| Model Family | Product Type | Settings API | CLI Group |
+|-------------|-------------|-------------|-----------|
+| MPP 68xx (6821, 6841, 6851, 6861) | `phone` | Telephony Device Settings | `device-settings` |
+| MPP 78xx (7811, 7821, 7832, 7841, 7861) | `phone` | Telephony Device Settings | `device-settings` |
+| MPP 88xx (8811, 8841, 8845, 8851, 8861, 8865) | `phone` | Telephony Device Settings | `device-settings` |
+| ATA 191/192 | `phone` | Telephony Device Settings | `device-settings` |
+| **9800-series (9811, 9821, 9841, 9851, 9861, 9871)** | **`phone`** | **Device Configurations (RoomOS keys)** | **`device-configurations`** |
+| Room series (Room Kit, Room Bar, etc.) | `roomdesk` | Device Configurations (RoomOS keys) | `device-configurations` |
+| Board series (Board 55, Board Pro, etc.) | `roomdesk` | Device Configurations (RoomOS keys) | `device-configurations` |
+| Desk series (Desk, Desk Pro, Desk Mini) | `roomdesk` | Device Configurations (RoomOS keys) | `device-configurations` |
+| 3rd-party SIP | `phone` | None | CRUD only (`devices`) |
+
+**The 9800-series is the exception that breaks assumptions.** They are `productType: phone` but run PhoneOS (RoomOS-derived) and use RoomOS config keys, not the telephony device settings model. Treating all phones as `device-settings` targets will fail on 9800-series devices.
+
+#### Programmatic detection
+
+If the model is unknown or you want to be safe, query the telephony device details and check the `deviceSettingsConfigurationModelId` field:
+
+1. Get the device's telephony details to find its model info:
+   ```bash
+   wxcli device-settings list-supported-devices --output json
+   ```
+   Each supported device model includes `deviceSettingsConfiguration`: one of `WEBEX_CALLING_DEVICE_CONFIGURATION`, `WEBEX_DEVICE_CONFIGURATION`, `WEBEX_CALLING_DYNAMIC_DEVICE_CONFIGURATION`, or `NONE`.
+
+2. Match the device's `model` to the supported devices list and read its `deviceSettingsConfiguration` value.
+
+3. Route to the correct API surface using the enum mapping table above.
+
+#### Key differences between API surfaces
+
+| Aspect | `device-settings` | `device-dynamic-settings` | `device-configurations` |
+|--------|-------------------|---------------------------|------------------------|
+| Config model | Fixed schema per model | Tag-based, model-specific | RoomOS key-value pairs |
+| Read | `show-settings-devices DEVICE_ID --device-model "DMS Cisco 8845"` | `get-device-dynamic DEVICE_ID` | `show --device-id DEVICE_ID` |
+| Update | `update-settings-devices DEVICE_ID --json-body '{...}'` | `update-device-dynamic DEVICE_ID --json-body '{...}'` | `update --device-id DEVICE_ID --json-body '[...]'` (JSON Patch) |
+| Apply changes | **Required:** `apply-changes-for DEVICE_ID` | Not needed | Not needed (auto-applies on resync) |
+| Content-Type | `application/json` | `application/json` | `application/json-patch+json` (PATCH) |
+| Filtering | N/A (fixed schema) | N/A | `--key "Phone.Multicast*"` (supports wildcards) |
+| Scopes | `spark-admin:telephony_config_read/write` | `spark-admin:telephony_config_read/write` | `spark-admin:devices_read/write` |
+
+---
+
 ## 6. Raw HTTP
 
 All examples use:
@@ -1668,6 +1716,7 @@ result = api.session.rest_get(f"{BASE}/telephony/config/devices/dectNetworks/sup
 5. **Background image upload is multipart.** The upload endpoint requires multipart form data, not JSON. Max 625 KB, `.jpeg` or `.png` only.
 6. **Tags PATCH uses `application/json-patch+json`** content type, not standard JSON. The `rest_patch` method handles this.
 7. **No auto-pagination.** Pass `max=1000` on list endpoints. The `rest_get` method does not auto-paginate like SDK generator methods do.
+8. **CTI Route Point protocol varies by device pool.** CTI Route Points require SCCP protocol on some device pools — SIP protocol assignment fails with "Device Protocol not valid" error. When creating CTI Route Points via AXL, try SCCP first if SIP fails, or verify the device pool's supported protocols before assignment. <!-- Verified via test bed expansion 2026-03-24 -->
 
 ---
 

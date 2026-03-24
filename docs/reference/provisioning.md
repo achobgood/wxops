@@ -17,9 +17,9 @@ User, license, and location provisioning for Webex Calling via the `wxc_sdk` Pyt
 1. [Required Scopes](#required-scopes)
 2. [People API](#people-api)
 3. [Licenses API](#licenses-api)
-4. [Locations API](#locations-api)
+4. [Locations API](#locations)
 5. [Organization API](#organization-api)
-6. [Numbers API](#numbers-api)
+6. [Numbers API](#numbers)
 7. [Provisioning Workflow](#provisioning-workflow)
 8. [Data Models](#data-models)
 9. [Gotchas](#gotchas) (cross-cutting)
@@ -734,22 +734,22 @@ api.session.rest_put(
 
 ```bash
 # ── List all locations ────────────────────────────────────────────
-wxcli locations-api list
+wxcli locations list
 
 # ── Filter locations by name (case-insensitive contains match) ────
-wxcli locations-api list --name "headquarters"
+wxcli locations list --name "headquarters"
 
 # ── List locations as JSON ────────────────────────────────────────
-wxcli locations-api list -o json
+wxcli locations list -o json
 
 # ── Get location details ──────────────────────────────────────────
-wxcli locations-api show <location_id>
+wxcli locations show <location_id>
 
 # ── Get location details as table ─────────────────────────────────
-wxcli locations-api show <location_id> -o table
+wxcli locations show <location_id> -o table
 
 # ── Create a location (all required fields) ───────────────────────
-wxcli locations-api create \
+wxcli locations create \
   --name "San Jose Office" \
   --time-zone "America/Los_Angeles" \
   --preferred-language "en_us" \
@@ -765,13 +765,13 @@ wxcli locations-api create \
   }'
 
 # ── Update a location ────────────────────────────────────────────
-wxcli locations-api update <location_id> --name "San Jose HQ"
-wxcli locations-api update <location_id> --time-zone "America/New_York"
+wxcli locations update <location_id> --name "San Jose HQ"
+wxcli locations update <location_id> --time-zone "America/New_York"
 ```
 
 **CLI notes:**
-- The `locations-api` group is the OpenAPI-generated version. There is also a `locations` group -- prefer `locations-api` for consistency.
-- `wxcli locations-api create` requires `--name`, `--time-zone`, `--preferred-language`, and `--announcement-language`. The address must be passed via `--json-body` since it is a nested object.
+- The `locations` group covers both REST CRUD (list, create, show, update, delete) and floors management.
+- `wxcli locations create` requires `--name`, `--time-zone`, `--preferred-language`, and `--announcement-language`. The address must be passed via `--json-body` since it is a nested object.
 - Use lowercase language codes (e.g., `en_us` not `en_US`) for `--announcement-language` to avoid "Invalid Language Code" errors when later enabling calling.
 - Location names must be 80 characters or fewer if the location will be enabled for Webex Calling.
 
@@ -915,62 +915,62 @@ Numbers must be added to a location's inventory before they can be assigned to u
 
 ```bash
 # ── List all phone numbers in the org ─────────────────────────────
-wxcli numbers-api list
+wxcli numbers list
 
 # ── List numbers for a specific location ──────────────────────────
-wxcli numbers-api list --location-id <location_id>
+wxcli numbers list --location-id <location_id>
 
 # ── Search for a specific phone number ────────────────────────────
-wxcli numbers-api list --phone-number "+15551234567"
+wxcli numbers list --phone-number "+15551234567"
 
 # ── List only available (unassigned) numbers ──────────────────────
-wxcli numbers-api list --available true
+wxcli numbers list --available true
 
 # ── Filter by number state ────────────────────────────────────────
-wxcli numbers-api list --state ACTIVE
-wxcli numbers-api list --state INACTIVE
+wxcli numbers list --state ACTIVE
+wxcli numbers list --state INACTIVE
 
 # ── Filter by owner type ──────────────────────────────────────────
-wxcli numbers-api list --owner-type PEOPLE
-wxcli numbers-api list --owner-type PLACE
+wxcli numbers list --owner-type PEOPLE
+wxcli numbers list --owner-type PLACE
 
 # ── Filter by number type ────────────────────────────────────────
-wxcli numbers-api list --number-type NUMBER
-wxcli numbers-api list --number-type EXTENSION
+wxcli numbers list --number-type NUMBER
+wxcli numbers list --number-type EXTENSION
 
 # ── List numbers as JSON ──────────────────────────────────────────
-wxcli numbers-api list -o json
+wxcli numbers list -o json
 
 # ── Add phone numbers to a location ───────────────────────────────
-wxcli numbers-api create <location_id> --json-body '{
+wxcli numbers create <location_id> --json-body '{
   "phoneNumbers": ["+15551234567", "+15551234568"]
 }'
 
 # ── Activate numbers in a location ────────────────────────────────
-wxcli numbers-api update <location_id> --action ACTIVATE --json-body '{
+wxcli numbers update <location_id> --action ACTIVATE --json-body '{
   "phoneNumbers": ["+15551234567"]
 }'
 
 # ── Deactivate numbers in a location ──────────────────────────────
-wxcli numbers-api update <location_id> --action DEACTIVATE --json-body '{
+wxcli numbers update <location_id> --action DEACTIVATE --json-body '{
   "phoneNumbers": ["+15551234567"]
 }'
 
 # ── Remove phone numbers from a location ──────────────────────────
-wxcli numbers-api delete <location_id>
+wxcli numbers delete <location_id>
 
 # ── Remove without confirmation prompt ────────────────────────────
-wxcli numbers-api delete <location_id> --force
+wxcli numbers delete <location_id> --force
 
 # ── Validate phone numbers before adding ──────────────────────────
-wxcli numbers-api validate-phone-numbers --json-body '{
+wxcli numbers validate-phone-numbers --json-body '{
   "phoneNumbers": ["+15551234567", "+15551234568"]
 }'
 ```
 
 **CLI notes:**
-- The `numbers-api` group is the OpenAPI-generated version. There is also a `numbers` group -- prefer `numbers-api` for consistency.
-- `wxcli numbers-api list` returns org-wide numbers by default. Use `--location-id` to scope to a specific location.
+- The `numbers` group covers number CRUD, validation, and manage-numbers jobs.
+- `wxcli numbers list` returns org-wide numbers by default. Use `--location-id` to scope to a specific location.
 - Adding and activating numbers requires `--json-body` with a `phoneNumbers` array since the CLI cannot flatten nested array body fields into flags.
 - Numbers must be added to a location (`create`) and activated (`update --action ACTIVATE`) before they can be assigned to users.
 - Use `validate-phone-numbers` to check number validity before adding them to avoid errors.
@@ -1262,6 +1262,21 @@ The manage numbers jobs list endpoint returns its results under the key `items`,
 <!-- Verified via CLI implementation 2026-03-18 -->
 
 The manage numbers job creation body expects a `numberList` array where each element contains `locationId` and `numbers`. Do not use `phoneNumbers` as the key -- the API will reject or ignore it.
+
+### Location creation is two steps: create + enable calling
+<!-- Verified via live migration execution 2026-03-24 -->
+
+`POST /v1/locations` creates the location but does NOT enable Webex Calling. You must separately call `POST /v1/telephony/config/locations` with the location's `id`, `name`, `timeZone`, `preferredLanguage`, `announcementLanguage`, and `address`. Without this second call, assigning calling-licensed users to the location fails with "Calling flag not set".
+
+### Calling user creation requires extension or phone number
+<!-- Verified via live migration execution 2026-03-24 -->
+
+`POST /v1/people?callingData=true` with a calling license and location requires either `extension` or `phoneNumbers` in the body. The API rejects with "Create Calling user either Phone number or Extension is required" if neither is provided. You cannot create a calling user first and assign an extension separately — it must be done atomically.
+
+### User create with callingData=false may silently create the user
+<!-- Verified via live migration execution 2026-03-24 -->
+
+If `POST /v1/people?callingData=false` fails with 400 (e.g., "Calling flag not set"), the user may have already been created without calling configuration. A subsequent retry returns 409 Conflict. Always check `GET /v1/people?email=...` before retrying user creation. If the user exists, use `PUT` to update with calling data instead.
 
 ### Number porting has no public API
 

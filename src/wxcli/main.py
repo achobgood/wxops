@@ -131,12 +131,14 @@ from wxcli.commands.locations import app as locations_app
 from wxcli.commands.users import app as users_app
 from wxcli.commands.numbers import app as numbers_app
 from wxcli.commands.licenses import app as licenses_app
+from wxcli.commands.cucm import app as cucm_app
 
 app.add_typer(configure_app, name="configure")
 app.add_typer(locations_app, name="locations")
 app.add_typer(users_app, name="users")
 app.add_typer(numbers_app, name="numbers")
 app.add_typer(licenses_app, name="licenses")
+app.add_typer(cucm_app, name="cucm")
 
 # Auto-generated from OpenAPI spec
 from wxcli.commands.call_controls import app as call_controls_app
@@ -205,12 +207,8 @@ from wxcli.commands.location_voicemail import app as location_voicemail_app
 app.add_typer(location_voicemail_app, name="location-voicemail")
 from wxcli.commands.location_call_handling import app as location_call_handling_app
 app.add_typer(location_call_handling_app, name="location-call-handling")
-from wxcli.commands.locations_api import app as locations_api_app
-app.add_typer(locations_api_app, name="locations-api")
 from wxcli.commands.mode_management import app as mode_management_app
 app.add_typer(mode_management_app, name="mode-management")
-from wxcli.commands.numbers_api import app as numbers_api_app
-app.add_typer(numbers_api_app, name="numbers-api")
 from wxcli.commands.pstn import app as pstn_app
 app.add_typer(pstn_app, name="pstn")
 from wxcli.commands.partner_reports import app as partner_reports_app

@@ -7,7 +7,7 @@ description: |
   Use for any Webex Calling provisioning, configuration, or automation task.
 tools: Read, Edit, Write, Bash, Grep, Glob, Agent, WebSearch, WebFetch
 model: sonnet
-skills: provision-calling, configure-features, manage-call-settings, configure-routing, manage-devices, device-platform, call-control, reporting, wxc-calling-debug, manage-identity, audit-compliance, manage-licensing, messaging-spaces, messaging-bots
+skills: provision-calling, configure-features, manage-call-settings, configure-routing, manage-devices, device-platform, call-control, reporting, wxc-calling-debug, manage-identity, audit-compliance, manage-licensing, messaging-spaces, messaging-bots, customer-assist, cucm-migrate
 ---
 
 # Webex Calling Builder
@@ -101,6 +101,19 @@ Check for `docs/reference/` directory:
 ## INTERVIEW PHASE
 
 Ask ONE question at a time. Do not dump multiple questions. Wait for the answer before moving to the next.
+
+### CUCM Migration Detection
+
+Before asking the interview questions, check for an existing CUCM deployment plan:
+
+```bash
+ls docs/plans/*cucm-migration* 2>/dev/null
+```
+
+If a deployment plan exists, or the user mentions "CUCM migration", "migrate from CUCM", or "deployment plan":
+> "I found a CUCM migration deployment plan. Loading the `cucm-migrate` skill to execute it."
+
+Load the `cucm-migrate` skill and follow its workflow instead of the standard interview. The skill handles preflight, plan summary, approval, execution, and reporting.
 
 ### Question 1: Objective
 
@@ -299,7 +312,7 @@ wxcli user-settings update-do-not-disturb PERSON_ID --enabled
 # Routing
 wxcli call-routing list-trunks
 wxcli pstn list LOCATION_ID
-wxcli numbers-api list --location-id LOCATION_ID
+wxcli numbers list --location-id LOCATION_ID
 ```
 
 ### Bulk Operations
@@ -394,6 +407,7 @@ Before executing commands for any domain, **read the relevant skill file**. The 
 | License audit, reclaim, bulk assignment | `.claude/skills/manage-licensing/SKILL.md` | Usage analysis, reclaim workflow, multi-step assignment |
 | Spaces, teams, memberships, messages, ECM, HDS | `.claude/skills/messaging-spaces/SKILL.md` | Space lifecycle, team structure, membership management, token requirements |
 | Bot development, notifications, adaptive cards, room tabs, cross-domain | `.claude/skills/messaging-bots/SKILL.md` | Bot patterns, card recipe catalog, webhook setup, cross-domain recipes |
+| CUCM-to-Webex migration execution | `.claude/skills/cucm-migrate/SKILL.md` | Preflight, batch execution, ID capture, placeholder resolution, rollback |
 
 ### How Dispatch Works
 
@@ -515,6 +529,13 @@ Everything else uses wxcli. Do not mix wxcadm and wxcli within a single executio
 
 ### CLI-First with Raw HTTP Fallback
 Use wxcli CLI commands for all standard operations. The CLI encodes required fields, handles auth, validates inputs, and produces readable output. When wxcli doesn't cover an operation (e.g., CX Essentials sub-features, bulk async), fall back to raw HTTP via `api.session.rest_*()`. See `docs/reference/wxc-sdk-patterns.md` for the raw HTTP pattern.
+
+**For quick one-off curl calls**, extract the token from wxcli's config:
+```bash
+TOKEN=$(python3.11 -c "import json; print(json.load(open('$HOME/.wxcli/config.json'))['profiles']['default']['token'])")
+curl -s -H "Authorization: Bearer $TOKEN" https://webexapis.com/v1/...
+```
+The config file structure is `profiles.<profile_name>.token` (not a top-level `access_token` key). Default profile is `default`.
 
 Run `wxcli <group> --help` to discover available commands. Run `wxcli <group> <command> --help` for options.
 

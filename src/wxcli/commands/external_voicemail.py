@@ -12,7 +12,7 @@ app = typer.Typer(help="Manage Webex Calling external-voicemail.")
 @app.command("create")
 def create(
     id_param: str = typer.Option(..., "--id", help="Unique identifier for the user or workspace."),
-    action: str = typer.Option(..., "--action", help="Choices: SET, CLEAR"),
+    action: str = typer.Option(None, "--action", help="(required) Choices: SET, CLEAR"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -31,6 +31,10 @@ def create(
         body = {}
         if action is not None:
             body["action"] = action
+        _missing = [f for f in ['action'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:

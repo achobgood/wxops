@@ -16,7 +16,7 @@ def cmd_list(
     country_code: str = typer.Option(None, "--country-code", help="Location country code (ISO 3166-1)."),
     city_name: str = typer.Option(None, "--city-name", help="Location city name."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -69,12 +69,12 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    display_name: str = typer.Option(..., "--display-name", help="A friendly name for the location."),
-    address: str = typer.Option(..., "--address", help="The location address."),
-    country_code: str = typer.Option(..., "--country-code", help="The location country code (ISO 3166-1)."),
+    display_name: str = typer.Option(None, "--display-name", help="(required) A friendly name for the location."),
+    address: str = typer.Option(None, "--address", help="(required) The location address."),
+    country_code: str = typer.Option(None, "--country-code", help="(required) The location country code (ISO 3166-1)."),
     city_name: str = typer.Option(None, "--city-name", help="The location city name."),
-    latitude: str = typer.Option(..., "--latitude", help="The location latitude."),
-    longitude: str = typer.Option(..., "--longitude", help="The location longitude."),
+    latitude: str = typer.Option(None, "--latitude", help="(required) The location latitude."),
+    longitude: str = typer.Option(None, "--longitude", help="(required) The location longitude."),
     notes: str = typer.Option(None, "--notes", help="Notes associated with the location."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -100,6 +100,10 @@ def create(
             body["longitude"] = longitude
         if notes is not None:
             body["notes"] = notes
+        _missing = [f for f in ['displayName', 'address', 'countryCode', 'latitude', 'longitude'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -266,7 +270,7 @@ def delete(
 def list_floors(
     location_id: str = typer.Argument(help="locationId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -309,7 +313,7 @@ def list_floors(
 @app.command("create-floors")
 def create_floors(
     location_id: str = typer.Argument(help="locationId"),
-    floor_number: str = typer.Option(..., "--floor-number", help="The floor number."),
+    floor_number: str = typer.Option(None, "--floor-number", help="(required) The floor number."),
     display_name: str = typer.Option(None, "--display-name", help="The floor display name."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -325,6 +329,10 @@ def create_floors(
             body["floorNumber"] = floor_number
         if display_name is not None:
             body["displayName"] = display_name
+        _missing = [f for f in ['floorNumber'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:

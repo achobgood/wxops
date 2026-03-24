@@ -13,7 +13,7 @@ def cmd_list(
     max: str = typer.Option(None, "--max", help="Limit the maximum number of webhooks in the response."),
     owned_by: str = typer.Option(None, "--owned-by", help="Limit the result list to org wide webhooks. Only allowed val"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -30,7 +30,12 @@ def cmd_list(
     if offset > 0:
         params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        if limit > 0:
+            result = api.session.rest_get(url, params=params)
+            result = result or {}
+            items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+        else:
+            items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -48,8 +53,6 @@ def cmd_list(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -59,10 +62,10 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    name: str = typer.Option(..., "--name", help="A user-friendly name for the webhook."),
-    target_url: str = typer.Option(..., "--target-url", help="URL that receives POST requests for each event."),
-    resource: str = typer.Option(..., "--resource", help="Resource type for the webhook. Creating a webhook requires ' (use --help for choices)"),
-    event: str = typer.Option(..., "--event", help="Event type for the webhook.  * `created` - An object is crea (use --help for choices)"),
+    name: str = typer.Option(None, "--name", help="(required) A user-friendly name for the webhook."),
+    target_url: str = typer.Option(None, "--target-url", help="(required) URL that receives POST requests for each event."),
+    resource: str = typer.Option(None, "--resource", help="(required) Resource type for the webhook. Creating a webhook requires ' (use --help for choices)"),
+    event: str = typer.Option(None, "--event", help="(required) Event type for the webhook.  * `created` - An object is crea (use --help for choices)"),
     filter_param: str = typer.Option(None, "--filter", help="Filter that defines the webhook scope. See [Filtering Webhoo"),
     secret: str = typer.Option(None, "--secret", help="Secret used to generate payload signature."),
     owned_by: str = typer.Option(None, "--owned-by", help="Specify `org` when creating an org/admin level webhook. Supp"),
@@ -90,6 +93,10 @@ def create(
             body["secret"] = secret
         if owned_by is not None:
             body["ownedBy"] = owned_by
+        _missing = [f for f in ['name', 'targetUrl', 'resource', 'event'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:

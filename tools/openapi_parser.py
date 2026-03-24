@@ -439,6 +439,18 @@ def parse_operation(
     if command_type in ("create", "update", "action"):
         json_body_example = generate_body_example(op, spec)
 
+    # Detect pagination: 200 response with Link header means RFC 5988 pagination
+    paginates = False
+    resp_200 = op.get("responses", {}).get("200", {})
+    if "Link" in resp_200.get("headers", {}):
+        paginates = True
+
+    # Detect non-standard content types (e.g., application/json-patch+json)
+    content_type = None
+    rb_content = op.get("requestBody", {}).get("content", {})
+    if "application/json-patch+json" in rb_content and "application/json" not in rb_content:
+        content_type = "application/json-patch+json"
+
     return Endpoint(
         name=name,
         method=method.upper(),
@@ -454,6 +466,8 @@ def parse_operation(
         deprecated=deprecated,
         json_body_example=json_body_example,
         auto_inject_params=auto_inject_names,
+        content_type=content_type,
+        paginates=paginates,
     )
 
 

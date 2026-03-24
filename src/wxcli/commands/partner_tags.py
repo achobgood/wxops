@@ -12,7 +12,7 @@ app = typer.Typer(help="Manage Webex Calling partner-tags.")
 def cmd_list(
     type_param: str = typer.Option(..., "--type", help="List tags associated with an organization."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -140,7 +140,7 @@ def list_organizations(
     tags: str = typer.Option(..., "--tags", help="A comma separated list of tags to filter by."),
     max: str = typer.Option(None, "--max", help="Value must be between 1 and 100, inclusive."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -231,7 +231,7 @@ def list_subscriptions(
     tags: str = typer.Option(..., "--tags", help="A comma separated list of tags to filter by."),
     max: str = typer.Option(None, "--max", help="Value must be between 1 and 100, inclusive."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):

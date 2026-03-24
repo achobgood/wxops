@@ -175,6 +175,8 @@ wxcli scim-users show $ORG_ID $USER_ID -o json
 
 ### Operation C: SCIM User Create/Update/Delete
 
+**Create:**
+
 ```bash
 # Create a single user
 wxcli scim-users create $ORG_ID --user-name "newuser@example.com" --display-name "New User" --active
@@ -187,8 +189,20 @@ wxcli scim-users create $ORG_ID --json-body '{
   "emails": [{"value": "jdoe@example.com", "type": "work", "primary": true}],
   "active": true
 }'
+```
 
-# Partial update (PATCH) -- safer, only changes specified fields
+**Update (PATCH — always use this for modifications):**
+
+```bash
+# Change display name (only this field changes, everything else preserved)
+wxcli scim-users update-users $ORG_ID $USER_ID --json-body '{
+  "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+  "Operations": [
+    {"op": "replace", "path": "displayName", "value": "Jane M. Doe"}
+  ]
+}'
+
+# Change multiple fields at once
 wxcli scim-users update-users $ORG_ID $USER_ID --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
   "Operations": [
@@ -197,21 +211,49 @@ wxcli scim-users update-users $ORG_ID $USER_ID --json-body '{
   ]
 }'
 
-# Deactivate a user via PATCH
+# Deactivate a user
 wxcli scim-users update-users $ORG_ID $USER_ID --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
   "Operations": [{"op": "replace", "path": "active", "value": false}]
 }'
 
-# Full replace (PUT) -- DANGEROUS: replaces entire resource
-# Always GET first, modify, then PUT
-wxcli scim-users show $ORG_ID $USER_ID -o json > user.json
-# Edit user.json, then:
-wxcli scim-users update $ORG_ID $USER_ID --json-body "$(cat user.json)"
+# Add a value to a multi-valued attribute
+wxcli scim-users update-users $ORG_ID $USER_ID --json-body '{
+  "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+  "Operations": [
+    {"op": "add", "path": "phoneNumbers", "value": [{"value": "+15551234567", "type": "work"}]}
+  ]
+}'
+```
 
-# Delete a user
+PATCH operations: `add` (append value), `replace` (change value), `remove` (delete value). The `schemas` field with `PatchOp` URN is required in every PATCH body.
+
+**Full replace (PUT — DANGEROUS, rarely needed):**
+
+> **WARNING: `scim-users update` uses HTTP PUT, which REPLACES the entire user resource. Any attribute not included in the body is DELETED.** This means emails, phone numbers, addresses, group memberships, and active status are all removed if not explicitly included. Use PATCH (`update-users`) instead unless you have a specific reason to replace the full resource.
+
+```bash
+# ONLY use PUT when you need to replace the entire resource
+# Step 1: GET the current full resource
+wxcli scim-users show $ORG_ID $USER_ID -o json > user.json
+
+# Step 2: Edit user.json (make your changes to the full object)
+
+# Step 3: PUT the modified full resource back
+wxcli scim-users update $ORG_ID $USER_ID --json-body "$(cat user.json)"
+```
+
+**When to use PUT vs PATCH:**
+- **PATCH (99% of cases):** Changing display name, title, active status, adding/removing phone numbers, updating addresses — any targeted field change
+- **PUT (rare):** Replacing a user's entire profile from an external IdP sync, or resetting a corrupted user record to a known-good state
+
+**Delete:**
+
+```bash
 wxcli scim-users delete $ORG_ID $USER_ID --force
 ```
+
+The same PUT/PATCH distinction applies to groups: use `scim-groups update-groups` (PATCH) instead of `scim-groups update` (PUT).
 
 ### Operation D: SCIM Bulk Import
 
@@ -250,6 +292,13 @@ wxcli scim-bulk create $ORG_ID --fail-on-errors 5 --json-body '{
 ```
 
 Check the response for per-operation status. Each operation returns its own status code (e.g., `201` for created, `409` for conflict/duplicate).
+
+**Bulk operation safety:**
+- Bulk requests can mix operations (POST create, PUT replace, PATCH update, DELETE remove)
+- **Never use PUT operations in bulk unless you have the full resource for every user**
+- Prefer PATCH operations in bulk for updates — same safety as individual PATCH
+- The `--fail-on-errors` parameter controls how many individual failures abort the entire batch
+- **Always check per-operation status in the response** — a 200 response on the bulk endpoint does NOT mean all operations succeeded. Each operation has its own `status` field (201 = created, 200 = updated, 409 = duplicate, 400 = validation error)
 
 ### Operation E: Group Management
 
@@ -460,7 +509,7 @@ Next steps:
 
 2. **ALWAYS show plan before executing** -- Present the plan and wait for user confirmation. Never modify users, groups, or contacts without approval.
 
-3. **SCIM PUT replaces the entire resource** -- `scim-users update` and `scim-groups update` use HTTP PUT, which replaces the entire resource. Any attribute not included is removed. Always GET the resource first, modify the JSON, then PUT the full object back. Use PATCH (`update-users` / `update-groups`) for partial updates whenever possible.
+3. **NEVER use `scim-users update` (PUT) for partial changes** — PUT replaces the entire resource, deleting any attributes not included. Always use `scim-users update-users` (PATCH) for targeted changes. See Operation C for the full pattern and examples. Same applies to `scim-groups update` vs `scim-groups update-groups`.
 
 4. **SCIM PATCH is partial update -- safer for targeted changes** -- Use `scim-users update-users` or `scim-groups update-groups` with SCIM patch operations (`add`, `replace`, `remove`) to change specific fields without risk of data loss.
 
@@ -479,6 +528,10 @@ Next steps:
 11. **Identity scopes are separate from Calling scopes** -- SCIM endpoints require `identity:people_rw` / `identity:people_read`. Webex REST endpoints (`people`, `groups`) require `spark-admin:people_write` / `spark-admin:people_read`. Mixing them up produces 403 errors.
 
 12. **People API `emails` must use `--json-body`** -- The `people create` command does not have a `--emails` CLI option. Pass emails via `--json-body '{"emails": ["user@example.com"], ...}'`.
+
+13. **If users need Webex Calling after identity provisioning**, switch to the `provision-calling` skill to assign calling licenses and configure locations. SCIM user creation does not assign calling licenses — that's a separate workflow.
+
+14. **If bulk-creating 20+ users with calling licenses**, consider using `provision-calling` skill directly instead of SCIM → license assignment as two separate steps. The provisioning skill can handle the full user+license workflow.
 
 ---
 
@@ -510,6 +563,23 @@ Identity-specific errors:
 - **400 on bulk operations**: Check per-operation status in the response. Individual operations may fail while others succeed.
 - **Domain verification failure**: DNS TXT record not yet propagated. Wait and retry after confirming TXT record is in place.
 - **400 on `org-contacts create`**: Missing `--schemas` or `--source`. Both are required. Schema value is always `"urn:cisco:codev:identity:contact:core:1.0"`. Source must be `CH` or `Webex4Broadworks`.
+
+**SCIM update errors:**
+- **Accidental PUT data loss:** If `scim-users update` (PUT) was run with incomplete data and attributes were deleted, recover immediately:
+  1. Check if the user still exists: `wxcli scim-users show $ORG_ID $USER_ID -o json`
+  2. If the user exists but is missing attributes, use PATCH to restore them:
+     ```bash
+     wxcli scim-users update-users $ORG_ID $USER_ID --json-body '{
+       "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+       "Operations": [
+         {"op": "add", "path": "emails", "value": [{"value": "user@example.com", "type": "work", "primary": true}]},
+         {"op": "replace", "path": "active", "value": true}
+       ]
+     }'
+     ```
+  3. If group memberships were lost, re-add via `scim-groups update-groups`
+- **400 on PATCH (invalid operation):** Check the `Operations` array format. Each operation needs `op` (add/replace/remove), `path` (attribute name), and `value` (for add/replace). The `schemas` array with the PatchOp URN is required.
+- **409 on create (user exists):** The user already exists in this org. Use `scim-users list` with a filter to find the existing record: `wxcli scim-users list $ORG_ID --filter 'userName eq "user@example.com"' -o json`
 
 ---
 

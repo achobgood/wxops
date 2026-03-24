@@ -15,7 +15,7 @@ def cmd_list(
     id_param: str = typer.Option(None, "--id", help="List locations by ID."),
     max: str = typer.Option(None, "--max", help="Limit the maximum number of location in the response."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -37,7 +37,12 @@ def cmd_list(
     if org_id is not None:
         params["orgId"] = org_id
     try:
-        result = api.session.rest_get(url, params=params)
+        if limit > 0:
+            result = api.session.rest_get(url, params=params)
+            result = result or {}
+            items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+        else:
+            items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -55,8 +60,6 @@ def cmd_list(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -66,10 +69,10 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    name: str = typer.Option(..., "--name", help="The name of the location. Supports up to 256 characters, but"),
-    time_zone: str = typer.Option(..., "--time-zone", help="Time zone associated with this location, refer to this link"),
-    preferred_language: str = typer.Option(..., "--preferred-language", help="Default email language."),
-    announcement_language: str = typer.Option(..., "--announcement-language", help="Location's phone announcement language."),
+    name: str = typer.Option(None, "--name", help="(required) The name of the location. Supports up to 256 characters, but"),
+    time_zone: str = typer.Option(None, "--time-zone", help="(required) Time zone associated with this location, refer to this link"),
+    preferred_language: str = typer.Option(None, "--preferred-language", help="(required) Default email language."),
+    announcement_language: str = typer.Option(None, "--announcement-language", help="(required) Location's phone announcement language."),
     latitude: str = typer.Option(None, "--latitude", help="Latitude"),
     longitude: str = typer.Option(None, "--longitude", help="Longitude"),
     notes: str = typer.Option(None, "--notes", help="Notes"),
@@ -101,6 +104,10 @@ def create(
             body["longitude"] = longitude
         if notes is not None:
             body["notes"] = notes
+        _missing = [f for f in ['name', 'timeZone', 'preferredLanguage', 'announcementLanguage'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -264,7 +271,7 @@ def delete(
 def list_floors(
     location_id: str = typer.Argument(help="locationId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -276,9 +283,6 @@ def list_floors(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
-    org_id = get_org_id()
-    if org_id is not None:
-        params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
     except RestError as e:
@@ -310,7 +314,7 @@ def list_floors(
 @app.command("create-floors")
 def create_floors(
     location_id: str = typer.Argument(help="locationId"),
-    floor_number: str = typer.Option(..., "--floor-number", help="The floor number."),
+    floor_number: str = typer.Option(None, "--floor-number", help="(required) The floor number."),
     display_name: str = typer.Option(None, "--display-name", help="The floor display name."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -318,10 +322,6 @@ def create_floors(
     """Create a Location Floor."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/locations/{location_id}/floors"
-    params = {}
-    org_id = get_org_id()
-    if org_id is not None:
-        params["orgId"] = org_id
     if json_body:
         body = json.loads(json_body)
     else:
@@ -330,8 +330,12 @@ def create_floors(
             body["floorNumber"] = floor_number
         if display_name is not None:
             body["displayName"] = display_name
+        _missing = [f for f in ['floorNumber'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
-        result = api.session.rest_post(url, json=body, params=params)
+        result = api.session.rest_post(url, json=body)
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -368,12 +372,8 @@ def show_floors(
     """Get Location Floor Details."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/locations/{location_id}/floors/{floor_id}"
-    params = {}
-    org_id = get_org_id()
-    if org_id is not None:
-        params["orgId"] = org_id
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -415,10 +415,6 @@ def update_floors(
     """Update a Location Floor."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/locations/{location_id}/floors/{floor_id}"
-    params = {}
-    org_id = get_org_id()
-    if org_id is not None:
-        params["orgId"] = org_id
     if json_body:
         body = json.loads(json_body)
     else:
@@ -428,7 +424,7 @@ def update_floors(
         if display_name is not None:
             body["displayName"] = display_name
     try:
-        result = api.session.rest_put(url, json=body, params=params)
+        result = api.session.rest_put(url, json=body)
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -462,12 +458,8 @@ def delete_floors(
         typer.confirm(f"Delete {floor_id}?", abort=True)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/locations/{location_id}/floors/{floor_id}"
-    params = {}
-    org_id = get_org_id()
-    if org_id is not None:
-        params["orgId"] = org_id
     try:
-        api.session.rest_delete(url, params=params)
+        api.session.rest_delete(url)
     except RestError as e:
         err = str(e)
         if "25008" in err:

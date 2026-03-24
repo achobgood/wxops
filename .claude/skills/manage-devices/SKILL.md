@@ -52,6 +52,8 @@ Ask the user what they want to do. Present this decision matrix if they are unsu
 | Allow users to temporarily use a shared phone | **Hot desking** | `wxcli hot-desk` / `wxcli hot-desking-portal` |
 | Validate MAC addresses before provisioning | **MAC validation** | `wxcli device-settings` |
 
+**Not a hardware operation?** For RoomOS software configuration, workspace personalization, or xAPI commands (dial, volume, standby, room analytics), use the `device-platform` skill instead.
+
 ## Step 4: Prerequisites
 
 Before any device operation, verify these exist and gather operation-specific requirements.
@@ -66,7 +68,25 @@ wxcli locations list --output json
 
 Capture the `location_id` for the target location.
 
-### 4b. User or workspace exists (for device assignment)
+### 4b. Check device configuration mode (for settings operations)
+
+**If the user's request involves reading or changing device settings** (not just CRUD, line assignment, or activation), determine which API surface the target device uses:
+
+1. Look up the device:
+   ```bash
+   wxcli devices list --mac MAC_ADDRESS --output json
+   ```
+
+2. Check the `product` field in the response. **Route based on model family:**
+   - **9800-series** (product contains "9811", "9821", "9841", "9851", "9861", or "9871"): This device uses RoomOS config keys. **Redirect to the `device-platform` skill** with context: "This is a 9800-series phone that uses `device-configurations` (RoomOS config keys), not `device-settings`."
+   - **Room, Board, Desk series**: Same — redirect to `device-platform` skill.
+   - **MPP 68xx, 78xx, 88xx, ATA**: Continue with `device-settings` commands in this skill.
+
+**Why this matters:** The 9800-series phones are `productType: phone` but run PhoneOS (RoomOS-derived). Calling `device-settings` on them returns 400 "device type does not support settings through Webex Calling." The agent must check the model BEFORE attempting settings operations.
+
+See `docs/reference/devices-core.md` Section 5a (Device Settings API Router) for the full routing table.
+
+### 4c. User or workspace exists (for device assignment)
 
 Devices must be assigned to a person or workspace:
 
@@ -78,13 +98,13 @@ wxcli users list --calling-enabled --output json
 wxcli workspaces list --output json
 ```
 
-### 4c. Phone numbers/extensions available
+### 4d. Phone numbers/extensions available
 
 ```bash
 wxcli numbers list --location-id LOCATION_ID --output json
 ```
 
-### 4d. MPP/ATA phone prerequisites
+### 4e. MPP/ATA phone prerequisites
 
 | Requirement | Details |
 |-------------|---------|
@@ -93,14 +113,14 @@ wxcli numbers list --location-id LOCATION_ID --output json
 | Device model | Must be in supported catalog |
 | SIP password | Only for 3rd-party (non-Cisco) devices |
 
-### 4e. Activation code prerequisites
+### 4f. Activation code prerequisites
 
 | Requirement | Details |
 |-------------|---------|
 | Target person/workspace | Must exist |
 | Model parameter | Required for phones; optional for RoomOS collaboration devices |
 
-### 4f. DECT prerequisites
+### 4g. DECT prerequisites
 
 | Requirement | Details |
 |-------------|---------|
@@ -108,7 +128,7 @@ wxcli numbers list --location-id LOCATION_ID --output json
 | Base station MAC addresses | Physical hardware MAC required |
 | Dependency chain | Network --> Base Station(s) --> Handset(s). Cannot skip steps |
 
-### 4g. Workspace device prerequisites
+### 4h. Workspace device prerequisites
 
 | Requirement | Details |
 |-------------|---------|
@@ -116,14 +136,14 @@ wxcli numbers list --location-id LOCATION_ID --output json
 | `location_id` and `supported_devices` | Immutable after creation -- set correctly on creation |
 | Hot-desk-only workspaces | Cannot have `phoneNumber`, `extension`, `calendar`, or `deviceHostedMeetings` set |
 
-### 4h. Device settings prerequisites
+### 4i. Device settings prerequisites
 
 | Requirement | Details |
 |-------------|---------|
 | Line key template | Device model must match. Template applies org-wide or by location/tag filter |
 | Device settings GET/PUT | `deviceModel` parameter is required |
 
-### 4i. Hot desking prerequisites
+### 4j. Hot desking prerequisites
 
 | Requirement | Details |
 |-------------|---------|

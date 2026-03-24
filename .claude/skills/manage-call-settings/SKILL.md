@@ -119,6 +119,44 @@ async with AsWebexSimpleApi(tokens='<token>') as api:
 
 ### Settings Catalog
 
+### Settings Scope Router
+
+**Before attempting any settings command, determine the correct scope.** The same setting often exists at multiple levels with different command groups.
+
+#### Quick router: "Who/what am I configuring?"
+
+| Target | Command group | Scope prefix | Example |
+|--------|--------------|-------------|---------|
+| A specific **person** | `wxcli user-settings` | `spark-admin:people_read/write` | `wxcli user-settings show-voicemail PERSON_ID` |
+| A specific **workspace** | `wxcli workspace-settings` | `spark-admin:workspaces_read/write` | `wxcli workspace-settings show-voicemail WORKSPACE_ID` |
+| All people/workspaces at a **location** | `wxcli location-voicemail` / `wxcli location-settings` | `spark-admin:telephony_config_read/write` | `wxcli location-voicemail show LOCATION_ID` |
+| **Org-wide** recording vendor | `wxcli call-recording` | `spark-admin:telephony_config_read/write` | `wxcli call-recording show` |
+
+#### Multi-scope settings — which command for what?
+
+| Setting | Person | Workspace | Location | Org |
+|---------|--------|-----------|----------|-----|
+| **Voicemail** | `user-settings show-voicemail PERSON_ID` | `workspace-settings show-voicemail WS_ID` | `location-voicemail show LOC_ID` (policies) | — |
+| **Call Recording** | `user-settings show-call-recording PERSON_ID` | `workspace-settings show-call-recordings WS_ID` | — | `call-recording show` (vendor config) |
+| **Music on Hold** | SDK only (telephony_config) | SDK only | `location-settings` (must enable first) | — |
+| **Call Intercept** | `user-settings show-intercept PERSON_ID` | `workspace-settings show-intercept WS_ID` | Location defaults apply | — |
+| **Call Forwarding** | `user-settings show-call-forwarding PERSON_ID` | `workspace-settings show-call-forwarding WS_ID` | — | — |
+
+#### User-only settings (no admin endpoint — 404 guaranteed)
+
+These 6 settings exist ONLY at `/people/me/settings/{feature}`. Admin tokens **always** get 404. There is no workaround — the user must configure these themselves via the Webex app or a user-level OAuth flow.
+
+| Setting | Self-service path | Workspace equivalent? |
+|---------|-------------------|----------------------|
+| Simultaneous Ring | `/me/settings/simultaneousRing` | No |
+| Sequential Ring | `/me/settings/sequentialRing` | No |
+| Priority Alert | `/me/settings/priorityAlert` | No |
+| Call Notify | `/me/settings/callNotify` | No |
+| Anonymous Call Reject | `/me/settings/anonymousCallReject` | **Yes:** `workspace-settings` has admin endpoint |
+| Call Policies | `/me/settings/callPolicies` | **Yes:** workspace-level admin endpoint (Professional license required) |
+
+**If the user asks to configure one of these for a person:** Stop and explain that no admin API exists. Offer the workspace-level alternative if applicable, or inform them the user must self-configure.
+
 Present the user with the settings categories. Ask which settings they want to read or change.
 
 #### Category 1: Call Handling
@@ -248,14 +286,19 @@ wxcli user-settings show-barge-in PERSON_ID --output json
 
 ### 4b. Check for location-level dependencies
 
-Before configuring these settings, verify location-level prerequisites:
+Before configuring these settings, verify location-level prerequisites are met. **Run the verification command before attempting the person-level setting.**
 
-| Setting | Location Prerequisite |
-|---------|----------------------|
-| Music on Hold | `moh_location_enabled` must be `true` at location level |
-| Call Recording | Location must have recording vendor configured |
-| Call Intercept | Location-level intercept settings serve as defaults |
-| Voicemail | Location-level voicemail policies (transcription, expiry) govern person-level behavior |
+| Setting | Location Prerequisite | Verification |
+|---------|----------------------|-------------|
+| Music on Hold | `moh_location_enabled` must be `true` at location level | `wxcli location-settings show LOCATION_ID -o json` — check for MoH field |
+| Call Recording | Org must have recording vendor configured | `wxcli call-recording show -o json` — if empty/error, recording vendor not configured |
+| Call Intercept | Location-level intercept settings serve as defaults | `wxcli location-settings show LOCATION_ID -o json` |
+| Voicemail | Location-level voicemail policies (transcription, expiry) govern person-level behavior | `wxcli location-voicemail show LOCATION_ID -o json` |
+
+**If the prerequisite isn't met:**
+- **MoH:** Enable at location level first (SDK or Control Hub — no wxcli command yet)
+- **Recording:** Configure org-level recording vendor via `wxcli call-recording` or Control Hub
+- **Voicemail:** Location policies apply automatically; configure via `wxcli location-voicemail update`
 
 ### 4c. Verify scope coverage
 
@@ -527,6 +570,14 @@ Common errors:
 - 403: Check token scopes — some settings need `spark-admin:people_write`
 - 404: Verify person/location ID is correct and has calling license
 - 409: Resource already exists — GET current state before retrying
+
+### Settings-specific errors
+
+- **404 on person settings (anonymousCallReject, simultaneousRing, sequentialRing, priorityAlert, callNotify, callPolicies):** These 6 settings have NO admin endpoint. Admin tokens always get 404. See the "User-only settings" table in Step 3. Offer the workspace-level alternative if applicable.
+- **404 on person settings (all others):** Verify the person has a Webex Calling license. Unlicensed users return 404 on all `/telephony/config/people/{id}/` endpoints.
+- **405 "Invalid Professional Place" on workspace settings:** The workspace has a Basic license. Most `/telephony/config/workspaces/{id}/` settings require Professional. Only `musicOnHold` and `doNotDisturb` work on Basic. Use the `/workspaces/{id}/features/` path family for Basic workspaces (callForwarding, callWaiting, callerId, intercept, monitoring).
+- **403 on Single Number Reach:** SNR uses `spark-admin:telephony_config_read/write` scopes, not `spark-admin:people_read/write`. Check token scopes.
+- **Empty/no-effect on MoH:** Both location-level `moh_location_enabled` AND person-level `moh_enabled` must be `true`. If either is false, no music plays. Check both levels.
 
 ---
 

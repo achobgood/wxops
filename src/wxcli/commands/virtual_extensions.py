@@ -21,7 +21,7 @@ def cmd_list(
     location_id: str = typer.Option(None, "--location-id", help="Filter the list of virtual extensions by location ID."),
     org_level_only: str = typer.Option(None, "--org-level-only", help="Filter the list of virtual extensions by organization level."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -86,9 +86,9 @@ def cmd_list(
 def create(
     first_name: str = typer.Option(None, "--first-name", help="First name of the person at the virtual extension."),
     last_name: str = typer.Option(None, "--last-name", help="Last name of the person at the virtual extension."),
-    display_name: str = typer.Option(..., "--display-name", help="Display name of the person at the virtual extension."),
-    phone_number: str = typer.Option(..., "--phone-number", help="Directory number of the virtual extension."),
-    extension: str = typer.Option(..., "--extension", help="Extension of the virtual extension."),
+    display_name: str = typer.Option(None, "--display-name", help="(required) Display name of the person at the virtual extension."),
+    phone_number: str = typer.Option(None, "--phone-number", help="(required) Directory number of the virtual extension."),
+    extension: str = typer.Option(None, "--extension", help="(required) Extension of the virtual extension."),
     location_id: str = typer.Option(None, "--location-id", help="ID of the location to which the virtual extension is assigne"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -116,6 +116,10 @@ def create(
             body["extension"] = extension
         if location_id is not None:
             body["locationId"] = location_id
+        _missing = [f for f in ['displayName', 'phoneNumber', 'extension'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -415,7 +419,7 @@ def list_virtual_extension_ranges(
     location_id: str = typer.Option(None, "--location-id", help="Filter the list of virtual extension ranges by location ID."),
     org_level_only: str = typer.Option(None, "--org-level-only", help="Filter the list of virtual extension ranges by organization"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -474,8 +478,8 @@ def list_virtual_extension_ranges(
 
 @app.command("create-virtual-extension-ranges")
 def create_virtual_extension_ranges(
-    name: str = typer.Option(..., "--name", help="Name of the virtual extension range. This is a unique name f"),
-    prefix: str = typer.Option(..., "--prefix", help="Prefix used for a virtual extension range. Prefix works in S"),
+    name: str = typer.Option(None, "--name", help="(required) Name of the virtual extension range. This is a unique name f"),
+    prefix: str = typer.Option(None, "--prefix", help="(required) Prefix used for a virtual extension range. Prefix works in S"),
     location_id: str = typer.Option(None, "--location-id", help="ID of the location to which the virtual extension range is a"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -497,6 +501,10 @@ def create_virtual_extension_ranges(
             body["prefix"] = prefix
         if location_id is not None:
             body["locationId"] = location_id
+        _missing = [f for f in ['name', 'prefix'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:

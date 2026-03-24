@@ -129,6 +129,10 @@ Routing components have hard dependencies. You **must** create them in this orde
 - A Route List requires an existing route group.
 - PSTN Connection points to either a trunk or route group -- they must exist first.
 
+**Deletion order (reverse):**
+
+When tearing down routing, delete in reverse: PSTN Connection → Route Lists → Dial Plans → Route Groups → Trunks. A trunk cannot be deleted if it's referenced by a route group; a route group cannot be deleted if it's referenced by a dial plan or route list. The API returns error 27350 when you try to delete a component that's still referenced.
+
 ### 4e. Component CLI reference -- Trunks
 
 A trunk is a SIP connection between Webex Calling and an on-premises local gateway or SBC.
