@@ -71,6 +71,7 @@ def create_user(
     last: str = typer.Option(..., "--last", help="Last name"),
     location_id: str = typer.Option(None, "--location", help="Location ID"),
     license_id: str = typer.Option(None, "--license", help="License ID (use 'wxcli licenses list')"),
+    extension: str = typer.Option(None, "--extension", help="Calling extension (required with calling license)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create a new user."""
@@ -86,7 +87,12 @@ def create_user(
     if license_id:
         settings.licenses = [license_id]
 
-    person = api.people.create(settings=settings)
+    # Fix 12: Include extension at creation time when calling_data=True
+    calling_data = bool(location_id or license_id)
+    if extension and calling_data:
+        settings.phone_numbers = [{"primary": True, "extension": extension}]
+
+    person = api.people.create(settings=settings, calling_data=calling_data)
 
     if not license_id:
         typer.echo("Warning: User created without calling license. Use 'wxcli licenses list' to find one.", err=True)
