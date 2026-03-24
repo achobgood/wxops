@@ -12,6 +12,7 @@ app = typer.Typer(help="Manage Webex Calling call-routing.")
 @app.command("test-call-routing")
 def test_call_routing(
     originator_id: str = typer.Option(None, "--originator-id", help="This element is used to identify the originating party. It c"),
+    originator_type: str = typer.Option(None, "--originator-type", help="Choices: PEOPLE, TRUNK"),
     originator_number: str = typer.Option(None, "--originator-number", help="Only used when `originatorType` is `TRUNK`. The `originatorN"),
     destination: str = typer.Option(None, "--destination", help="This element specifies the called party. It can be any diala"),
     include_applied_services: str = typer.Option(None, "--include-applied-services", help="This element is used to retrieve if any translation pattern,"),
@@ -31,6 +32,8 @@ def test_call_routing(
         body = {}
         if originator_id is not None:
             body["originatorId"] = originator_id
+        if originator_type is not None:
+            body["originatorType"] = originator_type
         if originator_number is not None:
             body["originatorNumber"] = originator_number
         if destination is not None:
@@ -407,6 +410,7 @@ def list_dial_plans(
 def create(
     name: str = typer.Option(None, "--name", help="(required) A unique name for the dial plan."),
     route_id: str = typer.Option(None, "--route-id", help="(required) ID of route type associated with the dial plan."),
+    route_type: str = typer.Option(None, "--route-type", help="(required) Choices: ROUTE_GROUP, TRUNK"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -425,7 +429,9 @@ def create(
             body["name"] = name
         if route_id is not None:
             body["routeId"] = route_id
-        _missing = [f for f in ['name', 'routeId'] if f not in body or body[f] is None]
+        if route_type is not None:
+            body["routeType"] = route_type
+        _missing = [f for f in ['name', 'routeId', 'routeType'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
             raise typer.Exit(1)
@@ -506,6 +512,7 @@ def update_dial_plans(
     dial_plan_id: str = typer.Argument(help="dialPlanId"),
     name: str = typer.Option(None, "--name", help="A unique name for the dial plan."),
     route_id: str = typer.Option(None, "--route-id", help="ID of route type associated with the dial plan."),
+    route_type: str = typer.Option(None, "--route-type", help="Choices: ROUTE_GROUP, TRUNK"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -524,6 +531,8 @@ def update_dial_plans(
             body["name"] = name
         if route_id is not None:
             body["routeId"] = route_id
+        if route_type is not None:
+            body["routeType"] = route_type
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except RestError as e:
@@ -703,11 +712,13 @@ def create_trunks(
     location_id: str = typer.Option(None, "--location-id", help="(required) ID of location associated with the trunk."),
     password: str = typer.Option(None, "--password", help="(required) A password to use on the trunk."),
     dual_identity_support_enabled: bool = typer.Option(None, "--dual-identity-support-enabled/--no-dual-identity-support-enabled", help="Dual Identity Support setting impacts the handling of the Fr"),
+    trunk_type: str = typer.Option(None, "--trunk-type", help="(required) Choices: REGISTERING, CERTIFICATE_BASED"),
     device_type: str = typer.Option(None, "--device-type", help="Device type assosiated with trunk."),
     address: str = typer.Option(None, "--address", help="FQDN or SRV address. Required to create a static certificate"),
     domain: str = typer.Option(None, "--domain", help="Domain name. Required to create a static certificate based t"),
     port: str = typer.Option(None, "--port", help="FQDN port. Required to create a static certificate-based tru"),
     max_concurrent_calls: str = typer.Option(None, "--max-concurrent-calls", help="Max Concurrent call. Required to create a static certificate"),
+    p_charge_info_support_policy: str = typer.Option(None, "--p-charge-info-support-policy", help="Choices: DISABLED, ASSERTED_IDENTITY, CONFIGURABLE_CHARGE_NUMBER"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -730,6 +741,8 @@ def create_trunks(
             body["password"] = password
         if dual_identity_support_enabled is not None:
             body["dualIdentitySupportEnabled"] = dual_identity_support_enabled
+        if trunk_type is not None:
+            body["trunkType"] = trunk_type
         if device_type is not None:
             body["deviceType"] = device_type
         if address is not None:
@@ -740,7 +753,9 @@ def create_trunks(
             body["port"] = port
         if max_concurrent_calls is not None:
             body["maxConcurrentCalls"] = max_concurrent_calls
-        _missing = [f for f in ['name', 'locationId', 'password'] if f not in body or body[f] is None]
+        if p_charge_info_support_policy is not None:
+            body["pChargeInfoSupportPolicy"] = p_charge_info_support_policy
+        _missing = [f for f in ['name', 'locationId', 'password', 'trunkType'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
             raise typer.Exit(1)
@@ -823,6 +838,7 @@ def update_trunks(
     password: str = typer.Option(None, "--password", help="A password to use on the trunk."),
     dual_identity_support_enabled: bool = typer.Option(None, "--dual-identity-support-enabled/--no-dual-identity-support-enabled", help="Determines the behavior of the From and PAI headers on outbo"),
     max_concurrent_calls: str = typer.Option(None, "--max-concurrent-calls", help="Max Concurrent call. Required to create a static certificate"),
+    p_charge_info_support_policy: str = typer.Option(None, "--p-charge-info-support-policy", help="Choices: DISABLED, ASSERTED_IDENTITY, CONFIGURABLE_CHARGE_NUMBER"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -845,6 +861,8 @@ def update_trunks(
             body["dualIdentitySupportEnabled"] = dual_identity_support_enabled
         if max_concurrent_calls is not None:
             body["maxConcurrentCalls"] = max_concurrent_calls
+        if p_charge_info_support_policy is not None:
+            body["pChargeInfoSupportPolicy"] = p_charge_info_support_policy
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except RestError as e:

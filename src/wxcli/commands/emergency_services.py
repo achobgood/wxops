@@ -111,6 +111,7 @@ def show(
 
 @app.command("create")
 def create(
+    org_prefix: str = typer.Option(None, "--org-prefix", help="Choices: wxc, wxc-whs"),
     email: str = typer.Option(None, "--email", help="(required) The email for the RedSky account administrator."),
     partner_redsky_org_id: str = typer.Option(None, "--partner-redsky-org-id", help="New organization is created under this partner organization"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -127,6 +128,8 @@ def create(
         body = json.loads(json_body)
     else:
         body = {}
+        if org_prefix is not None:
+            body["orgPrefix"] = org_prefix
         if email is not None:
             body["email"] = email
         if partner_redsky_org_id is not None:
@@ -208,6 +211,7 @@ def show_status_red_sky(
 
 @app.command("update-status-red-sky")
 def update_status_red_sky(
+    compliance_status: str = typer.Option(None, "--compliance-status", help="Choices: OPTED_OUT, LOCATION_SETUP, ALERTS, NETWORK_ELEMENTS, ROUTING_ENABLED"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -222,6 +226,8 @@ def update_status_red_sky(
         body = json.loads(json_body)
     else:
         body = {}
+        if compliance_status is not None:
+            body["complianceStatus"] = compliance_status
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except RestError as e:
@@ -436,6 +442,7 @@ def show_status_red_sky_1(
 @app.command("update-status-red-sky-1")
 def update_status_red_sky_1(
     location_id: str = typer.Argument(help="locationId"),
+    compliance_status: str = typer.Option(None, "--compliance-status", help="Choices: OPTED_OUT, LOCATION_SETUP, ALERTS, NETWORK_ELEMENTS, ROUTING_ENABLED"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -450,6 +457,8 @@ def update_status_red_sky_1(
         body = json.loads(json_body)
     else:
         body = {}
+        if compliance_status is not None:
+            body["complianceStatus"] = compliance_status
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except RestError as e:
@@ -837,6 +846,7 @@ def show_emergency_callback_number_people(
 @app.command("update-emergency-callback-number-people")
 def update_emergency_callback_number_people(
     person_id: str = typer.Argument(help="personId"),
+    selected: str = typer.Option(None, "--selected", help="Choices: DIRECT_LINE, LOCATION_ECBN, LOCATION_MEMBER_NUMBER"),
     location_member_id: str = typer.Option(None, "--location-member-id", help="Member ID of person/workspace/virtual line/hunt group within"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -852,6 +862,8 @@ def update_emergency_callback_number_people(
         body = json.loads(json_body)
     else:
         body = {}
+        if selected is not None:
+            body["selected"] = selected
         if location_member_id is not None:
             body["locationMemberId"] = location_member_id
     try:
@@ -968,6 +980,7 @@ def show_emergency_callback_number_workspaces(
 @app.command("update-emergency-callback-number-workspaces")
 def update_emergency_callback_number_workspaces(
     workspace_id: str = typer.Argument(help="workspaceId"),
+    selected: str = typer.Option(None, "--selected", help="Choices: DIRECT_LINE, LOCATION_ECBN, LOCATION_MEMBER_NUMBER"),
     location_member_id: str = typer.Option(None, "--location-member-id", help="Member ID of person/workspace/virtual line/hunt group within"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -983,6 +996,8 @@ def update_emergency_callback_number_workspaces(
         body = json.loads(json_body)
     else:
         body = {}
+        if selected is not None:
+            body["selected"] = selected
         if location_member_id is not None:
             body["locationMemberId"] = location_member_id
     try:
@@ -1143,6 +1158,7 @@ def show_emergency_callback_number_virtual_lines(
 @app.command("update-emergency-callback-number-virtual-lines")
 def update_emergency_callback_number_virtual_lines(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
+    selected: str = typer.Option(None, "--selected", help="Choices: DIRECT_LINE, LOCATION_ECBN, LOCATION_MEMBER_NUMBER"),
     location_member_id: str = typer.Option(None, "--location-member-id", help="Member ID of person/workspace/virtual line/hunt group within"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1158,6 +1174,8 @@ def update_emergency_callback_number_virtual_lines(
         body = json.loads(json_body)
     else:
         body = {}
+        if selected is not None:
+            body["selected"] = selected
         if location_member_id is not None:
             body["locationMemberId"] = location_member_id
     try:

@@ -12,6 +12,9 @@ app = typer.Typer(help="Manage Webex Calling numbers.")
 @app.command("create")
 def create(
     location_id: str = typer.Argument(help="locationId"),
+    number_type: str = typer.Option(None, "--number-type", help="Choices: TOLLFREE, DID, MOBILE"),
+    number_usage_type: str = typer.Option(None, "--number-usage-type", help="Choices: NONE, SERVICE"),
+    state: str = typer.Option(None, "--state", help="Choices: ACTIVE, INACTIVE"),
     subscription_id: str = typer.Option(None, "--subscription-id", help="The `subscriptionId` to be used for the mobile number order."),
     carrier_id: str = typer.Option(None, "--carrier-id", help="The `carrierId` to be used for the mobile number order."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -28,6 +31,12 @@ def create(
         body = json.loads(json_body)
     else:
         body = {}
+        if number_type is not None:
+            body["numberType"] = number_type
+        if number_usage_type is not None:
+            body["numberUsageType"] = number_usage_type
+        if state is not None:
+            body["state"] = state
         if subscription_id is not None:
             body["subscriptionId"] = subscription_id
         if carrier_id is not None:

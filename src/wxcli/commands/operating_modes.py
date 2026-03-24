@@ -201,6 +201,8 @@ def delete(
 @app.command("create")
 def create(
     name: str = typer.Option(None, "--name", help="(required) Unique name for the `operating mode`."),
+    type_param: str = typer.Option(None, "--type", help="(required) Choices: SAME_HOURS_DAILY, DIFFERENT_HOURS_DAILY, HOLIDAY, NONE"),
+    level: str = typer.Option(None, "--level", help="(required) Choices: ORGANIZATION, LOCATION"),
     location_id: str = typer.Option(None, "--location-id", help="Unique identifier of the location. Mandatory if level is `LO"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -218,9 +220,13 @@ def create(
         body = {}
         if name is not None:
             body["name"] = name
+        if type_param is not None:
+            body["type"] = type_param
+        if level is not None:
+            body["level"] = level
         if location_id is not None:
             body["locationId"] = location_id
-        _missing = [f for f in ['name'] if f not in body or body[f] is None]
+        _missing = [f for f in ['name', 'type', 'level'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
             raise typer.Exit(1)

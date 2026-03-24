@@ -482,6 +482,7 @@ def update_vendor_call_recording(
     org_default_enabled: bool = typer.Option(None, "--org-default-enabled/--no-org-default-enabled", help="Vendor is enabled by default."),
     storage_region: str = typer.Option(None, "--storage-region", help="Regions where call recordings are stored."),
     org_storage_region_enabled: bool = typer.Option(None, "--org-storage-region-enabled/--no-org-storage-region-enabled", help="Region-based call recording storage is enabled."),
+    failure_behavior: str = typer.Option(None, "--failure-behavior", help="Choices: PROCEED_WITH_CALL_NO_ANNOUNCEMENT, PROCEED_CALL_WITH_ANNOUNCEMENT, END_CALL_WITH_ANNOUNCEMENT"),
     org_failure_behavior_enabled: bool = typer.Option(None, "--org-failure-behavior-enabled/--no-org-failure-behavior-enabled", help="Failure behavior is enabled."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -505,6 +506,8 @@ def update_vendor_call_recording(
             body["storageRegion"] = storage_region
         if org_storage_region_enabled is not None:
             body["orgStorageRegionEnabled"] = org_storage_region_enabled
+        if failure_behavior is not None:
+            body["failureBehavior"] = failure_behavior
         if org_failure_behavior_enabled is not None:
             body["orgFailureBehaviorEnabled"] = org_failure_behavior_enabled
     try:
@@ -826,6 +829,7 @@ def show_vendors(
 def update_vendor_call_recording_1(
     vendor_id: str = typer.Option(None, "--vendor-id", help="Unique identifier of the vendor."),
     storage_region: str = typer.Option(None, "--storage-region", help="Call recording storage region. Only applicable for Webex as"),
+    failure_behavior: str = typer.Option(None, "--failure-behavior", help="Choices: PROCEED_WITH_CALL_NO_ANNOUNCEMENT, PROCEED_CALL_WITH_ANNOUNCEMENT, END_CALL_WITH_ANNOUNCEMENT"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -844,6 +848,8 @@ def update_vendor_call_recording_1(
             body["vendorId"] = vendor_id
         if storage_region is not None:
             body["storageRegion"] = storage_region
+        if failure_behavior is not None:
+            body["failureBehavior"] = failure_behavior
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except RestError as e:
