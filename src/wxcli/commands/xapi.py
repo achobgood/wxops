@@ -59,6 +59,7 @@ def create(
     command_name: str = typer.Argument(help="commandName"),
     device_id: str = typer.Option(None, "--device-id", help="(required) The unique identifier for the Webex RoomOS Device."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Execute Command\n\nExample --json-body:\n  '{"deviceId":"...","arguments":{"Level":0},"body":{"Booking":{"Id":"...","Title":"...","Protocol":"...","Time":"...","Organizer":"...","Number":"..."}}}'."""
@@ -93,7 +94,9 @@ def create(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")

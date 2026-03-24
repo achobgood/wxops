@@ -198,6 +198,7 @@ See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for fu
 8. **Customer Assist queues are hidden from default `call-queue list`.** Must pass `--has-cx-essentials true` to see them. CX queue creation requires `callPolicies` via `--json-body`. Error 28018 ("CX Essentials is not enabled for this Call center") means the queue isn't a Customer Assist queue. The CLI detects this and prints a tip.
 9. **Supervisor delete returns 204 but supervisor persists.** `delete-supervisors-config-1 --has-cx-essentials true` gets 204 from the API but the supervisor remains. Workaround: use `update-supervisors` with `action: DELETE` on each agent — removing the last agent auto-removes the supervisor.
 10. **CUCM CallPickupGroup creation with members fails on CUCM 15.0.** The AXL `addCallPickupGroup` operation with `<members>` containing `<directoryNumber>` fails with a null priority foreign key constraint. Workaround: create the pickup group empty, then use `updateLine` with `callPickupGroupName` to assign members at the line level. Affects both wxcadm and raw AXL calls.
+11. **Create commands now support `-o json`.** All create commands accept `-o json` to output the full API response as JSON. Default behavior (`-o id`) prints just the created ID.
 
 ### Generator rules
 

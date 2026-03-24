@@ -85,6 +85,7 @@ def create(
     originator_caller_id_enabled: bool = typer.Option(None, "--originator-caller-id-enabled/--no-originator-caller-id-enabled", help="Determines what is shown on target users caller ID when a gr"),
     dial_by_name: str = typer.Option(None, "--dial-by-name", help="The name to be used for dial by name functions.  Characters"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create a new Paging Group\n\nExample --json-body:\n  '{"name":"...","phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"..."}'."""
@@ -137,7 +138,9 @@ def create(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")

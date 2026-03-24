@@ -17,6 +17,7 @@ def create(
     token_lifetime_minutes: str = typer.Option(None, "--token-lifetime-minutes", help="The validity of the created token in minutes. Before the tok"),
     url: str = typer.Option(None, "--url", help="The URL of the endpoint where Webex will send the data."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Register a Data Source."""
@@ -57,7 +58,9 @@ def create(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")

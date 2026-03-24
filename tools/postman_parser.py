@@ -143,6 +143,13 @@ def apply_endpoint_overrides(ep: 'Endpoint', folder_overrides: dict) -> None:
                 field_type=param_def.get("type", "str"),
                 description=param_def.get("description", ""),
             ))
+    # Make-optional overrides (spec says required but API allows alternatives)
+    make_opt = folder_overrides.get("make_optional", {})
+    if ep.command_name in make_opt:
+        opt_names = set(make_opt[ep.command_name])
+        for qp in ep.query_params:
+            if qp.name in opt_names:
+                qp.required = False
     # Response list key overrides
     if ep.command_type == "list":
         keys_map = folder_overrides.get("response_list_keys", {})

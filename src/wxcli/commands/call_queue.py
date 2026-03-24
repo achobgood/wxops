@@ -99,6 +99,7 @@ def create(
     phone_number_for_outgoing_calls_enabled: bool = typer.Option(None, "--phone-number-for-outgoing-calls-enabled/--no-phone-number-for-outgoing-calls-enabled", help="When `true`, indicates that the agent's configuration allows"),
     dial_by_name: str = typer.Option(None, "--dial-by-name", help="The name to be used for dial by name functions. Characters o"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create a Call Queue with Customer Experience Essentials\n\nExample --json-body:\n  '{"name":"...","phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"..."}'."""
@@ -161,7 +162,9 @@ def create(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -523,6 +526,7 @@ def create_selective_rules(
     holiday_schedule: str = typer.Option(None, "--holiday-schedule", help="Name of the location's holiday schedule which determines whe"),
     business_schedule: str = typer.Option(None, "--business-schedule", help="Name of the location's business schedule which determines wh"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create a Selective Call Forwarding Rule for a Call Queue\n\nExample --json-body:\n  '{"name":"...","enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":"...","unavailableNumberEnabled":"...","numbers":"..."}}}'."""
@@ -567,7 +571,9 @@ def create_selective_rules(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -1451,6 +1457,7 @@ def create_supervisors(
     has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Creates a Customer Experience Essentials queue supervisor, w"),
     id_param: str = typer.Option(None, "--id", help="(required) A unique identifier for the supervisor."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create a Supervisor with Customer Experience Essentials\n\nExample --json-body:\n  '{"id":"...","agents":[{"id":"..."}]}'."""
@@ -1491,7 +1498,9 @@ def create_supervisors(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")

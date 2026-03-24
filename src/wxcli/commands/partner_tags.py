@@ -58,6 +58,7 @@ def cmd_list(
 def create(
     org_id: str = typer.Argument(help="orgId"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create or Replace existing customer tags with the provided ones\n\nExample --json-body:\n  '{"tags":[{"name":"...","description":"..."}]}'."""
@@ -86,7 +87,9 @@ def create(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -189,6 +192,7 @@ def create_assign_tags(
     org_id: str = typer.Argument(help="orgId"),
     subscription_id: str = typer.Argument(help="subscriptionId"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create or Replace existing subscription tags with the provided ones\n\nExample --json-body:\n  '{"tags":[{"name":"...","description":"..."}]}'."""
@@ -217,7 +221,9 @@ def create_assign_tags(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")

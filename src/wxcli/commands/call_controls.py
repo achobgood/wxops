@@ -15,6 +15,7 @@ def create(
     endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the call. The"),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Dial."""
@@ -53,7 +54,9 @@ def create(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "callId" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "callId" in result:
         typer.echo(f"Created: {result['callId']}")
     elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
@@ -70,6 +73,7 @@ def create_answer_calls(
     endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to answer the call on. T"),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Answer."""
@@ -108,7 +112,9 @@ def create_answer_calls(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -123,6 +129,7 @@ def create_reject(
     action: str = typer.Option(None, "--action", help="The rejection action to apply to the call. The busy action i"),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Reject."""
@@ -161,7 +168,9 @@ def create_reject(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -175,6 +184,7 @@ def create_hangup_calls(
     call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to hangup."),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Hangup."""
@@ -211,7 +221,9 @@ def create_hangup_calls(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -225,6 +237,7 @@ def create_hold(
     call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to hold."),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Hold."""
@@ -261,7 +274,9 @@ def create_hold(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -275,6 +290,7 @@ def create_resume(
     call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to resume."),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Resume."""
@@ -311,7 +327,9 @@ def create_resume(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -325,6 +343,7 @@ def create_mute(
     call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to mute."),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Mute."""
@@ -361,7 +380,9 @@ def create_mute(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -375,6 +396,7 @@ def create_unmute(
     call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to unmute."),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Unmute."""
@@ -411,7 +433,9 @@ def create_unmute(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -427,6 +451,7 @@ def create_divert(
     to_voicemail: bool = typer.Option(None, "--to-voicemail/--no-to-voicemail", help="If set to true, the call is diverted to voicemail. If no des"),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Divert."""
@@ -467,7 +492,9 @@ def create_divert(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -483,6 +510,7 @@ def create_transfer(
     destination: str = typer.Option(None, "--destination", help="The destination to be transferred to. The destination can be"),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Transfer."""
@@ -519,7 +547,9 @@ def create_transfer(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "callId" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "callId" in result:
         typer.echo(f"Created: {result['callId']}")
     elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
@@ -537,6 +567,7 @@ def create_park(
     is_group_park: bool = typer.Option(None, "--is-group-park/--no-is-group-park", help="If set to`true`, the call is parked against an automatically"),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Park."""
@@ -577,7 +608,9 @@ def create_park(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -592,6 +625,7 @@ def create_retrieve(
     endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the retrieval"),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Retrieve."""
@@ -626,7 +660,9 @@ def create_retrieve(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "callId" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "callId" in result:
         typer.echo(f"Created: {result['callId']}")
     elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
@@ -642,6 +678,7 @@ def create_start_recording(
     call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to start recording."),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Start Recording."""
@@ -674,7 +711,9 @@ def create_start_recording(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -688,6 +727,7 @@ def create_stop_recording(
     call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to stop recording."),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Stop Recording."""
@@ -720,7 +760,9 @@ def create_stop_recording(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -734,6 +776,7 @@ def create_pause_recording(
     call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to pause recording."),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Pause Recording."""
@@ -766,7 +809,9 @@ def create_pause_recording(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -780,6 +825,7 @@ def create_resume_recording(
     call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to resume recording."),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Resume Recording."""
@@ -812,7 +858,9 @@ def create_resume_recording(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -827,6 +875,7 @@ def create_transmit_dtmf(
     dtmf: str = typer.Option(None, "--dtmf", help="The DTMF digits to transmit. Each digit must be part of the"),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Transmit DTMF."""
@@ -861,7 +910,9 @@ def create_transmit_dtmf(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -875,6 +926,7 @@ def create_push(
     call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to push."),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Push."""
@@ -907,7 +959,9 @@ def create_push(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -922,6 +976,7 @@ def create_pickup(
     endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the pickup. T"),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Pickup."""
@@ -956,7 +1011,9 @@ def create_pickup(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "callId" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "callId" in result:
         typer.echo(f"Created: {result['callId']}")
     elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
@@ -973,6 +1030,7 @@ def create_barge_in(
     endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the barge-in."),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Barge In."""
@@ -1011,7 +1069,9 @@ def create_barge_in(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "callId" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "callId" in result:
         typer.echo(f"Created: {result['callId']}")
     elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
@@ -1163,6 +1223,7 @@ def create_pull(
     endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the retrieval"),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Pull."""
@@ -1195,7 +1256,9 @@ def create_pull(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "callId" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "callId" in result:
         typer.echo(f"Created: {result['callId']}")
     elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
@@ -1212,6 +1275,7 @@ def create_dial(
     destination: str = typer.Option(None, "--destination", help="(required) The destination to be dialed. The destination can be digits"),
     endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the call. The"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Dial by Member ID."""
@@ -1252,7 +1316,9 @@ def create_dial(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "callId" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "callId" in result:
         typer.echo(f"Created: {result['callId']}")
     elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
@@ -1269,6 +1335,7 @@ def create_answer_members(
     call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to be answered."),
     endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to answer the call on. T"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Answer by Member ID."""
@@ -1309,7 +1376,9 @@ def create_answer_members(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -1323,6 +1392,7 @@ def create_hangup_members(
     member_id: str = typer.Argument(help="memberId"),
     call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to hangup."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Hangup by Member ID."""
@@ -1361,7 +1431,9 @@ def create_hangup_members(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")

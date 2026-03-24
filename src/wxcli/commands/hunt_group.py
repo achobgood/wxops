@@ -87,6 +87,7 @@ def create(
     hunt_group_caller_id_for_outgoing_calls_enabled: bool = typer.Option(None, "--hunt-group-caller-id-for-outgoing-calls-enabled/--no-hunt-group-caller-id-for-outgoing-calls-enabled", help="Enable the hunt group to be used as the caller ID when the a"),
     dial_by_name: str = typer.Option(None, "--dial-by-name", help="The name to be used for dial by name functions.  Characters"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create a Hunt Group\n\nExample --json-body:\n  '{"name":"...","phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"..."}'."""
@@ -124,7 +125,9 @@ def create(
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
             raise typer.Exit(1)
-    body.setdefault('callPolicies', {'policy': 'CIRCULAR'})
+    body.setdefault('callPolicies', {'policy': 'CIRCULAR', 'noAnswer': {'nextAgentEnabled': True, 'nextAgentRings': 3, 'forwardEnabled': False, 'numberOfRings': 15, 'destinationVoicemailEnabled': False}})
+    body.setdefault('agents', [])
+    body.setdefault('enabled', True)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -144,7 +147,9 @@ def create(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -406,6 +411,7 @@ def create_selective_rules(
     holiday_schedule: str = typer.Option(None, "--holiday-schedule", help="Name of the location's holiday schedule which determines whe"),
     business_schedule: str = typer.Option(None, "--business-schedule", help="Name of the location's business schedule which determines wh"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create a Selective Call Forwarding Rule for a Hunt Group\n\nExample --json-body:\n  '{"name":"...","enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":"...","unavailableNumberEnabled":"...","numbers":"..."}}}'."""
@@ -450,7 +456,9 @@ def create_selective_rules(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")

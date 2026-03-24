@@ -12,7 +12,7 @@ app = typer.Typer(help="Manage Webex Calling operating-modes.")
 @app.command("list")
 def cmd_list(
     name: str = typer.Option(None, "--name", help="List `operating modes` whose name contains this string."),
-    limit_to_location_id: str = typer.Option(..., "--limit-to-location-id", help="Location query parameter to filter the `operating modes` fro"),
+    limit_to_location_id: str = typer.Option(None, "--limit-to-location-id", help="Location query parameter to filter the `operating modes` fro"),
     limit_to_org_level_enabled: str = typer.Option(None, "--limit-to-org-level-enabled", help="If true, only return `operating modes` defined at the organi"),
     max: str = typer.Option(None, "--max", help="Maximum number of `operating modes` to return in a single pa"),
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
@@ -205,6 +205,7 @@ def create(
     level: str = typer.Option(None, "--level", help="(required) Choices: ORGANIZATION, LOCATION"),
     location_id: str = typer.Option(None, "--location-id", help="Unique identifier of the location. Mandatory if level is `LO"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create an Operating Mode\n\nExample --json-body:\n  '{"name":"...","type":"SAME_HOURS_DAILY","level":"ORGANIZATION","locationId":"...","sameHoursDaily":{"mondayToFriday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"saturdayToSunday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."}},"differentHoursDaily":{"sunday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"monday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"tuesday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"wednesday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"thursday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"friday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."}}}'."""
@@ -249,7 +250,9 @@ def create(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -411,6 +414,7 @@ def create_holidays(
     start_time: str = typer.Option(None, "--start-time", help="Start time for the `operating mode holiday`. Mandatory if `a"),
     end_time: str = typer.Option(None, "--end-time", help="End time for the `operating mode holiday`. Mandatory if `all"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create an Operating Mode Holiday\n\nExample --json-body:\n  '{"name":"...","allDayEnabled":true,"startDate":"...","endDate":"...","startTime":"...","endTime":"..."}'."""
@@ -459,7 +463,9 @@ def create_holidays(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")

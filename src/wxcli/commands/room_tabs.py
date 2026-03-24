@@ -65,6 +65,7 @@ def create(
     content_url: str = typer.Option(None, "--content-url", help="(required) URL of the Room Tab. Must use `https` protocol."),
     display_name: str = typer.Option(None, "--display-name", help="(required) User-friendly name for the room tab."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create a Room Tab."""
@@ -103,7 +104,9 @@ def create(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")

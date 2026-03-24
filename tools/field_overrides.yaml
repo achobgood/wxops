@@ -71,6 +71,14 @@
     create:
       callPolicies:
         policy: "CIRCULAR"
+        noAnswer:
+          nextAgentEnabled: true
+          nextAgentRings: 3
+          forwardEnabled: false
+          numberOfRings: 15
+          destinationVoicemailEnabled: false
+      agents: []
+      enabled: true
 
 "Features:  Call Pickup":
   list:
@@ -498,6 +506,11 @@ cli_name_overrides:
   "Features: Customer Experience Essentials": "cx-essentials"
   "Features: Hot Desking Sign-in via Voice Portal": "hot-desking-portal"
   "Features: Operating Modes": "operating-modes"
+
+"Features: Operating Modes":
+  make_optional:
+    list:
+      - limitToLocationId
   "Features: Single Number Reach": "single-number-reach"
   "Features: Virtual Extensions": "virtual-extensions"
   "Location Call Settings:  Schedules": "location-schedules"

@@ -202,6 +202,7 @@ def create(
     postal_code: str = typer.Option(None, "--postal-code", help="Postal code for the emergency address."),
     country: str = typer.Option(None, "--country", help="Country for the emergency address."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Emergency Address Lookup to Verify if Address is Valid."""
@@ -246,7 +247,9 @@ def create(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -265,6 +268,7 @@ def create_emergency_address(
     postal_code: str = typer.Option(None, "--postal-code", help="Postal code for the emergency address."),
     country: str = typer.Option(None, "--country", help="Country for the emergency address."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Add an Emergency Address to a Location."""
@@ -309,7 +313,9 @@ def create_emergency_address(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")

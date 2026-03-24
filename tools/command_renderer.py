@@ -348,25 +348,28 @@ def _render_show_command(ep: Endpoint, folder_overrides: dict | None = None) -> 
 def _render_create_id_extraction(ep: Endpoint, folder_overrides: dict | None = None) -> str:
     # Prefer schema-derived response_id_key, fall back to folder overrides
     id_key = ep.response_id_key or (folder_overrides or {}).get("create", {}).get("id_key")
+    lines = ['    if output == "json":', '        print_json(result)']
     if id_key and id_key != "id":
-        return (
-            f'    if isinstance(result, dict) and "{id_key}" in result:\n'
-            f'        typer.echo(f"Created: {{result[\'{id_key}\']}}")\n'
-            f'    elif isinstance(result, dict) and "id" in result:\n'
-            f'        typer.echo(f"Created: {{result[\'id\']}}")\n'
-            f'    elif not result or result == {{}}:\n'
-            f'        typer.echo("Created.")\n'
-            f'    else:\n'
-            f'        print_json(result)'
-        )
-    return (
-        '    if isinstance(result, dict) and "id" in result:\n'
-        '        typer.echo(f"Created: {result[\'id\']}")\n'
-        '    elif not result or result == {}:\n'
-        '        typer.echo("Created.")\n'
-        '    else:\n'
-        '        print_json(result)'
-    )
+        lines.extend([
+            f'    elif isinstance(result, dict) and "{id_key}" in result:',
+            f'        typer.echo(f"Created: {{result[\'{id_key}\']}}")',
+            f'    elif isinstance(result, dict) and "id" in result:',
+            f'        typer.echo(f"Created: {{result[\'id\']}}")',
+            f'    elif not result or result == {{}}:',
+            f'        typer.echo("Created.")',
+            f'    else:',
+            f'        print_json(result)',
+        ])
+    else:
+        lines.extend([
+            '    elif isinstance(result, dict) and "id" in result:',
+            '        typer.echo(f"Created: {result[\'id\']}")',
+            '    elif not result or result == {}:',
+            '        typer.echo("Created.")',
+            '    else:',
+            '        print_json(result)',
+        ])
+    return "\n".join(lines)
 
 
 def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -> str:
@@ -397,6 +400,7 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
             params.append(f'    {param}: str = typer.Option(None, "--{bf.python_name}", help="{help_text}"),')
 
     params.append('    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),')
+    params.append('    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),')
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
     url_expr = _render_url_expr(ep.url_path, ep.path_vars)

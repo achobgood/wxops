@@ -13,6 +13,7 @@ def create(
     subject: str = typer.Option(None, "--subject", help="(required) The unique and external identifier of the guest."),
     display_name: str = typer.Option(None, "--display-name", help="(required) The display name shown in the Webex application."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create a Guest."""
@@ -49,7 +50,9 @@ def create(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
