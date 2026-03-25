@@ -64,3 +64,21 @@ class TestExecutiveSummary:
             brand="Acme Corp", prepared_by="Test SE")
         # Should use explainer, not raw decision type names
         assert "CSS_ROUTING_MISMATCH" not in html
+
+    def test_feature_mapping_includes_call_forwarding(self, populated_store):
+        """Feature mapping table includes call forwarding when objects exist."""
+        from wxcli.migration.report.executive import generate_executive_summary
+        from wxcli.migration.models import CanonicalCallForwarding, Provenance
+        from datetime import datetime, timezone
+        cf = CanonicalCallForwarding(
+            canonical_id="call_forwarding:user1",
+            provenance=Provenance(
+                source_system="cucm", source_id="pk-1", source_name="test",
+                extracted_at=datetime.now(timezone.utc),
+            ),
+            user_canonical_id="user:user1",
+            always_enabled=True,
+        )
+        populated_store.upsert_object(cf)
+        html = generate_executive_summary(populated_store, "Test Brand", "Test SE")
+        assert "Call Forwarding" in html

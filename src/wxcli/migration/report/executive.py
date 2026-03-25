@@ -15,8 +15,6 @@ from typing import Any
 from wxcli.migration.report.charts import (
     donut_chart,
     gauge_chart,
-    horizontal_bar_chart,
-    traffic_light_boxes,
 )
 from wxcli.migration.report.explainer import explain_decision
 from wxcli.migration.report.score import compute_complexity_score
@@ -34,9 +32,11 @@ _FEATURE_DISPLAY_NAMES = {
     "call_park": "Call Park",
     "pickup_group": "Pickup Group",
     "paging_group": "Paging Group",
+    "call_forwarding": "Call Forwarding",
+    "monitoring_list": "BLF / Monitoring",
 }
 
-# Object types for the inventory bar chart
+# Object types for the inventory stat cards
 _INVENTORY_TYPES = [
     ("user", "Users", "#1565C0"),
     ("device", "Devices", "#2E7D32"),
@@ -60,18 +60,7 @@ def generate_executive_summary(
     cluster_name: str = "",
     cucm_version: str = "",
 ) -> str:
-    """Generate the executive summary HTML from a populated store.
-
-    Args:
-        store: Populated MigrationStore (post-analyze state).
-        brand: Customer/brand name for the report header.
-        prepared_by: Name of the SE/engineer who prepared the report.
-        cluster_name: CUCM cluster name (optional).
-        cucm_version: CUCM version string (optional).
-
-    Returns:
-        HTML string containing <section> elements for each page.
-    """
+    """Generate the executive summary HTML from a populated store."""
     sections = [
         _page_headline(store, brand, cluster_name, cucm_version),
         _page_what_you_have(store),
@@ -88,7 +77,7 @@ def generate_executive_summary(
 
 
 # ---------------------------------------------------------------------------
-# Page 1 — The Headline
+# Page 1 — The Headline (Score Hero)
 # ---------------------------------------------------------------------------
 
 def _page_headline(
@@ -97,12 +86,12 @@ def _page_headline(
     cluster_name: str,
     cucm_version: str,
 ) -> str:
-    """Build Page 1: complexity gauge, summary paragraph, environment snapshot."""
+    """Build Page 1: complexity gauge, summary stat bar, lead sentence."""
     result = compute_complexity_score(store)
 
     gauge_svg = gauge_chart(result.score, result.color, result.label)
 
-    # Build summary paragraph from store counts
+    # Build lead sentence
     user_count = store.count_by_type("user")
     device_count = store.count_by_type("device")
     location_count = store.count_by_type("location")
@@ -124,11 +113,11 @@ def _page_headline(
         )
     summary_text += "."
 
-    # Environment snapshot table
+    # Environment snapshot as stat cards
     now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     total_objects = _total_object_count(store)
 
-    snapshot_rows = [
+    snapshot_items = [
         ("Customer", html.escape(brand)),
         ("Assessment Date", now_str),
         ("Total Objects", str(total_objects)),
@@ -137,22 +126,31 @@ def _page_headline(
         ("Devices", str(device_count)),
     ]
     if cluster_name:
-        snapshot_rows.insert(1, ("CUCM Cluster", html.escape(cluster_name)))
+        snapshot_items.insert(1, ("CUCM Cluster", html.escape(cluster_name)))
     if cucm_version:
-        snapshot_rows.insert(2 if cluster_name else 1, ("CUCM Version", html.escape(cucm_version)))
+        idx = 2 if cluster_name else 1
+        snapshot_items.insert(idx, ("CUCM Version", html.escape(cucm_version)))
 
-    snapshot_html = _build_table(
-        headers=["Property", "Value"],
-        rows=snapshot_rows,
-    )
+    # Build snapshot as a stat grid
+    snapshot_cards = ['<div class="stat-grid">']
+    for label, value in snapshot_items:
+        snapshot_cards.append(
+            f'<div class="stat-card">'
+            f'<div class="stat-label">{label}</div>'
+            f'<div class="stat-value">{value}</div>'
+            f'</div>'
+        )
+    snapshot_cards.append('</div>')
 
     return (
-        f'<section class="page-headline">\n'
+        f'<section id="score" class="page-headline">\n'
         f'<h2>Migration Complexity Assessment</h2>\n'
-        f'<div class="score-gauge">\n{gauge_svg}\n</div>\n'
-        f'<p>{summary_text}</p>\n'
+        f'<div class="score-hero">\n'
+        f'  <div class="score-gauge">\n{gauge_svg}\n  </div>\n'
+        f'</div>\n'
+        f'<p class="lead-sentence">{summary_text}</p>\n'
         f'<h3>Environment Snapshot</h3>\n'
-        f'{snapshot_html}\n'
+        + "\n".join(snapshot_cards) + "\n"
         f'</section>'
     )
 
@@ -162,24 +160,30 @@ def _page_headline(
 # ---------------------------------------------------------------------------
 
 def _page_what_you_have(store: MigrationStore) -> str:
-    """Build Page 2: inventory chart, phone compatibility donut, site breakdown."""
+    """Build Page 2: inventory stat cards, phone donut, site table."""
     parts = [
-        '<section class="page-inventory">',
+        '<section id="inventory" class="page-inventory">',
         '<h2>What You Have</h2>',
     ]
 
-    # Object inventory bar chart
+    # Object inventory as stat cards (not bar chart)
     inventory_items = []
     for type_key, label, color in _INVENTORY_TYPES:
         count = store.count_by_type(type_key)
         if count > 0:
-            inventory_items.append({"label": label, "value": count, "color": color})
+            inventory_items.append((label, count))
 
     if inventory_items:
         parts.append('<h3>Environment Overview</h3>')
-        parts.append('<div class="chart-container"><div>')
-        parts.append(horizontal_bar_chart(inventory_items))
-        parts.append('</div></div>')
+        parts.append('<div class="stat-grid">')
+        for label, count in inventory_items:
+            parts.append(
+                f'<div class="stat-card">'
+                f'<div class="stat-label">{html.escape(label)}</div>'
+                f'<div class="stat-value">{count}</div>'
+                f'</div>'
+            )
+        parts.append('</div>')
 
     # Phone compatibility donut chart
     devices = store.get_objects("device")
@@ -217,11 +221,7 @@ def _build_site_breakdown(
     store: MigrationStore,
     locations: list[dict[str, Any]],
 ) -> list[tuple[str, ...]]:
-    """Build per-site breakdown rows.
-
-    Uses simplified counts for per-site complexity rather than calling
-    compute_complexity_score() per site (which operates on the full store).
-    """
+    """Build per-site breakdown rows."""
     decisions = store.get_all_decisions()
     all_users = store.get_objects("user")
     all_devices = store.get_objects("device")
@@ -231,23 +231,17 @@ def _build_site_breakdown(
         loc_id = loc.get("canonical_id", "")
         loc_name = loc.get("name", loc_id)
 
-        # Count users at this location
         user_count = sum(1 for u in all_users if u.get("location_id") == loc_id)
-
-        # Count devices owned by users at this location
         loc_user_ids = {u.get("canonical_id") for u in all_users if u.get("location_id") == loc_id}
         device_count = sum(1 for d in all_devices if d.get("owner_canonical_id") in loc_user_ids)
-
-        # Count decisions referencing this location's objects
         loc_decision_count = _count_decisions_for_location(store, decisions, loc_id, loc_user_ids)
 
-        # Simplified complexity label
         if loc_decision_count == 0:
-            complexity = "Straightforward"
+            complexity = '<span class="badge badge-direct">Straightforward</span>'
         elif loc_decision_count <= 2:
-            complexity = "Moderate"
+            complexity = '<span class="badge badge-approx">Moderate</span>'
         else:
-            complexity = "Complex"
+            complexity = '<span class="badge badge-decision">Complex</span>'
 
         rows.append((
             html.escape(loc_name),
@@ -274,14 +268,12 @@ def _count_decisions_for_location(
         css_id = ctx.get("css_id", "")
 
         if obj_id:
-            # Check if the referenced object belongs to this location
             obj = store.get_object(obj_id)
             if obj and obj.get("location_id") == loc_id:
                 count += 1
             elif obj_id in loc_user_ids:
                 count += 1
         elif css_id:
-            # CSS decisions are org-wide, count for every location
             count += 1
     return count
 
@@ -291,14 +283,14 @@ def _count_decisions_for_location(
 # ---------------------------------------------------------------------------
 
 def _page_what_needs_attention(store: MigrationStore) -> str:
-    """Build Page 3: decision summary, top unresolved decisions, feature mapping."""
+    """Build Page 3: decision stat cards, top decisions as callouts, feature table with badges."""
     decisions = store.get_all_decisions()
     parts = [
-        '<section class="page-decisions">',
+        '<section id="decisions" class="page-decisions">',
         '<h2>What Needs Attention</h2>',
     ]
 
-    # Decision summary via traffic light boxes
+    # Decision summary as three colored stat cards
     auto_resolved = sum(1 for d in decisions if d.get("chosen_option") is not None)
     unresolved = [d for d in decisions if d.get("chosen_option") is None]
     critical = sum(
@@ -308,11 +300,28 @@ def _page_what_needs_attention(store: MigrationStore) -> str:
     needs_decision = len(unresolved) - critical
 
     parts.append('<h3>Decision Summary</h3>')
-    parts.append('<div class="summary-boxes">')
-    parts.append(traffic_light_boxes(auto_resolved, needs_decision, critical))
+    parts.append('<div class="stat-grid">')
+    parts.append(
+        f'<div class="stat-card success">'
+        f'<div class="stat-label">Auto-resolved</div>'
+        f'<div class="stat-value">{auto_resolved}</div>'
+        f'</div>'
+    )
+    parts.append(
+        f'<div class="stat-card warning">'
+        f'<div class="stat-label">Decisions Needed</div>'
+        f'<div class="stat-value">{needs_decision}</div>'
+        f'</div>'
+    )
+    parts.append(
+        f'<div class="stat-card critical">'
+        f'<div class="stat-label">Critical</div>'
+        f'<div class="stat-value">{critical}</div>'
+        f'</div>'
+    )
     parts.append('</div>')
 
-    # Top 5 unresolved decisions (highest severity first)
+    # Top 5 unresolved decisions as callout boxes
     if unresolved:
         sorted_unresolved = sorted(
             unresolved,
@@ -330,7 +339,7 @@ def _page_what_needs_attention(store: MigrationStore) -> str:
             )
             severity_lower = d["severity"].lower()
             parts.append(
-                f'<div class="explanation">\n'
+                f'<div class="explanation severity-{severity_lower}">\n'
                 f'  <h4>{html.escape(explained["title"])} '
                 f'<span class="badge badge-{severity_lower}">'
                 f'{html.escape(d["severity"])}</span></h4>\n'
@@ -339,7 +348,7 @@ def _page_what_needs_attention(store: MigrationStore) -> str:
                 f'</div>'
             )
 
-    # Feature mapping table
+    # Feature mapping table with status badges
     feature_table = _build_feature_mapping_table(store, decisions)
     if feature_table:
         parts.append('<h3>Feature Mapping</h3>')
@@ -353,11 +362,7 @@ def _build_feature_mapping_table(
     store: MigrationStore,
     decisions: list[dict[str, Any]],
 ) -> str:
-    """Build a 4-column feature mapping table matching the design spec.
-
-    Columns: CUCM Feature | Count | Webex Equivalent | Status
-    """
-    # Default Webex equivalent for each feature type (1:1 mappings)
+    """Build a 4-column feature mapping table with status badges."""
     webex_equivalents: dict[str, str] = {
         "hunt_group": "Hunt Group",
         "call_queue": "Call Queue",
@@ -365,9 +370,10 @@ def _build_feature_mapping_table(
         "call_park": "Call Park",
         "pickup_group": "Call Pickup",
         "paging_group": "Paging Group",
+        "call_forwarding": "Per-person call forwarding",
+        "monitoring_list": "Per-person monitoring list",
     }
 
-    # Collect feature approximation decisions, keyed by object_id
     approx_by_object: dict[str, dict[str, Any]] = {}
     for d in decisions:
         if d["type"] == "FEATURE_APPROXIMATION":
@@ -381,7 +387,6 @@ def _build_feature_mapping_table(
         if count == 0:
             continue
 
-        # Determine Webex equivalent and status from approximation decisions
         webex_equiv = webex_equivalents.get(type_key, display_name)
         has_approx = False
         has_unresolved = False
@@ -392,20 +397,18 @@ def _build_feature_mapping_table(
             if obj_id in approx_by_object:
                 has_approx = True
                 d = approx_by_object[obj_id]
-                # Use webex_feature from decision context if available
                 ctx_webex = d.get("context", {}).get("webex_feature", "")
                 if ctx_webex:
                     webex_equiv = ctx_webex
                 if d.get("chosen_option") is None:
                     has_unresolved = True
 
-        # Status: Direct (no approximation), Approximation, or Decision needed
         if not has_approx:
-            status = "Direct"
+            status = '<span class="badge badge-direct">Direct</span>'
         elif has_unresolved:
-            status = "Decision needed"
+            status = '<span class="badge badge-decision">Decision needed</span>'
         else:
-            status = "Approximation"
+            status = '<span class="badge badge-approx">Approximation</span>'
 
         rows.append((
             display_name,
@@ -437,8 +440,15 @@ def _page_next_steps(
     unresolved = [d for d in decisions if d.get("chosen_option") is None]
     user_count = store.count_by_type("user")
 
+    checklist_items = [
+        (f"Webex Calling licenses needed: {user_count}", "Verify with Cisco"),
+        (f"Phone numbers to port: {user_count}", "Confirm with carrier"),
+        (f"Decisions to resolve: {len(unresolved)}",
+         "Pending review" if unresolved else "Complete"),
+    ]
+
     parts = [
-        '<section class="page-next-steps">',
+        f'<section id="next-steps" class="page-next-steps">',
         '<h2>Next Steps</h2>',
         '<h3>Prerequisites Checklist</h3>',
         '<table>',
@@ -455,8 +465,10 @@ def _page_next_steps(
         f'<td>{"Pending review" if unresolved else "Complete"}</td></tr>',
         '</tbody>',
         '</table>',
-        f'<p>For questions about this assessment or to begin the migration, '
-        f'contact <strong>{html.escape(prepared_by)}</strong>.</p>',
+        f'<div class="callout info">'
+        f'<p><strong>Ready to begin?</strong> For questions about this assessment '
+        f'or to start the migration, contact <strong>{html.escape(prepared_by)}</strong>.</p>'
+        f'</div>',
         '</section>',
     ]
     return "\n".join(parts)
