@@ -57,8 +57,8 @@ MAPPER_ORDER: list[type[Mapper]] = [
     FeatureMapper,        # Tier 4 (depends on users, lines, locations)
     CSSMapper,            # Tier 5 (depends on routing_mapper output)
     VoicemailMapper,      # Tier 5 (depends on users)
-    CallForwardingMapper, # Tier 2 (depends on users, phones)
-    MonitoringMapper,     # Tier 2 (depends on users, phones, lines)
+    CallForwardingMapper, # Tier 6 (depends on users, phones/device cross-refs)
+    MonitoringMapper,     # Tier 6 (depends on users, phones, lines)
 ]
 
 
@@ -85,7 +85,7 @@ class TransformEngine:
         self.config = config or {}
 
     def run(self, store: MigrationStore) -> TransformResult:
-        """Run all 9 mappers in dependency order.
+        """Run all 11 mappers in dependency order.
 
         Failure handling: if a mapper raises an exception, log the error,
         record a MapperError, and continue to the next mapper. Downstream

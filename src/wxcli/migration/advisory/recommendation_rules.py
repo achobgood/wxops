@@ -9,8 +9,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from wxcli.migration.models import DecisionType
-
 # ---------------------------------------------------------------------------
 # Implemented rules — 6 simple types
 # ---------------------------------------------------------------------------
@@ -464,9 +462,9 @@ def recommend_forwarding_lossy(
     context: dict[str, Any], options: list,
 ) -> tuple[str, str] | None:
     """CUCM-only forwarding variants are rarely configured. Accept the loss."""
-    return ("accept_loss", "The 5 CUCM-only variants (busyInt, noAnswerInt, noCoverage, "
-            "onFailure, notRegistered) are rarely configured; CFA/CFB/CFNA covers >95% "
-            "of real forwarding behavior.")
+    return ("accept_loss", "The 7 CUCM-only variants (busyInt, noAnswerInt, noCoverage, "
+            "noCoverageInt, onFailure, notRegistered, notRegisteredInt) are rarely "
+            "configured; CFA/CFB/CFNA covers >95% of real forwarding behavior.")
 
 
 def recommend_snr_lossy(
@@ -493,7 +491,7 @@ def recommend_audio_asset_manual(
 
 
 # ---------------------------------------------------------------------------
-# Dispatch table — ALL 16 DecisionType string values
+# Dispatch table — ALL 19 DecisionType string values
 # ---------------------------------------------------------------------------
 
 RECOMMENDATION_DISPATCH: dict[str, Any] = {
@@ -513,7 +511,7 @@ RECOMMENDATION_DISPATCH: dict[str, Any] = {
     "FEATURE_APPROXIMATION": recommend_feature_approximation,
     "MISSING_DATA": recommend_missing_data,
     "NUMBER_CONFLICT": recommend_number_conflict,
-    DecisionType.FORWARDING_LOSSY.value: recommend_forwarding_lossy,
-    DecisionType.SNR_LOSSY.value: recommend_snr_lossy,
-    DecisionType.AUDIO_ASSET_MANUAL.value: recommend_audio_asset_manual,
+    "FORWARDING_LOSSY": recommend_forwarding_lossy,
+    "SNR_LOSSY": recommend_snr_lossy,
+    "AUDIO_ASSET_MANUAL": recommend_audio_asset_manual,
 }
