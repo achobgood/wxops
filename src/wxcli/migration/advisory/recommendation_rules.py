@@ -139,6 +139,15 @@ def recommend_feature_approximation(
     has_queue = context.get("has_queue_features", False)
     agent_count = context.get("agent_count", 0)
 
+    # Agent limit exceeded — recommend split
+    if agent_count > 50:
+        return (
+            "split",
+            f"Agent count ({agent_count}) exceeds Call Queue limit of 50 for "
+            f"simultaneous distribution. Split into multiple queues with "
+            f"overflow chain.",
+        )
+
     if has_queue:
         return (
             "call_queue",
@@ -169,34 +178,34 @@ def recommend_feature_approximation(
 
 
 _DEVICE_REPLACEMENT_MAP: dict[str, tuple[str, str]] = {
-    "7811": ("9841", "Same desk form factor, single-screen. 9841 is Webex-native (RoomOS)."),
-    "7821": ("9841", "2-line phone → 9841 supports more lines. Same price tier."),
-    "7832": ("conference room device", "Conference phone. Consider Webex Room device for both calling and meeting capability."),
-    "7905": ("8845 or 9851", "End-of-life model. Replace with supported Webex-native phone."),
-    "7906": ("8845 or 9851", "End-of-life model. Replace with supported Webex-native phone."),
-    "7911": ("8845 or 9851", "End-of-life model. Replace with supported Webex-native phone."),
-    "7912": ("8845 or 9851", "End-of-life model. Replace with supported Webex-native phone."),
-    "7940": ("8845 or 9851", "End-of-life model. Replace with supported Webex-native phone."),
-    "7941": ("8845 or 9851", "End-of-life model. Replace with supported Webex-native phone."),
-    "7942": ("8845 or 9851", "End-of-life model. Replace with supported Webex-native phone."),
-    "7945": ("8845 or 9851", "End-of-life model. Replace with supported Webex-native phone."),
-    "7960": ("8845 or 9851", "End-of-life model. Replace with supported Webex-native phone."),
-    "7961": ("8845 or 9851", "End-of-life model. Replace with supported Webex-native phone."),
-    "7962": ("8845 or 9851", "End-of-life model. Replace with supported Webex-native phone."),
-    "7965": ("8845 or 9851", "End-of-life model. Replace with supported Webex-native phone."),
-    "7970": ("8845 or 9851", "End-of-life model. Replace with supported Webex-native phone."),
-    "7971": ("8845 or 9851", "End-of-life model. Replace with supported Webex-native phone."),
-    "7975": ("8845 or 9851", "End-of-life model. Replace with supported Webex-native phone."),
-    "6901": ("8841 or 9841", "Entry-level phone. Replace with Webex-native equivalent."),
-    "6911": ("8841 or 9841", "Entry-level phone. Replace with Webex-native equivalent."),
-    "6921": ("8841 or 9841", "Entry-level phone. Replace with Webex-native equivalent."),
-    "6941": ("8841 or 9841", "Entry-level phone. Replace with Webex-native equivalent."),
-    "6945": ("8841 or 9841", "Entry-level phone. Replace with Webex-native equivalent."),
-    "6961": ("8841 or 9841", "Entry-level phone. Replace with Webex-native equivalent."),
-    "ATA 190": ("ATA 192", "Analog adapter. Replace with supported ATA 192."),
-    "ATA 191": ("ATA 192", "Analog adapter. Replace with supported ATA 192."),
-    "ATA190": ("ATA 192", "Analog adapter. Replace with supported ATA 192."),
-    "ATA191": ("ATA 192", "Analog adapter. Replace with supported ATA 192."),
+    "7811": ("9841", "Same desk form factor, single-screen. 9841 is Webex-native (RoomOS). Note: RoomOS uses device configuration templates, not telephony device settings — different day-2 config model than MPP."),
+    "7821": ("9841", "2-line phone → 9841 supports more lines. Same price tier. 9841 uses RoomOS firmware (device configuration templates for day-2 config)."),
+    "7832": ("conference room device", "Conference phone. Consider Webex Room device (RoomOS) for both calling and meeting capability."),
+    "7905": ("8845 or 9851", "Legacy SCCP/SIP phone with no Webex firmware path. 8845 uses MPP firmware; 9851 uses RoomOS (larger screen). Different day-2 config models."),
+    "7906": ("8845 or 9851", "Legacy SCCP/SIP phone with no Webex firmware path. 8845 uses MPP firmware; 9851 uses RoomOS (larger screen). Different day-2 config models."),
+    "7911": ("8845 or 9851", "Legacy SCCP/SIP phone with no Webex firmware path. 8845 uses MPP firmware; 9851 uses RoomOS (larger screen). Different day-2 config models."),
+    "7912": ("8845 or 9851", "Legacy SCCP/SIP phone with no Webex firmware path. 8845 uses MPP firmware; 9851 uses RoomOS (larger screen). Different day-2 config models."),
+    "7940": ("8845 or 9851", "Legacy SCCP/SIP phone with no Webex firmware path. 8845 uses MPP firmware; 9851 uses RoomOS (larger screen). Different day-2 config models."),
+    "7941": ("8845 or 9851", "Legacy SCCP/SIP phone with no Webex firmware path. 8845 uses MPP firmware; 9851 uses RoomOS (larger screen). Different day-2 config models."),
+    "7942": ("8845 or 9851", "Legacy SCCP/SIP phone with no Webex firmware path. 8845 uses MPP firmware; 9851 uses RoomOS (larger screen). Different day-2 config models."),
+    "7945": ("8845 or 9851", "Legacy SCCP/SIP phone with no Webex firmware path. 8845 uses MPP firmware; 9851 uses RoomOS (larger screen). Different day-2 config models."),
+    "7960": ("8845 or 9851", "Legacy SCCP/SIP phone with no Webex firmware path. 8845 uses MPP firmware; 9851 uses RoomOS (larger screen). Different day-2 config models."),
+    "7961": ("8845 or 9851", "Legacy SCCP/SIP phone with no Webex firmware path. 8845 uses MPP firmware; 9851 uses RoomOS (larger screen). Different day-2 config models."),
+    "7962": ("8845 or 9851", "Legacy SCCP/SIP phone with no Webex firmware path. 8845 uses MPP firmware; 9851 uses RoomOS (larger screen). Different day-2 config models."),
+    "7965": ("8845 or 9851", "Legacy SCCP/SIP phone with no Webex firmware path. 8845 uses MPP firmware; 9851 uses RoomOS (larger screen). Different day-2 config models."),
+    "7970": ("8845 or 9851", "Legacy SCCP/SIP phone with no Webex firmware path. 8845 uses MPP firmware; 9851 uses RoomOS (larger screen). Different day-2 config models."),
+    "7971": ("8845 or 9851", "Legacy SCCP/SIP phone with no Webex firmware path. 8845 uses MPP firmware; 9851 uses RoomOS (larger screen). Different day-2 config models."),
+    "7975": ("8845 or 9851", "Legacy SCCP/SIP phone with no Webex firmware path. 8845 uses MPP firmware; 9851 uses RoomOS (larger screen). Different day-2 config models."),
+    "6901": ("8841 or 9841", "Cisco 69xx series. No Webex firmware. 8841 uses MPP firmware (same line count); 9841 uses RoomOS."),
+    "6911": ("8841 or 9841", "Cisco 69xx series. No Webex firmware. 8841 uses MPP firmware (same line count); 9841 uses RoomOS."),
+    "6921": ("8841 or 9841", "Cisco 69xx series. No Webex firmware. 8841 uses MPP firmware (same line count); 9841 uses RoomOS."),
+    "6941": ("8841 or 9841", "Cisco 69xx series. No Webex firmware. 8841 uses MPP firmware (same line count); 9841 uses RoomOS."),
+    "6945": ("8841 or 9841", "Cisco 69xx series. No Webex firmware. 8841 uses MPP firmware (same line count); 9841 uses RoomOS."),
+    "6961": ("8841 or 9841", "Cisco 69xx series. No Webex firmware. 8841 uses MPP firmware (same line count); 9841 uses RoomOS."),
+    "ATA 190": ("ATA 192", "Analog adapter. ATA 192 supports Webex Calling."),
+    "ATA 191": ("ATA 192", "Analog adapter. ATA 192 supports Webex Calling."),
+    "ATA190": ("ATA 192", "Analog adapter. ATA 192 supports Webex Calling."),
+    "ATA191": ("ATA 192", "Analog adapter. ATA 192 supports Webex Calling."),
 }
 
 

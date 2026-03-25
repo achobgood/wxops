@@ -236,6 +236,12 @@ class TestFeatureApproximation:
             {"classification": "AUTO_ATTENDANT", "complex_script": True}, [])
         assert r is None
 
+    def test_agent_limit_exceeded_recommends_split(self):
+        r = recommend_feature_approximation(
+            {"has_queue_features": True, "agent_count": 60}, [])
+        assert r[0] == "split"
+        assert "50" in r[1]
+
 
 class TestSharedLineComplex:
     def test_low_count_shared_line(self):
