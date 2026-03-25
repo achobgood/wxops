@@ -325,3 +325,59 @@ class TestVoicemailIncompatible:
         r = recommend_voicemail_incompatible({}, [])
         assert r[0] == "webex_voicemail"
         assert "default" in r[1].lower()
+
+
+class TestForwardingLossy:
+    def test_always_recommends_accept_loss(self):
+        from wxcli.migration.advisory.recommendation_rules import recommend_forwarding_lossy
+        context = {"lossy_variants": ["callForwardBusyInt", "callForwardNoCoverage"]}
+        options = [{"id": "accept_loss"}, {"id": "manual"}, {"id": "skip"}]
+        result = recommend_forwarding_lossy(context, options)
+        assert result is not None
+        assert result[0] == "accept_loss"
+        assert "CUCM-only" in result[1]
+
+
+class TestSnrLossy:
+    def test_always_recommends_accept_loss(self):
+        from wxcli.migration.advisory.recommendation_rules import recommend_snr_lossy
+        context = {"cucm_answer_too_soon": 3000}
+        options = [{"id": "accept_loss"}, {"id": "skip"}, {"id": "manual"}]
+        result = recommend_snr_lossy(context, options)
+        assert result is not None
+        assert result[0] == "accept_loss"
+        assert "Timer" in result[1]
+
+
+class TestAudioAssetManual:
+    def test_customer_facing_recommends_accept(self):
+        from wxcli.migration.advisory.recommendation_rules import recommend_audio_asset_manual
+        context = {"usage": "AA_GREETING", "location_count": 5}
+        options = [{"id": "accept"}, {"id": "use_default"}, {"id": "skip"}]
+        result = recommend_audio_asset_manual(context, options)
+        assert result is not None
+        assert result[0] == "accept"
+
+    def test_low_usage_moh_recommends_default(self):
+        from wxcli.migration.advisory.recommendation_rules import recommend_audio_asset_manual
+        context = {"usage": "MOH", "location_count": 1}
+        options = [{"id": "accept"}, {"id": "use_default"}, {"id": "skip"}]
+        result = recommend_audio_asset_manual(context, options)
+        assert result is not None
+        assert result[0] == "use_default"
+
+    def test_queue_comfort_recommends_accept(self):
+        from wxcli.migration.advisory.recommendation_rules import recommend_audio_asset_manual
+        context = {"usage": "QUEUE_COMFORT", "location_count": 3}
+        options = [{"id": "accept"}, {"id": "use_default"}, {"id": "skip"}]
+        result = recommend_audio_asset_manual(context, options)
+        assert result is not None
+        assert result[0] == "accept"
+
+    def test_unknown_usage_recommends_accept(self):
+        from wxcli.migration.advisory.recommendation_rules import recommend_audio_asset_manual
+        context = {"usage": "UNKNOWN", "location_count": 10}
+        options = [{"id": "accept"}, {"id": "use_default"}, {"id": "skip"}]
+        result = recommend_audio_asset_manual(context, options)
+        assert result is not None
+        assert result[0] == "accept"
