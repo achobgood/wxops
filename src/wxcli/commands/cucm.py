@@ -899,6 +899,8 @@ def decisions(
                         "affected_objects": d.get("affected_objects", []),
                         "auto_choice": d.get("auto_choice"),
                         "auto_reason": d.get("auto_reason"),
+                        "recommendation": d.get("recommendation"),
+                        "recommendation_reasoning": d.get("recommendation_reasoning"),
                     }
                 data = {
                     "review_file": str(review_path),
@@ -918,7 +920,9 @@ def decisions(
 
         # Apply filters
         if type:
-            decs = [d for d in decs if d.get("type") == type]
+            filter_val = ("ARCHITECTURE_ADVISORY" if type.lower() == "advisory"
+                          else type.upper())
+            decs = [d for d in decs if d.get("type") == filter_val]
         if severity:
             decs = [d for d in decs if d.get("severity") == severity.upper()]
         if status_filter:
@@ -960,6 +964,20 @@ def decisions(
             )
 
         console.print(table)
+
+        # Show recommendations below the table
+        recs_shown = False
+        for d in decs:
+            rec = d.get("recommendation")
+            if rec:
+                if not recs_shown:
+                    console.print("\n[bold]Recommendations:[/bold]")
+                    recs_shown = True
+                rec_text = d.get("recommendation_reasoning", "")
+                console.print(
+                    f"  {d.get('decision_id', '')}  "
+                    f"[cyan][REC: {rec}][/cyan] {rec_text}"
+                )
 
         # Filter hints
         console.print(

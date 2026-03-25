@@ -35,45 +35,93 @@ argument-hint: [project name]
    > "I've generated a decision review at [review_file path]. There are N
    > auto-apply decisions and M that need your input."
 
-   **Auto-apply (clear-cut decisions)** — applied via `--apply-auto`:
-   - `DEVICE_INCOMPATIBLE` with no migration path → skip
-   - `MISSING_DATA` on devices that are already incompatible → skip
-   - `CALLING_PERMISSION_MISMATCH` with 0 affected users → skip (orphaned profile)
+### Phase A: Architecture Review
 
-   **Needs your input** — decisions requiring admin judgment, grouped by category
-   (location, device, workspace, routing, etc.)
+Before per-decision review, present `ARCHITECTURE_ADVISORY` decisions. Pull them:
+```bash
+wxcli cucm decisions --type advisory -o json -p <project>
+```
 
-3. **Present the needs-input decisions to the admin:**
-   Use the `needs_input` array from the JSON output (not the markdown file) to
-   present decisions. For each decision show the ID, severity, summary, and
-   available options with letter labels.
+Group advisories by category and present:
+```
+=== Architecture Advisory ===
 
-   Present as a numbered interactive menu:
-   ```
-   NEEDS YOUR INPUT (N decisions):
+ELIMINATE (CUCM workarounds to remove):
+  - <ID> <summary> [REC: accept] <reasoning>
+  - ...
 
-   1. <ID> — <summary>
-      [a] <option 1>  [b] <option 2>  [c] Skip
+REBUILD (use Webex-native patterns):
+  - <ID> <summary> [REC: accept] <reasoning>
+  - ...
 
-   2. <ID> — <summary>
-      [a] <option 1>  [b] <option 2>  [c] Skip
+OUT OF SCOPE (separate workstreams):
+  - <ID> <summary> [REC: accept] <reasoning>
+  - ...
 
-   Reply with your choices: "1a, 2b" or "all a"
-   ```
+MIGRATE AS-IS (informational):
+  - <ID> <summary> [REC: accept] <reasoning>
+  - ...
 
-   Rules for the interactive menu:
-   - **Number each decision** sequentially (1, 2, 3...)
-   - **Letter each option** (a, b, c...) — map to the actual decision option IDs
-   - **Show what each option means** in plain language, not internal IDs
-   - **Accept compact responses** like "1a, 2a, 3b" or "all a"
-   - **Accept natural language** like "accept for 1, workspace for 2 and 3"
-   - **Confirm what was applied** with a brief summary
-   - If the admin changes their mind, re-run `wxcli cucm decide <ID> <new_choice>`
+Accept all advisory recommendations? [Y/n] Or review individually? [r]
+```
 
-   **Do NOT auto-resolve needs-input decisions.** Wait for explicit admin choices.
-   After receiving choices, run `wxcli cucm decide <ID> <choice> -p <project>` for each.
+- If **Y** (default): run `wxcli cucm decide <ID> accept -p <project>` for each advisory
+- If **n**: skip advisory resolution (admin will handle later)
+- If **r**: present each advisory individually with accept/dismiss options
 
-4. **Apply auto-resolvable decisions:**
+### Phase B: Per-Decision Review
+
+Present remaining (non-advisory) decisions in three groups:
+
+**Group 1: Auto-apply (clear-cut decisions)** — applied via `--apply-auto`:
+- `DEVICE_INCOMPATIBLE` with no migration path → skip
+- `MISSING_DATA` on devices that are already incompatible → skip
+- `CALLING_PERMISSION_MISMATCH` with 0 affected users → skip (orphaned profile)
+
+**Group 2: Recommended** — decisions where `recommendation` is set.
+Present with bulk accept option:
+```
+RECOMMENDED ({n} decisions):
+
+1. <ID> — <summary>
+   Recommended: <option> — <reasoning>. Accept? [Y/n]
+
+2. <ID> — <summary>
+   Recommended: <option> — <reasoning>. Accept? [Y/n]
+
+Accept all {n} recommended decisions? [Y/a individual/n reject all]
+```
+
+- If **Y** (default): run `wxcli cucm decide <ID> <recommended_option> -p <project>` for each
+- If **a**: present each individually
+- If **n**: leave all unresolved
+
+**Group 3: Needs input** — no recommendation, present options normally:
+```
+NEEDS YOUR INPUT (N decisions):
+
+1. <ID> — <summary>
+   [a] <option 1>  [b] <option 2>  [c] Skip
+
+2. <ID> — <summary>
+   [a] <option 1>  [b] <option 2>  [c] Skip
+
+Reply with your choices: "1a, 2b" or "all a"
+```
+
+Rules for the interactive menu:
+- **Number each decision** sequentially (1, 2, 3...)
+- **Letter each option** (a, b, c...) — map to the actual decision option IDs
+- **Show what each option means** in plain language, not internal IDs
+- **Accept compact responses** like "1a, 2a, 3b" or "all a"
+- **Accept natural language** like "accept for 1, workspace for 2 and 3"
+- **Confirm what was applied** with a brief summary
+- If the admin changes their mind, re-run `wxcli cucm decide <ID> <new_choice>`
+
+**Do NOT auto-resolve needs-input decisions.** Wait for explicit admin choices.
+After receiving choices, run `wxcli cucm decide <ID> <choice> -p <project>` for each.
+
+3. **Apply auto-resolvable decisions:**
    After the admin has resolved all needs-input decisions, show what will be
    auto-applied (read from the Auto-Apply section of the review file):
    ```
@@ -87,7 +135,7 @@ argument-hint: [project name]
    wxcli cucm decide --apply-auto -y -p <project>
    ```
 
-5. **Re-plan and re-export:**
+4. **Re-plan and re-export:**
    ```bash
    wxcli cucm plan -p <project> && wxcli cucm export -p <project>
    ```
@@ -166,60 +214,43 @@ wxcli licenses list --output json
 Find the license where `name` contains "Calling - Professional" with available capacity.
 Store as `CALLING_LICENSE_ID` for user creation operations. If none available, **stop**.
 
-### 4b. Main execution loop
+### 4b. Bulk execution
+
+The bulk executor processes all operations concurrently at API throughput (~100 req/min)
+instead of one-at-a-time through the conversational loop. Claude is NOT involved during
+execution — only for failure diagnosis afterward.
 
 ```
-REPEAT:
-  batch_json = wxcli cucm next-batch -o json
-  IF batch is empty: BREAK (all done)
+1. Preview the execution plan:
+   wxcli cucm dry-run
 
-  Show: "Batch: [batch name], Tier [N], [count] operations"
+2. Show the admin the dry-run summary (operations, batches, estimated time).
+   Get explicit confirmation to proceed.
 
-  FOR EACH operation in batch:
-    1. Show progress:
-       "Step [N/M]: [op_type] [resource_type] — [description]"
+3. Execute:
+   wxcli cucm execute --concurrency 20
 
-    2. Read the operation's resource_type and op_type
+   This runs all pending operations using async concurrent API calls.
+   Progress is printed per-batch. Failed operations are recorded in the DB.
 
-    3. **Invoke the domain skill using the Skill tool.** Look up the skill name
-       from the dispatch table below, then call:
-       ```
-       Skill("provision-calling")   # for locations, users, workspaces
-       Skill("configure-features")  # for HG, CQ, AA, parks, pickups, schedules
-       Skill("configure-routing")   # for trunks, route groups, dial plans
-       Skill("manage-devices")      # for devices
-       Skill("manage-call-settings") # for user/workspace settings
-       ```
-       The domain skill loads its full execution knowledge — CLI commands,
-       gotchas, prerequisites, multi-step sequences. This is NOT optional.
-       Do NOT manually construct wxcli commands. The skill handles it.
+4. Check results:
+   wxcli cucm execution-status -o json
 
-    4. With the domain skill loaded, tell it what to create using the
-       operation data:
-       - Pass the canonical data fields as the resource properties
-       - Pass resolved_deps for any dependency IDs (e.g., location Webex ID)
-       - For user:create, also pass CALLING_LICENSE_ID
-       - The domain skill will build and execute the correct CLI command(s)
+5. IF all completed → proceed to Step 5 (report)
 
-       **IMPORTANT:** Always pass ALL non-null fields from the canonical data to the
-       domain skill. Do not omit fields because they seem optional — the domain skill
-       decides what's needed. Common fields that MUST be passed when present:
-       - `trunk_type` for trunks (REGISTERING or CERTIFICATE_BASED)
-       - `business_schedule` for auto attendants (schedule name)
-       - `schedule_type` for schedules (businessHours or holidays)
-       - `location_id` for location-scoped resources
+6. IF failures exist:
+   Show failure summary to admin.
+   FOR EACH failed operation:
+     Read the error message from execution-status
+     Load the appropriate domain skill (from the dispatch table below)
+     Diagnose the failure using the domain skill's knowledge
+     Present options: fix+retry | skip | rollback
 
-    5. Capture the Webex resource ID from the domain skill's output
+   After all failures resolved:
+     wxcli cucm retry-failed    # resets failed ops to pending
+     wxcli cucm execute          # picks up remaining ops
 
-    6. Record the result:
-       wxcli cucm mark-complete [node_id] --webex-id [captured_id]
-       OR
-       wxcli cucm mark-failed [node_id] --error "[error message]"
-
-  After each batch, verify key resources:
-    wxcli locations show [id] --output json
-    wxcli users show [id] --output json
-    [etc.]
+   Repeat until execution-status shows 0 failed, 0 pending.
 ```
 
 ### Skill Dispatch Table
@@ -255,6 +286,37 @@ This table is the PRIMARY execution mechanism. The pipeline says WHAT. The domai
 | virtual_line | configure | manage-call-settings | Virtual line settings |
 | calling_permission | create | manage-call-settings | Logical grouping — no standalone API |
 | calling_permission | assign | manage-call-settings | Per-user outgoing permission PUT |
+
+### Rollback Dispatch Table
+
+Use `wxcli cucm rollback-ops` (or `--batch <name>` for a single batch) to get the list.
+Each entry includes resource_type, webex_id, location_webex_id, and canonical data.
+
+Delete in the order returned (reverse tier: features → devices → users → routing → locations).
+
+| resource_type | Delete Command Pattern | Notes |
+|---|---|---|
+| paging_group | `wxcli paging-group delete <location_webex_id> <webex_id> --force` | |
+| pickup_group | `wxcli call-pickup delete <location_webex_id> <webex_id> --force` | |
+| call_park | `wxcli call-park delete <location_webex_id> <webex_id> --force` | |
+| auto_attendant | `wxcli auto-attendant delete <location_webex_id> <webex_id> --force` | |
+| call_queue | `wxcli call-queue delete <location_webex_id> <webex_id> --force` | |
+| hunt_group | `wxcli hunt-group delete <location_webex_id> <webex_id> --force` | |
+| schedule | `wxcli location-call-settings-schedules delete <location_webex_id> <schedule_type> <webex_id> --force` | schedule_type from canonical data (businessHours or holidays) |
+| operating_mode | `wxcli operating-modes delete <webex_id> --force` | Org-wide |
+| device | `wxcli devices delete <webex_id> --force` | No location needed |
+| workspace | `wxcli workspaces delete <webex_id> --force` | Deletes associated device too |
+| user | `wxcli users delete <webex_id> --force` | Releases number + license |
+| translation_pattern | `wxcli call-routing delete-translation-patterns-call-routing <webex_id> --force` | Org-level |
+| dial_plan | `wxcli call-routing delete <webex_id> --force` | Remove patterns first |
+| route_group | `wxcli call-routing delete-route-groups <webex_id> --force` | Remove from dial plans first |
+| trunk | `wxcli call-routing delete-trunks <webex_id> --force` | Remove from route groups first |
+| location | `wxcli locations delete <webex_id> --force` | Must be empty first |
+
+**IMPORTANT:** Before deleting locations, verify all users/devices/features at that location
+are already deleted. Before deleting trunks, verify no route groups reference them. Before
+deleting schedules, verify no auto attendants reference them. The reverse tier ordering
+handles this naturally — only override if an op was skipped.
 
 ### Delegation examples
 
