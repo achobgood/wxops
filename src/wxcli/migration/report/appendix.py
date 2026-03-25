@@ -10,7 +10,6 @@ One public function: ``generate_appendix(store) -> str``.
 from __future__ import annotations
 
 import html
-import json
 from collections import defaultdict
 from typing import Any
 
@@ -158,37 +157,34 @@ def _location_breakdown(store: MigrationStore) -> list[tuple[str, int, int]]:
     if not locations:
         return []
 
+    # Build user location lookup once: {canonical_id: location_id}
+    all_users = store.get_objects("user")
+    user_locations: dict[str, str] = {
+        u.get("canonical_id", ""): u.get("location_id", "")
+        for u in all_users
+    }
+
+    # Count users per location
+    user_counts: dict[str, int] = defaultdict(int)
+    for loc_id in user_locations.values():
+        if loc_id:
+            user_counts[loc_id] += 1
+
+    # Count devices per location via owner lookup
+    all_devices = store.get_objects("device")
+    device_counts: dict[str, int] = defaultdict(int)
+    for d in all_devices:
+        owner = d.get("owner_canonical_id", "")
+        if owner:
+            owner_loc = user_locations.get(owner, "")
+            if owner_loc:
+                device_counts[owner_loc] += 1
+
     result: list[tuple[str, int, int]] = []
     for loc in locations:
         loc_id = loc.get("canonical_id", "")
         loc_name = loc.get("name", loc_id)
-
-        # Count users at this location
-        user_rows = store.conn.execute(
-            "SELECT COUNT(*) as cnt FROM objects WHERE object_type = 'user' AND location_id = ?",
-            (loc_id,),
-        ).fetchone()
-        user_ct = user_rows["cnt"] if user_rows else 0
-
-        # Count devices at this location (devices don't have location_id directly;
-        # they link to users via owner_canonical_id, so count via data JSON)
-        device_rows = store.conn.execute(
-            "SELECT data FROM objects WHERE object_type = 'device'"
-        ).fetchall()
-        device_ct = 0
-        for dr in device_rows:
-            d = json.loads(dr["data"])
-            owner = d.get("owner_canonical_id", "")
-            if owner:
-                # Check if owner is in this location
-                owner_row = store.conn.execute(
-                    "SELECT location_id FROM objects WHERE canonical_id = ?",
-                    (owner,),
-                ).fetchone()
-                if owner_row and owner_row["location_id"] == loc_id:
-                    device_ct += 1
-
-        result.append((loc_name, user_ct, device_ct))
+        result.append((loc_name, user_counts.get(loc_id, 0), device_counts.get(loc_id, 0)))
 
     return result
 
@@ -446,7 +442,7 @@ def _user_device_line_map(store: MigrationStore) -> str:
                 dn_obj = store.get_object(dn_id)
                 dn_label = dn_id
                 if dn_obj:
-                    dn_label = dn_obj.get("pattern", dn_obj.get("extension", dn_id))
+                    dn_label = dn_obj.get("cucm_pattern", dn_obj.get("extension", dn_id))
 
                 # Follow DN -> partition
                 pt_refs = store.get_cross_refs(from_id=dn_id, relationship="dn_in_partition")
@@ -601,16 +597,12 @@ def _voicemail_analysis(store: MigrationStore) -> str:
 def _data_coverage(store: MigrationStore) -> str:
     """Report on data collection coverage from the journal table."""
     # Check journal for any entries
-    journal_count = store.conn.execute(
-        "SELECT COUNT(*) as cnt FROM journal"
-    ).fetchone()["cnt"]
+    journal_count = store.get_journal_count()
 
     # Check for error entries specifically
     error_count = 0
     if journal_count > 0:
-        error_count = store.conn.execute(
-            "SELECT COUNT(*) as cnt FROM journal WHERE entry_type = 'error'"
-        ).fetchone()["cnt"]
+        error_count = store.get_journal_count(entry_type="error")
 
     # Always emit this section to give confidence about data quality
     lines = [
@@ -627,16 +619,13 @@ def _data_coverage(store: MigrationStore) -> str:
         lines.append(f'  <p>{journal_count} journal entries recorded.</p>')
         if error_count > 0:
             lines.append(f'  <p><strong>{error_count} error(s)</strong> during collection:</p>')
-            error_rows = store.conn.execute(
-                "SELECT canonical_id, resource_type, response FROM journal "
-                "WHERE entry_type = 'error' LIMIT 50"
-            ).fetchall()
+            error_entries = store.get_journal_entries(entry_type="error", limit=50)
             lines.append('  <ul>')
-            for row in error_rows:
+            for entry in error_entries:
                 lines.append(
-                    f'    <li>{_esc(row["resource_type"])}: '
-                    f'{_esc(row["canonical_id"])} — '
-                    f'{_esc(row["response"] or "no details")}</li>'
+                    f'    <li>{_esc(entry["resource_type"])}: '
+                    f'{_esc(entry["canonical_id"])} — '
+                    f'{_esc(entry.get("response") or "no details")}</li>'
                 )
             lines.append('  </ul>')
         else:

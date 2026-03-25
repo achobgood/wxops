@@ -666,6 +666,41 @@ class MigrationStore:
         )
         self.conn.commit()
 
+    def get_journal_count(self, entry_type: str | None = None) -> int:
+        """Count journal entries, optionally filtered by entry_type."""
+        if entry_type:
+            row = self.conn.execute(
+                "SELECT COUNT(*) as cnt FROM journal WHERE entry_type = ?",
+                (entry_type,),
+            ).fetchone()
+        else:
+            row = self.conn.execute(
+                "SELECT COUNT(*) as cnt FROM journal"
+            ).fetchone()
+        return row["cnt"]
+
+    def get_journal_entries(
+        self,
+        entry_type: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        """Get journal entries, optionally filtered by entry_type.
+
+        Returns list of dicts with keys: entry_id, timestamp, entry_type,
+        canonical_id, resource_type, request, response, pre_state.
+        """
+        if entry_type:
+            sql = "SELECT * FROM journal WHERE entry_type = ?"
+            params: tuple[Any, ...] = (entry_type,)
+        else:
+            sql = "SELECT * FROM journal"
+            params = ()
+        if limit:
+            sql += " LIMIT ?"
+            params = (*params, limit)
+        rows = self.conn.execute(sql, params).fetchall()
+        return [dict(r) for r in rows]
+
     # ------------------------------------------------------------------
     # Merge log
     # ------------------------------------------------------------------

@@ -1,8 +1,4 @@
 """End-to-end test: collector file -> pipeline -> report."""
-import json
-import gzip
-import pytest
-from pathlib import Path
 
 
 class TestEndToEnd:
@@ -10,38 +6,22 @@ class TestEndToEnd:
         """Ingest -> normalize -> map -> analyze -> report should produce valid HTML."""
         from wxcli.migration.report.ingest import ingest_collector_file
         from wxcli.migration.store import MigrationStore
+        from wxcli.migration.transform.pipeline import normalize_discovery
+        from wxcli.migration.transform.engine import TransformEngine
+        from wxcli.migration.transform.analysis_pipeline import AnalysisPipeline
 
         # 1. Ingest collector file
-        raw_data = ingest_collector_file(sample_collector_file)
+        raw_data, _metadata = ingest_collector_file(sample_collector_file)
 
         # 2. Store + normalize (pass 1 + pass 2)
         store = MigrationStore(tmp_path / "e2e.db")
-
-        try:
-            from wxcli.migration.transform.pipeline import normalize_discovery
-            normalize_discovery(raw_data, store)
-        except Exception as exc:
-            pytest.skip(
-                f"normalize_discovery failed on minimal collector data (pre-existing): {exc}"
-            )
+        normalize_discovery(raw_data, store)
 
         # 3. Map (creates canonical objects with compatibility_tier, etc.)
-        try:
-            from wxcli.migration.transform.engine import TransformEngine
-            TransformEngine().run(store)
-        except Exception as exc:
-            pytest.skip(
-                f"TransformEngine failed on minimal collector data (pre-existing): {exc}"
-            )
+        TransformEngine().run(store)
 
         # 4. Analyze
-        try:
-            from wxcli.migration.transform.analysis_pipeline import AnalysisPipeline
-            AnalysisPipeline().run(store)
-        except Exception as exc:
-            pytest.skip(
-                f"AnalysisPipeline failed on minimal collector data (pre-existing): {exc}"
-            )
+        AnalysisPipeline().run(store)
 
         # 5. Generate report
         from wxcli.migration.report.assembler import assemble_report

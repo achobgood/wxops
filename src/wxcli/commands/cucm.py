@@ -409,10 +409,18 @@ def discover(
         t0 = time.time()
 
         try:
-            raw_data = ingest_collector_file(file_path)
+            raw_data, metadata = ingest_collector_file(file_path)
         except ValueError as exc:
             console.print(f"[red]Invalid collector file:[/red] {exc}")
             raise typer.Exit(1)
+
+        # Save collector metadata (cucm_version, cluster_name) to project config
+        from wxcli.commands.cucm_config import load_config, save_config
+
+        cfg = load_config(project_dir)
+        cfg["cucm_version"] = metadata.get("cucm_version", "")
+        cfg["cluster_name"] = metadata.get("cluster_name", "")
+        save_config(project_dir, cfg)
 
         # Persist raw_data for the normalize command
         raw_data_path = project_dir / "raw_data.json"

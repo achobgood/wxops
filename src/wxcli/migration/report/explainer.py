@@ -19,14 +19,13 @@ def _with_summary(summary: str, continuation: str) -> str:
 
 def _reassurance_for_severity(severity: str) -> str:
     """Return reassurance text appropriate for the severity level."""
-    sev = severity.upper()
+    sev = (severity or "").upper()
     if sev == "CRITICAL":
         return "This must be resolved before migration but the options are clear."
     if sev == "HIGH":
         return "This requires planning but has well-defined resolution options."
-    if sev in ("LOW", "MEDIUM"):
-        return "This is a configuration choice, not a limitation."
-    raise ValueError(f"Unknown severity: {severity!r}")
+    # LOW, MEDIUM, or any unexpected value — degrade gracefully
+    return "This is a configuration choice, not a limitation."
 
 
 def _explain_extension_conflict(
