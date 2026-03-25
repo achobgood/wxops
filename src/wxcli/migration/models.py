@@ -240,6 +240,11 @@ class CanonicalTrunk(MigrationObject):
     dual_identity_support_enabled: bool | None = None
     device_type: str | None = None          # immutable after creation
     p_charge_info_support_policy: str | None = None
+    # SIP/Security profile detail (from Tier 2 expansion)
+    sip_profile_early_offer: bool | None = None
+    sip_profile_srtp_fallback: bool | None = None
+    security_mode: str | None = None          # NON_SECURE, TLS, IPSEC
+    security_digest_auth: bool | None = None
 
 
 class CanonicalRouteGroup(MigrationObject):
