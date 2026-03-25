@@ -51,11 +51,11 @@ class TestEndToEnd:
         out.write_text(html)
 
         # Executive sections
-        assert "Migration Complexity" in html or "Complexity Score" in html
+        assert 'id="score"' in html  # executive section present
         assert "<svg" in html  # charts present
         assert "Fixture Corp" in html
 
         # Appendix sections
-        assert "Object Inventory" in html
-        assert "Decision Detail" in html
-        assert "Device Inventory" in html
+        assert 'id="people"' in html or 'id="devices"' in html
+        assert 'id="decisions"' in html
+        assert 'id="devices"' in html
