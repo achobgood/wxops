@@ -31,6 +31,31 @@ Unchanged from v1 spec. The report is a pre-sales deliverable designed to:
 
 Target audience ranges from CIO (reads pages 1-4) to telecom engineer (reads the technical reference). The report must serve both without making either feel talked down to or overwhelmed.
 
+## Design Rationale
+
+These decisions were made during a brainstorming session reviewing the v1 report output. They drive every structural choice below.
+
+### Audience & Delivery
+
+- **Primary decision this report drives:** Approve a detailed migration planning engagement (not a direct sale, not a quote request). The report is a pre-sales assessment, not a Statement of Work.
+- **Delivery mode:** Both. SE hands a printed/PDF copy to the IT Director in a meeting AND emails it as a standalone leave-behind. Every section must be scannable enough for a 5-minute live walkthrough but complete enough that someone reading it cold at 9pm still gets it.
+- **Reader range:** From CIO ("give me the bottom line") to telecom engineer ("show me the CSS partition mappings"). The two-tier structure (executive + technical reference) serves both, but they must be visually distinct so neither audience feels lost in the other's content.
+
+### Why Hybrid (Approach C)
+
+Three approaches were evaluated:
+- **A) Narrative Arc:** Strong story for the meeting, but appendix stays a data dump. Doesn't serve the engineer reading alone.
+- **B) Dashboard + Drilldown:** Great interactive experience, but prints poorly (collapsing panels don't linearize). Feels like a tool, not a deliverable.
+- **C) Hybrid:** A's narrative executive + B's drilldown appendix. Most work, but only approach that serves dual-audience AND dual-delivery.
+
+### Why Effort Bands Replace Severity Grouping
+
+The v1 report grouped decisions by pipeline severity (auto-resolved / decisions needed / critical). This is meaningless to a customer — "67 auto-resolved, 0 decisions, 0 critical" looks like "nothing to do" when in fact 16 of those auto-resolved items should be verified during planning. Effort bands (Automatic / Needs Planning / Manual Work) map to what the customer cares about: what happens on its own, what needs their team's attention, and what costs money.
+
+### Design Persona
+
+This report is designed from the perspective of a migration consulting practice lead — someone who has delivered 50+ assessments and knows what makes a customer say "let's go" vs "let me think about it." The visual design serves the content, not the other way around.
+
 ## Approach
 
 **Hybrid: Narrative Executive + Technical Reference**
