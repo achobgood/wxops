@@ -137,6 +137,7 @@ The migration tool is at `src/wxcli/migration/` and wired into the CLI as `wxcli
 | `src/wxcli/migration/execute/` | Phase 07 — planner.py, dependency.py (NetworkX DAG), batch.py |
 | `src/wxcli/migration/export/` | Phase 09 — command_builder.py (27 op→wxcli mappings), deployment_plan.py, json/csv exports |
 | `src/wxcli/migration/preflight/` | Phase 10 — checks.py (8 preflight checks), runner.py (orchestrator), CLI `wxcli cucm preflight` |
+| `src/wxcli/migration/report/` | Assessment report generator — complexity score, SVG charts, executive summary + appendix → HTML/PDF. See its CLAUDE.md. |
 | `.claude/skills/cucm-migrate/SKILL.md` | Phase 11 — 6-step execution skill: preflight → plan summary → batch execute → delegate → report |
 
 **Where the design spec and pipeline architecture docs conflict, the pipeline architecture docs are authoritative.**
@@ -145,6 +146,8 @@ Each subdirectory has its own CLAUDE.md (local context) and TODO.md (outstanding
 See `docs/plans/cucm-migration-roadmap.md` for the master project status.
 
 **To run a migration:** `wxcli cucm init` → `discover` → `normalize` → `map` → `analyze` → `decisions` → `plan` → `preflight` → `export` → then invoke `/cucm-migrate`.
+
+**To generate an assessment report:** `wxcli cucm init` → `discover` (or `discover --from-file`) → `normalize` → `map` → `analyze` → `report --brand "..." --prepared-by "..."`. Does not require plan/preflight/export — the report reads directly from the post-analyze store.
 
 ### Tools
 
