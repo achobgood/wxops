@@ -12,6 +12,11 @@ from __future__ import annotations
 from typing import Any
 
 
+def _with_summary(summary: str, continuation: str) -> str:
+    """Prefix with summary sentence if non-empty."""
+    return f"{summary}. {continuation}" if summary else continuation
+
+
 def _reassurance_for_severity(severity: str) -> str:
     """Return reassurance text appropriate for the severity level."""
     sev = severity.upper()
@@ -19,8 +24,9 @@ def _reassurance_for_severity(severity: str) -> str:
         return "This must be resolved before migration but the options are clear."
     if sev == "HIGH":
         return "This requires planning but has well-defined resolution options."
-    # LOW or MEDIUM
-    return "This is a configuration choice, not a limitation."
+    if sev in ("LOW", "MEDIUM"):
+        return "This is a configuration choice, not a limitation."
+    raise ValueError(f"Unknown severity: {severity!r}")
 
 
 def _explain_extension_conflict(
@@ -37,9 +43,10 @@ def _explain_extension_conflict(
             "alternatives the others receive."
         )
     else:
-        explanation = (
-            f"{summary}. Webex Calling requires each extension to be unique within "
-            "a location. During planning, you'll assign unique extensions where needed."
+        explanation = _with_summary(
+            summary,
+            "Webex Calling requires each extension to be unique within "
+            "a location. During planning, you'll assign unique extensions where needed.",
         )
     return {"title": title, "explanation": explanation, "reassurance": _reassurance_for_severity(severity)}
 
@@ -56,9 +63,10 @@ def _explain_dn_ambiguous(
             "than partitions. You'll choose how to consolidate during planning."
         )
     else:
-        explanation = (
-            f"{summary}. In Webex Calling, numbers are scoped to locations rather than "
-            "partitions. You'll choose how to consolidate during planning."
+        explanation = _with_summary(
+            summary,
+            "In Webex Calling, numbers are scoped to locations rather than "
+            "partitions. You'll choose how to consolidate during planning.",
         )
     return {"title": title, "explanation": explanation, "reassurance": _reassurance_for_severity(severity)}
 
@@ -81,9 +89,10 @@ def _explain_device_incompatible(
             f"These devices will need to be replaced with {recommended}."
         )
     else:
-        explanation = (
-            f"{summary}. Incompatible phones will need to be replaced with "
-            f"{recommended}."
+        explanation = _with_summary(
+            summary,
+            f"Incompatible phones will need to be replaced with "
+            f"{recommended}.",
         )
     return {"title": title, "explanation": explanation, "reassurance": _reassurance_for_severity(severity)}
 
@@ -106,9 +115,10 @@ def _explain_device_firmware_convertible(
             "upgrade. No hardware replacement is needed."
         )
     else:
-        explanation = (
-            f"{summary}. These phones can be converted with a firmware upgrade — "
-            "no hardware replacement is needed."
+        explanation = _with_summary(
+            summary,
+            "These phones can be converted with a firmware upgrade — "
+            "no hardware replacement is needed.",
         )
     return {"title": title, "explanation": explanation, "reassurance": _reassurance_for_severity(severity)}
 
@@ -127,9 +137,10 @@ def _explain_shared_line_complex(
             "you'll choose the best approach during planning."
         )
     else:
-        explanation = (
-            f"{summary}. Webex handles shared lines through Virtual Lines or "
-            "Shared Line Appearance — you'll choose the best approach during planning."
+        explanation = _with_summary(
+            summary,
+            "Webex handles shared lines through Virtual Lines or "
+            "Shared Line Appearance — you'll choose the best approach during planning.",
         )
     return {"title": title, "explanation": explanation, "reassurance": _reassurance_for_severity(severity)}
 
@@ -150,10 +161,11 @@ def _explain_css_routing_mismatch(
             "instead. During planning, you'll choose how to map these restrictions."
         )
     else:
-        explanation = (
-            f"{summary}. Webex Calling uses flat org-wide routing instead of "
+        explanation = _with_summary(
+            summary,
+            "Webex Calling uses flat org-wide routing instead of "
             "partition-based calling search spaces. During planning, you'll choose "
-            "how to map these restrictions."
+            "how to map these restrictions.",
         )
     return {"title": title, "explanation": explanation, "reassurance": _reassurance_for_severity(severity)}
 
@@ -171,9 +183,10 @@ def _explain_calling_permission_mismatch(
             "model differs, so you'll choose the closest match during planning."
         )
     else:
-        explanation = (
-            f"{summary}. Webex Calling uses a different permission model for outgoing "
-            "calls. You'll choose the closest match during planning."
+        explanation = _with_summary(
+            summary,
+            "Webex Calling uses a different permission model for outgoing "
+            "calls. You'll choose the closest match during planning.",
         )
     return {"title": title, "explanation": explanation, "reassurance": _reassurance_for_severity(severity)}
 
@@ -190,9 +203,10 @@ def _explain_location_ambiguous(
             f"{', '.join(candidates)}. You'll confirm the correct mapping during planning."
         )
     else:
-        explanation = (
-            f"{summary}. The system couldn't automatically determine which Webex "
-            "location to assign. You'll confirm the correct mapping during planning."
+        explanation = _with_summary(
+            summary,
+            "The system couldn't automatically determine which Webex "
+            "location to assign. You'll confirm the correct mapping during planning.",
         )
     return {"title": title, "explanation": explanation, "reassurance": _reassurance_for_severity(severity)}
 
@@ -210,9 +224,10 @@ def _explain_duplicate_user(
             "to keep and how to merge the settings."
         )
     else:
-        explanation = (
-            f"{summary}. Webex Calling requires a single identity per person. "
-            "You'll choose how to consolidate during planning."
+        explanation = _with_summary(
+            summary,
+            "Webex Calling requires a single identity per person. "
+            "You'll choose how to consolidate during planning.",
         )
     return {"title": title, "explanation": explanation, "reassurance": _reassurance_for_severity(severity)}
 
@@ -229,10 +244,11 @@ def _explain_voicemail_incompatible(
             "Webex's built-in voicemail or a third-party voicemail system during planning."
         )
     else:
-        explanation = (
-            f"{summary}. Some Unity Connection voicemail features are not available "
+        explanation = _with_summary(
+            summary,
+            "Some Unity Connection voicemail features are not available "
             "in Webex Calling's built-in voicemail. You'll choose the best voicemail "
-            "approach during planning."
+            "approach during planning.",
         )
     return {"title": title, "explanation": explanation, "reassurance": _reassurance_for_severity(severity)}
 
@@ -251,10 +267,11 @@ def _explain_workspace_license_tier(
             "tier during planning."
         )
     else:
-        explanation = (
-            f"{summary}. Webex Calling workspaces come in Basic and Professional "
+        explanation = _with_summary(
+            summary,
+            "Webex Calling workspaces come in Basic and Professional "
             "tiers with different feature sets. You'll confirm the right tier "
-            "during planning."
+            "during planning.",
         )
     return {"title": title, "explanation": explanation, "reassurance": _reassurance_for_severity(severity)}
 
@@ -271,9 +288,10 @@ def _explain_workspace_type_uncertain(
             "use automatically. You'll confirm during planning."
         )
     else:
-        explanation = (
-            f"{summary}. The system couldn't determine whether this should be a "
-            "personal device or a shared workspace. You'll confirm during planning."
+        explanation = _with_summary(
+            summary,
+            "The system couldn't determine whether this should be a "
+            "personal device or a shared workspace. You'll confirm during planning.",
         )
     return {"title": title, "explanation": explanation, "reassurance": _reassurance_for_severity(severity)}
 
@@ -290,9 +308,10 @@ def _explain_hotdesk_dn_conflict(
             "you'll choose how to resolve the overlap during planning."
         )
     else:
-        explanation = (
-            f"{summary}. Webex Calling handles hot-desking differently from CUCM's "
-            "Extension Mobility. You'll choose how to resolve any overlaps during planning."
+        explanation = _with_summary(
+            summary,
+            "Webex Calling handles hot-desking differently from CUCM's "
+            "Extension Mobility. You'll choose how to resolve any overlaps during planning.",
         )
     return {"title": title, "explanation": explanation, "reassurance": _reassurance_for_severity(severity)}
 
@@ -309,9 +328,10 @@ def _explain_feature_approximation(
             f"match is {webex_feature}, which handles most of the same use cases."
         )
     else:
-        explanation = (
-            f"{summary}. The CUCM feature doesn't have a direct Webex equivalent, "
-            "but a close match is available that handles most of the same use cases."
+        explanation = _with_summary(
+            summary,
+            "The CUCM feature doesn't have a direct Webex equivalent, "
+            "but a close match is available that handles most of the same use cases.",
         )
     return {"title": title, "explanation": explanation, "reassurance": _reassurance_for_severity(severity)}
 
@@ -329,9 +349,10 @@ def _explain_missing_data(
             "provide it manually or re-run the discovery."
         )
     else:
-        explanation = (
-            f"{summary}. Some configuration data was not found in the CUCM export. "
-            "You may need to provide it manually or re-run the discovery."
+        explanation = _with_summary(
+            summary,
+            "Some configuration data was not found in the CUCM export. "
+            "You may need to provide it manually or re-run the discovery.",
         )
     return {"title": title, "explanation": explanation, "reassurance": _reassurance_for_severity(severity)}
 
@@ -348,10 +369,11 @@ def _explain_number_conflict(
             "either by releasing the existing assignment or choosing a different number."
         )
     else:
-        explanation = (
-            f"{summary}. A phone number is already assigned in Webex Calling. "
+        explanation = _with_summary(
+            summary,
+            "A phone number is already assigned in Webex Calling. "
             "You'll resolve the conflict before migration by releasing the existing "
-            "assignment or choosing a different number."
+            "assignment or choosing a different number.",
         )
     return {"title": title, "explanation": explanation, "reassurance": _reassurance_for_severity(severity)}
 
@@ -368,9 +390,10 @@ def _explain_architecture_advisory(
             "observation about your deployment that may influence your migration approach."
         )
     else:
-        explanation = (
-            f"{summary}. This is an architectural observation about your deployment "
-            "that may influence your migration approach."
+        explanation = _with_summary(
+            summary,
+            "This is an architectural observation about your deployment "
+            "that may influence your migration approach.",
         )
     return {"title": title, "explanation": explanation, "reassurance": _reassurance_for_severity(severity)}
 
@@ -414,6 +437,7 @@ def explain_decision(
     Returns:
         Dict with keys "title", "explanation", "reassurance".
     """
+    summary = summary or ""  # ensure string
     template_fn = _TEMPLATES.get(decision_type)
     if template_fn is None:
         # Fallback for unknown decision types
