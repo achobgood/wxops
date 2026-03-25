@@ -13,6 +13,13 @@
 **Prerequisite:** Phase A complete (`ingest.py`, `score.py`, test fixtures in `conftest.py`)
 **Next phase:** `docs/superpowers/plans/2026-03-24-cucm-assess-phase-c.md` (executive + appendix + assembler + CLI)
 
+## Notes from Phase A (read before implementing)
+
+1. **`ScoreResult` is a dataclass**, not a dict — import from `wxcli.migration.report.score`. Fields: `.score`, `.label`, `.color`, `.factors` (list of dicts with keys `name`, `weight`, `raw_score`, `weighted_score`, `detail`).
+2. **Device `compatibility_tier` is a lowercase string** in store dicts, not the enum — values are `"native_mpp"`, `"convertible"`, `"incompatible"`. The `get_objects()` method returns deserialized dicts, not Pydantic models.
+3. **CSS and partition are intermediate object types** — they use the `canonical_id` prefix convention for type detection: `css:CSS-Internal`, `partition:PT-Internal`. Query with `store.count_by_type("css")` / `store.get_objects("css")`.
+4. **The `populated_store` fixture** is in `tests/migration/report/conftest.py` and is automatically available to all Phase B tests in the same directory — no import needed.
+
 ---
 
 ## File Map
