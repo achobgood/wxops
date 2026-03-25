@@ -143,7 +143,7 @@ class Decision(BaseModel):
     (from 01-data-representation.md, decisions table lines 63-77)
     """
     decision_id: str                    # Auto-incrementing via store.next_decision_id()
-    type: DecisionType                  # Enum of 15 decision types
+    type: DecisionType                  # Enum of 20 decision types
     severity: str                       # "LOW", "MEDIUM", "HIGH", "CRITICAL"
     summary: str                        # Human-readable one-liner
     context: dict[str, Any]             # JSON blob with full details

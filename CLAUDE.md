@@ -125,19 +125,19 @@ The migration tool is at `src/wxcli/migration/` and wired into the CLI as `wxcli
 | `docs/plans/cucm-pipeline/01-07 + 03b` | 8 detailed architecture docs |
 | `src/wxcli/commands/cucm.py` | Phases 08+10 — CLI: 13 commands (init, discover, normalize, map, analyze, plan, preflight, decisions, decide, export, inventory, status, config) |
 | `src/wxcli/commands/cucm_config.py` | Phase 08 — Config management helpers |
-| `src/wxcli/migration/models.py` | Canonical data models — 20 types, DecisionType (16 values), Decision, MapperResult, TransformResult |
+| `src/wxcli/migration/models.py` | Canonical data models — 23 types, DecisionType (20 values), Decision, MapperResult, TransformResult |
 | `src/wxcli/migration/store.py` | SQLite-backed store — objects, cross_refs, decisions, journal, merge_log, merge_decisions() |
 | `src/wxcli/migration/cucm/` | Phase 03 — AXL connection, 8 extractors, discovery pipeline |
 | `src/wxcli/migration/transform/normalizers.py` | Phase 04 — 24 Pass 1 normalizers |
 | `src/wxcli/migration/transform/cross_reference.py` | Phase 04 — CrossReferenceBuilder (26 relationships + 3 enrichments) |
 | `src/wxcli/migration/transform/pipeline.py` | Phase 04 — `normalize_discovery()` entry point |
-| `src/wxcli/migration/transform/mappers/` | Phase 05 — 9 mappers + base.py + engine.py |
+| `src/wxcli/migration/transform/mappers/` | Phase 05 — 11 mappers + base.py + engine.py (9 original + call_forwarding_mapper + monitoring_mapper) |
 | `src/wxcli/migration/transform/analyzers/` | Phase 06 — 12 analyzers (3 analyzer-owned + 9 mapper-owned) |
 | `src/wxcli/migration/transform/analysis_pipeline.py` | Phase 06 — Orchestrator: run analyzers → merge → auto-rules + resolve_and_cascade() |
 | `src/wxcli/migration/execute/` | Phase 07 — planner.py, dependency.py (NetworkX DAG), batch.py |
-| `src/wxcli/migration/export/` | Phase 09 — command_builder.py (27 op→wxcli mappings), deployment_plan.py, json/csv exports |
+| `src/wxcli/migration/export/` | Phase 09 — deployment_plan.py, json/csv exports (command_builder.py removed in Phase 12b) |
 | `src/wxcli/migration/preflight/` | Phase 10 — checks.py (8 preflight checks), runner.py (orchestrator), CLI `wxcli cucm preflight` |
-| `src/wxcli/migration/advisory/` | Phase 13 — Advisory system: per-decision recommendations (16 rules) + cross-cutting advisor (16 patterns) |
+| `src/wxcli/migration/advisory/` | Phase 13 — Advisory system: per-decision recommendations (19 rules) + cross-cutting advisor (16 patterns) |
 | `src/wxcli/migration/report/` | Assessment report generator — complexity score, SVG charts, executive summary + appendix → HTML/PDF. See its CLAUDE.md. |
 | `.claude/skills/cucm-migrate/SKILL.md` | Phase 11 — 6-step execution skill: preflight → plan summary → batch execute → delegate → report |
 
