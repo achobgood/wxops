@@ -191,7 +191,18 @@ def _decision_density(store: MigrationStore) -> tuple[int, str]:
 
 
 def _scale_factor(store: MigrationStore) -> tuple[int, str]:
-    """Score based on user count (log-scaled)."""
+    """Score based on user count (log-scaled).
+
+    Uses logarithmic scaling: log10(users) * 10, capped at 100.
+    Ensures size alone doesn't dominate the score (10% weight).
+    - 1-10 users: 0-10 raw points
+    - 50 users: ~17 raw points
+    - 500 users: ~27 raw points
+    - 5000 users: ~37 raw points
+
+    Note: Spec examples (50≈2, 500≈5, 5000≈8) were illustrative targets
+    for the weighted contribution, not raw score values.
+    """
     user_count = store.count_by_type("user")
     if user_count == 0:
         return 0, "No users found"

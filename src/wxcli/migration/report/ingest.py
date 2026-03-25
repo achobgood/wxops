@@ -19,34 +19,34 @@ REQUIRED_KEYS = {"collector_version", "cucm_version", "cluster_name", "collected
 # Source: discovery.py lines 60-70 (DiscoveryResult.raw_data contract).
 COLLECTOR_TO_RAW_DATA_MAP: dict[str, tuple[str, str]] = {
     # locations group
-    "devicePools": ("locations", "device_pools"),
-    "datetimeGroups": ("locations", "datetime_groups"),
-    "cucmLocations": ("locations", "cucm_locations"),
+    "devicePool": ("locations", "device_pools"),
+    "dateTimeGroup": ("locations", "datetime_groups"),
+    "cucmLocation": ("locations", "cucm_locations"),
     # users group
-    "endUsers": ("users", "users"),
+    "endUser": ("users", "users"),
     # devices group
-    "phones": ("devices", "phones"),
+    "phone": ("devices", "phones"),
     # routing group
-    "partitions": ("routing", "partitions"),
-    "cssList": ("routing", "css_list"),
-    "routePatterns": ("routing", "route_patterns"),
-    "gateways": ("routing", "gateways"),
-    "sipTrunks": ("routing", "sip_trunks"),
-    "routeGroups": ("routing", "route_groups"),
-    "routeLists": ("routing", "route_lists"),
-    "translationPatterns": ("routing", "translation_patterns"),
+    "routePartition": ("routing", "partitions"),
+    "css": ("routing", "css_list"),
+    "routePattern": ("routing", "route_patterns"),
+    "gateway": ("routing", "gateways"),
+    "sipTrunk": ("routing", "sip_trunks"),
+    "routeGroup": ("routing", "route_groups"),
+    "routeList": ("routing", "route_lists"),
+    "transPattern": ("routing", "translation_patterns"),
     # features group
-    "huntPilots": ("features", "hunt_pilots"),
-    "huntLists": ("features", "hunt_lists"),
-    "lineGroups": ("features", "line_groups"),
-    "ctiRoutePoints": ("features", "cti_route_points"),
-    "callParks": ("features", "call_parks"),
-    "pickupGroups": ("features", "pickup_groups"),
-    "timeSchedules": ("features", "time_schedules"),
-    "timePeriods": ("features", "time_periods"),
+    "huntPilot": ("features", "hunt_pilots"),
+    "huntList": ("features", "hunt_lists"),
+    "lineGroup": ("features", "line_groups"),
+    "ctiRoutePoint": ("features", "cti_route_points"),
+    "callPark": ("features", "call_parks"),
+    "callPickupGroup": ("features", "pickup_groups"),
+    "timeSchedule": ("features", "time_schedules"),
+    "timePeriod": ("features", "time_periods"),
     # voicemail group
-    "voicemailProfiles": ("voicemail", "voicemail_profiles"),
-    "voicemailPilots": ("voicemail", "voicemail_pilots"),
+    "voicemailProfile": ("voicemail", "voicemail_profiles"),
+    "voicemailPilot": ("voicemail", "voicemail_pilots"),
 }
 
 
