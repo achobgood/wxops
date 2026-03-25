@@ -49,7 +49,7 @@ REPORT_CSS = """\
 
     /* Surfaces */
     --surface:  #ffffff;
-    --page-bg:  #f4f5f7;
+    --page-bg:  #eef0f4;
     --border:       #e5e7eb;
     --border-strong: #d1d5db;
 
@@ -145,31 +145,27 @@ body {
 .sidebar-meta {
     font-size: 0.75rem;
     font-weight: 400;
-    color: rgba(255,255,255,0.5);
-    margin-top: 2px;
+    color: rgba(255,255,255,0.65);
+    margin-top: 4px;
 }
 
-/* Legacy alias for sidebar brand */
-.sidebar-brand {
+/* Sidebar brand — inside .sidebar-header, no extra padding */
+.sidebar-header .sidebar-brand {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    color: #fff;
+    line-height: 1.3;
+    padding: 0;
+    margin-bottom: 0;
+}
+
+/* Legacy: standalone .sidebar-brand (without .sidebar-header parent) */
+.sidebar > .sidebar-brand {
     padding: 0 var(--spacing-lg);
     margin-bottom: var(--spacing-lg);
     font-size: 0.85rem;
     font-weight: 600;
     color: rgba(255,255,255,0.9);
-    letter-spacing: 0.02em;
-}
-
-.sidebar-brand .brand-name {
-    display: block;
-    font-size: 1rem;
-    color: #fff;
-    margin-bottom: 2px;
-}
-
-.sidebar-brand .brand-sub {
-    font-size: 0.7rem;
-    font-weight: 400;
-    color: rgba(255,255,255,0.5);
 }
 
 .sidebar nav {
@@ -200,11 +196,11 @@ body {
     padding-left: calc(var(--spacing-lg) - 3px);
 }
 
-/* Nav dot (new) */
+/* Nav dot indicators */
 .sidebar nav .nav-dot {
     display: inline-block;
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     flex-shrink: 0;
 }
@@ -214,7 +210,8 @@ body {
 }
 
 .sidebar nav .nav-dot.tech {
-    background: rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
 }
 
 /* Nav number (legacy alias) */
@@ -272,10 +269,6 @@ body {
 }
 
 .summary-stat {
-    text-align: center;
-}
-
-.summary-stat {
     display: flex;
     align-items: baseline;
     gap: 0.375rem;
@@ -284,7 +277,7 @@ body {
 .summary-stat .value,
 .summary-stat .stat-value {
     font-family: var(--font-mono);
-    font-size: 1rem;
+    font-size: 1.125rem;
     font-weight: 600;
     color: var(--text-primary);
     font-variant-numeric: tabular-nums;
@@ -292,7 +285,7 @@ body {
 
 .summary-stat .label,
 .summary-stat .stat-label {
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
     color: var(--text-muted);
 }
 
@@ -305,9 +298,9 @@ body {
 }
 
 .detail-panel-content {
-    max-width: 720px;
+    max-width: 960px;
     margin: 0 auto;
-    padding: var(--spacing-xl) var(--spacing-lg);
+    padding: var(--spacing-xl) var(--spacing-xxl);
 }
 
 
@@ -316,7 +309,7 @@ body {
     background: white;
     border-radius: 10px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.06);
-    padding: 2.5rem 3rem;
+    padding: 3rem 3.5rem;
     margin-bottom: var(--spacing-xl);
 }
 
@@ -428,18 +421,25 @@ td.num, th.num {
 }
 
 
-/* -- Score gauge container ------------------------------------------------ */
+/* -- Score layout (gauge + breakdown side by side) ----------------------- */
+.score-layout {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 2rem;
+    align-items: start;
+    margin: var(--spacing-lg) 0;
+}
+
 .score-gauge {
     display: flex;
     justify-content: center;
     align-items: center;
-    margin: var(--spacing-md) auto;
-    max-width: 180px;
 }
 
 .score-gauge svg {
     width: 100%;
     height: auto;
+    max-width: 160px;
 }
 
 
@@ -447,16 +447,15 @@ td.num, th.num {
 .score-breakdown {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    margin: var(--spacing-md) 0;
+    gap: 8px;
 }
 
 .score-breakdown .factor-row {
     display: grid;
-    grid-template-columns: 140px 1fr 40px;
+    grid-template-columns: 140px 1fr 36px;
     align-items: center;
-    gap: 8px;
-    font-size: 0.75rem;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
 }
 
 .score-breakdown .factor-label {
@@ -466,20 +465,20 @@ td.num, th.num {
 }
 
 .score-breakdown .factor-bar {
-    height: 8px;
-    border-radius: 4px;
+    height: 10px;
+    border-radius: 5px;
     background: var(--chart-bg);
     overflow: hidden;
 }
 
 .score-breakdown .factor-fill {
     height: 100%;
-    border-radius: 4px;
+    border-radius: 5px;
 }
 
 .score-breakdown .factor-value {
     font-family: var(--font-mono);
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     font-weight: 600;
     color: var(--text-primary);
     text-align: right;
