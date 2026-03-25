@@ -12,6 +12,11 @@ from wxcli.migration.advisory.recommendation_rules import (
     recommend_duplicate_user,
     recommend_workspace_license_tier,
     recommend_hotdesk_dn_conflict,
+    recommend_device_incompatible,
+    recommend_dn_ambiguous,
+    recommend_extension_conflict,
+    recommend_location_ambiguous,
+    recommend_workspace_type_uncertain,
 )
 
 
@@ -98,3 +103,97 @@ class TestHotdeskDnConflict:
     def test_always_keep_primary(self):
         r = recommend_hotdesk_dn_conflict({}, [])
         assert r[0] == "keep_primary"
+
+
+class TestDeviceIncompatible:
+    def test_7811_recommends_9841(self):
+        r = recommend_device_incompatible({"cucm_model": "7811"}, [])
+        assert r is not None
+        assert r[0] == "replace"
+        assert "9841" in r[1]
+
+    def test_7832_recommends_conference(self):
+        r = recommend_device_incompatible({"cucm_model": "7832"}, [])
+        assert r[0] == "replace"
+        assert "conference" in r[1].lower() or "Room" in r[1]
+
+    def test_unknown_model_returns_none(self):
+        r = recommend_device_incompatible({"cucm_model": "XYZZY_9999"}, [])
+        assert r is None
+
+
+class TestDnAmbiguous:
+    def test_single_owner_assigns(self):
+        r = recommend_dn_ambiguous({"owner_count": 1, "owner_name": "Alice"}, [])
+        assert r[0] == "assign"
+        assert "Alice" in r[1]
+
+    def test_primary_owner_assigns(self):
+        r = recommend_dn_ambiguous({"owner_count": 3, "primary_owner": "Bob"}, [])
+        assert r[0] == "assign"
+        assert "Bob" in r[1]
+
+    def test_no_primary_returns_none(self):
+        r = recommend_dn_ambiguous({"owner_count": 3}, [])
+        assert r is None
+
+
+class TestExtensionConflict:
+    def test_more_appearances_keeps(self):
+        r = recommend_extension_conflict({
+            "ext_a": "1001", "ext_a_appearances": 5, "owner_a": "Alice",
+            "ext_b": "1001", "ext_b_appearances": 2, "owner_b": "Bob",
+        }, [])
+        assert r[0] == "keep_a"
+        assert "Alice" in r[1]
+
+    def test_b_more_appearances(self):
+        r = recommend_extension_conflict({
+            "ext_a": "1001", "ext_a_appearances": 1, "owner_a": "Alice",
+            "ext_b": "1001", "ext_b_appearances": 4, "owner_b": "Bob",
+        }, [])
+        assert r[0] == "keep_b"
+
+    def test_equal_returns_none(self):
+        r = recommend_extension_conflict({
+            "ext_a_appearances": 2, "ext_b_appearances": 2,
+        }, [])
+        assert r is None
+
+
+class TestLocationAmbiguous:
+    def test_same_tz_region_consolidates(self):
+        r = recommend_location_ambiguous({
+            "timezone": "America/Chicago", "region": "US-Central",
+            "site_code": "DAL", "dp_names": ["DP_DAL1", "DP_DAL2"],
+        }, [])
+        assert r[0] == "consolidate"
+
+    def test_different_region_returns_none(self):
+        r = recommend_location_ambiguous({
+            "same_timezone": True, "same_region": False,
+        }, [])
+        assert r is None
+
+    def test_all_match_consolidates(self):
+        r = recommend_location_ambiguous({
+            "timezone": "US/Eastern", "region": "US-East",
+            "site_code": "NYC",
+        }, [])
+        assert r[0] == "consolidate"
+
+
+class TestWorkspaceTypeUncertain:
+    def test_conference_phone_recommends_conference_room(self):
+        r = recommend_workspace_type_uncertain({"cucm_model": "7832"}, [])
+        assert r[0] == "conference_room"
+
+    def test_desk_phone_no_owner_recommends_common_area(self):
+        r = recommend_workspace_type_uncertain(
+            {"cucm_model": "8841", "has_owner": False}, [])
+        assert r[0] == "common_area"
+
+    def test_ambiguous_returns_none(self):
+        r = recommend_workspace_type_uncertain(
+            {"cucm_model": "8841", "has_owner": True}, [])
+        assert r is None
