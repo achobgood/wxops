@@ -14,6 +14,20 @@ from wxcli.migration.execute.handlers import (
     handle_device_create,
     handle_dial_plan_create,
     handle_translation_pattern_create,
+    handle_hunt_group_create,
+    handle_call_queue_create,
+    handle_auto_attendant_create,
+    handle_call_park_create,
+    handle_pickup_group_create,
+    handle_paging_group_create,
+    handle_user_configure_settings,
+    handle_user_configure_voicemail,
+    handle_device_configure_settings,
+    handle_workspace_configure_settings,
+    handle_calling_permission_assign,
+    handle_virtual_line_create,
+    handle_virtual_line_configure,
+    handle_shared_line_configure,
 )
 
 BASE = "https://webexapis.com/v1"
@@ -324,6 +338,375 @@ class TestTranslationPatternCreate:
         result = handle_translation_pattern_create(data, {}, {})
         _, _, body = result[0]
         assert body["name"] == "My Pattern"
+
+
+class TestHuntGroupCreate:
+    def test_with_agents(self):
+        data = {
+            "name": "Sales HG", "extension": "3001",
+            "policy": "CIRCULAR", "location_id": "location:hq",
+            "agents": ["user:alice", "user:bob"],
+            "no_answer_rings": 5,
+        }
+        deps = {"location:hq": "wx-loc-123", "user:alice": "wx-alice",
+                "user:bob": "wx-bob"}
+        result = handle_hunt_group_create(data, deps, {})
+        method, url, body = result[0]
+        assert method == "POST"
+        assert "/huntGroups" in url
+        assert "wx-loc-123" in url  # location in path
+        assert body["name"] == "Sales HG"
+        assert body["extension"] == "3001"
+        assert len(body.get("agents", [])) == 2
+
+    def test_missing_agent_excluded(self):
+        data = {"name": "HG", "extension": "3001", "location_id": "location:hq",
+                "agents": ["user:alice", "user:bob"]}
+        deps = {"location:hq": "wx-loc-123", "user:alice": "wx-alice"}
+        # Bob not in deps (failed) — should be excluded, not error
+        result = handle_hunt_group_create(data, deps, {})
+        _, _, body = result[0]
+        assert len(body.get("agents", [])) == 1
+
+    def test_call_policies_no_answer(self):
+        data = {
+            "name": "HG", "extension": "3001", "location_id": "location:hq",
+            "policy": "CIRCULAR", "no_answer_rings": 4,
+        }
+        deps = {"location:hq": "wx-loc-123"}
+        result = handle_hunt_group_create(data, deps, {})
+        _, _, body = result[0]
+        assert body["callPolicies"]["policy"] == "CIRCULAR"
+        assert body["callPolicies"]["noAnswer"]["numberOfRings"] == 4
+
+
+class TestCallQueueCreate:
+    def test_basic(self):
+        data = {
+            "name": "Support Queue", "extension": "4001",
+            "location_id": "location:hq",
+            "policy": "CIRCULAR", "routing_type": "PRIORITY_BASED",
+            "agents": ["user:alice"],
+        }
+        deps = {"location:hq": "wx-loc-123", "user:alice": "wx-alice"}
+        result = handle_call_queue_create(data, deps, {})
+        method, url, body = result[0]
+        assert method == "POST"
+        assert "/queues" in url
+        assert body["callPolicies"]["policy"] == "CIRCULAR"
+
+    def test_routing_type_included(self):
+        data = {
+            "name": "Queue", "extension": "4002", "location_id": "location:hq",
+            "routing_type": "SKILL_BASED", "policy": "CIRCULAR",
+        }
+        deps = {"location:hq": "wx-loc-123"}
+        result = handle_call_queue_create(data, deps, {})
+        _, _, body = result[0]
+        assert body["callPolicies"]["routingType"] == "SKILL_BASED"
+
+
+class TestAutoAttendantCreate:
+    def test_basic(self):
+        data = {
+            "name": "Main AA", "extension": "5000",
+            "location_id": "location:hq",
+            "business_hours_menu": {"greeting": "DEFAULT", "extensionEnabled": True},
+            "after_hours_menu": {"greeting": "DEFAULT", "extensionEnabled": True},
+        }
+        deps = {"location:hq": "wx-loc-123"}
+        result = handle_auto_attendant_create(data, deps, {})
+        method, url, body = result[0]
+        assert method == "POST"
+        assert "/autoAttendants" in url
+        assert body["businessHoursMenu"] is not None
+        assert body["afterHoursMenu"] is not None
+
+    def test_no_menu_omitted(self):
+        data = {"name": "Bare AA", "extension": "5001", "location_id": "location:hq"}
+        deps = {"location:hq": "wx-loc-123"}
+        result = handle_auto_attendant_create(data, deps, {})
+        _, _, body = result[0]
+        assert "businessHoursMenu" not in body
+        assert "afterHoursMenu" not in body
+
+
+class TestCallParkCreate:
+    def test_basic(self):
+        data = {"name": "Park 1", "extension": "6001", "location_id": "location:hq"}
+        deps = {"location:hq": "wx-loc-123"}
+        result = handle_call_park_create(data, deps, {})
+        method, url, body = result[0]
+        assert method == "POST"
+        assert "/callParks" in url
+        assert "wx-loc-123" in url
+        assert body["name"] == "Park 1"
+        assert body["recall"]["option"] == "ALERT_PARKING_USER_ONLY"
+
+
+class TestPickupGroupCreate:
+    def test_basic(self):
+        data = {
+            "name": "Pickup G1", "location_id": "location:hq",
+            "agents": ["user:alice"],
+        }
+        deps = {"location:hq": "wx-loc-123", "user:alice": "wx-alice"}
+        result = handle_pickup_group_create(data, deps, {})
+        method, url, body = result[0]
+        assert method == "POST"
+        assert "/callPickups" in url
+        assert body["name"] == "Pickup G1"
+        assert body["agents"] == [{"id": "wx-alice"}]
+
+    def test_no_agents_omitted(self):
+        data = {"name": "Empty PG", "location_id": "location:hq", "agents": []}
+        deps = {"location:hq": "wx-loc-123"}
+        result = handle_pickup_group_create(data, deps, {})
+        _, _, body = result[0]
+        assert "agents" not in body
+
+
+class TestPagingGroupCreate:
+    def test_with_targets(self):
+        data = {
+            "name": "Paging 1", "extension": "7001",
+            "targets": ["user:alice"],
+            "originators": ["user:bob"],
+        }
+        deps = {
+            "location:hq": "wx-loc-123",
+            "user:alice": "wx-alice",
+            "user:bob": "wx-bob",
+        }
+        result = handle_paging_group_create(data, deps, {})
+        method, url, body = result[0]
+        assert method == "POST"
+        assert "/paging" in url
+        assert body["targets"] == [{"id": "wx-alice"}]
+        assert body["originators"] == [{"id": "wx-bob"}]
+        assert body["originatorCallerIdEnabled"] is True
+
+    def test_fallback_location_from_deps(self):
+        # PagingGroup has no location_id field — location resolved from deps
+        data = {"name": "Paging No Loc", "extension": "7002"}
+        deps = {"location:hq": "wx-loc-999"}
+        result = handle_paging_group_create(data, deps, {})
+        _, url, _ = result[0]
+        assert "wx-loc-999" in url
+
+
+class TestUserConfigureSettings:
+    def test_returns_multiple_calls(self):
+        data = {
+            "call_settings": {
+                "callForwarding": {"always": {"enabled": False}},
+                "callerId": {"externalCallerIdNamePolicy": "DIRECT_LINE"},
+            },
+        }
+        deps = {"user:alice": "wx-alice"}
+        result = handle_user_configure_settings(data, deps, {})
+        # Should return one PUT per setting
+        assert len(result) >= 1
+        for method, url, body in result:
+            assert method == "PUT"
+            assert "wx-alice" in url
+
+    def test_no_settings_returns_empty(self):
+        data = {"call_settings": {}}
+        deps = {"user:alice": "wx-alice"}
+        result = handle_user_configure_settings(data, deps, {})
+        assert result == []
+
+    def test_no_user_dep_returns_empty(self):
+        data = {"call_settings": {"callForwarding": {"always": {"enabled": False}}}}
+        deps = {}
+        result = handle_user_configure_settings(data, deps, {})
+        assert result == []
+
+    def test_feature_in_url(self):
+        data = {"call_settings": {"doNotDisturb": {"enabled": True}}}
+        deps = {"user:alice": "wx-alice"}
+        result = handle_user_configure_settings(data, deps, {})
+        assert len(result) == 1
+        _, url, _ = result[0]
+        assert "doNotDisturb" in url
+
+
+class TestUserConfigureVoicemail:
+    def test_basic(self):
+        from wxcli.migration.execute.handlers import handle_user_configure_voicemail
+        data = {"voicemail": {"enabled": True, "sendAllCalls": {"enabled": False}}}
+        deps = {"user:alice": "wx-alice"}
+        result = handle_user_configure_voicemail(data, deps, {})
+        assert len(result) == 1
+        method, url, body = result[0]
+        assert method == "PUT"
+        assert "/voicemail" in url
+        assert "wx-alice" in url
+
+    def test_no_user_returns_empty(self):
+        from wxcli.migration.execute.handlers import handle_user_configure_voicemail
+        data = {"voicemail": {"enabled": True}}
+        result = handle_user_configure_voicemail(data, {}, {})
+        assert result == []
+
+
+class TestDeviceConfigureSettings:
+    def test_basic(self):
+        from wxcli.migration.execute.handlers import handle_device_configure_settings
+        data = {"device_settings": {"allowThirdPartyControl": True}}
+        deps = {"device:d1": "wx-dev-111"}
+        result = handle_device_configure_settings(data, deps, {})
+        assert len(result) == 1
+        method, url, body = result[0]
+        assert method == "PUT"
+        assert "wx-dev-111" in url
+        assert "/settings" in url
+
+    def test_no_settings_returns_empty(self):
+        from wxcli.migration.execute.handlers import handle_device_configure_settings
+        data = {"device_settings": {}}
+        deps = {"device:d1": "wx-dev-111"}
+        result = handle_device_configure_settings(data, deps, {})
+        assert result == []
+
+    def test_no_device_dep_returns_empty(self):
+        from wxcli.migration.execute.handlers import handle_device_configure_settings
+        data = {"device_settings": {"allowThirdPartyControl": True}}
+        result = handle_device_configure_settings(data, {}, {})
+        assert result == []
+
+
+class TestWorkspaceConfigureSettings:
+    def test_basic(self):
+        from wxcli.migration.execute.handlers import handle_workspace_configure_settings
+        data = {"call_settings": {"callForwarding": {"always": {"enabled": False}}}}
+        deps = {"workspace:lobby": "wx-ws-aaa"}
+        result = handle_workspace_configure_settings(data, deps, {})
+        assert len(result) == 1
+        method, url, body = result[0]
+        assert method == "PUT"
+        assert "wx-ws-aaa" in url
+        assert "/features/" in url
+
+    def test_no_settings_returns_empty(self):
+        from wxcli.migration.execute.handlers import handle_workspace_configure_settings
+        data = {"call_settings": {}}
+        deps = {"workspace:lobby": "wx-ws-aaa"}
+        result = handle_workspace_configure_settings(data, deps, {})
+        assert result == []
+
+
+class TestCallingPermissionAssign:
+    def test_per_user_puts(self):
+        data = {
+            "calling_permissions": [
+                {"call_type": "INTERNATIONAL", "action": "BLOCK"},
+            ],
+            "assigned_users": ["user:alice", "user:bob"],
+            "use_custom_enabled": True,
+        }
+        deps = {"user:alice": "wx-alice", "user:bob": "wx-bob"}
+        result = handle_calling_permission_assign(data, deps, {})
+        assert len(result) == 2  # one PUT per user
+        for method, url, body in result:
+            assert method == "PUT"
+            assert "/outgoingPermission" in url
+
+    def test_unresolved_user_excluded(self):
+        data = {
+            "calling_permissions": [{"call_type": "INTERNATIONAL", "action": "BLOCK"}],
+            "assigned_users": ["user:alice", "user:missing"],
+        }
+        deps = {"user:alice": "wx-alice"}
+        result = handle_calling_permission_assign(data, deps, {})
+        assert len(result) == 1
+
+    def test_permission_body_structure(self):
+        data = {
+            "calling_permissions": [
+                {"call_type": "NATIONAL", "action": "ALLOW"},
+                {"call_type": "INTERNATIONAL", "action": "BLOCK"},
+            ],
+            "assigned_users": ["user:alice"],
+            "use_custom_enabled": True,
+        }
+        deps = {"user:alice": "wx-alice"}
+        result = handle_calling_permission_assign(data, deps, {})
+        _, _, body = result[0]
+        assert body["useCustomEnabled"] is True
+        assert len(body["callingPermissions"]) == 2
+        assert body["callingPermissions"][0]["callType"] == "NATIONAL"
+
+
+class TestSharedLineConfigure:
+    def test_stub_returns_put_per_device(self):
+        data = {"device_canonical_ids": ["device:d1", "device:d2"]}
+        deps = {"device:d1": "wx-dev-111", "device:d2": "wx-dev-222"}
+        result = handle_shared_line_configure(data, deps, {})
+        assert len(result) == 2
+        for method, url, body in result:
+            assert method == "PUT"
+            assert "/members" in url
+
+    def test_unresolved_device_excluded(self):
+        data = {"device_canonical_ids": ["device:d1", "device:missing"]}
+        deps = {"device:d1": "wx-dev-111"}
+        result = handle_shared_line_configure(data, deps, {})
+        assert len(result) == 1
+
+    def test_no_devices_returns_empty(self):
+        data = {"device_canonical_ids": []}
+        result = handle_shared_line_configure(data, {}, {})
+        assert result == []
+
+
+class TestVirtualLineCreate:
+    def test_basic(self):
+        data = {
+            "display_name": "Reception VL",
+            "extension": "8001",
+            "location_id": "location:hq",
+        }
+        deps = {"location:hq": "wx-loc-123"}
+        result = handle_virtual_line_create(data, deps, {})
+        method, url, body = result[0]
+        assert method == "POST"
+        assert "/virtualLines" in url
+        assert body["firstName"] == "Reception VL"
+        assert body["lastName"] == "Line"
+        assert body["locationId"] == "wx-loc-123"
+        assert body["extension"] == "8001"
+
+    def test_default_name(self):
+        data = {"extension": "8002", "location_id": "location:hq"}
+        deps = {"location:hq": "wx-loc-123"}
+        result = handle_virtual_line_create(data, deps, {})
+        _, _, body = result[0]
+        assert body["firstName"] == "Virtual"
+
+
+class TestVirtualLineConfigure:
+    def test_basic(self):
+        data = {"settings": {"callerIdName": "Shared Line"}}
+        deps = {"virtual_line:vl1": "wx-vl-aaa"}
+        result = handle_virtual_line_configure(data, deps, {})
+        assert len(result) == 1
+        method, url, body = result[0]
+        assert method == "PUT"
+        assert "wx-vl-aaa" in url
+        assert "/virtualLines/" in url
+
+    def test_no_settings_returns_empty(self):
+        data = {"settings": {}}
+        deps = {"virtual_line:vl1": "wx-vl-aaa"}
+        result = handle_virtual_line_configure(data, deps, {})
+        assert result == []
+
+    def test_no_dep_returns_empty(self):
+        data = {"settings": {"callerIdName": "VL"}}
+        result = handle_virtual_line_configure(data, {}, {})
+        assert result == []
 
 
 class TestHandlerRegistry:
