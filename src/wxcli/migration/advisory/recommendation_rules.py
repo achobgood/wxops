@@ -119,12 +119,52 @@ def recommend_hotdesk_dn_conflict(
 
 
 # ---------------------------------------------------------------------------
-# Stub rules — 10 remaining types (return None until implemented)
+# Implemented rules — complex types
 # ---------------------------------------------------------------------------
 
 def recommend_feature_approximation(
     context: dict[str, Any], options: list
 ) -> tuple[str, str] | None:
+    """Spec §5.1: Feature approximation — CTI RP or Line Group → CQ/HG."""
+    classification = context.get("classification")
+    if classification == "AUTO_ATTENDANT":
+        if context.get("complex_script"):
+            return None
+        return (
+            "accept",
+            "Standard CTI Route Point with no complex scripting. "
+            "Maps directly to Webex Auto Attendant.",
+        )
+
+    has_queue = context.get("has_queue_features", False)
+    agent_count = context.get("agent_count", 0)
+
+    if has_queue:
+        return (
+            "call_queue",
+            f"Queue indicators detected. Call Queue preserves queuing, "
+            f"overflow routing, agent-level reporting, and wait-time management. "
+            f"Hunt Group loses all of these.",
+        )
+
+    if agent_count > 8:
+        return (
+            "call_queue",
+            f"Large agent group ({agent_count} agents). Even without explicit "
+            f"queue features, Call Queue provides reporting, overflow management, "
+            f"and wait-time handling at this scale.",
+        )
+
+    algorithm = context.get("algorithm")
+    if agent_count <= 4 and algorithm in ("Top Down", "undefined", None):
+        return (
+            "hunt_group",
+            f"Small group ({agent_count} agents), no queue features, "
+            f"top-down ring order. This is a ring-group pattern — "
+            f"Hunt Group maps directly.",
+        )
+
+    # 5-8 agents, no queue, non-top-down → genuinely ambiguous
     return None
 
 
@@ -221,21 +261,100 @@ def recommend_extension_conflict(
     return None
 
 
+_MONITORING_KEYWORDS = {"BLF", "Monitor", "Busy Lamp", "Speed", "DSS"}
+
+
 def recommend_shared_line_complex(
     context: dict[str, Any], options: list
 ) -> tuple[str, str] | None:
+    """Spec §5.6: Shared line with complex appearance patterns."""
+    appearance_count = context.get("appearance_count", 0)
+    secondary_labels = context.get("secondary_labels", [])
+
+    # Check if ALL secondary labels contain a monitoring keyword
+    if secondary_labels:
+        all_monitoring = all(
+            any(kw.lower() in label.lower() for kw in _MONITORING_KEYWORDS)
+            for label in secondary_labels
+        )
+        if all_monitoring:
+            return (
+                "virtual_extension",
+                f"All {len(secondary_labels)} secondary appearances use monitoring "
+                f"labels ({', '.join(secondary_labels)}). Virtual extension with BLF "
+                f"monitoring is the correct Webex equivalent.",
+            )
+
+    # Low count without all-monitoring labels → shared line
+    if appearance_count <= 10:
+        return (
+            "shared_line",
+            f"Webex shared line supports up to 35 appearances. "
+            f"{appearance_count} appearances fits within limits.",
+        )
+
+    # High count with mixed usage → ambiguous
     return None
 
 
 def recommend_css_routing_mismatch(
     context: dict[str, Any], options: list
 ) -> tuple[str, str] | None:
+    """Spec §5.7: CSS routing mismatch — partition ordering, scope, or conflict."""
+    mismatch_type = context.get("mismatch_type")
+    if mismatch_type == "partition_ordering":
+        pattern = context.get("pattern", "unknown")
+        return (
+            "manual",
+            f"This CSS depends on partition ordering to resolve pattern '{pattern}'. "
+            f"Webex uses longest-match routing — partition ordering has no equivalent. "
+            f"Review manually.",
+        )
+    if mismatch_type == "scope_difference":
+        return (
+            "use_union",
+            "Union preserves all routing for all users at this location.",
+        )
+    if mismatch_type == "pattern_conflict":
+        pattern = context.get("pattern", "unknown")
+        route_a = context.get("route_a", "unknown")
+        route_b = context.get("route_b", "unknown")
+        dp_a = context.get("dp_a", "unknown")
+        dp_b = context.get("dp_b", "unknown")
+        return (
+            "manual",
+            f"Pattern '{pattern}' routes to {route_a} in {dp_a} and "
+            f"{route_b} in {dp_b}. The correct route depends on business intent.",
+        )
     return None
+
+
+_INTERNATIONAL_PREFIXES = ("011", "00", "+2", "+3", "+4", "+5", "+6", "+7", "+8", "+9")
+_PREMIUM_PREFIXES = ("1900", "900", "976")
 
 
 def recommend_calling_permission_mismatch(
     context: dict[str, Any], options: list
 ) -> tuple[str, str] | None:
+    """Spec §5.8: Calling permission mismatch — map block pattern to Webex call type."""
+    block_pattern = context.get("block_pattern", "")
+
+    for prefix in _INTERNATIONAL_PREFIXES:
+        if block_pattern.startswith(prefix):
+            return (
+                "INTERNATIONAL_CALL",
+                f"Block pattern '{block_pattern}' matches international dialing prefix "
+                f"'{prefix}'. Map to Webex outgoing call permission: INTERNATIONAL_CALL.",
+            )
+
+    for prefix in _PREMIUM_PREFIXES:
+        if block_pattern.startswith(prefix):
+            return (
+                "PREMIUM_SERVICES_NUMBER_ONE",
+                f"Block pattern '{block_pattern}' matches premium/toll prefix "
+                f"'{prefix}'. Map to Webex outgoing call permission: PREMIUM_SERVICES_NUMBER_ONE.",
+            )
+
     return None
 
 
@@ -271,7 +390,29 @@ def recommend_location_ambiguous(
 def recommend_voicemail_incompatible(
     context: dict[str, Any], options: list
 ) -> tuple[str, str] | None:
-    return None
+    """Spec §5.11: Voicemail incompatible — map Unity settings to Webex voicemail."""
+    cfna_timeout = context.get("cfna_timeout")
+    unity_features = context.get("unity_features")
+
+    if cfna_timeout is not None:
+        rings = cfna_timeout // 6
+        return (
+            "webex_voicemail",
+            f"CUCM CFNA timeout {cfna_timeout}s maps to {rings} rings in Webex voicemail.",
+        )
+
+    if unity_features:
+        features_str = ", ".join(unity_features)
+        return (
+            "webex_voicemail",
+            f"Unity VM settings include {features_str}. "
+            f"Webex voicemail provides equivalent functionality.",
+        )
+
+    return (
+        "webex_voicemail",
+        "No Unity Connection data available. Recommend Webex voicemail with default settings (3 rings).",
+    )
 
 
 _CONFERENCE_MODELS = {

@@ -17,6 +17,11 @@ from wxcli.migration.advisory.recommendation_rules import (
     recommend_extension_conflict,
     recommend_location_ambiguous,
     recommend_workspace_type_uncertain,
+    recommend_feature_approximation,
+    recommend_shared_line_complex,
+    recommend_css_routing_mismatch,
+    recommend_calling_permission_mismatch,
+    recommend_voicemail_incompatible,
 )
 
 
@@ -197,3 +202,120 @@ class TestWorkspaceTypeUncertain:
         r = recommend_workspace_type_uncertain(
             {"cucm_model": "8841", "has_owner": True}, [])
         assert r is None
+
+
+class TestFeatureApproximation:
+    def test_queue_features_recommends_call_queue(self):
+        r = recommend_feature_approximation(
+            {"has_queue_features": True, "agent_count": 12}, [])
+        assert r[0] == "call_queue"
+
+    def test_many_agents_no_queue_still_recommends_cq(self):
+        r = recommend_feature_approximation(
+            {"has_queue_features": False, "agent_count": 10}, [])
+        assert r[0] == "call_queue"
+
+    def test_small_group_no_queue_recommends_hg(self):
+        r = recommend_feature_approximation(
+            {"has_queue_features": False, "agent_count": 3,
+             "algorithm": "Top Down"}, [])
+        assert r[0] == "hunt_group"
+
+    def test_ambiguous_returns_none(self):
+        r = recommend_feature_approximation(
+            {"has_queue_features": False, "agent_count": 6}, [])
+        assert r is None
+
+    def test_cti_rp_simple_recommends_accept(self):
+        r = recommend_feature_approximation(
+            {"classification": "AUTO_ATTENDANT", "complex_script": False}, [])
+        assert r[0] == "accept"
+
+    def test_cti_rp_complex_returns_none(self):
+        r = recommend_feature_approximation(
+            {"classification": "AUTO_ATTENDANT", "complex_script": True}, [])
+        assert r is None
+
+
+class TestSharedLineComplex:
+    def test_low_count_shared_line(self):
+        r = recommend_shared_line_complex({"appearance_count": 5}, [])
+        assert r[0] == "shared_line"
+
+    def test_monitoring_labels_virtual_extension(self):
+        r = recommend_shared_line_complex({
+            "appearance_count": 4,
+            "secondary_labels": ["BLF-Sales", "Monitor-Support"]
+        }, [])
+        assert r[0] == "virtual_extension"
+
+    def test_mixed_high_count_returns_none(self):
+        r = recommend_shared_line_complex({
+            "appearance_count": 15,
+            "secondary_labels": ["Line2", "BLF-Admin"]
+        }, [])
+        assert r is None
+
+
+class TestCssRoutingMismatch:
+    def test_partition_ordering_dep_manual(self):
+        r = recommend_css_routing_mismatch({
+            "mismatch_type": "partition_ordering",
+            "pattern": "9.XXXX",
+        }, [])
+        assert r[0] == "manual"
+        assert "partition ordering" in r[1].lower()
+
+    def test_scope_diff_use_union(self):
+        r = recommend_css_routing_mismatch({
+            "mismatch_type": "scope_difference",
+        }, [])
+        assert r[0] == "use_union"
+
+    def test_pattern_conflict_manual(self):
+        r = recommend_css_routing_mismatch({
+            "mismatch_type": "pattern_conflict",
+            "pattern": "9011!",
+            "route_a": "GW1", "route_b": "GW2",
+            "dp_a": "DP-Intl", "dp_b": "DP-Domestic",
+        }, [])
+        assert r[0] == "manual"
+
+
+class TestCallingPermissionMismatch:
+    def test_international_pattern(self):
+        r = recommend_calling_permission_mismatch({
+            "block_pattern": "011!"
+        }, [])
+        assert r[0] == "INTERNATIONAL_CALL"
+
+    def test_toll_pattern(self):
+        r = recommend_calling_permission_mismatch({
+            "block_pattern": "1900!"
+        }, [])
+        assert r[0] == "PREMIUM_SERVICES_NUMBER_ONE"
+
+    def test_unknown_pattern_returns_none(self):
+        r = recommend_calling_permission_mismatch({
+            "block_pattern": "5551234"
+        }, [])
+        assert r is None
+
+
+class TestVoicemailIncompatible:
+    def test_cfna_timeout_maps_ring_count(self):
+        r = recommend_voicemail_incompatible({"cfna_timeout": 18}, [])
+        assert r[0] == "webex_voicemail"
+        assert "3" in r[1]  # 18s / 6s per ring = 3 rings
+
+    def test_unity_settings_in_reasoning(self):
+        r = recommend_voicemail_incompatible({
+            "unity_features": ["greeting", "mwi"]
+        }, [])
+        assert r[0] == "webex_voicemail"
+        assert "greeting" in r[1]
+
+    def test_no_data_defaults(self):
+        r = recommend_voicemail_incompatible({}, [])
+        assert r[0] == "webex_voicemail"
+        assert "default" in r[1].lower()

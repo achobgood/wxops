@@ -7,6 +7,7 @@ All SVGs are inline-safe for HTML embedding (no JavaScript).
 
 from __future__ import annotations
 
+import html
 import math
 
 _FONT = 'font-family="Inter, system-ui, sans-serif"'
@@ -68,7 +69,7 @@ def gauge_chart(score: int, color: str, label: str) -> str:
         f'{_FONT} font-size="42" font-weight="700" fill="{color}">{score}</text>',
         # Label below
         f'<text x="{cx}" y="{cy + 95}" text-anchor="middle" '
-        f'{_FONT} font-size="14" fill="#616161">{label}</text>',
+        f'{_FONT} font-size="14" fill="#616161">{html.escape(label)}</text>',
         "</svg>",
     ]
     return "\n".join(p for p in parts if p)
@@ -95,7 +96,7 @@ def donut_chart(segments: list[dict]) -> str:
     circumference = 2 * math.pi * r
 
     parts = [
-        f'<svg {_XMLNS} viewBox="0 0 300 250" width="300" height="250">',
+        f'<svg {_XMLNS} viewBox="0 0 400 250" width="400" height="250">',
     ]
 
     if total == 0:
@@ -131,7 +132,7 @@ def donut_chart(segments: list[dict]) -> str:
     )
 
     # Legend — to the right and below
-    legend_x = 210
+    legend_x = 220
     legend_y = 30
     row_height = 28
     for seg in segments:
@@ -145,7 +146,7 @@ def donut_chart(segments: list[dict]) -> str:
         parts.append(
             f'<text x="{legend_x + 18}" y="{legend_y}" '
             f'{_FONT} font-size="11" fill="#424242">'
-            f'{seg["label"]}  {seg["value"]}  ({pct}%)</text>'
+            f'{html.escape(seg["label"])}  {seg["value"]}  ({pct}%)</text>'
         )
         legend_y += row_height
 
@@ -194,7 +195,7 @@ def horizontal_bar_chart(items: list[dict]) -> str:
         # Label (right-aligned within label area)
         parts.append(
             f'<text x="{label_width - 8}" y="{text_y}" text-anchor="end" '
-            f'{_FONT} font-size="12" fill="#424242">{item["label"]}</text>'
+            f'{_FONT} font-size="12" fill="#424242">{html.escape(item["label"])}</text>'
         )
         # Bar
         parts.append(
@@ -260,7 +261,7 @@ def traffic_light_boxes(auto_resolved: int, needs_decision: int, critical: int) 
         # Label below box
         parts.append(
             f'<text x="{x + box_width / 2}" y="{4 + box_height + 18}" text-anchor="middle" '
-            f'{_FONT} font-size="11" fill="#616161">{box["label"]}</text>'
+            f'{_FONT} font-size="11" fill="#616161">{html.escape(box["label"])}</text>'
         )
 
     parts.append("</svg>")
