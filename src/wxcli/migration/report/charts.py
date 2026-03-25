@@ -61,7 +61,7 @@ def gauge_chart(score: int, color: str, label: str) -> str:
     parts = [
         f'<svg {_XMLNS} viewBox="0 0 200 155" width="160" height="125">',
         # Background arc (full 240 degrees)
-        _arc_path(start_angle, total_angle, "#dde1e7"),
+        _arc_path(start_angle, total_angle, "#e5e7eb"),
         # Foreground arc (proportional to score)
         _arc_path(start_angle, fg_angle, color),
         # Score number centered

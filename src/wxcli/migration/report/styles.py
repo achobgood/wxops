@@ -202,18 +202,19 @@ body {
 
 /* Nav dot (new) */
 .sidebar nav .nav-dot {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    display: inline-block;
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: rgba(255,255,255,0.25);
     flex-shrink: 0;
 }
 
-.sidebar nav a.active .nav-dot {
+.sidebar nav .nav-dot.exec {
     background: var(--accent);
+}
+
+.sidebar nav .nav-dot.tech {
+    background: rgba(255,255,255,0.2);
 }
 
 /* Nav number (legacy alias) */
@@ -274,22 +275,25 @@ body {
     text-align: center;
 }
 
+.summary-stat {
+    display: flex;
+    align-items: baseline;
+    gap: 0.375rem;
+}
+
 .summary-stat .value,
 .summary-stat .stat-value {
     font-family: var(--font-mono);
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: 600;
     color: var(--text-primary);
-    display: block;
+    font-variant-numeric: tabular-nums;
 }
 
 .summary-stat .label,
 .summary-stat .stat-label {
     font-size: 0.6875rem;
     color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    display: block;
 }
 
 
