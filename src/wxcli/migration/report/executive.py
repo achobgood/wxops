@@ -1,7 +1,7 @@
-"""Executive summary HTML generator for CUCM assessment reports.
+"""Executive summary HTML generator for CUCM assessment reports (v2).
 
-Generates a 2-4 page executive summary from a populated MigrationStore.
-Depends on Phase A (score) and Phase B (charts, explainer, styles).
+Generates a 4-page narrative: Verdict → Environment → Scope → Next Steps.
+Depends on score, charts, explainer, and helpers modules.
 
 One public function: generate_executive_summary().
 """
@@ -9,20 +9,19 @@ One public function: generate_executive_summary().
 from __future__ import annotations
 
 import html
-from datetime import datetime, timezone
 from typing import Any
 
-from wxcli.migration.report.charts import (
-    donut_chart,
-    gauge_chart,
+from wxcli.migration.report.charts import gauge_chart, stacked_bar_chart
+from wxcli.migration.report.explainer import (
+    DECISION_TYPE_DISPLAY_NAMES,
+    explain_decision,
+    generate_key_findings,
+    generate_verdict,
 )
-from wxcli.migration.report.explainer import explain_decision
+from wxcli.migration.report.helpers import friendly_site_name, strip_canonical_id
 from wxcli.migration.report.score import compute_complexity_score
 from wxcli.migration.store import MigrationStore
 
-
-# Severity ordering for sorting: CRITICAL > HIGH > MEDIUM > LOW
-_SEVERITY_ORDER = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
 
 # Feature type display names
 _FEATURE_DISPLAY_NAMES = {
@@ -36,20 +35,25 @@ _FEATURE_DISPLAY_NAMES = {
     "monitoring_list": "BLF / Monitoring",
 }
 
-# Object types for the inventory stat cards
-_INVENTORY_TYPES = [
-    ("user", "Users", "#1565C0"),
-    ("device", "Devices", "#2E7D32"),
-    ("hunt_group", "Hunt Groups", "#6A1B9A"),
-    ("call_queue", "Call Queues", "#00838F"),
-    ("auto_attendant", "Auto Attendants", "#E65100"),
-    ("call_park", "Call Parks", "#AD1457"),
-    ("pickup_group", "Pickup Groups", "#4E342E"),
-    ("trunk", "Trunks", "#37474F"),
-    ("route_group", "Route Groups", "#546E7A"),
-    ("dial_plan", "Dial Plans", "#78909C"),
-    ("css", "CSSes", "#5D4037"),
-    ("partition", "Partitions", "#795548"),
+# Webex equivalents for feature types
+_WEBEX_EQUIVALENTS = {
+    "hunt_group": "Hunt Group",
+    "call_queue": "Call Queue",
+    "auto_attendant": "Auto Attendant",
+    "call_park": "Call Park",
+    "pickup_group": "Call Pickup",
+    "paging_group": "Paging Group",
+    "call_forwarding": "Per-person call forwarding",
+    "monitoring_list": "Per-person monitoring list",
+}
+
+# Object types for counts
+_REPORT_OBJECT_TYPES = [
+    "user", "device", "location", "hunt_group", "call_queue",
+    "auto_attendant", "call_park", "pickup_group", "paging_group",
+    "trunk", "route_group", "dial_plan", "translation_pattern",
+    "css", "partition", "shared_line", "workspace", "virtual_line",
+    "operating_mode", "schedule", "voicemail_profile", "calling_permission",
 ]
 
 
@@ -60,161 +64,425 @@ def generate_executive_summary(
     cluster_name: str = "",
     cucm_version: str = "",
 ) -> str:
-    """Generate the executive summary HTML from a populated store."""
+    """Generate the 4-page executive summary HTML from a populated store."""
     sections = [
-        _page_headline(store, brand, cluster_name, cucm_version),
-        _page_what_you_have(store),
-        _page_what_needs_attention(store),
+        _page_verdict(store, brand),
+        _page_environment(store, brand, cluster_name, cucm_version),
+        _page_scope(store),
+        _page_next_steps(store, brand, prepared_by),
     ]
-
-    # Page 4 is conditional: only if > 100 objects or > 3 sites
-    total_objects = _total_object_count(store)
-    location_count = store.count_by_type("location")
-    if total_objects > 100 or location_count > 3:
-        sections.append(_page_next_steps(store, brand, prepared_by))
-
     return "\n\n".join(sections)
 
 
 # ---------------------------------------------------------------------------
-# Page 1 — The Headline (Score Hero)
+# Page 1 — The Verdict
 # ---------------------------------------------------------------------------
 
-def _page_headline(
+def _page_verdict(store: MigrationStore, brand: str) -> str:
+    """Page 1: Answer 'should I be worried?' in 5 seconds."""
+    result = compute_complexity_score(store)
+    gauge_svg = gauge_chart(result.score, result.color, result.label)
+    verdict_text = generate_verdict(result, store)
+    findings = generate_key_findings(store)
+
+    # Build detail sentence for callout
+    decisions = store.get_all_decisions()
+    total_decisions = len(decisions)
+    resolved = sum(1 for d in decisions if d.get("chosen_option"))
+
+    detail_parts = []
+    if total_decisions > 0:
+        if resolved == total_decisions:
+            detail_parts.append(
+                f'All <strong>{resolved} decisions</strong> were auto-resolved '
+                f'— no manual input needed at this stage.'
+            )
+        else:
+            detail_parts.append(
+                f'<strong>{resolved} of {total_decisions}</strong> decisions resolved '
+                f'— {total_decisions - resolved} still need review.'
+            )
+
+    top_factors = sorted(result.factors, key=lambda f: f["raw_score"], reverse=True)[:2]
+    if top_factors:
+        names = " and ".join(
+            f'<strong>{html.escape(f.get("display_name", f["name"]).lower())}</strong>'
+            for f in top_factors if f["raw_score"] > 0
+        )
+        if names:
+            detail_parts.append(f'Complexity is driven by {names}.')
+
+    detail_text = " ".join(detail_parts) if detail_parts else ""
+
+    parts = [
+        f'<section id="score">',
+        f'<div class="section-kicker">The Verdict</div>',
+        f'<h2>{verdict_text}</h2>',
+        f'<div class="verdict">{detail_text}</div>' if detail_text else '',
+        f'<div class="score-gauge">\n{gauge_svg}\n</div>',
+    ]
+
+    # Score factor breakdown bars
+    if result.factors:
+        sorted_factors = sorted(result.factors, key=lambda f: f["raw_score"], reverse=True)
+        parts.append('<div class="score-breakdown">')
+        for i, factor in enumerate(sorted_factors):
+            display = factor.get("display_name", factor["name"])
+            raw = factor["raw_score"]
+            color = "var(--chart-focal)" if i == 0 and raw > 0 else "var(--chart-gray)"
+            parts.append(
+                f'<div class="factor-row">'
+                f'<span class="factor-label">{html.escape(display)}</span>'
+                f'<div class="factor-bar">'
+                f'<div class="factor-fill" style="width:{raw}%;background:{color};"></div>'
+                f'</div>'
+                f'<span class="factor-value">{raw}</span>'
+                f'</div>'
+            )
+        parts.append('</div>')
+
+    # Key findings
+    if findings:
+        parts.append('<ul class="key-findings">')
+        for f in findings:
+            icon_class = "check" if f["icon"] == "✓" else "alert"
+            icon_text = "✓" if f["icon"] == "✓" else "!"
+            parts.append(
+                f'<li>'
+                f'<span class="finding-icon {icon_class}">{icon_text}</span>'
+                f'<span>{f["text"]}</span>'
+                f'</li>'
+            )
+        parts.append('</ul>')
+
+    parts.append('</section>')
+    return "\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# Page 2 — Your Environment
+# ---------------------------------------------------------------------------
+
+def _page_environment(
     store: MigrationStore,
     brand: str,
     cluster_name: str,
     cucm_version: str,
 ) -> str:
-    """Build Page 1: complexity gauge, summary stat bar, lead sentence."""
-    result = compute_complexity_score(store)
-
-    gauge_svg = gauge_chart(result.score, result.color, result.label)
-
-    # Build lead sentence
+    """Page 2: Four semantic groups — People, Devices, Call Features, Sites."""
     user_count = store.count_by_type("user")
-    device_count = store.count_by_type("device")
+    device_count = len(store.get_objects("device"))
     location_count = store.count_by_type("location")
-    decisions = store.get_all_decisions()
-    unresolved = [d for d in decisions if d.get("chosen_option") is None]
 
-    summary_text = (
-        f"The {html.escape(brand)} CUCM environment contains "
-        f"{user_count} users, {device_count} devices across "
-        f"{location_count} site{'s' if location_count != 1 else ''}. "
-        f"The overall migration complexity is "
-        f"<strong>{html.escape(result.label)}</strong> "
-        f"(score: {result.score}/100)"
-    )
-    if unresolved:
-        summary_text += (
-            f" with {len(unresolved)} decision{'s' if len(unresolved) != 1 else ''} "
-            f"requiring attention"
-        )
-    summary_text += "."
-
-    # Environment snapshot as stat cards
-    now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    total_objects = _total_object_count(store)
-
-    snapshot_items = [
-        ("Customer", html.escape(brand)),
-        ("Assessment Date", now_str),
-        ("Total Objects", str(total_objects)),
-        ("Sites", str(location_count)),
-        ("Users", str(user_count)),
-        ("Devices", str(device_count)),
-    ]
-    if cluster_name:
-        snapshot_items.insert(1, ("CUCM Cluster", html.escape(cluster_name)))
-    if cucm_version:
-        idx = 2 if cluster_name else 1
-        snapshot_items.insert(idx, ("CUCM Version", html.escape(cucm_version)))
-
-    # Build snapshot as a stat grid
-    snapshot_cards = ['<div class="stat-grid">']
-    for label, value in snapshot_items:
-        snapshot_cards.append(
-            f'<div class="stat-card">'
-            f'<div class="stat-label">{label}</div>'
-            f'<div class="stat-value">{value}</div>'
-            f'</div>'
-        )
-    snapshot_cards.append('</div>')
-
-    return (
-        f'<section id="score" class="page-headline">\n'
-        f'<h2>Migration Complexity Assessment</h2>\n'
-        f'<div class="score-hero">\n'
-        f'  <div class="score-gauge">\n{gauge_svg}\n  </div>\n'
-        f'</div>\n'
-        f'<p class="lead-sentence">{summary_text}</p>\n'
-        f'<h3>Environment Snapshot</h3>\n'
-        + "\n".join(snapshot_cards) + "\n"
-        f'</section>'
-    )
-
-
-# ---------------------------------------------------------------------------
-# Page 2 — What You Have
-# ---------------------------------------------------------------------------
-
-def _page_what_you_have(store: MigrationStore) -> str:
-    """Build Page 2: inventory stat cards, phone donut, site table."""
     parts = [
-        '<section id="inventory" class="page-inventory">',
-        '<h2>What You Have</h2>',
+        f'<section id="inventory">',
+        f'<div class="section-kicker">Your Environment</div>',
+        f'<h2>{user_count} users across {location_count} sites with {device_count} devices</h2>',
     ]
 
-    # Object inventory as stat cards (not bar chart)
-    inventory_items = []
-    for type_key, label, color in _INVENTORY_TYPES:
-        count = store.count_by_type(type_key)
-        if count > 0:
-            inventory_items.append((label, count))
+    # --- People ---
+    shared_line_count = store.count_by_type("shared_line")
+    line_count = store.count_by_type("line")
 
-    if inventory_items:
-        parts.append('<h3>Environment Overview</h3>')
-        parts.append('<div class="stat-grid">')
-        for label, count in inventory_items:
-            parts.append(
-                f'<div class="stat-card">'
-                f'<div class="stat-label">{html.escape(label)}</div>'
-                f'<div class="stat-value">{count}</div>'
-                f'</div>'
-            )
-        parts.append('</div>')
+    parts.append('<h3>People</h3>')
+    parts.append('<div class="stat-grid">')
+    parts.append(_stat_card(str(user_count), "Users"))
+    if shared_line_count:
+        parts.append(_stat_card(str(shared_line_count), "Shared Lines"))
+    if line_count:
+        parts.append(_stat_card(str(line_count), "Extensions"))
+    parts.append('</div>')
 
-    # Phone compatibility donut chart
+    # --- Devices ---
     devices = store.get_objects("device")
     if devices:
+        total = len(devices)
         native = sum(1 for d in devices if d.get("compatibility_tier") == "native_mpp")
         convertible = sum(1 for d in devices if d.get("compatibility_tier") == "convertible")
         incompatible = sum(1 for d in devices if d.get("compatibility_tier") == "incompatible")
 
+        parts.append('<h3>Devices</h3>')
+        parts.append('<div class="stat-grid">')
+        parts.append(_stat_card(str(total), "Total Phones"))
+        parts.append(_stat_card(str(native), "Native MPP"))
+        if convertible:
+            parts.append(_stat_card(str(convertible), "Convertible"))
+        if incompatible:
+            parts.append(_stat_card(str(incompatible), "Incompatible"))
+        parts.append('</div>')
+
+        # Stacked bar for device compatibility
         segments = [
-            {"label": "Native MPP", "value": native, "color": "#2E7D32"},
-            {"label": "Convertible", "value": convertible, "color": "#F57C00"},
-            {"label": "Incompatible", "value": incompatible, "color": "#C62828"},
+            {"label": "Native MPP", "value": native, "color": "#059669"},
+            {"label": "Convertible", "value": convertible, "color": "#d97706"},
+            {"label": "Incompatible", "value": incompatible, "color": "#dc2626"},
         ]
+        bar_html = stacked_bar_chart(segments)
+        if bar_html:
+            parts.append(bar_html)
 
-        parts.append('<h3>Phone Compatibility</h3>')
-        parts.append('<div class="chart-container"><div>')
-        parts.append(donut_chart(segments))
-        parts.append('</div></div>')
+    # --- Analog Gateways (if present) ---
+    gateways = store.get_objects("gateway")
+    if gateways:
+        analog_count = 0
+        estimated_ports = 0
+        for gw in gateways:
+            state = gw.get("pre_migration_state", {})
+            product = (state.get("product", "") or "").upper()
+            protocol = (state.get("protocol", "") or "").upper()
+            is_analog = protocol in ("MGCP", "H.323", "H323") or any(
+                kw in product for kw in ("VG", "ATA", "ISR", "FXS", "FXO")
+            )
+            if is_analog:
+                analog_count += 1
+                # Quick port estimate from product name
+                for model, ports in [("ATA 191", 2), ("ATA 192", 2), ("VG310", 24),
+                                     ("VG350", 48), ("VG400", 8), ("VG450", 200)]:
+                    if model.upper() in product:
+                        estimated_ports += ports
+                        break
 
-    # Site breakdown table
+        if analog_count > 0:
+            port_text = f" with an estimated <strong>{estimated_ports} ports</strong>" if estimated_ports else ""
+            parts.append(
+                f'<div class="callout warning">'
+                f'<p><strong>{analog_count} analog gateway{"s" if analog_count != 1 else ""}</strong>'
+                f'{port_text} serving fax, paging, and analog devices. '
+                f'Each port requires manual mapping to a Webex workspace with ATA provisioning. '
+                f'See Gateway &amp; Analog Port Review in the Technical Appendix.</p>'
+                f'</div>'
+            )
+
+    # --- Call Features ---
+    feature_types = ["hunt_group", "call_queue", "auto_attendant",
+                     "call_park", "pickup_group", "paging_group",
+                     "call_forwarding", "monitoring_list"]
+    feature_data = []
+    for ft in feature_types:
+        count = store.count_by_type(ft)
+        if count > 0:
+            feature_data.append((ft, _FEATURE_DISPLAY_NAMES.get(ft, ft), count))
+
+    if feature_data:
+        parts.append('<h3>Call Features</h3>')
+        parts.append('<div class="stat-grid">')
+        for ft, display, count in feature_data:
+            parts.append(_stat_card(str(count), display))
+        parts.append('</div>')
+
+    # Feature mapping table with badges
+    feature_table = _build_feature_mapping_table(store)
+    if feature_table:
+        parts.append(feature_table)
+
+    # --- Sites ---
     locations = store.get_objects("location")
     if locations:
-        parts.append('<h3>Site Breakdown</h3>')
+        parts.append('<h3>Sites</h3>')
         site_rows = _build_site_breakdown(store, locations)
         parts.append(_build_table(
-            headers=["Site", "Users", "Devices", "Decisions", "Complexity"],
+            headers=["Site", "Users", "Devices", "Complexity"],
             rows=site_rows,
         ))
 
     parts.append('</section>')
     return "\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# Page 3 — Migration Scope (Effort Bands)
+# ---------------------------------------------------------------------------
+
+def _page_scope(store: MigrationStore) -> str:
+    """Page 3: Three effort bands — auto, planning, manual."""
+    decisions = store.get_all_decisions()
+    auto, planning, manual = _classify_decisions(decisions)
+
+    parts = [
+        f'<section id="scope">',
+        f'<div class="section-kicker">Migration Scope</div>',
+        f'<h2>{len(auto)} items migrate automatically — {len(manual)} require manual work</h2>',
+    ]
+
+    # Effort band: Migrates Automatically
+    parts.append('<div class="effort-band auto">')
+    parts.append(f'<h4>Migrates Automatically</h4>')
+    parts.append(f'<p>{len(auto)} items migrate with no manual intervention.</p>')
+    if auto:
+        parts.append('<ul>')
+        for d in auto[:5]:
+            display_type = DECISION_TYPE_DISPLAY_NAMES.get(d["type"], d["type"])
+            summary = d.get("summary", "")
+            parts.append(f'<li><strong>{html.escape(display_type)}:</strong> {html.escape(summary)}</li>')
+        if len(auto) > 5:
+            parts.append(f'<li><em>...and {len(auto) - 5} more</em></li>')
+        parts.append('</ul>')
+    parts.append('</div>')
+
+    # Effort band: Needs Planning
+    parts.append('<div class="effort-band planning">')
+    parts.append(f'<h4>Needs Planning</h4>')
+    parts.append(f'<p>{len(planning)} items need configuration decisions during planning.</p>')
+    if planning:
+        parts.append('<ul>')
+        for d in planning[:5]:
+            display_type = DECISION_TYPE_DISPLAY_NAMES.get(d["type"], d["type"])
+            summary = d.get("summary", "")
+            parts.append(f'<li><strong>{html.escape(display_type)}:</strong> {html.escape(summary)}</li>')
+        if len(planning) > 5:
+            parts.append(f'<li><em>...and {len(planning) - 5} more</em></li>')
+        parts.append('</ul>')
+    parts.append('</div>')
+
+    # Effort band: Requires Manual Work
+    parts.append('<div class="effort-band manual">')
+    parts.append(f'<h4>Requires Manual Work</h4>')
+    parts.append(f'<p>{len(manual)} items require manual configuration or hardware changes.</p>')
+    if manual:
+        parts.append('<ul>')
+        for d in manual[:5]:
+            display_type = DECISION_TYPE_DISPLAY_NAMES.get(d["type"], d["type"])
+            summary = d.get("summary", "")
+            parts.append(f'<li><strong>{html.escape(display_type)}:</strong> {html.escape(summary)}</li>')
+        if len(manual) > 5:
+            parts.append(f'<li><em>...and {len(manual) - 5} more</em></li>')
+        parts.append('</ul>')
+    parts.append('</div>')
+
+    # Decision resolution bar
+    total = len(decisions)
+    resolved = sum(1 for d in decisions if d.get("chosen_option"))
+    if total > 0:
+        pct = round(resolved / total * 100)
+        parts.append(
+            f'<p style="font-size:0.85rem;color:var(--color-text-muted);">'
+            f'Decision resolution: <strong>{resolved} of {total}</strong> auto-resolved ({pct}%)</p>'
+        )
+
+    parts.append('</section>')
+    return "\n".join(parts)
+
+
+def _classify_decisions(
+    decisions: list[dict[str, Any]],
+) -> tuple[list[dict], list[dict], list[dict]]:
+    """Classify decisions into auto/planning/manual effort bands.
+
+    Returns:
+        (auto_resolved, needs_planning, requires_manual) — three lists.
+    """
+    auto = []
+    planning = []
+    manual = []
+
+    # Types that typically require manual work
+    manual_types = {"DEVICE_INCOMPATIBLE", "VOICEMAIL_INCOMPATIBLE", "MISSING_DATA"}
+    # Types that need planning decisions
+    planning_types = {
+        "CSS_ROUTING_MISMATCH", "CALLING_PERMISSION_MISMATCH", "LOCATION_AMBIGUOUS",
+        "SHARED_LINE_COMPLEX", "EXTENSION_CONFLICT", "DN_AMBIGUOUS",
+        "WORKSPACE_TYPE_UNCERTAIN", "WORKSPACE_LICENSE_TIER",
+        "HOTDESK_DN_CONFLICT", "NUMBER_CONFLICT", "DUPLICATE_USER",
+    }
+
+    for d in decisions:
+        if d.get("chosen_option"):
+            auto.append(d)
+        elif d.get("type") in manual_types:
+            manual.append(d)
+        elif d.get("type") in planning_types:
+            planning.append(d)
+        elif d.get("severity", "").upper() in ("CRITICAL", "HIGH"):
+            manual.append(d)
+        else:
+            planning.append(d)
+
+    return auto, planning, manual
+
+
+# ---------------------------------------------------------------------------
+# Page 4 — Next Steps
+# ---------------------------------------------------------------------------
+
+def _page_next_steps(
+    store: MigrationStore,
+    brand: str,
+    prepared_by: str,
+) -> str:
+    """Page 4: Prerequisites, planning phase items, CTA."""
+    decisions = store.get_all_decisions()
+    unresolved = [d for d in decisions if d.get("chosen_option") is None]
+    user_count = store.count_by_type("user")
+    device_count = len(store.get_objects("device"))
+
+    parts = [
+        f'<section id="next-steps">',
+        f'<div class="section-kicker">Next Steps</div>',
+        f'<h2>Ready to plan — all prerequisites identified</h2>',
+    ]
+
+    # Before Migration
+    parts.append('<h3>Before Migration</h3>')
+    parts.append('<table>')
+    parts.append('<thead><tr><th>Item</th><th class="num">Count</th><th>Status</th></tr></thead>')
+    parts.append('<tbody>')
+    parts.append(
+        f'<tr><td>Webex Calling licenses needed</td>'
+        f'<td class="num">{user_count}</td>'
+        f'<td>Verify with Cisco</td></tr>'
+    )
+    parts.append(
+        f'<tr><td>Phone numbers to port</td>'
+        f'<td class="num">{user_count}</td>'
+        f'<td>Confirm with carrier</td></tr>'
+    )
+    parts.append(
+        f'<tr><td>Decisions to resolve</td>'
+        f'<td class="num">{len(unresolved)}</td>'
+        f'<td>{"Pending review" if unresolved else "Complete"}</td></tr>'
+    )
+    parts.append('</tbody></table>')
+
+    # Planning Phase
+    if unresolved:
+        parts.append('<h3>Planning Phase</h3>')
+        parts.append(f'<p>{len(unresolved)} decisions need review before migration can proceed:</p>')
+        parts.append('<ul>')
+        # Group by type
+        type_counts: dict[str, int] = {}
+        for d in unresolved:
+            dt = d.get("type", "UNKNOWN")
+            type_counts[dt] = type_counts.get(dt, 0) + 1
+        for dt, count in sorted(type_counts.items(), key=lambda x: -x[1]):
+            display = DECISION_TYPE_DISPLAY_NAMES.get(dt, dt)
+            parts.append(f'<li>{html.escape(display)}: {count}</li>')
+        parts.append('</ul>')
+
+    # CTA box
+    parts.append(
+        f'<div class="cta-box">'
+        f'<h3>Ready to Plan</h3>'
+        f'<p>For questions about this assessment or to start the migration planning engagement, '
+        f'contact <strong>{html.escape(prepared_by)}</strong>.</p>'
+        f'</div>'
+    )
+
+    parts.append('</section>')
+    return "\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _stat_card(value: str, label: str) -> str:
+    """Render a stat card HTML fragment."""
+    return (
+        f'<div class="stat-card">'
+        f'<div class="stat-number">{html.escape(value)}</div>'
+        f'<div class="stat-label">{html.escape(label)}</div>'
+        f'</div>'
+    )
 
 
 def _build_site_breakdown(
@@ -229,25 +497,27 @@ def _build_site_breakdown(
 
     for loc in locations:
         loc_id = loc.get("canonical_id", "")
-        loc_name = loc.get("name", loc_id)
+        loc_name = loc.get("name", "")
+        if not loc_name:
+            loc_name = strip_canonical_id(loc_id)
+        friendly = friendly_site_name(loc_name) if loc_name.startswith("DP-") else loc_name
 
         user_count = sum(1 for u in all_users if u.get("location_id") == loc_id)
         loc_user_ids = {u.get("canonical_id") for u in all_users if u.get("location_id") == loc_id}
         device_count = sum(1 for d in all_devices if d.get("owner_canonical_id") in loc_user_ids)
-        loc_decision_count = _count_decisions_for_location(store, decisions, loc_id, loc_user_ids)
+        loc_decisions = _count_decisions_for_location(store, decisions, loc_id, loc_user_ids)
 
-        if loc_decision_count == 0:
+        if loc_decisions == 0:
             complexity = '<span class="badge badge-direct">Straightforward</span>'
-        elif loc_decision_count <= 2:
+        elif loc_decisions <= 2:
             complexity = '<span class="badge badge-approx">Moderate</span>'
         else:
             complexity = '<span class="badge badge-decision">Complex</span>'
 
         rows.append((
-            html.escape(loc_name),
+            html.escape(friendly),
             str(user_count),
             str(device_count),
-            str(loc_decision_count),
             complexity,
         ))
 
@@ -278,102 +548,11 @@ def _count_decisions_for_location(
     return count
 
 
-# ---------------------------------------------------------------------------
-# Page 3 — What Needs Attention
-# ---------------------------------------------------------------------------
-
-def _page_what_needs_attention(store: MigrationStore) -> str:
-    """Build Page 3: decision stat cards, top decisions as callouts, feature table with badges."""
-    decisions = store.get_all_decisions()
-    parts = [
-        '<section id="decisions" class="page-decisions">',
-        '<h2>What Needs Attention</h2>',
-    ]
-
-    # Decision summary as three colored stat cards
-    auto_resolved = sum(1 for d in decisions if d.get("chosen_option") is not None)
-    unresolved = [d for d in decisions if d.get("chosen_option") is None]
-    critical = sum(
-        1 for d in unresolved
-        if d.get("severity", "").upper() == "CRITICAL"
-    )
-    needs_decision = len(unresolved) - critical
-
-    parts.append('<h3>Decision Summary</h3>')
-    parts.append('<div class="stat-grid">')
-    parts.append(
-        f'<div class="stat-card success">'
-        f'<div class="stat-label">Auto-resolved</div>'
-        f'<div class="stat-value">{auto_resolved}</div>'
-        f'</div>'
-    )
-    parts.append(
-        f'<div class="stat-card warning">'
-        f'<div class="stat-label">Decisions Needed</div>'
-        f'<div class="stat-value">{needs_decision}</div>'
-        f'</div>'
-    )
-    parts.append(
-        f'<div class="stat-card critical">'
-        f'<div class="stat-label">Critical</div>'
-        f'<div class="stat-value">{critical}</div>'
-        f'</div>'
-    )
-    parts.append('</div>')
-
-    # Top 5 unresolved decisions as callout boxes
-    if unresolved:
-        sorted_unresolved = sorted(
-            unresolved,
-            key=lambda d: _SEVERITY_ORDER.get(d.get("severity", "LOW").upper(), 99),
-        )
-        top_decisions = sorted_unresolved[:5]
-
-        parts.append('<h3>Top Decisions Requiring Attention</h3>')
-        for d in top_decisions:
-            explained = explain_decision(
-                decision_type=d["type"],
-                severity=d["severity"],
-                summary=d.get("summary", ""),
-                context=d.get("context", {}),
-            )
-            severity_lower = d["severity"].lower()
-            parts.append(
-                f'<div class="explanation severity-{severity_lower}">\n'
-                f'  <h4>{html.escape(explained["title"])} '
-                f'<span class="badge badge-{severity_lower}">'
-                f'{html.escape(d["severity"])}</span></h4>\n'
-                f'  <p>{html.escape(explained["explanation"])}</p>\n'
-                f'  <p class="reassurance">{html.escape(explained["reassurance"])}</p>\n'
-                f'</div>'
-            )
-
-    # Feature mapping table with status badges
-    feature_table = _build_feature_mapping_table(store, decisions)
-    if feature_table:
-        parts.append('<h3>Feature Mapping</h3>')
-        parts.append(feature_table)
-
-    parts.append('</section>')
-    return "\n".join(parts)
-
-
 def _build_feature_mapping_table(
     store: MigrationStore,
-    decisions: list[dict[str, Any]],
 ) -> str:
-    """Build a 4-column feature mapping table with status badges."""
-    webex_equivalents: dict[str, str] = {
-        "hunt_group": "Hunt Group",
-        "call_queue": "Call Queue",
-        "auto_attendant": "Auto Attendant",
-        "call_park": "Call Park",
-        "pickup_group": "Call Pickup",
-        "paging_group": "Paging Group",
-        "call_forwarding": "Per-person call forwarding",
-        "monitoring_list": "Per-person monitoring list",
-    }
-
+    """Build feature mapping table with Direct/Approximation badges."""
+    decisions = store.get_all_decisions()
     approx_by_object: dict[str, dict[str, Any]] = {}
     for d in decisions:
         if d["type"] == "FEATURE_APPROXIMATION":
@@ -387,7 +566,7 @@ def _build_feature_mapping_table(
         if count == 0:
             continue
 
-        webex_equiv = webex_equivalents.get(type_key, display_name)
+        webex_equiv = _WEBEX_EQUIVALENTS.get(type_key, display_name)
         has_approx = False
         has_unresolved = False
 
@@ -426,72 +605,6 @@ def _build_feature_mapping_table(
     )
 
 
-# ---------------------------------------------------------------------------
-# Page 4 — Next Steps (conditional)
-# ---------------------------------------------------------------------------
-
-def _page_next_steps(
-    store: MigrationStore,
-    brand: str,
-    prepared_by: str,
-) -> str:
-    """Build Page 4: prerequisites checklist and call to action."""
-    decisions = store.get_all_decisions()
-    unresolved = [d for d in decisions if d.get("chosen_option") is None]
-    user_count = store.count_by_type("user")
-
-    checklist_items = [
-        (f"Webex Calling licenses needed: {user_count}", "Verify with Cisco"),
-        (f"Phone numbers to port: {user_count}", "Confirm with carrier"),
-        (f"Decisions to resolve: {len(unresolved)}",
-         "Pending review" if unresolved else "Complete"),
-    ]
-
-    parts = [
-        f'<section id="next-steps" class="page-next-steps">',
-        '<h2>Next Steps</h2>',
-        '<h3>Prerequisites Checklist</h3>',
-        '<table>',
-        '<thead><tr><th>Item</th><th class="num">Count</th><th>Status</th></tr></thead>',
-        '<tbody>',
-        f'<tr><td>Webex Calling licenses needed</td>'
-        f'<td class="num">{user_count}</td>'
-        f'<td>Verify with Cisco</td></tr>',
-        f'<tr><td>Phone numbers to port</td>'
-        f'<td class="num">{store.count_by_type("user")}</td>'
-        f'<td>Confirm with carrier</td></tr>',
-        f'<tr><td>Decisions to resolve</td>'
-        f'<td class="num">{len(unresolved)}</td>'
-        f'<td>{"Pending review" if unresolved else "Complete"}</td></tr>',
-        '</tbody>',
-        '</table>',
-        f'<div class="callout info">'
-        f'<p><strong>Ready to begin?</strong> For questions about this assessment '
-        f'or to start the migration, contact <strong>{html.escape(prepared_by)}</strong>.</p>'
-        f'</div>',
-        '</section>',
-    ]
-    return "\n".join(parts)
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-_REPORT_OBJECT_TYPES = [
-    "user", "device", "location", "hunt_group", "call_queue",
-    "auto_attendant", "call_park", "pickup_group", "paging_group",
-    "trunk", "route_group", "dial_plan", "translation_pattern",
-    "css", "partition", "shared_line", "workspace", "virtual_line",
-    "operating_mode", "schedule", "voicemail_profile", "calling_permission",
-]
-
-
-def _total_object_count(store: MigrationStore) -> int:
-    """Count all objects in the store across known report types."""
-    return sum(store.count_by_type(t) for t in _REPORT_OBJECT_TYPES)
-
-
 def _build_table(
     headers: list[str],
     rows: list[tuple[str, ...]],
@@ -511,3 +624,8 @@ def _build_table(
     parts.append('</tbody>')
     parts.append('</table>')
     return "\n".join(parts)
+
+
+def _total_object_count(store: MigrationStore) -> int:
+    """Count all objects in the store across known report types."""
+    return sum(store.count_by_type(t) for t in _REPORT_OBJECT_TYPES)
