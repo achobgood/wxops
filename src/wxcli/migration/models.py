@@ -87,6 +87,10 @@ class DecisionType(str, Enum):
     NUMBER_CONFLICT = "NUMBER_CONFLICT"
     # Advisory system (from migration-advisory-design.md §3.1)
     ARCHITECTURE_ADVISORY = "ARCHITECTURE_ADVISORY"
+    # Tier 2 decision types
+    FORWARDING_LOSSY = "FORWARDING_LOSSY"
+    SNR_LOSSY = "SNR_LOSSY"
+    AUDIO_ASSET_MANUAL = "AUDIO_ASSET_MANUAL"
 
 
 # ---------------------------------------------------------------------------
