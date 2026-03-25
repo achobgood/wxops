@@ -1,4 +1,4 @@
-"""TransformEngine — orchestrates all 10 mappers in dependency order.
+"""TransformEngine — orchestrates all 11 mappers in dependency order.
 
 Runs each mapper sequentially in MAPPER_ORDER (tier-sorted), aggregates
 decisions and errors into a single TransformResult. If a mapper raises
@@ -33,6 +33,7 @@ from wxcli.migration.transform.mappers.location_mapper import LocationMapper
 from wxcli.migration.transform.mappers.routing_mapper import RoutingMapper
 from wxcli.migration.transform.mappers.user_mapper import UserMapper
 from wxcli.migration.transform.mappers.call_forwarding_mapper import CallForwardingMapper
+from wxcli.migration.transform.mappers.monitoring_mapper import MonitoringMapper
 from wxcli.migration.transform.mappers.voicemail_mapper import VoicemailMapper
 from wxcli.migration.transform.mappers.workspace_mapper import WorkspaceMapper
 
@@ -57,11 +58,12 @@ MAPPER_ORDER: list[type[Mapper]] = [
     CSSMapper,            # Tier 5 (depends on routing_mapper output)
     VoicemailMapper,      # Tier 5 (depends on users)
     CallForwardingMapper, # Tier 2 (depends on users, phones)
+    MonitoringMapper,     # Tier 2 (depends on users, phones, lines)
 ]
 
 
 class TransformEngine:
-    """Orchestrates all 10 transform mappers in dependency order.
+    """Orchestrates all 11 transform mappers in dependency order.
 
     (from 03b-transform-mappers.md section 13)
     """
@@ -189,6 +191,9 @@ class TransformEngine:
 
         if mapper_cls is CallForwardingMapper:
             return CallForwardingMapper()
+
+        if mapper_cls is MonitoringMapper:
+            return MonitoringMapper()
 
         # Fallback: attempt no-arg construction
         return mapper_cls()  # type: ignore[call-arg]

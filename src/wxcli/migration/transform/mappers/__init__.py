@@ -16,6 +16,7 @@ from wxcli.migration.transform.mappers.base import (
 )
 from wxcli.migration.transform.mappers.call_forwarding_mapper import CallForwardingMapper
 from wxcli.migration.transform.mappers.css_mapper import CSSMapper
+from wxcli.migration.transform.mappers.monitoring_mapper import MonitoringMapper
 from wxcli.migration.transform.mappers.device_mapper import DeviceMapper
 from wxcli.migration.transform.mappers.feature_mapper import FeatureMapper
 from wxcli.migration.transform.mappers.line_mapper import LineMapper
@@ -37,6 +38,7 @@ __all__ = [
     "CSSMapper",
     "VoicemailMapper",
     "CallForwardingMapper",
+    "MonitoringMapper",
     "skip_option",
     "manual_option",
     "accept_option",
