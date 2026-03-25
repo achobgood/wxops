@@ -81,7 +81,7 @@ def generate_executive_summary(
 def _page_verdict(store: MigrationStore, brand: str) -> str:
     """Page 1: Answer 'should I be worried?' in 5 seconds."""
     result = compute_complexity_score(store)
-    gauge_svg = gauge_chart(result.score, result.color, result.label)
+    gauge_svg = gauge_chart(result.score, "#2563eb", result.label)
     verdict_text = generate_verdict(result, store)
     findings = generate_key_findings(store)
 
@@ -114,11 +114,23 @@ def _page_verdict(store: MigrationStore, brand: str) -> str:
 
     detail_text = " ".join(detail_parts) if detail_parts else ""
 
+    # Build concise conclusion heading (not the full verdict paragraph)
+    top2 = sorted(result.factors, key=lambda f: f["raw_score"], reverse=True)[:2]
+    driver_names = [f.get("display_name", f["name"]).lower() for f in top2 if f["raw_score"] > 0]
+    if result.score <= 30:
+        heading = "Migration is straightforward"
+    elif result.score <= 55:
+        heading = "Migration is feasible with planning"
+    else:
+        heading = "Migration requires significant planning"
+    if driver_names:
+        heading += f" — {' and '.join(driver_names)} drive complexity"
+
     parts = [
         f'<section id="score">',
         f'<div class="section-kicker">The Verdict</div>',
-        f'<h2>{verdict_text}</h2>',
-        f'<div class="verdict">{detail_text}</div>' if detail_text else '',
+        f'<h2>{html.escape(heading)}</h2>',
+        f'<div class="verdict">{verdict_text}</div>',
         f'<div class="score-gauge">\n{gauge_svg}\n</div>',
     ]
 
