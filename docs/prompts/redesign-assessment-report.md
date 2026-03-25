@@ -1,5 +1,7 @@
 # Redesign: CUCM Migration Assessment Report — Visual Overhaul
 
+> **SUPERSEDED:** This prompt drove the v1 visual redesign (2026-03-25). A v2 content + visual redesign is now spec'd at `docs/superpowers/specs/2026-03-25-assessment-report-v2-design.md` with implementation plan at `docs/superpowers/plans/2026-03-25-assessment-report-v2.md`. Use the v2 spec/plan for any further report work.
+
 ## Context
 
 We built a CUCM migration assessment tool that generates HTML/PDF reports for Sales Engineers to hand to customers. The tool works — it reads from a SQLite migration database, computes a complexity score, generates charts, explains decisions in plain English, and produces a self-contained HTML file with optional PDF.
