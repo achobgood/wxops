@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from wxcli.migration.models import DecisionType
+
 # ---------------------------------------------------------------------------
 # Implemented rules — 6 simple types
 # ---------------------------------------------------------------------------
@@ -458,6 +460,38 @@ def recommend_workspace_type_uncertain(
     return None
 
 
+def recommend_forwarding_lossy(
+    context: dict[str, Any], options: list,
+) -> tuple[str, str] | None:
+    """CUCM-only forwarding variants are rarely configured. Accept the loss."""
+    return ("accept_loss", "The 5 CUCM-only variants (busyInt, noAnswerInt, noCoverage, "
+            "onFailure, notRegistered) are rarely configured; CFA/CFB/CFNA covers >95% "
+            "of real forwarding behavior.")
+
+
+def recommend_snr_lossy(
+    context: dict[str, Any], options: list,
+) -> tuple[str, str] | None:
+    """Timer controls rarely customized from defaults."""
+    return ("accept_loss", "Timer controls (answerTooSoon/answerTooLate) are rarely "
+            "customized from defaults. Webex answerConfirmationEnabled provides "
+            "equivalent 'don't connect too soon' behavior.")
+
+
+def recommend_audio_asset_manual(
+    context: dict[str, Any], options: list,
+) -> tuple[str, str] | None:
+    """Customer-facing audio is worth manual effort; low-usage defaults are not."""
+    usage = context.get("usage", "")
+    location_count = context.get("location_count", 0)
+    if usage in ("AA_GREETING", "QUEUE_COMFORT", "QUEUE_WHISPER"):
+        return ("accept", f"Customer-facing {usage} audio should be migrated manually.")
+    if usage == "MOH" and location_count <= 2:
+        return ("use_default", f"Custom MOH at only {location_count} location(s) — "
+                "Webex default MOH is sufficient.")
+    return ("accept", "Custom audio should be migrated for brand consistency.")
+
+
 # ---------------------------------------------------------------------------
 # Dispatch table — ALL 16 DecisionType string values
 # ---------------------------------------------------------------------------
@@ -479,4 +513,7 @@ RECOMMENDATION_DISPATCH: dict[str, Any] = {
     "FEATURE_APPROXIMATION": recommend_feature_approximation,
     "MISSING_DATA": recommend_missing_data,
     "NUMBER_CONFLICT": recommend_number_conflict,
+    DecisionType.FORWARDING_LOSSY.value: recommend_forwarding_lossy,
+    DecisionType.SNR_LOSSY.value: recommend_snr_lossy,
+    DecisionType.AUDIO_ASSET_MANUAL.value: recommend_audio_asset_manual,
 }
