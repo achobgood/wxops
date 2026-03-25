@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from wxcli.migration.advisory.advisor import ArchitectureAdvisor
 from wxcli.migration.advisory.recommendation_rules import RECOMMENDATION_DISPATCH
 from wxcli.migration.store import MigrationStore
 
