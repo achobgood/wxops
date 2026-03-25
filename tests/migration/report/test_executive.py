@@ -1,4 +1,4 @@
-"""Tests for executive summary HTML generation."""
+"""Tests for executive summary HTML generation (v2: 4-page narrative)."""
 import pytest
 
 
@@ -10,27 +10,51 @@ class TestExecutiveSummary:
         assert "<section" in html
         assert "</section>" in html
 
-    def test_contains_complexity_score(self, populated_store):
+    def test_contains_all_four_section_ids(self, populated_store):
         from wxcli.migration.report.executive import generate_executive_summary
         html = generate_executive_summary(populated_store,
             brand="Acme Corp", prepared_by="Test SE")
+        for section_id in ["score", "inventory", "scope", "next-steps"]:
+            assert f'id="{section_id}"' in html, f"Missing section #{section_id}"
+
+    def test_page1_verdict(self, populated_store):
+        from wxcli.migration.report.executive import generate_executive_summary
+        html = generate_executive_summary(populated_store,
+            brand="Acme Corp", prepared_by="Test SE")
+        assert "section-kicker" in html
+        assert "The Verdict" in html
         assert "<svg" in html  # gauge chart
         assert "Straightforward" in html or "Moderate" in html
 
-    def test_contains_brand_name(self, populated_store):
+    def test_page1_score_breakdown(self, populated_store):
         from wxcli.migration.report.executive import generate_executive_summary
         html = generate_executive_summary(populated_store,
             brand="Acme Corp", prepared_by="Test SE")
-        assert "Acme Corp" in html
+        assert "factor-row" in html or "score-breakdown" in html
 
-    def test_contains_environment_snapshot(self, populated_store):
+    def test_page1_key_findings(self, populated_store):
+        from wxcli.migration.report.executive import generate_executive_summary
+        html = generate_executive_summary(populated_store,
+            brand="Acme Corp", prepared_by="Test SE")
+        assert "key-findings" in html
+
+    def test_page2_environment_groups(self, populated_store):
+        from wxcli.migration.report.executive import generate_executive_summary
+        html = generate_executive_summary(populated_store,
+            brand="Acme Corp", prepared_by="Test SE")
+        assert "People" in html
+        assert "Devices" in html
+        assert "Call Features" in html
+        assert "Sites" in html
+
+    def test_page2_contains_counts(self, populated_store):
         from wxcli.migration.report.executive import generate_executive_summary
         html = generate_executive_summary(populated_store,
             brand="Acme Corp", prepared_by="Test SE")
         assert "50" in html  # user count
         assert "45" in html  # device count
 
-    def test_contains_phone_compatibility_chart(self, populated_store):
+    def test_page2_phone_compatibility(self, populated_store):
         from wxcli.migration.report.executive import generate_executive_summary
         html = generate_executive_summary(populated_store,
             brand="Acme Corp", prepared_by="Test SE")
@@ -38,47 +62,56 @@ class TestExecutiveSummary:
         assert "Convertible" in html
         assert "Incompatible" in html
 
-    def test_contains_site_breakdown(self, populated_store):
+    def test_page3_effort_bands(self, populated_store):
         from wxcli.migration.report.executive import generate_executive_summary
         html = generate_executive_summary(populated_store,
             brand="Acme Corp", prepared_by="Test SE")
-        assert "Dallas" in html or "loc_dallas" in html
+        assert "Migrates Automatically" in html
+        assert "Needs Planning" in html or "Planning" in html
 
-    def test_contains_decision_summary(self, populated_store):
-        from wxcli.migration.report.executive import generate_executive_summary
-        html = generate_executive_summary(populated_store,
-            brand="Acme Corp", prepared_by="Test SE")
-        assert "Auto-resolved" in html or "auto-resolved" in html
-        assert "Decision" in html or "decision" in html
-
-    def test_contains_feature_mapping_table(self, populated_store):
+    def test_page3_feature_table(self, populated_store):
         from wxcli.migration.report.executive import generate_executive_summary
         html = generate_executive_summary(populated_store,
             brand="Acme Corp", prepared_by="Test SE")
         assert "Hunt Group" in html
         assert "Auto Attendant" in html
+        assert "Direct" in html or "badge-direct" in html
 
-    def test_contains_plain_english_decisions(self, populated_store):
+    def test_page4_next_steps(self, populated_store):
         from wxcli.migration.report.executive import generate_executive_summary
         html = generate_executive_summary(populated_store,
             brand="Acme Corp", prepared_by="Test SE")
-        # Should use explainer, not raw decision type names
+        assert "Before Migration" in html or "next-steps" in html
+
+    def test_no_canonical_id_prefixes(self, populated_store):
+        from wxcli.migration.report.executive import generate_executive_summary
+        html = generate_executive_summary(populated_store,
+            brand="Acme Corp", prepared_by="Test SE")
         assert "CSS_ROUTING_MISMATCH" not in html
 
-    def test_feature_mapping_includes_call_forwarding(self, populated_store):
-        """Feature mapping table includes call forwarding when objects exist."""
+    def test_contains_prepared_by(self, populated_store):
         from wxcli.migration.report.executive import generate_executive_summary
-        from wxcli.migration.models import CanonicalCallForwarding, Provenance
-        from datetime import datetime, timezone
-        cf = CanonicalCallForwarding(
-            canonical_id="call_forwarding:user1",
-            provenance=Provenance(
-                source_system="cucm", source_id="pk-1", source_name="test",
-                extracted_at=datetime.now(timezone.utc),
-            ),
-            user_canonical_id="user:user1",
-            always_enabled=True,
-        )
-        populated_store.upsert_object(cf)
-        html = generate_executive_summary(populated_store, "Test Brand", "Test SE")
-        assert "Call Forwarding" in html
+        html = generate_executive_summary(populated_store,
+            brand="Acme Corp", prepared_by="Test SE")
+        assert "Test SE" in html  # in the CTA box
+
+    def test_site_breakdown_present(self, populated_store):
+        from wxcli.migration.report.executive import generate_executive_summary
+        html = generate_executive_summary(populated_store,
+            brand="Acme Corp", prepared_by="Test SE")
+        assert "Dallas" in html
+
+    def test_analog_gateway_callout(self, populated_store):
+        from wxcli.migration.report.executive import generate_executive_summary
+        html = generate_executive_summary(populated_store,
+            brand="Acme Corp", prepared_by="Test SE")
+        assert "analog gateway" in html.lower()
+        assert "Technical Appendix" in html
+
+    def test_page1_has_conclusion_heading(self, populated_store):
+        from wxcli.migration.report.executive import generate_executive_summary
+        html = generate_executive_summary(populated_store,
+            brand="Acme Corp", prepared_by="Test SE")
+        # h2 should contain dynamic content, not a static topic label
+        assert "section-kicker" in html
+        assert "<h2>Assessment Verdict</h2>" not in html

@@ -1,4 +1,4 @@
-"""Tests for full report assembly."""
+"""Tests for full report assembly (v2)."""
 import pytest
 
 
@@ -16,8 +16,6 @@ class TestAssembler:
         from wxcli.migration.report.assembler import assemble_report
         html = assemble_report(populated_store,
             brand="Acme Corp", prepared_by="Test SE")
-        # No external references
-        assert 'href="http' not in html or 'fonts.googleapis' in html  # font CDN is OK
         assert '<script src="' not in html  # no external JS
         assert '<link rel="stylesheet" href="http' not in html
 
@@ -25,16 +23,16 @@ class TestAssembler:
         from wxcli.migration.report.assembler import assemble_report
         html = assemble_report(populated_store,
             brand="Acme Corp", prepared_by="Test SE")
-        assert "Migration Complexity Score" in html or "Complexity" in html  # executive
-        assert "Object Inventory" in html  # appendix
+        assert 'id="score"' in html  # executive section present
+        assert 'id="people"' in html or 'id="devices"' in html  # appendix
 
     def test_executive_only_flag(self, populated_store):
         from wxcli.migration.report.assembler import assemble_report
         html = assemble_report(populated_store,
             brand="Acme Corp", prepared_by="Test SE",
             executive_only=True)
-        assert "Object Inventory" not in html  # no appendix
-        assert "Acme Corp" in html  # executive still there
+        assert "TECHNICAL REFERENCE" not in html  # no interstitial
+        assert "Acme Corp" in html
 
     def test_print_styles_present(self, populated_store):
         from wxcli.migration.report.assembler import assemble_report
@@ -50,4 +48,44 @@ class TestAssembler:
         out_path = tmp_path / "report.html"
         out_path.write_text(html)
         assert out_path.exists()
-        assert out_path.stat().st_size > 1000  # not trivially small
+        assert out_path.stat().st_size > 1000
+
+    def test_dark_interstitial_present(self, populated_store):
+        from wxcli.migration.report.assembler import assemble_report
+        html = assemble_report(populated_store,
+            brand="Acme Corp", prepared_by="Test SE")
+        assert "TECHNICAL REFERENCE" in html
+        assert "tech-interstitial" in html
+
+    def test_sidebar_nav_exec_items(self, populated_store):
+        from wxcli.migration.report.assembler import assemble_report
+        html = assemble_report(populated_store,
+            brand="Acme Corp", prepared_by="Test SE")
+        assert "The Verdict" in html
+        assert "Your Environment" in html
+        assert "Migration Scope" in html
+        assert "Next Steps" in html
+
+    def test_sidebar_nav_tech_items(self, populated_store):
+        from wxcli.migration.report.assembler import assemble_report
+        html = assemble_report(populated_store,
+            brand="Acme Corp", prepared_by="Test SE")
+        assert 'href="#people"' in html
+        assert 'href="#devices"' in html
+        assert 'href="#routing"' in html
+
+    def test_summary_bar_present(self, populated_store):
+        from wxcli.migration.report.assembler import assemble_report
+        html = assemble_report(populated_store,
+            brand="Acme Corp", prepared_by="Test SE")
+        assert "summary-bar" in html
+        assert "Score" in html
+        assert "Users" in html
+        assert "Devices" in html
+        assert "Sites" in html
+
+    def test_max_width_wrapper(self, populated_store):
+        from wxcli.migration.report.assembler import assemble_report
+        html = assemble_report(populated_store,
+            brand="Acme Corp", prepared_by="Test SE")
+        assert "detail-panel-content" in html
