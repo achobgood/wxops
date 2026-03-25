@@ -10,7 +10,7 @@ from __future__ import annotations
 import html
 import math
 
-_FONT = 'font-family="Inter, system-ui, sans-serif"'
+_FONT = 'font-family="IBM Plex Sans, system-ui, sans-serif"'
 _XMLNS = 'xmlns="http://www.w3.org/2000/svg"'
 
 
@@ -35,9 +35,9 @@ def gauge_chart(score: int, color: str, label: str) -> str:
     """
     score = max(0, min(100, score))
 
-    cx, cy = 100, 100
-    r = 80
-    stroke_width = 14
+    cx, cy = 100, 95
+    r = 70
+    stroke_width = 12
     total_angle = 240  # degrees
     start_angle = 150  # degrees (7-o'clock position)
 
@@ -59,17 +59,18 @@ def gauge_chart(score: int, color: str, label: str) -> str:
     fg_angle = total_angle * score / 100
 
     parts = [
-        f'<svg {_XMLNS} viewBox="0 0 200 220" width="200" height="220">',
+        f'<svg {_XMLNS} viewBox="0 0 200 155" width="160" height="125">',
         # Background arc (full 240 degrees)
-        _arc_path(start_angle, total_angle, "#E0E0E0"),
+        _arc_path(start_angle, total_angle, "#dde1e7"),
         # Foreground arc (proportional to score)
         _arc_path(start_angle, fg_angle, color),
         # Score number centered
         f'<text x="{cx}" y="{cy + 8}" text-anchor="middle" '
-        f'{_FONT} font-size="42" font-weight="700" fill="{color}">{score}</text>',
+        f'{_FONT} font-size="36" font-weight="700" fill="#111827">{score}</text>',
         # Label below
-        f'<text x="{cx}" y="{cy + 95}" text-anchor="middle" '
-        f'{_FONT} font-size="14" fill="#616161">{html.escape(label)}</text>',
+        f'<text x="{cx}" y="{cy + 50}" text-anchor="middle" '
+        f'{_FONT} font-size="9" font-weight="500" letter-spacing="0.1em" '
+        f'fill="#6b7280">{html.escape(label.upper())}</text>',
         "</svg>",
     ]
     return "\n".join(p for p in parts if p)
@@ -214,55 +215,49 @@ def horizontal_bar_chart(items: list[dict]) -> str:
 
 
 # ---------------------------------------------------------------------------
-# 4. Traffic light boxes — decision summary
+# 4. Stacked bar chart — horizontal segments with legend
 # ---------------------------------------------------------------------------
 
-def traffic_light_boxes(auto_resolved: int, needs_decision: int, critical: int) -> str:
-    """Return an SVG with three colored boxes for decision status.
+def stacked_bar_chart(segments: list[dict]) -> str:
+    """Render a horizontal stacked bar with legend.
 
     Args:
-        auto_resolved: Count of auto-resolved decisions.
-        needs_decision: Count of decisions needing human input.
-        critical: Count of critical/blocking decisions.
+        segments: List of {"label": str, "value": int, "color": hex}.
+                  Zero-value segments are omitted.
 
     Returns:
-        SVG string.
+        HTML string (div with inline stacked bar + legend), or "" if no data.
     """
-    boxes = [
-        {"count": auto_resolved, "label": "Auto-resolved", "color": "#2E7D32"},
-        {"count": needs_decision, "label": "Decisions needed", "color": "#F57C00"},
-        {"count": critical, "label": "Critical", "color": "#C62828"},
-    ]
+    segments = [s for s in segments if s.get("value", 0) > 0]
+    if not segments:
+        return ""
 
-    box_width = 130
-    box_height = 56
-    gap = 15
-    total_width = len(boxes) * box_width + (len(boxes) - 1) * gap
-    viewbox_width = total_width + 20  # 10px padding each side
-    viewbox_height = 100
+    total = sum(s["value"] for s in segments)
+    if total == 0:
+        return ""
 
-    parts = [
-        f'<svg {_XMLNS} viewBox="0 0 {viewbox_width} {viewbox_height}" '
-        f'width="{viewbox_width}" height="{viewbox_height}">',
-    ]
-
-    for i, box in enumerate(boxes):
-        x = 10 + i * (box_width + gap)
-        # Rounded rectangle
-        parts.append(
-            f'<rect x="{x}" y="4" width="{box_width}" height="{box_height}" '
-            f'rx="6" fill="{box["color"]}"/>'
-        )
-        # Count number centered in box
-        parts.append(
-            f'<text x="{x + box_width / 2}" y="40" text-anchor="middle" '
-            f'{_FONT} font-size="24" font-weight="700" fill="#FFFFFF">{box["count"]}</text>'
-        )
-        # Label below box
-        parts.append(
-            f'<text x="{x + box_width / 2}" y="{4 + box_height + 18}" text-anchor="middle" '
-            f'{_FONT} font-size="11" fill="#616161">{html.escape(box["label"])}</text>'
+    bar_parts = []
+    for seg in segments:
+        pct = seg["value"] / total * 100
+        bar_parts.append(
+            f'<div style="background:{seg["color"]};width:{pct:.1f}%;" '
+            f'title="{html.escape(seg["label"])}: {seg["value"]}"></div>'
         )
 
-    parts.append("</svg>")
-    return "\n".join(parts)
+    legend_parts = []
+    for seg in segments:
+        pct = seg["value"] / total * 100
+        legend_parts.append(
+            f'<span>'
+            f'<span style="display:inline-block;width:8px;height:8px;border-radius:2px;'
+            f'background:{seg["color"]};margin-right:4px;vertical-align:middle;"></span>'
+            f'{html.escape(seg["label"])}: {seg["value"]} ({pct:.0f}%)</span>'
+        )
+
+    return (
+        f'<div style="display:flex;height:20px;border-radius:4px;overflow:hidden;">'
+        f'{"".join(bar_parts)}</div>'
+        f'<div style="display:flex;justify-content:space-between;margin-top:0.35rem;'
+        f'font-size:0.7rem;font-family:var(--font-body);color:var(--slate-500);">'
+        f'{"".join(legend_parts)}</div>'
+    )

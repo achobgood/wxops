@@ -11,12 +11,13 @@ class TestGaugeChart:
         assert svg.startswith("<svg")
         assert "</svg>" in svg
         assert "34" in svg
-        assert "Straightforward" in svg
+        assert "STRAIGHTFORWARD" in svg
 
     def test_gauge_color_matches_input(self):
         from wxcli.migration.report.charts import gauge_chart
         svg = gauge_chart(score=60, color="#C62828", label="Complex")
         assert "#C62828" in svg
+        assert "COMPLEX" in svg
 
     def test_gauge_arc_scales_with_score(self):
         from wxcli.migration.report.charts import gauge_chart
@@ -83,16 +84,54 @@ class TestBarChart:
         assert big_pos < small_pos
 
 
-class TestTrafficLight:
-    """Traffic light boxes for decision summary."""
+class TestGaugeChartCompact:
+    """v2: gauge should use compact viewBox."""
 
-    def test_traffic_light_returns_valid_svg(self):
-        from wxcli.migration.report.charts import traffic_light_boxes
-        svg = traffic_light_boxes(auto_resolved=5, needs_decision=3, critical=1)
-        assert svg.startswith("<svg")
-        assert "5" in svg
-        assert "3" in svg
-        assert "1" in svg
-        assert "#2E7D32" in svg  # green
-        assert "#F57C00" in svg  # amber
-        assert "#C62828" in svg  # red
+    def test_gauge_compact_viewbox(self):
+        from wxcli.migration.report.charts import gauge_chart
+        svg = gauge_chart(score=50, color="#F57C00", label="Moderate")
+        assert 'viewBox="0 0 200 155"' in svg
+        assert 'width="160"' in svg
+
+
+class TestStackedBarChart:
+    def test_basic_output(self):
+        from wxcli.migration.report.charts import stacked_bar_chart
+        segments = [
+            {"label": "Convertible", "value": 7, "color": "#F57C00"},
+            {"label": "Incompatible", "value": 4, "color": "#C62828"},
+        ]
+        result = stacked_bar_chart(segments)
+        assert "<div" in result
+        assert "Convertible" in result
+        assert "Incompatible" in result
+
+    def test_omits_zero_segments(self):
+        from wxcli.migration.report.charts import stacked_bar_chart
+        segments = [
+            {"label": "Native MPP", "value": 0, "color": "#2E7D32"},
+            {"label": "Convertible", "value": 7, "color": "#F57C00"},
+        ]
+        result = stacked_bar_chart(segments)
+        assert "Native MPP" not in result
+        assert "Convertible" in result
+
+    def test_single_segment(self):
+        from wxcli.migration.report.charts import stacked_bar_chart
+        segments = [{"label": "All Native", "value": 45, "color": "#2E7D32"}]
+        result = stacked_bar_chart(segments)
+        assert "All Native" in result
+
+    def test_empty_segments(self):
+        from wxcli.migration.report.charts import stacked_bar_chart
+        result = stacked_bar_chart([])
+        assert result == ""
+
+    def test_all_zero(self):
+        from wxcli.migration.report.charts import stacked_bar_chart
+        segments = [
+            {"label": "A", "value": 0, "color": "#ccc"},
+            {"label": "B", "value": 0, "color": "#ddd"},
+        ]
+        result = stacked_bar_chart(segments)
+        assert result == ""
