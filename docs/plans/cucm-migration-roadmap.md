@@ -368,7 +368,7 @@ All prompts live in `docs/prompts/`:
 
 Advisory system adds practitioner-level recommendations to the pipeline. Two layers:
 
-- **Layer 1 (recommendation_rules.py):** 16 per-decision recommendation functions. Each DecisionType gets an optional `recommendation` + `recommendation_reasoning`. Ambiguous cases return `None`.
+- **Layer 1 (recommendation_rules.py):** 19 per-decision recommendation functions (16 original + 3 Tier 2). Each DecisionType gets an optional `recommendation` + `recommendation_reasoning`. Ambiguous cases return `None`.
 - **Layer 2 (advisory_patterns.py + advisor.py):** 16 cross-cutting pattern detectors. `ArchitectureAdvisor` runs after all 12 analyzers, reads merged decisions + full inventory, produces `ARCHITECTURE_ADVISORY` decisions. Categories: eliminate, rebuild, out_of_scope, migrate_as_is.
 
 **Pipeline integration:** Two-phase execution in `analysis_pipeline.py` — Phase 1 (12 analyzers → merge), Phase 2 (ArchitectureAdvisor → merge advisory), Phase 3 (populate_recommendations on all decisions).
@@ -627,7 +627,8 @@ The markdown plan becomes a summary-only artifact for admin approval.
 - ~~Phase 10-revised: Preflight~~ — **COMPLETE** (8 checks, runner, CLI command, 49 new tests)
 - ~~Phase 11-revised: Migrate Skill~~ — **COMPLETE** (6-step skill, 7 domain skill delegations, 1294 total tests)
 - ~~Phase 12: Execution Architecture Evaluation~~ — **COMPLETE** (2026-03-23) — chose Hybrid (Option C). Design spec, 3 implementation prompts written.
-- Phase 12a: Upstream Bugfixes — **READY** (9 bugs: feature mapper, missing data, normalizer, DAG)
-- Phase 12b: Execution Layer — **READY** (runtime command builder, CLI commands, summary plan, skill rewrite)
-- Phase 12c: Model Table Update — **READY** (8851 → CONVERTIBLE, 9800 → NATIVE_MPP)
+- ~~Phase 12a: Upstream Bugfixes~~ — **COMPLETE** (2026-03-24) — 9 data-quality bugfixes
+- ~~Phase 12b: Execution Layer~~ — **COMPLETE** (2026-03-24) — skill-delegated execution rewrite, command_builder deleted
+- ~~Phase 12c: Model Table Update~~ — **COMPLETE** (2026-03-25) — 8851 → CONVERTIBLE, 9800 → NATIVE_MPP
 - ~~Phase 13: Migration Advisory System~~ — **COMPLETE** (2026-03-25) — 16 recommendation rules + 16 cross-cutting patterns + ArchitectureAdvisor + two-phase pipeline + CLI + skill integration
+- ~~Tier 2 Wave 1: Shared Infrastructure~~ — **COMPLETE** (2026-03-25) — 3 new DecisionTypes, 2 new canonical types (CanonicalCallForwarding, CanonicalMonitoringList), 3 recommendation rules, 2 new mappers (CallForwardingMapper, MonitoringMapper), SIP/security profile detail in routing extractor, 2 new report sections. 1350 tests.
