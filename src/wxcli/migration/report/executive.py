@@ -223,6 +223,8 @@ def _build_site_breakdown(
     compute_complexity_score() per site (which operates on the full store).
     """
     decisions = store.get_all_decisions()
+    all_users = store.get_objects("user")
+    all_devices = store.get_objects("device")
     rows = []
 
     for loc in locations:
@@ -230,16 +232,14 @@ def _build_site_breakdown(
         loc_name = loc.get("name", loc_id)
 
         # Count users at this location
-        users = store.get_objects("user")
-        user_count = sum(1 for u in users if u.get("location_id") == loc_id)
+        user_count = sum(1 for u in all_users if u.get("location_id") == loc_id)
 
         # Count devices owned by users at this location
-        all_devices = store.get_objects("device")
-        loc_user_ids = {u.get("canonical_id") for u in users if u.get("location_id") == loc_id}
+        loc_user_ids = {u.get("canonical_id") for u in all_users if u.get("location_id") == loc_id}
         device_count = sum(1 for d in all_devices if d.get("owner_canonical_id") in loc_user_ids)
 
         # Count decisions referencing this location's objects
-        loc_decision_count = _count_decisions_for_location(decisions, loc_id, loc_user_ids)
+        loc_decision_count = _count_decisions_for_location(store, decisions, loc_id, loc_user_ids)
 
         # Simplified complexity label
         if loc_decision_count == 0:
@@ -261,6 +261,7 @@ def _build_site_breakdown(
 
 
 def _count_decisions_for_location(
+    store: MigrationStore,
     decisions: list[dict[str, Any]],
     loc_id: str,
     loc_user_ids: set[str],
@@ -269,16 +270,18 @@ def _count_decisions_for_location(
     count = 0
     for d in decisions:
         ctx = d.get("context", {})
-        # Check if decision context references this location
         obj_id = ctx.get("object_id", "")
         css_id = ctx.get("css_id", "")
 
-        if obj_id and obj_id.startswith(loc_id.replace("loc:", "")):
-            count += 1
+        if obj_id:
+            # Check if the referenced object belongs to this location
+            obj = store.get_object(obj_id)
+            if obj and obj.get("location_id") == loc_id:
+                count += 1
+            elif obj_id in loc_user_ids:
+                count += 1
         elif css_id:
-            # CSS decisions are org-wide, count if any location object is involved
-            count += 1
-        elif obj_id in loc_user_ids:
+            # CSS decisions are org-wide, count for every location
             count += 1
     return count
 
@@ -435,10 +438,18 @@ def _page_next_steps(
 # Helpers
 # ---------------------------------------------------------------------------
 
+_REPORT_OBJECT_TYPES = [
+    "user", "device", "location", "hunt_group", "call_queue",
+    "auto_attendant", "call_park", "pickup_group", "paging_group",
+    "trunk", "route_group", "dial_plan", "translation_pattern",
+    "css", "partition", "shared_line", "workspace", "virtual_line",
+    "operating_mode", "schedule", "voicemail_profile", "calling_permission",
+]
+
+
 def _total_object_count(store: MigrationStore) -> int:
-    """Count all objects in the store."""
-    row = store.conn.execute("SELECT COUNT(*) as cnt FROM objects").fetchone()
-    return row["cnt"]
+    """Count all objects in the store across known report types."""
+    return sum(store.count_by_type(t) for t in _REPORT_OBJECT_TYPES)
 
 
 def _build_table(

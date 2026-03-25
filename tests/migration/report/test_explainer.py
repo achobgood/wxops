@@ -38,6 +38,21 @@ class TestExplainer:
         assert "Extension Mobility" in result["explanation"]
         assert "Hoteling" in result["explanation"]
 
+    def test_unknown_severity_does_not_crash(self):
+        from wxcli.migration.report.explainer import explain_decision
+        result = explain_decision("EXTENSION_CONFLICT", "UNKNOWN_SEVERITY", "test", {})
+        assert result["reassurance"]  # should return default, not crash
+
+    def test_empty_severity_does_not_crash(self):
+        from wxcli.migration.report.explainer import explain_decision
+        result = explain_decision("EXTENSION_CONFLICT", "", "test", {})
+        assert result["reassurance"]
+
+    def test_none_severity_does_not_crash(self):
+        from wxcli.migration.report.explainer import explain_decision
+        result = explain_decision("EXTENSION_CONFLICT", None, "test", {})
+        assert result["reassurance"]
+
     def test_severity_affects_tone(self):
         from wxcli.migration.report.explainer import explain_decision
         high = explain_decision("CSS_ROUTING_MISMATCH", "HIGH", "test", {})
