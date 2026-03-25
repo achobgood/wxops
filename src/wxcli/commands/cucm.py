@@ -455,7 +455,7 @@ def discover(
         return
 
     # Live AXL path — prompt for password if not provided
-    if not password:
+    if not password and not from_file:
         password = typer.prompt("AXL admin password", hide_input=True)
     if not username:
         console.print("[red]--username is required for live AXL discovery.[/red]")
@@ -1902,7 +1902,7 @@ def report(
                             "--headless",
                             "--disable-gpu",
                             f"--print-to-pdf={pdf_path}",
-                            str(html_path),
+                            html_path.as_uri(),
                         ],
                         check=True,
                         capture_output=True,

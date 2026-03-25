@@ -51,3 +51,30 @@ class TestAppendix:
         html = generate_appendix(populated_store)
         assert "Routing" in html
         assert "PSTN Trunk" in html or "trunk" in html.lower()
+
+    def test_contains_dn_analysis(self, populated_store):
+        from wxcli.migration.report.appendix import generate_appendix
+        html = generate_appendix(populated_store)
+        assert "DN Analysis" in html
+        # Verify classification breakdown rows are present
+        assert "EXTENSION" in html
+        assert "E164" in html
+
+    def test_contains_voicemail_section(self, populated_store):
+        from wxcli.migration.report.appendix import generate_appendix
+        html = generate_appendix(populated_store)
+        assert "Voicemail Analysis" in html
+        # Voicemail profile table should be present
+        assert "Voicemail Profiles" in html
+        # VOICEMAIL_INCOMPATIBLE decision should appear
+        assert "Voicemail Incompatibilities" in html
+
+    def test_contains_user_device_line_map(self, populated_store):
+        from wxcli.migration.report.appendix import generate_appendix
+        html = generate_appendix(populated_store)
+        assert "User" in html and "Device" in html and "Line" in html
+        # Verify the cross-ref chain renders user names and DN patterns
+        assert "User 001" in html
+        assert "CP-8845" in html
+        # Verify partition names appear via dn_in_partition cross-refs
+        assert "PT-Internal" in html

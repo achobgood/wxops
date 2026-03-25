@@ -353,7 +353,20 @@ def _build_feature_mapping_table(
     store: MigrationStore,
     decisions: list[dict[str, Any]],
 ) -> str:
-    """Build a feature mapping table from feature-type objects and FEATURE_APPROXIMATION decisions."""
+    """Build a 4-column feature mapping table matching the design spec.
+
+    Columns: CUCM Feature | Count | Webex Equivalent | Status
+    """
+    # Default Webex equivalent for each feature type (1:1 mappings)
+    webex_equivalents: dict[str, str] = {
+        "hunt_group": "Hunt Group",
+        "call_queue": "Call Queue",
+        "auto_attendant": "Auto Attendant",
+        "call_park": "Call Park",
+        "pickup_group": "Call Pickup",
+        "paging_group": "Paging Group",
+    }
+
     # Collect feature approximation decisions, keyed by object_id
     approx_by_object: dict[str, dict[str, Any]] = {}
     for d in decisions:
@@ -368,29 +381,44 @@ def _build_feature_mapping_table(
         if count == 0:
             continue
 
-        # Check for approximation decisions for this type
+        # Determine Webex equivalent and status from approximation decisions
+        webex_equiv = webex_equivalents.get(type_key, display_name)
+        has_approx = False
+        has_unresolved = False
+
         objects = store.get_objects(type_key)
-        approx_notes = []
         for obj in objects:
             obj_id = obj.get("canonical_id", "")
             if obj_id in approx_by_object:
+                has_approx = True
                 d = approx_by_object[obj_id]
-                explained = explain_decision(
-                    decision_type=d["type"],
-                    severity=d["severity"],
-                    summary=d.get("summary", ""),
-                    context=d.get("context", {}),
-                )
-                approx_notes.append(explained["title"])
+                # Use webex_feature from decision context if available
+                ctx_webex = d.get("context", {}).get("webex_feature", "")
+                if ctx_webex:
+                    webex_equiv = ctx_webex
+                if d.get("chosen_option") is None:
+                    has_unresolved = True
 
-        notes = "; ".join(approx_notes) if approx_notes else "Direct mapping"
-        rows.append((display_name, str(count), notes))
+        # Status: Direct (no approximation), Approximation, or Decision needed
+        if not has_approx:
+            status = "Direct"
+        elif has_unresolved:
+            status = "Decision needed"
+        else:
+            status = "Approximation"
+
+        rows.append((
+            display_name,
+            str(count),
+            html.escape(webex_equiv),
+            status,
+        ))
 
     if not rows:
         return ""
 
     return _build_table(
-        headers=["Feature", "Count", "Mapping Notes"],
+        headers=["CUCM Feature", "Count", "Webex Equivalent", "Status"],
         rows=rows,
     )
 
