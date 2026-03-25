@@ -46,10 +46,10 @@ def _make_store() -> MigrationStore:
 
 
 class TestMapperOrder:
-    """Verify MAPPER_ORDER contains all 10 mappers in correct dependency order."""
+    """Verify MAPPER_ORDER contains all 11 mappers in correct dependency order."""
 
     def test_has_nine_mappers(self) -> None:
-        assert len(MAPPER_ORDER) == 10
+        assert len(MAPPER_ORDER) == 11
 
     def test_order_names(self) -> None:
         names = [cls.__name__ for cls in MAPPER_ORDER]
@@ -64,6 +64,7 @@ class TestMapperOrder:
             "CSSMapper",
             "VoicemailMapper",
             "CallForwardingMapper",
+            "MonitoringMapper",
         ]
 
     def test_location_is_first(self) -> None:
