@@ -23,6 +23,8 @@ def populate_recommendations(store: MigrationStore) -> int:
     all_decisions = store.get_all_decisions()
     count = 0
     for dec in all_decisions:
+        if dec.get("chosen_option") == "__stale__":
+            continue
         dec_type = dec.get("type", "")
         fn = RECOMMENDATION_DISPATCH.get(dec_type)
         if fn is None:

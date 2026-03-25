@@ -868,6 +868,22 @@ def decisions(
     store = _open_store(project_dir)
 
     try:
+        def _serialize_decision(d):
+            """Strip non-serializable fields for JSON output."""
+            return {
+                "decision_id": d.get("decision_id"),
+                "type": d.get("type"),
+                "severity": d.get("severity"),
+                "summary": d.get("summary"),
+                "options": d.get("options", []),
+                "context": d.get("context", {}),
+                "affected_objects": d.get("affected_objects", []),
+                "auto_choice": d.get("auto_choice"),
+                "auto_reason": d.get("auto_reason"),
+                "recommendation": d.get("recommendation"),
+                "recommendation_reasoning": d.get("recommendation_reasoning"),
+            }
+
         # --export-review: generate markdown review file + optional JSON
         if export_review:
             import json as json_mod
@@ -887,21 +903,6 @@ def decisions(
 
             if output == "json":
                 # JSON output for agent consumption — structured data
-                def _serialize_decision(d):
-                    """Strip non-serializable fields for JSON output."""
-                    return {
-                        "decision_id": d.get("decision_id"),
-                        "type": d.get("type"),
-                        "severity": d.get("severity"),
-                        "summary": d.get("summary"),
-                        "options": d.get("options", []),
-                        "context": d.get("context", {}),
-                        "affected_objects": d.get("affected_objects", []),
-                        "auto_choice": d.get("auto_choice"),
-                        "auto_reason": d.get("auto_reason"),
-                        "recommendation": d.get("recommendation"),
-                        "recommendation_reasoning": d.get("recommendation_reasoning"),
-                    }
                 data = {
                     "review_file": str(review_path),
                     "auto_apply": [_serialize_decision(d) for d in auto],
@@ -932,7 +933,17 @@ def decisions(
                 decs = [d for d in decs if d.get("chosen_option") is not None]
 
         if not decs:
-            console.print("No decisions found matching filters.")
+            if output == "json":
+                typer.echo("[]")
+            else:
+                console.print("No decisions found matching filters.")
+            return
+
+        # JSON output for filtered decisions (without --export-review)
+        if output == "json":
+            import json as json_mod
+            data = [_serialize_decision(d) for d in decs]
+            typer.echo(json_mod.dumps(data, indent=2))
             return
 
         # Summary line

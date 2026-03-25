@@ -466,20 +466,27 @@ class TestPipelineMergeOnRerun:
 
         # Second run — analyzers see existing decisions and skip,
         # producing zero new decisions. Merge marks existing as stale.
+        # Advisory decisions (from ArchitectureAdvisor) survive because
+        # Phase 1 merge is scoped to Phase 1 decision types only.
         result2 = pipeline.run(store)
         decisions_after_second = store.get_all_decisions()
         non_stale_second = [
             d for d in decisions_after_second
             if d.get("chosen_option") != "__stale__"
+            and d.get("type") != "ARCHITECTURE_ADVISORY"
         ]
         stale_second = [
             d for d in decisions_after_second
             if d.get("chosen_option") == "__stale__"
         ]
 
-        # All previous decisions should now be stale (analyzers produced 0 new)
+        # All previous Phase 1 decisions should now be stale (analyzers produced 0 new)
+        phase1_first = [
+            d for d in decisions_after_first
+            if d.get("type") != "ARCHITECTURE_ADVISORY"
+        ]
         assert len(non_stale_second) == 0
-        assert len(stale_second) == len(decisions_after_first)
+        assert len(stale_second) == len(phase1_first)
 
 
 class TestResolveAndCascade:
