@@ -120,7 +120,14 @@ class AnalysisPipeline:
         new_decision_dicts = [decision_to_store_dict(d) for d in all_decisions]
 
         # Step 3: Merge with existing decisions (fingerprint-based)
-        merge_result = store.merge_decisions(new_decision_dicts)
+        # Scope to Phase 1 decision types only — advisory decisions are managed
+        # by the Phase 2 merge (Step 5) and must not be stale-marked here.
+        phase1_types = list({
+            dt.value for cls in self.analyzer_classes for dt in cls.decision_types
+        })
+        merge_result = store.merge_decisions(
+            new_decision_dicts, decision_types=phase1_types
+        )
         logger.info(
             "Decision merge: kept=%d, updated=%d, new=%d, stale=%d, invalidated=%d",
             merge_result["kept"],
