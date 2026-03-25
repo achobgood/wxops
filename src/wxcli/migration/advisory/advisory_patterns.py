@@ -35,19 +35,6 @@ class AdvisoryFinding:
 
 
 # ===================================================================
-# Helper: read objects by raw SQL (for object types not in Pydantic)
-# ===================================================================
-
-def _get_raw_objects(store: MigrationStore, object_type: str) -> list[dict[str, Any]]:
-    """Get objects by type, returning parsed JSON data dicts."""
-    import json
-    rows = store.conn.execute(
-        "SELECT data FROM objects WHERE object_type = ?", (object_type,)
-    ).fetchall()
-    return [json.loads(r["data"]) for r in rows]
-
-
-# ===================================================================
 # Pattern 1: Restriction CSS Consolidation
 # ===================================================================
 
@@ -56,7 +43,7 @@ def detect_restriction_css_consolidation(store: MigrationStore) -> list[Advisory
 
     (from migration-advisory-design.md §6 Pattern 1)
     """
-    csses = _get_raw_objects(store, "calling_search_space")
+    csses = store.get_objects("calling_search_space")
     if not csses:
         return []
 
@@ -96,6 +83,13 @@ def detect_restriction_css_consolidation(store: MigrationStore) -> list[Advisory
     names = [c.get("name", c.get("canonical_id", "?")) for c in restriction_csses]
     css_ids = [c.get("canonical_id", "") for c in restriction_csses]
 
+    # Include any dial_plan objects the css_mapper created from these CSSes
+    # (spec §6 Pattern 1: "Affected objects: CSS canonical_ids + any dial_plan objects")
+    affected = list(css_ids)
+    for css_id in css_ids:
+        mapped_dps = store.find_cross_refs(css_id, "css_mapped_to_dial_plan")
+        affected.extend(mapped_dps)
+
     detail = (
         f"These {len(restriction_csses)} CSSes ({', '.join(names)}) exist only to block "
         f"specific call types — they contain no routing patterns. In Webex, outgoing "
@@ -110,7 +104,7 @@ def detect_restriction_css_consolidation(store: MigrationStore) -> list[Advisory
         severity="HIGH",
         summary=f"{len(restriction_csses)} CSSes are restriction-only — use calling permissions instead",
         detail=detail,
-        affected_objects=css_ids,
+        affected_objects=affected,
         category="eliminate",
     )]
 
@@ -333,12 +327,32 @@ def detect_trunk_destination_consolidation(store: MigrationStore) -> list[Adviso
 # ===================================================================
 
 def detect_voicemail_pilot_simplification(store: MigrationStore) -> list[AdvisoryFinding]:
-    """Multiple VM pilots → eliminate.
+    """Multiple VM pilots pointing to the same system → eliminate.
+
+    Only fires when all pilots share the same voicemail system (same
+    pilot number prefix or same CSS). Deployments with genuinely
+    independent voicemail systems are left alone.
 
     (from migration-advisory-design.md §6 Pattern 9)
     """
-    pilots = _get_raw_objects(store, "voicemail_pilot")
+    pilots = store.get_objects("voicemail_pilot")
     if len(pilots) <= 1:
+        return []
+
+    # Group by voicemail system indicator: pilot number prefix (first 3 digits)
+    # or CSS name as a proxy for which Unity Connection handles the pilot.
+    def _vm_system_key(p: dict) -> str:
+        pre = p.get("pre_migration_state", {}) or {}
+        number = pre.get("voice_mail_pilot_number", "") or ""
+        css = pre.get("css_name", "") or ""
+        # Use first 3 digits of pilot number as grouping key, fall back to CSS
+        prefix = number[:3] if len(number) >= 3 else number
+        return f"{prefix}|{css}"
+
+    keys = {_vm_system_key(p) for p in pilots}
+
+    # Only fire if all pilots point to the same system (single key)
+    if len(keys) > 1:
         return []
 
     ids = [p.get("canonical_id", "") for p in pilots]
@@ -418,7 +432,7 @@ def detect_media_resource_scope_removal(store: MigrationStore) -> list[AdvisoryF
 
     (from migration-advisory-design.md §6 Pattern 15)
     """
-    device_pools = _get_raw_objects(store, "device_pool")
+    device_pools = store.get_objects("device_pool")
     if not device_pools:
         return []
 
@@ -603,7 +617,7 @@ def detect_partition_time_routing(store: MigrationStore) -> list[AdvisoryFinding
 
     (from migration-advisory-design.md §6 Pattern 7)
     """
-    partitions = _get_raw_objects(store, "route_partition")
+    partitions = store.get_objects("route_partition")
     if not partitions:
         return []
 
@@ -657,7 +671,7 @@ def detect_partition_ordering_loss(store: MigrationStore) -> list[AdvisoryFindin
     """
     from wxcli.migration.transform.cucm_pattern import cucm_patterns_overlap
 
-    csses = _get_raw_objects(store, "calling_search_space")
+    csses = store.get_objects("calling_search_space")
     if not csses:
         return []
 
@@ -695,7 +709,7 @@ def detect_partition_ordering_loss(store: MigrationStore) -> list[AdvisoryFindin
                     partition_patterns[part_id].append(pat_str)
 
         # Find overlapping patterns at different positions with different destinations
-        overlaps: list[tuple[str, str, str, str]] = []
+        overlaps: list[tuple[str, str, str, str, str, str]] = []  # (pat_a, dest_a, pat_b, dest_b, part_a, part_b)
         all_patterns = list(pattern_map.keys())
 
         for i, pat_a in enumerate(all_patterns):
@@ -708,7 +722,11 @@ def detect_partition_ordering_loss(store: MigrationStore) -> list[AdvisoryFindin
                 if not are_same:
                     try:
                         are_overlapping = cucm_patterns_overlap(pat_a, pat_b)
-                    except (ValueError, Exception):
+                    except ValueError:
+                        import logging
+                        logging.getLogger(__name__).debug(
+                            "cucm_patterns_overlap failed for %r vs %r", pat_a, pat_b,
+                        )
                         continue
                 else:
                     are_overlapping = True
@@ -722,7 +740,7 @@ def detect_partition_ordering_loss(store: MigrationStore) -> list[AdvisoryFindin
                         if part_a == part_b and pat_a == pat_b:
                             continue  # Same entry
                         if dest_a != dest_b and ord_a != ord_b:
-                            overlaps.append((pat_a, dest_a, pat_b, dest_b))
+                            overlaps.append((pat_a, dest_a, pat_b, dest_b, part_a, part_b))
 
         if overlaps:
             ordering_dependent.append((css, overlaps))
@@ -730,16 +748,30 @@ def detect_partition_ordering_loss(store: MigrationStore) -> list[AdvisoryFindin
     if not ordering_dependent:
         return []
 
+    # Collect CSS + partition + route pattern IDs involved in overlaps
+    # (spec §6 Pattern 11: "Affected objects: CSS + partition + route pattern canonical_ids")
     all_ids: list[str] = []
+    involved_partitions: set[str] = set()
     css_details: list[str] = []
     for css, overlaps in ordering_dependent:
         css_id = css.get("canonical_id", "")
         css_name = css.get("name", css_id)
         all_ids.append(css_id)
+        for _, _, _, _, part_a, part_b in overlaps:
+            involved_partitions.add(part_a)
+            involved_partitions.add(part_b)
         overlap_desc = "; ".join(
-            f"'{a}' → {da} vs '{b}' → {db}" for a, da, b, db in overlaps[:3]
+            f"'{a}' → {da} vs '{b}' → {db}" for a, da, b, db, _, _ in overlaps[:3]
         )
         css_details.append(f"  {css_name}: {overlap_desc}")
+
+    # Add partition IDs
+    all_ids.extend(sorted(involved_partitions))
+
+    # Add route pattern IDs from those partitions
+    for part_id in involved_partitions:
+        rp_ids = store.find_cross_refs(part_id, "partition_has_pattern")
+        all_ids.extend(rp_ids)
 
     detail = (
         f"CRITICAL: {len(ordering_dependent)} CSSes depend on partition ordering to resolve "
@@ -771,7 +803,7 @@ def detect_cpn_transformation_chain(store: MigrationStore) -> list[AdvisoryFindi
 
     (from migration-advisory-design.md §6 Pattern 12)
     """
-    route_patterns = _get_raw_objects(store, "route_pattern")
+    route_patterns = store.get_objects("route_pattern")
     trunks = store.get_objects("trunk")
 
     caller_id_masking: list[str] = []
@@ -863,7 +895,7 @@ def detect_pstn_connection_type(store: MigrationStore) -> list[AdvisoryFinding]:
     (from migration-advisory-design.md §6 Pattern 13)
     """
     trunks = store.get_objects("trunk")
-    device_pools = _get_raw_objects(store, "device_pool")
+    device_pools = store.get_objects("device_pool")
 
     # Check SRST presence across device pools
     has_srst = False
@@ -893,7 +925,7 @@ def detect_pstn_connection_type(store: MigrationStore) -> list[AdvisoryFinding]:
             carrier_trunks.append(trunk)
 
     # Check for gateway objects
-    gateways = _get_raw_objects(store, "gateway")
+    gateways = store.get_objects("gateway")
     if gateways:
         gateway_trunks = gateways
 
@@ -965,7 +997,7 @@ def detect_globalized_vs_localized(store: MigrationStore) -> list[AdvisoryFindin
 
     (from migration-advisory-design.md §6 Pattern 14)
     """
-    route_patterns = _get_raw_objects(store, "route_pattern")
+    route_patterns = store.get_objects("route_pattern")
     if not route_patterns:
         return []
 
@@ -1036,8 +1068,8 @@ def detect_e911_migration_flag(store: MigrationStore) -> list[AdvisoryFinding]:
 
     (from migration-advisory-design.md §6 Pattern 16)
     """
-    route_patterns = _get_raw_objects(store, "route_pattern")
-    partitions = _get_raw_objects(store, "route_partition")
+    route_patterns = store.get_objects("route_pattern")
+    partitions = store.get_objects("route_partition")
     xlates = store.get_objects("translation_pattern")
 
     signals: list[str] = []

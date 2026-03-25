@@ -674,6 +674,11 @@ class TestPartitionOrderingLoss:
         assert len(findings) >= 1
         assert findings[0].severity == "CRITICAL"
         assert findings[0].category == "rebuild"
+        # Affected objects should include CSS + partitions + route patterns
+        affected = findings[0].affected_objects
+        assert "css:1" in affected
+        assert "partition:0" in affected or "partition:1" in affected
+        assert "route_pattern:p0" in affected or "route_pattern:p1" in affected
 
     def test_non_overlapping_no_finding(self, tmp_path):
         from wxcli.migration.advisory.advisory_patterns import (
