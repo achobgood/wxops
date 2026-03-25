@@ -125,9 +125,12 @@ Intro sentence, then three effort bands as colored cards:
    - Example: "1 ATA 191 — incompatible, needs ATA 192 replacement" | "hardware cost"
 
 **Effort band assignment logic** (new function in executive.py):
-- **Automatic:** severity LOW + chosen_option is "direct map" or "skip" or "upgrade firmware"
-- **Needs Planning:** auto-resolved but severity HIGH/MEDIUM, OR type is CSS_ROUTING_MISMATCH, CALLING_PERMISSION_MISMATCH, FEATURE_APPROXIMATION, OPERATING_MODE_INCOMPATIBLE
-- **Manual:** type is DEVICE_INCOMPATIBLE, OR unresolved decisions, OR MISSING_DATA where missing fields include required address/email fields
+- **Automatic:** type is ARCHITECTURE_ADVISORY, OR (severity LOW + resolved + chosen_option is "direct map" or "skip" or "upgrade firmware")
+- **Needs Planning:** auto-resolved but severity HIGH/MEDIUM, OR type is CSS_ROUTING_MISMATCH, CALLING_PERMISSION_MISMATCH, FEATURE_APPROXIMATION, DEVICE_FIRMWARE_CONVERTIBLE, LOCATION_AMBIGUOUS, SHARED_LINE_COMPLEX, EXTENSION_CONFLICT, DN_AMBIGUOUS, VOICEMAIL_INCOMPATIBLE, WORKSPACE_LICENSE_TIER, WORKSPACE_TYPE_UNCERTAIN, HOTDESK_DN_CONFLICT
+- **Manual:** type is DEVICE_INCOMPATIBLE, DUPLICATE_USER, or NUMBER_CONFLICT, OR unresolved decisions, OR MISSING_DATA where missing fields include required address/email fields
+- **Default:** any DecisionType not explicitly listed falls to Planning if resolved, Manual if unresolved
+
+See the customer-friendly type name table in the Technical Reference section for the complete mapping of all 17 DecisionType values to effort bands.
 
 4. **Decision Resolution bar** — progress bar showing resolved/total with percentage. For this test data: 67/67 (100%). For a real customer with unresolved decisions, this is the SE's conversation point.
 
@@ -191,25 +194,26 @@ Each DecisionType gets one card:
 - **Body (when expanded):** explainer.py summary text (once per type, not per decision) + aggregated summary table
 - **Individual decisions accessible** via expandable detail within each type card (nested `<details>`)
 
-Customer-friendly type names:
-| DecisionType | Display Name |
-|-------------|-------------|
-| MISSING_DATA | Missing Data |
-| CSS_ROUTING_MISMATCH | CSS Routing Mismatch |
-| CALLING_PERMISSION_MISMATCH | Calling Restrictions |
-| DEVICE_FIRMWARE_CONVERTIBLE | Device Firmware Conversion |
-| DEVICE_INCOMPATIBLE | Incompatible Devices |
-| FEATURE_APPROXIMATION | Feature Approximation |
-| WORKSPACE_LICENSE_TIER | Workspace Licensing |
-| LOCATION_AMBIGUOUS | Location Mapping |
-| SHARED_LINE_COMPLEX | Shared Line Complexity |
-| EXTENSION_CONFLICT | Extension Conflicts |
-| DN_AMBIGUOUS | Directory Number Ambiguity |
-| VOICEMAIL_INCOMPATIBLE | Voicemail Compatibility |
-| INTERNATIONAL_PERMISSIONS | International Calling |
-| E164_PATTERN_COLLISION | Number Pattern Conflicts |
-| TRANS_PATTERN_AMBIGUITY | Translation Patterns |
-| OPERATING_MODE_INCOMPATIBLE | Operating Modes |
+Customer-friendly type names (all 17 DecisionType enum values):
+| DecisionType | Display Name | Default Effort Band |
+|-------------|-------------|---------------------|
+| MISSING_DATA | Missing Data | Manual (if required fields) / Planning (otherwise) |
+| CSS_ROUTING_MISMATCH | CSS Routing Mismatch | Planning |
+| CALLING_PERMISSION_MISMATCH | Calling Restrictions | Planning |
+| DEVICE_FIRMWARE_CONVERTIBLE | Device Firmware Conversion | Planning |
+| DEVICE_INCOMPATIBLE | Incompatible Devices | Manual |
+| FEATURE_APPROXIMATION | Feature Approximation | Planning |
+| WORKSPACE_LICENSE_TIER | Workspace Licensing | Planning |
+| LOCATION_AMBIGUOUS | Location Mapping | Planning |
+| SHARED_LINE_COMPLEX | Shared Line Complexity | Planning |
+| EXTENSION_CONFLICT | Extension Conflicts | Planning |
+| DN_AMBIGUOUS | Directory Number Ambiguity | Planning |
+| VOICEMAIL_INCOMPATIBLE | Voicemail Compatibility | Planning |
+| DUPLICATE_USER | Duplicate Users | Manual |
+| WORKSPACE_TYPE_UNCERTAIN | Workspace Type | Planning |
+| HOTDESK_DN_CONFLICT | Hot Desk Conflicts | Planning |
+| NUMBER_CONFLICT | Number Conflicts | Manual |
+| ARCHITECTURE_ADVISORY | Architecture Advisory | Automatic (informational) |
 
 ## Design: Global Rules
 
@@ -224,7 +228,9 @@ Customer-friendly type names:
 
 ### Canonical ID Stripping
 
-New utility function `strip_canonical_id(canonical_id: str) → str`:
+New utility function in a new `src/wxcli/migration/report/helpers.py` module:
+
+`strip_canonical_id(canonical_id: str) → str`:
 - `"css:Standard-Employee-CSS"` → `"Standard-Employee-CSS"`
 - `"device:SEP001122334455"` → `"SEP001122334455"`
 - `"location:fd9b9990ac1b"` → look up human-readable name from store, fall back to hash
@@ -235,7 +241,9 @@ Applied in all customer-facing output: executive.py, appendix.py, assembler.py.
 
 ### Site Name Heuristic
 
-New utility function `friendly_site_name(device_pool_name: str) → str`:
+Also in `helpers.py`:
+
+`friendly_site_name(device_pool_name: str) → str`:
 - Strip `DP-` prefix if present
 - Strip `-Phones`, `-Softphones`, `-CommonArea` suffixes if present
 - Example: `"DP-HQ-Phones"` → `"HQ"`, `"DP-Branch-Phones"` → `"Branch"`
@@ -275,8 +283,9 @@ Preserved from v1: sidebar + detail panel on screen, linear on print. Max-width 
 | `charts.py` | Add `stacked_bar_chart()`, shrink gauge viewBox, remove `traffic_light_boxes()` |
 | `executive.py` | Complete rewrite: 4 new pages (verdict, environment, scope, next steps) |
 | `appendix.py` | Complete rewrite: 6 topic groups, decision aggregation, collapsed by default |
-| `assembler.py` | Add dark interstitial, update sidebar nav, add `strip_canonical_id()` utility |
+| `assembler.py` | Add dark interstitial, update sidebar nav, max-width 720px on content |
 | `styles.py` | Update contrast values, add effort band styles, add stacked bar styles, remove unused classes |
+| `helpers.py` | **New file.** `strip_canonical_id()`, `friendly_site_name()` utilities |
 | `ingest.py` | No changes |
 
 ## Testing
