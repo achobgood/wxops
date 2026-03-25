@@ -131,10 +131,12 @@ def _page_verdict(store: MigrationStore, brand: str) -> str:
         f'<div class="section-kicker">The Verdict</div>',
         f'<h2>{html.escape(heading)}</h2>',
         f'<div class="verdict">{verdict_text}</div>',
-        f'<div class="score-gauge">\n{gauge_svg}\n</div>',
     ]
 
-    # Score factor breakdown bars
+    # Score layout: gauge left, factor bars right
+    parts.append('<div class="score-layout">')
+    parts.append(f'<div class="score-gauge">\n{gauge_svg}\n</div>')
+
     if result.factors:
         sorted_factors = sorted(result.factors, key=lambda f: f["raw_score"], reverse=True)
         parts.append('<div class="score-breakdown">')
@@ -152,6 +154,7 @@ def _page_verdict(store: MigrationStore, brand: str) -> str:
                 f'</div>'
             )
         parts.append('</div>')
+    parts.append('</div>')  # close score-layout
 
     # Key findings
     if findings:
