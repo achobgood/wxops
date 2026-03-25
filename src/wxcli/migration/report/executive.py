@@ -176,7 +176,7 @@ def _page_what_you_have(store: MigrationStore) -> str:
             inventory_items.append({"label": label, "value": count, "color": color})
 
     if inventory_items:
-        parts.append('<h3>Object Inventory</h3>')
+        parts.append('<h3>Environment Overview</h3>')
         parts.append('<div class="chart-container"><div>')
         parts.append(horizontal_bar_chart(inventory_items))
         parts.append('</div></div>')

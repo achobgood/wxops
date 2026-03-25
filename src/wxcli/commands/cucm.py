@@ -14,6 +14,8 @@ import csv
 import io
 import json
 import logging
+import shutil
+import subprocess
 import time
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -372,17 +374,84 @@ def config_show(
 
 @app.command()
 def discover(
-    host: str = typer.Option(..., "--host", help="CUCM hostname or IP"),
-    username: str = typer.Option(..., "--username", help="AXL admin username"),
-    password: str = typer.Option(..., "--password", help="AXL admin password", prompt=True, hide_input=True),
+    host: Optional[str] = typer.Option(None, "--host", help="CUCM hostname or IP"),
+    username: Optional[str] = typer.Option(None, "--username", help="AXL admin username"),
+    password: Optional[str] = typer.Option(None, "--password", help="AXL admin password"),
     port: int = typer.Option(8443, "--port", help="AXL port"),
     version: str = typer.Option("14.0", "--version", help="AXL schema version"),
     wsdl: Optional[str] = typer.Option(None, "--wsdl", help="Path to local AXL WSDL file"),
+    from_file: Optional[str] = typer.Option(None, "--from-file", help="Path to collector file (.json.gz or .json)"),
     project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
 ):
-    """Extract all objects from a live CUCM cluster via AXL."""
+    """Extract objects from a live CUCM cluster via AXL, or load from a collector file."""
     project_dir = _resolve_project_dir(project)
     _check_prerequisite(project_dir, "discover")
+
+    # Validate: must provide either --from-file or --host
+    if not from_file and not host:
+        console.print(
+            "[red]Must provide either --from-file or --host.[/red]\n"
+            "  Use --from-file to load a collector export file.\n"
+            "  Use --host to connect to a live CUCM cluster via AXL."
+        )
+        raise typer.Exit(1)
+
+    # --from-file path: ingest collector file, skip AXL
+    if from_file:
+        from wxcli.migration.report.ingest import ingest_collector_file
+
+        file_path = Path(from_file)
+        if not file_path.exists():
+            console.print(f"[red]Collector file not found:[/red] {file_path}")
+            raise typer.Exit(1)
+
+        console.print(f"[bold]Loading collector file[/bold]: {file_path.name}...")
+        t0 = time.time()
+
+        try:
+            raw_data = ingest_collector_file(file_path)
+        except ValueError as exc:
+            console.print(f"[red]Invalid collector file:[/red] {exc}")
+            raise typer.Exit(1)
+
+        # Persist raw_data for the normalize command
+        raw_data_path = project_dir / "raw_data.json"
+        with open(raw_data_path, "w") as f:
+            json.dump(raw_data, f, default=str)
+
+        # Record journal entry
+        store = _open_store(project_dir)
+        try:
+            store.add_journal_entry(
+                entry_type="file_ingestion",
+                canonical_id="system:discovery",
+                resource_type="collector_file",
+                request={"file": str(file_path)},
+                response={"groups": list(raw_data.keys())},
+            )
+        finally:
+            store.close()
+
+        _mark_stage_complete(project_dir, "discover")
+        elapsed = time.time() - t0
+
+        # Print summary
+        total = 0
+        console.print(f"\n[green]File ingestion complete[/green] in {elapsed:.1f}s")
+        console.print(f"  Source: {file_path.name}")
+        for group, sub_data in raw_data.items():
+            group_total = sum(len(v) for v in sub_data.values() if isinstance(v, list))
+            total += group_total
+            console.print(f"    {group:<15s} {group_total:>5d} objects")
+        console.print(f"  Total objects: {total}")
+        return
+
+    # Live AXL path — prompt for password if not provided
+    if not password:
+        password = typer.prompt("AXL admin password", hide_input=True)
+    if not username:
+        console.print("[red]--username is required for live AXL discovery.[/red]")
+        raise typer.Exit(1)
 
     from wxcli.migration.cucm.connection import AXLConnection
     from wxcli.migration.cucm.discovery import run_discovery
@@ -1476,5 +1545,343 @@ def execution_status(
         if progress.get("last_completed"):
             comp = progress["last_completed"]
             console.print(f"[green]Last completed:[/green] {comp['node_id']}: {comp['description']}")
+    finally:
+        store.close()
+
+
+@app.command("rollback-ops")
+def rollback_ops(
+    batch: Optional[str] = typer.Option(None, "--batch", help="Only show ops from this batch"),
+    output: str = typer.Option("table", "--output", "-o", help="Output: table, json"),
+    project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
+):
+    """Show completed create operations in reverse order for rollback.
+
+    Lists all completed CREATE operations that would need to be deleted
+    to roll back the migration, in reverse dependency order (features first,
+    locations last).
+    """
+    from wxcli.migration.execute.runtime import get_completed_ops_for_rollback
+
+    project_dir = _resolve_project_dir(project)
+    store = _open_store(project_dir)
+
+    try:
+        scope = "batch" if batch else "all"
+        ops = get_completed_ops_for_rollback(store, scope=scope, batch_name=batch)
+
+        if not ops:
+            console.print("No completed create operations to roll back.")
+            return
+
+        if output == "json":
+            typer.echo(json.dumps(ops, indent=2, default=str))
+            return
+
+        # Table output
+        label = f"batch '{batch}'" if batch else "all batches"
+        console.print(f"\n[bold]Rollback Operations ({label}):[/bold] {len(ops)} resources to delete\n")
+
+        table = Table(show_header=True, header_style="bold")
+        table.add_column("Resource Type", width=20)
+        table.add_column("Description", width=40)
+        table.add_column("Webex ID", width=30)
+        table.add_column("Location ID", width=30)
+
+        for op in ops:
+            data = op.get("data", {})
+            desc = data.get("name") or (data.get("emails") or [None])[0] or op["canonical_id"]
+            table.add_row(
+                op["resource_type"],
+                str(desc),
+                op.get("webex_id") or "-",
+                op.get("location_webex_id") or "-",
+            )
+
+        console.print(table)
+        console.print(
+            "\n[yellow]Tip:[/yellow] Delete in the order shown (reverse dependency). "
+            "See the cucm-migrate skill's Rollback Dispatch Table for delete commands."
+        )
+    finally:
+        store.close()
+
+
+@app.command("dry-run")
+def dry_run(
+    output: str = typer.Option("table", "--output", "-o", help="Output: table, json"),
+    project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
+):
+    """Preview the full execution sequence without making changes.
+
+    Walks all batches in execution order, resolving dependencies as if
+    each operation completed successfully. No database state is changed.
+    """
+    from wxcli.migration.execute.runtime import dry_run_all_batches
+
+    project_dir = _resolve_project_dir(project)
+    store = _open_store(project_dir)
+
+    try:
+        result = dry_run_all_batches(store)
+
+        if output == "json":
+            typer.echo(json.dumps(result, indent=2, default=str))
+            return
+
+        batches = result["batches"]
+        if not batches:
+            console.print("No pending operations to execute.")
+            return
+
+        console.print("\n[bold]=== Dry Run: Full Execution Sequence ===[/bold]\n")
+
+        op_num = 0
+        for batch_info in batches:
+            batch_name = batch_info["batch"]
+            tier = batch_info["tier"]
+            ops = batch_info["operations"]
+            console.print(
+                f"[bold]Batch: {batch_name} / tier {tier}[/bold] "
+                f"({len(ops)} operation{'s' if len(ops) != 1 else ''})"
+            )
+
+            for op in ops:
+                op_num += 1
+                deps_str = ""
+                if op["resolved_deps"]:
+                    dep_names = list(op["resolved_deps"].keys())
+                    deps_str = f" (depends on: {', '.join(dep_names)})"
+                console.print(
+                    f"  {op_num:>3d}. {op['op_type'].capitalize()} "
+                    f"{op['resource_type']} — {op['description']}{deps_str}"
+                )
+            console.print()
+
+        # Summary
+        est_minutes = result["total_api_calls"] / 100  # ~100 req/min rate limit
+        console.print(
+            f"[bold]Total:[/bold] {result['total_operations']} operations in "
+            f"{result['total_batches']} batches, ~{result['total_api_calls']} API calls, "
+            f"~{max(1, round(est_minutes))} min at 100 req/min"
+        )
+        console.print("\n[dim]No changes made to the database.[/dim]")
+    finally:
+        store.close()
+
+
+@app.command("execute")
+def execute(
+    concurrency: int = typer.Option(20, "--concurrency", "-c",
+                                     help="Max concurrent API calls (1-50)",
+                                     min=1, max=50),
+    project: Optional[str] = typer.Option(None, "--project", "-p",
+                                           help="Project name"),
+):
+    """Execute the migration plan — bulk async with rate limiting.
+
+    Processes all pending operations using concurrent API calls.
+    Failed operations are recorded and can be retried.
+    Run 'wxcli cucm dry-run' first to preview the execution plan.
+    """
+    import asyncio
+    from wxcli.auth import resolve_token
+    from wxcli.migration.execute.engine import (
+        execute_all_batches,
+        reset_in_progress,
+    )
+
+    project_dir = _resolve_project_dir(project)
+    store = _open_store(project_dir)
+
+    token = resolve_token()
+    if not token:
+        console.print("[red]Error:[/red] No token. Run 'wxcli configure' first.")
+        raise typer.Exit(1)
+
+    try:
+        # Reset any in_progress ops from crashed runs
+        reset_count = reset_in_progress(store)
+        if reset_count:
+            console.print(f"[yellow]Reset {reset_count} in-progress ops to pending[/yellow]")
+
+        # Build context
+        ctx = {}
+        # Load orgId from config if set
+        config_path = Path.home() / ".wxcli" / "config.json"
+        if config_path.exists():
+            import json as json_mod
+            try:
+                cfg = json_mod.loads(config_path.read_text())
+                org_id = cfg.get("profiles", {}).get("default", {}).get("org_id")
+                if org_id:
+                    ctx["orgId"] = org_id
+            except Exception:
+                pass
+
+        # Look up calling license ID
+        from wxcli.auth import get_api
+        api = get_api()
+        try:
+            resp = api.session.rest_get("https://webexapis.com/v1/licenses")
+            licenses = resp.get("items", []) if isinstance(resp, dict) else resp if isinstance(resp, list) else []
+            for lic in licenses:
+                if "Calling" in lic.get("name", "") and "Professional" in lic.get("name", ""):
+                    if lic.get("totalUnits", 0) - lic.get("consumedUnits", 0) > 0:
+                        ctx["CALLING_LICENSE_ID"] = lic["id"]
+                        break
+        except Exception:
+            console.print("[yellow]Warning: Could not retrieve calling license ID[/yellow]")
+
+        console.print(f"\n[bold]Starting migration execution[/bold] (concurrency: {concurrency})")
+        if ctx.get("CALLING_LICENSE_ID"):
+            console.print(f"  Calling license: {ctx['CALLING_LICENSE_ID'][:20]}...")
+
+        def progress_callback(msg):
+            console.print(msg)
+
+        summary = asyncio.run(
+            execute_all_batches(
+                store=store,
+                token=token,
+                concurrency=concurrency,
+                ctx=ctx,
+                on_progress=progress_callback,
+            )
+        )
+
+        # Print summary
+        console.print(f"\n[bold]{'=' * 50}[/bold]")
+        console.print(f"[bold]Execution Complete[/bold]")
+        console.print(f"  [green]Completed:[/green] {summary['completed']}")
+        console.print(f"  [red]Failed:[/red]    {summary['failed']}")
+        console.print(f"  Batches:   {summary['batches']}")
+
+        if summary["failed"] > 0:
+            console.print(
+                f"\n[yellow]Tip:[/yellow] Run 'wxcli cucm execution-status' to review failures, "
+                f"then 'wxcli cucm execute' again after fixing."
+            )
+    finally:
+        store.close()
+
+
+@app.command("retry-failed")
+def retry_failed(
+    project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
+):
+    """Reset all failed operations to pending so they can be retried.
+
+    Run this after fixing the cause of failures, then run 'wxcli cucm execute' again.
+    """
+    project_dir = _resolve_project_dir(project)
+    store = _open_store(project_dir)
+
+    try:
+        cursor = store.conn.execute(
+            "UPDATE plan_operations SET status = 'pending', error_message = NULL "
+            "WHERE status = 'failed'"
+        )
+        count = cursor.rowcount
+        store.conn.commit()
+
+        if count:
+            console.print(f"[green]Reset {count} failed operations to pending.[/green]")
+            console.print("Run 'wxcli cucm execute' to retry them.")
+        else:
+            console.print("No failed operations to retry.")
+    finally:
+        store.close()
+
+
+# ===================================================================
+# REPORT GENERATION
+# ===================================================================
+
+
+@app.command()
+def report(
+    brand: str = typer.Option(..., "--brand", help="Customer name for report header"),
+    prepared_by: str = typer.Option(..., "--prepared-by", help="SE/partner name"),
+    output: str = typer.Option(
+        "assessment-report", "--output", "-o",
+        help="Output filename (without extension)",
+    ),
+    pdf: bool = typer.Option(False, "--pdf", help="Also generate PDF via headless Chrome"),
+    executive_only: bool = typer.Option(
+        False, "--executive-only",
+        help="Generate executive summary only, skip technical appendix",
+    ),
+    project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
+):
+    """Generate a migration assessment report (HTML + optional PDF)."""
+    project_dir = _resolve_project_dir(project)
+
+    # Check that analyze stage is complete (report is not in STAGE_PREREQUISITES)
+    completed = _completed_stages(project_dir)
+    if "analyze" not in completed:
+        console.print(
+            "[red]Cannot generate report — 'analyze' stage has not been completed.[/red]\n"
+            f"Completed stages: {', '.join(completed) if completed else '(none)'}",
+        )
+        raise typer.Exit(1)
+
+    store = _open_store(project_dir)
+    try:
+        # Read cluster_name and cucm_version from project config
+        cfg = load_config(project_dir)
+        cluster_name = cfg.get("cluster_name", "")
+        cucm_version = cfg.get("cucm_version", "")
+
+        from wxcli.migration.report.assembler import assemble_report
+
+        html_content = assemble_report(
+            store,
+            brand=brand,
+            prepared_by=prepared_by,
+            cluster_name=cluster_name,
+            cucm_version=cucm_version,
+            executive_only=executive_only,
+        )
+
+        # Write HTML file
+        html_path = project_dir / f"{output}.html"
+        html_path.write_text(html_content, encoding="utf-8")
+        console.print(f"[green]Report generated:[/green] {html_path}")
+
+        # Optional PDF generation via headless Chrome
+        if pdf:
+            chrome_bin = (
+                shutil.which("chromium")
+                or shutil.which("google-chrome")
+                or shutil.which("chrome")
+            )
+            if chrome_bin:
+                pdf_path = project_dir / f"{output}.pdf"
+                try:
+                    subprocess.run(
+                        [
+                            chrome_bin,
+                            "--headless",
+                            "--disable-gpu",
+                            f"--print-to-pdf={pdf_path}",
+                            str(html_path),
+                        ],
+                        check=True,
+                        capture_output=True,
+                        timeout=60,
+                    )
+                    console.print(f"[green]PDF generated:[/green] {pdf_path}")
+                except subprocess.CalledProcessError as exc:
+                    console.print(
+                        f"[yellow]PDF generation failed:[/yellow] {exc.stderr.decode()[:200]}"
+                    )
+                except subprocess.TimeoutExpired:
+                    console.print("[yellow]PDF generation timed out after 60 seconds.[/yellow]")
+            else:
+                console.print(
+                    "[yellow]No Chrome/Chromium found — skipping PDF generation.[/yellow]\n"
+                    "Install Chrome or Chromium to enable PDF output."
+                )
     finally:
         store.close()
