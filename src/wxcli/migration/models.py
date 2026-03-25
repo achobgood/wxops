@@ -502,6 +502,42 @@ class CanonicalCallingPermission(MigrationObject):
 
 
 # ---------------------------------------------------------------------------
+# Canonical types — Tier 2: Call Forwarding, Monitoring
+# ---------------------------------------------------------------------------
+
+class CanonicalCallForwarding(MigrationObject):
+    """CUCM per-line forwarding → Webex per-person call forwarding."""
+    user_canonical_id: str | None = None
+    always_enabled: bool = False
+    always_destination: str | None = None
+    always_to_voicemail: bool = False
+    busy_enabled: bool = False
+    busy_destination: str | None = None
+    busy_to_voicemail: bool = False
+    no_answer_enabled: bool = False
+    no_answer_destination: str | None = None
+    no_answer_to_voicemail: bool = False
+    no_answer_ring_count: int | None = None
+    busy_internal_enabled: bool = False
+    busy_internal_destination: str | None = None
+    no_answer_internal_enabled: bool = False
+    no_answer_internal_destination: str | None = None
+    no_coverage_enabled: bool = False
+    no_coverage_destination: str | None = None
+    on_failure_enabled: bool = False
+    on_failure_destination: str | None = None
+    not_registered_enabled: bool = False
+    not_registered_destination: str | None = None
+
+
+class CanonicalMonitoringList(MigrationObject):
+    """CUCM BLF → Webex per-person monitoring list."""
+    user_canonical_id: str | None = None
+    call_park_notification_enabled: bool = False
+    monitored_members: list[dict[str, Any]] = Field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
 # Inventory — aggregates all canonical types
 # ---------------------------------------------------------------------------
 
@@ -566,6 +602,8 @@ CANONICAL_TYPE_REGISTRY: dict[str, type[MigrationObject]] = {
     "workspace": CanonicalWorkspace,
     "calling_permission": CanonicalCallingPermission,
     "schedule": CanonicalLocationSchedule,
+    "call_forwarding": CanonicalCallForwarding,
+    "monitoring_list": CanonicalMonitoringList,
 }
 
 # Reverse lookup: class -> type name string (O(1) for _object_type_for)

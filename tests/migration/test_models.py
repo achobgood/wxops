@@ -124,7 +124,7 @@ class TestAllCanonicalTypes:
     """Verify every canonical type from the design spec instantiates."""
 
     def test_registry_has_21_types(self):
-        assert len(CANONICAL_TYPE_REGISTRY) == 21
+        assert len(CANONICAL_TYPE_REGISTRY) == 23
 
     @pytest.mark.parametrize("type_name", list(CANONICAL_TYPE_REGISTRY.keys()))
     def test_instantiate_type(self, type_name, base_kwargs):
@@ -261,3 +261,33 @@ def test_new_decision_types_exist():
     assert hasattr(DecisionType, "FORWARDING_LOSSY")
     assert hasattr(DecisionType, "SNR_LOSSY")
     assert hasattr(DecisionType, "AUDIO_ASSET_MANUAL")
+
+
+def test_canonical_call_forwarding():
+    from wxcli.migration.models import CanonicalCallForwarding
+    cf = CanonicalCallForwarding(
+        canonical_id="cf:user1",
+        provenance=Provenance(
+            source_system="cucm", source_id="pk-1", source_name="test",
+            extracted_at=datetime.now(timezone.utc),
+        ),
+        user_canonical_id="user:1",
+        always_enabled=True,
+        always_destination="+15551234567",
+    )
+    assert cf.always_enabled is True
+    assert cf.busy_internal_enabled is False
+
+
+def test_canonical_monitoring_list():
+    from wxcli.migration.models import CanonicalMonitoringList
+    ml = CanonicalMonitoringList(
+        canonical_id="mon:user1",
+        provenance=Provenance(
+            source_system="cucm", source_id="pk-2", source_name="test",
+            extracted_at=datetime.now(timezone.utc),
+        ),
+        user_canonical_id="user:1",
+        monitored_members=[{"target_canonical_id": "user:2", "display_label": "Bob"}],
+    )
+    assert len(ml.monitored_members) == 1
