@@ -181,7 +181,116 @@ def handle_schedule_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
     return [("POST", _url(f"/telephony/config/locations/{loc_wid}/schedules", ctx), body)]
 
 
-# HANDLER_REGISTRY placeholder — populated fully in Task 2 and 3
+# ---------------------------------------------------------------------------
+# Tier 2: People & Routing
+# ---------------------------------------------------------------------------
+
+def handle_user_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    loc_wid = _resolve_location(data, deps)
+    body: dict[str, Any] = {
+        "emails": data.get("emails", []),
+        "firstName": data.get("first_name"),
+        "lastName": data.get("last_name"),
+        "displayName": data.get("display_name"),
+        "locationId": loc_wid,
+        "extension": data.get("extension"),
+    }
+    license_id = ctx.get("CALLING_LICENSE_ID")
+    if license_id:
+        body["licenses"] = [license_id]
+    if data.get("phone_numbers"):
+        body["phoneNumbers"] = data["phone_numbers"]
+    if data.get("department"):
+        body["department"] = data["department"]
+    if data.get("title"):
+        body["title"] = data["title"]
+    return [("POST", _url("/people", ctx, {"callingData": "true"}), body)]
+
+
+def handle_workspace_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    loc_wid = _resolve_location(data, deps)
+    calling_config: dict[str, Any] = {
+        "type": data.get("calling_type", "webexCalling"),
+        "webexCalling": {
+            "locationId": loc_wid,
+        },
+    }
+    if data.get("extension"):
+        calling_config["webexCalling"]["extension"] = data["extension"]
+    if data.get("phone_number"):
+        calling_config["webexCalling"]["phoneNumber"] = data["phone_number"]
+    ws_license = ctx.get("WORKSPACE_LICENSE_ID")
+    if ws_license:
+        calling_config["webexCalling"]["licenses"] = [ws_license]
+    body: dict[str, Any] = {
+        "displayName": data.get("display_name"),
+        "supportedDevices": data.get("supported_devices", "phones"),
+        "type": data.get("workspace_type", "other"),
+        "calling": calling_config,
+    }
+    if data.get("hotdesking_status"):
+        body["hotdeskingStatus"] = data["hotdesking_status"]
+    return [("POST", _url("/workspaces", ctx), body)]
+
+
+def handle_workspace_assign_number(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    # Find workspace webex_id from resolved deps
+    ws_wid = None
+    for cid, wid in deps.items():
+        if cid.startswith("workspace:") and wid:
+            ws_wid = wid
+            break
+    if not ws_wid or not data.get("phone_number"):
+        return []  # No-op if no DID to assign
+    body: dict[str, Any] = {"phoneNumbers": [{"type": "work", "value": data["phone_number"]}]}
+    return [("PUT", _url(f"/workspaces/{ws_wid}", ctx), body)]
+
+
+def handle_device_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    body: dict[str, Any] = {}
+    if data.get("mac"):
+        body["mac"] = data["mac"]
+    if data.get("model"):
+        body["model"] = data["model"]
+    # Resolve owner: person or workspace
+    owner_cid = data.get("owner_canonical_id")
+    if owner_cid:
+        owner_wid = deps.get(owner_cid)
+        if owner_wid:
+            if owner_cid.startswith("user:"):
+                body["personId"] = owner_wid
+            elif owner_cid.startswith("workspace:"):
+                body["workspaceId"] = owner_wid
+    return [("POST", _url("/devices", ctx), body)]
+
+
+# ---------------------------------------------------------------------------
+# Tier 3: Routing patterns
+# ---------------------------------------------------------------------------
+
+def handle_dial_plan_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    route_cid = data.get("route_id")
+    route_wid = deps.get(route_cid) if route_cid else None
+    patterns = [{"dialPattern": p} for p in data.get("dial_patterns", [])]
+    body: dict[str, Any] = {
+        "name": data.get("name"),
+        "routeId": route_wid,
+        "routeType": data.get("route_type", "TRUNK"),
+        "dialPatterns": patterns,
+    }
+    return [("POST", _url("/telephony/config/premisePstn/dialPlans", ctx), body)]
+
+
+def handle_translation_pattern_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    body: dict[str, Any] = {
+        "name": data.get("name"),
+        "matchingPattern": data.get("matching_pattern"),
+        "replacementPattern": data.get("replacement_pattern"),
+    }
+    return [("POST", _url("/telephony/config/callRouting/translationPatterns", ctx), body)]
+
+
+# HANDLER_REGISTRY — populated fully in Task 2 and 3
 HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("location", "create"): handle_location_create,
     ("location", "enable_calling"): handle_location_enable_calling,
@@ -189,4 +298,10 @@ HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("route_group", "create"): handle_route_group_create,
     ("operating_mode", "create"): handle_operating_mode_create,
     ("schedule", "create"): handle_schedule_create,
+    ("user", "create"): handle_user_create,
+    ("workspace", "create"): handle_workspace_create,
+    ("workspace", "assign_number"): handle_workspace_assign_number,
+    ("device", "create"): handle_device_create,
+    ("dial_plan", "create"): handle_dial_plan_create,
+    ("translation_pattern", "create"): handle_translation_pattern_create,
 }
