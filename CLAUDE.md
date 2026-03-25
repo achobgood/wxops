@@ -137,6 +137,7 @@ The migration tool is at `src/wxcli/migration/` and wired into the CLI as `wxcli
 | `src/wxcli/migration/execute/` | Phase 07 — planner.py, dependency.py (NetworkX DAG), batch.py |
 | `src/wxcli/migration/export/` | Phase 09 — command_builder.py (27 op→wxcli mappings), deployment_plan.py, json/csv exports |
 | `src/wxcli/migration/preflight/` | Phase 10 — checks.py (8 preflight checks), runner.py (orchestrator), CLI `wxcli cucm preflight` |
+| `src/wxcli/migration/advisory/` | Phase 13 — Advisory system: per-decision recommendations (16 rules) + cross-cutting advisor (16 patterns) |
 | `src/wxcli/migration/report/` | Assessment report generator — complexity score, SVG charts, executive summary + appendix → HTML/PDF. See its CLAUDE.md. |
 | `.claude/skills/cucm-migrate/SKILL.md` | Phase 11 — 6-step execution skill: preflight → plan summary → batch execute → delegate → report |
 
