@@ -1,4 +1,4 @@
-"""TransformEngine — orchestrates all 11 mappers in dependency order.
+"""TransformEngine — orchestrates all 14 mappers in dependency order.
 
 Runs each mapper sequentially in MAPPER_ORDER (tier-sorted), aggregates
 decisions and errors into a single TransformResult. If a mapper raises
@@ -35,6 +35,9 @@ from wxcli.migration.transform.mappers.user_mapper import UserMapper
 from wxcli.migration.transform.mappers.call_forwarding_mapper import CallForwardingMapper
 from wxcli.migration.transform.mappers.monitoring_mapper import MonitoringMapper
 from wxcli.migration.transform.mappers.voicemail_mapper import VoicemailMapper
+from wxcli.migration.transform.mappers.button_template_mapper import ButtonTemplateMapper
+from wxcli.migration.transform.mappers.device_layout_mapper import DeviceLayoutMapper
+from wxcli.migration.transform.mappers.softkey_mapper import SoftkeyMapper
 from wxcli.migration.transform.mappers.workspace_mapper import WorkspaceMapper
 
 logger = logging.getLogger(__name__)
@@ -59,11 +62,14 @@ MAPPER_ORDER: list[type[Mapper]] = [
     VoicemailMapper,      # Tier 5 (depends on users)
     CallForwardingMapper, # Tier 6 (depends on users, phones/device cross-refs)
     MonitoringMapper,     # Tier 6 (depends on users, phones, lines)
+    SoftkeyMapper,        # Tier 6 (depends on devices for phone model info)
+    ButtonTemplateMapper, # Tier 6 (depends on devices for phone→template cross-refs)
+    DeviceLayoutMapper,   # Tier 7 (depends on button_template, monitoring, line, device mappers)
 ]
 
 
 class TransformEngine:
-    """Orchestrates all 11 transform mappers in dependency order.
+    """Orchestrates all 14 transform mappers in dependency order.
 
     (from 03b-transform-mappers.md section 13)
     """
@@ -85,7 +91,7 @@ class TransformEngine:
         self.config = config or {}
 
     def run(self, store: MigrationStore) -> TransformResult:
-        """Run all 11 mappers in dependency order.
+        """Run all 14 mappers in dependency order.
 
         Failure handling: if a mapper raises an exception, log the error,
         record a MapperError, and continue to the next mapper. Downstream
@@ -194,6 +200,15 @@ class TransformEngine:
 
         if mapper_cls is MonitoringMapper:
             return MonitoringMapper()
+
+        if mapper_cls is SoftkeyMapper:
+            return SoftkeyMapper()
+
+        if mapper_cls is ButtonTemplateMapper:
+            return ButtonTemplateMapper()
+
+        if mapper_cls is DeviceLayoutMapper:
+            return DeviceLayoutMapper()
 
         # Fallback: attempt no-arg construction
         return mapper_cls()  # type: ignore[call-arg]

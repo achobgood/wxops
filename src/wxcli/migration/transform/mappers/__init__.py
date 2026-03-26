@@ -14,6 +14,7 @@ from wxcli.migration.transform.mappers.base import (
     manual_option,
     skip_option,
 )
+from wxcli.migration.transform.mappers.button_template_mapper import ButtonTemplateMapper
 from wxcli.migration.transform.mappers.call_forwarding_mapper import CallForwardingMapper
 from wxcli.migration.transform.mappers.css_mapper import CSSMapper
 from wxcli.migration.transform.mappers.monitoring_mapper import MonitoringMapper
@@ -24,6 +25,7 @@ from wxcli.migration.transform.mappers.location_mapper import LocationMapper
 from wxcli.migration.transform.mappers.routing_mapper import RoutingMapper
 from wxcli.migration.transform.mappers.user_mapper import UserMapper
 from wxcli.migration.transform.mappers.voicemail_mapper import VoicemailMapper
+from wxcli.migration.transform.mappers.softkey_mapper import SoftkeyMapper
 from wxcli.migration.transform.mappers.workspace_mapper import WorkspaceMapper
 
 __all__ = [
@@ -39,6 +41,8 @@ __all__ = [
     "VoicemailMapper",
     "CallForwardingMapper",
     "MonitoringMapper",
+    "ButtonTemplateMapper",
+    "SoftkeyMapper",
     "skip_option",
     "manual_option",
     "accept_option",
