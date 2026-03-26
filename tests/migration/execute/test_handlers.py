@@ -3,6 +3,7 @@
 import pytest
 from wxcli.migration.execute.handlers import (
     HANDLER_REGISTRY,
+    handle_call_forwarding_configure,
     handle_line_key_template_create,
     handle_location_create,
     handle_location_enable_calling,
@@ -710,6 +711,86 @@ class TestVirtualLineConfigure:
     def test_no_dep_returns_empty(self):
         data = {"settings": {"callerIdName": "VL"}}
         result = handle_virtual_line_configure(data, {}, {})
+        assert result == []
+
+
+class TestCallForwardingConfigure:
+    def test_all_enabled(self):
+        data = {
+            "user_canonical_id": "user:jsmith",
+            "always_enabled": True,
+            "always_destination": "+12223334444",
+            "always_to_voicemail": False,
+            "busy_enabled": True,
+            "busy_destination": "+15556667777",
+            "busy_to_voicemail": False,
+            "no_answer_enabled": True,
+            "no_answer_destination": "+18889990000",
+            "no_answer_to_voicemail": False,
+            "no_answer_ring_count": 5,
+        }
+        deps = {"user:jsmith": "wx-person-aaa"}
+        result = handle_call_forwarding_configure(data, deps, {})
+        assert len(result) == 1
+        method, url, body = result[0]
+        assert method == "PUT"
+        assert "wx-person-aaa" in url
+        assert "/features/callForwarding" in url
+        cf = body["callForwarding"]
+        assert cf["always"]["enabled"] is True
+        assert cf["always"]["destination"] == "+12223334444"
+        assert cf["busy"]["enabled"] is True
+        assert cf["noAnswer"]["numberOfRings"] == 5
+        assert body["businessContinuity"]["enabled"] is False
+
+    def test_all_disabled_returns_empty(self):
+        data = {
+            "user_canonical_id": "user:jsmith",
+            "always_enabled": False,
+            "busy_enabled": False,
+            "no_answer_enabled": False,
+        }
+        deps = {"user:jsmith": "wx-person-aaa"}
+        result = handle_call_forwarding_configure(data, deps, {})
+        assert result == []
+
+    def test_voicemail_destination(self):
+        data = {
+            "user_canonical_id": "user:jsmith",
+            "always_enabled": True,
+            "always_destination": None,
+            "always_to_voicemail": True,
+            "busy_enabled": False,
+            "no_answer_enabled": False,
+        }
+        deps = {"user:jsmith": "wx-person-aaa"}
+        result = handle_call_forwarding_configure(data, deps, {})
+        _, _, body = result[0]
+        assert body["callForwarding"]["always"]["destinationVoicemailEnabled"] is True
+
+    def test_partial_only_no_answer(self):
+        data = {
+            "user_canonical_id": "user:jsmith",
+            "always_enabled": False,
+            "busy_enabled": False,
+            "no_answer_enabled": True,
+            "no_answer_destination": "+19998887777",
+            "no_answer_to_voicemail": False,
+            "no_answer_ring_count": 3,
+        }
+        deps = {"user:jsmith": "wx-person-aaa"}
+        result = handle_call_forwarding_configure(data, deps, {})
+        assert len(result) == 1
+        _, _, body = result[0]
+        cf = body["callForwarding"]
+        assert cf["always"]["enabled"] is False
+        assert cf["noAnswer"]["enabled"] is True
+        assert cf["noAnswer"]["numberOfRings"] == 3
+
+    def test_no_user_dep_returns_empty(self):
+        data = {"user_canonical_id": "user:jsmith", "always_enabled": True,
+                "always_destination": "+1234", "busy_enabled": False, "no_answer_enabled": False}
+        result = handle_call_forwarding_configure(data, {}, {})
         assert result == []
 
 
