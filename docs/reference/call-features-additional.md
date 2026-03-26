@@ -3,7 +3,7 @@
 ## Sources
 
 - wxc_sdk v1.30.0
-- OpenAPI spec: webex-cloud-calling.json
+- OpenAPI spec: specs/webex-cloud-calling.json
 - developer.webex.com Call Features APIs
 
 Comprehensive reference for Webex Calling Paging Groups, Call Park, Call Park Extensions, Call Pickup, Voicemail Groups, Customer Assist (formerly CX Essentials), Operating Modes, Call Recording, Announcements/Playlists, Single Number Reach, and Virtual Extensions using the `wxc_sdk`. Each section includes both SDK signatures and Raw HTTP examples.

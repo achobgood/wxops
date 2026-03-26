@@ -2,7 +2,7 @@
 
 ## Sources
 - wxc_sdk v1.30.0
-- OpenAPI spec: webex-cloud-calling.json
+- OpenAPI spec: specs/webex-cloud-calling.json
 - developer.webex.com Location Call Settings APIs
 
 Reference document covering the SDK APIs for location-level call settings, voicemail policies (location and org), voicemail rules, voice messaging, and voice portal configuration.

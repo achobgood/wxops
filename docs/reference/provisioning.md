@@ -7,7 +7,7 @@ User, license, and location provisioning for Webex Calling via the `wxc_sdk` Pyt
 ## Sources
 
 - wxc_sdk v1.30.0 (github.com/jeokrohn/wxc_sdk)
-- OpenAPI spec: `webex-admin.json` (People, Licenses, Locations, Organizations APIs)
+- OpenAPI spec: `specs/webex-admin.json` (People, Licenses, Locations, Organizations APIs)
 - developer.webex.com People, Licenses, Locations, and Organizations APIs
 
 ---

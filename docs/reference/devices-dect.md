@@ -5,7 +5,7 @@
 ## Sources
 
 - wxc_sdk v1.30.0
-- OpenAPI spec: webex-device.json
+- OpenAPI spec: specs/webex-device.json
 - developer.webex.com DECT Device APIs
 
 DECT network management (networks, base stations, handsets, line assignment) and hot desk session management via the `wxc_sdk` Python SDK.
@@ -1132,7 +1132,7 @@ api.session.rest_put(
 
 7. **Line 1 vs Line 2 member types.** Line 1 supports only PEOPLE and PLACE. Line 2 also supports VIRTUAL_LINE. Virtual lines cannot be the primary (line 1) member.
 
-8. **Hot desk scopes not documented.** The source code for `HotDeskApi` does not include scope documentation in the docstrings, and the OpenAPI specs also omit security/scope blocks for the Hot Desk endpoints. <!-- Verified via wxc_sdk source and OpenAPI spec (webex-cloud-calling.json, webex-device.json) 2026-03-19 -->
+8. **Hot desk scopes not documented.** The source code for `HotDeskApi` does not include scope documentation in the docstrings, and the OpenAPI specs also omit security/scope blocks for the Hot Desk endpoints. <!-- Verified via wxc_sdk source and OpenAPI spec (specs/webex-cloud-calling.json, specs/webex-device.json) 2026-03-19 -->
 
 9. **`DECTNetworkModel` has alternate names.** `dms_cisco_dbs110` and `cisco_dect_110_base` both refer to the same physical hardware (DBS-110). Same for the 210 variants. Choose either enum value.
 

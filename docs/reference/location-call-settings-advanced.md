@@ -4,7 +4,7 @@
 ## Sources
 
 - wxc_sdk v1.30.0
-- OpenAPI spec: webex-cloud-calling.json
+- OpenAPI spec: specs/webex-cloud-calling.json
 - developer.webex.com Location Call Settings APIs
 
 Reference for advanced location-level and org-level call settings managed through the wxc_sdk. Covers call recording vendors and compliance, caller reputation (spam scoring), conference controls, supervisor/agent management, guest calling (click-to-call), operating modes, hot desking via voice portal, and shared forwarding patterns used across features.
@@ -505,7 +505,7 @@ wxcli caller-reputation show --organization-id <org_id>
 - **`client_secret` is write-only** -- it is never returned by `get()`. Only usable in `update()`.
 - The `unlock()` method invokes `actions/unlock/invoke` -- use this when the provider is in a locked state (e.g., after auth failure). <!-- UNVERIFIABLE: exact conditions that trigger a locked state are not documented in SDK or OpenAPI spec; would need live API testing -->
 - Note the parameter is `organization_id` (not `org_id`) in this API, differing from most other telephony APIs.
-- Score thresholds are strings, not integers. The OpenAPI spec examples show decimal numeric strings (e.g., `"0.7"`, `"0.3"`), not integer strings. <!-- Verified via OpenAPI spec (webex-cloud-calling.json) 2026-03-19 -->
+- Score thresholds are strings, not integers. The OpenAPI spec examples show decimal numeric strings (e.g., `"0.7"`, `"0.3"`), not integer strings. <!-- Verified via OpenAPI spec (specs/webex-cloud-calling.json) 2026-03-19 -->
 
 ---
 

@@ -7,7 +7,7 @@ For space/team/membership CRUD, see [`messaging-spaces.md`](messaging-spaces.md)
 
 ## Sources
 
-- OpenAPI spec: `webex-messaging.json`
+- OpenAPI spec: `specs/webex-messaging.json`
 - developer.webex.com Messaging APIs
 - Webex Bot Framework documentation
 

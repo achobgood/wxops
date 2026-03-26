@@ -5,7 +5,7 @@ Reference for Webex Calling's three major call-routing features. Sourced from th
 ## Sources
 
 - wxc_sdk v1.30.0
-- OpenAPI spec: webex-cloud-calling.json
+- OpenAPI spec: specs/webex-cloud-calling.json
 - developer.webex.com Call Features APIs
 
 ---

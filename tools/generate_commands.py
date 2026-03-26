@@ -10,7 +10,7 @@ from tools.postman_parser import load_overrides, apply_endpoint_overrides
 from tools.command_renderer import render_command_file, folder_name_to_module
 
 
-DEFAULT_SPEC = Path(__file__).parent.parent / "webex-cloud-calling.json"
+DEFAULT_SPEC = Path(__file__).parent.parent / "specs" / "webex-cloud-calling.json"
 DEFAULT_OVERRIDES = Path(__file__).parent / "field_overrides.yaml"
 DEFAULT_OUTPUT = Path(__file__).parent.parent / "src" / "wxcli" / "commands"
 

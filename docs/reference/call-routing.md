@@ -3,7 +3,7 @@
 
 ## Sources
 - wxc_sdk v1.30.0
-- OpenAPI spec: webex-cloud-calling.json
+- OpenAPI spec: specs/webex-cloud-calling.json
 - developer.webex.com Call Routing APIs
 
 Comprehensive reference for Webex Calling dial plans, trunks, route groups, route lists, translation patterns, PSTN configuration, and call routing validation using the `wxc_sdk` and raw HTTP via `api.session`.

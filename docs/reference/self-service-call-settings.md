@@ -4,7 +4,7 @@ User-level self-service endpoints for managing personal call settings via user O
 
 ## Sources
 
-- webex-cloud-calling.json (5 "Call Settings For Me" tags, 138 endpoints)
+- specs/webex-cloud-calling.json (5 "Call Settings For Me" tags, 138 endpoints)
 - CLAUDE.md known issue #4 (6 user-only endpoints)
 - person-call-settings-*.md (admin-path equivalents)
 

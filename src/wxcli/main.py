@@ -230,7 +230,7 @@ app.add_typer(workspace_settings_app, name="workspace-settings")
 from wxcli.commands.workspaces import app as workspaces_app
 app.add_typer(workspaces_app, name="workspaces")
 
-# Auto-generated from admin spec (webex-admin.json)
+# Auto-generated from admin spec (specs/webex-admin.json)
 from wxcli.commands.domains import app as domains_app
 app.add_typer(domains_app, name="domains")
 from wxcli.commands.audit_events import app as audit_events_app
@@ -302,7 +302,7 @@ app.add_typer(workspace_locations_app, name="workspace-locations")
 from wxcli.commands.workspace_metrics import app as workspace_metrics_app
 app.add_typer(workspace_metrics_app, name="workspace-metrics")
 
-# Auto-generated from device spec (webex-device.json)
+# Auto-generated from device spec (specs/webex-device.json)
 from wxcli.commands.device_configurations import app as device_configurations_app
 app.add_typer(device_configurations_app, name="device-configurations")
 from wxcli.commands.workspace_personalization import app as workspace_personalization_app
@@ -310,7 +310,7 @@ app.add_typer(workspace_personalization_app, name="workspace-personalization")
 from wxcli.commands.xapi import app as xapi_app
 app.add_typer(xapi_app, name="xapi")
 
-# Auto-generated from messaging spec (webex-messaging.json)
+# Auto-generated from messaging spec (specs/webex-messaging.json)
 from wxcli.commands.attachment_actions import app as attachment_actions_app
 app.add_typer(attachment_actions_app, name="attachment-actions")
 from wxcli.commands.ecm import app as ecm_app

@@ -5,7 +5,7 @@
 ## Sources
 
 - wxc_sdk v1.30.0 (PersonSettingsApi)
-- OpenAPI spec: webex-cloud-calling.json
+- OpenAPI spec: specs/webex-cloud-calling.json
 - developer.webex.com Person Call Settings APIs
 
 Person-level call handling settings control how incoming calls are routed, filtered, and alerted for individual Webex Calling users. All APIs live under `PersonSettingsApi` (accessed via `api.person_settings.*`) and share a common base class pattern.

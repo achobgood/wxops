@@ -5,7 +5,7 @@ This document covers every authentication method available for the Webex Calling
 ## Sources
 
 - wxc_sdk v1.30.0
-- OpenAPI specs: webex-cloud-calling.json, webex-admin.json
+- OpenAPI specs: specs/webex-cloud-calling.json, specs/webex-admin.json
 - developer.webex.com Authentication APIs
 
 ---
@@ -382,7 +382,7 @@ Guest Issuer tokens create temporary, anonymous guest users for scenarios like c
 
 ### Gotchas
 
-- **Guest token lifetime is variable, set by `expiresIn` in the response.** The OpenAPI spec example shows `expiresIn: 64799` (~18 hours), but the actual lifetime is returned per-token at creation time via the `expiresIn` field. The SDK `Guest` model exposes this as `expires_in` and computes `expires_at` from it. There is no single fixed lifetime — it depends on org/service-app configuration. <!-- Verified via OpenAPI spec (webex-admin.json Guest schema) and wxc_sdk source (guests/__init__.py) 2026-03-19 -->
+- **Guest token lifetime is variable, set by `expiresIn` in the response.** The OpenAPI spec example shows `expiresIn: 64799` (~18 hours), but the actual lifetime is returned per-token at creation time via the `expiresIn` field. The SDK `Guest` model exposes this as `expires_in` and computes `expires_at` from it. There is no single fixed lifetime — it depends on org/service-app configuration. <!-- Verified via OpenAPI spec (specs/webex-admin.json Guest schema) and wxc_sdk source (guests/__init__.py) 2026-03-19 -->
 
 ---
 

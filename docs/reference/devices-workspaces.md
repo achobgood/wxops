@@ -5,7 +5,7 @@
 ## Sources
 
 - wxc_sdk v1.30.0
-- OpenAPI spec: webex-device.json
+- OpenAPI spec: specs/webex-device.json
 - developer.webex.com Workspace APIs
 
 Workspaces represent physical places where people work — conference rooms, meeting spaces, lobbies, desks. Devices are associated with workspaces. The wxc_sdk provides four API modules for managing workspaces and their configurations.

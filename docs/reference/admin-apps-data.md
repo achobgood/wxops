@@ -6,7 +6,7 @@ Service apps, authorizations, user lifecycle operations, recordings management, 
 
 ## Sources
 
-- `webex-admin.json` -- OpenAPI 3.0 spec (admin/org management APIs)
+- `specs/webex-admin.json` -- OpenAPI 3.0 spec (admin/org management APIs)
 - [Webex Service App documentation](https://developer.webex.com/docs/service-apps)
 - [Webex Data Sources API](https://developer.webex.com/docs/api/v1/data-sources)
 - [Webex Resource Groups API](https://developer.webex.com/docs/api/v1/resource-groups)
