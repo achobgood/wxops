@@ -290,8 +290,8 @@ section { margin-bottom: 2.5rem; }
 
 .env-donut {
     float: right;
-    width: 340px;
-    margin: 0 0 1rem 1.5rem;
+    width: 420px;
+    margin: 0.5rem 8rem 1rem 2rem;
 }
 
 .env-donut svg {
@@ -505,9 +505,38 @@ td.num, th.num {
     gap: 8px;
 }
 
+.score-breakdown .factor-scale {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 0.5rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--slate-400);
+    margin-bottom: 2px;
+}
+
+.score-breakdown .factor-scale-title {
+    text-align: right;
+}
+
+.score-breakdown .factor-scale-low,
+.score-breakdown .factor-scale-high {
+    display: inline;
+}
+
+.score-breakdown .factor-scale .factor-scale-low {
+    float: left;
+}
+
+.score-breakdown .factor-scale .factor-scale-high {
+    float: right;
+}
+
 .score-breakdown .factor-row {
     display: grid;
-    grid-template-columns: 140px 1fr 36px;
+    grid-template-columns: 140px 1fr;
     align-items: center;
     gap: 0.5rem;
     font-size: 0.85rem;
@@ -529,14 +558,6 @@ td.num, th.num {
 .score-breakdown .factor-fill {
     height: 100%;
     border-radius: 5px;
-}
-
-.score-breakdown .factor-value {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: var(--slate-800);
-    text-align: right;
 }
 
 
