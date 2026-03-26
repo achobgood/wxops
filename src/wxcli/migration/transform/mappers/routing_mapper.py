@@ -14,6 +14,7 @@ Cross-ref reads:
 
 Decisions generated:
     FEATURE_APPROXIMATION  — @ macro in route pattern
+    LOCATION_AMBIGUOUS     — trunk has no device pool; multiple locations available
     MISSING_DATA           — trunk password, missing address, partition scope issues
 """
 
@@ -30,6 +31,7 @@ from wxcli.migration.models import (
     CanonicalRouteGroup,
     CanonicalTranslationPattern,
     CanonicalTrunk,
+    DecisionOption,
     DecisionType,
     MapperResult,
     MigrationStatus,
@@ -172,29 +174,72 @@ class RoutingMapper(Mapper):
                 device_type = state.get("device_type")
                 p_charge_info = state.get("pChargeInfoSupportPolicy")
 
-                # Fix 10: MISSING_DATA decision if no location resolved
+                # Fix 10: Resolve location when cross-ref chain breaks (org-wide trunks)
                 if not location_id:
-                    decision = self._create_decision(
-                        store=store,
-                        decision_type=DecisionType.MISSING_DATA,
-                        severity="HIGH",
-                        summary=(
-                            f"Trunk '{name}' has no resolvable location — "
-                            f"locationId required for Webex trunk creation"
-                        ),
-                        context={
-                            "trunk_id": f"trunk:{name}",
-                            "trunk_name": name,
-                            "reason": "no_location",
-                        },
-                        options=[
-                            manual_option("Admin assigns trunk to a Webex location"),
-                            skip_option("Trunk not migrated"),
-                        ],
-                        affected_objects=[f"trunk:{name}"],
-                    )
-                    store.save_decision(decision_to_store_dict(decision))
-                    result.decisions.append(decision)
+                    locations = store.get_objects("location")
+                    if len(locations) == 1:
+                        # Single location — auto-assign (no decision needed)
+                        location_id = locations[0]["canonical_id"]
+                        logger.info(
+                            "Trunk '%s' auto-assigned to only location '%s'",
+                            name, location_id,
+                        )
+                    elif len(locations) > 1:
+                        # Multiple locations — present as selectable options
+                        loc_options = [
+                            DecisionOption(
+                                id=loc["canonical_id"],
+                                label=f"Assign to {loc.get('pre_migration_state', {}).get('name', loc['canonical_id'])}",
+                                impact=f"Trunk created in {loc.get('pre_migration_state', {}).get('name', loc['canonical_id'])}",
+                            )
+                            for loc in locations
+                        ]
+                        loc_options.append(skip_option("Trunk not migrated"))
+                        decision = self._create_decision(
+                            store=store,
+                            decision_type=DecisionType.LOCATION_AMBIGUOUS,
+                            severity="HIGH",
+                            summary=(
+                                f"Trunk '{name}' has no device pool — "
+                                f"choose which of {len(locations)} locations to assign it to"
+                            ),
+                            context={
+                                "trunk_id": f"trunk:{name}",
+                                "trunk_name": name,
+                                "reason": "no_location",
+                                "available_locations": [
+                                    loc["canonical_id"] for loc in locations
+                                ],
+                            },
+                            options=loc_options,
+                            affected_objects=[f"trunk:{name}"],
+                        )
+                        store.save_decision(decision_to_store_dict(decision))
+                        result.decisions.append(decision)
+                    else:
+                        # No locations at all — MISSING_DATA
+                        decision = self._create_decision(
+                            store=store,
+                            decision_type=DecisionType.MISSING_DATA,
+                            severity="HIGH",
+                            summary=(
+                                f"Trunk '{name}' has no resolvable location and "
+                                f"no locations exist in migration — "
+                                f"locationId required for Webex trunk creation"
+                            ),
+                            context={
+                                "trunk_id": f"trunk:{name}",
+                                "trunk_name": name,
+                                "reason": "no_location",
+                            },
+                            options=[
+                                manual_option("Admin assigns trunk to a Webex location"),
+                                skip_option("Trunk not migrated"),
+                            ],
+                            affected_objects=[f"trunk:{name}"],
+                        )
+                        store.save_decision(decision_to_store_dict(decision))
+                        result.decisions.append(decision)
 
                 trunk = CanonicalTrunk(
                     canonical_id=f"trunk:{name}",

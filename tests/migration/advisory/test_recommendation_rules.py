@@ -45,14 +45,21 @@ class TestDeviceFirmwareConvertible:
 
 
 class TestMissingData:
-    def test_trunk_password_generates(self):
-        r = recommend_missing_data({"subtype": "trunk_password"}, [])
-        assert r[0] == "generate"
-
-    def test_missing_fields_skips(self):
-        r = recommend_missing_data({"missing_fields": ["email", "location"]}, [])
+    def test_leaf_object_missing_fields_skips(self):
+        """Objects with no dependents can be safely skipped."""
+        r = recommend_missing_data({"missing_fields": ["email", "location"], "dependent_count": 0}, [])
         assert r[0] == "skip"
         assert "email" in r[1]
+
+    def test_object_with_dependents_returns_none(self):
+        """Objects with dependents should NOT auto-skip — force human review."""
+        r = recommend_missing_data({"missing_fields": ["address"], "dependent_count": 5}, [])
+        assert r is None
+
+    def test_infrastructure_object_returns_none(self):
+        """Locations, trunks, route groups always force review."""
+        r = recommend_missing_data({"missing_fields": ["address"], "object_type": "location"}, [])
+        assert r is None
 
     def test_no_context_skips(self):
         r = recommend_missing_data({}, [])

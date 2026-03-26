@@ -86,7 +86,7 @@ def get_next_batch(store: MigrationStore) -> list[dict[str, Any]]:
         obj_data = store.get_object(canonical_id)
         data = obj_data if obj_data else {}
 
-        # Get resolved dependency IDs
+        # Get resolved dependency IDs (explicit edges)
         deps = conn.execute(
             """SELECT dep.canonical_id, dep.webex_id
                FROM plan_edges pe
@@ -99,6 +99,24 @@ def get_next_batch(store: MigrationStore) -> list[dict[str, Any]]:
             for r in deps
             if r["webex_id"]
         }
+
+        # Also inject all completed location ops into resolved_deps so that
+        # handlers can resolve location_id even when no explicit edge exists.
+        # This covers CUCM resources (AA, HG, pickup, trunk) that have no
+        # location in their canonical form — the handler falls back to
+        # _resolve_location() which looks up location_id from data in deps.
+        loc_ops = conn.execute(
+            """SELECT canonical_id, webex_id
+               FROM plan_operations
+               WHERE resource_type = 'location'
+                 AND op_type = 'create'
+                 AND status = 'completed'
+                 AND webex_id IS NOT NULL""",
+        ).fetchall()
+        for loc in loc_ops:
+            # Only inject if not already present from explicit edges
+            if loc["canonical_id"] not in resolved_deps:
+                resolved_deps[loc["canonical_id"]] = loc["webex_id"]
 
         result.append({
             "node_id": node_id,

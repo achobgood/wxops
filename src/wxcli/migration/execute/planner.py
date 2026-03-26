@@ -579,6 +579,16 @@ def expand_to_operations(store: MigrationStore) -> list[MigrationOp]:
             skipped_by_decision += 1
             continue
 
+        # Patch location_id from resolved LOCATION_AMBIGUOUS decision
+        # (e.g., trunk with no device pool where user picked a location)
+        loc_choice = _decision_chosen(decisions, "LOCATION_AMBIGUOUS")
+        if loc_choice and loc_choice != "skip" and not obj_data.get("location_id"):
+            obj_data["location_id"] = loc_choice
+            # Persist the patched location_id back to the store object
+            if hasattr(obj, "location_id"):
+                obj.location_id = loc_choice
+                store.upsert_object(obj)
+
         ops = expander(obj_data, decisions)
         all_ops.extend(ops)
 

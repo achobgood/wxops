@@ -234,6 +234,134 @@ def _open_store(project_dir: Path):
     return MigrationStore(db_path)
 
 
+def _prompt_for_wsdl(host: str, version: str) -> str | None:
+    """Guide the user through downloading the AXL WSDL and return the path.
+
+    Called when CUCM blocks remote WSDL fetch (403). Prints plain-language
+    instructions and prompts for the file path. Returns None if the user
+    cancels.
+    """
+    console.print(
+        "\n[yellow]Your CUCM server requires a local copy of the AXL schema file.[/yellow]\n"
+        "\n"
+        "This is normal for CUCM 15.x and some hardened 14.x clusters.\n"
+        "You need to download one file from your CUCM admin page:\n"
+        "\n"
+        f"  1. Open [bold]https://{host}/ccmadmin[/bold] in a browser\n"
+        "  2. Go to [bold]Application → Plugins[/bold]\n"
+        "  3. Find [bold]Cisco AXL Toolkit[/bold] and click [bold]Download[/bold]\n"
+        "  4. Unzip the downloaded file\n"
+        "  5. The file you need is at: [bold]schema/current/AXLAPI.wsdl[/bold]\n"
+    )
+    for attempt in range(3):
+        wsdl_path_str = typer.prompt(
+            "Paste the full path to AXLAPI.wsdl (or press Enter to cancel)",
+            default="",
+            show_default=False,
+        )
+        if not wsdl_path_str.strip():
+            return None
+        # Clean up common issues: quotes, trailing whitespace, ~ expansion
+        wsdl_path_str = wsdl_path_str.strip().strip("'\"")
+        wsdl_path = Path(wsdl_path_str).expanduser()
+        if not wsdl_path.exists():
+            console.print(f"[red]File not found:[/red] {wsdl_path}")
+            if attempt < 2:
+                console.print("Check the path and try again.\n")
+                continue
+            console.print("Too many attempts.")
+            return None
+        if not wsdl_path.name.endswith(".wsdl"):
+            console.print(
+                f"[yellow]Warning:[/yellow] {wsdl_path.name} doesn't look like a WSDL file.\n"
+                "The file is usually named AXLAPI.wsdl."
+            )
+            if not typer.confirm("Use this file anyway?", default=False):
+                if attempt < 2:
+                    continue
+                return None
+        return str(wsdl_path)
+    return None
+
+
+def _connect_axl(
+    host: str,
+    username: str,
+    password: str,
+    version: str,
+    port: int,
+    wsdl: str | None,
+    project_dir: Path,
+):
+    """Connect to CUCM via AXL, handling WSDL download guidance on 403.
+
+    On success, saves the WSDL path (if used) to project config so
+    subsequent runs don't ask again. If a saved WSDL path no longer
+    exists on disk, clears it and retries.
+    """
+    from wxcli.migration.cucm.connection import AXLConnection
+
+    try:
+        conn = AXLConnection(
+            host=host,
+            username=username,
+            password=password,
+            version=version,
+            wsdl_path=wsdl,
+        )
+        # Save WSDL path to config on success so future runs reuse it
+        if wsdl:
+            cfg = load_config(project_dir)
+            cfg["wsdl_path"] = str(Path(wsdl).resolve())
+            save_config(project_dir, cfg)
+        return conn
+    except Exception as exc:
+        err_str = str(exc)
+
+        # Check if a saved WSDL path was used but the file was moved/deleted
+        if wsdl and not Path(wsdl).exists():
+            console.print(
+                f"[yellow]Previously saved WSDL not found:[/yellow] {wsdl}\n"
+                "The file may have been moved or deleted."
+            )
+            cfg = load_config(project_dir)
+            cfg.pop("wsdl_path", None)
+            save_config(project_dir, cfg)
+            # Guide the user to provide the new path
+            new_wsdl = _prompt_for_wsdl(host, version)
+            if new_wsdl:
+                return _connect_axl(
+                    host, username, password, version, port, new_wsdl, project_dir,
+                )
+            raise typer.Exit(1)
+
+        if "403" in err_str and "wsdl" in err_str.lower():
+            new_wsdl = _prompt_for_wsdl(host, version)
+            if new_wsdl:
+                console.print(f"\n[bold]Retrying connection with local WSDL...[/bold]")
+                return _connect_axl(
+                    host, username, password, version, port, new_wsdl, project_dir,
+                )
+            console.print("[red]Cannot connect without the WSDL file.[/red]")
+            raise typer.Exit(1)
+
+        # Non-WSDL errors — print diagnostics and exit
+        console.print(f"[red]Connection failed:[/red] {exc}")
+        if "401" in err_str:
+            console.print(
+                "\n[yellow]Tip:[/yellow] Authentication failed. Check your AXL username/password "
+                "and ensure the user has the 'Standard AXL API Access' role in CUCM."
+            )
+        elif "Connection refused" in err_str or "timed out" in err_str.lower():
+            console.print(
+                f"\n[yellow]Tip:[/yellow] Cannot reach {host}:{port}. Check:\n"
+                "  - CUCM is reachable from this machine\n"
+                "  - Port 8443 is open (firewall)\n"
+                "  - The Cisco AXL Web Service is activated in CUCM Serviceability"
+            )
+        raise typer.Exit(1)
+
+
 # ===================================================================
 # PROJECT MANAGEMENT COMMANDS
 # ===================================================================
@@ -415,8 +543,6 @@ def discover(
             raise typer.Exit(1)
 
         # Save collector metadata (cucm_version, cluster_name) to project config
-        from wxcli.commands.cucm_config import load_config, save_config
-
         cfg = load_config(project_dir)
         cfg["cucm_version"] = metadata.get("cucm_version", "")
         cfg["cluster_name"] = metadata.get("cluster_name", "")
@@ -461,45 +587,28 @@ def discover(
         console.print("[red]--username is required for live AXL discovery.[/red]")
         raise typer.Exit(1)
 
-    from wxcli.migration.cucm.connection import AXLConnection
     from wxcli.migration.cucm.discovery import run_discovery
+
+    # Check project config for a previously saved WSDL path
+    if not wsdl:
+        cfg = load_config(project_dir)
+        saved_wsdl = cfg.get("wsdl_path")
+        if saved_wsdl:
+            if Path(saved_wsdl).exists():
+                wsdl = saved_wsdl
+                console.print(f"[dim]Using saved WSDL: {wsdl}[/dim]")
+            else:
+                console.print(
+                    f"[yellow]Previously saved WSDL not found:[/yellow] {saved_wsdl}\n"
+                    "The file may have been moved or deleted."
+                )
+                cfg.pop("wsdl_path", None)
+                save_config(project_dir, cfg)
 
     console.print(f"[bold]Connecting to CUCM[/bold] at {host}:{port} (AXL v{version})...")
     t0 = time.time()
 
-    try:
-        conn = AXLConnection(
-            host=host,
-            username=username,
-            password=password,
-            version=version,
-            wsdl_path=wsdl,
-        )
-    except Exception as exc:
-        err_str = str(exc)
-        console.print(f"[red]Connection failed:[/red] {exc}")
-        if "403" in err_str and "wsdl" in err_str.lower():
-            console.print(
-                "\n[yellow]Tip:[/yellow] CUCM is blocking remote WSDL download (403).\n"
-                "Download the AXL WSDL locally and use --wsdl:\n"
-                "  1. CUCM Admin > Application > Plugins > Cisco AXL Toolkit > Download\n"
-                "  2. Unzip — the WSDL is at schema/current/AXLAPI.wsdl\n"
-                f"  3. Re-run with: wxcli cucm discover --host {host} --username {username} "
-                f"--wsdl /path/to/AXLAPI.wsdl --version {version}"
-            )
-        elif "401" in err_str:
-            console.print(
-                "\n[yellow]Tip:[/yellow] Authentication failed. Check your AXL username/password "
-                "and ensure the user has the 'Standard AXL API Access' role in CUCM."
-            )
-        elif "Connection refused" in err_str or "timed out" in err_str.lower():
-            console.print(
-                f"\n[yellow]Tip:[/yellow] Cannot reach {host}:{port}. Check:\n"
-                "  - CUCM is reachable from this machine\n"
-                "  - Port 8443 is open (firewall)\n"
-                "  - The Cisco AXL Web Service is activated in CUCM Serviceability"
-            )
-        raise typer.Exit(1)
+    conn = _connect_axl(host, username, password, version, port, wsdl, project_dir)
 
     store = _open_store(project_dir)
     try:
@@ -1145,7 +1254,7 @@ def decide(
 def export(
     format: str = typer.Option(
         "deployment-plan", "--format", "-f",
-        help="Export format: deployment-plan, json, csv-decisions",
+        help="Export format: deployment-plan, json, csv-decisions, location-worksheet",
     ),
     project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
 ):
@@ -1160,10 +1269,12 @@ def export(
             _export_json(project_dir, store)
         elif format == "csv-decisions":
             _export_csv_decisions(project_dir, store)
+        elif format == "location-worksheet":
+            _export_location_worksheet(project_dir, store)
         else:
             console.print(
                 f"[red]Unknown format: {format}[/red]\n"
-                "Valid formats: deployment-plan, json, csv-decisions"
+                "Valid formats: deployment-plan, json, csv-decisions, location-worksheet"
             )
             raise typer.Exit(1)
     finally:
@@ -1236,6 +1347,196 @@ def _export_csv_decisions(project_dir: Path, store) -> None:
     output_path = exports_dir / "decisions.csv"
     output_path.write_text(csv_content)
     console.print(f"[green]CSV decisions exported:[/green] {output_path}")
+
+
+def _export_location_worksheet(project_dir: Path, store) -> None:
+    """Export a pre-filled CSV worksheet for location address entry.
+
+    Pre-fills: location_name, cucm_device_pools, timezone, device_count, country.
+    User fills: address1, address2, city, state, postal_code.
+    """
+    locations = store.get_objects("location")
+    if not locations:
+        console.print("[yellow]No locations found.[/yellow] Run normalize and map first.")
+        return
+
+    rows: list[dict[str, str]] = []
+    for loc in locations:
+        name = loc.get("name", "")
+        pool_names = loc.get("cucm_device_pool_names", [])
+        tz = loc.get("time_zone", "")
+        address = loc.get("address", {})
+        country = address.get("country", "US") if isinstance(address, dict) else "US"
+
+        # Count devices in this location's pools
+        device_count = 0
+        for pool_name in pool_names:
+            pool_id = f"device_pool:{pool_name}"
+            device_count += len(store.get_cross_refs(
+                to_id=pool_id, relationship="device_in_pool",
+            ))
+            device_count += len(store.get_cross_refs(
+                to_id=pool_id, relationship="common_area_device_in_pool",
+            ))
+
+        rows.append({
+            "location_name": name,
+            "cucm_device_pools": ",".join(pool_names),
+            "timezone": tz,
+            "device_count": str(device_count),
+            "address1": address.get("address1", "") if isinstance(address, dict) else "",
+            "address2": "",
+            "city": address.get("city", "") if isinstance(address, dict) else "",
+            "state": address.get("state", "") if isinstance(address, dict) else "",
+            "postal_code": address.get("postal_code", "") if isinstance(address, dict) else "",
+            "country": country,
+        })
+
+    exports_dir = project_dir / "exports"
+    exports_dir.mkdir(parents=True, exist_ok=True)
+    output_path = exports_dir / "location-worksheet.csv"
+
+    fieldnames = [
+        "location_name", "cucm_device_pools", "timezone", "device_count",
+        "address1", "address2", "city", "state", "postal_code", "country",
+    ]
+    with open(output_path, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+    console.print(f"[green]Location worksheet exported:[/green] {output_path}")
+    console.print(f"  {len(rows)} locations — fill in address columns and run:")
+    console.print(f"  [bold]wxcli cucm import-locations {output_path}[/bold]")
+
+
+# Demo addresses by timezone prefix — Cisco office locations
+_DEMO_ADDRESSES: dict[str, dict[str, str]] = {
+    "America/Los_Angeles": {"address1": "170 West Tasman Dr", "city": "San Jose", "state": "CA", "postal_code": "95134", "country": "US"},
+    "America/Vancouver": {"address1": "170 West Tasman Dr", "city": "San Jose", "state": "CA", "postal_code": "95134", "country": "US"},
+    "America/Chicago": {"address1": "2300 E President George Bush Hwy", "city": "Richardson", "state": "TX", "postal_code": "75082", "country": "US"},
+    "America/Winnipeg": {"address1": "2300 E President George Bush Hwy", "city": "Richardson", "state": "TX", "postal_code": "75082", "country": "US"},
+    "America/New_York": {"address1": "1 Penn Plaza", "city": "New York", "state": "NY", "postal_code": "10119", "country": "US"},
+    "America/Toronto": {"address1": "1 Penn Plaza", "city": "New York", "state": "NY", "postal_code": "10119", "country": "US"},
+    "America/Denver": {"address1": "1515 Arapahoe St", "city": "Denver", "state": "CO", "postal_code": "80202", "country": "US"},
+    "America/Edmonton": {"address1": "1515 Arapahoe St", "city": "Denver", "state": "CO", "postal_code": "80202", "country": "US"},
+}
+_DEMO_FALLBACK = {"address1": "170 West Tasman Dr", "city": "San Jose", "state": "CA", "postal_code": "95134", "country": "US"}
+
+
+@app.command("import-locations")
+def import_locations(
+    file: str = typer.Argument(None, help="Path to filled location-worksheet CSV (omit for --demo)"),
+    demo: bool = typer.Option(False, "--demo", help="Auto-fill demo addresses by timezone"),
+    project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
+):
+    """Import location addresses from a CSV worksheet or auto-fill demo addresses."""
+    project_dir = _resolve_project_dir(project)
+    store = _open_store(project_dir)
+
+    try:
+        locations = store.get_objects("location")
+        if not locations:
+            console.print("[red]No locations found.[/red] Run normalize and map first.")
+            raise typer.Exit(1)
+
+        loc_by_name: dict[str, dict] = {
+            loc.get("name", ""): loc for loc in locations
+        }
+
+        updated = 0
+        skipped = 0
+
+        if demo or file is None:
+            # Auto-fill demo addresses by timezone
+            if not demo and file is None:
+                console.print("[yellow]No file provided. Use --demo for demo addresses.[/yellow]")
+                raise typer.Exit(1)
+
+            for loc in locations:
+                name = loc.get("name", "")
+                tz = loc.get("time_zone", "")
+                addr = _DEMO_ADDRESSES.get(tz, _DEMO_FALLBACK)
+                _update_location_address(store, loc, addr)
+                updated += 1
+                console.print(f"  [green]OK[/green] {name} → {addr['address1']}, {addr['city']}, {addr['state']}")
+
+        else:
+            # Read CSV file
+            file_path = Path(file)
+            if not file_path.exists():
+                console.print(f"[red]File not found:[/red] {file}")
+                raise typer.Exit(1)
+
+            with open(file_path, newline="") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    loc_name = row.get("location_name", "").strip()
+                    if not loc_name:
+                        skipped += 1
+                        continue
+
+                    loc = loc_by_name.get(loc_name)
+                    if loc is None:
+                        console.print(f"  [yellow]SKIP[/yellow] '{loc_name}' — no matching location in store")
+                        skipped += 1
+                        continue
+
+                    addr = {
+                        "address1": row.get("address1", "").strip(),
+                        "city": row.get("city", "").strip(),
+                        "state": row.get("state", "").strip(),
+                        "postal_code": row.get("postal_code", "").strip(),
+                        "country": row.get("country", "US").strip() or "US",
+                    }
+
+                    if not addr["address1"] or not addr["city"]:
+                        console.print(f"  [yellow]SKIP[/yellow] '{loc_name}' — missing address1 or city")
+                        skipped += 1
+                        continue
+
+                    _update_location_address(store, loc, addr)
+                    updated += 1
+                    console.print(f"  [green]OK[/green] {loc_name} → {addr['address1']}, {addr['city']}, {addr['state']}")
+
+        # Check remaining locations without addresses
+        remaining = 0
+        for loc in store.get_objects("location"):
+            address = loc.get("address", {})
+            if not (isinstance(address, dict) and address.get("address1")):
+                remaining += 1
+
+        console.print(f"\n[green]{updated} locations updated[/green], {skipped} skipped")
+        if remaining > 0:
+            console.print(f"[yellow]{remaining} locations still missing addresses[/yellow]")
+        else:
+            console.print("[green]All locations have addresses.[/green]")
+
+    finally:
+        store.close()
+
+
+def _update_location_address(store, loc: dict, addr: dict) -> None:
+    """Update a CanonicalLocation's address fields in the store."""
+    from wxcli.migration.models import CanonicalLocation
+
+    canonical_id = loc["canonical_id"]
+    obj = store.get_object(canonical_id)
+    if obj is None:
+        return
+
+    # Deserialize, update address, re-save
+    if isinstance(obj, dict):
+        loc_obj = CanonicalLocation.model_validate(obj)
+    else:
+        loc_obj = obj if isinstance(obj, CanonicalLocation) else CanonicalLocation.model_validate(obj.model_dump())
+
+    loc_obj.address.address1 = addr.get("address1")
+    loc_obj.address.city = addr.get("city")
+    loc_obj.address.state = addr.get("state")
+    loc_obj.address.postal_code = addr.get("postal_code")
+    loc_obj.address.country = addr.get("country", "US")
+    store.upsert_object(loc_obj)
 
 
 # ===================================================================

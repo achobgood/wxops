@@ -474,8 +474,27 @@ def handle_call_queue_create(data: dict, deps: dict, ctx: dict) -> HandlerResult
     return [("POST", _url(f"/telephony/config/locations/{loc_wid}/queues", ctx), body)]
 
 
+def _sanitize_aa_menu(menu: dict) -> dict:
+    """Remove value field from TRANSFER_TO_OPERATOR keys (value is only valid
+    for TRANSFER_TO_EXTENSION / TRANSFER_TO_NUMBER actions).
+    Also remove value from TRANSFER_TO_OPERATOR to avoid 4806 phone validation.
+    """
+    if not menu:
+        return menu
+    cleaned = dict(menu)
+    key_configs = cleaned.get("keyConfigurations", [])
+    sanitized = []
+    for kc in key_configs:
+        kc = dict(kc)
+        if kc.get("action") == "TRANSFER_TO_OPERATOR":
+            kc.pop("value", None)
+        sanitized.append(kc)
+    cleaned["keyConfigurations"] = sanitized
+    return cleaned
+
+
 def handle_auto_attendant_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
-    loc_wid = _resolve_location(data, deps)
+    loc_wid = _resolve_location(data, deps) or _resolve_location_from_deps(deps)
     body: dict[str, Any] = {
         "name": data.get("name"),
         "extension": data.get("extension"),
@@ -485,14 +504,14 @@ def handle_auto_attendant_create(data: dict, deps: dict, ctx: dict) -> HandlerRe
     if data.get("business_schedule"):
         body["businessSchedule"] = data["business_schedule"]
     if data.get("business_hours_menu"):
-        body["businessHoursMenu"] = data["business_hours_menu"]
+        body["businessHoursMenu"] = _sanitize_aa_menu(data["business_hours_menu"])
     if data.get("after_hours_menu"):
-        body["afterHoursMenu"] = data["after_hours_menu"]
+        body["afterHoursMenu"] = _sanitize_aa_menu(data["after_hours_menu"])
     return [("POST", _url(f"/telephony/config/locations/{loc_wid}/autoAttendants", ctx), body)]
 
 
 def handle_call_park_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
-    loc_wid = _resolve_location(data, deps)
+    loc_wid = _resolve_location(data, deps) or _resolve_location_from_deps(deps)
     body: dict[str, Any] = {
         "name": data.get("name"),
         "extension": data.get("extension"),
@@ -502,7 +521,7 @@ def handle_call_park_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
 
 
 def handle_pickup_group_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
-    loc_wid = _resolve_location(data, deps)
+    loc_wid = _resolve_location(data, deps) or _resolve_location_from_deps(deps)
     # Call Pickup API takes agents as plain string array, not [{"id": ...}]
     agent_ids = _resolve_agent_ids(data, deps, "agents")
     body: dict[str, Any] = {"name": data.get("name")}

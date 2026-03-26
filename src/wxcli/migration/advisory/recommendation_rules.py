@@ -38,16 +38,27 @@ def recommend_device_firmware_convertible(
 def recommend_missing_data(
     context: dict[str, Any], options: list
 ) -> tuple[str, str] | None:
-    """Spec §5.15: Missing data decisions."""
-    if context.get("subtype") == "trunk_password":
-        return (
-            "generate",
-            "Trunk authentication password not extractable from CUCM. "
-            "A new password will be generated. Update the SBC/carrier configuration to match.",
-        )
-    missing_fields = context.get("missing_fields")
-    if isinstance(missing_fields, list) and missing_fields:
-        fields_str = ", ".join(missing_fields)
+    """Spec §5.15: Missing data decisions.
+
+    CRITICAL: Do not recommend "skip" for objects that have downstream dependents.
+    Skipping a location/trunk/user cascades to block all their devices/routes/features.
+    Return None (no recommendation) to force the LLM to ask the user.
+    """
+    dependent_count = context.get("dependent_count", 0)
+    missing_fields = context.get("missing_fields", [])
+    fields_str = ", ".join(missing_fields) if isinstance(missing_fields, list) else ""
+    object_type = context.get("object_type", "")
+
+    # Objects with dependents should NOT be auto-skipped — force human review
+    if dependent_count > 0:
+        return None
+
+    # Locations and trunks are infrastructure — always force review, never auto-skip
+    if object_type in ("location", "trunk", "route_group"):
+        return None
+
+    # Leaf objects with no dependents can be safely skipped
+    if fields_str:
         return (
             "skip",
             f"Missing required data: {fields_str}. Cannot migrate without this data.",
@@ -370,7 +381,25 @@ def recommend_calling_permission_mismatch(
 def recommend_location_ambiguous(
     context: dict[str, Any], options: list
 ) -> tuple[str, str] | None:
-    """Spec §5.9: Ambiguous location — consolidate if tz + region + site_code all match."""
+    """Spec §5.9: Ambiguous location — consolidate if tz + region + site_code all match.
+
+    CRITICAL: If the location has no address and devices depend on it,
+    always recommend provide_address. Never recommend skip when devices
+    would be blocked — skip is not even offered as an option in that case.
+    """
+    dependent_count = context.get("dependent_device_count", 0)
+    has_address = context.get("has_address", False)
+
+    # If no address and devices depend on this location, always recommend provide_address
+    if not has_address and dependent_count > 0:
+        return (
+            "provide_address",
+            f"Location has {dependent_count} devices in its pools but no street address. "
+            f"Webex requires an address to create a location. Provide address1, city, state, "
+            f"postal_code, and country to proceed. Without an address, all {dependent_count} "
+            f"devices will be blocked from migration.",
+        )
+
     timezone = context.get("timezone")
     region = context.get("region")
     site_code = context.get("site_code")
@@ -393,6 +422,8 @@ def recommend_location_ambiguous(
             f"Partitions share timezone ({timezone}) and region ({region}). "
             "Consolidate into a single Webex location.",
         )
+
+    # No address info and no devices → genuinely ambiguous
     return None
 
 
