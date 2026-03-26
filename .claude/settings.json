@@ -2,10 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(wxcli:*)",
-      "Bash(which wxcli:*)",
+      "Bash(which:*)",
       "Bash(pip install -e:*)",
       "Bash(pip3 install -e:*)",
-      "Bash(pip3.11 install -e:*)"
+      "Bash(pip3.11:*)",
+      "Bash(python3.11:*)",
+      "Bash(PYTHONPATH=.:*)"
     ]
   }
 }

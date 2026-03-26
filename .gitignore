@@ -20,6 +20,9 @@ build/
 # Claude Code local settings
 .claude/settings.local.json
 
+# Superpowers brainstorm sessions (local dev artifacts)
+.superpowers/
+
 # Generated HTML visualizations
 *pipeline-visual*.html
 
@@ -28,11 +31,7 @@ docs/prompts/
 docs/superpowers/
 docs/later/
 docs/plans/cucm-pipeline/
-docs/plans/cucm-migration-roadmap.md
 docs/plans/2026-03-18-multi-tier-call-flow*.md
-
-# CUCM migration module (work in progress)
-src/wxcli/migration/
 
 # Tests (dev-only)
 tests/
