@@ -4,8 +4,8 @@ License inventory, assignment, usage auditing, and reclamation for Webex organiz
 
 ## Sources
 
-- OpenAPI spec: `webex-admin.json` — Licenses tag (3 endpoints)
-- OpenAPI spec: `webex-cloud-calling.json` — Licenses tag (calling-focused subset)
+- OpenAPI spec: `specs/webex-admin.json` — Licenses tag (3 endpoints)
+- OpenAPI spec: `specs/webex-cloud-calling.json` — Licenses tag (calling-focused subset)
 - [Webex Licenses API Reference](https://developer.webex.com/docs/api/v1/licenses)
 
 ---

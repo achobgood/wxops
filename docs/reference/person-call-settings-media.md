@@ -8,7 +8,7 @@ All APIs in this group follow the same structural pattern: they extend `PersonSe
 ## Sources
 
 - wxc_sdk v1.30.0 (PersonSettingsApi)
-- OpenAPI spec: webex-cloud-calling.json
+- OpenAPI spec: specs/webex-cloud-calling.json
 - developer.webex.com Person Call Settings APIs
 
 ## Required Scopes

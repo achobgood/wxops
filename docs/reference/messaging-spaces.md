@@ -1,10 +1,10 @@
 # Messaging: Spaces, Messages, Teams, ECM, and HDS
 
-Reference for Webex messaging infrastructure management. Covers the 40 commands across 7 CLI groups that an IT admin or space manager uses to create and manage spaces, messages, memberships, teams, and enterprise content. Sourced from the Webex Messaging API (OpenAPI spec: `webex-messaging.json`).
+Reference for Webex messaging infrastructure management. Covers the 40 commands across 7 CLI groups that an IT admin or space manager uses to create and manage spaces, messages, memberships, teams, and enterprise content. Sourced from the Webex Messaging API (OpenAPI spec: `specs/webex-messaging.json`).
 
 ## Sources
 
-- OpenAPI spec: `webex-messaging.json`
+- OpenAPI spec: `specs/webex-messaging.json`
 - [developer.webex.com Messaging APIs](https://developer.webex.com/docs/api/v1/messages)
 
 ---
@@ -509,7 +509,7 @@ api.session.rest_delete(f"{BASE}/room/linkedFolders/{folder_id}")
 - **`--display-name` should match the actual folder name in the ECM backend** to avoid confusion for end users.
 - **Unlinking a folder removes the link but does not delete the files** in SharePoint/OneDrive.
 
-**ECM provider support:** The OpenAPI spec and schema definitions reference only Microsoft SharePoint and OneDrive. The `driveId` and `itemId` fields are described as "Sharepoint or OneDrive" identifiers collected via the MS Graph API, and all examples use `sharepoint.com` URLs. Box is not supported as an ECM provider for folder linking. <!-- Verified via OpenAPI spec (webex-messaging.json) 2026-03-19 -->
+**ECM provider support:** The OpenAPI spec and schema definitions reference only Microsoft SharePoint and OneDrive. The `driveId` and `itemId` fields are described as "Sharepoint or OneDrive" identifiers collected via the MS Graph API, and all examples use `sharepoint.com` URLs. Box is not supported as an ECM provider for folder linking. <!-- Verified via OpenAPI spec (specs/webex-messaging.json) 2026-03-19 -->
 
 ---
 

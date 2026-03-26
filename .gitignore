@@ -26,6 +26,8 @@ build/
 
 # Generated HTML visualizations
 *pipeline-visual*.html
+assessment-report*.html
+assessment-report*.pdf
 
 # Dev-only docs (design prompts, plans, parked items)
 docs/prompts/

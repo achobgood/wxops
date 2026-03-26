@@ -109,10 +109,10 @@ Use `/wxc-calling-debug` to troubleshoot a failing configuration (this one is a 
 | `wxcli --help` | Shows all command groups |
 | `wxcli <group> --help` | Shows commands within a group |
 | `wxcli <group> <command> --help` | Shows options for a command |
-| `webex-cloud-calling.json` | OpenAPI 3.0 spec — calling APIs |
-| `webex-admin.json` | OpenAPI 3.0 spec — admin/org management APIs |
-| `webex-device.json` | OpenAPI 3.0 spec — device management APIs |
-| `webex-messaging.json` | OpenAPI 3.0 spec — messaging/rooms/teams APIs |
+| `specs/webex-cloud-calling.json` | OpenAPI 3.0 spec — calling APIs |
+| `specs/webex-admin.json` | OpenAPI 3.0 spec — admin/org management APIs |
+| `specs/webex-device.json` | OpenAPI 3.0 spec — device management APIs |
+| `specs/webex-messaging.json` | OpenAPI 3.0 spec — messaging/rooms/teams APIs |
 
 ### CUCM→Webex Migration Tool (All 11 phases complete)
 
@@ -210,15 +210,15 @@ See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for fu
 - **Never hand-edit generated files.** Fix bugs by updating `tools/field_overrides.yaml` and regenerating.
 - **Never create new hand-written command files.** 4 legacy hand-written files exist (`users.py`, `locations.py`, `numbers.py`, `licenses.py`) — these are a known drift risk that miss generator improvements. All new commands must go through the generator. If a generated command needs custom behavior, use `field_overrides.yaml`. These 4 files are queued for replacement (see roadmap).
 - **`auto_inject_from_config`** — `field_overrides.yaml` supports an `auto_inject_from_config: ["orgId"]` key per endpoint. Parameters listed here are omitted from `--help` and injected automatically from the saved config at runtime. This replaces the older `omit_query_params` approach for `orgId`.
-- **Spec files:** 4 OpenAPI 3.0 specs in project root (`webex-cloud-calling.json`, `webex-admin.json`, `webex-device.json`, `webex-messaging.json`)
-- Regenerate one tag: `PYTHONPATH=. python3.11 tools/generate_commands.py --spec webex-cloud-calling.json --tag "Tag Name"`
-- Regenerate one spec (all tags): `PYTHONPATH=. python3.11 tools/generate_commands.py --spec webex-cloud-calling.json --all`
+- **Spec files:** 5 OpenAPI 3.0 specs in `specs/` (`webex-cloud-calling.json`, `webex-admin.json`, `webex-device.json`, `webex-messaging.json`, `webex-wholesale.json`)
+- Regenerate one tag: `PYTHONPATH=. python3.11 tools/generate_commands.py --spec specs/webex-cloud-calling.json --tag "Tag Name"`
+- Regenerate one spec (all tags): `PYTHONPATH=. python3.11 tools/generate_commands.py --spec specs/webex-cloud-calling.json --all`
 - Regenerate all specs:
   ```
-  PYTHONPATH=. python3.11 tools/generate_commands.py --spec webex-cloud-calling.json --all
-  PYTHONPATH=. python3.11 tools/generate_commands.py --spec webex-admin.json --all
-  PYTHONPATH=. python3.11 tools/generate_commands.py --spec webex-device.json --all
-  PYTHONPATH=. python3.11 tools/generate_commands.py --spec webex-messaging.json --all
+  PYTHONPATH=. python3.11 tools/generate_commands.py --spec specs/webex-cloud-calling.json --all
+  PYTHONPATH=. python3.11 tools/generate_commands.py --spec specs/webex-admin.json --all
+  PYTHONPATH=. python3.11 tools/generate_commands.py --spec specs/webex-device.json --all
+  PYTHONPATH=. python3.11 tools/generate_commands.py --spec specs/webex-messaging.json --all
   ```
 - Reinstall after regen: `pip3.11 install -e . -q`
 
@@ -237,7 +237,7 @@ All reference docs are grounded in actual source code and official documentation
 
 - **wxc_sdk v1.30.0** (github.com/jeokrohn/wxc_sdk) — cloned at `../wxc_sdk_reference/`
 - **wxcadm v4.6.1** (github.com/kctrey/wxcadm) — cloned at `../wxcadm_reference/`
-- **OpenAPI 3.0 specs** — `webex-cloud-calling.json` (calling), `webex-admin.json` (admin), `webex-device.json` (devices), `webex-messaging.json` (messaging)
+- **OpenAPI 3.0 specs** — `specs/webex-cloud-calling.json` (calling), `specs/webex-admin.json` (admin), `specs/webex-device.json` (devices), `specs/webex-messaging.json` (messaging)
 - **Postman collection** (`../postman-webex-collections/webex_cloud_calling.json`) — legacy reference, 22.5MB, 1,079 endpoints
 - **developer.webex.com** — Official API docs, guides, and blog posts
 - **Cisco Live LTRCOL-2574** — Hands-on provisioning lab

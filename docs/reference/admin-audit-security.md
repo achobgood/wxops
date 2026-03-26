@@ -7,7 +7,7 @@ Admin audit trail, security audit events, and compliance event review for Webex 
 - [Admin Audit Events API](https://developer.webex.com/docs/api/v1/admin-audit-events)
 - [Security Audit Events API](https://developer.webex.com/docs/api/v1/security-audit-events)
 - [Events API](https://developer.webex.com/docs/api/v1/events)
-- OpenAPI specs: `webex-admin.json` (audit-events, security-audit, events)
+- OpenAPI specs: `specs/webex-admin.json` (audit-events, security-audit, events)
 
 ---
 

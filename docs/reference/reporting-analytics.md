@@ -376,7 +376,7 @@ class ReportTemplate(ApiModel):
 | **Auto-attendant Stats Summary** | AA call volume and menu usage | Call volume, handling metrics, caller menu selections |
 | **Auto-attendant Business & After-Hours Key Details** | AA interaction patterns by time period | Business hours vs. after-hours key press patterns |
 
-**Note:** Template IDs are dynamic and may vary by organization. Always use `list_templates()` (or the `GET /report/templates` endpoint) to discover IDs at runtime. The OpenAPI spec example shows ID 130, but actual IDs should not be hardcoded. <!-- Verified via OpenAPI spec (webex-admin.json /report/templates example) and wxc_sdk source (reports/__init__.py) 2026-03-19 -->
+**Note:** Template IDs are dynamic and may vary by organization. Always use `list_templates()` (or the `GET /report/templates` endpoint) to discover IDs at runtime. The OpenAPI spec example shows ID 130, but actual IDs should not be hardcoded. <!-- Verified via OpenAPI spec (specs/webex-admin.json /report/templates example) and wxc_sdk source (reports/__init__.py) 2026-03-19 -->
 
 ### CLI Examples
 

@@ -4,7 +4,7 @@ Hybrid cluster/connector monitoring, historical analytics, live meeting monitori
 
 ## Sources
 
-- `webex-admin.json` -- OpenAPI 3.0 spec for admin/org management APIs (hybrid clusters, hybrid connectors, analytics, meeting qualities, live monitoring)
+- `specs/webex-admin.json` -- OpenAPI 3.0 spec for admin/org management APIs (hybrid clusters, hybrid connectors, analytics, meeting qualities, live monitoring)
 - [Webex Hybrid Services](https://developer.webex.com/docs/api/v1/hybrid-clusters) -- Official API docs
 - [Meeting Qualities API](https://developer.webex.com/docs/api/v1/meeting-qualities) -- Official API docs
 
@@ -369,7 +369,7 @@ All three `analytics` commands (`show`, `show-daily-totals`, `show-aggregates`) 
 **Fix:** Add URL override entries in `tools/field_overrides.yaml` for the three analytics endpoints to strip the extra `/v1`, then regenerate with:
 
 ```bash
-PYTHONPATH=. python3.11 tools/generate_commands.py --spec webex-admin.json --tag "Historical Analytics APIs"
+PYTHONPATH=. python3.11 tools/generate_commands.py --spec specs/webex-admin.json --tag "Historical Analytics APIs"
 pip3.11 install -e . -q
 ```
 

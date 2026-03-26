@@ -3,7 +3,7 @@
 ## Sources
 
 - wxc_sdk v1.30.0
-- OpenAPI spec: webex-device.json
+- OpenAPI spec: specs/webex-device.json
 - developer.webex.com Device Platform APIs
 
 This document covers three Webex APIs that manage **device software** on cloud-registered RoomOS devices: configuration key management, workspace personalization, and xAPI command execution / status queries.
