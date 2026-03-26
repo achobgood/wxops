@@ -655,6 +655,44 @@ def handle_device_layout_configure(data: dict, deps: dict, ctx: dict) -> Handler
     return results
 
 
+def handle_softkey_config_configure(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    if not data.get("is_psk_target"):
+        return []
+    device_cid = data.get("device_canonical_id")
+    device_wid = deps.get(device_cid) if device_cid else None
+    if not device_wid:
+        return []
+
+    settings = []
+    for m in data.get("psk_mappings", []):
+        slot = m.get("psk_slot", "").lower()   # "PSK1" -> "psk1"
+        keyword = m.get("keyword", "")
+        if slot and keyword:
+            settings.append({"key": f"softKeyLayout.psk.{slot}", "value": keyword})
+    for state, keywords in (data.get("state_key_lists") or {}).items():
+        value = ";".join(keywords) if keywords else ""
+        if value:
+            settings.append({
+                "key": f"softKeyLayout.softKeyMenu.{state}KeyList",
+                "value": value,
+            })
+    if not settings:
+        return []
+
+    return [
+        (
+            "PUT",
+            _url(f"/telephony/config/devices/{device_wid}/dynamicSettings", ctx),
+            {"settings": settings},
+        ),
+        (
+            "POST",
+            _url(f"/telephony/config/devices/{device_wid}/actions/applyChanges/invoke", ctx),
+            None,
+        ),
+    ]
+
+
 # ---------------------------------------------------------------------------
 # Tier 6: Shared/virtual lines
 # ---------------------------------------------------------------------------
@@ -730,6 +768,7 @@ HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("call_forwarding", "configure"): handle_call_forwarding_configure,
     ("monitoring_list", "configure"): handle_monitoring_list_configure,
     ("device_layout", "configure"): handle_device_layout_configure,
+    ("softkey_config", "configure"): handle_softkey_config_configure,
     ("shared_line", "configure"): handle_shared_line_configure,
     ("virtual_line", "create"): handle_virtual_line_create,
     ("virtual_line", "configure"): handle_virtual_line_configure,
