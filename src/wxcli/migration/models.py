@@ -644,6 +644,9 @@ CANONICAL_TYPE_REGISTRY: dict[str, type[MigrationObject]] = {
     "schedule": CanonicalLocationSchedule,
     "call_forwarding": CanonicalCallForwarding,
     "monitoring_list": CanonicalMonitoringList,
+    "line_key_template": CanonicalLineKeyTemplate,
+    "device_layout": CanonicalDeviceLayout,
+    "softkey_config": CanonicalSoftkeyConfig,
 }
 
 # Reverse lookup: class -> type name string (O(1) for _object_type_for)

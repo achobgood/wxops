@@ -124,7 +124,7 @@ class TestAllCanonicalTypes:
     """Verify every canonical type from the design spec instantiates."""
 
     def test_registry_has_21_types(self):
-        assert len(CANONICAL_TYPE_REGISTRY) == 23
+        assert len(CANONICAL_TYPE_REGISTRY) == 26
 
     @pytest.mark.parametrize("type_name", list(CANONICAL_TYPE_REGISTRY.keys()))
     def test_instantiate_type(self, type_name, base_kwargs):
