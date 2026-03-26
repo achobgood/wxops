@@ -5,6 +5,7 @@ from wxcli.migration.execute.handlers import (
     HANDLER_REGISTRY,
     handle_call_forwarding_configure,
     handle_monitoring_list_configure,
+    handle_device_layout_configure,
     handle_line_key_template_create,
     handle_location_create,
     handle_location_enable_calling,
@@ -937,6 +938,99 @@ class TestMonitoringListConfigure:
         result = handle_monitoring_list_configure(data, deps, {"orgId": "ORG123"})
         _, url, _ = result[0]
         assert "orgId=ORG123" in url
+
+
+class TestDeviceLayoutConfigure:
+    def _base_data(self):
+        return {
+            "device_canonical_id": "device:SEPAA112233",
+            "device_id_surface": "cloud",
+            "template_canonical_id": None,
+            "owner_canonical_id": "user:jsmith",
+            "line_members": [
+                {"port": 1, "member_canonical_id": "user:jsmith", "line_type": "PRIMARY"},
+                {"port": 2, "member_canonical_id": "user:jdoe", "line_type": "SHARED_LINE"},
+            ],
+            "resolved_line_keys": [
+                {"index": 1, "key_type": "PRIMARY_LINE"},
+                {"index": 2, "key_type": "SHARED_LINE", "label": "Shared"},
+            ],
+            "resolved_kem_keys": [],
+        }
+
+    def test_three_calls_members_layout_apply(self):
+        data = self._base_data()
+        deps = {
+            "device:SEPAA112233": "wx-dev-bbb",
+            "user:jsmith": "wx-person-aaa",
+            "user:jdoe": "wx-person-ccc",
+        }
+        result = handle_device_layout_configure(data, deps, {})
+        assert len(result) == 3
+        method1, url1, body1 = result[0]
+        assert method1 == "PUT"
+        assert "wx-dev-bbb" in url1
+        assert "/members" in url1
+        assert {"id": "wx-person-aaa", "port": 1} in body1["members"]
+        assert {"id": "wx-person-ccc", "port": 2} in body1["members"]
+        method2, url2, body2 = result[1]
+        assert method2 == "PUT"
+        assert "/layout" in url2
+        assert body2["layoutMode"] == "CUSTOM"
+        keys = {k["lineKeyIndex"]: k for k in body2["lineKeys"]}
+        assert keys[1]["lineKeyType"] == "PRIMARY_LINE"
+        assert keys[2]["lineKeyType"] == "SHARED_LINE"
+        assert keys[2]["lineKeyLabel"] == "Shared"
+        method3, url3, body3 = result[2]
+        assert method3 == "POST"
+        assert "applyChanges" in url3
+        assert body3 is None
+
+    def test_no_members_two_calls(self):
+        """No line_members → skip PUT members; still do layout + applyChanges."""
+        data = self._base_data()
+        data["line_members"] = []
+        deps = {"device:SEPAA112233": "wx-dev-bbb"}
+        result = handle_device_layout_configure(data, deps, {})
+        assert len(result) == 2
+        assert "/layout" in result[0][1]
+        assert "applyChanges" in result[1][1]
+
+    def test_no_device_dep_returns_empty(self):
+        data = self._base_data()
+        result = handle_device_layout_configure(data, {}, {})
+        assert result == []
+
+    def test_partial_member_resolution(self):
+        data = self._base_data()
+        deps = {
+            "device:SEPAA112233": "wx-dev-bbb",
+            "user:jsmith": "wx-person-aaa",
+        }
+        result = handle_device_layout_configure(data, deps, {})
+        assert len(result) == 3
+        _, _, body1 = result[0]
+        assert len(body1["members"]) == 1
+        assert body1["members"][0]["id"] == "wx-person-aaa"
+
+    def test_default_layout_mode_no_keys(self):
+        data = self._base_data()
+        data["resolved_line_keys"] = []
+        data["template_canonical_id"] = "line_key_template:tmpl1"
+        data["line_members"] = []
+        deps = {"device:SEPAA112233": "wx-dev-bbb"}
+        result = handle_device_layout_configure(data, deps, {})
+        _, _, body = result[0]  # first call is PUT layout (no members)
+        assert body["layoutMode"] == "DEFAULT"
+        assert "lineKeys" not in body
+
+    def test_orgid_injected(self):
+        data = self._base_data()
+        data["line_members"] = []
+        deps = {"device:SEPAA112233": "wx-dev-bbb"}
+        result = handle_device_layout_configure(data, deps, {"orgId": "ORG999"})
+        for _, url, _ in result:
+            assert "orgId=ORG999" in url
 
 
 class TestHandlerRegistry:

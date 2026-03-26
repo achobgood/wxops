@@ -588,6 +588,74 @@ def handle_call_forwarding_configure(data: dict, deps: dict, ctx: dict) -> Handl
 
 
 # ---------------------------------------------------------------------------
+# Tier 7: Device finalization (after monitoring, shared lines)
+# ---------------------------------------------------------------------------
+
+def handle_device_layout_configure(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    device_cid = data.get("device_canonical_id")
+    device_wid = deps.get(device_cid) if device_cid else None
+    if not device_wid:
+        return []
+
+    results: HandlerResult = []
+
+    # Call 1 (conditional): PUT members
+    resolved_members = []
+    for m in data.get("line_members", []):
+        member_cid = m.get("member_canonical_id")
+        wid = deps.get(member_cid) if member_cid else None
+        if wid:
+            resolved_members.append({"id": wid, "port": m.get("port", 1)})
+    if resolved_members:
+        results.append((
+            "PUT",
+            _url(f"/telephony/config/devices/{device_wid}/members", ctx),
+            {"members": resolved_members},
+        ))
+
+    # Call 2: PUT layout
+    def _map_lk(k: dict) -> dict:
+        entry: dict[str, Any] = {"lineKeyIndex": k["index"], "lineKeyType": k["key_type"]}
+        if k.get("label"):
+            entry["lineKeyLabel"] = k["label"]
+        if k.get("value"):
+            entry["lineKeyValue"] = k["value"]
+        return entry
+
+    def _map_kk(k: dict) -> dict:
+        entry: dict[str, Any] = {
+            "kemModuleIndex": k.get("module_index", 1),
+            "kemKeyIndex": k["index"],
+            "kemKeyType": k["key_type"],
+        }
+        if k.get("label"):
+            entry["kemKeyLabel"] = k["label"]
+        return entry
+
+    line_keys = data.get("resolved_line_keys", [])
+    kem_keys = data.get("resolved_kem_keys", [])
+    layout_mode = "CUSTOM" if line_keys else "DEFAULT"
+    layout_body: dict[str, Any] = {"layoutMode": layout_mode}
+    if line_keys:
+        layout_body["lineKeys"] = [_map_lk(k) for k in line_keys]
+    if kem_keys:
+        layout_body["kemKeys"] = [_map_kk(k) for k in kem_keys]
+    results.append((
+        "PUT",
+        _url(f"/telephony/config/devices/{device_wid}/layout", ctx),
+        layout_body,
+    ))
+
+    # Call 3: POST applyChanges
+    results.append((
+        "POST",
+        _url(f"/telephony/config/devices/{device_wid}/actions/applyChanges/invoke", ctx),
+        None,
+    ))
+    return results
+
+
+# ---------------------------------------------------------------------------
 # Tier 6: Shared/virtual lines
 # ---------------------------------------------------------------------------
 
@@ -661,6 +729,7 @@ HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("calling_permission", "assign"): handle_calling_permission_assign,
     ("call_forwarding", "configure"): handle_call_forwarding_configure,
     ("monitoring_list", "configure"): handle_monitoring_list_configure,
+    ("device_layout", "configure"): handle_device_layout_configure,
     ("shared_line", "configure"): handle_shared_line_configure,
     ("virtual_line", "create"): handle_virtual_line_create,
     ("virtual_line", "configure"): handle_virtual_line_configure,
