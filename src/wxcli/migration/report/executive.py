@@ -1,4 +1,4 @@
-"""Executive summary HTML generator for CUCM assessment reports (v2).
+"""Executive summary HTML generator for CUCM assessment reports (v4).
 
 Generates a 4-page narrative: Verdict → Environment → Scope → Next Steps.
 Depends on score, charts, explainer, and helpers modules.
@@ -209,7 +209,7 @@ def _page_environment(
         ]
         donut_svg = donut_chart(donut_segments)
         if donut_svg:
-            parts.append(f'<div class="chart-container">{donut_svg}</div>')
+            parts.append(f'<div class="chart-container" style="max-width:280px;margin:1rem 0;">{donut_svg}</div>')
 
     # --- Analog Gateways (if present) ---
     gateways = store.get_objects("gateway")
