@@ -328,6 +328,7 @@ class CanonicalDevice(MigrationObject):
     # CUCM metadata
     cucm_protocol: str | None = None        # SIP or SCCP
     cucm_device_name: str | None = None
+    device_id_surface: str = "telephony"  # "telephony" (MPP) or "cloud" (9800/8875/PhoneOS)
 
 
 class CanonicalWorkspace(MigrationObject):
@@ -565,6 +566,7 @@ class CanonicalDeviceLayout(MigrationObject):
     resolved_kem_keys: list[dict[str, Any]] = Field(default_factory=list)
     speed_dials: list[dict[str, Any]] = Field(default_factory=list)
     unmapped_buttons: list[dict[str, Any]] = Field(default_factory=list)
+    device_id_surface: str = "telephony"  # Copied from associated device at map time
 
 
 class CanonicalSoftkeyConfig(MigrationObject):
@@ -575,6 +577,7 @@ class CanonicalSoftkeyConfig(MigrationObject):
     state_key_lists: dict[str, list[str]] = Field(default_factory=dict)
     unmapped_softkeys: list[dict[str, Any]] = Field(default_factory=list)
     phones_using: int = 0
+    device_canonical_id: str | None = None  # Per-device PSK config: links to device
 
 
 # ---------------------------------------------------------------------------
