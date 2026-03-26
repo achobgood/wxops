@@ -111,11 +111,17 @@ class RoutingExtractor(BaseExtractor):
 
     def _extract_partitions(self) -> tuple[int, list[str]]:
         logger.info("[%s] Listing partitions...", self.name)
-        partitions = self.paginated_list(
-            method_name="listRoutePartition",
-            search_criteria={"name": "%"},
-            returned_tags=PARTITION_RETURNED_TAGS,
-        )
+        try:
+            partitions = self.paginated_list(
+                method_name="listRoutePartition",
+                search_criteria={"name": "%"},
+                returned_tags=PARTITION_RETURNED_TAGS,
+            )
+        except Exception as exc:
+            msg = f"listRoutePartition failed: {exc}"
+            logger.error("[%s] %s", self.name, msg)
+            self.results["partitions"] = []
+            return 0, [msg]
         self.results["partitions"] = partitions
         logger.info("[%s] Found %d partitions", self.name, len(partitions))
         return len(partitions), []
@@ -126,11 +132,17 @@ class RoutingExtractor(BaseExtractor):
 
     def _extract_css(self) -> tuple[int, list[str]]:
         logger.info("[%s] Listing calling search spaces...", self.name)
-        css_summaries = self.paginated_list(
-            method_name="listCss",
-            search_criteria={"name": "%"},
-            returned_tags=CSS_LIST_RETURNED_TAGS,
-        )
+        try:
+            css_summaries = self.paginated_list(
+                method_name="listCss",
+                search_criteria={"name": "%"},
+                returned_tags=CSS_LIST_RETURNED_TAGS,
+            )
+        except Exception as exc:
+            msg = f"listCss failed: {exc}"
+            logger.error("[%s] %s", self.name, msg)
+            self.results["css_list"] = []
+            return 0, [msg]
         logger.info("[%s] Found %d CSS", self.name, len(css_summaries))
 
         css_list: list[dict[str, Any]] = []
@@ -186,11 +198,17 @@ class RoutingExtractor(BaseExtractor):
 
     def _extract_route_patterns(self) -> tuple[int, list[str]]:
         logger.info("[%s] Listing route patterns...", self.name)
-        patterns = self.paginated_list(
-            method_name="listRoutePattern",
-            search_criteria={"pattern": "%"},
-            returned_tags=ROUTE_PATTERN_RETURNED_TAGS,
-        )
+        try:
+            patterns = self.paginated_list(
+                method_name="listRoutePattern",
+                search_criteria={"pattern": "%"},
+                returned_tags=ROUTE_PATTERN_RETURNED_TAGS,
+            )
+        except Exception as exc:
+            msg = f"listRoutePattern failed: {exc}"
+            logger.error("[%s] %s", self.name, msg)
+            self.results["route_patterns"] = []
+            return 0, [msg]
         self.results["route_patterns"] = patterns
         logger.info("[%s] Found %d route patterns", self.name, len(patterns))
         return len(patterns), []
@@ -202,11 +220,17 @@ class RoutingExtractor(BaseExtractor):
 
     def _extract_gateways(self) -> tuple[int, list[str]]:
         logger.info("[%s] Listing gateways...", self.name)
-        gw_summaries = self.paginated_list(
-            method_name="listGateway",
-            search_criteria={"domainName": "%"},
-            returned_tags=GATEWAY_RETURNED_TAGS,
-        )
+        try:
+            gw_summaries = self.paginated_list(
+                method_name="listGateway",
+                search_criteria={"domainName": "%"},
+                returned_tags=GATEWAY_RETURNED_TAGS,
+            )
+        except Exception as exc:
+            msg = f"listGateway failed: {exc}"
+            logger.error("[%s] %s", self.name, msg)
+            self.results["gateways"] = []
+            return 0, [msg]
         logger.info("[%s] Found %d gateways", self.name, len(gw_summaries))
 
         gateways: list[dict[str, Any]] = []
@@ -239,11 +263,17 @@ class RoutingExtractor(BaseExtractor):
 
     def _extract_sip_trunks(self) -> tuple[int, list[str]]:
         logger.info("[%s] Listing SIP trunks...", self.name)
-        trunk_summaries = self.paginated_list(
-            method_name="listSipTrunk",
-            search_criteria={"name": "%"},
-            returned_tags=SIP_TRUNK_LIST_RETURNED_TAGS,
-        )
+        try:
+            trunk_summaries = self.paginated_list(
+                method_name="listSipTrunk",
+                search_criteria={"name": "%"},
+                returned_tags=SIP_TRUNK_LIST_RETURNED_TAGS,
+            )
+        except Exception as exc:
+            msg = f"listSipTrunk failed: {exc}"
+            logger.error("[%s] %s", self.name, msg)
+            self.results["sip_trunks"] = []
+            return 0, [msg]
         logger.info("[%s] Found %d SIP trunks", self.name, len(trunk_summaries))
 
         # getSipTrunk for full detail including destinations array
@@ -324,11 +354,17 @@ class RoutingExtractor(BaseExtractor):
 
     def _extract_route_groups(self) -> tuple[int, list[str]]:
         logger.info("[%s] Listing route groups...", self.name)
-        rg_summaries = self.paginated_list(
-            method_name="listRouteGroup",
-            search_criteria={"name": "%"},
-            returned_tags=ROUTE_GROUP_LIST_RETURNED_TAGS,
-        )
+        try:
+            rg_summaries = self.paginated_list(
+                method_name="listRouteGroup",
+                search_criteria={"name": "%"},
+                returned_tags=ROUTE_GROUP_LIST_RETURNED_TAGS,
+            )
+        except Exception as exc:
+            msg = f"listRouteGroup failed: {exc}"
+            logger.error("[%s] %s", self.name, msg)
+            self.results["route_groups"] = []
+            return 0, [msg]
         logger.info("[%s] Found %d route groups", self.name, len(rg_summaries))
 
         route_groups: list[dict[str, Any]] = []
@@ -366,11 +402,17 @@ class RoutingExtractor(BaseExtractor):
 
     def _extract_route_lists(self) -> tuple[int, list[str]]:
         logger.info("[%s] Listing route lists...", self.name)
-        rl_summaries = self.paginated_list(
-            method_name="listRouteList",
-            search_criteria={"name": "%"},
-            returned_tags=ROUTE_LIST_LIST_RETURNED_TAGS,
-        )
+        try:
+            rl_summaries = self.paginated_list(
+                method_name="listRouteList",
+                search_criteria={"name": "%"},
+                returned_tags=ROUTE_LIST_LIST_RETURNED_TAGS,
+            )
+        except Exception as exc:
+            msg = f"listRouteList failed: {exc}"
+            logger.error("[%s] %s", self.name, msg)
+            self.results["route_lists"] = []
+            return 0, [msg]
         logger.info("[%s] Found %d route lists", self.name, len(rl_summaries))
 
         route_lists: list[dict[str, Any]] = []
@@ -408,11 +450,17 @@ class RoutingExtractor(BaseExtractor):
 
     def _extract_translation_patterns(self) -> tuple[int, list[str]]:
         logger.info("[%s] Listing translation patterns...", self.name)
-        patterns = self.paginated_list(
-            method_name="listTransPattern",
-            search_criteria={"pattern": "%"},
-            returned_tags=TRANSLATION_PATTERN_RETURNED_TAGS,
-        )
+        try:
+            patterns = self.paginated_list(
+                method_name="listTransPattern",
+                search_criteria={"pattern": "%"},
+                returned_tags=TRANSLATION_PATTERN_RETURNED_TAGS,
+            )
+        except Exception as exc:
+            msg = f"listTransPattern failed: {exc}"
+            logger.error("[%s] %s", self.name, msg)
+            self.results["translation_patterns"] = []
+            return 0, [msg]
         self.results["translation_patterns"] = patterns
         logger.info("[%s] Found %d translation patterns", self.name, len(patterns))
         return len(patterns), []

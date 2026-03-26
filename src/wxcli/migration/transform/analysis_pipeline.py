@@ -140,9 +140,12 @@ class AnalysisPipeline:
         )
 
         # Step 4: Apply auto-resolution rules
-        auto_resolved = apply_auto_rules(store, self.config)
-        if auto_resolved:
-            logger.info("Auto-rules resolved %d decisions", auto_resolved)
+        try:
+            auto_resolved = apply_auto_rules(store, self.config)
+            if auto_resolved:
+                logger.info("Auto-rules resolved %d decisions", auto_resolved)
+        except Exception as exc:
+            logger.warning("Auto-rules failed: %s", exc)
 
         # Step 5: Phase 2 — Run ArchitectureAdvisor (reads merged decisions from store)
         from wxcli.migration.advisory.advisor import ArchitectureAdvisor

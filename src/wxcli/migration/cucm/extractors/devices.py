@@ -13,11 +13,14 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from rich.console import Console
+
 from wxcli.migration.cucm.connection import AXLConnection
 from wxcli.migration.cucm.extractors.base import BaseExtractor, ExtractionResult
 from wxcli.migration.cucm.extractors.helpers import ref_value, to_list
 
 logger = logging.getLogger(__name__)
+console = Console()
 
 # Step 1: listPhone — lightweight discovery
 PHONE_LIST_RETURNED_TAGS = {
@@ -57,17 +60,27 @@ class DeviceExtractor(BaseExtractor):
 
         # Step 1: discover all phones
         logger.info("[%s] Listing phones...", self.name)
-        phone_summaries = self.paginated_list(
-            method_name="listPhone",
-            search_criteria={"name": "%"},
-            returned_tags=PHONE_LIST_RETURNED_TAGS,
-        )
+        try:
+            phone_summaries = self.paginated_list(
+                method_name="listPhone",
+                search_criteria={"name": "%"},
+                returned_tags=PHONE_LIST_RETURNED_TAGS,
+            )
+        except Exception as exc:
+            msg = f"listPhone failed: {exc}"
+            logger.error("[%s] %s", self.name, msg)
+            result.errors.append(msg)
+            self.results["phones"] = []
+            return result
         logger.info("[%s] Found %d phones", self.name, len(phone_summaries))
         result.total = len(phone_summaries)
 
         # Step 2: get full detail per phone
         phones: list[dict[str, Any]] = []
-        for summary in phone_summaries:
+        total = len(phone_summaries)
+        for i, summary in enumerate(phone_summaries, 1):
+            if i % 200 == 0:
+                console.print(f"    phones: {i}/{total}...")
             phone_name = ref_value(summary.get("name")) or summary.get("name")
             if not phone_name:
                 result.failed += 1

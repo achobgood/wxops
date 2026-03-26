@@ -47,6 +47,7 @@ class AXLConnection:
         wsdl_path: Path to a local AXL WSDL file. If provided, zeep loads
             the schema locally instead of fetching from the CUCM server.
             Download from CUCM Admin > Application > Plugins > "Cisco AXL Toolkit".
+        port: CUCM AXL port (default 8443).
     """
 
     def __init__(
@@ -58,8 +59,10 @@ class AXLConnection:
         verify_ssl: bool = False,
         timeout: int = 30,
         wsdl_path: str | None = None,
+        port: int = 8443,
     ) -> None:
         self.host = host
+        self.port = port
         self.version = version
 
         session = Session()
@@ -71,7 +74,7 @@ class AXLConnection:
         if wsdl_path:
             self.wsdl_url = wsdl_path
         else:
-            self.wsdl_url = f"https://{host}:8443/axl/AXLAPIService?wsdl"
+            self.wsdl_url = f"https://{host}:{self.port}/axl/AXLAPIService?wsdl"
 
         # strict=False: CUCM responses may contain elements not in the WSDL
         # (e.g. isAnonymous in getSipTrunk on CUCM 15.0). Without this,
@@ -88,11 +91,16 @@ class AXLConnection:
             ) from exc
 
         # When using a local WSDL, zeep needs the service address pointed at the real CUCM
-        service_url = f"https://{host}:8443/axl/"
-        self.service = self.client.create_service(
-            "{http://www.cisco.com/AXLAPIService/}AXLAPIBinding",
-            service_url,
-        )
+        service_url = f"https://{host}:{self.port}/axl/"
+        try:
+            self.service = self.client.create_service(
+                "{http://www.cisco.com/AXLAPIService/}AXLAPIBinding",
+                service_url,
+            )
+        except Exception as exc:
+            raise AXLConnectionError(
+                f"Failed to initialize AXL service at {service_url}: {exc}"
+            ) from exc
 
     def get_version(self) -> str:
         """Detect CUCM version via getCCMVersion().
