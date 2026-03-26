@@ -103,11 +103,30 @@ class LocationAmbiguityAnalyzer(Analyzer):
         name = location.get("name", "unknown")
         pool_names = location.get("cucm_device_pool_names", [])
 
+        # Count devices + users depending on this location's device pools
+        dependent_count = 0
+        for pool_name in pool_names:
+            pool_id = f"device_pool:{pool_name}"
+            dependent_count += len(store.get_cross_refs(
+                to_id=pool_id, relationship="device_in_pool",
+            ))
+            dependent_count += len(store.get_cross_refs(
+                to_id=pool_id, relationship="common_area_device_in_pool",
+            ))
+
+        has_address = bool(
+            location.get("address", {}).get("address1")
+            if isinstance(location.get("address"), dict)
+            else None
+        )
+
         context = {
             "canonical_id": canonical_id,
             "location_name": name,
             "cucm_device_pool_names": pool_names,
             "warnings": ambiguity_warnings,
+            "dependent_device_count": dependent_count,
+            "has_address": has_address,
         }
         options = [
             DecisionOption(
@@ -115,6 +134,12 @@ class LocationAmbiguityAnalyzer(Analyzer):
                 label="Accept this location mapping",
                 impact=f"Location '{name}' will be created with consolidated device pools: "
                        f"{', '.join(pool_names) or 'none'}",
+            ),
+            DecisionOption(
+                id="provide_address",
+                label="Provide address for this location",
+                impact=f"Location '{name}' needs a street address to create in Webex. "
+                       f"Use 'wxcli cucm decide' to supply address1, city, state, postal_code, country.",
             ),
             DecisionOption(
                 id="reassign",
@@ -128,12 +153,24 @@ class LocationAmbiguityAnalyzer(Analyzer):
                 impact=f"Each device pool will become its own Webex location "
                        f"({len(pool_names)} locations)",
             ),
-            DecisionOption(
-                id="skip",
-                label="Skip this location",
-                impact=f"Location '{name}' and its device pools will not be migrated",
-            ),
         ]
+
+        # Only offer skip if no devices depend on this location
+        if dependent_count == 0:
+            options.append(DecisionOption(
+                id="skip",
+                label="Skip this location (no devices affected)",
+                impact=f"Location '{name}' will not be migrated (0 devices in its pools)",
+            ))
+        else:
+            # Make the impact of NOT having an address very clear
+            options[1] = DecisionOption(
+                id="provide_address",
+                label=f"Provide address for this location ({dependent_count} devices depend on it)",
+                impact=f"Location '{name}' has {dependent_count} devices in its pools. "
+                       f"A street address is REQUIRED to create this location in Webex. "
+                       f"Skipping is not available because it would block all {dependent_count} devices.",
+            )
 
         return self._create_decision(
             store=store,

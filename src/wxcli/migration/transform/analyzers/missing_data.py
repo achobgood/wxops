@@ -66,7 +66,8 @@ _REQUIRED_FIELDS: dict[str, list[tuple[str, Any, str, str]]] = {
     ],
     "trunk": [
         ("address", _is_none_or_blank, "MEDIUM", "FQDN/SRV address required for trunk registration"),
-        ("password", _is_none_or_blank, "LOW", "Password required for registering trunk"),
+        # password NOT checked — Webex Calling trunks use certificate-based TLS,
+        # not SIP password auth. CUCM never exposes passwords via AXL anyway.
     ],
     "location": [
         ("name", _is_none_or_blank, "MEDIUM", "Location name required"),

@@ -42,7 +42,52 @@ argument-hint: [project name]
    Wait for the admin to confirm they've reviewed the report before continuing.
    If the admin wants to stop here (assessment-only engagement), the workflow ends.
 
-3. **Check for pending decisions and generate review file:**
+3. **Resolve location addresses (BLOCKING GATE):**
+
+   CUCM device pools never have street addresses but Webex requires them. Check
+   for locations missing addresses:
+   ```bash
+   wxcli cucm inventory --type location -o json -p <project>
+   ```
+   Parse each location's `address.address1`. If ANY are null/empty:
+
+   **Small environment (< 10 locations):** Auto-fill demo addresses without asking:
+   ```bash
+   wxcli cucm import-locations --demo -p <project>
+   ```
+   Tell the admin what was set:
+   > "I've filled in demo addresses for N locations based on timezone
+   > (e.g., San Jose for Pacific, Richardson for Central). These are
+   > placeholder addresses for testing — replace with real addresses
+   > before a production migration."
+
+   **Large environment (10+ locations):** Export the worksheet and block:
+   ```bash
+   wxcli cucm export --format location-worksheet -p <project>
+   ```
+   Tell the admin:
+   > "Your migration has N locations that need street addresses before
+   > Webex can create them. I've exported a worksheet to:
+   > [path to location-worksheet.csv]
+   >
+   > Fill in the address1, city, state, and postal_code columns, then run:
+   > `wxcli cucm import-locations <path> -p <project>`
+   >
+   > I'll continue once all locations have addresses."
+
+   **Do NOT proceed to decision review until all locations have addresses.**
+   Re-check after the user says they've imported. If locations are still
+   missing addresses, show which ones and repeat.
+
+   **After addresses are resolved, re-run analyze** to clear stale MISSING_DATA
+   decisions that were created before addresses existed:
+   ```bash
+   wxcli cucm analyze -p <project>
+   ```
+   This re-evaluates all decisions. Location/device MISSING_DATA decisions that
+   are no longer valid will be staled automatically.
+
+4. **Check for pending decisions and generate review file:**
    ```bash
    wxcli cucm decisions --status pending -p <project>
    ```

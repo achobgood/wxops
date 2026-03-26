@@ -104,16 +104,62 @@ Ask ONE question at a time. Do not dump multiple questions. Wait for the answer 
 
 ### CUCM Migration Detection
 
-Before asking the interview questions, check for an existing CUCM deployment plan:
+Before asking the interview questions, check for an existing CUCM migration project:
 
 ```bash
-ls docs/plans/*cucm-migration* 2>/dev/null
+wxcli cucm status -o json 2>/dev/null
 ```
 
-If a deployment plan exists, or the user mentions "CUCM migration", "migrate from CUCM", or "deployment plan":
-> "I found a CUCM migration deployment plan. Loading the `cucm-migrate` skill to execute it."
+**If the pipeline is at stage ANALYZED or later** (or a deployment plan exists at `docs/plans/*cucm-migration*`):
+> "I found an existing CUCM migration project. Loading the migration workflow."
 
-Load the `cucm-migrate` skill and follow its workflow instead of the standard interview. The skill handles preflight, plan summary, approval, execution, and reporting.
+Load the `cucm-migrate` skill and follow its workflow.
+
+**If the user mentions "CUCM migration", "migrate from CUCM", or "deployment plan" but no project exists (or pipeline is incomplete):**
+
+Walk them through the analysis pipeline conversationally. Do NOT tell them to run CLI commands — run the commands for them.
+
+#### Pipeline Walkthrough
+
+**Step 1: Create the project**
+> "Let's start by setting up a migration project. What would you like to name it? (e.g., your company name or site name)"
+
+```bash
+wxcli cucm init -p <name>
+```
+
+**Step 2: Connect to CUCM**
+
+Ask these one at a time:
+1. "What's the hostname or IP address of your CUCM server?"
+2. "What's the AXL admin username?" (explain: this is the CUCM admin account, needs the 'Standard AXL API Access' role)
+3. "What CUCM version are you running?" (offer: 12.x, 14.x, 15.x — default 14.0)
+
+Then run discover. The CLI handles WSDL guidance interactively if needed — if CUCM blocks the schema download (common on 15.x), the CLI will walk them through downloading one file from their CUCM admin page.
+
+```bash
+wxcli cucm discover --host <host> --username <user> --version <ver> -p <name>
+```
+
+If discover fails for non-WSDL reasons (auth, connectivity), explain the issue in plain language and help troubleshoot.
+
+**Step 3: Run analysis**
+
+These run automatically — no user input needed:
+```bash
+wxcli cucm normalize -p <name>
+wxcli cucm map -p <name>
+wxcli cucm analyze -p <name>
+```
+
+After each, briefly report progress:
+> "Normalized 847 objects across 12 types."
+> "Mapped CUCM configuration to Webex equivalents — 23 decisions need review."
+> "Analysis complete. Ready to generate your assessment report."
+
+**Step 4: Hand off to cucm-migrate**
+
+Load the `cucm-migrate` skill. It picks up from the ANALYZED state — generates the assessment report, walks through decisions, and handles execution.
 
 ### Question 1: Objective
 

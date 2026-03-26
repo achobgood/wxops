@@ -95,21 +95,24 @@ class DeviceMapper(Mapper):
             elif len(device_name) == 12 and all(c in "0123456789ABCDEFabcdef" for c in device_name):
                 mac = device_name.upper()
 
+            # Cross-refs link device:{name}, not phone:{name}. Derive the device ID.
+            device_id = f"device:{device_name}"
+
             # --- Location resolution ---
             # Chain: device -> device_in_pool -> device_pool_to_location
             # (from 03b-transform-mappers.md §4: cross-ref dependencies)
             location_canonical_id = store.resolve_chain(
-                phone_id, "device_in_pool", "device_pool_to_location"
+                device_id, "device_in_pool", "device_pool_to_location"
             )
 
             # --- Owner resolution ---
             # (from 03b-transform-mappers.md §4: "device_owned_by_user")
-            owner_refs = store.find_cross_refs(phone_id, "device_owned_by_user")
+            owner_refs = store.find_cross_refs(device_id, "device_owned_by_user")
             owner_canonical_id = owner_refs[0] if owner_refs else None
 
             # --- Line appearances ---
             # (from 03b-transform-mappers.md §4: "line appearances stored for post-creation config")
-            dn_refs = store.find_cross_refs(phone_id, "device_has_dn")
+            dn_refs = store.find_cross_refs(device_id, "device_has_dn")
             line_appearances = state.get("line_appearances", [])
 
             # --- Display name ---

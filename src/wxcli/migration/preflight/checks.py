@@ -45,7 +45,14 @@ FEATURE_LIMITS = {
 
 def check_licenses(store: MigrationStore, licenses: list[dict]) -> CheckResult:
     """Check if enough Calling Professional licenses are available."""
-    user_count = store.count_by_type("user")
+    # Use plan_operations count (resource_type='user', op_type='create') rather
+    # than raw object count so that unanalyzed/skipped users don't inflate the
+    # needed count.
+    row = store.conn.execute(
+        "SELECT COUNT(*) AS cnt FROM plan_operations "
+        "WHERE resource_type = 'user' AND op_type = 'create'"
+    ).fetchone()
+    user_count = row["cnt"] if row else store.count_by_type("user")
     if user_count == 0:
         return CheckResult(
             name="User licenses",
@@ -110,7 +117,18 @@ def check_licenses(store: MigrationStore, licenses: list[dict]) -> CheckResult:
 
 def check_workspace_licenses(store: MigrationStore, licenses: list[dict]) -> CheckResult:
     """Check if enough Common Area / workspace licenses are available."""
-    ws_count = store.count_by_type("workspace")
+    # Count workspaces that aren't being skipped via a WORKSPACE_LICENSE_TIER decision.
+    all_decisions = store.get_all_decisions()
+    skipped_ws_ids: set[str] = set()
+    for d in all_decisions:
+        if d.get("type") == "WORKSPACE_LICENSE_TIER" and d.get("chosen_option") == "skip":
+            # context.canonical_id holds the workspace's canonical ID
+            ctx = d.get("context", {})
+            ws_id = ctx.get("canonical_id") or ctx.get("object_id")
+            if ws_id:
+                skipped_ws_ids.add(ws_id)
+
+    ws_count = store.count_by_type("workspace") - len(skipped_ws_ids)
     if ws_count == 0:
         return CheckResult(
             name="Workspace licenses",

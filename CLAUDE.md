@@ -7,14 +7,19 @@ The wxcli CLI has 100 command groups covering calling, admin, device, and messag
 
 ## Quick Start
 
-Use `/agents` and select **wxc-calling-builder** to start building. The agent walks you through
-authentication, interviews you about what you want to build, designs a deployment plan, executes
-via `wxcli` commands, and verifies the results. Covers Webex Calling, admin/org management,
-identity/SCIM, licensing, audit/compliance, and partner operations.
+Use `/agents` and select **wxc-calling-builder**. This is the primary interface for all operations.
+The agent walks you through authentication, interviews you about what you want to build, designs
+a deployment plan, executes via `wxcli` commands, and verifies the results. **Do not run `wxcli`
+commands directly** — the agent handles the full workflow.
 
-## If Debugging
+**To build or configure Webex Calling:** `/agents` → wxc-calling-builder → describe what you want.
 
-Use `/wxc-calling-debug` to troubleshoot a failing configuration (this one is a skill, invoked directly).
+**To migrate from CUCM:** `/agents` → wxc-calling-builder → "Run a CUCM migration" and provide
+the CUCM host/credentials. The agent runs the full pipeline: discover → normalize → map → analyze
+→ resolve addresses → review decisions → plan → execute → verify. See the CUCM migration section
+below for what the pipeline does.
+
+**To debug a failing configuration:** Use `/wxc-calling-debug` (this one is a skill, invoked directly).
 
 ## File Map
 
@@ -116,7 +121,7 @@ Use `/wxc-calling-debug` to troubleshoot a failing configuration (this one is a 
 
 ### CUCM→Webex Migration Tool (All 11 phases complete)
 
-The migration tool is at `src/wxcli/migration/` and wired into the CLI as `wxcli cucm <command>`. It does NOT use the auto-generator. **1486 tests passing.** Use `/cucm-migrate` to execute a migration after running the pipeline.
+The migration tool is at `src/wxcli/migration/` and wired into the CLI as `wxcli cucm <command>`. It does NOT use the auto-generator. **1487 tests passing.** Use `/cucm-migrate` to execute a migration after running the pipeline.
 
 | Path | Purpose |
 |------|---------|
@@ -176,6 +181,7 @@ See `docs/plans/cucm-migration-roadmap.md` for the master project status.
 - **Live API sweep Batch 4 (2026-03-21):** Customer Assist (cx-essentials) end-to-end: screen pop, wrap-up reasons, queue call recording (2 new commands), supervisors, available agents. Found 6 CLI bugs (list table column, validate output, list-settings response shape, missing error 28018 handling, wrong queue recording JSON example, update-settings missing 28018). Found 2 generator issues (supervisor delete missing hasCxEssentials param, create output for empty dict). Found 3 API behaviors: CX queues hidden from default `call-queue list`, CX queue creation requires `callPolicies`, supervisor delete returns 204 but supervisor persists (workaround: remove agents via update). All CLI bugs fixed, generator enhanced with `add_query_params` override.
 - **Test bed expansion (2026-03-24):** Added 15 new + 5 modified objects to CUCM test bed (10.201.123.107) for pipeline coverage gaps: 2 blocking partitions in CSSes (CSSMapper CallingPermission), 2 common-area phones (WorkspaceMapper), 2nd pickup group, 2nd CTI Route Point, 2 holiday time periods (HOLIDAY OperatingMode), time schedule→partition wiring. Script: `tests/migration/cucm/provision_testbed_phase9.py`. Discovered 4 AXL gotchas (pickup group members, CTI RP protocol, TimePeriod enums). Pipeline gaps: no PagingGroup AXL object (needs InformaCast), no Unity Connection for CUPI voicemail extraction.
 - **Test bed expansion (2026-03-25):** Added phone config objects for Tier2-Phase2: 4 custom button templates (Custom-8845-BLF-SD, Custom-7841-Mixed, Custom-8845-Unmappable, Custom-9861-Mixed with KEM buttons 11-14), 2 new PSK-capable phones (9861 SEP9861AABB0001, 8875 SEP8875CCDD0001), speed dials + BLF on 3 phones, softkey template assignments on 4 phones. Script: `tests/migration/cucm/provision_testbed_phase10.py`. Discovered 11 AXL gotchas: `addPhoneButtonTemplate` uses `<buttonNumber>` not `<index>`; BLF feature is "Speed Dial BLF" for add but "Busy Lamp Field" on get; must omit `isFixedFeature=true` buttons during template creation; `addSoftkeyTemplate`/`getSoftkeyTemplate`/`listSoftkeyTemplate` do not exist in AXL v15.0 (SQL only); 9861 templates have 130 buttons (10 phone + 120 KEM); `blfDirn` always empty in getPhone response. Also found and fixed pre-existing pipeline bug: raw phone objects lost after normalization (MonitoringMapper/CallForwardingMapper silently broken).
+- **Pipeline hardening (2026-03-26):** Fixed 4 bugs found during live execution attempt: (1) DeviceMapper queried cross-refs with `phone:` ID but cross-refs use `device:` ID — all 15 devices had `owner_canonical_id=None`; (2) Trunk password flagged as MISSING_DATA but Webex trunks use certificate TLS not SIP password — removed false check; (3) MISSING_DATA recommendation always returned "skip" — now returns None (force human review) for infrastructure objects and objects with downstream dependents; (4) Location addresses not cleared from stale decisions after `import-locations` — skill now re-runs analyze after address import. Also added location address resolution system: `wxcli cucm export --format location-worksheet` (pre-filled CSV), `wxcli cucm import-locations` (CSV import + `--demo` auto-fill), and cucm-migrate skill Step 1.5 blocking gate. LOCATION_AMBIGUOUS no longer offers "skip" when devices depend on the location.
 
 ### Partner Multi-Org Support
 
