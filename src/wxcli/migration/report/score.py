@@ -1,7 +1,7 @@
 """Migration complexity score algorithm.
 
 Queries a MigrationStore and produces a 0-100 complexity score with
-7 weighted factors and a human-readable breakdown.
+8 weighted factors and a human-readable breakdown.
 """
 
 from __future__ import annotations
@@ -61,7 +61,7 @@ def compute_complexity_score(store: MigrationStore) -> ScoreResult:
         store: Populated MigrationStore (post-analyze state).
 
     Returns:
-        ScoreResult with score (0-100), label, color, and 7 factor dicts.
+        ScoreResult with score (0-100), label, color, and 8 factor dicts.
     """
     factor_funcs = [
         ("CSS Complexity", _css_complexity),
