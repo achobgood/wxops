@@ -537,25 +537,29 @@ def handle_call_forwarding_configure(data: dict, deps: dict, ctx: dict) -> Handl
     # Only generate if at least one forwarding type is enabled
     if not any([data.get("always_enabled"), data.get("busy_enabled"), data.get("no_answer_enabled")]):
         return []
+    def _cf_block(**kwargs: Any) -> dict[str, Any]:
+        """Build a callForwarding sub-block, omitting None-valued optional fields."""
+        return {k: v for k, v in kwargs.items() if v is not None}
+
     body: dict[str, Any] = {
         "callForwarding": {
-            "always": {
-                "enabled": bool(data.get("always_enabled")),
-                "destination": data.get("always_destination"),
-                "ringReminderEnabled": False,
-                "destinationVoicemailEnabled": bool(data.get("always_to_voicemail")),
-            },
-            "busy": {
-                "enabled": bool(data.get("busy_enabled")),
-                "destination": data.get("busy_destination"),
-                "destinationVoicemailEnabled": bool(data.get("busy_to_voicemail")),
-            },
-            "noAnswer": {
-                "enabled": bool(data.get("no_answer_enabled")),
-                "destination": data.get("no_answer_destination"),
-                "destinationVoicemailEnabled": bool(data.get("no_answer_to_voicemail")),
-                "numberOfRings": data.get("no_answer_ring_count"),
-            },
+            "always": _cf_block(
+                enabled=bool(data.get("always_enabled")),
+                destination=data.get("always_destination"),
+                ringReminderEnabled=False,
+                destinationVoicemailEnabled=bool(data.get("always_to_voicemail")),
+            ),
+            "busy": _cf_block(
+                enabled=bool(data.get("busy_enabled")),
+                destination=data.get("busy_destination"),
+                destinationVoicemailEnabled=bool(data.get("busy_to_voicemail")),
+            ),
+            "noAnswer": _cf_block(
+                enabled=bool(data.get("no_answer_enabled")),
+                destination=data.get("no_answer_destination"),
+                destinationVoicemailEnabled=bool(data.get("no_answer_to_voicemail")),
+                numberOfRings=data.get("no_answer_ring_count"),
+            ),
         },
         "businessContinuity": {"enabled": False},
     }
