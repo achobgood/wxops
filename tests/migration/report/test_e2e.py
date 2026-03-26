@@ -55,7 +55,7 @@ class TestEndToEnd:
         assert "<svg" in html  # charts present
         assert "Fixture Corp" in html
 
-        # Appendix sections
-        assert 'id="people"' in html or 'id="devices"' in html
-        assert 'id="decisions"' in html
-        assert 'id="devices"' in html
+        # Appendix sections (v4 lettered IDs)
+        assert 'id="objects"' in html or 'id="device-detail"' in html
+        assert 'id="decision-detail"' in html
+        assert 'id="device-detail"' in html

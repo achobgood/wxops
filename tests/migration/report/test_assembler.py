@@ -1,4 +1,4 @@
-"""Tests for full report assembly (v2)."""
+"""Tests for full report assembly (v4)."""
 import pytest
 
 
@@ -24,7 +24,7 @@ class TestAssembler:
         html = assemble_report(populated_store,
             brand="Acme Corp", prepared_by="Test SE")
         assert 'id="score"' in html  # executive section present
-        assert 'id="people"' in html or 'id="devices"' in html  # appendix
+        assert 'id="objects"' in html or 'id="decision-detail"' in html  # appendix
 
     def test_executive_only_flag(self, populated_store):
         from wxcli.migration.report.assembler import assemble_report
@@ -50,42 +50,42 @@ class TestAssembler:
         assert out_path.exists()
         assert out_path.stat().st_size > 1000
 
-    def test_dark_interstitial_present(self, populated_store):
+    def test_no_dark_interstitial(self, populated_store):
+        """v4 removed the dark interstitial between exec and appendix."""
         from wxcli.migration.report.assembler import assemble_report
         html = assemble_report(populated_store,
             brand="Acme Corp", prepared_by="Test SE")
-        assert "TECHNICAL REFERENCE" in html
-        assert "tech-interstitial" in html
+        assert "tech-interstitial" not in html
 
     def test_sidebar_nav_exec_items(self, populated_store):
         from wxcli.migration.report.assembler import assemble_report
         html = assemble_report(populated_store,
             brand="Acme Corp", prepared_by="Test SE")
-        assert "The Verdict" in html
-        assert "Your Environment" in html
-        assert "Migration Scope" in html
+        assert "Migration Complexity" in html
+        assert "What You Have" in html
+        assert "What Needs Attention" in html
         assert "Next Steps" in html
 
     def test_sidebar_nav_tech_items(self, populated_store):
         from wxcli.migration.report.assembler import assemble_report
         html = assemble_report(populated_store,
             brand="Acme Corp", prepared_by="Test SE")
-        assert 'href="#people"' in html
-        assert 'href="#devices"' in html
+        assert 'href="#objects"' in html
+        assert 'href="#decision-detail"' in html
         assert 'href="#routing"' in html
+        assert 'href="#gateways"' in html
 
-    def test_summary_bar_present(self, populated_store):
+    def test_no_summary_bar(self, populated_store):
+        """v4 removed the fixed summary bar — stats are inline."""
         from wxcli.migration.report.assembler import assemble_report
         html = assemble_report(populated_store,
             brand="Acme Corp", prepared_by="Test SE")
-        assert "summary-bar" in html
-        assert "Score" in html
-        assert "Users" in html
-        assert "Devices" in html
-        assert "Sites" in html
+        assert "summary-bar" not in html
 
-    def test_max_width_wrapper(self, populated_store):
+    def test_layout_structure(self, populated_store):
         from wxcli.migration.report.assembler import assemble_report
         html = assemble_report(populated_store,
             brand="Acme Corp", prepared_by="Test SE")
-        assert "detail-panel-content" in html
+        assert "main-layout" in html
+        assert "step-list" in html or "step-item" in html
+        assert "detail-panel" in html

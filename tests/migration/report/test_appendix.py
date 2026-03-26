@@ -1,4 +1,4 @@
-"""Tests for technical appendix HTML generation (v2: 6 topic groups)."""
+"""Tests for technical appendix HTML generation (v4: 14 lettered sections)."""
 import pytest
 
 
@@ -16,7 +16,7 @@ class TestAppendix:
     def test_section_ids(self, populated_store):
         from wxcli.migration.report.appendix import generate_appendix
         html = generate_appendix(populated_store)
-        for sid in ["people", "devices", "features", "routing", "gateways", "decisions"]:
+        for sid in ["objects", "decision-detail", "device-detail", "routing", "gateways", "coverage"]:
             assert f'id="{sid}"' in html, f"Missing section #{sid}"
 
     def test_uses_details_summary(self, populated_store):
@@ -37,27 +37,36 @@ class TestAppendix:
         # Summary lines should include counts
         assert "50 users" in html.lower() or "50" in html
 
-    def test_people_group(self, populated_store):
+    def test_dn_analysis_section(self, populated_store):
         from wxcli.migration.report.appendix import generate_appendix
         html = generate_appendix(populated_store)
-        assert "People" in html
+        assert "DN Analysis" in html or 'id="dn-analysis"' in html
 
-    def test_devices_group(self, populated_store):
+    def test_user_device_map_section(self, populated_store):
         from wxcli.migration.report.appendix import generate_appendix
         html = generate_appendix(populated_store)
-        assert "Devices" in html
+        assert "User/Device Map" in html or 'id="user-device-map"' in html
+
+    def test_devices_section(self, populated_store):
+        from wxcli.migration.report.appendix import generate_appendix
+        html = generate_appendix(populated_store)
+        assert 'id="device-detail"' in html
         assert "CP-8845" in html
 
-    def test_features_group(self, populated_store):
+    def test_features_section(self, populated_store):
         from wxcli.migration.report.appendix import generate_appendix
         html = generate_appendix(populated_store)
-        assert "Features" in html or "Call Features" in html
+        assert 'id="call-features"' in html or "Call Features" in html
 
-    def test_routing_group_includes_css(self, populated_store):
+    def test_routing_section(self, populated_store):
         from wxcli.migration.report.appendix import generate_appendix
         html = generate_appendix(populated_store)
-        assert "Routing" in html
-        assert "CSS" in html
+        assert 'id="routing"' in html
+
+    def test_css_partitions_section(self, populated_store):
+        from wxcli.migration.report.appendix import generate_appendix
+        html = generate_appendix(populated_store)
+        assert 'id="css-partitions"' in html
 
     def test_decisions_grouped_by_type(self, populated_store):
         from wxcli.migration.report.appendix import generate_appendix
