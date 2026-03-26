@@ -767,6 +767,7 @@ class TestCallForwardingConfigure:
         result = handle_call_forwarding_configure(data, deps, {})
         _, _, body = result[0]
         assert body["callForwarding"]["always"]["destinationVoicemailEnabled"] is True
+        assert "destination" not in body["callForwarding"]["always"]
 
     def test_partial_only_no_answer(self):
         data = {
