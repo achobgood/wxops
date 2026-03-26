@@ -6,6 +6,7 @@ from wxcli.migration.execute.handlers import (
     handle_call_forwarding_configure,
     handle_monitoring_list_configure,
     handle_device_layout_configure,
+    handle_softkey_config_configure,
     handle_line_key_template_create,
     handle_location_create,
     handle_location_enable_calling,
@@ -1031,6 +1032,84 @@ class TestDeviceLayoutConfigure:
         result = handle_device_layout_configure(data, deps, {"orgId": "ORG999"})
         for _, url, _ in result:
             assert "orgId=ORG999" in url
+
+
+class TestSoftkeyConfigConfigure:
+    def test_basic(self):
+        data = {
+            "is_psk_target": True,
+            "device_canonical_id": "device:SEP001122334455",
+            "psk_mappings": [
+                {"psk_slot": "PSK1", "keyword": "park"},
+                {"psk_slot": "PSK2", "keyword": "hold"},
+            ],
+            "state_key_lists": {
+                "idle": ["redial", "newcall", "cfwd"],
+                "connected": ["hold", "endcall", "xfer"],
+            },
+        }
+        deps = {"device:SEP001122334455": "wx-dev-aaa"}
+        result = handle_softkey_config_configure(data, deps, {})
+        assert len(result) == 2
+
+        method1, url1, body1 = result[0]
+        assert method1 == "PUT"
+        assert "wx-dev-aaa" in url1
+        assert "dynamicSettings" in url1
+        settings = {s["key"]: s["value"] for s in body1["settings"]}
+        assert settings["softKeyLayout.psk.psk1"] == "park"
+        assert settings["softKeyLayout.psk.psk2"] == "hold"
+        assert settings["softKeyLayout.softKeyMenu.idleKeyList"] == "redial;newcall;cfwd"
+        assert settings["softKeyLayout.softKeyMenu.connectedKeyList"] == "hold;endcall;xfer"
+
+        method2, url2, body2 = result[1]
+        assert method2 == "POST"
+        assert "applyChanges" in url2
+        assert body2 is None
+
+    def test_not_psk_target_returns_empty(self):
+        data = {
+            "is_psk_target": False,
+            "device_canonical_id": "device:SEP001122334455",
+            "psk_mappings": [{"psk_slot": "PSK1", "keyword": "park"}],
+            "state_key_lists": {},
+        }
+        deps = {"device:SEP001122334455": "wx-dev-aaa"}
+        result = handle_softkey_config_configure(data, deps, {})
+        assert result == []
+
+    def test_no_device_dep_returns_empty(self):
+        data = {
+            "is_psk_target": True,
+            "device_canonical_id": "device:SEP001122334455",
+            "psk_mappings": [{"psk_slot": "PSK1", "keyword": "park"}],
+            "state_key_lists": {},
+        }
+        result = handle_softkey_config_configure(data, {}, {})
+        assert result == []
+
+    def test_empty_settings_returns_empty(self):
+        data = {
+            "is_psk_target": True,
+            "device_canonical_id": "device:SEP001122334455",
+            "psk_mappings": [],
+            "state_key_lists": {},
+        }
+        deps = {"device:SEP001122334455": "wx-dev-aaa"}
+        result = handle_softkey_config_configure(data, deps, {})
+        assert result == []
+
+    def test_orgid_injected(self):
+        data = {
+            "is_psk_target": True,
+            "device_canonical_id": "device:SEP001122334455",
+            "psk_mappings": [{"psk_slot": "PSK1", "keyword": "park"}],
+            "state_key_lists": {},
+        }
+        deps = {"device:SEP001122334455": "wx-dev-aaa"}
+        result = handle_softkey_config_configure(data, deps, {"orgId": "ORG777"})
+        for _, url, _ in result:
+            assert "orgId=ORG777" in url
 
 
 class TestHandlerRegistry:
