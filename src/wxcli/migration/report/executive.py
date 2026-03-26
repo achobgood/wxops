@@ -11,7 +11,7 @@ from __future__ import annotations
 import html
 from typing import Any
 
-from wxcli.migration.report.charts import gauge_chart, stacked_bar_chart
+from wxcli.migration.report.charts import donut_chart, gauge_chart, stacked_bar_chart
 from wxcli.migration.report.explainer import (
     DECISION_TYPE_DISPLAY_NAMES,
     explain_decision,
@@ -70,7 +70,7 @@ def generate_executive_summary(
 ) -> str:
     """Generate the 4-page executive summary HTML from a populated store."""
     sections = [
-        _page_verdict(store, brand),
+        _page_verdict(store, brand, cluster_name, cucm_version),
         _page_environment(store, brand, cluster_name, cucm_version),
         _page_scope(store),
         _page_next_steps(store, brand, prepared_by),
@@ -82,58 +82,16 @@ def generate_executive_summary(
 # Page 1 — The Verdict
 # ---------------------------------------------------------------------------
 
-def _page_verdict(store: MigrationStore, brand: str) -> str:
+def _page_verdict(store: MigrationStore, brand: str, cluster_name: str = "", cucm_version: str = "") -> str:
     """Page 1: Answer 'should I be worried?' in 5 seconds."""
     result = compute_complexity_score(store)
-    gauge_svg = gauge_chart(result.score, "#2563eb", result.label)
+    gauge_svg = gauge_chart(result.score, result.color, result.label)
     verdict_text = generate_verdict(result, store)
     findings = generate_key_findings(store)
 
-    # Build detail sentence for callout
-    decisions = store.get_all_decisions()
-    total_decisions = len(decisions)
-    resolved = sum(1 for d in decisions if d.get("chosen_option"))
-
-    detail_parts = []
-    if total_decisions > 0:
-        if resolved == total_decisions:
-            detail_parts.append(
-                f'All <strong>{resolved} decisions</strong> were auto-resolved '
-                f'— no manual input needed at this stage.'
-            )
-        else:
-            detail_parts.append(
-                f'<strong>{resolved} of {total_decisions}</strong> decisions resolved '
-                f'— {total_decisions - resolved} still need review.'
-            )
-
-    top_factors = sorted(result.factors, key=lambda f: f["raw_score"], reverse=True)[:2]
-    if top_factors:
-        names = " and ".join(
-            f'<strong>{html.escape(f.get("display_name", f["name"]).lower())}</strong>'
-            for f in top_factors if f["raw_score"] > 0
-        )
-        if names:
-            detail_parts.append(f'Complexity is driven by {names}.')
-
-    detail_text = " ".join(detail_parts) if detail_parts else ""
-
-    # Build concise conclusion heading (not the full verdict paragraph)
-    top2 = sorted(result.factors, key=lambda f: f["raw_score"], reverse=True)[:2]
-    driver_names = [f.get("display_name", f["name"]).lower() for f in top2 if f["raw_score"] > 0]
-    if result.score <= 30:
-        heading = "Migration is straightforward"
-    elif result.score <= 55:
-        heading = "Migration is feasible with planning"
-    else:
-        heading = "Migration requires significant planning"
-    if driver_names:
-        heading += f" — {' and '.join(driver_names)} drive complexity"
-
     parts = [
         f'<section id="score">',
-        f'<div class="section-kicker">The Verdict</div>',
-        f'<h2>{html.escape(heading)}</h2>',
+        f'<h2>Migration Complexity Assessment</h2>',
         f'<div class="verdict">{verdict_text}</div>',
     ]
 
@@ -147,7 +105,7 @@ def _page_verdict(store: MigrationStore, brand: str) -> str:
         for i, factor in enumerate(sorted_factors):
             display = factor.get("display_name", factor["name"])
             raw = factor["raw_score"]
-            color = "var(--chart-focal)" if i == 0 and raw > 0 else "var(--chart-gray)"
+            color = "var(--primary)" if i == 0 and raw > 0 else "var(--slate-400)"
             parts.append(
                 f'<div class="factor-row">'
                 f'<span class="factor-label">{html.escape(display)}</span>'
@@ -174,6 +132,20 @@ def _page_verdict(store: MigrationStore, brand: str) -> str:
             )
         parts.append('</ul>')
 
+    # Stat grid
+    total_objects = _total_object_count(store)
+    parts.append('<div class="stat-grid">')
+    parts.append(_stat_card(html.escape(brand), "Customer"))
+    if cluster_name:
+        parts.append(_stat_card(html.escape(cluster_name), "CUCM Cluster"))
+    if cucm_version:
+        parts.append(_stat_card(html.escape(cucm_version), "CUCM Version"))
+    parts.append(_stat_card(str(total_objects), "Total Objects"))
+    parts.append(_stat_card(str(store.count_by_type("location")), "Sites"))
+    parts.append(_stat_card(str(store.count_by_type("user")), "Users"))
+    parts.append(_stat_card(str(len(store.get_objects("device"))), "Devices"))
+    parts.append('</div>')
+
     parts.append('</section>')
     return "\n".join(parts)
 
@@ -195,8 +167,7 @@ def _page_environment(
 
     parts = [
         f'<section id="inventory">',
-        f'<div class="section-kicker">Your Environment</div>',
-        f'<h2>{user_count} users across {location_count} sites with {device_count} devices</h2>',
+        f'<h2>What You Have</h2>',
     ]
 
     # --- People ---
@@ -230,15 +201,15 @@ def _page_environment(
             parts.append(_stat_card(str(incompatible), "Incompatible"))
         parts.append('</div>')
 
-        # Stacked bar for device compatibility
-        segments = [
-            {"label": "Native MPP", "value": native, "color": "#059669"},
-            {"label": "Convertible", "value": convertible, "color": "#d97706"},
-            {"label": "Incompatible", "value": incompatible, "color": "#dc2626"},
+        # Donut chart for device compatibility (replaces stacked bar)
+        donut_segments = [
+            {"label": "Native MPP", "value": native, "color": "#2E7D32"},
+            {"label": "Convertible", "value": convertible, "color": "#EF6C00"},
+            {"label": "Incompatible", "value": incompatible, "color": "#C62828"},
         ]
-        bar_html = stacked_bar_chart(segments)
-        if bar_html:
-            parts.append(bar_html)
+        donut_svg = donut_chart(donut_segments)
+        if donut_svg:
+            parts.append(f'<div class="chart-container">{donut_svg}</div>')
 
     # --- Analog Gateways (if present) ---
     gateways = store.get_objects("gateway")
@@ -315,13 +286,26 @@ def _page_environment(
 def _page_scope(store: MigrationStore) -> str:
     """Page 3: Three effort bands — auto, planning, manual."""
     decisions = store.get_all_decisions()
+
+    # Decision summary stat grid
+    total_decisions = len(decisions)
+    resolved = sum(1 for d in decisions if d.get("chosen_option"))
+    unresolved = total_decisions - resolved
+    critical = sum(1 for d in decisions if d.get("severity", "").upper() == "CRITICAL")
+
     auto, planning, manual = _classify_decisions(decisions)
 
     parts = [
-        f'<section id="scope">',
-        f'<div class="section-kicker">Migration Scope</div>',
-        f'<h2>{len(auto)} items migrate automatically — {len(manual)} require manual work</h2>',
+        f'<section id="decisions">',
+        f'<h2>What Needs Attention</h2>',
     ]
+
+    parts.append('<div class="stat-grid">')
+    parts.append(_stat_card(str(resolved), "Auto-resolved"))
+    parts.append(_stat_card(str(unresolved), "Decisions Needed"))
+    if critical:
+        parts.append(_stat_card(str(critical), "Critical"))
+    parts.append('</div>')
 
     # Effort band: Migrates Automatically
     parts.append('<div class="effort-band auto">')
@@ -436,8 +420,7 @@ def _page_next_steps(
 
     parts = [
         f'<section id="next-steps">',
-        f'<div class="section-kicker">Next Steps</div>',
-        f'<h2>Ready to plan — all prerequisites identified</h2>',
+        f'<h2>Next Steps</h2>',
     ]
 
     # Before Migration
