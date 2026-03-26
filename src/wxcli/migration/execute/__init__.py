@@ -76,11 +76,12 @@ TIER_ASSIGNMENTS: dict[tuple[str, str], int] = {
     # Tier 0: Infrastructure — locations created first, then calling enabled
     ("location", "create"): 0,
     ("location", "enable_calling"): 0,
-    # Tier 1: Routing backbone — trunks, schedules, route groups
+    # Tier 1: Routing backbone — trunks, schedules, route groups, line key templates
     ("trunk", "create"): 1,
     ("route_group", "create"): 1,
     ("operating_mode", "create"): 1,
     ("schedule", "create"): 1,
+    ("line_key_template", "create"): 1,
     # Tier 2: People creation + org-wide routing objects
     ("user", "create"): 2,
     ("workspace", "create"): 2,
@@ -103,18 +104,14 @@ TIER_ASSIGNMENTS: dict[tuple[str, str], int] = {
     ("workspace", "configure_settings"): 5,
     ("device", "configure_settings"): 5,
     ("calling_permission", "assign"): 5,
-    # Tier 6: Shared/virtual lines (depend on users + devices)
+    ("call_forwarding", "configure"): 5,
+    # Tier 6: Shared/virtual lines + monitoring (depend on users + devices)
     ("shared_line", "configure"): 6,
     ("virtual_line", "create"): 6,
     ("virtual_line", "configure"): 6,
-    # Tier 1: Line key templates (org-wide infrastructure, no deps)
-    ("line_key_template", "create"): 1,
-    # Tier 5: Call forwarding (same as other user settings)
-    ("call_forwarding", "configure"): 5,
-    # Tier 6: Monitoring list (after all users/workspaces/features exist)
     ("monitoring_list", "configure"): 6,
-    # Tier 7: Device finalization (after templates, monitoring, shared lines)
-    # NOTE: tier 7 was previously cycle-breaker-only; now shared with device finalization.
+    # Tier 7: Device finalization + cycle fixups
+    # NOTE: tier 7 is shared between device finalization and cycle-break fixups.
     # Fixups use batch="fixups"; device ops use location-derived batches — no conflict.
     ("device_layout", "configure"): 7,
     ("softkey_config", "configure"): 7,
@@ -129,11 +126,12 @@ API_CALL_ESTIMATES: dict[str, int] = {
     # Tier 0: Infrastructure
     "location:create": 1,           # POST /locations (from provisioning.md)
     "location:enable_calling": 1,   # POST /telephony/config/locations (Fix 13)
-    # Tier 1: Routing backbone
+    # Tier 1: Routing backbone + org-wide infrastructure
     "trunk:create": 1,              # POST /telephony/config/premisePstn/trunks (from call-routing.md)
     "route_group:create": 1,        # POST /telephony/config/premisePstn/routeGroups (from call-routing.md)
     "operating_mode:create": 1,     # POST /telephony/config/operatingModes (from location-call-settings-media.md)
     "schedule:create": 1,           # POST /telephony/config/locations/{id}/schedules (from location-call-settings-media.md)
+    "line_key_template:create": 1,  # POST /telephony/config/devices/lineKeyTemplates
     # Tier 2: People + org-wide routing
     "user:create": 1,               # POST /people (from provisioning.md) — Fix 12: includes license + extension
     "user:configure_settings": 5,   # ~5 PUT calls: callForwarding, callerId, callWaiting, doNotDisturb,
@@ -152,6 +150,7 @@ API_CALL_ESTIMATES: dict[str, int] = {
     "calling_permission:create": 0,   # logical grouping only — no standalone API (from person-call-settings-permissions.md)
     "calling_permission:assign": 1,   # PUT /people/{id}/features/outgoingPermission per user
                                       # (from person-call-settings-permissions.md line 401)
+    "call_forwarding:configure": 1,   # PUT /people/{id}/features/callForwarding
     # Tier 4: Call features
     "hunt_group:create": 1,         # POST /telephony/config/locations/{id}/huntGroups
                                     # agents optional at create (from call-features-major.md line 894)
@@ -162,17 +161,15 @@ API_CALL_ESTIMATES: dict[str, int] = {
     "call_park:create": 1,          # POST /telephony/config/locations/{id}/callParks (from call-features-additional.md)
     "pickup_group:create": 1,       # POST /telephony/config/locations/{id}/callPickups (from call-features-additional.md)
     "paging_group:create": 1,       # POST /telephony/config/locations/{id}/paging (from call-features-additional.md)
-    # Tier 6: Shared/virtual lines
+    # Tier 6: Shared/virtual lines + monitoring
     "shared_line:configure": 2,     # PUT /telephony/config/devices/{id}/members + POST applyChanges per device
                                     # (from devices-core.md lines 1369-1378, 1410)
     "virtual_line:create": 1,       # POST /telephony/config/virtualLines (from virtual-lines.md lines 93-104)
     "virtual_line:configure": 1,    # PUT /telephony/config/virtualLines/{id} (from virtual-lines.md lines 132-147)
-    # Phase 3: New handlers
-    "line_key_template:create": 1,     # POST /telephony/config/devices/lineKeyTemplates
-    "call_forwarding:configure": 1,    # PUT /people/{id}/features/callForwarding
-    "monitoring_list:configure": 1,    # PUT /people/{id}/features/monitoring
-    "device_layout:configure": 3,      # PUT members + PUT layout + POST applyChanges
-    "softkey_config:configure": 2,     # PUT dynamicSettings + POST applyChanges
+    "monitoring_list:configure": 1, # PUT /people/{id}/features/monitoring
+    # Tier 7: Device finalization
+    "device_layout:configure": 3,   # PUT members + PUT layout + POST applyChanges
+    "softkey_config:configure": 2,  # PUT dynamicSettings + POST applyChanges
 }
 
 # ---------------------------------------------------------------------------

@@ -72,7 +72,7 @@ members = [{"id": deps[cid]} for cid in member_cids if cid in deps]
 
 ## Handler Inventory
 
-All 27 handlers in `HANDLER_REGISTRY` as of Phase B:
+All 31 handlers in `HANDLER_REGISTRY`:
 
 ### Tier 0 — Infrastructure
 | Key | URL | Notes |

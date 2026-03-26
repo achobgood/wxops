@@ -10,7 +10,7 @@ Connects to CUCM via AXL SOAP and extracts raw configuration into the SQLite sto
 | `discovery.py` | `run_discovery(store, config)` — orchestrates all extractors in order, writes results to store |
 | `unity_connection.py` | `UnityConnectionClient` — REST client for Unity Connection per-user VM settings |
 | `extractors/base.py` | `BaseExtractor` ABC + `ExtractionResult` dataclass |
-| `extractors/devices.py` | Phones (SEP), device pools, button templates, softkey templates |
+| `extractors/devices.py` | Phones (SEP) and their line appearances |
 | `extractors/features.py` | Hunt pilots/lists/groups, call park, pickup groups, CTI route points, paging groups |
 | `extractors/locations.py` | CUCM locations, device pools, datetime groups |
 | `extractors/routing.py` | Gateways, SIP trunks, route groups, route lists, route patterns, CSS, partitions |

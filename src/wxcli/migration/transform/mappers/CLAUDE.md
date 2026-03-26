@@ -61,8 +61,8 @@ Execution order determined by `depends_on` (topological sort):
 | Mapper | `name` | Depends on | Produces | Source objects |
 |--------|--------|-----------|---------|----------------|
 | `DeviceLayoutMapper` | `device_layout_mapper` | `button_template_mapper`, `monitoring_mapper`, `line_mapper`, `device_mapper` | `CanonicalDeviceLayout` | `phone` (raw) + `CanonicalLineKeyTemplate` |
-| `SoftkeyMapper` | `softkey_mapper` | (none declared) | `CanonicalSoftkeyConfig` (2 per template: 1 template-level + N per-device) | `button_template` (raw softkey data), `phone` (raw) |
-| `VoicemailMapper` | `voicemail_mapper` | (none declared) | (voicemail config enrichment) | `voicemail_profile`, `user` |
+| `SoftkeyMapper` | `softkey_mapper` | `device_mapper` | `CanonicalSoftkeyConfig` (2 per template: 1 template-level + N per-device) | `button_template` (raw softkey data), `phone` (raw) |
+| `VoicemailMapper` | `voicemail_mapper` | `user_mapper` | (voicemail config enrichment) | `voicemail_profile`, `user` |
 
 ---
 
@@ -80,7 +80,7 @@ Merges `CanonicalLineKeyTemplate` key structure with per-phone line appearances 
 
 Reads raw phone via `store.get_objects("phone")`, looks up the phone's button template via cross-ref, resolves line members from `busyLampFields` and `lines`.
 
-Key fields on `CanonicalDeviceLayout`: `device_canonical_id`, `device_id_surface` (`"cloud"` or `"cucm"`), `template_canonical_id`, `owner_canonical_id`, `line_members` (list of `{port, member_canonical_id, line_type}`), `resolved_line_keys`, `resolved_kem_keys`.
+Key fields on `CanonicalDeviceLayout`: `device_canonical_id`, `device_id_surface` (`"cloud"` or `"telephony"`), `template_canonical_id`, `owner_canonical_id`, `line_members` (list of `{port, member_canonical_id, line_type}`), `resolved_line_keys`, `resolved_kem_keys`.
 
 **`member_canonical_id`** on `line_members` is what `handle_device_layout_configure` uses to resolve Webex IDs from `deps`. It's the canonical_id of the user or workspace assigned to that port.
 
@@ -100,7 +100,7 @@ Key fields: `is_psk_target`, `device_canonical_id` (set only for per-device obje
 ## Key Gotchas
 
 - **Raw phones vs CanonicalDevice.** Mappers that need `speeddials`, `busyLampFields`, or per-line forwarding call `store.get_objects("phone")` to get raw phone dicts (object_type="phone", canonical_id="phone:{name}"). Do NOT call `store.get_objects("device")` for this — that returns `CanonicalDevice` objects which have already lost the raw AXL fields.
-- **`device_id_surface` field.** Added to `CanonicalDevice` and `CanonicalDeviceLayout` in Phase 3. Indicates whether the device is managed as a cloud entity (`"cloud"`) or still on CUCM (`"cucm"`). The execute handler uses this to decide which API surface to call.
+- **`device_id_surface` field.** Added to `CanonicalDevice` and `CanonicalDeviceLayout` in Phase 3. Values: `"cloud"` (9800-series + 8875 PhoneOS phones using cloud `deviceId`) or `"telephony"` (classic MPP phones using `callingDeviceId`). The execute handler uses this to decide which API surface to call.
 - **`device_canonical_id` field on `CanonicalSoftkeyConfig`.** Only set on per-device objects (`is_psk_target=True`). The planner checks `device_canonical_id` presence before adding dependency edges.
 - **PSK slot lowercasing.** The mapper stores `psk_slot` as uppercase (e.g., `"PSK1"`). The execute handler lowercases it when building `softKeyLayout.psk.psk1` keys. The state key list state names in `state_key_lists` are already in Webex format (e.g., `"idle"`, `"progressing"` — NOT CUCM names).
 - **`ringOut` → `progressing`.** `CUCM_STATE_TO_PSK_STATE` maps CUCM's `ringOut` to Webex's `progressing`, producing key `softKeyLayout.softKeyMenu.progressingKeyList`. The incorrect value `"processing"` was fixed — see comment in `softkey_mapper.py`.
