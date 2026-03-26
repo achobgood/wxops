@@ -8,9 +8,8 @@ from __future__ import annotations
 import html as html_mod
 from datetime import datetime, timezone
 
-from wxcli.migration.report.executive import generate_executive_summary, _total_object_count
+from wxcli.migration.report.executive import generate_executive_summary
 from wxcli.migration.report.appendix import generate_appendix
-from wxcli.migration.report.score import compute_complexity_score
 from wxcli.migration.report.styles import REPORT_CSS, GOOGLE_FONTS_LINKS
 from wxcli.migration.store import MigrationStore
 

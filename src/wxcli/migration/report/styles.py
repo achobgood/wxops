@@ -285,31 +285,6 @@ section { margin-bottom: 2.5rem; }
 
 
 /* ==========================================================================
-   Score Hero
-   ========================================================================== */
-
-.score-hero {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin: 1rem 0 2rem;
-}
-
-.score-gauge {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin: 0 auto 1.5rem;
-    max-width: 300px;
-}
-
-.score-gauge svg {
-    width: 100%;
-    height: auto;
-}
-
-
-/* ==========================================================================
    Stat Grid & Stat Cards
    ========================================================================== */
 
