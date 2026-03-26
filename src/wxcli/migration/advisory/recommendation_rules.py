@@ -490,6 +490,26 @@ def recommend_audio_asset_manual(
     return ("accept", "Custom audio should be migrated for brand consistency.")
 
 
+def recommend_button_unmappable(
+    context: dict[str, Any], options: list,
+) -> tuple[str, str] | None:
+    """Spec §6.1: CUCM-specific button types have no Webex line key equivalent."""
+    unmapped = context.get("unmapped_features", [])
+    if unmapped:
+        features_str = ", ".join(unmapped)
+        return (
+            "accept_loss",
+            f"CUCM button types ({features_str}) have no Webex equivalent. "
+            "These are CUCM-specific features (Service URL, Intercom, Privacy, etc.) "
+            "that don't exist in Webex Calling. No action is possible.",
+        )
+    return (
+        "accept_loss",
+        "CUCM-specific phone button types have no Webex line key equivalent. "
+        "These buttons will not be migrated. No action is possible.",
+    )
+
+
 # ---------------------------------------------------------------------------
 # Dispatch table — ALL 19 DecisionType string values
 # ---------------------------------------------------------------------------
@@ -514,4 +534,5 @@ RECOMMENDATION_DISPATCH: dict[str, Any] = {
     "FORWARDING_LOSSY": recommend_forwarding_lossy,
     "SNR_LOSSY": recommend_snr_lossy,
     "AUDIO_ASSET_MANUAL": recommend_audio_asset_manual,
+    "BUTTON_UNMAPPABLE": recommend_button_unmappable,
 }
