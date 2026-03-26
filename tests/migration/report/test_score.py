@@ -12,7 +12,7 @@ class TestComplexityScore:
         result = compute_complexity_score(populated_store)
         assert 0 <= result.score <= 100
 
-    def test_score_has_seven_factors(self, populated_store):
+    def test_score_has_eight_factors(self, populated_store):
         from wxcli.migration.report.score import compute_complexity_score
 
         result = compute_complexity_score(populated_store)
@@ -87,3 +87,42 @@ def test_factors_have_display_names(populated_store):
     assert names["Shared Line Complexity"] == "Shared Lines"
     assert names["Routing Complexity"] == "Routing"
     assert names["Phone Config Complexity"] == "Phone Configuration"
+
+
+def test_phone_config_factor_with_data(tmp_path):
+    """Phone config factor should score >0 when templates and layouts exist."""
+    from datetime import datetime, timezone
+    from wxcli.migration.models import (
+        CanonicalLineKeyTemplate, CanonicalDeviceLayout, MigrationStatus, Provenance,
+    )
+    from wxcli.migration.store import MigrationStore
+    from wxcli.migration.report.score import compute_complexity_score
+
+    store = MigrationStore(tmp_path / "phone_config.db")
+    prov = Provenance(source_system="cucm", source_id="t", source_name="t",
+                      extracted_at=datetime.now(timezone.utc))
+
+    for i in range(5):
+        store.upsert_object(CanonicalLineKeyTemplate(
+            canonical_id=f"line_key_template:Template{i}",
+            provenance=prov, status=MigrationStatus.ANALYZED,
+            name=f"Template{i}", phones_using=10,
+            line_keys=[{"index": 1, "key_type": "PRIMARY_LINE"}],
+            unmapped_buttons=[{"index": 2, "feature": "Service URL"}],
+        ))
+    store.upsert_object(CanonicalDeviceLayout(
+        canonical_id="device_layout:SEP111111111111",
+        provenance=prov, status=MigrationStatus.ANALYZED,
+        device_canonical_id="device:SEP111111111111",
+        template_canonical_id="line_key_template:Template0",
+        resolved_line_keys=[{"index": 1, "key_type": "PRIMARY_LINE"}],
+        resolved_kem_keys=[{"index": 1, "key_type": "SPEED_DIAL"}],
+    ))
+
+    result = compute_complexity_score(store)
+    phone_factor = next(f for f in result.factors if f["name"] == "Phone Config Complexity")
+    assert phone_factor["raw_score"] > 0
+    assert "button templates" in phone_factor["detail"]
+    assert "KEM" in phone_factor["detail"]
+    assert "unmapped" in phone_factor["detail"]
+    store.close()

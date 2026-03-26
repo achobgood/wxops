@@ -1,7 +1,8 @@
 """Technical appendix HTML generator for CUCM assessment reports (v2).
 
-Generates 6 topic groups, each as a collapsed <details> element:
-People, Devices, Call Features, Routing, Decisions, Data Quality.
+Generates 10 topic groups, each as a collapsed <details> element:
+People, Devices, Call Features, Routing, Gateways, Button Templates,
+Device Layouts, Softkeys, Decisions, Data Quality.
 
 One public function: generate_appendix().
 """
@@ -689,7 +690,6 @@ def _softkey_group(store: MigrationStore) -> str:
     total = len(configs)
     psk_count = sum(1 for c in configs if c.get("is_psk_target"))
     classic_count = total - psk_count
-    total_phones = sum(c.get("phones_using", 0) for c in configs)
 
     summary_parts = [f"{total} softkey templates"]
     if psk_count:

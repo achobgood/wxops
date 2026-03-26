@@ -197,3 +197,34 @@ class TestNoOverflow:
             assert len(decisions) == 0
         finally:
             store.close()
+
+    def test_unknown_model_skips_overflow_check(self):
+        """Unknown models not in _MODEL_LINE_KEY_COUNTS skip the overflow check."""
+        store, path = _make_store()
+        try:
+            store.upsert_object(CanonicalDevice(
+                canonical_id="device:SEP445566778899",
+                provenance=_prov("SEP445566778899"),
+                status=MigrationStatus.ANALYZED,
+                model="CP-UNKNOWN-9999",
+                mac="445566778899",
+                compatibility_tier=DeviceCompatibilityTier.NATIVE_MPP,
+            ))
+            store.upsert_object(CanonicalDeviceLayout(
+                canonical_id="device_layout:SEP445566778899",
+                provenance=_prov("SEP445566778899"),
+                status=MigrationStatus.ANALYZED,
+                device_canonical_id="device:SEP445566778899",
+                template_canonical_id="line_key_template:Unknown",
+                resolved_line_keys=[
+                    {"index": i, "key_type": "PRIMARY_LINE"} for i in range(1, 50)
+                ],
+            ))
+
+            analyzer = LayoutOverflowAnalyzer()
+            decisions = analyzer.analyze(store)
+
+            # Unknown model — no max_keys lookup, so no overflow decision
+            assert len(decisions) == 0
+        finally:
+            store.close()

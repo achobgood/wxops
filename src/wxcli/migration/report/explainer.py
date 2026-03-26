@@ -11,6 +11,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from wxcli.migration.report.score import ScoreResult
+from wxcli.migration.store import MigrationStore
+
 
 def _with_summary(summary: str, continuation: str) -> str:
     """Prefix with summary sentence if non-empty."""
@@ -452,8 +455,6 @@ def explain_decision(
 # Verdict, key findings, and type display name map
 # ---------------------------------------------------------------------------
 
-from wxcli.migration.report.score import ScoreResult
-from wxcli.migration.store import MigrationStore
 
 
 # Customer-friendly display names for all DecisionType values.
