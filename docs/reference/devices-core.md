@@ -1073,6 +1073,54 @@ wxcli device-dynamic-settings get-device-dynamic DEVICE_ID
 
 > **Tip:** After updating device members, settings, or layout, always run `wxcli device-settings apply-changes-for DEVICE_ID` to push the configuration to the physical device.
 
+#### Per-Device Softkey PSK Configuration
+
+PSK (Programmable Softkey) slots and softkey state lists are configured via the per-device dynamic settings endpoint. This is separate from the org/location/model-level dynamic settings hierarchy — it applies a specific key-value payload directly to one device.
+
+**Endpoint:**
+```
+PUT /telephony/config/devices/{device_id}/dynamicSettings
+```
+
+**Body:**
+```json
+{
+  "settings": [
+    {"key": "softKeyLayout.psk.psk1", "value": "park"},
+    {"key": "softKeyLayout.psk.psk2", "value": "hold"},
+    {"key": "softKeyLayout.softKeyMenu.idleKeyList", "value": "redial;newcall;cfwd"},
+    {"key": "softKeyLayout.softKeyMenu.connectedKeyList", "value": "hold;endcall;xfer"}
+  ]
+}
+```
+
+**Key format:**
+- PSK slot: `softKeyLayout.psk.{slot}` where `{slot}` is the slot name **lowercased** (e.g., `PSK1` → `psk1`)
+- State key list: `softKeyLayout.softKeyMenu.{state}KeyList` where `{state}` is the Webex state name
+
+**CUCM call state → Webex state name mapping:**
+
+| CUCM state | Webex state | Resulting key |
+|------------|-------------|---------------|
+| `onHook` | `idle` | `idleKeyList` |
+| `offHook` | `offHook` | `offHookKeyList` |
+| `ringIn` | `ringing` | `ringingKeyList` |
+| `ringOut` | `progressing` | `progressingKeyList` |
+| `connected` | `connected` | `connectedKeyList` |
+| `onHold` | `hold` | `holdKeyList` |
+| `sharedActive` | `sharedActive` | `sharedActiveKeyList` |
+| `sharedHeld` | `sharedHeld` | `sharedHeldKeyList` |
+| `connectedTransfer` | `startTransfer` | `startTransferKeyList` |
+| `connectedConference` | `startConference` | `startConferenceKeyList` |
+
+**State key list value:** Semicolon-separated keyword strings, e.g., `"redial;newcall;cfwd;dnd"`.
+
+> **Gotcha — `progressingKeyList` not `processingKeyList`:** The Webex API state for CUCM's `ringOut` is `progressing`, producing the key `softKeyLayout.softKeyMenu.progressingKeyList`. Using `processing` silently produces a wrong key that the API ignores.
+
+> **Always call applyChanges after PUT dynamicSettings.** The config is not pushed to the physical device until `POST /telephony/config/devices/{device_id}/actions/applyChanges/invoke` is called.
+
+**wxcli:** `wxcli device-dynamic-settings` commands operate at org/location/model scope. Per-device PSK config must be done via `--json-body` with the raw HTTP pattern above.
+
 #### Beta: Dynamic Settings Validation Schema
 
 > **Beta API** — May change without notice.
