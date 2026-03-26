@@ -62,7 +62,7 @@ CUCM_STATE_TO_PSK_STATE: dict[str, str | None] = {
     "onHook": "idle",
     "offHook": "offHook",
     "ringIn": "ringing",
-    "ringOut": "progressing",
+    "ringOut": "progressing",  # API key is "progressingKeyList", not "processingKeyList"
     "connected": "connected",
     "onHold": "hold",
     "sharedActive": "sharedActive",
