@@ -3,6 +3,7 @@
 import pytest
 from wxcli.migration.execute.handlers import (
     HANDLER_REGISTRY,
+    handle_line_key_template_create,
     handle_location_create,
     handle_location_enable_calling,
     handle_trunk_create,
@@ -297,7 +298,8 @@ class TestDialPlanCreate:
         assert body["name"] == "US Dial Plan"
         assert body["routeId"] == "wx-trunk-aaa"
         assert body["routeType"] == "TRUNK"
-        assert body["dialPatterns"] == [{"dialPattern": "+1!"}]
+        # Create takes plain strings, not {"dialPattern": ...} objects
+        assert body["dialPatterns"] == ["+1!"]
 
     def test_multiple_patterns(self):
         data = {
@@ -310,7 +312,7 @@ class TestDialPlanCreate:
         result = handle_dial_plan_create(data, deps, {})
         _, _, body = result[0]
         assert len(body["dialPatterns"]) == 2
-        assert {"dialPattern": "+44!"} in body["dialPatterns"]
+        assert "+44!" in body["dialPatterns"]
 
     def test_unresolved_route(self):
         data = {"name": "No Route", "dial_patterns": ["+1!"], "route_id": "trunk:missing"}
@@ -456,7 +458,8 @@ class TestPickupGroupCreate:
         assert method == "POST"
         assert "/callPickups" in url
         assert body["name"] == "Pickup G1"
-        assert body["agents"] == [{"id": "wx-alice"}]
+        # Call Pickup takes plain string array, not [{"id": ...}]
+        assert body["agents"] == ["wx-alice"]
 
     def test_no_agents_omitted(self):
         data = {"name": "Empty PG", "location_id": "location:hq", "agents": []}
@@ -482,8 +485,9 @@ class TestPagingGroupCreate:
         method, url, body = result[0]
         assert method == "POST"
         assert "/paging" in url
-        assert body["targets"] == [{"id": "wx-alice"}]
-        assert body["originators"] == [{"id": "wx-bob"}]
+        # Paging Group takes plain string arrays, not [{"id": ...}]
+        assert body["targets"] == ["wx-alice"]
+        assert body["originators"] == ["wx-bob"]
         assert body["originatorCallerIdEnabled"] is True
 
     def test_fallback_location_from_deps(self):
@@ -707,6 +711,73 @@ class TestVirtualLineConfigure:
         data = {"settings": {"callerIdName": "VL"}}
         result = handle_virtual_line_configure(data, {}, {})
         assert result == []
+
+
+class TestLineKeyTemplateCreate:
+    def test_basic(self):
+        data = {
+            "name": "Standard 8845",
+            "device_model": "DMS Cisco 8845",
+            "line_keys": [
+                {"index": 1, "key_type": "PRIMARY_LINE"},
+                {"index": 2, "key_type": "SPEED_DIAL", "label": "Front Desk", "value": "1000"},
+            ],
+            "kem_keys": [],
+        }
+        result = handle_line_key_template_create(data, {}, {})
+        assert len(result) == 1
+        method, url, body = result[0]
+        assert method == "POST"
+        assert "/telephony/config/devices/lineKeyTemplates" in url
+        assert body["templateName"] == "Standard 8845"
+        assert body["deviceModel"] == "DMS Cisco 8845"
+        assert len(body["lineKeys"]) == 2
+        assert body["lineKeys"][0] == {"lineKeyIndex": 1, "lineKeyType": "PRIMARY_LINE"}
+        assert body["lineKeys"][1] == {
+            "lineKeyIndex": 2, "lineKeyType": "SPEED_DIAL",
+            "lineKeyLabel": "Front Desk", "lineKeyValue": "1000",
+        }
+
+    def test_unmapped_keys_filtered(self):
+        data = {
+            "name": "T",
+            "device_model": "DMS Cisco 8845",
+            "line_keys": [
+                {"index": 1, "key_type": "PRIMARY_LINE"},
+                {"index": 2, "key_type": "UNMAPPED"},
+                {"index": 3, "key_type": "SPEED_DIAL", "label": "X", "value": "2000"},
+            ],
+            "kem_keys": [],
+        }
+        result = handle_line_key_template_create(data, {}, {})
+        _, _, body = result[0]
+        types = [k["lineKeyType"] for k in body["lineKeys"]]
+        assert "UNMAPPED" not in types
+        assert len(body["lineKeys"]) == 2
+
+    def test_with_kem(self):
+        data = {
+            "name": "KEM Template",
+            "device_model": "DMS Cisco 9861",
+            "line_keys": [{"index": 1, "key_type": "PRIMARY_LINE"}],
+            "kem_module_type": "KEM_14_KEYS",
+            "kem_keys": [
+                {"module_index": 1, "index": 1, "key_type": "SPEED_DIAL", "label": "Lab", "value": "3000"},
+            ],
+        }
+        result = handle_line_key_template_create(data, {}, {})
+        _, _, body = result[0]
+        assert body["kemModuleType"] == "KEM_14_KEYS"
+        assert body["kemKeys"][0] == {
+            "kemModuleIndex": 1, "kemKeyIndex": 1, "kemKeyType": "SPEED_DIAL",
+            "kemKeyLabel": "Lab", "kemKeyValue": "3000",
+        }
+
+    def test_orgid_injected(self):
+        data = {"name": "T", "device_model": "DMS Cisco 8845", "line_keys": [], "kem_keys": []}
+        result = handle_line_key_template_create(data, {}, {"orgId": "ORG123"})
+        _, url, _ = result[0]
+        assert "orgId=ORG123" in url
 
 
 class TestHandlerRegistry:
