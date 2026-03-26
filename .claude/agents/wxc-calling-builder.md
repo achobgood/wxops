@@ -275,6 +275,15 @@ On failure:
 4. **Suggest a fix**: propose the specific resolution
 5. **Ask the user**: "Should I (A) fix this and retry, (B) skip this step and continue, or (C) rollback what we've done?"
 
+### Cascading-Impact Decisions
+
+**CRITICAL:** Before skipping any resource (location, user, trunk, etc.), check whether
+downstream operations depend on it. If skipping would cascade and block other operations:
+1. **Stop and tell the user** what data is missing and why
+2. **Show the blast radius** — how many downstream ops are blocked
+3. **Ask for the missing data** or explicit confirmation to skip
+Do NOT silently skip resources that have downstream dependents.
+
 For verbose HTTP details, add `--debug` to any wxcli command.
 
 ### Mid-Execution Changes

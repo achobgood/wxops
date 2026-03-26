@@ -144,6 +144,13 @@ Rules for the interactive menu:
 **Do NOT auto-resolve needs-input decisions.** Wait for explicit admin choices.
 After receiving choices, run `wxcli cucm decide <ID> <choice> -p <project>` for each.
 
+**CRITICAL — Cascading-impact decisions:** Before resolving ANY decision as "skip",
+check whether downstream objects depend on the skipped resource. If they do, you MUST:
+1. Tell the admin what data is missing (e.g., "Location X has no street address")
+2. Show how many downstream operations are blocked (e.g., "18 ops depend on this location: 2 trunks, 4 users, 3 hunt groups...")
+3. Ask the admin to provide the missing data OR explicitly confirm the skip
+Do NOT silently skip decisions that cascade into blocked downstream operations.
+
 3. **Apply auto-resolvable decisions:**
    After the admin has resolved all needs-input decisions, show what will be
    auto-applied (read from the Auto-Apply section of the review file):

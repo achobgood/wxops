@@ -178,12 +178,49 @@ def handle_operating_mode_create(data: dict, deps: dict, ctx: dict) -> HandlerRe
         "name": data.get("name"),
         "level": data.get("level", "ORGANIZATION"),
     }
-    if data.get("schedule_type"):
-        body["scheduleType"] = data["schedule_type"]
-    if data.get("same_hours_daily"):
-        body["sameHoursDaily"] = data["same_hours_daily"]
-    if data.get("different_hours_daily"):
-        body["differentHoursDaily"] = data["different_hours_daily"]
+    schedule_type = data.get("schedule_type")
+    if schedule_type:
+        body["type"] = schedule_type
+
+    # Convert canonical same_hours_daily {startTime, endTime} to Webex API format
+    # Webex API: {mondayToFriday: {enabled, allDayEnabled, startTime?, endTime?}, saturdayToSunday: ...}
+    same = data.get("same_hours_daily")
+    if same:
+        start = same.get("startTime", "00:00")
+        end = same.get("endTime", "24:00")
+        all_day = (start == "00:00" and end in ("24:00", "00:00"))
+        day_entry: dict[str, Any] = {"enabled": True, "allDayEnabled": all_day}
+        if not all_day:
+            day_entry["startTime"] = start
+            day_entry["endTime"] = end
+        body["sameHoursDaily"] = {
+            "mondayToFriday": day_entry,
+            "saturdayToSunday": day_entry,
+        }
+
+    # Convert canonical different_hours_daily {day_N: {startTime, endTime}} or
+    # {monday: ..., tuesday: ...} to Webex API format
+    diff = data.get("different_hours_daily")
+    if diff:
+        _DAY_NAMES = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+        # Canonical may use day_0..day_6 keys (numeric) or already-named keys
+        webex_diff: dict[str, Any] = {}
+        for key, val in diff.items():
+            if key.startswith("day_"):
+                idx = int(key.split("_", 1)[1])
+                day_name = _DAY_NAMES[idx] if idx < len(_DAY_NAMES) else key
+            else:
+                day_name = key  # already named
+            start = val.get("startTime", "00:00")
+            end = val.get("endTime", "17:00")
+            all_day = (start == "00:00" and end in ("24:00", "00:00"))
+            entry: dict[str, Any] = {"enabled": True, "allDayEnabled": all_day}
+            if not all_day:
+                entry["startTime"] = start
+                entry["endTime"] = end
+            webex_diff[day_name] = entry
+        body["differentHoursDaily"] = webex_diff
+
     if data.get("holidays"):
         body["holidays"] = data["holidays"]
     return [("POST", _url("/telephony/config/operatingModes", ctx), body)]
@@ -194,9 +231,36 @@ def handle_operating_mode_create(data: dict, deps: dict, ctx: dict) -> HandlerRe
 # ---------------------------------------------------------------------------
 
 def handle_line_key_template_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    # Skip templates with no Webex device model mapping (e.g., Standard Analog, ATA 191)
+    device_model = data.get("device_model")
+    if not device_model:
+        return []
+
+    # PhoneOS 9800-series and 8875 use "Cisco {model}" not "DMS Cisco {model}"
+    # The ButtonTemplateMapper stores "DMS Cisco {model}" for all phones, but
+    # PhoneOS phones require the non-DMS model name for the lineKeyTemplates API.
+    # Also track the max physical line key count for PhoneOS phones so we can
+    # split overflow indices from line_keys into kem_keys (mapper puts all button
+    # indices into line_keys regardless of phone key count).
+    _PHONEOS_LINE_KEY_MAX: dict[str, int] = {
+        "9811": 2, "9821": 2, "9841": 4, "9851": 10,
+        "9861": 10, "9871": 10, "8875": 12,
+    }
+    phoneos_max: int | None = None
+    for phoneos_model, max_lk in _PHONEOS_LINE_KEY_MAX.items():
+        if device_model == f"DMS Cisco {phoneos_model}":
+            device_model = f"Cisco {phoneos_model}"
+            phoneos_max = max_lk
+            break
+
     def _map_key(k: dict, idx_field: str, mod_field: str | None = None) -> dict:
         key_prefix = "kemKey" if mod_field else "lineKey"
-        entry: dict[str, Any] = {idx_field: k["index"], f"{key_prefix}Type": k["key_type"]}
+        key_type = k["key_type"]
+        # SPEED_DIAL without a value is rejected by the API (Error 27650).
+        # A template-level speed dial slot with no assigned number is effectively OPEN.
+        if key_type == "SPEED_DIAL" and not k.get("value"):
+            key_type = "OPEN"
+        entry: dict[str, Any] = {idx_field: k["index"], f"{key_prefix}Type": key_type}
         if mod_field:
             entry[mod_field] = k.get("module_index", 1)
         if k.get("label"):
@@ -205,14 +269,29 @@ def handle_line_key_template_create(data: dict, deps: dict, ctx: dict) -> Handle
             entry[f"{key_prefix}Value"] = k["value"]
         return entry
 
-    line_keys = [
-        _map_key(k, "lineKeyIndex")
-        for k in data.get("line_keys", [])
-        if k.get("key_type") != "UNMAPPED"
-    ]
+    all_line_keys = [k for k in data.get("line_keys", []) if k.get("key_type") != "UNMAPPED"]
+
+    # For PhoneOS phones, the mapper may place KEM button indices (> max_lk) in
+    # line_keys instead of kem_keys. Split them here: indices <= phoneos_max → lineKeys,
+    # indices > phoneos_max → kemKeys (re-index from 1 within the KEM range).
+    overflow_as_kem: list[dict] = []
+    if phoneos_max is not None:
+        phone_line_keys = [k for k in all_line_keys if k["index"] <= phoneos_max]
+        overflow_raw = sorted(
+            [k for k in all_line_keys if k["index"] > phoneos_max],
+            key=lambda x: x["index"],
+        )
+        # Re-index KEM overflow starting at 1
+        for new_idx, k in enumerate(overflow_raw, 1):
+            overflow_as_kem.append({**k, "index": new_idx})
+        all_line_keys = phone_line_keys
+    else:
+        phone_line_keys = all_line_keys
+
+    line_keys = [_map_key(k, "lineKeyIndex") for k in all_line_keys]
     body: dict[str, Any] = {
         "templateName": data.get("name"),
-        "deviceModel": data.get("device_model"),
+        "deviceModel": device_model,
         "lineKeys": line_keys,
     }
     if data.get("kem_module_type"):
@@ -222,6 +301,8 @@ def handle_line_key_template_create(data: dict, deps: dict, ctx: dict) -> Handle
         for k in data.get("kem_keys", [])
         if k.get("key_type") != "UNMAPPED"
     ]
+    # Append overflow line_keys that were re-routed to KEM
+    kem_keys.extend([_map_key(k, "kemKeyIndex", "kemModuleIndex") for k in overflow_as_kem])
     if kem_keys:
         body["kemKeys"] = kem_keys
     return [("POST", _url("/telephony/config/devices/lineKeyTemplates", ctx), body)]

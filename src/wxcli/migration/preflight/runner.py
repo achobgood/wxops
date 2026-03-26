@@ -82,7 +82,7 @@ class PreflightRunner:
         def _needs(*checks: str) -> bool:
             return check_filter is None or check_filter in checks
 
-        licenses = self._fetch("licenses", ["licenses", "list", "--calling-only"]) if _needs("licenses", "workspace-licenses") else []
+        licenses = self._fetch("licenses", ["licenses-api", "list", "--output", "json"]) if _needs("licenses", "workspace-licenses") else []
         locations = self._fetch("locations", ["locations", "list"]) if _needs("locations") else []
         numbers = self._fetch("numbers", ["numbers", "list", "--limit", "0"]) if _needs("numbers") else []
         # Note: ideally would fetch with callingData=true to detect
