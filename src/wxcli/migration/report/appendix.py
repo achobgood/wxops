@@ -1,8 +1,10 @@
-"""Technical appendix HTML generator for CUCM assessment reports (v2).
+"""Technical appendix HTML generator for CUCM assessment reports (v4).
 
-Generates 10 topic groups, each as a collapsed <details> element:
-People, Devices, Call Features, Routing, Gateways, Button Templates,
-Device Layouts, Softkeys, Decisions, Data Quality.
+Generates 14 lettered sections (A-N), each as a collapsed <details> element:
+A. Object Inventory, B. Decision Detail, C. CSS/Partitions, D. Device Inventory,
+E. DN Analysis, F. User/Device Map, G. Routing Topology, H. Voicemail Analysis,
+I. Data Coverage, J. Gateways, K. Call Features, L. Button Templates,
+M. Device Layouts, N. Softkey Migration.
 
 One public function: generate_appendix().
 """
@@ -13,6 +15,7 @@ import html
 from collections import defaultdict
 from typing import Any
 
+from wxcli.migration.report.charts import stacked_bar_chart
 from wxcli.migration.report.explainer import (
     DECISION_TYPE_DISPLAY_NAMES,
     explain_decision,
@@ -22,143 +25,92 @@ from wxcli.migration.store import MigrationStore
 
 
 def generate_appendix(store: MigrationStore) -> str:
-    """Generate the technical appendix HTML with topic groups."""
-    groups = [
-        _people_group(store),
-        _devices_group(store),
-        _features_group(store),
-        _routing_group(store),
-        _gateways_group(store),
-        _button_template_group(store),
-        _device_layout_group(store),
-        _softkey_group(store),
-        _decisions_group(store),
-        _data_quality_group(store),
+    """Generate the technical appendix HTML with lettered A-N sections."""
+    sections = [
+        ("A", _object_inventory(store)),
+        ("B", _decisions_group(store)),
+        ("C", _css_partitions(store)),
+        ("D", _device_inventory(store)),
+        ("E", _dn_analysis(store)),
+        ("F", _user_device_map(store)),
+        ("G", _routing_group(store)),
+        ("H", _voicemail_analysis(store)),
+        ("I", _data_quality_group(store)),
+        ("J", _gateways_group(store)),
+        ("K", _features_group(store)),
+        ("L", _button_template_group(store)),
+        ("M", _device_layout_group(store)),
+        ("N", _softkey_group(store)),
     ]
-    # Filter out empty groups
-    groups = [g for g in groups if g]
-    if not groups:
+    # Filter out empty sections
+    sections = [(letter, section_html) for letter, section_html in sections if section_html]
+    if not sections:
         return '<section id="appendix"></section>'
 
     return (
         '<section id="appendix">\n'
-        + "\n".join(groups)
+        + "\n".join(section_html for _, section_html in sections)
         + "\n</section>"
     )
 
 
 # ---------------------------------------------------------------------------
-# Group 1: People
+# A. Object Inventory
 # ---------------------------------------------------------------------------
 
-def _people_group(store: MigrationStore) -> str:
-    """Users, shared lines, extensions."""
-    user_count = store.count_by_type("user")
-    if user_count == 0:
+def _object_inventory(store: MigrationStore) -> str:
+    """A. Object Inventory — total counts by type."""
+    object_types = [
+        "user", "device", "line", "shared_line", "location",
+        "hunt_group", "call_queue", "auto_attendant", "call_park",
+        "pickup_group", "paging_group", "trunk", "route_group",
+        "css", "partition", "translation_pattern", "voicemail_profile",
+        "schedule", "gateway", "workspace", "virtual_line",
+        "line_key_template", "device_layout", "softkey_config",
+    ]
+    rows = []
+    total = 0
+    for ot in object_types:
+        count = store.count_by_type(ot)
+        if count > 0:
+            display = ot.replace("_", " ").title()
+            rows.append((display, count))
+            total += count
+
+    if not rows:
         return ""
 
-    shared_count = store.count_by_type("shared_line")
-    line_count = store.count_by_type("line")
-
-    summary_parts = [f"{user_count} users"]
-    if shared_count:
-        summary_parts.append(f"{shared_count} shared lines")
-    if line_count:
-        summary_parts.append(f"{line_count} extensions")
-
     parts = [
-        f'<details id="people">',
-        f'<summary>People <span class="summary-count">— {", ".join(summary_parts)}</span></summary>',
+        f'<details id="objects">',
+        f'<summary>A. Object Inventory <span class="summary-count">— {total} objects across {len(rows)} types</span></summary>',
         '<div class="details-content">',
+        '<table>',
+        '<thead><tr><th>Object Type</th><th class="num">Count</th></tr></thead>',
+        '<tbody>',
     ]
+    for display, count in rows:
+        parts.append(f'<tr><td>{html.escape(display)}</td><td class="num">{count}</td></tr>')
+    parts.append('</tbody></table>')
 
-    # User-device-line map (from cross-refs)
-    user_device_refs = store.get_cross_refs(relationship="user_has_device")
-    if user_device_refs:
-        parts.append('<h4>User–Device–Line Map</h4>')
+    # By-location breakdown
+    locations = store.get_objects("location")
+    if locations:
+        parts.append('<h4>By Location</h4>')
         parts.append('<table>')
-        parts.append('<thead><tr><th>User</th><th>Device</th><th>Model</th><th>Line</th><th>Partition</th></tr></thead>')
+        parts.append('<thead><tr><th>Location</th><th class="num">Users</th><th class="num">Devices</th></tr></thead>')
         parts.append('<tbody>')
-
-        for ref in user_device_refs:
-            user_id = ref.get("from_id", "")
-            device_id = ref.get("to_id", "")
-
-            user_obj = store.get_object(user_id)
-            device_obj = store.get_object(device_id)
-
-            user_name = ""
-            if user_obj:
-                first = user_obj.get("first_name", "")
-                last = user_obj.get("last_name", "")
-                user_name = f"{first} {last}".strip() or strip_canonical_id(user_id)
-            else:
-                user_name = strip_canonical_id(user_id)
-
-            model = device_obj.get("model", "") if device_obj else ""
-
-            # Get lines for this device
-            device_line_refs = store.get_cross_refs(
-                relationship="device_has_dn",
-                from_id=device_id,
-            )
-
-            if device_line_refs:
-                for dl_ref in device_line_refs:
-                    line_id = dl_ref.get("to_id", "")
-                    line_obj = store.get_object(line_id)
-                    line_ext = ""
-                    partition = ""
-                    if line_obj:
-                        line_ext = line_obj.get("extension", "") or line_obj.get("cucm_pattern", "")
-                        partition = line_obj.get("route_partition_name", "")
-
-                    # Get partition from dn_in_partition cross-ref if not on object
-                    if not partition:
-                        dn_pt_refs = store.get_cross_refs(
-                            relationship="dn_in_partition",
-                            from_id=line_id,
-                        )
-                        if dn_pt_refs:
-                            partition = strip_canonical_id(dn_pt_refs[0].get("to_id", ""))
-
-                    parts.append(
-                        f'<tr>'
-                        f'<td>{html.escape(user_name)}</td>'
-                        f'<td>{html.escape(strip_canonical_id(device_id))}</td>'
-                        f'<td>{html.escape(model)}</td>'
-                        f'<td>{html.escape(line_ext)}</td>'
-                        f'<td>{html.escape(partition)}</td>'
-                        f'</tr>'
-                    )
-            else:
-                parts.append(
-                    f'<tr>'
-                    f'<td>{html.escape(user_name)}</td>'
-                    f'<td>{html.escape(strip_canonical_id(device_id))}</td>'
-                    f'<td>{html.escape(model)}</td>'
-                    f'<td>—</td><td>—</td>'
-                    f'</tr>'
-                )
-
-        parts.append('</tbody></table>')
-
-    # DN classification breakdown
-    lines = store.get_objects("line")
-    if lines:
-        parts.append('<h4>Extension Analysis</h4>')
-        classification_counts: dict[str, int] = defaultdict(int)
-        for line in lines:
-            cls = line.get("classification", "UNKNOWN")
-            if hasattr(cls, "value"):
-                cls = cls.value
-            classification_counts[str(cls)] += 1
-
-        parts.append('<table>')
-        parts.append('<thead><tr><th>Classification</th><th class="num">Count</th></tr></thead>')
-        parts.append('<tbody>')
-        for cls, count in sorted(classification_counts.items(), key=lambda x: -x[1]):
-            parts.append(f'<tr><td>{html.escape(cls)}</td><td class="num">{count}</td></tr>')
+        all_users = store.get_objects("user")
+        all_devices = store.get_objects("device")
+        for loc in locations:
+            loc_id = loc.get("canonical_id", "")
+            loc_name = loc.get("name", "")
+            if not loc_name:
+                loc_name = strip_canonical_id(loc_id)
+            friendly = friendly_site_name(loc_name) if loc_name.startswith("DP-") else loc_name
+            u_count = sum(1 for u in all_users if u.get("location_id") == loc_id)
+            loc_user_ids = {u.get("canonical_id") for u in all_users if u.get("location_id") == loc_id}
+            d_count = sum(1 for d in all_devices if d.get("owner_canonical_id") in loc_user_ids)
+            parts.append(f'<tr><td>{html.escape(friendly)}</td><td class="num">{u_count}</td><td class="num">{d_count}</td></tr>')
         parts.append('</tbody></table>')
 
     parts.append('</div></details>')
@@ -166,11 +118,115 @@ def _people_group(store: MigrationStore) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Group 2: Devices
+# B. Decision Detail
 # ---------------------------------------------------------------------------
 
-def _devices_group(store: MigrationStore) -> str:
-    """Device inventory by model and compatibility tier."""
+def _decisions_group(store: MigrationStore) -> str:
+    """B. Decisions grouped by type with aggregated counts."""
+    decisions = store.get_all_decisions()
+    if not decisions:
+        return ""
+
+    total = len(decisions)
+    resolved = sum(1 for d in decisions if d.get("chosen_option"))
+
+    # Group by type
+    by_type: dict[str, list[dict]] = defaultdict(list)
+    for d in decisions:
+        by_type[d.get("type", "UNKNOWN")].append(d)
+
+    parts = [
+        f'<details id="decision-detail">',
+        f'<summary>B. Decision Detail <span class="summary-count">— {total} total, {resolved} auto-resolved</span></summary>',
+        '<div class="details-content">',
+    ]
+
+    for dtype in sorted(by_type.keys()):
+        type_decisions = by_type[dtype]
+        display_name = DECISION_TYPE_DISPLAY_NAMES.get(dtype, dtype.replace("_", " ").title())
+        type_resolved = sum(1 for d in type_decisions if d.get("chosen_option"))
+        resolution = f"{type_resolved}/{len(type_decisions)} resolved"
+
+        parts.append(f'<div class="explanation">')
+        parts.append(f'<h4>{html.escape(display_name)} ({len(type_decisions)}) <span class="muted small">— {resolution}</span></h4>')
+
+        # Show explainer for the type
+        sample = type_decisions[0]
+        explained = explain_decision(
+            decision_type=sample["type"],
+            severity=sample.get("severity", "MEDIUM"),
+            summary=sample.get("summary", ""),
+            context=sample.get("context", {}),
+        )
+        parts.append(f'<p>{explained["explanation"]}</p>')
+        parts.append(f'<p class="reassurance">{explained["reassurance"]}</p>')
+
+        # Summary table if more than 1
+        if len(type_decisions) > 1:
+            parts.append('<table>')
+            parts.append('<thead><tr><th>Summary</th><th>Severity</th><th>Status</th></tr></thead>')
+            parts.append('<tbody>')
+            for d in type_decisions:
+                severity = d.get("severity", "MEDIUM")
+                status = "Auto-resolved" if d.get("chosen_option") else "Pending"
+                parts.append(
+                    f'<tr><td>{html.escape(d.get("summary", ""))}</td>'
+                    f'<td><span class="badge badge-{severity.lower()}">{html.escape(severity)}</span></td>'
+                    f'<td>{status}</td></tr>'
+                )
+            parts.append('</tbody></table>')
+
+        parts.append('</div>')
+
+    parts.append('</div></details>')
+    return "\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# C. CSS / Partitions
+# ---------------------------------------------------------------------------
+
+def _css_partitions(store: MigrationStore) -> str:
+    """C. CSS / Partition topology."""
+    css_count = store.count_by_type("css")
+    pt_count = store.count_by_type("partition")
+    if css_count == 0 and pt_count == 0:
+        return ""
+
+    parts = [
+        f'<details id="css-partitions">',
+        f'<summary>C. CSS / Partitions <span class="summary-count">— {css_count} CSSes, {pt_count} partitions</span></summary>',
+        '<div class="details-content">',
+    ]
+
+    css_objects = store.get_objects("css")
+    if css_objects:
+        parts.append('<ul class="css-topology">')
+        for css in css_objects:
+            css_id = css.get("canonical_id", "")
+            css_name = strip_canonical_id(css_id)
+            parts.append(f'<li>{html.escape(css_name)}')
+            css_pt_refs = store.get_cross_refs(
+                relationship="css_contains_partition",
+                from_id=css_id,
+            )
+            if css_pt_refs:
+                for ref in sorted(css_pt_refs, key=lambda r: r.get("ordinal", 0)):
+                    pt_name = strip_canonical_id(ref.get("to_id", ""))
+                    parts.append(f'<li class="partition">{html.escape(pt_name)}</li>')
+            parts.append('</li>')
+        parts.append('</ul>')
+
+    parts.append('</div></details>')
+    return "\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# D. Device Inventory
+# ---------------------------------------------------------------------------
+
+def _device_inventory(store: MigrationStore) -> str:
+    """D. Device Inventory — by model with stacked bar chart."""
     devices = store.get_objects("device")
     if not devices:
         return ""
@@ -193,8 +249,8 @@ def _devices_group(store: MigrationStore) -> str:
     summary = f"{total} phones — {native} native, {convertible} convertible, {incompatible} incompatible"
 
     parts = [
-        f'<details id="devices">',
-        f'<summary>Devices <span class="summary-count">— {summary}</span></summary>',
+        f'<details id="device-detail">',
+        f'<summary>D. Device Inventory <span class="summary-count">— {summary}</span></summary>',
         '<div class="details-content">',
         '<h4>Device Inventory by Model</h4>',
         '<table>',
@@ -218,109 +274,156 @@ def _devices_group(store: MigrationStore) -> str:
         )
 
     parts.append('</tbody></table>')
+
+    # Stacked bar chart for device compatibility
+    segments = [
+        {"label": "Native MPP", "value": native, "color": "#2E7D32"},
+        {"label": "Convertible", "value": convertible, "color": "#EF6C00"},
+        {"label": "Incompatible", "value": incompatible, "color": "#C62828"},
+    ]
+    bar_html = stacked_bar_chart(segments)
+    if bar_html:
+        parts.append(bar_html)
+
     parts.append('</div></details>')
     return "\n".join(parts)
 
 
 # ---------------------------------------------------------------------------
-# Group 3: Call Features
+# E. DN Analysis
 # ---------------------------------------------------------------------------
 
-def _features_group(store: MigrationStore) -> str:
-    """Feature inventory with counts."""
-    feature_types = [
-        ("hunt_group", "Hunt Groups"),
-        ("call_queue", "Call Queues"),
-        ("auto_attendant", "Auto Attendants"),
-        ("call_park", "Call Parks"),
-        ("pickup_group", "Pickup Groups"),
-        ("paging_group", "Paging Groups"),
-        ("call_forwarding", "Call Forwarding Rules"),
-        ("monitoring_list", "Monitoring Lists"),
+def _dn_analysis(store: MigrationStore) -> str:
+    """E. DN Analysis — extension classification breakdown."""
+    lines = store.get_objects("line")
+    if not lines:
+        return ""
+
+    classification_counts: dict[str, int] = defaultdict(int)
+    for line in lines:
+        cls = line.get("classification", "UNKNOWN")
+        if hasattr(cls, "value"):
+            cls = cls.value
+        classification_counts[str(cls)] += 1
+
+    parts = [
+        f'<details id="dn-analysis">',
+        f'<summary>E. DN Analysis <span class="summary-count">— {len(lines)} extensions</span></summary>',
+        '<div class="details-content">',
+        '<table>',
+        '<thead><tr><th>Classification</th><th class="num">Count</th></tr></thead>',
+        '<tbody>',
     ]
+    for cls, count in sorted(classification_counts.items(), key=lambda x: -x[1]):
+        parts.append(f'<tr><td>{html.escape(cls)}</td><td class="num">{count}</td></tr>')
+    parts.append('</tbody></table>')
+    parts.append('</div></details>')
+    return "\n".join(parts)
 
-    feature_rows = []
-    total = 0
-    for type_key, display_name in feature_types:
-        count = store.count_by_type(type_key)
-        if count > 0:
-            feature_rows.append((type_key, display_name, count))
-            total += count
 
-    if not feature_rows:
+# ---------------------------------------------------------------------------
+# F. User/Device Map
+# ---------------------------------------------------------------------------
+
+def _user_device_map(store: MigrationStore) -> str:
+    """F. User/Device Map — user-device-line assignments."""
+    user_device_refs = store.get_cross_refs(relationship="user_has_device")
+    if not user_device_refs:
         return ""
 
     parts = [
-        f'<details id="features">',
-        f'<summary>Call Features <span class="summary-count">— {total} features across {len(feature_rows)} types</span></summary>',
+        f'<details id="user-device-map">',
+        f'<summary>F. User/Device Map <span class="summary-count">— {len(user_device_refs)} assignments</span></summary>',
         '<div class="details-content">',
         '<table>',
-        '<thead><tr><th>Feature Type</th><th class="num">Count</th></tr></thead>',
+        '<thead><tr><th>User</th><th>Device</th><th>Model</th><th>Line</th><th>Partition</th></tr></thead>',
         '<tbody>',
     ]
 
-    for type_key, display_name, count in feature_rows:
-        parts.append(f'<tr><td>{html.escape(display_name)}</td><td class="num">{count}</td></tr>')
+    for ref in user_device_refs:
+        user_id = ref.get("from_id", "")
+        device_id = ref.get("to_id", "")
+
+        user_obj = store.get_object(user_id)
+        device_obj = store.get_object(device_id)
+
+        user_name = ""
+        if user_obj:
+            first = user_obj.get("first_name", "")
+            last = user_obj.get("last_name", "")
+            user_name = f"{first} {last}".strip() or strip_canonical_id(user_id)
+        else:
+            user_name = strip_canonical_id(user_id)
+
+        model = device_obj.get("model", "") if device_obj else ""
+
+        device_line_refs = store.get_cross_refs(
+            relationship="device_has_dn", from_id=device_id,
+        )
+
+        if device_line_refs:
+            for dl_ref in device_line_refs:
+                line_id = dl_ref.get("to_id", "")
+                line_obj = store.get_object(line_id)
+                line_ext = ""
+                partition = ""
+                if line_obj:
+                    line_ext = line_obj.get("extension", "") or line_obj.get("cucm_pattern", "")
+                    partition = line_obj.get("route_partition_name", "")
+                if not partition:
+                    dn_pt_refs = store.get_cross_refs(
+                        relationship="dn_in_partition", from_id=line_id,
+                    )
+                    if dn_pt_refs:
+                        partition = strip_canonical_id(dn_pt_refs[0].get("to_id", ""))
+                parts.append(
+                    f'<tr><td>{html.escape(user_name)}</td>'
+                    f'<td>{html.escape(strip_canonical_id(device_id))}</td>'
+                    f'<td>{html.escape(model)}</td>'
+                    f'<td>{html.escape(line_ext)}</td>'
+                    f'<td>{html.escape(partition)}</td></tr>'
+                )
+        else:
+            parts.append(
+                f'<tr><td>{html.escape(user_name)}</td>'
+                f'<td>{html.escape(strip_canonical_id(device_id))}</td>'
+                f'<td>{html.escape(model)}</td>'
+                f'<td>—</td><td>—</td></tr>'
+            )
 
     parts.append('</tbody></table>')
-
-    # Feature detail tables for specific types
-    for type_key, display_name, _ in feature_rows:
-        objects = store.get_objects(type_key)
-        if not objects:
-            continue
-
-        parts.append(f'<h4>{html.escape(display_name)}</h4>')
-        parts.append('<table>')
-        parts.append('<thead><tr><th>Name</th><th>Extension</th><th>Location</th></tr></thead>')
-        parts.append('<tbody>')
-        for obj in objects:
-            name = obj.get("name", strip_canonical_id(obj.get("canonical_id", "")))
-            ext = obj.get("extension", "—")
-            loc_id = obj.get("location_id", "")
-            loc_obj = store.get_object(loc_id) if loc_id else None
-            loc_name = loc_obj.get("name", strip_canonical_id(loc_id)) if loc_obj else strip_canonical_id(loc_id) if loc_id else "—"
-            parts.append(
-                f'<tr><td>{html.escape(name)}</td>'
-                f'<td>{html.escape(str(ext))}</td>'
-                f'<td>{html.escape(loc_name)}</td></tr>'
-            )
-        parts.append('</tbody></table>')
-
     parts.append('</div></details>')
     return "\n".join(parts)
 
 
 # ---------------------------------------------------------------------------
-# Group 4: Routing
+# G. Routing Topology
 # ---------------------------------------------------------------------------
 
 def _routing_group(store: MigrationStore) -> str:
-    """Trunks, route groups, dial plans, CSS/partition topology."""
+    """G. Routing — trunks and route groups (CSS/partition topology in Section C)."""
     trunk_count = store.count_by_type("trunk")
     rg_count = store.count_by_type("route_group")
     dp_count = store.count_by_type("dial_plan")
     tp_count = store.count_by_type("translation_pattern")
-    css_count = store.count_by_type("css")
-    pt_count = store.count_by_type("partition")
 
-    total = trunk_count + rg_count + dp_count + tp_count + css_count + pt_count
+    total = trunk_count + rg_count + dp_count + tp_count
     if total == 0:
         return ""
 
     summary_parts = []
     if trunk_count:
         summary_parts.append(f"{trunk_count} trunks")
-    if css_count:
-        summary_parts.append(f"{css_count} CSSes")
-    if pt_count:
-        summary_parts.append(f"{pt_count} partitions")
+    if rg_count:
+        summary_parts.append(f"{rg_count} route groups")
     if dp_count:
         summary_parts.append(f"{dp_count} dial plans")
+    if tp_count:
+        summary_parts.append(f"{tp_count} translation patterns")
 
     parts = [
         f'<details id="routing">',
-        f'<summary>Routing <span class="summary-count">— {", ".join(summary_parts)}</span></summary>',
+        f'<summary>G. Routing Topology <span class="summary-count">— {", ".join(summary_parts)}</span></summary>',
         '<div class="details-content">',
     ]
 
@@ -344,34 +447,82 @@ def _routing_group(store: MigrationStore) -> str:
             )
         parts.append('</tbody></table>')
 
-    # CSS / Partition topology
-    css_objects = store.get_objects("css")
-    if css_objects:
-        parts.append('<h4>CSS / Partition Topology</h4>')
-        parts.append('<ul class="css-topology">')
-        for css in css_objects:
-            css_id = css.get("canonical_id", "")
-            css_name = strip_canonical_id(css_id)
-            parts.append(f'<li>{html.escape(css_name)}')
-
-            # Get partitions
-            css_pt_refs = store.get_cross_refs(
-                relationship="css_contains_partition",
-                from_id=css_id,
-            )
-            if css_pt_refs:
-                for ref in sorted(css_pt_refs, key=lambda r: r.get("ordinal", 0)):
-                    pt_name = strip_canonical_id(ref.get("to_id", ""))
-                    parts.append(f'<li class="partition">{html.escape(pt_name)}</li>')
-            parts.append('</li>')
-        parts.append('</ul>')
-
     parts.append('</div></details>')
     return "\n".join(parts)
 
 
 # ---------------------------------------------------------------------------
-# Group 5: Gateways & Analog Ports
+# H. Voicemail Analysis
+# ---------------------------------------------------------------------------
+
+def _voicemail_analysis(store: MigrationStore) -> str:
+    """H. Voicemail Analysis — voicemail profiles."""
+    profiles = store.get_objects("voicemail_profile")
+    if not profiles:
+        return ""
+
+    parts = [
+        f'<details id="voicemail">',
+        f'<summary>H. Voicemail Analysis <span class="summary-count">— {len(profiles)} profiles</span></summary>',
+        '<div class="details-content">',
+        '<table>',
+        '<thead><tr><th>Profile</th><th>Description</th></tr></thead>',
+        '<tbody>',
+    ]
+    for p in profiles:
+        name = p.get("name", strip_canonical_id(p.get("canonical_id", "")))
+        desc = p.get("description", "—")
+        parts.append(f'<tr><td>{html.escape(name)}</td><td>{html.escape(str(desc))}</td></tr>')
+    parts.append('</tbody></table>')
+    parts.append('</div></details>')
+    return "\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# I. Data Coverage
+# ---------------------------------------------------------------------------
+
+def _data_quality_group(store: MigrationStore) -> str:
+    """I. Data coverage and completeness."""
+    check_types = [
+        "user", "device", "line", "location",
+        "hunt_group", "call_queue", "auto_attendant",
+        "trunk", "css", "partition",
+        "voicemail_profile", "schedule",
+    ]
+
+    total_types_checked = len(check_types)
+    types_with_data = sum(1 for t in check_types if store.count_by_type(t) > 0)
+
+    if types_with_data == 0:
+        return ""
+
+    parts = [
+        f'<details id="coverage">',
+        f'<summary>I. Data Coverage <span class="summary-count">— {types_with_data}/{total_types_checked} object types populated</span></summary>',
+        '<div class="details-content">',
+        '<table>',
+        '<thead><tr><th>Object Type</th><th class="num">Count</th><th>Status</th></tr></thead>',
+        '<tbody>',
+    ]
+
+    for t in check_types:
+        count = store.count_by_type(t)
+        status = "✓" if count > 0 else "—"
+        display = t.replace("_", " ").title()
+        parts.append(
+            f'<tr><td>{html.escape(display)}</td>'
+            f'<td class="num">{count}</td>'
+            f'<td>{status}</td></tr>'
+        )
+
+    parts.append('</tbody></table>')
+    parts.append('</div></details>')
+    return "\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# J. Gateways & Analog Ports
 # ---------------------------------------------------------------------------
 
 # Product model → estimated FXS port count
@@ -410,14 +561,13 @@ def _estimate_ports(product: str) -> int | None:
     for model, ports in _ANALOG_PORT_ESTIMATES.items():
         if model.upper() in product.upper():
             return ports
-    # ISR with NIM — can't estimate without slot info
     if "ISR" in product.upper():
         return None
     return None
 
 
 def _gateways_group(store: MigrationStore) -> str:
-    """Gateway & analog port review."""
+    """J. Gateway & analog port review."""
     gateways = store.get_objects("gateway")
     if not gateways:
         return ""
@@ -440,11 +590,10 @@ def _gateways_group(store: MigrationStore) -> str:
             sip_gws.append(gw)
 
     if not analog_gws:
-        # Only SIP gateways — brief summary, no review needed
         summary = f"{len(gateways)} gateways — all SIP, no analog review needed"
         parts = [
             f'<details id="gateways">',
-            f'<summary>Gateways <span class="summary-count">— {summary}</span></summary>',
+            f'<summary>J. Gateways <span class="summary-count">— {summary}</span></summary>',
             '<div class="details-content">',
             f'<p>{len(sip_gws)} SIP gateways detected. No analog ports requiring manual review.</p>',
             '</div></details>',
@@ -456,7 +605,7 @@ def _gateways_group(store: MigrationStore) -> str:
 
     parts = [
         f'<details id="gateways">',
-        f'<summary>Gateways & Analog Ports <span class="summary-count">— {summary}</span></summary>',
+        f'<summary>J. Gateways & Analog Ports <span class="summary-count">— {summary}</span></summary>',
         '<div class="details-content">',
     ]
 
@@ -520,11 +669,80 @@ def _gateways_group(store: MigrationStore) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Group: Button Template Inventory
+# K. Call Features
+# ---------------------------------------------------------------------------
+
+def _features_group(store: MigrationStore) -> str:
+    """K. Feature inventory with counts."""
+    feature_types = [
+        ("hunt_group", "Hunt Groups"),
+        ("call_queue", "Call Queues"),
+        ("auto_attendant", "Auto Attendants"),
+        ("call_park", "Call Parks"),
+        ("pickup_group", "Pickup Groups"),
+        ("paging_group", "Paging Groups"),
+        ("call_forwarding", "Call Forwarding Rules"),
+        ("monitoring_list", "Monitoring Lists"),
+    ]
+
+    feature_rows = []
+    total = 0
+    for type_key, display_name in feature_types:
+        count = store.count_by_type(type_key)
+        if count > 0:
+            feature_rows.append((type_key, display_name, count))
+            total += count
+
+    if not feature_rows:
+        return ""
+
+    parts = [
+        f'<details id="call-features">',
+        f'<summary>K. Call Features <span class="summary-count">— {total} features across {len(feature_rows)} types</span></summary>',
+        '<div class="details-content">',
+        '<table>',
+        '<thead><tr><th>Feature Type</th><th class="num">Count</th></tr></thead>',
+        '<tbody>',
+    ]
+
+    for type_key, display_name, count in feature_rows:
+        parts.append(f'<tr><td>{html.escape(display_name)}</td><td class="num">{count}</td></tr>')
+
+    parts.append('</tbody></table>')
+
+    # Feature detail tables for specific types
+    for type_key, display_name, _ in feature_rows:
+        objects = store.get_objects(type_key)
+        if not objects:
+            continue
+
+        parts.append(f'<h4>{html.escape(display_name)}</h4>')
+        parts.append('<table>')
+        parts.append('<thead><tr><th>Name</th><th>Extension</th><th>Location</th></tr></thead>')
+        parts.append('<tbody>')
+        for obj in objects:
+            name = obj.get("name", strip_canonical_id(obj.get("canonical_id", "")))
+            ext = obj.get("extension", "—")
+            loc_id = obj.get("location_id", "")
+            loc_obj = store.get_object(loc_id) if loc_id else None
+            loc_name = loc_obj.get("name", strip_canonical_id(loc_id)) if loc_obj else strip_canonical_id(loc_id) if loc_id else "—"
+            parts.append(
+                f'<tr><td>{html.escape(name)}</td>'
+                f'<td>{html.escape(str(ext))}</td>'
+                f'<td>{html.escape(loc_name)}</td></tr>'
+            )
+        parts.append('</tbody></table>')
+
+    parts.append('</div></details>')
+    return "\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# L. Button Templates
 # ---------------------------------------------------------------------------
 
 def _button_template_group(store: MigrationStore) -> str:
-    """Phone button template inventory — template names, button types, usage counts."""
+    """L. Phone button template inventory — template names, button types, usage counts."""
     templates = store.get_objects("line_key_template")
     if not templates:
         return ""
@@ -541,7 +759,7 @@ def _button_template_group(store: MigrationStore) -> str:
 
     parts = [
         f'<details id="button-templates">',
-        f'<summary>Button Template Inventory <span class="summary-count">— {", ".join(summary_parts)}</span></summary>',
+        f'<summary>L. Button Templates <span class="summary-count">— {", ".join(summary_parts)}</span></summary>',
         '<div class="details-content">',
         '<table>',
         '<thead><tr><th>Template</th><th>Base</th><th class="num">Buttons</th>'
@@ -607,11 +825,11 @@ def _button_template_group(store: MigrationStore) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Group: Device Layout Summary
+# M. Device Layouts
 # ---------------------------------------------------------------------------
 
 def _device_layout_group(store: MigrationStore) -> str:
-    """Per-device layout summary — shared lines, speed dials, BLF, KEM stats."""
+    """M. Per-device layout summary — shared lines, speed dials, BLF, KEM stats."""
     layouts = store.get_objects("device_layout")
     if not layouts:
         return ""
@@ -651,7 +869,7 @@ def _device_layout_group(store: MigrationStore) -> str:
 
     parts = [
         f'<details id="device-layouts">',
-        f'<summary>Device Layout Summary <span class="summary-count">— {", ".join(summary_parts)}</span></summary>',
+        f'<summary>M. Device Layouts <span class="summary-count">— {", ".join(summary_parts)}</span></summary>',
         '<div class="details-content">',
         '<table>',
         '<thead><tr><th>Metric</th><th class="num">Count</th></tr></thead>',
@@ -678,11 +896,11 @@ def _device_layout_group(store: MigrationStore) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Group: Softkey Migration Status
+# N. Softkey Migration
 # ---------------------------------------------------------------------------
 
 def _softkey_group(store: MigrationStore) -> str:
-    """Softkey template migration status — PSK mapping, classic MPP flags."""
+    """N. Softkey template migration status — PSK mapping, classic MPP flags."""
     configs = store.get_objects("softkey_config")
     if not configs:
         return ""
@@ -698,8 +916,8 @@ def _softkey_group(store: MigrationStore) -> str:
         summary_parts.append(f"{classic_count} classic MPP")
 
     parts = [
-        f'<details id="softkey-status">',
-        f'<summary>Softkey Migration Status <span class="summary-count">— {", ".join(summary_parts)}</span></summary>',
+        f'<details id="softkeys">',
+        f'<summary>N. Softkey Migration <span class="summary-count">— {", ".join(summary_parts)}</span></summary>',
         '<div class="details-content">',
         '<table>',
         '<thead><tr><th>Template</th><th class="num">Phones</th>'
@@ -762,113 +980,5 @@ def _softkey_group(store: MigrationStore) -> str:
             )
         parts.append('</tbody></table>')
 
-    parts.append('</div></details>')
-    return "\n".join(parts)
-
-
-# ---------------------------------------------------------------------------
-# Group 6: Decisions
-# ---------------------------------------------------------------------------
-
-def _decisions_group(store: MigrationStore) -> str:
-    """Decisions grouped by type with aggregated counts."""
-    decisions = store.get_all_decisions()
-    if not decisions:
-        return ""
-
-    total = len(decisions)
-    resolved = sum(1 for d in decisions if d.get("chosen_option"))
-
-    # Group by type
-    by_type: dict[str, list[dict]] = defaultdict(list)
-    for d in decisions:
-        by_type[d.get("type", "UNKNOWN")].append(d)
-
-    parts = [
-        f'<details id="decisions">',
-        f'<summary>Decisions <span class="summary-count">— {total} total, {resolved} auto-resolved</span></summary>',
-        '<div class="details-content">',
-    ]
-
-    for dtype in sorted(by_type.keys()):
-        type_decisions = by_type[dtype]
-        display_name = DECISION_TYPE_DISPLAY_NAMES.get(dtype, dtype.replace("_", " ").title())
-        type_resolved = sum(1 for d in type_decisions if d.get("chosen_option"))
-        resolution = f"{type_resolved}/{len(type_decisions)} resolved"
-
-        parts.append(f'<div class="explanation">')
-        parts.append(f'<h4>{html.escape(display_name)} ({len(type_decisions)}) <span class="muted small">— {resolution}</span></h4>')
-
-        # Show explainer for the type
-        sample = type_decisions[0]
-        explained = explain_decision(
-            decision_type=sample["type"],
-            severity=sample.get("severity", "MEDIUM"),
-            summary=sample.get("summary", ""),
-            context=sample.get("context", {}),
-        )
-        parts.append(f'<p>{explained["explanation"]}</p>')
-        parts.append(f'<p class="reassurance">{explained["reassurance"]}</p>')
-
-        # Summary table if more than 1
-        if len(type_decisions) > 1:
-            parts.append('<table>')
-            parts.append('<thead><tr><th>Summary</th><th>Severity</th><th>Status</th></tr></thead>')
-            parts.append('<tbody>')
-            for d in type_decisions:
-                severity = d.get("severity", "MEDIUM")
-                status = "Auto-resolved" if d.get("chosen_option") else "Pending"
-                parts.append(
-                    f'<tr><td>{html.escape(d.get("summary", ""))}</td>'
-                    f'<td><span class="badge badge-{severity.lower()}">{html.escape(severity)}</span></td>'
-                    f'<td>{status}</td></tr>'
-                )
-            parts.append('</tbody></table>')
-
-        parts.append('</div>')
-
-    parts.append('</div></details>')
-    return "\n".join(parts)
-
-
-# ---------------------------------------------------------------------------
-# Group 6: Data Quality
-# ---------------------------------------------------------------------------
-
-def _data_quality_group(store: MigrationStore) -> str:
-    """Data coverage and completeness."""
-    check_types = [
-        "user", "device", "line", "location",
-        "hunt_group", "call_queue", "auto_attendant",
-        "trunk", "css", "partition",
-        "voicemail_profile", "schedule",
-    ]
-
-    total_types_checked = len(check_types)
-    types_with_data = sum(1 for t in check_types if store.count_by_type(t) > 0)
-
-    if types_with_data == 0:
-        return ""
-
-    parts = [
-        f'<details id="data-quality">',
-        f'<summary>Data Quality <span class="summary-count">— {types_with_data}/{total_types_checked} object types populated</span></summary>',
-        '<div class="details-content">',
-        '<table>',
-        '<thead><tr><th>Object Type</th><th class="num">Count</th><th>Status</th></tr></thead>',
-        '<tbody>',
-    ]
-
-    for t in check_types:
-        count = store.count_by_type(t)
-        status = "✓" if count > 0 else "—"
-        display = t.replace("_", " ").title()
-        parts.append(
-            f'<tr><td>{html.escape(display)}</td>'
-            f'<td class="num">{count}</td>'
-            f'<td>{status}</td></tr>'
-        )
-
-    parts.append('</tbody></table>')
     parts.append('</div></details>')
     return "\n".join(parts)
