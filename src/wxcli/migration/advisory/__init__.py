@@ -5,11 +5,14 @@ Layer 2 (advisory_patterns + advisor): cross-cutting observations
 """
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from wxcli.migration.advisory.advisor import ArchitectureAdvisor
 from wxcli.migration.advisory.recommendation_rules import RECOMMENDATION_DISPATCH
 from wxcli.migration.store import MigrationStore
+
+logger = logging.getLogger(__name__)
 
 
 def populate_recommendations(store: MigrationStore) -> int:
@@ -31,7 +34,11 @@ def populate_recommendations(store: MigrationStore) -> int:
             continue
         context = dec.get("context", {})
         options = dec.get("options", [])
-        result = fn(context, options)
+        try:
+            result = fn(context, options)
+        except Exception as exc:
+            logger.warning("Recommendation %s failed: %s", fn.__name__, exc)
+            continue
         if result is not None:
             option_id, reasoning = result
             store.update_recommendation(dec["decision_id"], option_id, reasoning)

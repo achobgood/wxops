@@ -14,7 +14,9 @@ import csv
 import io
 import json
 import logging
+import os
 import shutil
+import socket
 import subprocess
 import time
 from collections import defaultdict
@@ -156,6 +158,23 @@ def _mark_stage_complete(project_dir: Path, stage: str) -> None:
     _advance_project_state(project_dir, stage)
 
 
+def _invalidate_downstream(project_dir: Path, current_stage: str) -> None:
+    """Remove downstream stages from completed_stages when re-running an earlier stage."""
+    stage_order = ["init", "discover", "normalize", "map", "analyze", "plan", "preflight"]
+    try:
+        idx = stage_order.index(current_stage)
+    except ValueError:
+        return
+    downstream = set(stage_order[idx + 1:])
+    data = _load_state_data(project_dir)
+    stages = data.get("completed_stages", [])
+    original = list(stages)
+    stages = [s for s in stages if s not in downstream]
+    if stages != original:
+        data["completed_stages"] = stages
+        _save_state_data(project_dir, data)
+
+
 def _advance_project_state(project_dir: Path, stage: str) -> None:
     """Advance the MigrationState project-level state for major transitions."""
     from wxcli.migration.state import MigrationState, ProjectState, InvalidTransitionError
@@ -234,7 +253,7 @@ def _open_store(project_dir: Path):
     return MigrationStore(db_path)
 
 
-def _prompt_for_wsdl(host: str, version: str) -> str | None:
+def _prompt_for_wsdl(host: str, version: str | None) -> str | None:
     """Guide the user through downloading the AXL WSDL and return the path.
 
     Called when CUCM blocks remote WSDL fetch (403). Prints plain-language
@@ -288,7 +307,7 @@ def _connect_axl(
     host: str,
     username: str,
     password: str,
-    version: str,
+    version: str | None,
     port: int,
     wsdl: str | None,
     project_dir: Path,
@@ -301,14 +320,35 @@ def _connect_axl(
     """
     from wxcli.migration.cucm.connection import AXLConnection
 
-    try:
-        conn = AXLConnection(
-            host=host,
-            username=username,
-            password=password,
-            version=version,
-            wsdl_path=wsdl,
+    # TCP probe — fail fast with a helpful message if CUCM is unreachable
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(5)
+    reachable = sock.connect_ex((host, port)) == 0
+    sock.close()
+    if not reachable:
+        console.print(
+            f"[red]Cannot reach {host} on port {port}.[/red]\n"
+            "This usually means:\n"
+            "  - You're not connected to the corporate VPN\n"
+            "  - The IP address or hostname is incorrect\n"
+            "  - A firewall is blocking the connection\n"
+            "\n"
+            "[dim]Alternatively, export data from a machine with CUCM access and use:\n"
+            f"  wxcli cucm discover --from-file <export.json.gz>[/dim]"
         )
+        raise typer.Exit(1)
+
+    try:
+        axl_kwargs: dict[str, Any] = {
+            "host": host,
+            "username": username,
+            "password": password,
+            "wsdl_path": wsdl,
+            "port": port,
+        }
+        if version:
+            axl_kwargs["version"] = version
+        conn = AXLConnection(**axl_kwargs)
         # Save WSDL path to config on success so future runs reuse it
         if wsdl:
             cfg = load_config(project_dir)
@@ -346,20 +386,59 @@ def _connect_axl(
             raise typer.Exit(1)
 
         # Non-WSDL errors — print diagnostics and exit
-        console.print(f"[red]Connection failed:[/red] {exc}")
-        if "401" in err_str:
+        if "404" in err_str or "503" in err_str or "No binding found" in err_str:
             console.print(
-                "\n[yellow]Tip:[/yellow] Authentication failed. Check your AXL username/password "
-                "and ensure the user has the 'Standard AXL API Access' role in CUCM."
+                f"[red]Connection failed:[/red] {exc}\n"
+                "\n"
+                "[yellow]Your CUCM server is responding but the AXL Web Service is not running.[/yellow]\n"
+                "Ask your CUCM administrator to activate it:\n"
+                f"  1. Open Cisco Unified Serviceability (https://{host}/ccmservice)\n"
+                "  2. Go to Tools > Service Activation\n"
+                "  3. Select the CUCM publisher server\n"
+                "  4. Check 'Cisco AXL Web Service' and click Save\n"
+                "\n"
+                "[dim]Alternatively, export data from a machine with CUCM access and use:\n"
+                f"  wxcli cucm discover --from-file <export.json.gz>[/dim]"
             )
-        elif "Connection refused" in err_str or "timed out" in err_str.lower():
+            raise typer.Exit(1)
+        elif "401" in err_str:
             console.print(
-                f"\n[yellow]Tip:[/yellow] Cannot reach {host}:{port}. Check:\n"
-                "  - CUCM is reachable from this machine\n"
-                "  - Port 8443 is open (firewall)\n"
-                "  - The Cisco AXL Web Service is activated in CUCM Serviceability"
+                "[yellow]Authentication failed. Try these steps:[/yellow]\n"
+                "  1. Verify your username and password by logging into CUCM admin\n"
+                f"     (https://{host}/ccmadmin)\n"
+                "  2. Check that your account has the 'Standard AXL API Access' role\n"
+                "     (User Management > End User > Permission Information > Roles)\n"
+                "  3. Check that the AXL Web Service is activated\n"
+                "     (Cisco Unified Serviceability > Tools > Service Activation)"
             )
-        raise typer.Exit(1)
+            raise typer.Exit(1)
+        elif "Connection refused" in err_str:
+            console.print(
+                f"[red]Connection failed:[/red] {exc}\n"
+                "\n"
+                f"[yellow]Connected to {host} but port {port} is closed.[/yellow]\n"
+                "The Cisco AXL Web Service may not be activated, or CUCM\n"
+                "may be using a different port.\n"
+                "\n"
+                "[dim]Alternatively, export data from a machine with CUCM access and use:\n"
+                f"  wxcli cucm discover --from-file <export.json.gz>[/dim]"
+            )
+            raise typer.Exit(1)
+        elif "timed out" in err_str.lower():
+            console.print(
+                f"[red]Connection failed:[/red] {exc}\n"
+                "\n"
+                f"[yellow]Connection to {host}:{port} timed out.[/yellow]\n"
+                "This usually means a VPN connection is required or the\n"
+                "hostname/IP is incorrect.\n"
+                "\n"
+                "[dim]Alternatively, export data from a machine with CUCM access and use:\n"
+                f"  wxcli cucm discover --from-file <export.json.gz>[/dim]"
+            )
+            raise typer.Exit(1)
+        else:
+            console.print(f"[red]Connection failed:[/red] {exc}")
+            raise typer.Exit(1)
 
 
 # ===================================================================
@@ -506,14 +585,20 @@ def discover(
     username: Optional[str] = typer.Option(None, "--username", help="AXL admin username"),
     password: Optional[str] = typer.Option(None, "--password", help="AXL admin password"),
     port: int = typer.Option(8443, "--port", help="AXL port"),
-    version: str = typer.Option("14.0", "--version", help="AXL schema version"),
+    version: Optional[str] = typer.Option(None, "--version", help="AXL schema version (auto-detected if omitted)"),
     wsdl: Optional[str] = typer.Option(None, "--wsdl", help="Path to local AXL WSDL file"),
     from_file: Optional[str] = typer.Option(None, "--from-file", help="Path to collector file (.json.gz or .json)"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed logging"),
     project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
 ):
     """Extract objects from a live CUCM cluster via AXL, or load from a collector file."""
+    if verbose:
+        import logging as _logging
+        _logging.basicConfig(level=_logging.INFO, format="%(name)s: %(message)s")
+
     project_dir = _resolve_project_dir(project)
     _check_prerequisite(project_dir, "discover")
+    _invalidate_downstream(project_dir, "discover")
 
     # Validate: must provide either --from-file or --host
     if not from_file and not host:
@@ -580,8 +665,10 @@ def discover(
         console.print(f"  Total objects: {total}")
         return
 
-    # Live AXL path — prompt for password if not provided
-    if not password and not from_file:
+    # Live AXL path — check env var, then prompt for password if not provided
+    if not password:
+        password = os.environ.get("CUCM_PASSWORD")
+    if not password:
         password = typer.prompt("AXL admin password", hide_input=True)
     if not username:
         console.print("[red]--username is required for live AXL discovery.[/red]")
@@ -605,7 +692,8 @@ def discover(
                 cfg.pop("wsdl_path", None)
                 save_config(project_dir, cfg)
 
-    console.print(f"[bold]Connecting to CUCM[/bold] at {host}:{port} (AXL v{version})...")
+    ver_display = f" (AXL v{version})" if version else ""
+    console.print(f"[bold]Connecting to CUCM[/bold] at {host}:{port}{ver_display}...")
     t0 = time.time()
 
     conn = _connect_axl(host, username, password, version, port, wsdl, project_dir)
@@ -639,11 +727,17 @@ def discover(
 
 @app.command()
 def normalize(
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed logging"),
     project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
 ):
     """Run pass 1 normalizers + pass 2 cross-reference builder."""
+    if verbose:
+        import logging as _logging
+        _logging.basicConfig(level=_logging.INFO, format="%(name)s: %(message)s")
+
     project_dir = _resolve_project_dir(project)
     _check_prerequisite(project_dir, "normalize")
+    _invalidate_downstream(project_dir, "normalize")
 
     raw_data_path = project_dir / "raw_data.json"
     if not raw_data_path.exists():
@@ -657,6 +751,12 @@ def normalize(
 
     config = load_config(project_dir)
     store = _open_store(project_dir)
+
+    # Clean slate for re-normalization (cross_refs and journal have FK to objects)
+    store.clear_cross_refs()
+    store.clear_journal()
+    store.clear_objects()
+
     t0 = time.time()
 
     try:
@@ -689,11 +789,17 @@ def normalize(
 
 @app.command("map")
 def map_cmd(
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed logging"),
     project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
 ):
     """Run 9 transform mappers to produce canonical Webex objects + decisions."""
+    if verbose:
+        import logging as _logging
+        _logging.basicConfig(level=_logging.INFO, format="%(name)s: %(message)s")
+
     project_dir = _resolve_project_dir(project)
     _check_prerequisite(project_dir, "map")
+    _invalidate_downstream(project_dir, "map")
 
     from wxcli.migration.transform.engine import TransformEngine
 
@@ -723,11 +829,17 @@ def map_cmd(
 
 @app.command()
 def analyze(
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed logging"),
     project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
 ):
     """Run 12 analyzers + auto-rules + merge decisions."""
+    if verbose:
+        import logging as _logging
+        _logging.basicConfig(level=_logging.INFO, format="%(name)s: %(message)s")
+
     project_dir = _resolve_project_dir(project)
     _check_prerequisite(project_dir, "analyze")
+    _invalidate_downstream(project_dir, "analyze")
 
     from wxcli.migration.transform.analysis_pipeline import AnalysisPipeline
     from wxcli.migration.transform.decisions import format_decision_report
@@ -771,6 +883,7 @@ def plan(
     """Expand objects to operations, build dependency DAG, partition into batches."""
     project_dir = _resolve_project_dir(project)
     _check_prerequisite(project_dir, "plan")
+    _invalidate_downstream(project_dir, "plan")
 
     from wxcli.migration.execute.batch import (
         format_batch_plan,

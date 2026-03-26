@@ -108,11 +108,16 @@ class LocationExtractor(BaseExtractor):
         errors: list[str] = []
         failed = 0
 
-        summary_list = self.paginated_list(
-            'listDevicePool',
-            search_criteria={'name': '%'},
-            returned_tags=DEVICE_POOL_RETURNED_TAGS,
-        )
+        try:
+            summary_list = self.paginated_list(
+                'listDevicePool',
+                search_criteria={'name': '%'},
+                returned_tags=DEVICE_POOL_RETURNED_TAGS,
+            )
+        except Exception as exc:
+            msg = f"listDevicePool failed: {exc}"
+            logger.error("[%s] %s", self.name, msg)
+            return 0, 0, [msg]
         total = len(summary_list)
         logger.info("Found %d device pools via listDevicePool", total)
 
@@ -146,11 +151,16 @@ class LocationExtractor(BaseExtractor):
         errors: list[str] = []
         failed = 0
 
-        summary_list = self.paginated_list(
-            'listDateTimeGroup',
-            search_criteria={'name': '%'},
-            returned_tags=DATETIME_GROUP_RETURNED_TAGS,
-        )
+        try:
+            summary_list = self.paginated_list(
+                'listDateTimeGroup',
+                search_criteria={'name': '%'},
+                returned_tags=DATETIME_GROUP_RETURNED_TAGS,
+            )
+        except Exception as exc:
+            msg = f"listDateTimeGroup failed: {exc}"
+            logger.error("[%s] %s", self.name, msg)
+            return 0, 0, [msg]
         total = len(summary_list)
         logger.info("Found %d datetime groups via listDateTimeGroup", total)
 
@@ -186,11 +196,16 @@ class LocationExtractor(BaseExtractor):
         errors: list[str] = []
         failed = 0
 
-        summary_list = self.paginated_list(
-            'listLocation',
-            search_criteria={'name': '%'},
-            returned_tags=CUCM_LOCATION_RETURNED_TAGS,
-        )
+        try:
+            summary_list = self.paginated_list(
+                'listLocation',
+                search_criteria={'name': '%'},
+                returned_tags=CUCM_LOCATION_RETURNED_TAGS,
+            )
+        except Exception as exc:
+            msg = f"listLocation failed: {exc}"
+            logger.error("[%s] %s", self.name, msg)
+            return 0, 0, [msg]
         total = len(summary_list)
         logger.info("Found %d CUCM locations via listLocation", total)
 

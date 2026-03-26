@@ -16,6 +16,8 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
+from rich.console import Console
+
 from wxcli.migration.cucm.connection import AXLConnection
 from wxcli.migration.cucm.extractors.base import ExtractionResult
 from wxcli.migration.cucm.extractors.devices import DeviceExtractor
@@ -29,6 +31,7 @@ from wxcli.migration.cucm.unity_connection import UnityConnectionClient
 from wxcli.migration.store import MigrationStore
 
 logger = logging.getLogger(__name__)
+console = Console()
 
 # Extraction order (from 02b §1).
 # Extractors are independent at the extraction phase — order is flexible.
@@ -147,6 +150,7 @@ def run_discovery(
     for name in EXTRACTOR_ORDER:
         extractor = extractors[name]
         logger.info("--- Running extractor: %s ---", name)
+        console.print(f"  Extracting {name}...")
         try:
             ext_result = extractor.extract()
         except Exception as exc:
@@ -156,6 +160,10 @@ def run_discovery(
 
         result.extractor_results[name] = ext_result
         result.raw_data[name] = extractor.results
+        console.print(f"  {name}: {ext_result.total} objects")
+        if ext_result.errors:
+            for err in ext_result.errors:
+                console.print(f"  [yellow]{name}: {err}[/yellow]")
 
     # Extract Unity Connection per-user voicemail settings if client available
     if unity_client is not None:

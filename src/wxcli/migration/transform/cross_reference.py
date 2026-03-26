@@ -146,25 +146,36 @@ class CrossReferenceBuilder:
         try:
             counts: dict[str, int] = {}
 
-            # Order matters: some steps depend on earlier cross-refs
-            counts.update(self._build_device_pool_refs())
-            counts.update(self._build_user_refs())
-            counts.update(self._build_device_dn_refs())
-            counts.update(self._build_device_ownership_refs())
-            counts.update(self._build_css_partition_graph())
-            counts.update(self._build_css_assignment_refs())
-            counts.update(self._build_routing_refs())
-            counts.update(self._build_feature_refs())
-            counts.update(self._build_voicemail_refs())
-            counts.update(self._build_template_refs())
+            # Order matters: some steps depend on earlier cross-refs.
+            # Each method is wrapped individually so one failure doesn't
+            # prevent the remaining cross-refs from being built.
+            for method in [
+                self._build_device_pool_refs,
+                self._build_user_refs,
+                self._build_device_dn_refs,
+                self._build_device_ownership_refs,
+                self._build_css_partition_graph,
+                self._build_css_assignment_refs,
+                self._build_routing_refs,
+                self._build_feature_refs,
+                self._build_voicemail_refs,
+                self._build_template_refs,
+            ]:
+                try:
+                    counts.update(method())
+                except Exception as exc:
+                    logger.warning("Cross-reference %s failed: %s", method.__name__, exc)
 
             # Enrichment steps (depend on cross-refs above)
-            shared = self._detect_shared_lines()
-            counts["shared_lines_detected"] = shared
-            classified = self._classify_phone_models()
-            counts["phones_classified"] = classified
-            e164_count = self._normalize_dns_to_e164()
-            counts["dns_normalized"] = e164_count
+            for name, method in [
+                ("shared_lines_detected", self._detect_shared_lines),
+                ("phones_classified", self._classify_phone_models),
+                ("dns_normalized", self._normalize_dns_to_e164),
+            ]:
+                try:
+                    counts[name] = method()
+                except Exception as exc:
+                    logger.warning("Cross-reference %s failed: %s", method.__name__, exc)
 
             return counts
         finally:

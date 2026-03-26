@@ -15,11 +15,14 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from rich.console import Console
+
 from wxcli.migration.cucm.connection import AXLConnection
 from wxcli.migration.cucm.extractors.base import BaseExtractor, ExtractionResult
 from wxcli.migration.cucm.extractors.helpers import ref_value, to_list
 
 logger = logging.getLogger(__name__)
+console = Console()
 
 # --- returnedTags constants (from 02b §2.2) ---
 
@@ -105,7 +108,9 @@ class UserExtractor(BaseExtractor):
         total = len(summary_list)
         logger.info("Found %d end users via listEndUser", total)
 
-        for user_summary in summary_list:
+        for i, user_summary in enumerate(summary_list, 1):
+            if i % 200 == 0:
+                console.print(f"    users: {i}/{total}...")
             userid = user_summary.get("userid", "<unknown>")
             try:
                 raw = self.get_detail("getEndUser", userid=userid)

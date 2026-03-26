@@ -217,13 +217,20 @@ Do NOT silently skip decisions that cascade into blocked downstream operations.
 
 ## Step 2: Auth + Preflight — [MANDATORY, NOT SKIPPABLE]
 
-### 2a. Verify auth token
+### 2a. Verify auth token and expiry
 
 ```bash
 wxcli whoami
 ```
 
 If this fails with 401/403, stop and troubleshoot auth before proceeding.
+
+**Token expiry gate:** Parse the "Token: expires in Xh Ym" line. If the token
+expires in **less than 2 hours**, **do NOT proceed to execution.** Tell the admin:
+> "Your token expires in [time]. A migration needs at least 2 hours of token
+> validity. Please refresh your token (`wxcli configure`) and re-run."
+
+This prevents mid-migration auth failures that leave the org in a partial state.
 
 ### 2b. Run preflight checks
 

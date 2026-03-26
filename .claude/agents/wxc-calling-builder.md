@@ -128,18 +128,31 @@ Walk them through the analysis pipeline conversationally. Do NOT tell them to ru
 wxcli cucm init -p <name>
 ```
 
+Before asking for credentials, explain what's needed:
+> "Before we connect, you'll need:
+> - The CUCM server hostname or IP address
+> - A CUCM admin account with the 'Standard AXL API Access' role
+> - If you're not sure about the admin account, check with your CUCM administrator before we proceed"
+
 **Step 2: Connect to CUCM**
 
 Ask these one at a time:
 1. "What's the hostname or IP address of your CUCM server?"
 2. "What's the AXL admin username?" (explain: this is the CUCM admin account, needs the 'Standard AXL API Access' role)
 3. "What CUCM version are you running?" (offer: 12.x, 14.x, 15.x — default 14.0)
+4. "What's the CUCM admin password? (This stays in our local conversation and is only used for the CUCM connection.)"
 
-Then run discover. The CLI handles WSDL guidance interactively if needed — if CUCM blocks the schema download (common on 15.x), the CLI will walk them through downloading one file from their CUCM admin page.
+Then run discover. The CLI handles WSDL guidance interactively if needed — if CUCM blocks the schema download (common on 15.x), the CLI will guide them through downloading the WSDL from their CUCM admin page.
 
 ```bash
-wxcli cucm discover --host <host> --username <user> --version <ver> -p <name>
+wxcli cucm discover --host <host> --username <user> --password "<password>" --version <ver> -p <name>
 ```
+
+**For large environments (1000+ phones):** Discovery may take 10-30 minutes. Run the command with a longer timeout or in the background. If the command times out, re-run it — the CLI will show progress per extractor.
+
+**If connection fails:** Suggest the offline alternative:
+> "If you can't connect directly to CUCM from this machine (VPN required, firewall, etc.), there's an alternative. You can export the data on a machine with CUCM access and load it here:
+> `wxcli cucm discover --from-file <path-to-export.json.gz> -p <name>`"
 
 If discover fails for non-WSDL reasons (auth, connectivity), explain the issue in plain language and help troubleshoot.
 

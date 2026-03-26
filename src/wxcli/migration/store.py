@@ -410,6 +410,39 @@ class MigrationStore:
         self.conn.commit()
 
     # ------------------------------------------------------------------
+    # Cleanup (for pipeline re-run safety)
+    # ------------------------------------------------------------------
+
+    def clear_journal(self) -> int:
+        """Delete all journal entries. Returns count deleted."""
+        cursor = self.conn.execute("DELETE FROM journal")
+        self.conn.commit()
+        return cursor.rowcount
+
+    def clear_objects(self) -> int:
+        """Delete all objects. Must clear cross_refs and journal first (FK constraints)."""
+        cursor = self.conn.execute("DELETE FROM objects")
+        self.conn.commit()
+        return cursor.rowcount
+
+    def clear_objects_by_types(self, types: list[str]) -> int:
+        """Delete objects of specific resource types. Returns count deleted."""
+        if not types:
+            return 0
+        placeholders = ",".join("?" for _ in types)
+        cursor = self.conn.execute(
+            f"DELETE FROM objects WHERE resource_type IN ({placeholders})", types
+        )
+        self.conn.commit()
+        return cursor.rowcount
+
+    def clear_decisions_by_source(self, source: str) -> int:
+        """Delete decisions from a specific source (e.g. 'mapper', 'analyzer'). Returns count deleted."""
+        cursor = self.conn.execute("DELETE FROM decisions WHERE source = ?", (source,))
+        self.conn.commit()
+        return cursor.rowcount
+
+    # ------------------------------------------------------------------
     # Decisions
     # ------------------------------------------------------------------
 
