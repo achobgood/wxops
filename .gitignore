@@ -19,6 +19,7 @@ build/
 
 # Claude Code local settings
 .claude/settings.local.json
+.claude/skills/seven-advisors/
 
 # Superpowers brainstorm sessions (local dev artifacts)
 .superpowers/
