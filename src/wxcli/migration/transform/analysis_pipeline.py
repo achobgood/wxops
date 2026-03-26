@@ -29,6 +29,7 @@ from wxcli.migration.transform.analyzers.duplicate_user import DuplicateUserAnal
 from wxcli.migration.transform.analyzers.extension_conflict import ExtensionConflictAnalyzer
 from wxcli.migration.transform.analyzers.feature_approximation import FeatureApproximationAnalyzer
 from wxcli.migration.transform.analyzers.location_ambiguity import LocationAmbiguityAnalyzer
+from wxcli.migration.transform.analyzers.layout_overflow import LayoutOverflowAnalyzer
 from wxcli.migration.transform.analyzers.missing_data import MissingDataAnalyzer
 from wxcli.migration.transform.analyzers.shared_line import SharedLineAnalyzer
 from wxcli.migration.transform.analyzers.voicemail_compatibility import VoicemailCompatibilityAnalyzer
@@ -38,7 +39,7 @@ from wxcli.migration.transform.rules import apply_auto_rules
 
 logger = logging.getLogger(__name__)
 
-# All 12 analyzers in default execution order.
+# All 13 analyzers in default execution order.
 # No inter-analyzer dependencies exist in the current set (from 03-conflict-detection-engine.md).
 ALL_ANALYZERS: list[type[Analyzer]] = [
     ExtensionConflictAnalyzer,
@@ -53,6 +54,7 @@ ALL_ANALYZERS: list[type[Analyzer]] = [
     WorkspaceLicenseAnalyzer,
     FeatureApproximationAnalyzer,
     MissingDataAnalyzer,
+    LayoutOverflowAnalyzer,
 ]
 
 

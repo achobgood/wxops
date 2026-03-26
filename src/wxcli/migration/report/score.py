@@ -15,13 +15,26 @@ from wxcli.migration.store import MigrationStore
 
 # Factor weights (must sum to 100)
 WEIGHTS = {
-    "CSS Complexity": 25,
-    "Feature Parity": 20,
+    "CSS Complexity": 20,
+    "Feature Parity": 17,
     "Device Compatibility": 15,
     "Decision Density": 15,
     "Scale": 10,
     "Shared Line Complexity": 10,
     "Routing Complexity": 5,
+    "Phone Config Complexity": 8,
+}
+
+# Customer-friendly display names for score factors
+DISPLAY_NAMES = {
+    "CSS Complexity": "Calling Restrictions",
+    "Feature Parity": "Feature Compatibility",
+    "Device Compatibility": "Device Readiness",
+    "Decision Density": "Outstanding Decisions",
+    "Scale": "Scale",
+    "Shared Line Complexity": "Shared Lines",
+    "Routing Complexity": "Routing",
+    "Phone Config Complexity": "Phone Configuration",
 }
 
 # Label thresholds
@@ -58,6 +71,7 @@ def compute_complexity_score(store: MigrationStore) -> ScoreResult:
         ("Scale", _scale_factor),
         ("Shared Line Complexity", _shared_line_complexity),
         ("Routing Complexity", _routing_complexity),
+        ("Phone Config Complexity", _phone_config_complexity),
     ]
 
     factors = []
@@ -71,6 +85,7 @@ def compute_complexity_score(store: MigrationStore) -> ScoreResult:
         weighted_total += weighted_score
         factors.append({
             "name": name,
+            "display_name": DISPLAY_NAMES.get(name, name),
             "weight": weight,
             "raw_score": raw_score,
             "weighted_score": round(weighted_score, 1),
@@ -241,4 +256,51 @@ def _routing_complexity(store: MigrationStore) -> tuple[int, str]:
     # Each routing object adds 10 points, capped at 100
     raw = min(total * 10, 100)
     detail = f"{trunks} trunks, {route_groups} route groups, {trans_patterns} translation patterns"
+    return raw, detail
+
+
+def _phone_config_complexity(store: MigrationStore) -> tuple[int, str]:
+    """Score based on phone button template and softkey customization.
+
+    Checks for custom button templates, KEM modules, and PSK softkey migration.
+    """
+    templates = store.get_objects("line_key_template")
+    layouts = store.get_objects("device_layout")
+    softkeys = store.get_objects("softkey_config")
+
+    if not templates and not layouts and not softkeys:
+        return 0, "No phone config data"
+
+    template_count = len(templates) if templates else 0
+    layout_count = len(layouts) if layouts else 0
+    softkey_count = len(softkeys) if softkeys else 0
+
+    # Count phones with KEM modules
+    kem_count = 0
+    if layouts:
+        kem_count = sum(1 for l in layouts if l.get("resolved_kem_keys"))
+
+    # Count unmapped button types across all templates
+    unmapped_count = 0
+    if templates:
+        unmapped_count = sum(len(t.get("unmapped_buttons", [])) for t in templates)
+
+    # Score: templates + KEM + unmapped buttons + softkeys
+    raw = 0
+    raw += min(template_count * 8, 30)   # 0-30 from template count
+    raw += min(kem_count * 10, 25)        # 0-25 from KEM modules
+    raw += min(unmapped_count * 5, 20)    # 0-20 from unmapped buttons
+    raw += min(softkey_count * 8, 25)     # 0-25 from softkey templates
+
+    parts = []
+    if template_count:
+        parts.append(f"{template_count} button templates")
+    if kem_count:
+        parts.append(f"{kem_count} KEM phones")
+    if unmapped_count:
+        parts.append(f"{unmapped_count} unmapped buttons")
+    if softkey_count:
+        parts.append(f"{softkey_count} softkey templates")
+
+    detail = ", ".join(parts) if parts else "No phone config data"
     return raw, detail
