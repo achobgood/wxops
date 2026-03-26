@@ -398,6 +398,7 @@ def normalize_phone(raw: dict, cluster: str = "default") -> CanonicalDevice:
             "cucm_css": _extract_ref(raw.get("callingSearchSpaceName")),
             "cucm_owner_user": _extract_ref(raw.get("ownerUserName")),
             "cucm_phone_template": _extract_ref(raw.get("phoneTemplateName")),
+            "cucm_softkey_template": _extract_ref(raw.get("softkeyTemplateName")),
             "cucm_product": raw.get("product"),
             "cucm_class": raw.get("class"),
         },
@@ -1201,6 +1202,87 @@ def normalize_cucm_location(raw: dict, cluster: str = "default") -> MigrationObj
 
 
 # ---------------------------------------------------------------------------
+# §2.1 — Phone Button Template normalizer
+# ---------------------------------------------------------------------------
+
+def normalize_button_template(raw: dict, cluster: str = "default") -> MigrationObject | None:
+    """Normalize a CUCM PhoneButtonTemplate dict.
+
+    (from tier2-phase2-phone-config-design.md §2.1)
+    """
+    name = raw.get("name")
+    if not name:
+        return None
+
+    raw_buttons = raw.get("buttons")
+    button_list = _to_list(raw_buttons, "button") if isinstance(raw_buttons, dict) else []
+    buttons = []
+    for btn in button_list:
+        if not isinstance(btn, dict):
+            continue
+        idx = btn.get("index")
+        feature = btn.get("feature", "")
+        buttons.append({"index": int(idx) if idx else 0, "feature": feature})
+    buttons.sort(key=lambda b: b["index"])
+
+    return MigrationObject(
+        canonical_id=f"button_template:{name}",
+        provenance=_make_provenance(raw, cluster),
+        status=MigrationStatus.NORMALIZED,
+        pre_migration_state={
+            "name": name,
+            "base_template": _extract_ref(raw.get("basePhoneTemplateName")),
+            "buttons": buttons,
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# §2.2 — Softkey Template normalizer
+# ---------------------------------------------------------------------------
+
+def normalize_softkey_template(raw: dict, cluster: str = "default") -> MigrationObject | None:
+    """Normalize a CUCM SoftkeyTemplate dict.
+
+    (from tier2-phase2-phone-config-design.md §2.2)
+    """
+    name = raw.get("name")
+    if not name:
+        return None
+
+    # AXL getSoftkeyTemplate returns per-state softkey lists as top-level keys.
+    # Known state keys from CUCM AXL: onHookKeyList, offHookKeyList, etc.
+    # We extract any key ending in "KeyList" as a call state definition.
+    call_states: dict[str, list[str]] = {}
+    for key, value in raw.items():
+        if key.endswith("KeyList") and isinstance(value, (dict, list)):
+            state_name = key.replace("KeyList", "")
+            if isinstance(value, dict):
+                softkeys = _to_list(value, "softkey")
+            else:
+                softkeys = value
+            sk_names = []
+            for sk in softkeys:
+                if isinstance(sk, dict):
+                    sk_names.append(sk.get("softkey", sk.get("name", "")))
+                elif isinstance(sk, str):
+                    sk_names.append(sk)
+            call_states[state_name] = sk_names
+
+    return MigrationObject(
+        canonical_id=f"softkey_template:{name}",
+        provenance=_make_provenance(raw, cluster),
+        status=MigrationStatus.NORMALIZED,
+        pre_migration_state={
+            "name": name,
+            "description": raw.get("description") or "",
+            "default_template": _extract_ref(raw.get("defaultSoftkeyTemplateName")),
+            "call_states": call_states,
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
 # Registry: maps extractor object types to normalizer functions
 # ---------------------------------------------------------------------------
 
@@ -1229,6 +1311,8 @@ NORMALIZER_REGISTRY: dict[str, callable] = {
     "voicemail_profile": normalize_voicemail_profile,
     "voicemail_pilot": normalize_voicemail_pilot,
     "cucm_location": normalize_cucm_location,
+    "button_template": normalize_button_template,
+    "softkey_template": normalize_softkey_template,
 }
 
 
@@ -1264,4 +1348,6 @@ RAW_DATA_MAPPING: list[tuple[str, str, str]] = [
     ("features", "time_periods", "time_period"),
     ("voicemail", "voicemail_profiles", "voicemail_profile"),
     ("voicemail", "voicemail_pilots", "voicemail_pilot"),
+    ("templates", "button_templates", "button_template"),
+    ("templates", "softkey_templates", "softkey_template"),
 ]
