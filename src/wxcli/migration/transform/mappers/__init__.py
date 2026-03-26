@@ -25,6 +25,7 @@ from wxcli.migration.transform.mappers.location_mapper import LocationMapper
 from wxcli.migration.transform.mappers.routing_mapper import RoutingMapper
 from wxcli.migration.transform.mappers.user_mapper import UserMapper
 from wxcli.migration.transform.mappers.voicemail_mapper import VoicemailMapper
+from wxcli.migration.transform.mappers.device_layout_mapper import DeviceLayoutMapper
 from wxcli.migration.transform.mappers.softkey_mapper import SoftkeyMapper
 from wxcli.migration.transform.mappers.workspace_mapper import WorkspaceMapper
 
@@ -42,6 +43,7 @@ __all__ = [
     "CallForwardingMapper",
     "MonitoringMapper",
     "ButtonTemplateMapper",
+    "DeviceLayoutMapper",
     "SoftkeyMapper",
     "skip_option",
     "manual_option",
