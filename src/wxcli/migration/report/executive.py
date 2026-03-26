@@ -170,6 +170,24 @@ def _page_environment(
         f'<h2>What You Have</h2>',
     ]
 
+    # --- Donut chart floated right alongside People + Devices ---
+    devices = store.get_objects("device")
+    donut_html = ""
+    native = convertible = incompatible = 0
+    if devices:
+        native = sum(1 for d in devices if d.get("compatibility_tier") == "native_mpp")
+        convertible = sum(1 for d in devices if d.get("compatibility_tier") == "convertible")
+        incompatible = sum(1 for d in devices if d.get("compatibility_tier") == "incompatible")
+        donut_segments = [
+            {"label": "Native MPP", "value": native, "color": "#2E7D32"},
+            {"label": "Convertible", "value": convertible, "color": "#EF6C00"},
+            {"label": "Incompatible", "value": incompatible, "color": "#C62828"},
+        ]
+        donut_html = donut_chart(donut_segments)
+
+    if donut_html:
+        parts.append(f'<div class="env-donut">{donut_html}</div>')
+
     # --- People ---
     shared_line_count = store.count_by_type("shared_line")
     line_count = store.count_by_type("line")
@@ -184,12 +202,8 @@ def _page_environment(
     parts.append('</div>')
 
     # --- Devices ---
-    devices = store.get_objects("device")
     if devices:
         total = len(devices)
-        native = sum(1 for d in devices if d.get("compatibility_tier") == "native_mpp")
-        convertible = sum(1 for d in devices if d.get("compatibility_tier") == "convertible")
-        incompatible = sum(1 for d in devices if d.get("compatibility_tier") == "incompatible")
 
         parts.append('<h3>Devices</h3>')
         parts.append('<div class="stat-grid">')
@@ -201,15 +215,8 @@ def _page_environment(
             parts.append(_stat_card(str(incompatible), "Incompatible"))
         parts.append('</div>')
 
-        # Donut chart for device compatibility (replaces stacked bar)
-        donut_segments = [
-            {"label": "Native MPP", "value": native, "color": "#2E7D32"},
-            {"label": "Convertible", "value": convertible, "color": "#EF6C00"},
-            {"label": "Incompatible", "value": incompatible, "color": "#C62828"},
-        ]
-        donut_svg = donut_chart(donut_segments)
-        if donut_svg:
-            parts.append(f'<div class="chart-container" style="max-width:280px;margin:1rem 0;">{donut_svg}</div>')
+    if donut_html:
+        parts.append('<div style="clear:both;"></div>')
 
     # --- Analog Gateways (if present) ---
     gateways = store.get_objects("gateway")
