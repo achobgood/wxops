@@ -33,6 +33,8 @@ _FEATURE_DISPLAY_NAMES = {
     "paging_group": "Paging Group",
     "call_forwarding": "Call Forwarding",
     "monitoring_list": "BLF / Monitoring",
+    "line_key_template": "Phone Button Templates",
+    "softkey_config": "Softkey Templates",
 }
 
 # Webex equivalents for feature types
@@ -45,6 +47,8 @@ _WEBEX_EQUIVALENTS = {
     "paging_group": "Paging Group",
     "call_forwarding": "Per-person call forwarding",
     "monitoring_list": "Per-person monitoring list",
+    "line_key_template": "Line Key Templates",
+    "softkey_config": "Programmable Softkeys (PSK)",
 }
 
 # Object types for counts

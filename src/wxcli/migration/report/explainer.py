@@ -446,3 +446,146 @@ def explain_decision(
             "reassurance": _reassurance_for_severity(severity),
         }
     return template_fn(summary, context or {}, severity)
+
+
+# ---------------------------------------------------------------------------
+# Verdict, key findings, and type display name map
+# ---------------------------------------------------------------------------
+
+from wxcli.migration.report.score import ScoreResult
+from wxcli.migration.store import MigrationStore
+
+
+# Customer-friendly display names for all DecisionType values.
+DECISION_TYPE_DISPLAY_NAMES: dict[str, str] = {
+    "MISSING_DATA": "Missing Data",
+    "CSS_ROUTING_MISMATCH": "CSS Routing Mismatch",
+    "CALLING_PERMISSION_MISMATCH": "Calling Restrictions",
+    "DEVICE_FIRMWARE_CONVERTIBLE": "Device Firmware Conversion",
+    "DEVICE_INCOMPATIBLE": "Incompatible Devices",
+    "FEATURE_APPROXIMATION": "Feature Approximation",
+    "WORKSPACE_LICENSE_TIER": "Workspace Licensing",
+    "LOCATION_AMBIGUOUS": "Location Mapping",
+    "SHARED_LINE_COMPLEX": "Shared Line Complexity",
+    "EXTENSION_CONFLICT": "Extension Conflicts",
+    "DN_AMBIGUOUS": "Directory Number Ambiguity",
+    "VOICEMAIL_INCOMPATIBLE": "Voicemail Compatibility",
+    "DUPLICATE_USER": "Duplicate Users",
+    "WORKSPACE_TYPE_UNCERTAIN": "Workspace Type",
+    "HOTDESK_DN_CONFLICT": "Hot Desk Conflicts",
+    "NUMBER_CONFLICT": "Number Conflicts",
+    "ARCHITECTURE_ADVISORY": "Architecture Advisory",
+    "FORWARDING_LOSSY": "Call Forwarding Gaps",
+    "SNR_LOSSY": "Single Number Reach Gaps",
+    "AUDIO_ASSET_MANUAL": "Audio Asset Migration",
+    "BUTTON_UNMAPPABLE": "Unmappable Phone Button",
+}
+
+
+def generate_verdict(score_result: ScoreResult, store: MigrationStore) -> str:
+    """Generate a one-paragraph verdict sentence from score and store data."""
+    if score_result.score <= 30:
+        opener = "This migration is <strong>straightforward</strong>."
+    elif score_result.score <= 55:
+        opener = "This migration is <strong>feasible with planning</strong>."
+    else:
+        opener = "This migration <strong>requires significant planning</strong>."
+
+    sorted_factors = sorted(
+        score_result.factors, key=lambda f: f["weighted_score"], reverse=True
+    )
+    top_factors = sorted_factors[:2]
+    display_names = [f.get("display_name", f["name"]).lower() for f in top_factors]
+
+    if len(display_names) == 2:
+        driver = f"{score_result.label} complexity is driven by {display_names[0]} and {display_names[1]}."
+    elif len(display_names) == 1:
+        driver = f"{score_result.label} complexity is driven by {display_names[0]}."
+    else:
+        driver = ""
+
+    decisions = store.get_all_decisions()
+    total = len(decisions)
+    resolved = sum(1 for d in decisions if d.get("chosen_option"))
+    unresolved = total - resolved
+
+    if total == 0:
+        decision_text = "No migration decisions were generated."
+    elif unresolved == 0:
+        decision_text = f"All {total} decisions were auto-resolved — no manual decisions required at this stage."
+    else:
+        decision_text = f"{unresolved} of {total} decisions require manual input before migration can proceed."
+
+    return f"{opener} {driver} {decision_text}"
+
+
+def generate_key_findings(store: MigrationStore) -> list[dict[str, str]]:
+    """Generate 3-4 key findings from store data."""
+    findings: list[dict[str, str]] = []
+
+    devices = store.get_objects("device")
+    if devices:
+        total = len(devices)
+        native = sum(1 for d in devices if d.get("compatibility_tier") == "native_mpp")
+        convertible = sum(1 for d in devices if d.get("compatibility_tier") == "convertible")
+        incompatible = sum(1 for d in devices if d.get("compatibility_tier") == "incompatible")
+
+        if incompatible > 0 or convertible > 0:
+            parts = []
+            if convertible > 0:
+                parts.append(f"{convertible} need firmware conversion")
+            if incompatible > 0:
+                parts.append(f"{incompatible} need replacement")
+            findings.append({
+                "icon": "!",
+                "text": f"<strong>{convertible + incompatible} of {total} phones</strong> {'; '.join(parts)}",
+            })
+        elif native == total and total > 0:
+            findings.append({
+                "icon": "✓",
+                "text": f"<strong>All {total} phones</strong> are native MPP — no firmware or hardware changes needed",
+            })
+
+    feature_types = ["hunt_group", "auto_attendant", "call_queue", "call_park", "pickup_group", "paging_group"]
+    feature_count = sum(store.count_by_type(ft) for ft in feature_types)
+    feature_decisions = [d for d in store.get_all_decisions() if d.get("type") == "FEATURE_APPROXIMATION"]
+    if feature_count > 0:
+        if not feature_decisions:
+            types_with_data = [ft for ft in feature_types if store.count_by_type(ft) > 0]
+            findings.append({
+                "icon": "✓",
+                "text": f"<strong>All {len(types_with_data)} call feature types</strong> have direct Webex equivalents",
+            })
+        else:
+            findings.append({
+                "icon": "!",
+                "text": f"<strong>{len(feature_decisions)} features</strong> need approximation — no direct Webex equivalent",
+            })
+
+    routing_decisions = [
+        d for d in store.get_all_decisions()
+        if d.get("type") in ("CSS_ROUTING_MISMATCH", "CALLING_PERMISSION_MISMATCH")
+    ]
+    if routing_decisions:
+        findings.append({
+            "icon": "!",
+            "text": f"<strong>{len(routing_decisions)} calling restriction rules</strong> differ between CUCM and Webex — {'all auto-resolved' if all(d.get('chosen_option') for d in routing_decisions) else 'review needed'}",
+        })
+
+    all_decisions = store.get_all_decisions()
+    total = len(all_decisions)
+    resolved = sum(1 for d in all_decisions if d.get("chosen_option"))
+    if total > 0:
+        if resolved == total:
+            findings.append({
+                "icon": "✓",
+                "text": f"<strong>{total} of {total} decisions</strong> auto-resolved — no manual input needed at this stage",
+            })
+        else:
+            unresolved = total - resolved
+            findings.append({
+                "icon": "!",
+                "text": f"<strong>{unresolved} of {total} decisions</strong> require manual input before migration",
+            })
+
+    return findings
