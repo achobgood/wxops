@@ -395,6 +395,7 @@ def _expand_line_key_template(obj: dict[str, Any]) -> list[MigrationOp]:
 def _expand_call_forwarding(obj: dict[str, Any]) -> list[MigrationOp]:
     """Call forwarding → 0-1 ops: configure (tier 5).
     Skip if all forwarding types are disabled.
+    batch=None — the batch partitioner assigns unassigned ops as org-wide.
     """
     if not any([
         obj.get("always_enabled"),
@@ -413,6 +414,7 @@ def _expand_call_forwarding(obj: dict[str, Any]) -> list[MigrationOp]:
 def _expand_monitoring_list(obj: dict[str, Any]) -> list[MigrationOp]:
     """Monitoring list → 0-1 ops: configure (tier 6).
     Skip if no monitored_members.
+    batch=None — the batch partitioner assigns unassigned ops as org-wide.
     """
     if not obj.get("monitored_members"):
         return []
@@ -431,6 +433,7 @@ def _expand_monitoring_list(obj: dict[str, Any]) -> list[MigrationOp]:
 def _expand_device_layout(obj: dict[str, Any]) -> list[MigrationOp]:
     """Device layout → 0-1 ops: configure (tier 7).
     Skip if no resolved_line_keys and no template referenced.
+    batch=None — the batch partitioner assigns unassigned ops as org-wide.
     """
     resolved_keys = obj.get("resolved_line_keys", [])
     template_cid = obj.get("template_canonical_id")
@@ -459,6 +462,7 @@ def _expand_softkey_config(obj: dict[str, Any]) -> list[MigrationOp]:
     """Softkey config → 0-1 ops: configure (tier 7).
     Only per-device objects (is_psk_target=True) produce ops.
     Template-level objects (is_psk_target=False) are report-only.
+    batch=None — the batch partitioner assigns unassigned ops as org-wide.
     """
     if not obj.get("is_psk_target"):
         return []

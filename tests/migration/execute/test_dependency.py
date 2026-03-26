@@ -553,3 +553,37 @@ class TestPhase3CrossObjectRules:
             "line_key_template:Standard 8845:create",
             "device_layout:SEPAA112233:configure",
         )
+
+    def test_monitoring_watches_are_soft(self, store):
+        """monitoring_watches edges must be SOFT (breakable for circular monitoring)."""
+        from wxcli.migration.models import CanonicalMonitoringList, CanonicalUser
+        from wxcli.migration.execute.dependency import build_dependency_graph
+        from wxcli.migration.execute.planner import expand_to_operations
+
+        user_a = _set_analyzed(CanonicalUser(
+            canonical_id="user:alice",
+            provenance=_prov(),
+            emails=["alice@example.com"],
+        ))
+        user_b = _set_analyzed(CanonicalUser(
+            canonical_id="user:bob",
+            provenance=_prov(),
+            emails=["bob@example.com"],
+        ))
+        ml = _set_analyzed(CanonicalMonitoringList(
+            canonical_id="monitoring_list:user:alice",
+            provenance=_prov(),
+            user_canonical_id="user:alice",
+            monitored_members=[{"target_canonical_id": "user:bob"}],
+        ))
+        store.upsert_object(user_a)
+        store.upsert_object(user_b)
+        store.upsert_object(ml)
+        store.add_cross_ref("monitoring_list:user:alice", "user:bob", "monitoring_watches")
+
+        ops = expand_to_operations(store)
+        G = build_dependency_graph(ops, store)
+
+        # The monitoring_watches edge should be SOFT (breakable)
+        edge_data = G.edges["user:bob:create", "monitoring_list:user:alice:configure"]
+        assert edge_data["type"] == DependencyType.SOFT
