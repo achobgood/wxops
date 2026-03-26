@@ -1,9 +1,10 @@
 ---
 name: configure-routing
 description: |
-  Configure Webex Calling routing infrastructure using wxcli CLI commands: Trunks, Route Groups,
+  Create, modify, or delete Webex Calling routing infrastructure using wxcli CLI commands: Trunks, Route Groups,
   Route Lists, Dial Plans, Translation Patterns, and PSTN Connection settings.
   Guides the user from prerequisites through the full dependency chain and verification.
+  Use for: create, update, delete, remove, list, or troubleshoot any routing component.
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [routing-component]
 ---
@@ -566,6 +567,8 @@ Next steps:
 12. **Translation patterns are outbound only.** They manipulate digits before outbound routing. They do not affect inbound call routing.
 13. **Raw HTTP URL prefixes differ by component.** Dial plans/trunks/route groups/route lists use `/premisePstn/`. Translation patterns use `/callRouting/`. PSTN connections use `/telephony/pstn/`. Getting the prefix wrong returns 404. See `docs/reference/call-routing.md` for full URL tables.
 14. **Production routing changes should be done off-hours.** Modifying dial plans, trunks, or PSTN connections can immediately disrupt live call routing.
+15. **Dial plan `dialPatterns` format differs between CREATE and MODIFY.** CREATE (POST) takes a plain string array: `["pattern1", "pattern2"]`. MODIFY (PUT on `/{id}/dialPatterns`) takes objects with action: `[{"dialPattern": "+1!", "action": "ADD"}]`. Using the modify format on create returns 400 "Invalid field value: dialPatterns".
+16. **Delete command names use plural suffixes.** `delete-trunks`, `delete-route-groups`, `delete-route-lists`. Dial plan delete is just `delete` (no suffix). Translation pattern delete is `delete-translation-patterns-call-routing`. Always check `wxcli call-routing --help` if unsure.
 
 ---
 

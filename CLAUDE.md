@@ -116,7 +116,7 @@ Use `/wxc-calling-debug` to troubleshoot a failing configuration (this one is a 
 
 ### CUCM→Webex Migration Tool (All 11 phases complete)
 
-The migration tool is at `src/wxcli/migration/` and wired into the CLI as `wxcli cucm <command>`. It does NOT use the auto-generator. **1426 tests passing.** Use `/cucm-migrate` to execute a migration after running the pipeline.
+The migration tool is at `src/wxcli/migration/` and wired into the CLI as `wxcli cucm <command>`. It does NOT use the auto-generator. **1486 tests passing.** Use `/cucm-migrate` to execute a migration after running the pipeline.
 
 | Path | Purpose |
 |------|---------|
@@ -129,7 +129,7 @@ The migration tool is at `src/wxcli/migration/` and wired into the CLI as `wxcli
 | `src/wxcli/migration/store.py` | SQLite-backed store — objects, cross_refs, decisions, journal, merge_log, merge_decisions() |
 | `src/wxcli/migration/cucm/` | Phase 03 — AXL connection, 9 extractors, discovery pipeline |
 | `src/wxcli/migration/transform/normalizers.py` | Phase 04 — 27 Pass 1 normalizers |
-| `src/wxcli/migration/transform/cross_reference.py` | Phase 04 — CrossReferenceBuilder (28 relationships + 3 enrichments) |
+| `src/wxcli/migration/transform/cross_reference.py` | Phase 04 — CrossReferenceBuilder (30 relationships + 3 enrichments) |
 | `src/wxcli/migration/transform/pipeline.py` | Phase 04 — `normalize_discovery()` entry point |
 | `src/wxcli/migration/transform/mappers/` | Phase 05 — 14 mappers + base.py + engine.py (9 original + call_forwarding + monitoring + button_template + device_layout + softkey) |
 | `src/wxcli/migration/transform/analyzers/` | Phase 06 — 12 analyzers (3 analyzer-owned + 9 mapper-owned) |
@@ -175,6 +175,7 @@ See `docs/plans/cucm-migration-roadmap.md` for the master project status.
 - **Live API sweep Batch 3 (2026-03-20):** Tested location-settings (~15 cmds), location-schedules, location-voicemail (~10 cmds), emergency-services (~15 cmds), dect-devices full CRUD lifecycle (create network → add handsets with 2 lines → update → bulk add → delete), call-recording (~10 cmds), organizations, roles, org-contacts, device-configurations, xapi, workspace-personalization. No new CLI bugs found. Full DECT create/read/update/delete cycle verified. Base station MACs require Cisco manufacturing database (Bifrost) — can't use fake MACs.
 - **Live API sweep Batch 4 (2026-03-21):** Customer Assist (cx-essentials) end-to-end: screen pop, wrap-up reasons, queue call recording (2 new commands), supervisors, available agents. Found 6 CLI bugs (list table column, validate output, list-settings response shape, missing error 28018 handling, wrong queue recording JSON example, update-settings missing 28018). Found 2 generator issues (supervisor delete missing hasCxEssentials param, create output for empty dict). Found 3 API behaviors: CX queues hidden from default `call-queue list`, CX queue creation requires `callPolicies`, supervisor delete returns 204 but supervisor persists (workaround: remove agents via update). All CLI bugs fixed, generator enhanced with `add_query_params` override.
 - **Test bed expansion (2026-03-24):** Added 15 new + 5 modified objects to CUCM test bed (10.201.123.107) for pipeline coverage gaps: 2 blocking partitions in CSSes (CSSMapper CallingPermission), 2 common-area phones (WorkspaceMapper), 2nd pickup group, 2nd CTI Route Point, 2 holiday time periods (HOLIDAY OperatingMode), time schedule→partition wiring. Script: `tests/migration/cucm/provision_testbed_phase9.py`. Discovered 4 AXL gotchas (pickup group members, CTI RP protocol, TimePeriod enums). Pipeline gaps: no PagingGroup AXL object (needs InformaCast), no Unity Connection for CUPI voicemail extraction.
+- **Test bed expansion (2026-03-25):** Added phone config objects for Tier2-Phase2: 4 custom button templates (Custom-8845-BLF-SD, Custom-7841-Mixed, Custom-8845-Unmappable, Custom-9861-Mixed with KEM buttons 11-14), 2 new PSK-capable phones (9861 SEP9861AABB0001, 8875 SEP8875CCDD0001), speed dials + BLF on 3 phones, softkey template assignments on 4 phones. Script: `tests/migration/cucm/provision_testbed_phase10.py`. Discovered 11 AXL gotchas: `addPhoneButtonTemplate` uses `<buttonNumber>` not `<index>`; BLF feature is "Speed Dial BLF" for add but "Busy Lamp Field" on get; must omit `isFixedFeature=true` buttons during template creation; `addSoftkeyTemplate`/`getSoftkeyTemplate`/`listSoftkeyTemplate` do not exist in AXL v15.0 (SQL only); 9861 templates have 130 buttons (10 phone + 120 KEM); `blfDirn` always empty in getPhone response. Also found and fixed pre-existing pipeline bug: raw phone objects lost after normalization (MonitoringMapper/CallForwardingMapper silently broken).
 
 ### Partner Multi-Org Support
 

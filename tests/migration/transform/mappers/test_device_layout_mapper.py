@@ -32,13 +32,41 @@ def _make_phone(
     blf_entries: list | None = None,
     is_common_area: bool = False,
 ) -> MigrationObject:
+    """Build a mock raw phone object matching AXL getPhone format.
+
+    The mapper reads raw phone objects with AXL zeep-serialized fields:
+    - lines: flat list of {index, label, dirn: {pattern, routePartitionName}}
+    - ownerUserName: zeep ref dict {"_value_1": "userid", "uuid": "..."}
+    - phoneTemplateName: zeep ref dict
+    - speeddials/busyLampFields: nested dicts
+    """
+    # Convert line_appearances from test format to raw AXL format
+    raw_lines = []
+    for la in (line_appearances or []):
+        raw_lines.append({
+            "index": la.get("line_index", 1),
+            "label": la.get("line_label", ""),
+            "dirn": {
+                "pattern": la.get("dn", ""),
+                "routePartitionName": {
+                    "_value_1": la.get("partition"),
+                    "uuid": None,
+                },
+            },
+        })
+
     state = {
         "name": name,
-        "cucm_phone_template": template_name,
-        "cucm_device_pool": None,
-        "cucm_owner_user": "jdoe",
-        "is_common_area": is_common_area,
-        "line_appearances": line_appearances or [],
+        "class": "Phone",
+        "model": "Cisco 8845",
+        "phoneTemplateName": {"_value_1": template_name, "uuid": None},
+        "softkeyTemplateName": {"_value_1": None, "uuid": None},
+        "ownerUserName": (
+            {"_value_1": None, "uuid": None} if is_common_area
+            else {"_value_1": "jdoe", "uuid": "uuid-jdoe"}
+        ),
+        "devicePoolName": {"_value_1": "DP-HQ", "uuid": None},
+        "lines": raw_lines,
     }
     if speed_dials is not None:
         state["speeddials"] = {"speeddial": speed_dials}
@@ -97,6 +125,11 @@ def _make_device(name: str = "SEP001122334455") -> CanonicalDevice:
 def _setup(phone, lkt, device=None, users=None, lines=None, shared_lines=None):
     store = MigrationStore(":memory:")
     store.upsert_object(phone)
+    # Ensure a device object exists for cross-ref FK constraints
+    phone_name = phone.canonical_id.split(":", 1)[-1]
+    if device is None:
+        device = _make_device(phone_name)
+    store.upsert_object(device)
     store.upsert_object(lkt)
     if device:
         store.upsert_object(device)
@@ -111,12 +144,19 @@ def _setup(phone, lkt, device=None, users=None, lines=None, shared_lines=None):
     store.add_cross_ref(
         phone.canonical_id, lkt.canonical_id, "phone_uses_button_template"
     )
-    owner_refs = phone.pre_migration_state.get("cucm_owner_user")
-    if owner_refs:
-        # Only add cross-ref if the user object is in the store (FK constraint)
-        user_cid = f"user:{owner_refs}"
+    # device_owned_by_user links device:{name}, not phone:{name}
+    phone_name = phone.canonical_id.split(":", 1)[-1]
+    device_id = f"device:{phone_name}"
+    owner_raw = phone.pre_migration_state.get("ownerUserName")
+    owner_user = None
+    if isinstance(owner_raw, dict):
+        owner_user = owner_raw.get("_value_1")
+    elif isinstance(owner_raw, str):
+        owner_user = owner_raw
+    if owner_user:
+        user_cid = f"user:{owner_user}"
         if store.get_object(user_cid) is not None:
-            store.add_cross_ref(phone.canonical_id, user_cid, "device_owned_by_user")
+            store.add_cross_ref(device_id, user_cid, "device_owned_by_user")
     return store
 
 
@@ -178,7 +218,7 @@ class TestSpeedDialMerge:
 class TestBlfTargetResolution:
     def test_blf_target_resolved_to_user(self):
         phone = _make_phone(blf_entries=[
-            {"blfDest": "1002", "label": "Jane"},
+            {"blfDest": "1002", "label": "Jane", "index": 2},
         ])
         lkt = _make_lkt(line_keys=[
             {"index": 1, "key_type": "PRIMARY_LINE"},

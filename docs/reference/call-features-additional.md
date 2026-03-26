@@ -256,9 +256,11 @@ body = {
     "extension": "8100",
     "languageCode": "en_us",
     "originatorCallerIdEnabled": True,  # required if originators are set
-    "originators": [{"id": person_id}],
-    "targets": [{"id": person_id}, {"id": workspace_id}]
+    "originators": [person_id],  # Plain string array, NOT [{"id": person_id}]
+    "targets": [person_id, workspace_id]  # Plain string array, NOT [{"id": ...}]
 }
+# IMPORTANT: targets and originators are arrays of ID strings, not objects.
+# [{"id": ...}] returns 400 "Invalid field value". Verified via stress test 2026-03-25.
 result = api.session.rest_post(f"{BASE}/telephony/config/locations/{loc_id}/paging", json=body)
 paging_id = result["id"]
 ```
@@ -963,8 +965,10 @@ body = {
     "name": "Sales Pickup",
     "notificationType": "AUDIO_AND_VISUAL",
     "notificationDelayTimerSeconds": 6,
-    "agents": [{"id": person_id}]
+    "agents": [person_id]  # Plain string array, NOT [{"id": person_id}]
 }
+# IMPORTANT: agents is an array of ID strings, not objects. [{"id": ...}] returns 400.
+# Verified via stress test 2026-03-25.
 result = api.session.rest_post(f"{BASE}/telephony/config/locations/{loc_id}/callPickups", json=body)
 pickup_id = result["id"]
 ```
@@ -2523,8 +2527,8 @@ Customer Assist ─────── Call Queues (screen pop, recording, wrap-u
 ## Gotchas (Cross-Cutting)
 
 - **ID instability**: Call Park and Call Pickup IDs change when the entity name is modified. Always re-fetch the ID after a name update.
-- **Agent serialization**: For Paging Groups, Call Parks, and Call Pickups, the `agents`/`originators`/`targets` fields accept flat lists of IDs on create/update, but return full agent objects on read. Do not pass full objects back on write.
-- **Location-scoped features listed org-wide**: Paging Groups and Voicemail Groups can be listed org-wide (no `locationId` required), but Call Parks and Call Pickups require `locationId` for list operations.
+- **Agent format differs by feature type** <!-- Verified via stress test 2026-03-25 -->: Hunt Groups and Call Queues take `agents` as `[{"id": "person_id"}]` (array of objects). Call Pickups take `agents` as `["person_id"]` (plain string array). Paging Groups take `targets` and `originators` as plain string arrays. Using `[{"id": ...}]` for pickup or paging returns 400 "Invalid field value: agents/targets". Reads always return full agent objects regardless.
+- **Location-scoped features listed org-wide**: Paging Groups and Voicemail Groups can be listed org-wide (no `locationId` required), but **Call Parks and Call Pickups require `locationId`** for list operations. `wxcli call-park list` without a location argument returns empty. Must enumerate per-location during cleanup.
 - **Nested settings require `--json-body`**: Features with complex nested body fields (voicemail group create, call park recall, screen pop, wrap-up settings) need `--json-body` in the CLI because the generator skips deeply nested object/array fields.
 - **Voicemail Group create is strict**: Requires 7+ fields (name, extension, passcode, languageCode, messageStorage, notifications, faxMessage, transferToNumber, emailCopyOfMessage). The wxc_sdk `VoicemailGroupDetail.for_create()` has a bug (missing `by_alias=True`); use `--json-body` via CLI or `model_dump(by_alias=True)` via SDK.
 - **Customer Assist requires licensing**: Screen pop, queue recording, and wrap-up reasons require Customer Assist licensing. Call queues must exist before configuring these features.

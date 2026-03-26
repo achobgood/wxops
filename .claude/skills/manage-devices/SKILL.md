@@ -3,7 +3,8 @@ name: manage-devices
 description: |
   Manage Webex Calling devices using wxcli CLI commands: phones (MPP, ATA, room devices),
   DECT networks, workspaces, activation codes, device settings, line key templates, and hot desking.
-  Guides the user from prerequisites through provisioning, activation, configuration, and verification.
+  Guides the user from prerequisites through provisioning, activation, configuration, deletion, and verification.
+  Use for: create, provision, activate, configure, delete, remove, decommission, or list devices and workspaces.
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [device-operation]
 ---

@@ -1,25 +1,48 @@
 ---
 name: cucm-migrate
 description: |
-  Execute a CUCM-to-Webex migration using DB-driven skill delegation. Queries the
-  migration database for operation metadata, delegates each operation to a domain skill
-  (provision-calling, configure-features, etc.), and tracks results per-operation.
-  Use after running the CUCM analysis pipeline (wxcli cucm discover/normalize/map/analyze/plan/export).
+  Execute a CUCM-to-Webex migration using DB-driven skill delegation. Generates an
+  assessment report first (complexity score, environment inventory, analog gateway review,
+  effort bands), then walks through decision review, and executes migration operations
+  by delegating to domain skills (provision-calling, configure-features, etc.).
+  Use after running the CUCM analysis pipeline (wxcli cucm discover/normalize/map/analyze).
 allowed-tools: Read, Grep, Glob, Bash, Skill, Agent
 argument-hint: [project name]
 ---
 
 # CUCM Migration Execution Workflow
 
-## Step 1: Load and Verify
+## Step 1: Load, Verify, and Assess
 
 1. **Check project exists and pipeline is complete:**
    ```bash
    wxcli cucm status -o json
    ```
-   Verify stage is `PLANNED` or later. If not, tell the admin which pipeline stages remain.
+   Verify stage is `ANALYZED` or later. If not, tell the admin which pipeline stages remain.
 
-2. **Check for pending decisions and generate review file:**
+2. **Generate the assessment report:**
+   ```bash
+   wxcli cucm report --brand "<customer name>" --prepared-by "<admin name>" -p <project>
+   ```
+   This produces an HTML assessment report at `~/.wxcli/migrations/<project>/assessment-report.html`.
+   Open it for the admin:
+   ```bash
+   open ~/.wxcli/migrations/<project>/assessment-report.html
+   ```
+
+   Present the key findings:
+   > "I've generated the migration assessment report. Here's the summary:
+   > - **Complexity score:** X/100 (Straightforward/Moderate/Complex)
+   > - **Environment:** N users, M devices across K sites
+   > - **Analog gateways:** X gateways with ~Y ports (if any — these need manual port mapping)
+   > - **Decisions:** N total, M auto-resolved, K need review
+   >
+   > The full report is open in your browser. Review it before we proceed with decisions."
+
+   Wait for the admin to confirm they've reviewed the report before continuing.
+   If the admin wants to stop here (assessment-only engagement), the workflow ends.
+
+3. **Check for pending decisions and generate review file:**
    ```bash
    wxcli cucm decisions --status pending -p <project>
    ```
@@ -221,6 +244,17 @@ instead of one-at-a-time through the conversational loop. Claude is NOT involved
 execution — only for failure diagnosis afterward.
 
 ```
+0. IF this is a re-run (prior failed attempt exists):
+   Invoke the provision-calling skill with "tear down all resources from org".
+   That skill's Operation F has the full dependency-ordered cleanup with:
+   - Per-location enumeration for call parks and pickups (org-wide list returns empty)
+   - Raw HTTP delete for virtual lines (CLI has ID type mismatch bug)
+   - Calling disable + 90s wait before location delete
+   See docs/reference/provisioning.md § "Bulk Cleanup / Teardown" for the full procedure.
+
+   After cleanup, regenerate the plan:
+   wxcli cucm plan -p <project>
+
 1. Preview the execution plan:
    wxcli cucm dry-run
 
@@ -286,6 +320,11 @@ This table is the PRIMARY execution mechanism. The pipeline says WHAT. The domai
 | virtual_line | configure | manage-call-settings | Virtual line settings |
 | calling_permission | create | manage-call-settings | Logical grouping — no standalone API |
 | calling_permission | assign | manage-call-settings | Per-user outgoing permission PUT |
+| line_key_template | create | manage-devices | POST `/telephony/config/devices/lineKeyTemplates`. Filters UNMAPPED keys. Skipped if `phones_using == 0` |
+| call_forwarding | configure | manage-call-settings | PUT `/people/{id}/features/callForwarding`. Returns `[]` if all forwarding types disabled |
+| monitoring_list | configure | manage-call-settings | PUT `/people/{id}/features/monitoring`. Silently omits unresolved members; returns `[]` if none resolve |
+| device_layout | configure | manage-devices | 2-3 calls: optional PUT `.../members`, PUT `.../layout`, POST `.../actions/applyChanges/invoke`. Uses `device_id_surface` to pick cloud vs telephony device ID |
+| softkey_config | configure | manage-devices | Only for `is_psk_target=True` per-device objects. PUT `.../dynamicSettings` + POST `.../actions/applyChanges/invoke`. Template-level objects auto-complete (no API call) |
 
 ### Rollback Dispatch Table
 
@@ -296,6 +335,11 @@ Delete in the order returned (reverse tier: features → devices → users → r
 
 | resource_type | Delete Command Pattern | Notes |
 |---|---|---|
+| softkey_config | No rollback needed — reconfigure or reset device to defaults | Configure-only; no resource created |
+| device_layout | No rollback needed — reconfigure or reset device to defaults | Configure-only; no resource created |
+| monitoring_list | `curl -X PUT .../people/{id}/features/monitoring -d '{"enableCallParkNotification":false,"monitoredElements":[]}'` | Clears monitoring list |
+| call_forwarding | `curl -X PUT .../people/{id}/features/callForwarding -d '{"always":{"enabled":false},"busy":{"enabled":false},"noAnswer":{"enabled":false}}'` | Disables all forwarding |
+| line_key_template | `curl -X DELETE .../telephony/config/devices/lineKeyTemplates/{id}` | Remove template; phones revert to default |
 | paging_group | `wxcli paging-group delete <location_webex_id> <webex_id> --force` | |
 | pickup_group | `wxcli call-pickup delete <location_webex_id> <webex_id> --force` | |
 | call_park | `wxcli call-park delete <location_webex_id> <webex_id> --force` | |
@@ -311,12 +355,16 @@ Delete in the order returned (reverse tier: features → devices → users → r
 | dial_plan | `wxcli call-routing delete <webex_id> --force` | Remove patterns first |
 | route_group | `wxcli call-routing delete-route-groups <webex_id> --force` | Remove from dial plans first |
 | trunk | `wxcli call-routing delete-trunks <webex_id> --force` | Remove from route groups first |
-| location | `wxcli locations delete <webex_id> --force` | Must be empty first |
+| location | `wxcli locations delete <webex_id> --force` | Disable calling first: `wxcli location-call-settings update-location-calling <webex_id> --calling-enabled false` then wait 90s+ |
 
-**IMPORTANT:** Before deleting locations, verify all users/devices/features at that location
-are already deleted. Before deleting trunks, verify no route groups reference them. Before
-deleting schedules, verify no auto attendants reference them. The reverse tier ordering
-handles this naturally — only override if an op was skipped.
+**IMPORTANT:**
+- Before deleting locations, verify all users/devices/features at that location are already deleted.
+- Before deleting trunks, verify no route groups reference them (Error 27349 names the blocker).
+- Before deleting schedules, verify no auto attendants reference them.
+- **Call parks and pickups must be listed per-location** — `wxcli call-park list` and `wxcli call-pickup list` without a location arg return empty.
+- **Virtual lines must be deleted via raw HTTP** — `wxcli virtual-extensions delete` uses wrong ID type. Use `curl -X DELETE .../telephony/config/virtualLines/{id}`. Discover VL IDs from `wxcli numbers list -o json` (owner.type == VIRTUAL_LINE).
+- The reverse tier ordering handles dependency order naturally — only override if an op was skipped.
+- See `docs/reference/provisioning.md` § "Bulk Cleanup / Teardown" for the full procedure.
 
 ### Delegation examples
 

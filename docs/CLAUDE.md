@@ -30,7 +30,7 @@ reference/  ──informs──>  plans/  ──informs──>  prompts/
 - **Master project status:** `plans/cucm-migration-roadmap.md` — what's done, what's ready, what's next
 - **Pipeline architecture:** `plans/cucm-pipeline-architecture.md` — authoritative design (§3 and §7 marked BUILT)
 - **Detailed pipeline docs:** `plans/cucm-pipeline/01-07 + 03b` — 8 architecture deep-dives (all implemented in Phases 01-11)
-- **Migration execution:** Use `/cucm-migrate` skill after running `wxcli cucm discover` through `wxcli cucm export`. All 11 build phases complete, 1426 tests passing.
+- **Migration execution:** Use `/cucm-migrate` skill after running `wxcli cucm discover` through `wxcli cucm export`. All 11 build phases complete, 1445 tests passing.
 - **Build prompts (all executed):** `prompts/phase-01-foundation.md` through `prompts/phase-11-cucm-migrate-skill.md`
 
 ## Root Files

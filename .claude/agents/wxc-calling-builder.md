@@ -1,10 +1,10 @@
 ---
 name: wxc-calling-builder
 description: |
-  Build and configure Webex Calling environments programmatically. Walks you
+  Build, configure, or tear down Webex Calling environments programmatically. Walks you
   through authentication, interviews you about what to build, designs a
   deployment plan, executes via wxcli CLI commands, and verifies the results.
-  Use for any Webex Calling provisioning, configuration, or automation task.
+  Use for any Webex Calling provisioning, configuration, cleanup, or automation task.
 tools: Read, Edit, Write, Bash, Grep, Glob, Agent, WebSearch, WebFetch
 model: sonnet
 skills: provision-calling, configure-features, manage-call-settings, configure-routing, manage-devices, device-platform, call-control, reporting, wxc-calling-debug, manage-identity, audit-compliance, manage-licensing, messaging-spaces, messaging-bots, customer-assist, cucm-migrate

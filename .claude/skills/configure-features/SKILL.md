@@ -1,9 +1,10 @@
 ---
 name: configure-features
 description: |
-  Configure Webex Calling call features using wxcli CLI commands: Auto Attendants, Call Queues,
+  Create, modify, or delete Webex Calling call features using wxcli CLI commands: Auto Attendants, Call Queues,
   Hunt Groups, Paging Groups, Call Park, Call Pickup, Voicemail Groups, and CX Essentials.
-  Guides the user from prerequisites through creation and verification.
+  Guides the user from prerequisites through creation, modification, deletion, and verification.
+  Use for: create, update, delete, remove, list, or troubleshoot any call feature.
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [feature-type]
 ---
@@ -585,7 +586,9 @@ Next steps:
 15. **VM Group SDK bug is handled by the CLI.** The `wxcli location-voicemail create` command works around the `by_alias=True` bug internally.
 16. **Location-scoped deletes take LOCATION_ID as the FIRST argument** — `wxcli hunt-group delete --force LOCATION_ID HG_ID`, not `wxcli hunt-group delete --force HG_ID`. This applies to all location-scoped features: hunt-group, auto-attendant, call-queue, paging-group, call-park, call-pickup, location-voicemail, location-schedules.
 17. **Always use `--force` for programmatic deletes** — Without `--force`, delete commands prompt `[y/N]` which blocks non-interactive execution.
-18. **Cross-skill handoffs:**
+18. **Agent/member format differs by feature type.** Hunt Groups and Call Queues take `agents` as `[{"id": "person_id"}]` (array of objects). Call Pickups take `agents` as `["person_id"]` (plain string array). Paging Groups take `targets`/`originators` as plain string arrays. Using the wrong format returns 400 "Invalid field value". Always check `docs/reference/call-features-additional.md` if unsure.
+19. **Call Parks and Call Pickups require location for listing.** `wxcli call-park list` and `wxcli call-pickup list` without a location argument return empty. Must pass `LOCATION_ID` as first positional arg: `wxcli call-park list LOCATION_ID -o json`.
+20. **Cross-skill handoffs:**
     - CX Essentials configuration → `customer-assist` skill (screen pop, wrap-up, recording, supervisors)
     - Person/workspace call settings → `manage-call-settings` skill (voicemail, forwarding, DND, etc.)
     - Routing (trunks, dial plans, PSTN) → `configure-routing` skill
