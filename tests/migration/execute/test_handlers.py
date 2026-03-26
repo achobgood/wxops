@@ -1025,6 +1025,20 @@ class TestDeviceLayoutConfigure:
         assert body["layoutMode"] == "DEFAULT"
         assert "lineKeys" not in body
 
+    def test_kem_keys_included_in_layout(self):
+        data = self._base_data()
+        data["line_members"] = []
+        data["resolved_kem_keys"] = [
+            {"module_index": 1, "index": 1, "key_type": "SPEED_DIAL", "label": "Lab"},
+            {"module_index": 1, "index": 2, "key_type": "SPEED_DIAL"},
+        ]
+        deps = {"device:SEPAA112233": "wx-dev-bbb"}
+        result = handle_device_layout_configure(data, deps, {})
+        _, _, body = result[0]  # PUT layout (no members)
+        assert "kemKeys" in body
+        assert body["kemKeys"][0] == {"kemModuleIndex": 1, "kemKeyIndex": 1, "kemKeyType": "SPEED_DIAL", "kemKeyLabel": "Lab"}
+        assert body["kemKeys"][1] == {"kemModuleIndex": 1, "kemKeyIndex": 2, "kemKeyType": "SPEED_DIAL"}
+
     def test_orgid_injected(self):
         data = self._base_data()
         data["line_members"] = []

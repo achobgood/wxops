@@ -530,6 +530,10 @@ def handle_calling_permission_assign(data: dict, deps: dict, ctx: dict) -> Handl
     return calls
 
 
+# ---------------------------------------------------------------------------
+# Tier 6: Monitoring list
+# ---------------------------------------------------------------------------
+
 def handle_monitoring_list_configure(data: dict, deps: dict, ctx: dict) -> HandlerResult:
     person_wid = deps.get(data.get("user_canonical_id", ""))
     if not person_wid:
