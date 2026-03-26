@@ -155,18 +155,51 @@ class SoftkeyMapper(Mapper):
                 if mapped_keywords:
                     state_key_lists[psk_state] = mapped_keywords
 
+            # Per-device fan-out: create one CanonicalSoftkeyConfig per PSK-capable phone.
+            # These per-device objects (is_psk_target=True) drive the execute handler.
+            per_device_count = 0
+            if has_psk_phone and psk_mappings:
+                for phone_id in phone_refs:
+                    phone = store.get_object(phone_id)
+                    if not phone:
+                        continue
+                    model = phone.get("model")
+                    if not model:
+                        phone_state = phone.get("pre_migration_state") or {}
+                        model = phone_state.get("model") or phone_state.get("cucm_product")
+                    if not _is_psk_capable_model(model):
+                        continue
+                    phone_state = phone.get("pre_migration_state") or {}
+                    device_name = phone_state.get("name") or phone_id.replace("phone:", "")
+                    per_device_config = CanonicalSoftkeyConfig(
+                        canonical_id=f"softkey_config:device:{device_name}",
+                        provenance=extract_provenance(tmpl_data),
+                        status=MigrationStatus.ANALYZED,
+                        cucm_template_name=name,
+                        is_psk_target=True,
+                        device_canonical_id=f"device:{device_name}",
+                        psk_mappings=psk_mappings,
+                        state_key_lists=state_key_lists,
+                        unmapped_softkeys=unmapped,
+                        phones_using=1,
+                    )
+                    store.upsert_object(per_device_config)
+                    per_device_count += 1
+
+            # Template-level object: report-only (is_psk_target=False).
+            # Retains PSK mapping data for assessment; execution handled by per-device objects.
             config = CanonicalSoftkeyConfig(
                 canonical_id=f"softkey_config:{name}",
                 provenance=extract_provenance(tmpl_data),
                 status=MigrationStatus.ANALYZED,
                 cucm_template_name=name,
-                is_psk_target=has_psk_phone,
+                is_psk_target=False,
                 psk_mappings=psk_mappings if has_psk_phone else [],
                 state_key_lists=state_key_lists,
                 unmapped_softkeys=unmapped,
                 phones_using=phones_using,
             )
             store.upsert_object(config)
-            result.objects_created += 1
+            result.objects_created += 1 + per_device_count
 
         return result

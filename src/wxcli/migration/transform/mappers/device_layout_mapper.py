@@ -4,12 +4,14 @@ Merges CanonicalLineKeyTemplate structure with per-phone line appearances,
 speed dials, and BLF entries. Resolves DNs to canonical user IDs and
 detects shared lines via CanonicalSharedLine objects.
 
-(from tier2-phase2-phone-config-design.md §4.2)
+Reads raw phone objects (object_type="phone") which contain the full AXL
+getPhone response in pre_migration_state. Key fields:
+  - lines: list of line dicts with {index, label, dirn: {pattern, routePartitionName}}
+  - speeddials: {speeddial: [{dirn, label, index}, ...]}
+  - busyLampFields: {busyLampField: [{blfDest, label, index}, ...]}
+  - ownerUserName: zeep ref dict {"_value_1": "userid", "uuid": "..."}
 
-Cross-ref reads:
-    phone_uses_button_template  (Phone → ButtonTemplate)  — template lookup
-    device_owned_by_user        (Phone → User)             — owner
-    line_assigned_to_user       (Line → User)              — DN resolution
+(from tier2-phase2-phone-config-design.md §4.2)
 """
 from __future__ import annotations
 
@@ -34,6 +36,18 @@ from wxcli.migration.transform.mappers.monitoring_mapper import (
 logger = logging.getLogger(__name__)
 
 
+def _ref_value(field: Any) -> str | None:
+    """Extract display value from a zeep ref dict or plain string."""
+    if field is None:
+        return None
+    if isinstance(field, str):
+        return field or None
+    if isinstance(field, dict):
+        val = field.get("_value_1")
+        return val if val else None
+    return None
+
+
 class DeviceLayoutMapper(Mapper):
     """Per-device layout: merges button template with actual phone data."""
 
@@ -43,24 +57,27 @@ class DeviceLayoutMapper(Mapper):
     def map(self, store: MigrationStore) -> MapperResult:
         result = MapperResult()
 
-        # Pre-load shared line DNs for fast lookup
         shared_dns = self._build_shared_dn_set(store)
 
         for phone_data in store.get_objects("phone"):
             phone_id = phone_data["canonical_id"]
             state = phone_data.get("pre_migration_state") or {}
 
-            # Skip common-area phones
-            if state.get("is_common_area", False):
+            # Skip common-area phones (no ownerUserName)
+            owner_raw = _ref_value(state.get("ownerUserName"))
+            if not owner_raw and state.get("class") == "Phone":
                 continue
 
             phone_name = state.get("name", phone_id.split(":", 1)[-1])
+            device_id = f"device:{phone_name}"
 
-            # Resolve owner
-            owner_refs = store.find_cross_refs(phone_id, "device_owned_by_user")
-            owner_id = owner_refs[0] if owner_refs else None
+            # Resolve owner via device cross-ref (device_owned_by_user links device:, not phone:)
+            owner_id = None
+            owner_refs = store.find_cross_refs(device_id, "device_owned_by_user")
+            if owner_refs:
+                owner_id = owner_refs[0]
 
-            # Resolve button template
+            # Resolve button template via phone cross-ref
             tmpl_refs = store.find_cross_refs(phone_id, "phone_uses_button_template")
             tmpl_id = None
             tmpl_line_keys: list[dict] = []
@@ -70,41 +87,56 @@ class DeviceLayoutMapper(Mapper):
                 lkt = store.get_object(lkt_id)
                 if lkt:
                     tmpl_id = lkt_id
-                    tmpl_line_keys = lkt.get("line_keys", [])
-                    tmpl_kem_keys = lkt.get("kem_keys", [])
+                    lkt_data = lkt if isinstance(lkt, dict) else lkt.model_dump()
+                    tmpl_line_keys = lkt_data.get("line_keys", [])
+                    tmpl_kem_keys = lkt_data.get("kem_keys", [])
 
-            # Phone-specific data
-            line_appearances = state.get("line_appearances", [])
+            # Raw phone data: lines are a flat list from the extractor
+            raw_lines = state.get("lines", [])
+            if isinstance(raw_lines, dict):
+                raw_lines = raw_lines.get("line", [])
+                if isinstance(raw_lines, dict):
+                    raw_lines = [raw_lines]
+
+            # Index line appearances by position
+            la_by_index: dict[int, dict] = {}
+            for la in raw_lines:
+                if not isinstance(la, dict):
+                    continue
+                dirn = la.get("dirn")
+                if not dirn or not isinstance(dirn, dict):
+                    continue
+                idx = la.get("index")
+                if idx is not None:
+                    la_by_index[int(idx)] = la
+
+            # Speed dials and BLF indexed by button position
             speed_dials_raw = _extract_speed_dials(state)
             blf_entries_raw = _extract_blf_entries(state)
 
-            # Index speed dials and BLF by position
-            sd_by_index: dict[str, dict] = {}
+            sd_by_index: dict[int, dict] = {}
             for sd in speed_dials_raw:
-                idx = sd.get("speedDialIndex") or sd.get("index")
-                if idx:
-                    sd_by_index[str(idx)] = sd
+                idx = sd.get("index") or sd.get("speedDialIndex")
+                if idx is not None:
+                    sd_by_index[int(idx)] = sd
 
-            blf_by_index: dict[str, dict] = {}
-            for i, blf in enumerate(blf_entries_raw):
-                blf_by_index[str(i + 1)] = blf
+            blf_by_index: dict[int, dict] = {}
+            for blf in blf_entries_raw:
+                idx = blf.get("index")
+                if idx is not None:
+                    blf_by_index[int(idx)] = blf
 
             # Build line_members from line appearances
             line_members: list[dict[str, Any]] = []
-            la_by_index = {
-                la.get("line_index", i + 1): la
-                for i, la in enumerate(line_appearances)
-            }
+            for la_idx in sorted(la_by_index.keys()):
+                la = la_by_index[la_idx]
+                dirn = la.get("dirn", {})
+                dn = dirn.get("pattern", "")
+                partition = _ref_value(dirn.get("routePartitionName"))
+                label = la.get("label")
 
-            for la_idx, la in sorted(la_by_index.items()):
-                dn = la.get("dn", "")
-                partition = la.get("partition")
-                label = la.get("line_label")
-
-                # Resolve DN to user
                 member_id = self._resolve_dn_to_user(store, dn)
 
-                # Check shared
                 dn_key = f"{dn}:{partition}" if partition else dn
                 line_type = (
                     "SHARED_LINE"
@@ -129,18 +161,19 @@ class DeviceLayoutMapper(Mapper):
 
             # Collect speed dials
             speed_dials = []
-            for idx, sd in sd_by_index.items():
+            for idx in sorted(sd_by_index.keys()):
+                sd = sd_by_index[idx]
                 speed_dials.append({
-                    "index": int(idx),
+                    "index": idx,
                     "label": sd.get("label", ""),
-                    "number": sd.get("speedDialNumber", sd.get("dirn", "")),
+                    "number": sd.get("dirn") or sd.get("speedDialNumber", ""),
                 })
 
             layout = CanonicalDeviceLayout(
                 canonical_id=f"device_layout:{phone_name}",
                 provenance=extract_provenance(phone_data),
                 status=MigrationStatus.ANALYZED,
-                device_canonical_id=f"device:{phone_name}",
+                device_canonical_id=device_id,
                 template_canonical_id=tmpl_id,
                 owner_canonical_id=owner_id,
                 line_members=line_members,
@@ -150,15 +183,14 @@ class DeviceLayoutMapper(Mapper):
             )
             store.upsert_object(layout)
 
-            # Link phone → layout (phone always exists in the store)
-            store.add_cross_ref(
-                phone_id, layout.canonical_id, "phone_has_layout",
-            )
-            # Also link device → layout if the device object exists
-            device_id = f"device:{phone_name}"
+            store.add_cross_ref(phone_id, layout.canonical_id, "phone_has_layout")
             if store.get_object(device_id) is not None:
+                store.add_cross_ref(device_id, layout.canonical_id, "device_has_layout")
+            if layout.template_canonical_id:
                 store.add_cross_ref(
-                    device_id, layout.canonical_id, "device_has_layout",
+                    layout.canonical_id,
+                    layout.template_canonical_id,
+                    "layout_uses_template",
                 )
             result.objects_created += 1
 
@@ -171,14 +203,13 @@ class DeviceLayoutMapper(Mapper):
     def _resolve_keys(
         self,
         template_keys: list[dict],
-        la_by_index: dict,
-        sd_by_index: dict,
-        blf_by_index: dict,
+        la_by_index: dict[int, dict],
+        sd_by_index: dict[int, dict],
+        blf_by_index: dict[int, dict],
         store: MigrationStore,
     ) -> list[dict[str, Any]]:
         """Resolve template key slots with phone-specific values."""
         resolved = []
-        blf_counter = 0
         for key in template_keys:
             idx = key.get("index", 0)
             key_type = key.get("key_type", "OPEN")
@@ -187,30 +218,28 @@ class DeviceLayoutMapper(Mapper):
             if key_type in ("PRIMARY_LINE", "SHARED_LINE", "LINE"):
                 la = la_by_index.get(idx)
                 if la:
-                    entry["label"] = la.get("line_label")
-                    dn = la.get("dn", "")
-                    member_id = self._resolve_dn_to_user(store, dn)
-                    entry["target_canonical_id"] = member_id
+                    dirn = la.get("dirn", {})
+                    dn = dirn.get("pattern", "") if isinstance(dirn, dict) else ""
+                    entry["label"] = la.get("label")
+                    entry["target_canonical_id"] = self._resolve_dn_to_user(store, dn)
 
             elif key_type == "SPEED_DIAL":
-                sd = sd_by_index.get(str(idx))
+                sd = sd_by_index.get(idx)
                 if sd:
                     entry["label"] = sd.get("label", "")
-                    entry["value"] = sd.get(
-                        "speedDialNumber", sd.get("dirn", ""),
-                    )
+                    entry["value"] = sd.get("dirn") or sd.get("speedDialNumber", "")
 
             elif key_type == "MONITOR":
-                blf_counter += 1
-                blf = blf_by_index.get(str(blf_counter))
+                blf = blf_by_index.get(idx)
                 if blf:
-                    target_dn = (
-                        blf.get("blfDest") or blf.get("blfDirn") or ""
-                    )
+                    target_dn = blf.get("blfDest") or ""
                     entry["label"] = blf.get("label", target_dn)
                     entry["target_canonical_id"] = self._resolve_dn_to_user(
                         store, target_dn,
                     )
+
+            elif key_type == "CALL_PARK_EXTENSION":
+                entry["label"] = "Call Park"
 
             resolved.append(entry)
         return resolved
@@ -241,7 +270,6 @@ class DeviceLayoutMapper(Mapper):
         for sl in store.get_objects("shared_line"):
             dn_id = sl.get("dn_canonical_id", "")
             if dn_id:
-                # Extract DN pattern from canonical_id like "line:1001"
                 parts = dn_id.split(":", 1)
                 if len(parts) > 1:
                     shared.add(parts[1])

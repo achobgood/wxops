@@ -76,11 +76,16 @@ class TestPskMapping9800:
         phone = _make_phone("SEP111111111111", "Cisco 9841", "Standard User")
         store = _setup(tmpl, [phone])
         SoftkeyMapper().map(store)
-        obj = store.get_object("softkey_config:Standard User")
-        assert obj is not None
-        assert obj["is_psk_target"] is True
+        # Template-level object is now report-only (is_psk_target=False)
+        tmpl_obj = store.get_object("softkey_config:Standard User")
+        assert tmpl_obj is not None
+        assert tmpl_obj["is_psk_target"] is False
+        # Per-device object carries is_psk_target=True
+        per_device_obj = store.get_object("softkey_config:device:SEP111111111111")
+        assert per_device_obj is not None
+        assert per_device_obj["is_psk_target"] is True
         # Verify state key lists have mapped keywords
-        states = obj["state_key_lists"]
+        states = per_device_obj["state_key_lists"]
         assert "idle" in states or "onHook" in states
 
     def test_mapped_keywords_are_correct(self):
