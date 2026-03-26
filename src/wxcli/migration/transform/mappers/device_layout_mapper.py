@@ -66,7 +66,7 @@ class DeviceLayoutMapper(Mapper):
             tmpl_line_keys: list[dict] = []
             tmpl_kem_keys: list[dict] = []
             if tmpl_refs:
-                lkt_id = tmpl_refs[0]
+                lkt_id = tmpl_refs[0].replace("button_template:", "line_key_template:")
                 lkt = store.get_object(lkt_id)
                 if lkt:
                     tmpl_id = lkt_id
