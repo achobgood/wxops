@@ -21,10 +21,10 @@ The report reads from the same SQLite store that the migration pipeline populate
 | `score.py` | Migration Complexity Score (0-100). 7 weighted factors with `display_name` field (customer-friendly names). Returns `ScoreResult` dataclass. `DISPLAY_NAMES` maps internal factor names → display names. |
 | `charts.py` | SVG/HTML chart generators: `gauge_chart()` (compact 200x155 viewBox), `donut_chart()`, `horizontal_bar_chart()`, `stacked_bar_chart()` (HTML divs with legend). Pure functions, no store dependency. |
 | `explainer.py` | Translates `DecisionType` + context into plain-English dicts. Also: `generate_verdict()` (one-paragraph summary), `generate_key_findings()` (3-4 bullet findings), `DECISION_TYPE_DISPLAY_NAMES` (20 types mapped). |
-| `styles.py` | `REPORT_CSS` + `GOOGLE_FONTS_LINKS` — v3 "Authority Minimal" CSS design system. IBM Plex Sans/Mono, navy+blue accent, floating white card on gray bg, 260px sidebar, inline summary bar, 2-column score layout, print optimization. Legacy CSS variable aliases for backward compat. |
-| `executive.py` | 4-page executive summary with conclusion-style headings and section kickers. Page 1 (The Verdict — 2-column gauge+factor bars, key findings), Page 2 (Your Environment — People/Devices/Features/Sites), Page 3 (Migration Scope — effort bands: auto/planning/manual), Page 4 (Next Steps — prerequisites, planning, CTA). Gauge hardcoded to accent blue (#2563eb). Factor bars sorted by score descending, highest in blue, rest gray. |
-| `appendix.py` | Technical appendix: 8 collapsed `<details>` topic groups (People, Devices, Call Features, Routing, Call Forwarding, Speed Dials & Monitoring, Decisions, Data Quality). Decisions grouped by type with aggregated counts. All canonical IDs stripped via helpers. |
-| `assembler.py` | Full HTML document with sidebar nav (dot indicators, 4 exec + 7 tech items), fixed inline summary bar, dark interstitial between exec/appendix, content-card wrapper (max-width 960px), print header. |
+| `styles.py` | `REPORT_CSS` + `GOOGLE_FONTS_LINKS` — v4 editorial CSS design system. Lora/Source Sans 3/IBM Plex Mono, teal primary (#00897B), warm neutrals, 320px sidebar, score-layout 2-column grid, effort-band/verdict/cta-box components, print optimization. Legacy CSS variable aliases for backward compat. |
+| `executive.py` | 4-page executive summary with direct h2 headings (no section kickers). Page 1 (Migration Complexity Assessment — tier-colored gauge+factor bars, key findings, stat grid), Page 2 (What You Have — People/Devices donut chart/Features/Sites), Page 3 (What Needs Attention — effort bands: auto/planning/manual), Page 4 (Next Steps — prerequisites, planning, CTA). Gauge uses tier-based color (green/amber/red). Factor bars sorted by score descending, highest in teal, rest gray. |
+| `appendix.py` | Technical appendix: 14 lettered sections A-N as collapsed `<details>` elements (Object Inventory, Decision Detail, CSS/Partitions, Device Inventory, DN Analysis, User/Device Map, Routing, Voicemail, Data Coverage, Gateways, Call Features, Button Templates, Device Layouts, Softkeys). All canonical IDs stripped via helpers. |
+| `assembler.py` | Full HTML document with 320px sidebar nav (step-icon circles, numbered 1-4 exec + lettered A-N tech), page-header (slate-900 bg), IntersectionObserver scroll tracking, no summary bar or dark interstitial, footer inside detail-panel. |
 
 ## Key Data Access Patterns
 
@@ -107,33 +107,30 @@ strip_canonical_id("dn:1001:PT-Internal")  # → "1001 (PT-Internal)"
 friendly_site_name("DP-HQ-Phones")  # → "HQ"
 ```
 
-## CSS Design System (v3 — Authority Minimal)
+## CSS Design System (v4 — Editorial + v3 Data)
 
-Design philosophy: "What if Linear designed a Deloitte report." Consulting-grade authority with modern tech aesthetics. Based on McKinsey/BCG/Bain report design research.
+Design philosophy: Warm editorial design merged with v3's data-rich components. Combines v1's Lora/Source Sans typography and teal primary with v3's score-layout, effort-bands, and data tables.
 
-- **Typography:** IBM Plex Sans (body) + IBM Plex Mono (data) via Google Fonts. rem-based scale, 16px base. Headings: semibold (600), letter-spacing -0.01em.
-- **Layout (screen):** 260px fixed dark sidebar + fixed inline summary bar (top) + scrolling content card (max-width 960px, white on #eef0f4 gray, border-radius 10px, layered box-shadow). Score section uses 2-column grid (gauge left, factor bars right).
-- **Colors:** Accent #2563eb (corporate blue), Success #059669, Warning #d97706, Critical #dc2626. Text primary #111827 / body #374151 / muted #6b7280. Page bg #eef0f4. No teal — old `--color-primary` aliased to `--accent` for backward compat.
-- **Heading pattern:** Every h2 is a conclusion statement (not a topic label). Section kickers (`.section-kicker` — small uppercase) provide the topic name above the heading.
-- **Chart language:** One accent color for focal data (highest-scoring factor), gray (#94a3b8) for the rest. Score number always dark (#111827), never accent-colored. Bars sorted by score descending. Gauge arc in accent blue.
-- **Components:** `.score-layout` (2-col grid), `.content-card` (floating page), `.effort-band` (left-border + tint bg), `.score-breakdown` (factor bars), `.key-findings`, `.verdict`, `.cta-box`, `.tech-interstitial`, `.stat-card`, `.callout`, `.badge-direct`/`.badge-approx`/`.badge-decision`, `.section-kicker`, `.nav-dot` (exec blue, tech gray)
-- **Print:** Sidebar/summary-bar hidden, content-card loses shadow/radius, `<details>` forced open, page breaks between sections, 10pt font size
-- **Tables:** No vertical borders, uppercase small headers, no zebra striping, hover: page-bg
-- **Legacy aliases:** `--color-primary`, `--color-success`, `--color-warning`, `--color-critical`, `--color-text`, `--color-text-muted`, `--color-text-light`, `--color-bg`, `--color-border`, `--warm-50`, `--slate-*` all alias to new tokens so appendix.py and explainer.py work without changes.
+- **Typography:** Lora (display/headings, serif) + Source Sans 3 (body, sans-serif) + IBM Plex Mono (data) via Google Fonts. 17px base. Headings: Lora semibold (600).
+- **Layout (screen):** Slate-900 page-header + 320px white sidebar (sticky, right border) with step-icon circles (teal exec, gray tech) + scrolling detail-panel. Score section uses 2-column grid (gauge left, factor bars right). IntersectionObserver highlights active nav on scroll.
+- **Colors:** Primary teal #00897B, Success #2E7D32, Warning #EF6C00, Critical #C62828. Warm neutral bg #fdf8f3. Slate text hierarchy (#242a33 / #636e7e / #8e97a5). Legacy aliases map to new tokens.
+- **Heading pattern:** Direct h2 topic headings (no section kickers). H2 has border-bottom warm-200.
+- **Chart language:** Teal for focal data (highest-scoring factor), slate-400 for the rest. Gauge arc uses tier-based color (green/amber/red from `result.color`). Donut chart in executive, stacked bar in appendix device section.
+- **Components:** `.score-layout` (2-col grid), `.step-item` / `.step-icon` (sidebar nav), `.effort-band` (left-border + tint bg), `.score-breakdown` (factor bars), `.key-findings`, `.verdict`, `.cta-box`, `.stat-card` (warm-100 bg), `.callout`, `.badge-*`, `.css-topology` (nested list with teal dots)
+- **Print:** Sidebar/page-header hidden, `<details>` forced open, page breaks between sections, 9.5pt font size, footer fixed to bottom
+- **Tables:** No vertical borders, uppercase small headers, warm-200 bottom borders, hover: warm-100
+- **Legacy aliases:** `--color-primary`, `--color-success`, `--color-warning`, `--color-critical`, `--color-text`, `--color-text-muted`, `--color-text-light`, `--color-bg`, `--color-border` all alias to v4 tokens so charts.py and explainer.py work without changes.
 
 Google Fonts loaded via `GOOGLE_FONTS_LINKS` constant in `styles.py`, injected by `assembler.py` in `<head>`.
 
 ## Known Polish Items (Future Iteration)
 
-These were identified during the v3 visual review and deferred:
+These were identified during the v4 visual review and deferred:
 
-- **Section spacing:** Executive sections need more generous vertical padding between them (currently `margin-bottom: 48px`, could use 64px+)
-- **Verdict callout text:** Slightly cramped — could use more line-height or padding
-- **Tech interstitial inside content-card:** The dark bar is constrained by the card's border-radius and padding. Ideally it should break out to full width using negative margins.
 - **Stat card zero values:** "0" for Native MPP still renders — should suppress zero-count stat cards
-- **Effort band content text:** Body text inside effort bands is small (0.8rem) — bump to 0.875rem
-- **Print optimization:** Not re-verified after v3 changes — needs a print-to-PDF test pass
-- **Score calibration:** Gauge always uses accent blue regardless of score tier — consider returning to tier-based colors (green/amber/red) for the arc while keeping the number dark
+- **Print optimization:** Not re-verified after v4 changes — needs a print-to-PDF test pass
+- **Logo/partner branding:** `--logo` flag not yet implemented
+- **Score calibration:** No real CUCM environments tested yet — manual validation needed
 
 ## CLI Usage
 
@@ -172,10 +169,10 @@ Reads collector output files and writes `raw_data.json` in the same format as li
 
 - **v1 spec:** `docs/superpowers/specs/2026-03-24-cucm-assess-design.md` — strategic context, competitive analysis
 - **v2 spec:** `docs/superpowers/specs/2026-03-25-assessment-report-v2-design.md` — narrative redesign, effort bands, customer-centric layout (content structure — still authoritative)
-- **v3 spec:** `docs/superpowers/specs/2026-03-25-assessment-report-v3-visual-design.md` — "Authority Minimal" visual redesign (supersedes v2 visual sections)
-- **v3 plan:** `docs/superpowers/plans/2026-03-25-assessment-report-v3-visual.md` — 6-task implementation plan
-- **v3 mockups:** `.superpowers/brainstorm/38786-1774470618/content/` — comparison, design system, verdict page mockups
+- **v3 spec:** `docs/superpowers/specs/2026-03-25-assessment-report-v3-visual-design.md` — "Authority Minimal" visual redesign (superseded by v4)
+- **v4 spec:** `docs/superpowers/specs/2026-03-26-assessment-report-v4-design.md` — merges v1 editorial warmth with v3 data richness
+- **v4 plan:** `docs/superpowers/plans/2026-03-26-assessment-report-v4.md` — 6-task implementation plan
 
-v3 visual redesign was driven by research into McKinsey/BCG/Deloitte consulting report design patterns. Key insight: editorial design (serif fonts, warm palette, Medium.com style) is wrong for a consulting assessment deliverable. The audience (CIO, IT Director, telecom engineer) expects authoritative precision, not literary warmth.
+v4 merges v1's warm editorial design (Lora serif, Source Sans 3, teal primary, warm neutrals, 320px sidebar with step-icons) with v3's data components (score-layout, effort-bands, decision stats). The v3 "Authority Minimal" style (IBM Plex, navy+blue, dark sidebar) was too corporate — the editorial warmth better matches the SE-to-customer delivery context.
 
 Future SaaS platform plan: `docs/plans/cucm-assess-saas-future.md`
