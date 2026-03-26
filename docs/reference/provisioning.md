@@ -23,7 +23,8 @@ User, license, and location provisioning for Webex Calling via the `wxc_sdk` Pyt
 7. [Provisioning Workflow](#provisioning-workflow)
 8. [Data Models](#data-models)
 9. [Gotchas](#gotchas) (cross-cutting)
-10. [See Also](#see-also)
+10. [Bulk Cleanup / Teardown](#bulk-cleanup--teardown)
+11. [See Also](#see-also)
 
 ---
 
@@ -1281,6 +1282,76 @@ If `POST /v1/people?callingData=false` fails with 400 (e.g., "Calling flag not s
 ### Number porting has no public API
 
 Number port-in requests, LOA submission, porting status tracking, and new number ordering from Cisco Calling Plan are all done through the Control Hub UI or via Cisco's PTS (PSTN Technical Support) team. The Numbers API (`wxcli numbers`) only manages numbers *after* they are ported in or provisioned — it cannot initiate a port.
+
+### Location deletion requires calling disable with cooldown
+<!-- Verified via stress test bulk execution 2026-03-25 -->
+
+Locations with Webex Calling enabled cannot be deleted directly (409 Conflict). The deletion sequence is:
+1. Delete all location-scoped resources (virtual lines, call parks, hunt groups, call queues, schedules, trunks, devices, workspaces, users)
+2. Disable calling: `wxcli location-call-settings update-location-calling LOCATION_ID --calling-enabled false`
+3. Wait 90+ seconds for the backend to propagate the change
+4. Delete the location: `wxcli locations delete --force LOCATION_ID`
+
+Even after waiting, the delete may return 409 "Location is being referenced" for **minutes to hours**. The execution engine's 409 auto-recovery handles this on re-run.
+
+---
+
+## Bulk Cleanup / Teardown
+<!-- Verified via stress test bulk execution 2026-03-25 -->
+
+When tearing down resources programmatically (e.g., cleaning up after a stress test or migration dry run), resources must be deleted in **reverse dependency order**. Deleting in the wrong order produces 409 (Conflict) or 400 (reference still exists) errors.
+
+### Deletion Order (top-to-bottom)
+
+| Step | Resource Type | wxcli Delete Command | Notes |
+|------|--------------|---------------------|-------|
+| 1 | Dial Plans | `wxcli call-routing delete --force {id}` | Just `delete`, not `delete-dial-plan` |
+| 2 | Route Lists | `wxcli call-routing delete-route-lists --force {id}` | Plural suffix |
+| 3 | Route Groups | `wxcli call-routing delete-route-groups --force {id}` | Plural suffix |
+| 4 | Translation Patterns | `wxcli call-routing delete-translation-patterns-call-routing --force {id}` | |
+| 5 | Trunks | `wxcli call-routing delete-trunks --force {id}` | Check for dial plan refs first (Error 27349) |
+| 6 | Call Queues | `wxcli call-queue delete --force {locationId} {id}` | Needs locationId |
+| 7 | Hunt Groups | `wxcli hunt-group delete --force {locationId} {id}` | Needs locationId |
+| 8 | Auto Attendants | `wxcli auto-attendant delete --force {locationId} {id}` | Needs locationId |
+| 9 | Paging Groups | `wxcli paging-group delete --force {locationId} {id}` | Needs locationId |
+| 10 | Call Parks | `wxcli call-park delete --force {locationId} {id}` | **Must list per-location** (see below) |
+| 11 | Call Pickups | `wxcli call-pickup delete --force {locationId} {id}` | **Must list per-location** (see below) |
+| 12 | Virtual Lines | Raw `DELETE /v1/telephony/config/virtualLines/{id}` | See VL bug below |
+| 13 | Workspaces | `wxcli workspaces delete --force {id}` | |
+| 14 | Users | `wxcli users delete --force {id}` | |
+| 15 | Schedules | `wxcli location-schedules delete --force {locationId} {type} {scheduleId}` | |
+| 16 | Locations | `wxcli locations delete --force {id}` | Must disable calling first; see above |
+
+### Key Behaviors
+
+**Always use `--force` on delete commands** to skip the `[y/N]` confirmation prompt that blocks non-interactive execution.
+
+**Call Parks and Call Pickups must be listed per-location.** `wxcli call-park list` and `wxcli call-pickup list` without a location argument return empty even when resources exist. You must iterate over each location:
+```bash
+for LOC_ID in $(wxcli locations list -o json | jq -r '.[].id // empty'); do
+  wxcli call-park list "$LOC_ID" -o json
+  wxcli call-pickup list "$LOC_ID" -o json
+done
+```
+
+**Virtual Line ID type mismatch bug:** The Numbers API returns virtual line owners with `VIRTUAL_LINE`-encoded IDs, but `wxcli virtual-extensions delete` sends them to the `/virtualExtensions/` endpoint which expects `VIRTUAL_EXTENSION`-encoded IDs. This always fails with 400 "Wrong type of Webex ID provided". Workaround: use raw HTTP `DELETE /v1/telephony/config/virtualLines/{id}` with a bearer token. Discover VL IDs from `wxcli numbers list -o json` (owner field) — `wxcli virtual-extensions list` may return empty.
+
+**Location deletion cooldown:** Even after disabling calling and deleting all sub-resources, location DELETE may return 409 for minutes to hours. Options: wait with exponential backoff, accept existing locations on re-run (execution engine handles 409 auto-recovery), or poll with safeDeleteCheck.
+
+**Trunk deletion requires no remaining references:** Error 27349 names the referencing dial plan in the message.
+
+### API Format Differences for Members
+
+Different features use different agent/member formats in POST bodies:
+
+| Feature | Field | Format | Example |
+|---------|-------|--------|---------|
+| Hunt Group | `agents` | Array of objects | `[{"id": "person_id", "weight": 50}]` |
+| Call Queue | `agents` | Array of objects | `[{"id": "person_id"}]` |
+| Call Pickup | `agents` | Array of strings | `["person_id_1", "person_id_2"]` |
+| Paging Group | `targets`, `originators` | Array of strings | `["person_id_1"]` |
+
+Using the wrong format (e.g., `[{"id": ...}]` for pickup) produces 400 "Invalid field value: agents".
 
 ---
 

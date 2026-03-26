@@ -1,11 +1,13 @@
 ---
 name: provision-calling
 description: |
-  Provision Webex Calling users, locations, and licenses via the wxcli CLI.
+  Provision OR tear down Webex Calling users, locations, and licenses via the wxcli CLI.
   Guides through auth verification, prerequisite checks, deployment planning, execution,
   and result verification for any provisioning operation.
+  Also covers bulk cleanup, resource deletion, location teardown, and org reset.
+  Use for: create, enable, assign, delete, remove, clean up, tear down, reset.
 allowed-tools: Read, Grep, Glob, Bash
-argument-hint: [operation — e.g. "create location", "enable user", "assign license", "bulk provision"]
+argument-hint: [operation — e.g. "create location", "enable user", "assign license", "bulk provision", "clean up org", "delete location", "teardown"]
 ---
 
 <!-- Updated by playbook session 2026-03-18 -->
@@ -249,7 +251,8 @@ wxcli call-queue list --location-id $LOC -o json 2>&1
 wxcli call-queue list --location-id $LOC --has-cx-essentials true -o json 2>&1
 wxcli auto-attendant list --location-id $LOC -o json 2>&1
 wxcli paging-group list --location-id $LOC -o json 2>&1
-wxcli call-park list --location-id $LOC -o json 2>&1
+# ⚠ Call parks and pickups REQUIRE location as positional arg — org-wide list returns EMPTY
+wxcli call-park list $LOC -o json 2>&1
 wxcli call-pickup list $LOC -o json 2>&1
 wxcli location-voicemail list-voicemail-groups $LOC -o json 2>&1
 
@@ -301,17 +304,29 @@ wxcli location-schedules delete --force $LOC <TYPE> <SCHEDULE_ID>
 wxcli users delete --force <USER_ID>
 ```
 
+#### Step 2b: Disable calling and wait
+
+After all sub-resources are deleted, disable calling before attempting location delete:
+
+```bash
+wxcli location-call-settings update-location-calling $LOC --calling-enabled false
+# Wait 90+ seconds for backend propagation
+sleep 90
+```
+
 #### Step 3: Attempt location delete
 
 ```bash
 wxcli locations delete --force $LOC
 ```
 
-If this returns 409 "being referenced", run the enumeration checks from Step 1 again — something was missed. Common gotchas:
+If this returns 409 "being referenced", check these in order:
 - CX Essentials queues hidden from default `call-queue list` (need `--has-cx-essentials true`)
+- **Call parks and pickups not found** — `wxcli call-park list` and `wxcli call-pickup list` without location arg return empty. Must pass `$LOC` as first positional arg.
+- Virtual lines discoverable only via `wxcli numbers list -o json` (owner.type == VIRTUAL_LINE), not via `wxcli virtual-extensions list`
 - Operating modes referencing deleted schedules
 - Workspaces/places still assigned to the location
-- **Calling enablement** — if all resources are gone and the 409 persists, calling is still enabled on the location. This requires Control Hub to resolve.
+- **Calling still propagating** — even after `--calling-enabled false`, the 409 may persist for minutes to hours. Wait and retry, or accept on re-run (execution engine handles 409 auto-recovery on locations).
 
 ## Step 7: Verify results
 
@@ -369,7 +384,7 @@ Next steps:
 
 5. **`announcement_language` returns None from details** — Always set it explicitly before calling `enable_for_calling`, even if it was set during creation.
 
-6. **Calling-enabled locations cannot be deleted via API** — Returns 409 Conflict. Must use Control Hub.
+6. **Calling CAN be disabled via API** — `wxcli location-call-settings update-location-calling LOCATION_ID --calling-enabled false`. After disabling, wait 90+ seconds before attempting DELETE. Even then, 409 may persist for minutes to hours — see Operation F Step 2b. Do NOT assume Control Hub is required.
 
 7. **Phone numbers must be in location inventory first** — Before assigning a DID to a user, add it via `wxcli numbers create LOCATION_ID`.
 

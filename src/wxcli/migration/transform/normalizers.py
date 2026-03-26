@@ -1220,7 +1220,8 @@ def normalize_button_template(raw: dict, cluster: str = "default") -> MigrationO
     for btn in button_list:
         if not isinstance(btn, dict):
             continue
-        idx = btn.get("index")
+        # AXL getPhoneButtonTemplate uses <buttonNumber>, not <index>
+        idx = btn.get("buttonNumber") or btn.get("index")
         feature = btn.get("feature", "")
         buttons.append({"index": int(idx) if idx else 0, "feature": feature})
     buttons.sort(key=lambda b: b["index"])
@@ -1250,24 +1251,11 @@ def normalize_softkey_template(raw: dict, cluster: str = "default") -> Migration
     if not name:
         return None
 
-    # AXL getSoftkeyTemplate returns per-state softkey lists as top-level keys.
-    # Known state keys from CUCM AXL: onHookKeyList, offHookKeyList, etc.
-    # We extract any key ending in "KeyList" as a call state definition.
-    call_states: dict[str, list[str]] = {}
-    for key, value in raw.items():
-        if key.endswith("KeyList") and isinstance(value, (dict, list)):
-            state_name = key.replace("KeyList", "")
-            if isinstance(value, dict):
-                softkeys = _to_list(value, "softkey")
-            else:
-                softkeys = value
-            sk_names = []
-            for sk in softkeys:
-                if isinstance(sk, dict):
-                    sk_names.append(sk.get("softkey", sk.get("name", "")))
-                elif isinstance(sk, str):
-                    sk_names.append(sk)
-            call_states[state_name] = sk_names
+    # Softkey templates come from SQL (AXL operations don't exist in v15.0).
+    # The TemplateExtractor pre-parses SQL rows into structured dicts with
+    # call_states already decoded. Pass through the parsed data.
+    call_states = raw.get("call_states", {})
+    available_softkeys = raw.get("available_softkeys", [])
 
     return MigrationObject(
         canonical_id=f"softkey_template:{name}",
@@ -1276,8 +1264,13 @@ def normalize_softkey_template(raw: dict, cluster: str = "default") -> Migration
         pre_migration_state={
             "name": name,
             "description": raw.get("description") or "",
-            "default_template": _extract_ref(raw.get("defaultSoftkeyTemplateName")),
+            "default_template": (
+                raw.get("base_template_pkid")
+                or _extract_ref(raw.get("defaultSoftkeyTemplateName"))
+                or ""
+            ),
             "call_states": call_states,
+            "available_softkeys": available_softkeys,
         },
     )
 

@@ -147,8 +147,38 @@ async def _try_find_existing(
                 params["orgId"] = ctx["orgId"]
             search_url = f"{BASE}/locations?{urlencode(params)}"
             item_key = "items"
+    elif resource_type == "translation_pattern":
+        name = data.get("name")
+        if name:
+            params = {"name": name, "max": "100"}
+            if ctx.get("orgId"):
+                params["orgId"] = ctx["orgId"]
+            search_url = f"{BASE}/telephony/config/callRouting/translationPatterns?{urlencode(params)}"
+            item_key = "translationPatterns"
+    elif resource_type == "trunk":
+        name = data.get("name")
+        if name:
+            params = {"name": name, "max": "100"}
+            if ctx.get("orgId"):
+                params["orgId"] = ctx["orgId"]
+            search_url = f"{BASE}/telephony/config/premisePstn/trunks?{urlencode(params)}"
+            item_key = "trunks"
+    elif resource_type == "dial_plan":
+        name = data.get("name")
+        if name:
+            params = {"name": name, "max": "100"}
+            if ctx.get("orgId"):
+                params["orgId"] = ctx["orgId"]
+            search_url = f"{BASE}/telephony/config/premisePstn/dialPlans?{urlencode(params)}"
+            item_key = "dialPlans"
+    elif resource_type in ("call_park", "pickup_group", "paging_group",
+                           "hunt_group", "call_queue", "auto_attendant"):
+        # Location-scoped features — need location_id from deps
+        # These are harder to 409-recover because they need a location search.
+        # Skip recovery — let cascade handle it on next run.
+        pass
 
-    # For other types, we can't easily search — return None
+    # For types without search support, return None
     if not search_url:
         return None
 

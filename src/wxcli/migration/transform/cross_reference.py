@@ -637,7 +637,12 @@ class CrossReferenceBuilder:
     # ------------------------------------------------------------------
 
     def _build_template_refs(self) -> dict[str, int]:
-        """Build phone_uses_button_template and phone_uses_softkey_template."""
+        """Build phone_uses_button_template and phone_uses_softkey_template.
+
+        Raw phone objects store AXL zeep dicts in pre_migration_state.
+        Template names are in phoneTemplateName/softkeyTemplateName as
+        zeep ref dicts: {"_value_1": "Template Name", "uuid": "..."}.
+        """
         bt_count = 0
         sk_count = 0
 
@@ -645,15 +650,17 @@ class CrossReferenceBuilder:
             phone_id = phone["canonical_id"]
             state = phone.get("pre_migration_state") or {}
 
-            # Button template reference
-            bt_name = state.get("cucm_phone_template")
+            # Button template: raw AXL field is phoneTemplateName (zeep ref dict)
+            bt_raw = state.get("phoneTemplateName")
+            bt_name = self._ref_value(bt_raw)
             if bt_name:
                 bt_id = f"button_template:{bt_name}"
                 self.store.add_cross_ref(phone_id, bt_id, "phone_uses_button_template")
                 bt_count += 1
 
-            # Softkey template reference
-            sk_name = state.get("cucm_softkey_template")
+            # Softkey template: raw AXL field is softkeyTemplateName (zeep ref dict)
+            sk_raw = state.get("softkeyTemplateName")
+            sk_name = self._ref_value(sk_raw)
             if sk_name:
                 sk_id = f"softkey_template:{sk_name}"
                 self.store.add_cross_ref(phone_id, sk_id, "phone_uses_softkey_template")
@@ -663,6 +670,18 @@ class CrossReferenceBuilder:
             "phone_uses_button_template": bt_count,
             "phone_uses_softkey_template": sk_count,
         }
+
+    @staticmethod
+    def _ref_value(field: Any) -> str | None:
+        """Extract display value from a zeep reference field or plain string."""
+        if field is None:
+            return None
+        if isinstance(field, str):
+            return field or None
+        if isinstance(field, dict):
+            val = field.get("_value_1")
+            return val if val else None
+        return None
 
     # ------------------------------------------------------------------
     # Enrichment: Shared line detection

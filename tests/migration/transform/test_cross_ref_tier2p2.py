@@ -17,16 +17,17 @@ def _setup_store_with_templates():
     """Store with a phone that references both template types."""
     store = MigrationStore(":memory:")
 
-    # Phone with template references
+    # Phone with template references (raw AXL zeep format)
     phone = MigrationObject(
         canonical_id="phone:SEP001122334455",
         provenance=_prov("SEP001122334455"),
         status=MigrationStatus.NORMALIZED,
         pre_migration_state={
-            "cucm_phone_template": "Standard 8845",
-            "cucm_softkey_template": "Standard User",
-            "cucm_device_pool": "DP-HQ",
-            "cucm_owner_user": "jdoe",
+            "name": "SEP001122334455",
+            "phoneTemplateName": {"_value_1": "Standard 8845", "uuid": None},
+            "softkeyTemplateName": {"_value_1": "Standard User", "uuid": None},
+            "devicePoolName": {"_value_1": "DP-HQ", "uuid": None},
+            "ownerUserName": {"_value_1": "jdoe", "uuid": None},
         },
     )
     store.upsert_object(phone)
@@ -81,7 +82,7 @@ class TestPhoneUsesButtonTemplate:
             canonical_id="phone:SEPNOTEMPLATE",
             provenance=_prov("SEPNOTEMPLATE"),
             status=MigrationStatus.NORMALIZED,
-            pre_migration_state={"cucm_phone_template": None, "cucm_device_pool": None, "cucm_owner_user": None},
+            pre_migration_state={"phoneTemplateName": None, "devicePoolName": None, "ownerUserName": None},
         )
         store.upsert_object(phone)
         builder = CrossReferenceBuilder(store)
@@ -106,7 +107,7 @@ class TestPhoneUsesSoftkeyTemplate:
             canonical_id="phone:SEPNOSK",
             provenance=_prov("SEPNOSK"),
             status=MigrationStatus.NORMALIZED,
-            pre_migration_state={"cucm_softkey_template": None, "cucm_device_pool": None, "cucm_owner_user": None},
+            pre_migration_state={"softkeyTemplateName": None, "devicePoolName": None, "ownerUserName": None},
         )
         store.upsert_object(phone)
         builder = CrossReferenceBuilder(store)

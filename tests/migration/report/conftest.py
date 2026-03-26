@@ -199,6 +199,48 @@ def populated_store(tmp_path):
     for obj in [trunk1, trunk2, rg, dp]:
         store.upsert_object(obj)
 
+    # -- Gateways (as intermediate MigrationObject) --
+    gateways = [
+        MigrationObject(
+            canonical_id="gateway:VG310-HQ",
+            provenance=_prov("gw-1", "VG310-HQ"),
+            status=MigrationStatus.ANALYZED,
+            pre_migration_state={
+                "gateway_name": "VG310-HQ",
+                "description": "HQ analog gateway",
+                "product": "Cisco VG310",
+                "protocol": "MGCP",
+                "cucm_device_pool": "DP-HQ-Phones",
+            },
+        ),
+        MigrationObject(
+            canonical_id="gateway:ATA191-Lobby",
+            provenance=_prov("gw-2", "ATA191-Lobby"),
+            status=MigrationStatus.ANALYZED,
+            pre_migration_state={
+                "gateway_name": "ATA191-Lobby",
+                "description": "Lobby fax ATA",
+                "product": "Cisco ATA 191",
+                "protocol": "SIP",
+                "cucm_device_pool": "DP-HQ-Phones",
+            },
+        ),
+        MigrationObject(
+            canonical_id="gateway:ISR4321-Branch",
+            provenance=_prov("gw-3", "ISR4321-Branch"),
+            status=MigrationStatus.ANALYZED,
+            pre_migration_state={
+                "gateway_name": "ISR4321-Branch",
+                "description": "Branch router with analog NIM",
+                "product": "Cisco ISR 4321",
+                "protocol": "MGCP",
+                "cucm_device_pool": "DP-Austin-Branch",
+            },
+        ),
+    ]
+    for gw in gateways:
+        store.upsert_object(gw)
+
     # -- CSSes (as intermediate MigrationObject) and Partitions --
     css_names = ["CSS-Internal", "CSS-National", "CSS-International"]
     partition_names = ["PT-Internal", "PT-Local", "PT-National", "PT-International", "PT-Emergency"]

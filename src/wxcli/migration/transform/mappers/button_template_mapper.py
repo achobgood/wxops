@@ -37,7 +37,9 @@ CUCM_BUTTON_TO_WEBEX: dict[str, str | None] = {
     "Line": "PRIMARY_LINE",
     "Speed Dial": "SPEED_DIAL",
     "Busy Lamp Field": "MONITOR",
+    "Speed Dial BLF": "MONITOR",       # AXL getPhoneButtonTemplate returns this name
     "Call Park": "CALL_PARK_EXTENSION",
+    "Call Park BLF": "CALL_PARK_EXTENSION",
     "Abbreviated Dial": "SPEED_DIAL",
     "None": "OPEN",
     "Unassigned": "OPEN",
