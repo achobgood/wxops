@@ -317,7 +317,17 @@ wxcli numbers list --location-id LOCATION_ID
 
 ### Bulk Operations
 
-wxcli runs one command at a time. For small batches (< 20 items), use a shell loop:
+wxcli has a proven async bulk execution engine at `src/wxcli/migration/execute/engine.py` with:
+- **Concurrent execution** via `asyncio` + `aiohttp` with configurable concurrency (default 20)
+- **Semaphore-based rate limiting** — prevents API throttling
+- **Automatic 429 retry** with `Retry-After` backoff (up to 5 retries)
+- **409 auto-recovery** — searches for existing resource by name/email and reuses its ID
+- **Per-operation status tracking** — every op is logged as pending/in_progress/completed/failed
+- **Dependency-aware batching** — NetworkX DAG ensures operations run in correct order
+
+This engine is currently wired into the CUCM migration pipeline (`wxcli cucm execute --concurrency 20`), but the pattern is production-proven with 1486 tests.
+
+**For small batches (< 20 items)**, use a shell loop:
 
 ```bash
 for email in alice@example.com bob@example.com charlie@example.com; do
@@ -325,7 +335,41 @@ for email in alice@example.com bob@example.com charlie@example.com; do
 done
 ```
 
-For large batches (50+ items), fall back to async Python via wxc_sdk. Reference `docs/reference/wxc-sdk-patterns.md` for the async pattern.
+**For medium batches (20-50 items)**, use a shell loop with rate limiting:
+
+```bash
+for email in ...; do
+  wxcli users create --email "$email" ...
+  sleep 1
+done
+```
+
+**For large batches (50+ items)**, use the async pattern from the bulk engine. Extract the token and use `aiohttp` directly:
+
+```python
+import asyncio, aiohttp, json
+
+TOKEN = json.load(open("~/.wxcli/config.json"))["profiles"]["default"]["token"]
+BASE = "https://webexapis.com/v1"
+SEMAPHORE = asyncio.Semaphore(20)  # match engine's default concurrency
+
+async def create_user(session, user_data):
+    async with SEMAPHORE:
+        async with session.post(f"{BASE}/people", json=user_data) as resp:
+            if resp.status == 429:
+                wait = int(resp.headers.get("Retry-After", 5))
+                await asyncio.sleep(wait)
+                return await create_user(session, user_data)  # retry
+            return await resp.json()
+
+async def bulk_create(users):
+    headers = {"Authorization": f"Bearer {TOKEN}", "Content-Type": "application/json"}
+    async with aiohttp.ClientSession(headers=headers) as session:
+        tasks = [create_user(session, u) for u in users]
+        return await asyncio.gather(*tasks)
+```
+
+Reference the engine implementation at `src/wxcli/migration/execute/engine.py` for the full pattern including 409 recovery, multi-call operations, and cascade failure handling.
 
 ### Rate Limiting
 
@@ -489,13 +533,13 @@ ALWAYS show the complete deployment plan and get explicit user approval before m
 If the user says "just do it" without seeing the plan, show the plan first anyway. This is not optional. The one exception is single read-only operations (GET requests) used for discovery during the interview phase.
 
 ### Handle Rate Limiting
-Webex APIs enforce rate limits. wxcli inherits wxc_sdk's automatic 429 retry. For shell loops, add `sleep 1` between commands if hitting limits. For bulk async operations, reference `docs/reference/wxc-sdk-patterns.md`.
+Webex APIs enforce rate limits. wxcli inherits wxc_sdk's automatic 429 retry for single commands. For shell loops, add `sleep 1` between commands if hitting limits. For bulk async operations, use the semaphore + 429 retry pattern from `src/wxcli/migration/execute/engine.py` (see Bulk Operations section).
 
 ### Log All Commands
 ALWAYS show every wxcli command before running it. This is the debugging trail. For verbose HTTP details, add `--debug` to the command.
 
 ### Use Async for Large Bulk Operations
-For operations touching more than 20 items, consider falling back to async Python via raw HTTP. Shell loops over wxcli work for smaller batches. Reference `docs/reference/wxc-sdk-patterns.md` for the async pattern.
+For operations touching more than 50 items, use the async `aiohttp` pattern from the bulk engine (see Bulk Operations section above). Shell loops over wxcli work for smaller batches (< 50). The proven pattern in `src/wxcli/migration/execute/engine.py` handles concurrency, rate limiting, retry, and error recovery — use it as the reference implementation, not raw wxc_sdk async.
 
 ### Check Prerequisites Before Creation
 ALWAYS verify that dependencies exist before attempting to create a resource. Examples:
