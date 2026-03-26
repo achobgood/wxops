@@ -25,11 +25,14 @@ class TestExecutiveSummary:
         assert "<svg" in html  # gauge chart
         assert "Straightforward" in html or "Moderate" in html
 
-    def test_page1_score_breakdown(self, populated_store):
+    def test_page1_score_breakdown_with_scale(self, populated_store):
         from wxcli.migration.report.executive import generate_executive_summary
         html = generate_executive_summary(populated_store,
             brand="Acme Corp", prepared_by="Test SE")
-        assert "factor-row" in html or "score-breakdown" in html
+        assert "score-breakdown" in html
+        assert "Complexity Impact" in html
+        assert "Low" in html
+        assert "High" in html
 
     def test_page1_key_findings(self, populated_store):
         from wxcli.migration.report.executive import generate_executive_summary

@@ -102,6 +102,13 @@ def _page_verdict(store: MigrationStore, brand: str, cluster_name: str = "", cuc
     if result.factors:
         sorted_factors = sorted(result.factors, key=lambda f: f["raw_score"], reverse=True)
         parts.append('<div class="score-breakdown">')
+        parts.append(
+            '<div class="factor-scale">'
+            '<span class="factor-scale-title">Complexity Impact</span>'
+            '<span class="factor-scale-low">Low</span>'
+            '<span class="factor-scale-high">High</span>'
+            '</div>'
+        )
         for i, factor in enumerate(sorted_factors):
             display = factor.get("display_name", factor["name"])
             raw = factor["raw_score"]
@@ -112,7 +119,6 @@ def _page_verdict(store: MigrationStore, brand: str, cluster_name: str = "", cuc
                 f'<div class="factor-bar">'
                 f'<div class="factor-fill" style="width:{raw}%;background:{color};"></div>'
                 f'</div>'
-                f'<span class="factor-value">{raw}</span>'
                 f'</div>'
             )
         parts.append('</div>')
