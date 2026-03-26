@@ -91,6 +91,7 @@ class DecisionType(str, Enum):
     FORWARDING_LOSSY = "FORWARDING_LOSSY"
     SNR_LOSSY = "SNR_LOSSY"
     AUDIO_ASSET_MANUAL = "AUDIO_ASSET_MANUAL"
+    BUTTON_UNMAPPABLE = "BUTTON_UNMAPPABLE"
 
 
 # ---------------------------------------------------------------------------
@@ -540,6 +541,40 @@ class CanonicalMonitoringList(MigrationObject):
     user_canonical_id: str | None = None
     call_park_notification_enabled: bool = False
     monitored_members: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class CanonicalLineKeyTemplate(MigrationObject):
+    """CUCM Phone Button Template → Webex Line Key Template."""
+    name: str | None = None
+    cucm_template_name: str | None = None
+    device_model: str | None = None
+    line_keys: list[dict[str, Any]] = Field(default_factory=list)
+    kem_module_type: str | None = None
+    kem_keys: list[dict[str, Any]] = Field(default_factory=list)
+    unmapped_buttons: list[dict[str, Any]] = Field(default_factory=list)
+    phones_using: int = 0
+
+
+class CanonicalDeviceLayout(MigrationObject):
+    """Per-device resolved line key + KEM layout."""
+    device_canonical_id: str | None = None
+    template_canonical_id: str | None = None
+    owner_canonical_id: str | None = None
+    line_members: list[dict[str, Any]] = Field(default_factory=list)
+    resolved_line_keys: list[dict[str, Any]] = Field(default_factory=list)
+    resolved_kem_keys: list[dict[str, Any]] = Field(default_factory=list)
+    speed_dials: list[dict[str, Any]] = Field(default_factory=list)
+    unmapped_buttons: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class CanonicalSoftkeyConfig(MigrationObject):
+    """CUCM Softkey Template → Webex PSK config (9800/8875) or report flag (classic MPP)."""
+    cucm_template_name: str | None = None
+    is_psk_target: bool = False
+    psk_mappings: list[dict[str, Any]] = Field(default_factory=list)
+    state_key_lists: dict[str, list[str]] = Field(default_factory=dict)
+    unmapped_softkeys: list[dict[str, Any]] = Field(default_factory=list)
+    phones_using: int = 0
 
 
 # ---------------------------------------------------------------------------
