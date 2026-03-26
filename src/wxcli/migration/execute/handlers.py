@@ -60,13 +60,23 @@ def _resolve_location_from_deps(deps: dict) -> str | None:
 
 
 def _resolve_agents(data: dict, deps: dict, field: str = "agents") -> list[dict]:
-    """Resolve agent canonical IDs to Webex person IDs."""
+    """Resolve agent canonical IDs to Webex person IDs (object format for HG/CQ)."""
     agents = []
     for cid in data.get(field, []):
         wid = deps.get(cid)
         if wid:
             agents.append({"id": wid})
     return agents
+
+
+def _resolve_agent_ids(data: dict, deps: dict, field: str = "agents") -> list[str]:
+    """Resolve agent canonical IDs to plain Webex ID strings (for pickup/paging)."""
+    ids = []
+    for cid in data.get(field, []):
+        wid = deps.get(cid)
+        if wid:
+            ids.append(wid)
+    return ids
 
 
 # ---------------------------------------------------------------------------
@@ -108,6 +118,16 @@ def handle_location_enable_calling(data: dict, deps: dict, ctx: dict) -> Handler
         "preferredLanguage": data.get("preferred_language"),
         "announcementLanguage": data.get("announcement_language"),
     }
+    # Address is required when re-enabling calling on an existing location
+    addr = data.get("address")
+    if addr:
+        body["address"] = {
+            "address1": addr.get("address1"),
+            "city": addr.get("city"),
+            "state": addr.get("state"),
+            "postalCode": addr.get("postal_code"),
+            "country": addr.get("country"),
+        }
     return [("POST", _url("/telephony/config/locations", ctx), body)]
 
 
@@ -167,6 +187,44 @@ def handle_operating_mode_create(data: dict, deps: dict, ctx: dict) -> HandlerRe
     if data.get("holidays"):
         body["holidays"] = data["holidays"]
     return [("POST", _url("/telephony/config/operatingModes", ctx), body)]
+
+
+# ---------------------------------------------------------------------------
+# Tier 1: Line key templates (org-wide, no dependencies)
+# ---------------------------------------------------------------------------
+
+def handle_line_key_template_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    def _map_key(k: dict, idx_field: str, mod_field: str | None = None) -> dict:
+        key_prefix = "kemKey" if mod_field else "lineKey"
+        entry: dict[str, Any] = {idx_field: k["index"], f"{key_prefix}Type": k["key_type"]}
+        if mod_field:
+            entry[mod_field] = k.get("module_index", 1)
+        if k.get("label"):
+            entry[f"{key_prefix}Label"] = k["label"]
+        if k.get("value"):
+            entry[f"{key_prefix}Value"] = k["value"]
+        return entry
+
+    line_keys = [
+        _map_key(k, "lineKeyIndex")
+        for k in data.get("line_keys", [])
+        if k.get("key_type") != "UNMAPPED"
+    ]
+    body: dict[str, Any] = {
+        "templateName": data.get("name"),
+        "deviceModel": data.get("device_model"),
+        "lineKeys": line_keys,
+    }
+    if data.get("kem_module_type"):
+        body["kemModuleType"] = data["kem_module_type"]
+    kem_keys = [
+        _map_key(k, "kemKeyIndex", "kemModuleIndex")
+        for k in data.get("kem_keys", [])
+        if k.get("key_type") != "UNMAPPED"
+    ]
+    if kem_keys:
+        body["kemKeys"] = kem_keys
+    return [("POST", _url("/telephony/config/devices/lineKeyTemplates", ctx), body)]
 
 
 def handle_schedule_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
@@ -271,7 +329,8 @@ def handle_device_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
 def handle_dial_plan_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
     route_cid = data.get("route_id")
     route_wid = deps.get(route_cid) if route_cid else None
-    patterns = [{"dialPattern": p} for p in data.get("dial_patterns", [])]
+    # Create takes plain strings; modify (PUT) takes {"dialPattern": p, "action": "ADD"}
+    patterns = data.get("dial_patterns", [])
     body: dict[str, Any] = {
         "name": data.get("name"),
         "routeId": route_wid,
@@ -363,10 +422,11 @@ def handle_call_park_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
 
 def handle_pickup_group_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
     loc_wid = _resolve_location(data, deps)
-    agents = _resolve_agents(data, deps, "agents")
+    # Call Pickup API takes agents as plain string array, not [{"id": ...}]
+    agent_ids = _resolve_agent_ids(data, deps, "agents")
     body: dict[str, Any] = {"name": data.get("name")}
-    if agents:
-        body["agents"] = agents
+    if agent_ids:
+        body["agents"] = agent_ids
     return [("POST", _url(f"/telephony/config/locations/{loc_wid}/callPickups", ctx), body)]
 
 
@@ -377,12 +437,13 @@ def handle_paging_group_create(data: dict, deps: dict, ctx: dict) -> HandlerResu
         "name": data.get("name"),
         "extension": data.get("extension"),
     }
-    targets = _resolve_agents(data, deps, "targets")
-    if targets:
-        body["targets"] = targets
-    originators = _resolve_agents(data, deps, "originators")
-    if originators:
-        body["originators"] = originators
+    # Paging Group API takes targets/originators as plain string arrays, not [{"id": ...}]
+    target_ids = _resolve_agent_ids(data, deps, "targets")
+    if target_ids:
+        body["targets"] = target_ids
+    originator_ids = _resolve_agent_ids(data, deps, "originators")
+    if originator_ids:
+        body["originators"] = originator_ids
         body["originatorCallerIdEnabled"] = True
     return [("POST", _url(f"/telephony/config/locations/{loc_wid}/paging", ctx), body)]
 
@@ -519,6 +580,7 @@ def handle_virtual_line_configure(data: dict, deps: dict, ctx: dict) -> HandlerR
 HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("location", "create"): handle_location_create,
     ("location", "enable_calling"): handle_location_enable_calling,
+    ("line_key_template", "create"): handle_line_key_template_create,
     ("trunk", "create"): handle_trunk_create,
     ("route_group", "create"): handle_route_group_create,
     ("operating_mode", "create"): handle_operating_mode_create,
