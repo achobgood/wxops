@@ -642,7 +642,7 @@ if donut_svg:
 
 Note: Use v1 status colors (#2E7D32, #EF6C00, #C62828) instead of v3's (#059669, #d97706, #dc2626).
 
-- [ ] **Step 5: Update _page_scope() — rename to "What Needs Attention", change ID**
+- [ ] **Step 5: Update _page_scope() — rename to "What Needs Attention", change ID, add stat grid**
 
 a) Change the section ID and heading:
 ```python
@@ -654,7 +654,26 @@ parts = [
 
 b) Remove the section-kicker line (`<div class="section-kicker">Migration Scope</div>`).
 
-c) Keep the effort bands and resolution stats unchanged — they work with the v4 CSS.
+c) Add a decision summary stat grid BEFORE the effort bands:
+```python
+# Decision summary stat grid
+decisions = store.get_all_decisions()
+total_decisions = len(decisions)
+resolved = sum(1 for d in decisions if d.get("chosen_option"))
+unresolved = total_decisions - resolved
+critical = sum(1 for d in decisions if d.get("severity", "").upper() == "CRITICAL")
+
+parts.append('<div class="stat-grid">')
+parts.append(_stat_card(str(resolved), "Auto-resolved"))
+parts.append(_stat_card(str(unresolved), "Decisions Needed"))
+if critical:
+    parts.append(_stat_card(str(critical), "Critical"))
+parts.append('</div>')
+```
+
+Note: The `decisions` variable is already fetched on the next line in the existing code — move the stat grid insertion before the `_classify_decisions()` call but after fetching `decisions`.
+
+d) Keep the effort bands and resolution stats unchanged — they work with the v4 CSS.
 
 - [ ] **Step 6: Update _page_next_steps() — remove kicker**
 
@@ -848,14 +867,14 @@ def _css_partitions(store: MigrationStore) -> str:
 
 - [ ] **Step 5: Add _device_inventory() — Section D (rename from _devices_group, add stacked bar)**
 
-Rename/copy `_devices_group()` to `_device_inventory()`, change ID to `device-detail`, add letter prefix "D.", and add stacked bar chart:
+Copy the entire `_devices_group()` function (lines 172-222) and rename to `_device_inventory()`. Change the `<details>` ID and summary, then add stacked bar chart after the model table.
 
-```python
-def _device_inventory(store: MigrationStore) -> str:
-    """D. Device Inventory — by model with stacked bar chart."""
-```
-
-After the model table, add:
+Changes to make in the copy:
+1. Rename function to `_device_inventory`
+2. Change docstring to `"""D. Device Inventory — by model with stacked bar chart."""`
+3. Change `<details id="devices">` to `<details id="device-detail">`
+4. Change summary from `Devices` to `D. Device Inventory`
+5. After `parts.append('</tbody></table>')` (line 220 equivalent), add:
 ```python
 # Stacked bar chart for device compatibility
 segments = [
@@ -912,7 +931,79 @@ def _dn_analysis(store: MigrationStore) -> str:
     return "\n".join(parts)
 ```
 
-For `_user_device_map()`, extract the user-device-line table logic from `_people_group()` into a new function with ID `user-device-map` and summary prefix "F.".
+For `_user_device_map()`, extract the user-device-line table from `_people_group()` lines 76-143:
+
+```python
+def _user_device_map(store: MigrationStore) -> str:
+    """F. User/Device Map — user-device-line assignments."""
+    user_device_refs = store.get_cross_refs(relationship="user_has_device")
+    if not user_device_refs:
+        return ""
+
+    parts = [
+        f'<details id="user-device-map">',
+        f'<summary>F. User/Device Map <span class="summary-count">— {len(user_device_refs)} assignments</span></summary>',
+        '<div class="details-content">',
+        '<table>',
+        '<thead><tr><th>User</th><th>Device</th><th>Model</th><th>Line</th><th>Partition</th></tr></thead>',
+        '<tbody>',
+    ]
+
+    for ref in user_device_refs:
+        user_id = ref.get("from_id", "")
+        device_id = ref.get("to_id", "")
+
+        user_obj = store.get_object(user_id)
+        device_obj = store.get_object(device_id)
+
+        user_name = ""
+        if user_obj:
+            first = user_obj.get("first_name", "")
+            last = user_obj.get("last_name", "")
+            user_name = f"{first} {last}".strip() or strip_canonical_id(user_id)
+        else:
+            user_name = strip_canonical_id(user_id)
+
+        model = device_obj.get("model", "") if device_obj else ""
+
+        device_line_refs = store.get_cross_refs(
+            relationship="device_has_dn", from_id=device_id,
+        )
+
+        if device_line_refs:
+            for dl_ref in device_line_refs:
+                line_id = dl_ref.get("to_id", "")
+                line_obj = store.get_object(line_id)
+                line_ext = ""
+                partition = ""
+                if line_obj:
+                    line_ext = line_obj.get("extension", "") or line_obj.get("cucm_pattern", "")
+                    partition = line_obj.get("route_partition_name", "")
+                if not partition:
+                    dn_pt_refs = store.get_cross_refs(
+                        relationship="dn_in_partition", from_id=line_id,
+                    )
+                    if dn_pt_refs:
+                        partition = strip_canonical_id(dn_pt_refs[0].get("to_id", ""))
+                parts.append(
+                    f'<tr><td>{html.escape(user_name)}</td>'
+                    f'<td>{html.escape(strip_canonical_id(device_id))}</td>'
+                    f'<td>{html.escape(model)}</td>'
+                    f'<td>{html.escape(line_ext)}</td>'
+                    f'<td>{html.escape(partition)}</td></tr>'
+                )
+        else:
+            parts.append(
+                f'<tr><td>{html.escape(user_name)}</td>'
+                f'<td>{html.escape(strip_canonical_id(device_id))}</td>'
+                f'<td>{html.escape(model)}</td>'
+                f'<td>—</td><td>—</td></tr>'
+            )
+
+    parts.append('</tbody></table>')
+    parts.append('</div></details>')
+    return "\n".join(parts)
+```
 
 - [ ] **Step 7: Add _voicemail_analysis() — Section H**
 
