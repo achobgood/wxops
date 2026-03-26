@@ -1,4 +1,4 @@
-"""Tests for executive summary HTML generation (v2: 4-page narrative)."""
+"""Tests for executive summary HTML generation (v4: 4-page narrative)."""
 import pytest
 
 
@@ -14,15 +14,14 @@ class TestExecutiveSummary:
         from wxcli.migration.report.executive import generate_executive_summary
         html = generate_executive_summary(populated_store,
             brand="Acme Corp", prepared_by="Test SE")
-        for section_id in ["score", "inventory", "scope", "next-steps"]:
+        for section_id in ["score", "inventory", "decisions", "next-steps"]:
             assert f'id="{section_id}"' in html, f"Missing section #{section_id}"
 
     def test_page1_verdict(self, populated_store):
         from wxcli.migration.report.executive import generate_executive_summary
         html = generate_executive_summary(populated_store,
             brand="Acme Corp", prepared_by="Test SE")
-        assert "section-kicker" in html
-        assert "The Verdict" in html
+        assert "Migration Complexity Assessment" in html
         assert "<svg" in html  # gauge chart
         assert "Straightforward" in html or "Moderate" in html
 
@@ -108,10 +107,9 @@ class TestExecutiveSummary:
         assert "analog gateway" in html.lower()
         assert "Technical Appendix" in html
 
-    def test_page1_has_conclusion_heading(self, populated_store):
+    def test_page1_has_direct_heading(self, populated_store):
         from wxcli.migration.report.executive import generate_executive_summary
         html = generate_executive_summary(populated_store,
             brand="Acme Corp", prepared_by="Test SE")
-        # h2 should contain dynamic content, not a static topic label
-        assert "section-kicker" in html
-        assert "<h2>Assessment Verdict</h2>" not in html
+        assert "Migration Complexity Assessment" in html
+        assert "section-kicker" not in html
