@@ -169,6 +169,10 @@ class DeviceLayoutMapper(Mapper):
                     "number": sd.get("dirn") or sd.get("speedDialNumber", ""),
                 })
 
+            # Copy device_id_surface from the associated CanonicalDevice
+            device_obj = store.get_object(device_id)
+            device_id_surface = device_obj.get("device_id_surface", "telephony") if device_obj else "telephony"
+
             layout = CanonicalDeviceLayout(
                 canonical_id=f"device_layout:{phone_name}",
                 provenance=extract_provenance(phone_data),
@@ -180,11 +184,12 @@ class DeviceLayoutMapper(Mapper):
                 resolved_line_keys=resolved_line_keys,
                 resolved_kem_keys=resolved_kem_keys,
                 speed_dials=speed_dials,
+                device_id_surface=device_id_surface,
             )
             store.upsert_object(layout)
 
             store.add_cross_ref(phone_id, layout.canonical_id, "phone_has_layout")
-            if store.get_object(device_id) is not None:
+            if device_obj is not None:
                 store.add_cross_ref(device_id, layout.canonical_id, "device_has_layout")
             if layout.template_canonical_id:
                 store.add_cross_ref(

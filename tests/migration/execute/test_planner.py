@@ -381,6 +381,32 @@ class TestAllObjectTypes:
             _set_analyzed(CanonicalSharedLine(canonical_id="shared_line:sl1", provenance=_prov())),
             _set_analyzed(CanonicalVirtualLine(canonical_id="virtual_line:vl1", provenance=_prov())),
             _set_analyzed(CanonicalLocationSchedule(canonical_id="schedule:s1", provenance=_prov(), name="S1")),
+            # Phase 3 types
+            _set_analyzed(CanonicalLineKeyTemplate(
+                canonical_id="line_key_template:lkt1", provenance=_prov(),
+                name="LKT1", device_model="DMS Cisco 8845",
+                line_keys=[{"index": 1, "key_type": "PRIMARY_LINE"}], phones_using=1,
+            )),
+            _set_analyzed(CanonicalCallForwarding(
+                canonical_id="call_forwarding:user:u1", provenance=_prov(),
+                user_canonical_id="user:u1", always_enabled=True,
+                always_destination="+15551234567",
+            )),
+            _set_analyzed(CanonicalMonitoringList(
+                canonical_id="monitoring_list:user:u1", provenance=_prov(),
+                user_canonical_id="user:u1",
+                monitored_members=[{"target_canonical_id": "user:u1"}],
+            )),
+            _set_analyzed(CanonicalDeviceLayout(
+                canonical_id="device_layout:d1", provenance=_prov(),
+                device_canonical_id="device:d1",
+                resolved_line_keys=[{"index": 1, "key_type": "PRIMARY_LINE"}],
+            )),
+            _set_analyzed(CanonicalSoftkeyConfig(
+                canonical_id="softkey_config:device:d1", provenance=_prov(),
+                device_canonical_id="device:d1", is_psk_target=True,
+                psk_mappings=[{"psk_slot": "PSK1", "keyword": "park"}],
+            )),
             # Data-only types (no ops expected)
             _set_analyzed(CanonicalLine(canonical_id="line:ln1", provenance=_prov())),
             _set_analyzed(CanonicalVoicemailProfile(canonical_id="voicemail_profile:vm1", provenance=_prov())),
@@ -399,6 +425,8 @@ class TestAllObjectTypes:
             "hunt_group", "call_queue", "auto_attendant",
             "call_park", "pickup_group", "paging_group", "shared_line",
             "virtual_line", "schedule",
+            "line_key_template", "call_forwarding", "monitoring_list",
+            "device_layout", "softkey_config",
         }
         assert expected_types == resource_types
 
