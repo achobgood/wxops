@@ -116,7 +116,7 @@ Use `/wxc-calling-debug` to troubleshoot a failing configuration (this one is a 
 
 ### CUCM→Webex Migration Tool (All 11 phases complete)
 
-The migration tool is at `src/wxcli/migration/` and wired into the CLI as `wxcli cucm <command>`. It does NOT use the auto-generator. **1294 tests passing.** Use `/cucm-migrate` to execute a migration after running the pipeline.
+The migration tool is at `src/wxcli/migration/` and wired into the CLI as `wxcli cucm <command>`. It does NOT use the auto-generator. **1426 tests passing.** Use `/cucm-migrate` to execute a migration after running the pipeline.
 
 | Path | Purpose |
 |------|---------|
@@ -125,13 +125,13 @@ The migration tool is at `src/wxcli/migration/` and wired into the CLI as `wxcli
 | `docs/plans/cucm-pipeline/01-07 + 03b` | 8 detailed architecture docs |
 | `src/wxcli/commands/cucm.py` | Phases 08+10 — CLI: 13 commands (init, discover, normalize, map, analyze, plan, preflight, decisions, decide, export, inventory, status, config) |
 | `src/wxcli/commands/cucm_config.py` | Phase 08 — Config management helpers |
-| `src/wxcli/migration/models.py` | Canonical data models — 23 types, DecisionType (20 values), Decision, MapperResult, TransformResult |
+| `src/wxcli/migration/models.py` | Canonical data models — 26 types, DecisionType (21 values), Decision, MapperResult, TransformResult |
 | `src/wxcli/migration/store.py` | SQLite-backed store — objects, cross_refs, decisions, journal, merge_log, merge_decisions() |
-| `src/wxcli/migration/cucm/` | Phase 03 — AXL connection, 8 extractors, discovery pipeline |
-| `src/wxcli/migration/transform/normalizers.py` | Phase 04 — 24 Pass 1 normalizers |
-| `src/wxcli/migration/transform/cross_reference.py` | Phase 04 — CrossReferenceBuilder (26 relationships + 3 enrichments) |
+| `src/wxcli/migration/cucm/` | Phase 03 — AXL connection, 9 extractors, discovery pipeline |
+| `src/wxcli/migration/transform/normalizers.py` | Phase 04 — 27 Pass 1 normalizers |
+| `src/wxcli/migration/transform/cross_reference.py` | Phase 04 — CrossReferenceBuilder (28 relationships + 3 enrichments) |
 | `src/wxcli/migration/transform/pipeline.py` | Phase 04 — `normalize_discovery()` entry point |
-| `src/wxcli/migration/transform/mappers/` | Phase 05 — 11 mappers + base.py + engine.py (9 original + call_forwarding_mapper + monitoring_mapper) |
+| `src/wxcli/migration/transform/mappers/` | Phase 05 — 14 mappers + base.py + engine.py (9 original + call_forwarding + monitoring + button_template + device_layout + softkey) |
 | `src/wxcli/migration/transform/analyzers/` | Phase 06 — 12 analyzers (3 analyzer-owned + 9 mapper-owned) |
 | `src/wxcli/migration/transform/analysis_pipeline.py` | Phase 06 — Orchestrator: run analyzers → merge → auto-rules + resolve_and_cascade() |
 | `src/wxcli/migration/execute/` | Phase 07 — planner.py, dependency.py (NetworkX DAG), batch.py |

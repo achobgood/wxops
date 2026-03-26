@@ -112,6 +112,53 @@ wxcli numbers list --location-id LOC_ID  # Get number inventory
 
 This table shows the 31 most commonly used groups. Run `wxcli --help` to see all ~100 groups, which also cover admin, device, and messaging APIs.
 
+## CUCM-to-Webex Migration Tool
+
+A full migration pipeline at `src/wxcli/migration/` that analyzes a CUCM environment, maps objects to Webex Calling equivalents, and executes the migration. 1426 tests passing.
+
+### Pipeline
+
+```bash
+wxcli cucm init -p myproject              # Create project
+wxcli cucm discover --host 10.0.0.1 \    # Extract from CUCM via AXL
+  --username admin --password secret -p myproject
+wxcli cucm normalize -p myproject         # Normalize to canonical models
+wxcli cucm map -p myproject               # Map CUCM objects to Webex operations
+wxcli cucm analyze -p myproject           # Run 12 analyzers, generate decisions
+wxcli cucm report --brand "Acme Corp" \   # Generate HTML assessment report
+  --prepared-by "Jane Admin" -p myproject
+```
+
+The assessment report provides a complexity score, environment inventory, analog gateway review, and effort estimates — suitable for customer-facing delivery.
+
+### Execution
+
+After analysis and decision review:
+
+```bash
+wxcli cucm plan -p myproject              # Build dependency-ordered execution plan
+wxcli cucm preflight -p myproject         # Run 8 preflight checks
+wxcli cucm export -p myproject            # Export deployment plan
+wxcli cucm execute -p myproject \         # Execute all operations concurrently
+  --concurrency 15
+```
+
+The execution engine handles 409 auto-recovery (existing resources), cascade-skip (failed dependencies), and concurrent batch execution. A 561-operation stress test completes in ~90 seconds.
+
+### Architecture
+
+- **SQLite-backed store** with objects, cross-references, decisions, and journal
+- **27 normalizers** (Pass 1) + CrossReferenceBuilder (28 relationships)
+- **14 mappers** that convert CUCM objects to Webex Calling operations
+- **12 analyzers** that surface decisions requiring human review
+- **Advisory system** with 19 per-decision rules + 16 cross-cutting patterns
+- **NetworkX DAG** for dependency ordering and batch planning
+- **Async execution engine** with configurable concurrency
+
+See `docs/plans/cucm-migration-roadmap.md` for the full project status.
+
+---
+
 ## Claude Code Integration
 
 This repo includes an AI playbook for [Claude Code](https://claude.com/claude-code) that turns your terminal into a guided Webex Calling configuration assistant.
@@ -123,8 +170,8 @@ A guided AI assistant that walks you through Webex Calling configuration end-to-
 ### What's Included
 
 - **1 builder agent** (`/agents` → wxc-calling-builder) — the main entry point that drives the full workflow
-- **16 specialized skills** covering: provisioning, call features, Customer Assist, routing, devices, device platform, call settings, call control, reporting, identity/SCIM, licensing, audit/compliance, messaging spaces, messaging bots, debugging, and a seven-advisors decision framework
-- **29 reference docs** in `docs/reference/` documenting every Webex Calling API surface with SDK method signatures and raw HTTP examples
+- **17 specialized skills** covering: provisioning & teardown, call features, Customer Assist, routing, devices, device platform, call settings, call control, reporting, identity/SCIM, licensing, audit/compliance, messaging spaces, messaging bots, CUCM migration, debugging, and a seven-advisors decision framework
+- **42 reference docs** in `docs/reference/` documenting every Webex Calling API surface with SDK method signatures, raw HTTP examples, and verified gotchas
 - **Shared permissions** (`.claude/settings.json`) that pre-approve `wxcli` commands so Claude Code doesn't prompt you for every CLI execution
 
 ### How to Use It
@@ -150,21 +197,29 @@ The AI playbook is optional — everything else works standalone:
 
 ```
 webexCalling/
-├── src/wxcli/                    # CLI source (Click + wxc-sdk REST client)
+├── src/wxcli/                    # CLI source (Typer + wxc-sdk REST client)
 │   ├── main.py                   # Entry point — registers 100 command groups
 │   ├── auth.py                   # Token storage and API client init
 │   ├── output.py                 # Table/JSON output formatting
-│   └── commands/                 # 100 generated command files (one per API group)
+│   ├── commands/                 # 100 generated command files (one per API group)
+│   └── migration/                # CUCM-to-Webex migration engine
+│       ├── cucm/                 # AXL extractors and discovery
+│       ├── transform/            # Normalizers, mappers, analyzers
+│       ├── execute/              # Async execution engine + handlers
+│       ├── advisory/             # Decision recommendations
+│       ├── report/               # HTML/PDF assessment report generator
+│       └── models.py             # 23 canonical data models
 ├── tools/                        # Code generator pipeline
 │   ├── generate_commands.py      # Orchestrator: OpenAPI → Click commands
 │   ├── openapi_parser.py         # Parses OpenAPI 3.0 specs into Endpoint objects
 │   ├── command_renderer.py       # Renders Endpoints into Python command files
 │   └── field_overrides.yaml      # Table columns, display config, bug fixes
+├── tests/                        # 1426 tests (pytest)
 ├── webex-*.json                  # 4 OpenAPI 3.0 specs (calling, admin, device, messaging)
-├── docs/reference/               # 29 API reference docs (SDK + raw HTTP)
-├── .claude/settings.json          # Shared permissions (pre-approves wxcli commands)
+├── docs/reference/               # 40 API reference docs (SDK + raw HTTP + gotchas)
+├── .claude/settings.json         # Shared permissions (pre-approves wxcli commands)
 ├── .claude/agents/               # Claude Code builder agent
-└── .claude/skills/               # 16 Claude Code skills
+└── .claude/skills/               # 17 Claude Code skills
 ```
 
 **Key design decisions:**
