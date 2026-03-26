@@ -530,6 +530,27 @@ def handle_calling_permission_assign(data: dict, deps: dict, ctx: dict) -> Handl
     return calls
 
 
+def handle_monitoring_list_configure(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    person_wid = deps.get(data.get("user_canonical_id", ""))
+    if not person_wid:
+        return []
+    members = []
+    for m in data.get("monitored_members", []):
+        target_cid = m.get("target_canonical_id")
+        if not target_cid:
+            continue
+        wid = deps.get(target_cid)
+        if wid:
+            members.append({"id": wid})
+    if not members:
+        return []
+    body: dict[str, Any] = {
+        "enableCallParkNotification": bool(data.get("call_park_notification_enabled")),
+        "monitoredMembers": members,
+    }
+    return [("PUT", _url(f"/people/{person_wid}/features/monitoring", ctx), body)]
+
+
 def handle_call_forwarding_configure(data: dict, deps: dict, ctx: dict) -> HandlerResult:
     person_wid = deps.get(data.get("user_canonical_id", ""))
     if not person_wid:
@@ -639,6 +660,7 @@ HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("workspace", "configure_settings"): handle_workspace_configure_settings,
     ("calling_permission", "assign"): handle_calling_permission_assign,
     ("call_forwarding", "configure"): handle_call_forwarding_configure,
+    ("monitoring_list", "configure"): handle_monitoring_list_configure,
     ("shared_line", "configure"): handle_shared_line_configure,
     ("virtual_line", "create"): handle_virtual_line_create,
     ("virtual_line", "configure"): handle_virtual_line_configure,

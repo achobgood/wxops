@@ -4,6 +4,7 @@ import pytest
 from wxcli.migration.execute.handlers import (
     HANDLER_REGISTRY,
     handle_call_forwarding_configure,
+    handle_monitoring_list_configure,
     handle_line_key_template_create,
     handle_location_create,
     handle_location_enable_calling,
@@ -858,6 +859,82 @@ class TestLineKeyTemplateCreate:
     def test_orgid_injected(self):
         data = {"name": "T", "device_model": "DMS Cisco 8845", "line_keys": [], "kem_keys": []}
         result = handle_line_key_template_create(data, {}, {"orgId": "ORG123"})
+        _, url, _ = result[0]
+        assert "orgId=ORG123" in url
+
+
+class TestMonitoringListConfigure:
+    def test_basic(self):
+        data = {
+            "user_canonical_id": "user:jsmith",
+            "call_park_notification_enabled": True,
+            "monitored_members": [
+                {"target_canonical_id": "user:alice"},
+                {"target_canonical_id": "user:bob"},
+            ],
+        }
+        deps = {
+            "user:jsmith": "wx-person-aaa",
+            "user:alice": "wx-person-bbb",
+            "user:bob": "wx-person-ccc",
+        }
+        result = handle_monitoring_list_configure(data, deps, {})
+        assert len(result) == 1
+        method, url, body = result[0]
+        assert method == "PUT"
+        assert "wx-person-aaa" in url
+        assert "/features/monitoring" in url
+        assert body["enableCallParkNotification"] is True
+        assert body["monitoredMembers"] == [
+            {"id": "wx-person-bbb"},
+            {"id": "wx-person-ccc"},
+        ]
+
+    def test_empty_members_returns_empty(self):
+        data = {
+            "user_canonical_id": "user:jsmith",
+            "call_park_notification_enabled": False,
+            "monitored_members": [],
+        }
+        deps = {"user:jsmith": "wx-person-aaa"}
+        result = handle_monitoring_list_configure(data, deps, {})
+        assert result == []
+
+    def test_partial_resolution(self):
+        """Members that fail to resolve are silently omitted."""
+        data = {
+            "user_canonical_id": "user:jsmith",
+            "call_park_notification_enabled": False,
+            "monitored_members": [
+                {"target_canonical_id": "user:alice"},
+                {"target_canonical_id": "user:missing"},
+                {"target_canonical_id": None},
+            ],
+        }
+        deps = {"user:jsmith": "wx-person-aaa", "user:alice": "wx-person-bbb"}
+        result = handle_monitoring_list_configure(data, deps, {})
+        assert len(result) == 1
+        _, _, body = result[0]
+        assert len(body["monitoredMembers"]) == 1
+        assert body["monitoredMembers"][0] == {"id": "wx-person-bbb"}
+
+    def test_no_user_dep_returns_empty(self):
+        data = {
+            "user_canonical_id": "user:jsmith",
+            "call_park_notification_enabled": False,
+            "monitored_members": [{"target_canonical_id": "user:alice"}],
+        }
+        result = handle_monitoring_list_configure(data, {}, {})
+        assert result == []
+
+    def test_orgid_injected(self):
+        data = {
+            "user_canonical_id": "user:jsmith",
+            "call_park_notification_enabled": False,
+            "monitored_members": [{"target_canonical_id": "user:alice"}],
+        }
+        deps = {"user:jsmith": "wx-person-aaa", "user:alice": "wx-person-bbb"}
+        result = handle_monitoring_list_configure(data, deps, {"orgId": "ORG123"})
         _, url, _ = result[0]
         assert "orgId=ORG123" in url
 
