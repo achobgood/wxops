@@ -530,6 +530,38 @@ def handle_calling_permission_assign(data: dict, deps: dict, ctx: dict) -> Handl
     return calls
 
 
+def handle_call_forwarding_configure(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    person_wid = deps.get(data.get("user_canonical_id", ""))
+    if not person_wid:
+        return []
+    # Only generate if at least one forwarding type is enabled
+    if not any([data.get("always_enabled"), data.get("busy_enabled"), data.get("no_answer_enabled")]):
+        return []
+    body: dict[str, Any] = {
+        "callForwarding": {
+            "always": {
+                "enabled": bool(data.get("always_enabled")),
+                "destination": data.get("always_destination"),
+                "ringReminderEnabled": False,
+                "destinationVoicemailEnabled": bool(data.get("always_to_voicemail")),
+            },
+            "busy": {
+                "enabled": bool(data.get("busy_enabled")),
+                "destination": data.get("busy_destination"),
+                "destinationVoicemailEnabled": bool(data.get("busy_to_voicemail")),
+            },
+            "noAnswer": {
+                "enabled": bool(data.get("no_answer_enabled")),
+                "destination": data.get("no_answer_destination"),
+                "destinationVoicemailEnabled": bool(data.get("no_answer_to_voicemail")),
+                "numberOfRings": data.get("no_answer_ring_count"),
+            },
+        },
+        "businessContinuity": {"enabled": False},
+    }
+    return [("PUT", _url(f"/people/{person_wid}/features/callForwarding", ctx), body)]
+
+
 # ---------------------------------------------------------------------------
 # Tier 6: Shared/virtual lines
 # ---------------------------------------------------------------------------
@@ -602,6 +634,7 @@ HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("device", "configure_settings"): handle_device_configure_settings,
     ("workspace", "configure_settings"): handle_workspace_configure_settings,
     ("calling_permission", "assign"): handle_calling_permission_assign,
+    ("call_forwarding", "configure"): handle_call_forwarding_configure,
     ("shared_line", "configure"): handle_shared_line_configure,
     ("virtual_line", "create"): handle_virtual_line_create,
     ("virtual_line", "configure"): handle_virtual_line_configure,
