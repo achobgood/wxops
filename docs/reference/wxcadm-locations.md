@@ -1,3 +1,4 @@
+<!-- Not directly verified via CLI — documents wxcadm library (not generated CLI commands) -->
 # wxcadm Location Management
 
 Reference for location CRUD, calling enablement, schedules, and location-level features in `wxcadm`.

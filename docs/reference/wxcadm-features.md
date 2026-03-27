@@ -1,3 +1,4 @@
+<!-- Not directly verified via CLI — documents wxcadm library (not generated CLI commands) -->
 # wxcadm Call Features Reference
 
 Reference document covering wxcadm's call feature modules: Auto Attendant, Call Queue, Hunt Group, Pickup Group, Announcements (including Playlists), and Recording.

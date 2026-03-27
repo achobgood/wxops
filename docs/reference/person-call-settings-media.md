@@ -1,4 +1,5 @@
 <!-- Updated by playbook session 2026-03-18 -->
+<!-- Verified via CLI Batches 1-4, 2026-03-19 through 2026-03-21 -->
 # Person Call Settings -- Voicemail, Caller ID, Privacy & Recording
 
 Reference for per-person (also virtual line and workspace) call settings covering voicemail, caller ID, anonymous call rejection, privacy, barge-in, call recording, call intercept, monitoring, push-to-talk, and music on hold.

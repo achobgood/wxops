@@ -1,4 +1,5 @@
 <!-- Updated by playbook session 2026-03-18 -->
+<!-- Verified via CLI Batches 1-4, 2026-03-19 through 2026-03-21 -->
 # Call Control API Reference
 
 Webex Calling Call Control APIs enable 3rd-party applications to manage calls on behalf of users. These are **3rd Party Call Control** APIs only, applicable to **Webex Calling Multi-Tenant users** (not UCM or Dedicated Instance users).

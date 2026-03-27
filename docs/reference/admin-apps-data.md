@@ -1,4 +1,5 @@
 <!-- Updated by playbook session 2026-03-19 -->
+<!-- Verified via CLI Batches 1-4, 2026-03-19 through 2026-03-21 -->
 
 # Admin: Apps, Data & Resources
 

@@ -1,3 +1,4 @@
+<!-- Verified via CLI Batches 1-4, 2026-03-19 through 2026-03-21 -->
 # Admin: Hybrid Infrastructure & Analytics
 
 Hybrid cluster/connector monitoring, historical analytics, live meeting monitoring, and meeting quality analysis.
