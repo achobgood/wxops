@@ -2,7 +2,7 @@
 
 ## Ready
 
-- [ ] Audit docs for Batch 4 findings -- Customer Assist (cx-essentials) gotchas discovered 2026-03-21: CX queues hidden from default list, callPolicies required for creation, error 28018 handling, supervisor delete returns 204 but persists. Verify `call-features-additional.md` fully reflects these.
+- [x] Audit docs for Batch 4 findings -- verified 2026-03-27
 - [ ] Cross-reference wxcadm docs against wxcadm v4.6.1 changelog -- wxcadm-*.md docs were written from source; check if any methods were added/deprecated since initial authoring
 - [ ] Add verified-date comments to remaining docs -- 35 items in 8 files have `<!-- Verified via CLI implementation -->` but 32 other docs have no verification annotations. Add dates where CLI Batches 1-4 confirmed behavior.
 - [ ] Document workspace license tier behavior -- Batch 2 mapped which workspace endpoints require Professional vs Basic license. Verify `devices-workspaces.md` has complete tier matrix.

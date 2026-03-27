@@ -1721,7 +1721,9 @@ wxcli call-queue update-supervisors SUPERVISOR_ID --has-cx-essentials true \
 # When last agent is removed, supervisor is auto-deleted
 ```
 
-> **GOTCHA:** Customer Assist queues do not appear in the default `wxcli call-queue list` output. You must pass `--has-cx-essentials true` to see them. Using CX Essentials endpoints on a regular queue returns error 28018. <!-- Verified via live API 2026-03-21 -->
+> **GOTCHA:** Customer Assist queues do not appear in the default `wxcli call-queue list` output. You must pass `--has-cx-essentials true` to see them. Using CX Essentials endpoints on a regular queue returns error 28018 ("CX Essentials is not enabled for this Call center"). The CLI detects this error and prints a tip. <!-- Verified via live API 2026-03-21 -->
+
+> **GOTCHA:** Creating a Customer Assist queue requires `callPolicies` in the request body via `--json-body`. Omitting `callPolicies` results in a 400 error. Minimum: `{"callPolicies":{"policy":"SIMULTANEOUS"}}`. <!-- Verified via live API 2026-03-21 -->
 
 > **GOTCHA:** `delete-supervisors-config-1` returns 204 but the supervisor persists. Use `update-supervisors` with `action: DELETE` on each agent instead — removing the last agent auto-removes the supervisor. <!-- Verified via live API 2026-03-21 -->
 
@@ -2531,7 +2533,10 @@ Customer Assist ─────── Call Queues (screen pop, recording, wrap-u
 - **Location-scoped features listed org-wide**: Paging Groups and Voicemail Groups can be listed org-wide (no `locationId` required), but **Call Parks and Call Pickups require `locationId`** for list operations. `wxcli call-park list` without a location argument returns empty. Must enumerate per-location during cleanup.
 - **Nested settings require `--json-body`**: Features with complex nested body fields (voicemail group create, call park recall, screen pop, wrap-up settings) need `--json-body` in the CLI because the generator skips deeply nested object/array fields.
 - **Voicemail Group create is strict**: Requires 7+ fields (name, extension, passcode, languageCode, messageStorage, notifications, faxMessage, transferToNumber, emailCopyOfMessage). The wxc_sdk `VoicemailGroupDetail.for_create()` has a bug (missing `by_alias=True`); use `--json-body` via CLI or `model_dump(by_alias=True)` via SDK.
-- **Customer Assist requires licensing**: Screen pop, queue recording, and wrap-up reasons require Customer Assist licensing. Call queues must exist before configuring these features.
+- **Customer Assist requires licensing**: Screen pop, queue recording, and wrap-up reasons require Customer Assist licensing. Call queues must exist before configuring these features. Error 28018 ("CX Essentials is not enabled for this Call center") means the target queue is not a Customer Assist queue.
+- **CX queue creation requires `callPolicies`**: Creating a Customer Assist queue without `callPolicies` in the request body returns 400. Use `--json-body` with at minimum `{"callPolicies":{"policy":"SIMULTANEOUS"}}`. <!-- Verified via live API 2026-03-21 -->
+- **CX queues hidden from default list**: `wxcli call-queue list` does not show Customer Assist queues. Pass `--has-cx-essentials true` to see them. <!-- Verified via live API 2026-03-21 -->
+- **Supervisor delete returns 204 but persists**: `delete-supervisors-config-1 --has-cx-essentials true` gets 204 from the API but the supervisor remains. Workaround: use `update-supervisors` with `action: DELETE` on each agent — removing the last agent auto-removes the supervisor. <!-- Verified via live API 2026-03-21 -->
 - **Call Park requires recall**: Creating a Call Park without a `recall` option (e.g., `ALERT_PARKING_USER_ONLY`) will be rejected by the API.
 - **Announcement upload requires multipart/form-data**: The CLI and raw HTTP `rest_post` may not support binary file uploads directly. Use the SDK upload methods or construct multipart requests manually.
 - **CallPickupGroup AXL creation with members fails on CUCM 15.0.** The `addCallPickupGroup` AXL operation with `<members>` containing `<directoryNumber>` elements fails with a null priority foreign key constraint (`pickupgroupmember.priority`). Workaround: create the pickup group empty, then add members via `updateLine` with `callPickupGroupName` on each member DN. Verified on CUCM 15.0.1.13901(2). <!-- Verified via test bed expansion 2026-03-24 -->
