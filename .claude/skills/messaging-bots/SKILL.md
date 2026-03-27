@@ -10,6 +10,12 @@ argument-hint: [bot-task-type]
 
 # Messaging Bots Workflow
 
+**Checkpoint — do NOT proceed until you can answer these:**
+1. What token does a bot use to send messages? (Answer: The bot's own access token from developer.webex.com — not an admin token. Each bot has a unique, non-expiring token generated at creation.)
+2. How does a bot receive user interactions with adaptive cards? (Answer: Via `attachmentActions` webhook — the bot registers a webhook for `attachmentActions` resource with `created` event, then receives the card submission data.)
+
+If you cannot answer both, you skipped reading this skill. Go back and read it.
+
 ## Step 1: Load references
 
 1. Read `docs/reference/messaging-bots.md` for bot patterns, card recipes, attachment actions, room tabs

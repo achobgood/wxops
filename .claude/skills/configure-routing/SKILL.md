@@ -13,6 +13,12 @@ argument-hint: [routing-component]
 
 # Configure Call Routing Workflow
 
+**Checkpoint — do NOT proceed until you can answer these:**
+1. What is the creation dependency chain for routing? (Answer: Trunk → Route Group → Route List → Dial Plan. Create in this order, delete in reverse.)
+2. Do routing delete commands use singular or plural names? (Answer: plural — `delete-route-groups`, `delete-trunks`, `delete-route-lists`.)
+
+If you cannot answer both, you skipped reading this skill. Go back and read it.
+
 ## When to Use This Skill
 
 - Setting up PSTN connectivity for a location (local gateway, cloud-connected PSTN)

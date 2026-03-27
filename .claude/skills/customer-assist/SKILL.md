@@ -10,6 +10,12 @@ argument-hint: [feature-type]
 
 # Configure Customer Assist Workflow
 
+**Checkpoint — do NOT proceed until you can answer these:**
+1. How do you list CX Essentials call queues? (Answer: `wxcli call-queue list --has-cx-essentials true` — they are hidden from the default `call-queue list` output.)
+2. What is the workaround for the supervisor delete bug? (Answer: `delete-supervisors-config-1` returns 204 but the supervisor persists. Instead, use `update-supervisors` with `action: DELETE` on each agent — removing the last agent auto-removes the supervisor.)
+
+If you cannot answer both, you skipped reading this skill. Go back and read it.
+
 ## Step 1: Load references
 
 1. Read `docs/reference/call-features-additional.md` — Customer Assist data models, screen pop, wrap-up reasons, queue recording, available agents

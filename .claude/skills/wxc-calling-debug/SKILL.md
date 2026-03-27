@@ -13,6 +13,12 @@ argument-hint: [symptom-or-error-message]
 
 # Webex Calling Debug Workflow
 
+**Checkpoint — do NOT proceed until you can answer these:**
+1. What should you check FIRST for any API failure? (Answer: Auth and scope — run `wxcli whoami` and verify token scopes. Auth/scope issues cause 80% of failures.)
+2. How do you get raw HTTP details for a failing command? (Answer: Add `--debug` flag to the wxcli command — this shows the full request/response including headers, URL, and body.)
+
+If you cannot answer both, you skipped reading this skill. Go back and read it.
+
 ## Critical Rules
 
 1. **Verify token before any writes** — always run `wxcli whoami` before attempting create/update/delete operations.

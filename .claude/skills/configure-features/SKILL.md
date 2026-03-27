@@ -13,6 +13,12 @@ argument-hint: [feature-type]
 
 # Configure Call Features Workflow
 
+**Checkpoint — do NOT proceed until you can answer these:**
+1. What is the argument order for location-scoped feature deletes? (Answer: `--force LOCATION_ID FEATURE_ID` — location comes FIRST, not second.)
+2. How do you list CX Essentials call queues? (Answer: `wxcli call-queue list --has-cx-essentials true` — they are hidden from the default list.)
+
+If you cannot answer both, you skipped reading this skill. Go back and read it.
+
 ## Step 1: Load references
 
 1. Read `docs/reference/call-features-major.md` for AA, CQ, HG data models and API signatures

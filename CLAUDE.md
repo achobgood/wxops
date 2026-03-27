@@ -29,6 +29,7 @@ below for what the pipeline does.
 |------|---------|
 | `.claude/agents/wxc-calling-builder.md` | Main builder agent — drives the full workflow |
 | `.claude/skills/provision-calling/` | Skill: provision users, locations, licenses |
+| `.claude/skills/teardown/` | Skill: dependency-safe teardown, `wxcli cleanup`, manual deletion procedure |
 | `.claude/skills/configure-features/` | Skill: set up call features (AA, CQ, HG, etc.; CX Essentials → see customer-assist skill) |
 | `.claude/skills/customer-assist/`      | Skill: configure Customer Assist (screen pop, wrap-up, recording, supervisors) |
 | `.claude/skills/manage-call-settings/` | Skill: configure person/workspace call settings |
@@ -122,35 +123,7 @@ below for what the pipeline does.
 
 ### CUCM→Webex Migration Tool (All 11 phases complete)
 
-The migration tool is at `src/wxcli/migration/` and wired into the CLI as `wxcli cucm <command>`. It does NOT use the auto-generator. **1487 tests passing.** Use `/cucm-migrate` to execute a migration after running the pipeline.
-
-| Path | Purpose |
-|------|---------|
-| `docs/plans/cucm-migration-roadmap.md` | **Master roadmap** — what's done, what's ready, what's next. Start here. |
-| `docs/plans/cucm-pipeline-architecture.md` | Pipeline architecture summary — SQLite store, two-pass ELT, linter-pattern analyzers, NetworkX DAG |
-| `docs/plans/cucm-pipeline/01-07 + 03b` | 8 detailed architecture docs |
-| `src/wxcli/commands/cucm.py` | Phases 08+10 — CLI: 13 commands (init, discover, normalize, map, analyze, plan, preflight, decisions, decide, export, inventory, status, config) |
-| `src/wxcli/commands/cucm_config.py` | Phase 08 — Config management helpers |
-| `src/wxcli/migration/models.py` | Canonical data models — 26 types, DecisionType (21 values), Decision, MapperResult, TransformResult |
-| `src/wxcli/migration/store.py` | SQLite-backed store — objects, cross_refs, decisions, journal, merge_log, merge_decisions() |
-| `src/wxcli/migration/cucm/` | Phase 03 — AXL connection, 9 extractors, discovery pipeline |
-| `src/wxcli/migration/transform/normalizers.py` | Phase 04 — 27 Pass 1 normalizers |
-| `src/wxcli/migration/transform/cross_reference.py` | Phase 04 — CrossReferenceBuilder (30 relationships + 3 enrichments) |
-| `src/wxcli/migration/transform/pipeline.py` | Phase 04 — `normalize_discovery()` entry point |
-| `src/wxcli/migration/transform/mappers/` | Phase 05 — 14 mappers + base.py + engine.py (9 original + call_forwarding + monitoring + button_template + device_layout + softkey) |
-| `src/wxcli/migration/transform/analyzers/` | Phase 06 — 12 analyzers (3 analyzer-owned + 9 mapper-owned) |
-| `src/wxcli/migration/transform/analysis_pipeline.py` | Phase 06 — Orchestrator: run analyzers → merge → auto-rules + resolve_and_cascade() |
-| `src/wxcli/migration/execute/` | Phase 07 — planner.py, dependency.py (NetworkX DAG), batch.py |
-| `src/wxcli/migration/export/` | Phase 09 — deployment_plan.py, json/csv exports (command_builder.py removed in Phase 12b) |
-| `src/wxcli/migration/preflight/` | Phase 10 — checks.py (8 preflight checks), runner.py (orchestrator), CLI `wxcli cucm preflight` |
-| `src/wxcli/migration/advisory/` | Phase 13 — Advisory system: per-decision recommendations (19 rules) + cross-cutting advisor (16 patterns) |
-| `src/wxcli/migration/report/` | Assessment report generator — complexity score, SVG charts, executive summary + appendix → HTML/PDF. See its CLAUDE.md. |
-| `.claude/skills/cucm-migrate/SKILL.md` | Phase 11 — 6-step execution skill: preflight → plan summary → batch execute → delegate → report |
-
-**Where the design spec and pipeline architecture docs conflict, the pipeline architecture docs are authoritative.**
-
-Each subdirectory has its own CLAUDE.md (local context) and TODO.md (outstanding work).
-See `docs/plans/cucm-migration-roadmap.md` for the master project status.
+The migration tool is at `src/wxcli/migration/` and wired into the CLI as `wxcli cucm <command>`. **1487 tests passing.** See `src/wxcli/migration/CLAUDE.md` for the full file map, architecture, and pipeline commands. Use `/cucm-migrate` to execute a migration after running the pipeline.
 
 **To run a migration:** `wxcli cucm init` → `discover` → `normalize` → `map` → `analyze` → `decisions` → `plan` → `preflight` → `export` → then invoke `/cucm-migrate`.
 
@@ -170,19 +143,9 @@ See `docs/plans/cucm-migration-roadmap.md` for the master project status.
 
 **100 command groups covering calling, admin, device, and messaging APIs.** All generated from 4 OpenAPI 3.0 specs via `tools/generate_commands.py`.
 
-### Test status (as of 2026-03-18)
+### CLI test status
 
-- **v0.1.0** (14 commands): Fully live-tested, 3 bugs fixed.
-- **v3 original 17 groups** (382 commands): All live-tested, 43 response key bugs fixed via `field_overrides.yaml`.
-- **v3 extended 31 groups** (~600 commands): Registered. Most now live-tested via Batches 1-3.
-- **OpenAPI migration**: All commands regenerated from OpenAPI spec. Singleton/list classification, response keys, and body field parsing all derived from schema.
-- **Live API sweep Batch 1 (2026-03-19):** Tested ~60 CLI commands and ~36 person endpoints. Found 9 CLI bugs (5 response key, 2 SCIM URL, 2 missing params) and 6 user-only person endpoints. All documented in reference docs.
-- **Live API sweep Batch 2 (2026-03-19):** Tested user-settings (~12 cmds), workspace-settings (~12 cmds), virtual-line-settings (~6 cmds), device-settings (~4 cmds), device-dynamic-settings, call-routing (5 list cmds), calling-service, caller-reputation, client-settings, hot-desking-portal, report-templates, CDR, admin-recordings, resource-groups, resource-group-memberships, hybrid-clusters/connectors, and workspace endpoint existence via curl. Found 3 CLI bugs (CDR wrong base URL, null result traceback, report-templates misclassified as singleton). Fixed in generator: analytics base URL support, null result guard, direct-array-response list classification. Mapped workspace endpoint access by license tier (Basic vs Professional).
-- **Live API sweep Batch 3 (2026-03-20):** Tested location-settings (~15 cmds), location-schedules, location-voicemail (~10 cmds), emergency-services (~15 cmds), dect-devices full CRUD lifecycle (create network → add handsets with 2 lines → update → bulk add → delete), call-recording (~10 cmds), organizations, roles, org-contacts, device-configurations, xapi, workspace-personalization. No new CLI bugs found. Full DECT create/read/update/delete cycle verified. Base station MACs require Cisco manufacturing database (Bifrost) — can't use fake MACs.
-- **Live API sweep Batch 4 (2026-03-21):** Customer Assist (cx-essentials) end-to-end: screen pop, wrap-up reasons, queue call recording (2 new commands), supervisors, available agents. Found 6 CLI bugs (list table column, validate output, list-settings response shape, missing error 28018 handling, wrong queue recording JSON example, update-settings missing 28018). Found 2 generator issues (supervisor delete missing hasCxEssentials param, create output for empty dict). Found 3 API behaviors: CX queues hidden from default `call-queue list`, CX queue creation requires `callPolicies`, supervisor delete returns 204 but supervisor persists (workaround: remove agents via update). All CLI bugs fixed, generator enhanced with `add_query_params` override.
-- **Test bed expansion (2026-03-24):** Added 15 new + 5 modified objects to CUCM test bed (10.201.123.107) for pipeline coverage gaps: 2 blocking partitions in CSSes (CSSMapper CallingPermission), 2 common-area phones (WorkspaceMapper), 2nd pickup group, 2nd CTI Route Point, 2 holiday time periods (HOLIDAY OperatingMode), time schedule→partition wiring. Script: `tests/migration/cucm/provision_testbed_phase9.py`. Discovered 4 AXL gotchas (pickup group members, CTI RP protocol, TimePeriod enums). Pipeline gaps: no PagingGroup AXL object (needs InformaCast), no Unity Connection for CUPI voicemail extraction.
-- **Test bed expansion (2026-03-25):** Added phone config objects for Tier2-Phase2: 4 custom button templates (Custom-8845-BLF-SD, Custom-7841-Mixed, Custom-8845-Unmappable, Custom-9861-Mixed with KEM buttons 11-14), 2 new PSK-capable phones (9861 SEP9861AABB0001, 8875 SEP8875CCDD0001), speed dials + BLF on 3 phones, softkey template assignments on 4 phones. Script: `tests/migration/cucm/provision_testbed_phase10.py`. Discovered 11 AXL gotchas: `addPhoneButtonTemplate` uses `<buttonNumber>` not `<index>`; BLF feature is "Speed Dial BLF" for add but "Busy Lamp Field" on get; must omit `isFixedFeature=true` buttons during template creation; `addSoftkeyTemplate`/`getSoftkeyTemplate`/`listSoftkeyTemplate` do not exist in AXL v15.0 (SQL only); 9861 templates have 130 buttons (10 phone + 120 KEM); `blfDirn` always empty in getPhone response. Also found and fixed pre-existing pipeline bug: raw phone objects lost after normalization (MonitoringMapper/CallForwardingMapper silently broken).
-- **Pipeline hardening (2026-03-26):** Fixed 4 bugs found during live execution attempt: (1) DeviceMapper queried cross-refs with `phone:` ID but cross-refs use `device:` ID — all 15 devices had `owner_canonical_id=None`; (2) Trunk password flagged as MISSING_DATA but Webex trunks use certificate TLS not SIP password — removed false check; (3) MISSING_DATA recommendation always returned "skip" — now returns None (force human review) for infrastructure objects and objects with downstream dependents; (4) Location addresses not cleared from stale decisions after `import-locations` — skill now re-runs analyze after address import. Also added location address resolution system: `wxcli cucm export --format location-worksheet` (pre-filled CSV), `wxcli cucm import-locations` (CSV import + `--demo` auto-fill), and cucm-migrate skill Step 1.5 blocking gate. LOCATION_AMBIGUOUS no longer offers "skip" when devices depend on the location.
+100 command groups, all generated from OpenAPI specs, live-tested across 4 batch sweeps (2026-03-19 through 2026-03-21). All found bugs fixed. CUCM pipeline tested against live test bed (10.201.123.107) with 2 test bed expansions. See git history for detailed test logs.
 
 ### Partner Multi-Org Support
 

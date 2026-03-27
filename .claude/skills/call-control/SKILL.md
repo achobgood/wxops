@@ -23,6 +23,12 @@ argument-hint: [call-control | webhooks | xsi-events | conference]
 
 ---
 
+**Checkpoint — do NOT proceed until you can answer these:**
+1. What token type does the Call Control API require, and what error do admin tokens get? (Answer: User-level OAuth with `spark:calls_read`/`spark:calls_write`. Admin tokens get 400 "Target user not authorized".)
+2. What API path must Service Apps use instead of user-level endpoints? (Answer: Members API — `/v1/telephony/calls/members/{memberId}/*` with `spark-admin:calls_read`/`spark-admin:calls_write`.)
+
+If you cannot answer both, you skipped reading this skill. Go back and read it.
+
 ## Step 1: Load references
 
 Load the reference docs needed for the requested operation. Load all three if the user hasn't specified which approach they need yet; otherwise load only the relevant one(s).

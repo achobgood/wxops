@@ -12,6 +12,12 @@ argument-hint: [operation — e.g. "sync users", "verify domain", "bulk import",
 
 # Manage Identity Workflow
 
+**Checkpoint — do NOT proceed until you can answer these:**
+1. What is the critical difference between SCIM PUT and PATCH for user updates? (Answer: PUT replaces the entire user resource — any field omitted is deleted. PATCH modifies only specified fields. Always use PATCH for partial updates.)
+2. What must be completed before SCIM sync can work for a domain? (Answer: Domain verification — the domain must be verified and claimed in Control Hub before SCIM can provision users with that email domain.)
+
+If you cannot answer both, you skipped reading this skill. Go back and read it.
+
 ## Step 1: Load references
 
 1. Read `docs/reference/admin-identity-scim.md` for SCIM users, groups, bulk, schemas, identity org, and People/Groups API patterns

@@ -13,6 +13,12 @@ argument-hint: [person-email-or-workspace-name]
 
 # Manage Call Settings Workflow
 
+**Checkpoint — do NOT proceed until you can answer these:**
+1. What are the two path families for person call settings, and which is newer? (Answer: `/people/{id}/features/{feature}` is classic; `/telephony/config/people/{id}/{feature}` is newer. Some setting names differ between them.)
+2. What happens when you use `/telephony/config/workspaces/{id}/` settings on a Basic-licensed workspace? (Answer: 405 "Invalid Professional Place" — only `musicOnHold` and `doNotDisturb` work on Basic. Use `/workspaces/{id}/features/` path for Basic workspaces.)
+
+If you cannot answer both, you skipped reading this skill. Go back and read it.
+
 ## Step 1: Load references
 
 1. Read `docs/reference/person-call-settings-handling.md` for call handling settings (forwarding, call waiting, DND, sim ring, sequential ring, SNR, selective accept/forward/reject, priority alert)

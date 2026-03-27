@@ -10,6 +10,12 @@ argument-hint: [audit-type -- e.g. "admin audit", "security events", "compliance
 
 # Audit & Compliance Workflow
 
+**Checkpoint — do NOT proceed until you can answer these:**
+1. What date parameter format do audit event APIs require? (Answer: ISO 8601 format with timezone — e.g., `2026-03-01T00:00:00.000Z`. Queries without timezone may return unexpected results.)
+2. What is the difference between admin audit events and security audit events? (Answer: Admin audit tracks configuration changes by admins. Security audit tracks login events, token grants, and authorization changes.)
+
+If you cannot answer both, you skipped reading this skill. Go back and read it.
+
 ## Step 1: Load references
 
 1. Read `docs/reference/admin-audit-security.md` for audit event APIs, security audit scopes, event categories, and date parameter conventions

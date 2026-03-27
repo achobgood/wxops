@@ -7,7 +7,7 @@ description: |
   Use for any Webex Calling provisioning, configuration, cleanup, or automation task.
 tools: Read, Edit, Write, Bash, Grep, Glob, Agent, WebSearch, WebFetch
 model: sonnet
-skills: provision-calling, configure-features, manage-call-settings, configure-routing, manage-devices, device-platform, call-control, reporting, wxc-calling-debug, manage-identity, audit-compliance, manage-licensing, messaging-spaces, messaging-bots, customer-assist, cucm-migrate
+skills: provision-calling, configure-features, manage-call-settings, configure-routing, manage-devices, device-platform, call-control, reporting, wxc-calling-debug, manage-identity, audit-compliance, manage-licensing, messaging-spaces, messaging-bots, customer-assist, cucm-migrate, teardown
 ---
 
 # Webex Calling Builder
@@ -497,37 +497,44 @@ Save the report alongside the deployment plan in `docs/plans/`.
 
 ## SKILL DISPATCH
 
-Before executing commands for any domain, **read the relevant skill file**. The skill contains CLI command mappings, gotchas, and prerequisites that prevent trial-and-error failures.
+**Skills are the only source of truth for CLI commands, argument order, and gotchas. Do NOT generate commands from memory or training data — the skills contain required values, deletion ordering, and API behaviors that you cannot guess. Load the skill BEFORE running any commands in its domain.**
 
 ### Dispatch Table
 
-| Task Domain | Skill File | What It Provides |
-|-------------|-----------|------------------|
-| Users, locations, licenses, numbers | `.claude/skills/provision-calling/SKILL.md` | License methods, location gotchas, bulk patterns, extension rules |
-| AA, CQ, HG, paging, park, pickup, VM groups, CX Essentials | `.claude/skills/configure-features/SKILL.md` | Feature CRUD, agent assignment, AA menu raw HTTP pattern, auto-defaults |
-| Person/workspace call settings (39+ settings) | `.claude/skills/manage-call-settings/SKILL.md` | CLI command catalog, scope mapping, read-before-write, edge cases |
+Each row names what the skill contains that is NOT in your training data. Do NOT run commands in these domains without loading the skill first.
+
+| Task Domain | Skill File | What it contains that you CANNOT guess |
+|-------------|-----------|---------------------------------------|
+| Delete, cleanup, teardown, reset | `.claude/skills/teardown/SKILL.md` | 12-layer deletion DAG, `wxcli cleanup` flags, workspace-blocks-location gotcha, async disable-calling wait. Do NOT run delete commands yourself — the skill has the only correct ordering. |
+| Users, locations, licenses, numbers | `.claude/skills/provision-calling/SKILL.md` | `location_id` is write-once (cannot change after), `announcement_language` must be lowercase, two license assignment methods with different gotchas. Do NOT provision without the skill — wrong order = unreversible location assignment. |
+| AA, CQ, HG, paging, park, pickup, VM groups | `.claude/skills/configure-features/SKILL.md` | Location-scoped deletes take LOCATION_ID as FIRST arg (not second), CX queues hidden from default list (need `--has-cx-essentials`), AA menu config requires raw HTTP. Do NOT create features without the skill. |
+| Trunks, dial plans, route groups, route lists, PSTN | `.claude/skills/configure-routing/SKILL.md` | Dependency chain (trunk → route group → dial plan), delete commands use PLURAL names (`delete-route-groups` not `delete-route-group`), trunk type inference. Do NOT create routing without the skill — wrong order = 409 errors. |
+| Person/workspace call settings (39+) | `.claude/skills/manage-call-settings/SKILL.md` | Two path families (`/people/{id}/features/` vs `/telephony/config/people/{id}/`), name mismatches between families (`intercept` vs `callIntercept`), workspace Basic vs Professional restrictions. Do NOT configure settings without the skill. |
+| Phones, DECT, workspaces, activation codes | `.claude/skills/manage-devices/SKILL.md` | DECT lifecycle (network → base station → handset), device activation code flow, hot desking config. Do NOT provision devices without the skill. |
+| RoomOS configs, personalization, xAPI, 9800-series | `.claude/skills/device-platform/SKILL.md` | 9800-series uses RoomOS config keys (not telephony settings), xAPI command syntax, personalization workflow. Do NOT configure 9800 phones without the skill. |
+| Real-time call ops, webhooks, XSI | `.claude/skills/call-control/SKILL.md` | Requires user-level OAuth (admin tokens get 400), webhook event types and payloads, XSI via wxcadm. Do NOT attempt call control without the skill. |
+| CDR, queue/AA stats, call quality, recordings | `.claude/skills/reporting/SKILL.md` | CDR uses analytics base URL (not standard), report template classification, queue stats query patterns. Do NOT query reports without the skill. |
+| SCIM sync, directory, groups, contacts, domains | `.claude/skills/manage-identity/SKILL.md` | SCIM PUT vs PATCH semantics, bulk operation patterns, domain verification prereqs. Do NOT sync users without the skill. |
+| License audit, reclaim, bulk assignment | `.claude/skills/manage-licensing/SKILL.md` | Usage analysis workflow, reclaim patterns, multi-step assignment. Do NOT modify licenses without the skill. |
+| Audit events, security, compliance | `.claude/skills/audit-compliance/SKILL.md` | Event query date filtering, export recipes, authorization review. Do NOT query audit logs without the skill. |
+| Spaces, teams, memberships, messages, ECM, HDS | `.claude/skills/messaging-spaces/SKILL.md` | Space lifecycle, team structure, token requirements differ from calling. Do NOT manage spaces without the skill. |
+| Bot development, adaptive cards, webhooks | `.claude/skills/messaging-bots/SKILL.md` | Bot setup flow, card recipe catalog, webhook registration, cross-domain recipes. Do NOT build bots without the skill. |
+| Customer Assist (CX Essentials) | `.claude/skills/customer-assist/SKILL.md` | Screen pop config, wrap-up reasons, supervisor delete workaround (204 but persists), queue recording. Do NOT configure CX without the skill. |
+| CUCM-to-Webex migration execution | `.claude/skills/cucm-migrate/SKILL.md` | Preflight gates, batch execution order, ID capture between steps, placeholder resolution. Do NOT execute migrations without the skill. |
+| Any error during execution | `.claude/skills/wxc-calling-debug/SKILL.md` | Symptom-to-fix mapping, `--debug` flag usage, token diagnostic patterns. |
 
 > **Voicemail disambiguation:** "Configure voicemail" is ambiguous. **Voicemail groups** (shared location-level mailbox) → `configure-features`. **Person voicemail settings** (greeting, rings-before-VM, transcription) → `manage-call-settings`. **Location voicemail policies** (org-level voicemail defaults) → `manage-call-settings` with location-level reference docs.
-| Trunks, dial plans, route groups, route lists, PSTN | `.claude/skills/configure-routing/SKILL.md` | Dependency chain, trunk types, translation patterns |
-| Phones, DECT, workspaces, activation codes | `.claude/skills/manage-devices/SKILL.md` | Device lifecycle, DECT workflow, hot desking |
-| RoomOS device configs, workspace personalization, xAPI | `.claude/skills/device-platform/SKILL.md` | Device config management, xAPI commands, personalization workflow |
-| Real-time call ops, webhooks, XSI | `.claude/skills/call-control/SKILL.md` | User token requirement, webhook setup, XSI via wxcadm |
-| CDR, queue/AA stats, call quality, recordings | `.claude/skills/reporting/SKILL.md` | CDR query patterns, report templates, recording management |
-| Any error during execution | `.claude/skills/wxc-calling-debug/SKILL.md` | Symptom-to-fix mapping, --debug flag, token diagnostics |
-| SCIM sync, directory, groups, contacts, domains | `.claude/skills/manage-identity/SKILL.md` | SCIM gotchas, bulk patterns, PUT vs PATCH, domain prereqs |
-| Audit events, security, compliance, authorizations | `.claude/skills/audit-compliance/SKILL.md` | Event query patterns, date filtering, export recipes, auth review |
-| License audit, reclaim, bulk assignment | `.claude/skills/manage-licensing/SKILL.md` | Usage analysis, reclaim workflow, multi-step assignment |
-| Spaces, teams, memberships, messages, ECM, HDS | `.claude/skills/messaging-spaces/SKILL.md` | Space lifecycle, team structure, membership management, token requirements |
-| Bot development, notifications, adaptive cards, room tabs, cross-domain | `.claude/skills/messaging-bots/SKILL.md` | Bot patterns, card recipe catalog, webhook setup, cross-domain recipes |
-| CUCM-to-Webex migration execution | `.claude/skills/cucm-migrate/SKILL.md` | Preflight, batch execution, ID capture, placeholder resolution, rollback |
 
 ### How Dispatch Works
 
-1. After the deployment plan is approved, identify which skills cover the plan's steps
-2. **Read each relevant skill file BEFORE executing its domain's commands**
-3. Follow the skill's prerequisites, CLI commands, and critical rules
-4. If a command fails, read the debug skill for diagnosis
-5. If the skill references a raw HTTP fallback, check `docs/reference/wxc-sdk-patterns.md`
+1. **Before ANY command execution**, match the operation to the dispatch table above
+2. **Load the skill** — read the skill file, not just its name
+3. **Answer the skill's checkpoint** (if present) before proceeding — this proves you read the docs
+4. Follow the skill's prerequisites, CLI commands, and critical rules
+5. If a command fails, load the `wxc-calling-debug` skill for diagnosis
+6. If the skill references a raw HTTP fallback, check `docs/reference/wxc-sdk-patterns.md`
+
+**This applies to ALL execution contexts** — whether running from a deployment plan, handling a direct user request, or operating as a subagent with a delegated task. There are no exceptions.
 
 ### Source of Truth Precedence
 
@@ -544,16 +551,17 @@ When you find a conflict, fix the stale source if possible (update the reference
 
 ### Multiple Skills Per Plan
 
-Most builds touch multiple domains. Load skills as you enter each domain's steps:
-- Steps creating locations/users → read provision-calling
-- Steps creating features (AA, CQ, HG) → read configure-features
-- Steps configuring person settings → read manage-call-settings
-- Steps setting up routing → read configure-routing
-- Steps provisioning devices → read manage-devices
-- Steps managing RoomOS configs, personalization, or xAPI → read device-platform
-- Steps managing spaces, teams, memberships, or messages → read messaging-spaces
-- Steps building bots, sending cards, or setting up messaging webhooks → read messaging-bots
-- On any error → read wxc-calling-debug
+Most builds touch multiple domains. Load each skill as you enter its domain — do NOT batch-read all skills upfront:
+- Steps deleting or cleaning up resources → load teardown
+- Steps creating locations/users → load provision-calling
+- Steps creating features (AA, CQ, HG) → load configure-features
+- Steps configuring person settings → load manage-call-settings
+- Steps setting up routing → load configure-routing
+- Steps provisioning devices → load manage-devices
+- Steps managing RoomOS configs, personalization, or xAPI → load device-platform
+- Steps managing spaces, teams, memberships, or messages → load messaging-spaces
+- Steps building bots, sending cards, or setting up messaging webhooks → load messaging-bots
+- On any error → load wxc-calling-debug
 
 ### Standalone Skill Use
 
