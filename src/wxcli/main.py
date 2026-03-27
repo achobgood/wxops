@@ -140,6 +140,9 @@ app.add_typer(numbers_app, name="numbers")
 app.add_typer(licenses_app, name="licenses")
 app.add_typer(cucm_app, name="cucm")
 
+from wxcli.commands.cleanup import app as cleanup_app
+app.add_typer(cleanup_app, name="cleanup")
+
 # Auto-generated from OpenAPI spec
 from wxcli.commands.call_controls import app as call_controls_app
 app.add_typer(call_controls_app, name="call-controls")

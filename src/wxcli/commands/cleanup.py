@@ -432,6 +432,206 @@ def format_dry_run(inventory: dict[str, list[dict]]) -> str:
     return "\n".join(lines)
 
 
+# ---------------------------------------------------------------------------
+# CLI Command
+# ---------------------------------------------------------------------------
+
+def _resolve_location_ids(
+    api, scope: str | None, org_id: str | None,
+) -> list[str] | None:
+    """Resolve --scope names/IDs to location IDs. Returns None for all."""
+    if not scope:
+        return None
+
+    # Fetch all locations
+    params = {}
+    if org_id:
+        params["orgId"] = org_id
+    all_locs = list(api.session.follow_pagination(
+        url=f"{BASE}/locations", params=params, item_key="items",
+    ))
+
+    # Build name->id and id->id maps
+    name_map = {loc["name"]: loc["id"] for loc in all_locs}
+    id_set = {loc["id"] for loc in all_locs}
+
+    requested = [s.strip() for s in scope.split(",")]
+    resolved = []
+    for r in requested:
+        if r in id_set:
+            resolved.append(r)
+        elif r in name_map:
+            resolved.append(name_map[r])
+        else:
+            console.print(f"[yellow]Warning: Location '{r}' not found, skipping[/yellow]")
+
+    if not resolved:
+        console.print("[red]No valid locations found for the given scope.[/red]")
+        raise typer.Exit(1)
+
+    return resolved
+
+
+@app.command("run")
+def cleanup_run(
+    scope: str = typer.Option(
+        None, "--scope",
+        help="Comma-separated location names or IDs to limit cleanup scope.",
+    ),
+    all_resources: bool = typer.Option(
+        False, "--all",
+        help="Clean up the entire org (required if --scope not given).",
+    ),
+    include_users: bool = typer.Option(
+        False, "--include-users",
+        help="Also delete users (destructive — disabled by default).",
+    ),
+    include_locations: bool = typer.Option(
+        False, "--include-locations",
+        help="Also delete locations (destructive — disabled by default).",
+    ),
+    dry_run: bool = typer.Option(
+        False, "--dry-run",
+        help="Show what would be deleted without actually deleting.",
+    ),
+    max_concurrent: int = typer.Option(
+        5, "--max-concurrent",
+        help="Max parallel deletions per layer.",
+    ),
+    force: bool = typer.Option(
+        False, "--force",
+        help="Skip confirmation prompt.",
+    ),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Delete Webex Calling resources in dependency-safe order.
+
+    Examples:
+      wxcli cleanup run --scope "HQ,Branch" --dry-run
+      wxcli cleanup run --scope "HQ" --include-users --force
+      wxcli cleanup run --all --force
+    """
+    if not scope and not all_resources:
+        console.print(
+            "[red]Must specify --scope or --all.[/red]\n"
+            "Use --dry-run to preview what would be deleted."
+        )
+        raise typer.Exit(1)
+
+    api = get_api(debug=debug)
+    org_id = get_org_id()
+
+    # Resolve location scope
+    console.print("[bold]Resolving scope...[/bold]")
+    location_ids = _resolve_location_ids(api, scope, org_id)
+
+    if location_ids:
+        console.print(f"  Scoped to {len(location_ids)} location(s)")
+    else:
+        console.print("  Org-wide cleanup")
+
+    # For location-scoped listing, we always need location IDs
+    # If --all and no scope, fetch all locations for per-location listing
+    if location_ids is None:
+        params = {}
+        if org_id:
+            params["orgId"] = org_id
+        all_locs = list(api.session.follow_pagination(
+            url=f"{BASE}/locations", params=params, item_key="items",
+        ))
+        all_location_ids = [loc["id"] for loc in all_locs]
+    else:
+        all_location_ids = location_ids
+
+    # Build inventory — always pass all_location_ids so location-scoped types get enumerated
+    console.print("[bold]Building inventory...[/bold]")
+    inventory = build_inventory(
+        api, org_id, location_ids=all_location_ids,
+        include_users=include_users, include_locations=include_locations,
+    )
+
+    if not inventory:
+        console.print("[green]Nothing to delete — org is clean.[/green]")
+        return
+
+    # Dry run
+    console.print(format_dry_run(inventory))
+
+    if dry_run:
+        console.print("[yellow]Dry run complete. No resources were deleted.[/yellow]")
+        return
+
+    # Confirmation
+    total = sum(len(v) for v in inventory.values())
+    if not force:
+        typer.confirm(
+            f"\nDelete {total} resources? This cannot be undone",
+            abort=True,
+        )
+
+    # Execute layer by layer
+    all_results: list[DeleteResult] = []
+    for i, layer_keys in enumerate(DELETION_LAYERS):
+        # Check if this layer has any work
+        has_work = any(k in inventory for k in layer_keys)
+        if not has_work:
+            continue
+
+        # Skip users/locations layers if not included
+        if "users" in layer_keys and not include_users:
+            continue
+        if "locations" in layer_keys and not include_locations:
+            continue
+
+        layer_names = [RESOURCE_TYPES[k].name for k in layer_keys if k in inventory]
+        console.print(f"\n[bold]Layer {i + 1}:[/bold] {', '.join(layer_names)}")
+
+        # Special handling for locations: disable calling first, then wait, then delete
+        if "locations" in layer_keys and "locations" in inventory:
+            loc_items = inventory["locations"]
+            # Phase 1: disable calling
+            console.print("  Disabling calling on locations...")
+            disable_results = []
+            with ThreadPoolExecutor(max_workers=max_concurrent) as executor:
+                futures = {
+                    executor.submit(
+                        disable_location_calling, api, item["id"], org_id,
+                    ): item
+                    for item in loc_items
+                }
+                for future in as_completed(futures):
+                    disable_results.append(future.result())
+
+            disabled_ok = [r for r in disable_results if r.success]
+            console.print(f"  Disabled calling on {len(disabled_ok)}/{len(loc_items)} locations")
+
+            if disabled_ok:
+                console.print("  Waiting 90s for backend propagation...")
+                time.sleep(90)
+
+            # Phase 2: delete locations
+            console.print("  Deleting locations...")
+            with ThreadPoolExecutor(max_workers=max_concurrent) as executor:
+                futures = {
+                    executor.submit(delete_location, api, item, org_id): item
+                    for item in loc_items
+                    if any(r.resource_id == item["id"] and r.success for r in disable_results)
+                }
+                for future in as_completed(futures):
+                    all_results.append(future.result())
+            continue
+
+        results = execute_layer(api, layer_keys, inventory, org_id, max_concurrent)
+        all_results.extend(results)
+
+        successes = sum(1 for r in results if r.success)
+        failures = sum(1 for r in results if not r.success)
+        console.print(f"  Done: {successes} deleted, {failures} failed")
+
+    # Final summary
+    console.print(format_results_summary(all_results))
+
+
 def format_results_summary(results: list[DeleteResult]) -> str:
     """Format a summary of deletion results."""
     successes = [r for r in results if r.success]
