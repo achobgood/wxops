@@ -1,10 +1,5 @@
 # TODO -- docs/reference
 
-## Blocked (waiting on dependencies)
-
-- [ ] Document CUCM migration executor API patterns -- blocked on executor design (pipeline doc 05b) being finalized
-- [ ] Document CUCM mapper field-level mappings -- blocked on mapper design (pipeline doc 03b) being finalized
-
 ## Ready
 
 - [ ] Audit docs for Batch 4 findings -- Customer Assist (cx-essentials) gotchas discovered 2026-03-21: CX queues hidden from default list, callPolicies required for creation, error 28018 handling, supervisor delete returns 204 but persists. Verify `call-features-additional.md` fully reflects these.
@@ -22,3 +17,5 @@
 - [x] Document 6 user-only person settings endpoints -- added to self-service-call-settings.md
 - [x] Document call-controls user-level OAuth requirement -- added to call-control.md
 - [x] Document Professional license requirement for workspace /telephony/config/ endpoints -- added to devices-workspaces.md
+- [x] Document CUCM migration executor API patterns -- covered in src/wxcli/migration/execute/CLAUDE.md
+- [x] Document CUCM mapper field-level mappings -- covered in src/wxcli/migration/transform/mappers/CLAUDE.md
