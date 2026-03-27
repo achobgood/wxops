@@ -1,3 +1,4 @@
+<!-- Not directly verified via CLI — documents wxcadm library (not generated CLI commands) -->
 # wxcadm -- Routing, PSTN, CDR, Reports, Jobs, Webhooks
 
 Reference for the secondary wxcadm modules that handle call routing infrastructure, PSTN configuration, call detail records, reporting, asynchronous jobs, and webhooks.

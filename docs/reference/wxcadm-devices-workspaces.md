@@ -1,3 +1,4 @@
+<!-- Not directly verified via CLI — documents wxcadm library (not generated CLI commands) -->
 # wxcadm: Devices, DECT, Workspaces & Virtual Lines
 
 Reference for device management, DECT networks, workspaces, virtual lines, and number management in wxcadm.

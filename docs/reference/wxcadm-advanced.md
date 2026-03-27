@@ -1,3 +1,4 @@
+<!-- Not directly verified via CLI — documents wxcadm library (not generated CLI commands) -->
 # wxcadm Advanced Modules
 
 Covers wxcadm capabilities that go **beyond** the standard Webex Calling API: RedSky E911 management, Meraki network-to-E911 integration, the CP-API (Control Hub internal API), application/service-app lifecycle, Wholesale provisioning, and the Bifrost internal API.

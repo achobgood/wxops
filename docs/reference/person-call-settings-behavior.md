@@ -1,3 +1,4 @@
+<!-- Verified via CLI Batches 1-4, 2026-03-19 through 2026-03-21 -->
 # Person Call Settings -- Behavior, Devices, Apps & Misc
 
 SDK reference for person-level settings that control calling behavior, application/device configuration, shared lines, hoteling, receptionist, number management, preferred answer endpoints, MS Teams integration, mode management, personal assistant, and emergency callback numbers.

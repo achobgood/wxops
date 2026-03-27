@@ -1,5 +1,6 @@
 <!-- Updated by playbook session 2026-03-18 -->
 <!-- Verified via live API 2026-03-19: admin vs user-only access levels for all endpoints -->
+<!-- Verified via CLI Batches 1-4, 2026-03-19 through 2026-03-21 -->
 # Person Call Settings — Call Handling Reference
 
 ## Sources

@@ -1,3 +1,4 @@
+<!-- Not directly verified via CLI — documents wxcadm library (not generated CLI commands) -->
 # wxcadm XSI & Real-time Call Monitoring
 
 ## Why This Matters

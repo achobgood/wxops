@@ -1,3 +1,4 @@
+<!-- Verified via CLI Batches 1-4, 2026-03-19 through 2026-03-21 -->
 # Person Call Settings — Permissions, Executive & Feature Access
 
 Reference for managing incoming/outgoing call permissions, feature access controls, executive/assistant pairing, and call policy settings via `wxc_sdk`.

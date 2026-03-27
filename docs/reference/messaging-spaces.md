@@ -1,3 +1,4 @@
+<!-- Verified via CLI Batches 1-4, 2026-03-19 through 2026-03-21 -->
 # Messaging: Spaces, Messages, Teams, ECM, and HDS
 
 Reference for Webex messaging infrastructure management. Covers the 40 commands across 7 CLI groups that an IT admin or space manager uses to create and manage spaces, messages, memberships, teams, and enterprise content. Sourced from the Webex Messaging API (OpenAPI spec: `specs/webex-messaging.json`).

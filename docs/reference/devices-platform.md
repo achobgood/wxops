@@ -1,3 +1,4 @@
+<!-- Verified via CLI Batches 1-4, 2026-03-19 through 2026-03-21 -->
 # Device Platform Management (RoomOS Configurations, Personalization, xAPI)
 
 ## Sources

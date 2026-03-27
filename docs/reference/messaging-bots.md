@@ -1,4 +1,5 @@
 <!-- Created by playbook session 2026-03-19 -->
+<!-- Verified via CLI Batches 1-4, 2026-03-19 through 2026-03-21 -->
 # Messaging Bots & Adaptive Cards Reference
 
 Developer reference for building Webex bots and integrations. Covers bot fundamentals, adaptive card patterns, the `attachment-actions` and `room-tabs` CLI groups, and cross-domain calling + messaging recipes.

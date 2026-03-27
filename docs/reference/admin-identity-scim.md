@@ -1,3 +1,4 @@
+<!-- Verified via CLI Batches 1-4, 2026-03-19 through 2026-03-21 -->
 # Admin: Identity & SCIM
 
 SCIM 2.0 user/group provisioning, Webex People/Groups APIs, identity org settings, and directory management.

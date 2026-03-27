@@ -1,3 +1,4 @@
+<!-- Not directly verified via CLI — documents wxcadm library (not generated CLI commands) -->
 # wxcadm Core Architecture
 
 Reference for the core modules that form the foundation of wxcadm: entry point, organization management, API transport, data models, and exceptions.
