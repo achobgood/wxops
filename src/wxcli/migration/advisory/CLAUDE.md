@@ -37,7 +37,7 @@ Advisory decisions are merged separately using `decision_types=[ARCHITECTURE_ADV
 |------|---------|
 | `__init__.py` | Exports `populate_recommendations()` and `ArchitectureAdvisor` |
 | `recommendation_rules.py` | 19 recommendation functions (one per DecisionType) + `RECOMMENDATION_DISPATCH` dict |
-| `advisory_patterns.py` | 16 cross-cutting pattern detectors + `AdvisoryFinding` dataclass + `ALL_ADVISORY_PATTERNS` list |
+| `advisory_patterns.py` | 20 cross-cutting pattern detectors + `AdvisoryFinding` dataclass + `ALL_ADVISORY_PATTERNS` list |
 | `advisor.py` | `ArchitectureAdvisor` class (extends Analyzer ABC) |
 
 ## Decision Model Fields
@@ -70,7 +70,7 @@ Ambiguous cases return `None`. Honest uncertainty is a feature.
 
 ## Cross-Cutting Advisory Patterns (Layer 2)
 
-`advisory_patterns.py` has 16 pattern detector functions. Each takes a `MigrationStore` and returns `list[AdvisoryFinding]`.
+`advisory_patterns.py` has 20 pattern detector functions. Each takes a `MigrationStore` and returns `list[AdvisoryFinding]`.
 
 **Critical patterns (highest migration impact):**
 1. **Partition Ordering Loss** — CSSes that depend on partition ordering to resolve overlapping patterns. Webex uses longest-match routing — no ordering equivalent. Calls may route differently after migration.
@@ -95,6 +95,12 @@ Ambiguous cases return `None`. Honest uncertainty is a feature.
 14. Globalized vs. Localized Dial Plan — Detects dial plan style to guide migration approach
 15. Media Resource Scope Removal — MRGLs, conference bridges, transcoders → cloud-managed, skip
 16. E911/CER Migration Flag — Emergency services require separate workstream
+
+**Tier 4 feature gap patterns:**
+17. Recording Enabled Users — phones with recordingFlag enabled → configure Webex recording
+18. SNR Configured Users — remote destination profiles → manual Webex SNR setup
+19. Transformation Patterns — calling/called party transformations → manual caller ID review
+20. Extension Mobility Usage — device profiles → Webex hot desking configuration
 
 ## AdvisoryFinding Dataclass
 

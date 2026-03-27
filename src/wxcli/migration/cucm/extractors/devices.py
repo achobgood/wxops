@@ -182,3 +182,8 @@ class DeviceExtractor(BaseExtractor):
         # Also grab voiceMailProfileName if present on the Line
         if "voiceMailProfileName" in line_detail:
             line_entry["voiceMailProfileName"] = line_detail["voiceMailProfileName"]
+        # Grab recording fields if present on the Line
+        if "recordingProfileName" in line_detail:
+            line_entry["recordingProfileName"] = line_detail["recordingProfileName"]
+        if "recordingFlag" in line_detail:
+            line_entry["recordingFlag"] = line_detail["recordingFlag"]

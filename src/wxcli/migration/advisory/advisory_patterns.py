@@ -1137,6 +1137,164 @@ def detect_e911_migration_flag(store: MigrationStore) -> list[AdvisoryFinding]:
 
 
 # ===================================================================
+# Pattern 17: Recording-Enabled Users (Tier 4 Item 1)
+# ===================================================================
+
+def detect_recording_enabled_users(store: MigrationStore) -> list[AdvisoryFinding]:
+    """Users with call recording enabled in CUCM need Webex recording config.
+
+    Scans raw phone objects for lines with recordingFlag set to anything
+    other than "Call Recording Disabled".
+    """
+    phones = store.get_objects("phone")
+    if not phones:
+        return []
+
+    recording_users: set[str] = set()
+    recording_phones: list[str] = []
+
+    for phone in phones:
+        pre = phone.get("pre_migration_state", {}) or {}
+        lines = pre.get("lines", []) or []
+        owner_raw = pre.get("ownerUserName", "")
+        if isinstance(owner_raw, dict):
+            owner = owner_raw.get("_value_1", "")
+        else:
+            owner = owner_raw or ""
+
+        for line in lines:
+            if not isinstance(line, dict):
+                continue
+            flag = line.get("recordingFlag", "Call Recording Disabled")
+            if flag and flag != "Call Recording Disabled":
+                if owner:
+                    recording_users.add(owner)
+                recording_phones.append(phone.get("canonical_id", ""))
+                break
+
+    if not recording_users:
+        return []
+
+    detail = (
+        f"{len(recording_users)} user{'s' if len(recording_users) != 1 else ''} have call recording "
+        f"enabled in CUCM across {len(recording_phones)} phone{'s' if len(recording_phones) != 1 else ''}. "
+        f"Webex Calling requires a separate call recording license and location-level recording "
+        f"configuration (vendor selection, compliance announcements, storage). Person-level recording "
+        f"settings must also be enabled. Without this setup, recording will not function after migration."
+    )
+
+    return [AdvisoryFinding(
+        pattern_name="recording_enabled_users",
+        severity="HIGH",
+        summary=f"{len(recording_users)} users have call recording enabled — configure Webex recording before migration",
+        detail=detail,
+        affected_objects=list(recording_phones),
+        category="out_of_scope",
+    )]
+
+
+# ===================================================================
+# Pattern 18: SNR / Remote Destinations (Tier 4 Item 2)
+# ===================================================================
+
+def detect_snr_configured_users(store: MigrationStore) -> list[AdvisoryFinding]:
+    """Remote destination profiles indicate Single Number Reach usage."""
+    rdps = store.get_objects("remote_destination")
+    if not rdps:
+        return []
+
+    owners = set()
+    ids = []
+    for rdp in rdps:
+        pre = rdp.get("pre_migration_state", {}) or {}
+        owner = pre.get("ownerUserId", "")
+        if owner:
+            owners.add(owner)
+        ids.append(rdp.get("canonical_id", ""))
+
+    detail = (
+        f"{len(rdps)} remote destination profile{'s' if len(rdps) != 1 else ''} configured "
+        f"for {len(owners)} user{'s' if len(owners) != 1 else ''}. CUCM Single Number Reach "
+        f"controls (timer settings, answer-too-soon/too-late thresholds) do not have direct "
+        f"Webex equivalents. Webex SNR is simpler — simultaneous ring to configured numbers "
+        f"without timer controls. Manual setup required per user."
+    )
+
+    return [AdvisoryFinding(
+        pattern_name="snr_configured_users",
+        severity="MEDIUM",
+        summary=f"{len(rdps)} remote destinations for {len(owners)} users — Webex SNR is simpler, manual setup required",
+        detail=detail,
+        affected_objects=ids,
+        category="rebuild",
+    )]
+
+
+# ===================================================================
+# Pattern 19: Calling/Called Party Transformation Patterns (Tier 4 Item 4)
+# ===================================================================
+
+def detect_transformation_patterns(store: MigrationStore) -> list[AdvisoryFinding]:
+    """Calling/Called party transformations need manual review."""
+    calling = store.get_objects("info_calling_xform")
+    called = store.get_objects("info_called_xform")
+    total = len(calling) + len(called)
+
+    if total == 0:
+        return []
+
+    ids = [o.get("canonical_id", "") for o in calling] + [o.get("canonical_id", "") for o in called]
+
+    detail = (
+        f"{len(calling)} calling party and {len(called)} called party transformation "
+        f"pattern{'s' if total != 1 else ''} found. CUCM uses these to manipulate caller ID "
+        f"(ANI/CLI) for outbound calls. Webex handles caller ID transformation differently — "
+        f"location-level outbound caller ID settings and per-user caller ID configuration. "
+        f"Each pattern requires manual review to determine the Webex equivalent."
+    )
+
+    return [AdvisoryFinding(
+        pattern_name="transformation_patterns",
+        severity="MEDIUM",
+        summary=f"{total} caller ID transformation patterns require manual review",
+        detail=detail,
+        affected_objects=ids,
+        category="rebuild",
+    )]
+
+
+# ===================================================================
+# Pattern 20: Extension Mobility Usage (Tier 4 Item 6)
+# ===================================================================
+
+def detect_extension_mobility_usage(store: MigrationStore) -> list[AdvisoryFinding]:
+    """Extension Mobility device profiles indicate hot desking needs."""
+    profiles = store.get_objects("info_device_profile")
+    if not profiles:
+        return []
+
+    ids = [p.get("canonical_id", "") for p in profiles]
+
+    detail = (
+        f"{len(profiles)} Extension Mobility device profile{'s' if len(profiles) != 1 else ''} "
+        f"found. CUCM Extension Mobility allows users to log into any EM-enabled phone and "
+        f"load their personal line/speed-dial/services configuration. Webex maps this to "
+        f"hot desking — users can sign into shared workspaces with their Webex identity. "
+        f"However, Webex hot desking is simpler: no device-profile switching, just user "
+        f"login/logout with primary line. Manual workspace + hot desking configuration required."
+    )
+
+    return [AdvisoryFinding(
+        pattern_name="extension_mobility_usage",
+        severity="LOW",
+        summary=f"{len(profiles)} Extension Mobility profiles — map to Webex hot desking",
+        detail=detail,
+        affected_objects=ids,
+        category="rebuild",
+    )]
+
+
+# ===================================================================
 # Registry — ALL_ADVISORY_PATTERNS
 # ===================================================================
 
@@ -1157,4 +1315,8 @@ ALL_ADVISORY_PATTERNS: list[Callable[[MigrationStore], list[AdvisoryFinding]]] =
     detect_globalized_vs_localized,             # Pattern 14
     detect_media_resource_scope_removal,        # Pattern 15
     detect_e911_migration_flag,                 # Pattern 16
+    detect_recording_enabled_users,            # Pattern 17 (Tier 4)
+    detect_snr_configured_users,               # Pattern 18 (Tier 4)
+    detect_transformation_patterns,            # Pattern 19 (Tier 4)
+    detect_extension_mobility_usage,           # Pattern 20 (Tier 4)
 ]
