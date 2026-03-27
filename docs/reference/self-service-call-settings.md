@@ -5,7 +5,7 @@ User-level self-service endpoints for managing personal call settings via user O
 
 ## Sources
 
-- specs/webex-cloud-calling.json (5 "Call Settings For Me" tags, 138 endpoints)
+- specs/webex-cloud-calling.json (5 "Call Settings For Me" tags + Mode Management + Beta Barge-In, 151 endpoints across 95 paths)
 - CLAUDE.md known issue #4 (6 user-only endpoints)
 - person-call-settings-*.md (admin-path equivalents)
 
@@ -383,7 +383,7 @@ Content-Type: application/json
 
 ## 5. Voicemail & Media
 
-Settings for voicemail, call recording, caller ID, and barge-in (read-only view of recording/barge from the user's perspective).
+Settings for voicemail, call recording, caller ID, barge-in, and related media settings.
 
 ### Endpoint Table
 
@@ -396,6 +396,7 @@ Settings for voicemail, call recording, caller ID, and barge-in (read-only view 
 | Selected Caller ID | Yes | Yes | — | `settings/selectedCallerId` | — |
 | Available Caller IDs | Yes | — | — | `settings/availableCallerIds` | `/telephony/config/people/{personId}/agent/availableCallerIds` |
 | Call Recording | Yes | — | — | `settings/callRecording` | `/people/{personId}/features/callRecording` |
+| Barge-In | Yes | Yes | — | `settings/bargeIn` [BETA] | `/people/{personId}/features/bargeIn` |
 | Call Captions | Yes | — | — | `settings/callCaptions` | `/telephony/config/people/{personId}/callCaptions` |
 | WebexGo Override | Yes | Yes | — | `settings/webexGoOverride` | — |
 
@@ -437,10 +438,31 @@ Content-Type: application/json
 }
 ```
 
+### Raw HTTP — Read Barge-In Settings [BETA]
+
+```http
+GET https://webexapis.com/v1/telephony/config/people/me/settings/bargeIn
+Authorization: Bearer {user_token}
+```
+
+### Raw HTTP — Modify Barge-In Settings [BETA]
+
+```http
+PUT https://webexapis.com/v1/telephony/config/people/me/settings/bargeIn
+Authorization: Bearer {user_token}
+Content-Type: application/json
+
+{
+  "enabled": true,
+  "toneEnabled": true
+}
+```
+
 **Cross-references:**
 - Voicemail: `person-call-settings-media.md` section 1
 - Caller ID: `person-call-settings-media.md` sections 2-3
 - Call Recording: `person-call-settings-media.md` section 7
+- Barge-In: `person-call-settings-media.md` section 5
 - Anonymous Call Rejection: `person-call-settings-media.md` section 4
 
 ---
@@ -534,6 +556,7 @@ Settings related to call queue agent behavior and calling services status.
 |---------|-----|-----|-------------|-----------------|
 | Call Center (Queue Agent) | Yes | Yes | `settings/queues` | — |
 | Calling Services | Yes | — | `settings/services` | — |
+| Contact Center Extensions | Yes | — | `settings/contactCenterExtensions` | — |
 
 ### Raw HTTP — Read My Call Center Settings
 
@@ -563,6 +586,15 @@ Authorization: Bearer {user_token}
 ```
 
 Returns list of calling services available to the user with their enabled/disabled state.
+
+### Raw HTTP — Read Contact Center Extensions
+
+```http
+GET https://webexapis.com/v1/telephony/config/people/me/settings/contactCenterExtensions
+Authorization: Bearer {user_token}
+```
+
+Returns contact center extension information for the authenticated user. No admin-path equivalent exists.
 
 ---
 
@@ -682,7 +714,57 @@ Content-Type: application/json
 
 ---
 
-## 11. Admin Path Cross-Reference Table
+## 11. Mode Management
+
+User-level mode management for operating modes (e.g., after-hours, holiday). These endpoints let the calling-licensed user view and switch operating modes for features they participate in. Tagged as "Mode Management" in the spec.
+
+> **Note:** Admin-path equivalents exist at `/telephony/config/people/{personId}/modeManagement/` but only expose `availableFeatures` (GET) and `features` (GET/PUT). The `/me/` surface is significantly richer with 9 endpoints including mode switching actions.
+
+### Endpoint Table
+
+| Setting | Method | Path Suffix | Admin Equivalent |
+|---------|--------|-------------|-----------------|
+| List Mode Management Features | GET | `settings/modeManagement/features` | `/telephony/config/people/{personId}/modeManagement/features` |
+| Get Common Modes | GET | `settings/modeManagement/features/commonModes` | — |
+| Get Mode Management Feature | GET | `settings/modeManagement/features/{featureId}` | — |
+| Get Normal Operation Mode | GET | `settings/modeManagement/features/{featureId}/normalOperationMode` | — |
+| Get Operating Mode | GET | `settings/modeManagement/features/{featureId}/modes/{modeId}` | — |
+| Switch Mode (Multiple Features) | POST | `settings/modeManagement/features/actions/switchMode/invoke` | — |
+| Switch Mode (Single Feature) | POST | `settings/modeManagement/features/{featureId}/actions/switchMode/invoke` | — |
+| Extend Current Mode Duration | POST | `settings/modeManagement/features/{featureId}/actions/extendMode/invoke` | — |
+| Switch to Normal Operation | POST | `settings/modeManagement/features/{featureId}/actions/switchToNormalOperation/invoke` | — |
+
+### Raw HTTP — List Mode Management Features
+
+```http
+GET https://webexapis.com/v1/telephony/config/people/me/settings/modeManagement/features
+Authorization: Bearer {user_token}
+```
+
+### Raw HTTP — Switch Mode for a Feature
+
+```http
+POST https://webexapis.com/v1/telephony/config/people/me/settings/modeManagement/features/{featureId}/actions/switchMode/invoke
+Authorization: Bearer {user_token}
+Content-Type: application/json
+
+{
+  "modeId": "{mode_id}"
+}
+```
+
+### Raw HTTP — Switch to Normal Operation
+
+```http
+POST https://webexapis.com/v1/telephony/config/people/me/settings/modeManagement/features/{featureId}/actions/switchToNormalOperation/invoke
+Authorization: Bearer {user_token}
+```
+
+**Cross-reference:** CLAUDE.md known issue #3 (mode-management requires calling-licensed user). See also `location-call-settings-advanced.md` for admin-level operating modes.
+
+---
+
+## 12. Admin Path Cross-Reference Table
 
 Master mapping of every `/me/` endpoint to its admin equivalent. Path suffixes are relative to `/telephony/config/people/me/` (user) and the noted admin base path.
 
@@ -728,6 +810,7 @@ Master mapping of every `/me/` endpoint to its admin equivalent. Path suffixes a
 | Selected Caller ID | `settings/selectedCallerId` | — | person-call-settings-media.md sec 3 |
 | Available Caller IDs | `settings/availableCallerIds` | `/telephony/config/people/{personId}/agent/availableCallerIds` | person-call-settings-media.md sec 3 |
 | Call Recording | `settings/callRecording` | `/people/{personId}/features/callRecording` | person-call-settings-media.md sec 7 |
+| Barge-In | `settings/bargeIn` [BETA] | `/people/{personId}/features/bargeIn` | person-call-settings-media.md sec 5 |
 | Call Captions | `settings/callCaptions` | `/telephony/config/people/{personId}/callCaptions` | — |
 | WebexGo Override | `settings/webexGoOverride` | — | — |
 | **Endpoints & Devices** | | | |
@@ -744,6 +827,17 @@ Master mapping of every `/me/` endpoint to its admin equivalent. Path suffixes a
 | **Queue & Agent** | | | |
 | Call Center (Queues) | `settings/queues` | — | — |
 | Calling Services | `settings/services` | — | — |
+| Contact Center Extensions | `settings/contactCenterExtensions` | — | — |
+| **Mode Management** | | | |
+| Mode Management Features | `settings/modeManagement/features` | `/telephony/config/people/{personId}/modeManagement/features` | location-call-settings-advanced.md |
+| Common Modes | `settings/modeManagement/features/commonModes` | — | — |
+| Mode Management Feature | `settings/modeManagement/features/{featureId}` | — | — |
+| Normal Operation Mode | `settings/modeManagement/features/{featureId}/normalOperationMode` | — | — |
+| Operating Mode | `settings/modeManagement/features/{featureId}/modes/{modeId}` | — | — |
+| Switch Mode (Multi) | `settings/modeManagement/features/actions/switchMode/invoke` | — | — |
+| Switch Mode (Single) | `settings/modeManagement/features/{featureId}/actions/switchMode/invoke` | — | — |
+| Extend Mode Duration | `settings/modeManagement/features/{featureId}/actions/extendMode/invoke` | — | — |
+| Switch to Normal | `settings/modeManagement/features/{featureId}/actions/switchToNormalOperation/invoke` | — | — |
 | **Location & System** | | | |
 | My Details | (root: `/me`) | — | — |
 | Announcement Languages | `announcementLanguages` [BETA] | — | — |
@@ -774,7 +868,7 @@ Master mapping of every `/me/` endpoint to its admin equivalent. Path suffixes a
 
 ## Gotchas
 
-1. **Admin tokens do not work on /me/ paths.** All 138 endpoints require user-level OAuth. Admin tokens (from service apps or admin-granted integrations) will get 404 or 401, not a helpful error.
+1. **Admin tokens do not work on /me/ paths.** All 151 endpoints require user-level OAuth. Admin tokens (from service apps or admin-granted integrations) will get 404 or 401, not a helpful error.
 
 2. **User must have Webex Calling license.** Error 4008 ("User not found or not calling-licensed") is returned for all `/me/` endpoints if the authenticated user lacks a Calling license.
 
@@ -796,6 +890,12 @@ Master mapping of every `/me/` endpoint to its admin equivalent. Path suffixes a
 9. **Two schedule path families.** User schedules are at `schedules/{scheduleType}/{scheduleId}`, while location-level schedules (read-only to the user) are at `locations/schedules/{scheduleType}/{scheduleId}`.
 
 10. **Criteria CRUD pattern.** Eight settings use the criteria sub-resource pattern (simultaneousRing, sequentialRing, priorityAlert, callNotify, selectiveAccept, selectiveForward, selectiveReject, and executive callFiltering). GET on the parent resource returns a `criterias` array with summary objects. Full CRUD on individual criteria uses the `/criteria/{id}` sub-path.
+
+11. **Mode management is richer on /me/ than admin.** The admin path only has 2 endpoints (`availableFeatures` GET and `features` GET/PUT) while the `/me/` surface exposes 9 endpoints including mode switching, extending, and normal operation actions. Mode management requires a calling-licensed user (CLAUDE.md known issue #3).
+
+12. **Barge-In is tagged Beta.** The `/me/settings/bargeIn` endpoints are tagged `Beta Settings Features For Barge-In`. The admin equivalent at `/people/{personId}/features/bargeIn` is the stable path.
+
+13. **Contact Center Extensions is user-only.** The `contactCenterExtensions` GET endpoint has no admin-path equivalent and no tag assignment in the spec.
 
 ---
 
