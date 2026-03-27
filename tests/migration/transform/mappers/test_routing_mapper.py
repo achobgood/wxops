@@ -237,6 +237,61 @@ class TestRoutingMapperTrunks:
         trunks = store.get_objects("trunk")
         assert trunks[0]["location_id"] == loc_id
 
+    def test_trunk_no_location_multiple_locations_with_none_pre_migration_state(self):
+        """Trunk with no device pool + locations whose pre_migration_state is None.
+
+        Regression: loc.get('pre_migration_state', {}) returns None (not {})
+        when the key exists with value None, causing AttributeError on .get('name').
+        """
+        store = _make_store()
+        # CanonicalLocation objects from LocationMapper have pre_migration_state=None
+        loc1 = CanonicalLocation(
+            canonical_id="location:Site-A",
+            provenance=_provenance(source_id="uuid-loc-a", name="Site-A"),
+            status=MigrationStatus.ANALYZED,
+            name="Site-A",
+            address=LocationAddress(country="US"),
+        )
+        loc2 = CanonicalLocation(
+            canonical_id="location:Site-B",
+            provenance=_provenance(source_id="uuid-loc-b", name="Site-B"),
+            status=MigrationStatus.ANALYZED,
+            name="Site-B",
+            address=LocationAddress(country="US"),
+        )
+        store.upsert_object(loc1)
+        store.upsert_object(loc2)
+
+        # Trunk with no device pool cross-ref -> triggers multi-location branch
+        trunk = _sip_trunk("Org-Trunk-1")
+        store.upsert_object(trunk)
+
+        mapper = RoutingMapper()
+        result = mapper.map(store)  # should NOT raise AttributeError
+
+        # Should produce LOCATION_AMBIGUOUS decision
+        loc_decisions = [
+            d for d in result.decisions
+            if d.type.value == "LOCATION_AMBIGUOUS"
+        ]
+        assert len(loc_decisions) == 1
+        assert "Org-Trunk-1" in loc_decisions[0].summary
+
+    def test_trunk_handles_none_destination_entries(self):
+        """Destinations list with None entries should not crash."""
+        store = _make_store()
+        trunk = _sip_trunk(
+            "SIP-Trunk-1",
+            destinations=[None, {"address": "sbc.example.com", "port": 5060, "sort_order": 1}],
+        )
+        store.upsert_object(trunk)
+
+        mapper = RoutingMapper()
+        mapper.map(store)
+
+        trunks = store.get_objects("trunk")
+        assert trunks[0]["address"] == "sbc.example.com"
+
 
 # ---------------------------------------------------------------------------
 # Tests — route group mapping

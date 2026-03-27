@@ -135,8 +135,10 @@ class RoutingMapper(Mapper):
                 destinations = state.get("destinations", [])
                 if isinstance(destinations, list) and destinations:
                     # Find primary destination (sort_order 1 or first)
-                    primary = destinations[0]
+                    primary = destinations[0] or {}
                     for dest in destinations:
+                        if not dest:
+                            continue
                         if dest.get("sort_order") == 1:
                             primary = dest
                             break
@@ -189,8 +191,8 @@ class RoutingMapper(Mapper):
                         loc_options = [
                             DecisionOption(
                                 id=loc["canonical_id"],
-                                label=f"Assign to {loc.get('pre_migration_state', {}).get('name', loc['canonical_id'])}",
-                                impact=f"Trunk created in {loc.get('pre_migration_state', {}).get('name', loc['canonical_id'])}",
+                                label=f"Assign to {(loc.get('pre_migration_state') or {}).get('name', loc['canonical_id'])}",
+                                impact=f"Trunk created in {(loc.get('pre_migration_state') or {}).get('name', loc['canonical_id'])}",
                             )
                             for loc in locations
                         ]
@@ -336,12 +338,14 @@ class RoutingMapper(Mapper):
 
             # Build trunk gateway refs with priority from pre_migration_state
             trunks_with_priority = []
-            state_trunks = state.get("trunks", [])
+            state_trunks = state.get("trunks") or []
             for i, trunk_ref_id in enumerate(trunk_refs):
                 # Try to find priority from state data
                 priority = i + 1
                 trunk_name = trunk_ref_id.split(":", 1)[-1] if ":" in trunk_ref_id else trunk_ref_id
                 for st in state_trunks:
+                    if not st:
+                        continue
                     if st.get("trunk_name") == trunk_name:
                         priority = st.get("priority", i + 1)
                         break

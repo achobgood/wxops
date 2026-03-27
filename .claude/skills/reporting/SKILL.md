@@ -10,6 +10,12 @@ argument-hint: [report-type]
 
 # Reporting & Analytics Workflow
 
+**Checkpoint — do NOT proceed until you can answer these:**
+1. What base URL does CDR (Detailed Call History) use? (Answer: The analytics base URL, not the standard `webexapis.com` base — this is configured in the CLI as a different endpoint.)
+2. What is the maximum date range for a single CDR query? (Answer: 48 hours per query. For longer ranges, paginate with multiple queries.)
+
+If you cannot answer both, you skipped reading this skill. Go back and read it.
+
 ## Step 1: Load references
 
 1. Read `docs/reference/reporting-analytics.md` for CDR fields, report templates, API constraints

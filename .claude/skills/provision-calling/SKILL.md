@@ -1,18 +1,24 @@
 ---
 name: provision-calling
 description: |
-  Provision OR tear down Webex Calling users, locations, and licenses via the wxcli CLI.
+  Provision Webex Calling users, locations, and licenses via the wxcli CLI.
   Guides through auth verification, prerequisite checks, deployment planning, execution,
   and result verification for any provisioning operation.
-  Also covers bulk cleanup, resource deletion, location teardown, and org reset.
-  Use for: create, enable, assign, delete, remove, clean up, tear down, reset.
+  Use for: create, enable, assign, bulk provision.
+  For teardown/delete/cleanup operations, use the teardown skill instead.
 allowed-tools: Read, Grep, Glob, Bash
-argument-hint: [operation — e.g. "create location", "enable user", "assign license", "bulk provision", "clean up org", "delete location", "teardown"]
+argument-hint: [operation — e.g. "create location", "enable user", "assign license", "bulk provision"]
 ---
 
 <!-- Updated by playbook session 2026-03-18 -->
 
 # Provision Calling Workflow
+
+**Checkpoint — do NOT proceed until you can answer these:**
+1. Can `location_id` be changed after a calling license is assigned? (Answer: No — it is write-once. Wrong location = must remove and re-add calling license.)
+2. What case must `announcement_language` use? (Answer: lowercase only — `en_us` not `en_US`. Mixed case causes "Invalid Language Code" error.)
+
+If you cannot answer both, you skipped reading this skill. Go back and read it.
 
 ## Step 1: Load references
 
@@ -234,99 +240,9 @@ done
 
 ### Operation F: Teardown / Delete Location
 
-**When to use:** Deleting a location, cleaning up a migration test, or decommissioning a site.
+**For teardown operations, load the `teardown` skill.** It covers single-location teardown, multi-location bulk cleanup, and org reset with the full dependency-safe deletion order and `wxcli cleanup` automation.
 
-**⚠ Calling-enabled locations cannot be deleted via API** (gotcha #6). The final location delete requires Control Hub. This workflow removes all blocking references so the location is ready for manual deletion.
-
-#### Step 1: Enumerate ALL references upfront
-
-Run ALL of these checks before deleting anything. Collect the full list of resources to delete.
-
-```bash
-LOC=<LOCATION_ID>
-
-# Layer 1: Features
-wxcli hunt-group list --location-id $LOC -o json 2>&1
-wxcli call-queue list --location-id $LOC -o json 2>&1
-wxcli call-queue list --location-id $LOC --has-cx-essentials true -o json 2>&1
-wxcli auto-attendant list --location-id $LOC -o json 2>&1
-wxcli paging-group list --location-id $LOC -o json 2>&1
-# ⚠ Call parks and pickups REQUIRE location as positional arg — org-wide list returns EMPTY
-wxcli call-park list $LOC -o json 2>&1
-wxcli call-pickup list $LOC -o json 2>&1
-wxcli location-voicemail list-voicemail-groups $LOC -o json 2>&1
-
-# Layer 2: Routing
-wxcli call-routing list-trunks -o json 2>&1       # filter by location in output
-wxcli call-routing list-route-groups -o json 2>&1  # check which reference trunks in this location
-wxcli call-routing list -o json 2>&1               # dial plans
-wxcli call-routing list-route-lists -o json 2>&1   # route lists
-
-# Layer 3: Supporting resources
-wxcli virtual-extensions list --location-id $LOC -o json 2>&1
-wxcli location-schedules list $LOC -o json 2>&1
-wxcli operating-modes list --location-id $LOC -o json 2>&1
-
-# Layer 4: Users
-wxcli users list --location-id $LOC -o json 2>&1
-
-# Layer 5: Workspaces
-wxcli workspaces list -o json 2>&1  # filter by locationId in output
-```
-
-Present the full inventory to the user before proceeding.
-
-#### Step 2: Delete in dependency order
-
-Delete resources **layer by layer, top to bottom**. Within routing (Layer 2), delete in **reverse creation order**: PSTN Connection → Route Lists → Dial Plans → Route Groups → Trunks.
-
-**Critical rules for delete commands:**
-- **Always use `--force`** to skip interactive confirmation
-- **Location-scoped features take `LOCATION_ID` as the FIRST argument:** `wxcli hunt-group delete --force LOCATION_ID FEATURE_ID`
-- **Routing deletes use plural names:** `delete-route-groups` not `delete-route-group`, `delete-trunks` not `delete-trunk`
-- **Check `--help` if unsure about argument order**
-
-```bash
-# Layer 1 example:
-wxcli hunt-group delete --force $LOC <HG_ID>
-wxcli auto-attendant delete --force $LOC <AA_ID>
-wxcli call-pickup delete --force $LOC <PICKUP_ID>
-
-# Layer 2 (reverse order):
-wxcli call-routing delete-route-groups --force <RG_ID>
-wxcli call-routing delete-trunks --force <TRUNK_ID>
-
-# Layer 3:
-wxcli virtual-extensions delete --force <VE_ID>
-wxcli location-schedules delete --force $LOC <TYPE> <SCHEDULE_ID>
-
-# Layer 4:
-wxcli users delete --force <USER_ID>
-```
-
-#### Step 2b: Disable calling and wait
-
-After all sub-resources are deleted, disable calling before attempting location delete:
-
-```bash
-wxcli location-call-settings update-location-calling $LOC --calling-enabled false
-# Wait 90+ seconds for backend propagation
-sleep 90
-```
-
-#### Step 3: Attempt location delete
-
-```bash
-wxcli locations delete --force $LOC
-```
-
-If this returns 409 "being referenced", check these in order:
-- CX Essentials queues hidden from default `call-queue list` (need `--has-cx-essentials true`)
-- **Call parks and pickups not found** — `wxcli call-park list` and `wxcli call-pickup list` without location arg return empty. Must pass `$LOC` as first positional arg.
-- Virtual lines discoverable only via `wxcli numbers list -o json` (owner.type == VIRTUAL_LINE), not via `wxcli virtual-extensions list`
-- Operating modes referencing deleted schedules
-- Workspaces/places still assigned to the location
-- **Calling still propagating** — even after `--calling-enabled false`, the 409 may persist for minutes to hours. Wait and retry, or accept on re-run (execution engine handles 409 auto-recovery on locations).
+Delete-related critical rules (13-15) below still apply.
 
 ## Step 7: Verify results
 
@@ -425,7 +341,7 @@ When a wxcli command fails:
 
 **D. 409 Conflict (50003 "Location is being referenced")**
 
-The location still has dependent resources. Run the teardown enumeration from Operation F, Step 1 to find what's blocking. If all resources are deleted and the 409 persists, calling is still enabled on the location — this requires Control Hub.
+The location still has dependent resources. Load the `teardown` skill and follow its enumeration procedure. If all resources are deleted and the 409 persists, calling is still enabled — disable it and wait 90+ seconds.
 
 Provisioning-specific errors:
 - 400 on `users create`: Check email format, verify no existing user with same email

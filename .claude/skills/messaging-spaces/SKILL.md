@@ -11,6 +11,12 @@ argument-hint: [operation-type]
 
 # Messaging Spaces Workflow
 
+**Checkpoint — do NOT proceed until you can answer these:**
+1. What token type do messaging space operations require? (Answer: User-level or bot token with `spark:rooms_read`/`spark:rooms_write` — admin tokens work for listing but some operations need the acting user's token.)
+2. How do you list messages in a space? (Answer: `wxcli messages list --room-id SPACE_ID` — the API uses `roomId` not `spaceId`, matching the older "rooms" terminology.)
+
+If you cannot answer both, you skipped reading this skill. Go back and read it.
+
 ## Step 1: Load references
 
 1. Read `docs/reference/messaging-spaces.md` for spaces/messages/teams/ECM/HDS data models and CLI commands

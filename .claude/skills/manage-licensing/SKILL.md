@@ -10,6 +10,12 @@ argument-hint: [operation — e.g. "audit usage", "assign licenses", "reclaim un
 
 # Manage Licensing Workflow
 
+**Checkpoint — do NOT proceed until you can answer these:**
+1. What API method assigns licenses to users? (Answer: PATCH `/licenses/users` — not PUT. The body uses `add`/`remove` operations with license IDs and user IDs.)
+2. What must you include when assigning a Webex Calling license? (Answer: Either an extension or phone number — the PATCH call requires one of these for calling licenses or it will fail.)
+
+If you cannot answer both, you skipped reading this skill. Go back and read it.
+
 ## Step 1: Load references
 
 1. Read `docs/reference/authentication.md` for token setup and scope requirements

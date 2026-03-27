@@ -12,6 +12,12 @@ argument-hint: [device-platform-operation]
 
 # Device Platform Workflow
 
+**Checkpoint — do NOT proceed until you can answer these:**
+1. Do 9800-series phones (9811/9821/9841/9851/9861/9871) use telephony device settings or RoomOS config keys? (Answer: RoomOS config keys — they are NOT configured via `wxcli device-settings` or telephony settings APIs.)
+2. What CLI group handles xAPI commands for device control? (Answer: `wxcli xapi` — covers both command execution and status queries on devices.)
+
+If you cannot answer both, you skipped reading this skill. Go back and read it.
+
 ## Step 1: Load references
 
 1. Read `docs/reference/devices-platform.md` for device configurations, workspace personalization, xAPI commands and status queries

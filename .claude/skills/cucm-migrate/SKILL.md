@@ -12,6 +12,12 @@ argument-hint: [project name]
 
 # CUCM Migration Execution Workflow
 
+**Checkpoint — do NOT proceed until you can answer these:**
+1. What pipeline stage must be complete before this skill can run? (Answer: ANALYZED — run `wxcli cucm status` to verify. If not at ANALYZED or later, the admin must run the remaining pipeline stages first.)
+2. What must be resolved before the plan can be generated? (Answer: All PENDING decisions — run `wxcli cucm decisions --status pending` to check. Location addresses must also be imported via `wxcli cucm import-locations`.)
+
+If you cannot answer both, you skipped reading this skill. Go back and read it.
+
 ## Step 1: Load, Verify, and Assess
 
 1. **Check project exists and pipeline is complete:**

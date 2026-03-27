@@ -11,6 +11,12 @@ argument-hint: [device-operation]
 
 # Manage Devices Workflow
 
+**Checkpoint — do NOT proceed until you can answer these:**
+1. What is the correct order for DECT provisioning? (Answer: Create DECT network → add base stations (real Cisco MACs required) → add handsets with line assignments.)
+2. How do you generate an activation code for a device? (Answer: Use `wxcli devices create-activation-code` — the device must exist first via `wxcli devices create`.)
+
+If you cannot answer both, you skipped reading this skill. Go back and read it.
+
 ## Step 1: Load references
 
 1. Read `docs/reference/devices-core.md` for device CRUD, activation codes, MAC provisioning, line key templates, device settings
