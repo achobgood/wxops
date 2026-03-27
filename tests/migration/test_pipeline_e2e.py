@@ -203,68 +203,66 @@ def raw_data():
                     "class": "Phone",
                     "description": "John Smith - Desk Phone",
                     "protocol": "SIP",
-                    "ownerUserName": _ref("jsmith", "{USR-JSMT-0001-0001-0001-000000000001}"),
+                    "ownerUserName": "jsmith",
                     "devicePoolName": _ref("DP-Main", "{DP-MAIN-0001-0001-0001-000000000001}"),
                     "callingSearchSpaceName": _ref("CSS-Internal", "{CSS-INT-0001-0001-0001-000000000001}"),
                     "phoneTemplateName": _ref("Standard 8845 SIP", "{TPL-8845-0001-0001-0001-000000000001}"),
                     "softkeyTemplateName": None,
                     "deviceMobilityMode": "Default",
-                    "lines": {
-                        "line": [
-                            {
-                                "index": "1",
-                                "label": "John Smith - 1001",
-                                "display": "John Smith",
-                                "e164Mask": "+12125551001",
-                                "recordingFlag": "Automatic Call Recording Enabled",
-                                "recordingProfileName": {"_value_1": "RecordingProfile-Default"},
-                                "associatedEndusers": {"enduser": [{"userId": "jsmith"}]},
-                                "dirn": {
-                                    "pattern": "1001",
-                                    "routePartitionName": _ref("PT-Internal", "{PT-INT-0001-0001-0001-000000000001}"),
-                                    "alertingName": "John Smith",
-                                    "description": "John Smith Ext 1001",
-                                    "shareLineAppearanceCssName": _empty_ref(),
-                                    "callingSearchSpaceName": _ref("CSS-Internal", "{CSS-INT-0001-0001-0001-000000000001}"),
-                                    "callForwardAll": {
-                                        "destination": "",
-                                        "forwardToVoiceMail": "false",
-                                        "callingSearchSpaceName": _empty_ref(),
-                                    },
-                                    "callForwardBusy": {
-                                        "destination": "8000",
-                                        "forwardToVoiceMail": "true",
-                                        "callingSearchSpaceName": _empty_ref(),
-                                    },
-                                    "callForwardNoAnswer": {
-                                        "destination": "8000",
-                                        "forwardToVoiceMail": "true",
-                                        "callingSearchSpaceName": _empty_ref(),
-                                    },
+                    "lines": [
+                        {
+                            "index": "1",
+                            "label": "John Smith - 1001",
+                            "display": "John Smith",
+                            "e164Mask": "+12125551001",
+                            "recordingFlag": "Automatic Call Recording Enabled",
+                            "recordingProfileName": {"_value_1": "RecordingProfile-Default"},
+                            "associatedEndusers": {"enduser": [{"userId": "jsmith"}]},
+                            "dirn": {
+                                "pattern": "1001",
+                                "routePartitionName": _ref("PT-Internal", "{PT-INT-0001-0001-0001-000000000001}"),
+                                "alertingName": "John Smith",
+                                "description": "John Smith Ext 1001",
+                                "shareLineAppearanceCssName": _empty_ref(),
+                                "callingSearchSpaceName": _ref("CSS-Internal", "{CSS-INT-0001-0001-0001-000000000001}"),
+                                "callForwardAll": {
+                                    "destination": "",
+                                    "forwardToVoiceMail": "false",
+                                    "callingSearchSpaceName": _empty_ref(),
+                                },
+                                "callForwardBusy": {
+                                    "destination": "8000",
+                                    "forwardToVoiceMail": "true",
+                                    "callingSearchSpaceName": _empty_ref(),
+                                },
+                                "callForwardNoAnswer": {
+                                    "destination": "8000",
+                                    "forwardToVoiceMail": "true",
+                                    "callingSearchSpaceName": _empty_ref(),
                                 },
                             },
-                            {
-                                "index": "2",
-                                "label": "Maria Chen - 1002",
-                                "display": "Maria Chen",
-                                "e164Mask": "+12125551002",
-                                "associatedEndusers": {
-                                    "enduser": [
-                                        {"userId": "jsmith"},
-                                        {"userId": "mchen"},
-                                    ]
-                                },
-                                "dirn": {
-                                    "pattern": "1002",
-                                    "routePartitionName": _ref("PT-Internal", "{PT-INT-0001-0001-0001-000000000001}"),
-                                    "alertingName": "Maria Chen",
-                                    "description": "Maria Chen Ext 1002 (Shared)",
-                                    "shareLineAppearanceCssName": _ref("CSS-Internal", "{CSS-INT-0001-0001-0001-000000000001}"),
-                                    "callingSearchSpaceName": _ref("CSS-Internal", "{CSS-INT-0001-0001-0001-000000000001}"),
-                                },
+                        },
+                        {
+                            "index": "2",
+                            "label": "Maria Chen - 1002",
+                            "display": "Maria Chen",
+                            "e164Mask": "+12125551002",
+                            "associatedEndusers": {
+                                "enduser": [
+                                    {"userId": "jsmith"},
+                                    {"userId": "mchen"},
+                                ]
                             },
-                        ],
-                    },
+                            "dirn": {
+                                "pattern": "1002",
+                                "routePartitionName": _ref("PT-Internal", "{PT-INT-0001-0001-0001-000000000001}"),
+                                "alertingName": "Maria Chen",
+                                "description": "Maria Chen Ext 1002 (Shared)",
+                                "shareLineAppearanceCssName": _ref("CSS-Internal", "{CSS-INT-0001-0001-0001-000000000001}"),
+                                "callingSearchSpaceName": _ref("CSS-Internal", "{CSS-INT-0001-0001-0001-000000000001}"),
+                            },
+                        },
+                    ],
                     "speeddials": [],
                     "busyLampFields": [],
                 },
@@ -829,6 +827,13 @@ def raw_data():
                     "protocol": "SIP",
                 },
             ],
+            "remote_destination_profiles": [
+                {
+                    "name": "RDP-tier4-user",
+                    "description": "Tier 4 mobile profile",
+                    "userId": "tier4user",
+                },
+            ],
         },
     }
 
@@ -876,8 +881,8 @@ class TestNormalizationPhase:
     def test_tier2_objects_normalized(self, store, raw_data):
         """Tier 2 types are normalized from raw_data into the store."""
         normalize_discovery(raw_data, store)
-        # Remote destinations: 2 entries → 2 objects
-        assert store.count_by_type("remote_destination") == 2
+        # Remote destinations: 2 entries + 1 tier4 remote_destination_profile → 3 objects
+        assert store.count_by_type("remote_destination") == 3
         # E911: 1 ELIN group + 1 geo location
         assert store.count_by_type("elin_group") == 1
         assert store.count_by_type("geo_location") == 1
@@ -1088,10 +1093,11 @@ class TestAnalysisPhase:
         # Tier 4 patterns that should fire from our test data:
         # - transformation_patterns: 1 calling + 1 called party xform
         # - extension_mobility_usage: 1 EM device profile
-        tier4_patterns = {"transformation_patterns", "extension_mobility_usage"}
+        # - recording_enabled_users: SEP001122334455 has recordingFlag on line 1
+        tier4_patterns = {"transformation_patterns", "extension_mobility_usage", "recording_enabled_users"}
         fired = tier4_patterns & pattern_names
-        assert len(fired) >= 2, (
-            f"Expected at least 2 Tier 4 advisory patterns to fire, "
+        assert len(fired) >= 3, (
+            f"Expected at least 3 Tier 4 advisory patterns to fire, "
             f"got {fired}. All pattern names: {pattern_names}"
         )
 

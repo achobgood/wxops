@@ -1278,7 +1278,11 @@ def _recording_inventory(store: MigrationStore) -> str:
 
     for phone in phones:
         pre = phone.get("pre_migration_state", {}) or {}
-        owner = pre.get("ownerUserName", "") or ""
+        owner_raw = pre.get("ownerUserName", "")
+        if isinstance(owner_raw, dict):
+            owner = owner_raw.get("_value_1", "") or ""
+        else:
+            owner = owner_raw or ""
         phone_name = pre.get("name", strip_canonical_id(phone.get("canonical_id", "")))
         for line in (pre.get("lines") or []):
             if not isinstance(line, dict):
