@@ -122,7 +122,7 @@ All 31 handlers in `HANDLER_REGISTRY`:
 ### Tier 6 — Shared/Virtual Lines + Monitoring
 | Key | URL | Notes |
 |-----|-----|-------|
-| `(shared_line, configure)` | PUT `/telephony/config/devices/{id}/members` | Stub — full config handled by skill |
+| `(shared_line, configure)` | PUT `/telephony/config/people/{id}/applications/members` × N owners | Configures person-level app shared call appearance for each owner |
 | `(virtual_line, create)` | POST `/telephony/config/virtualLines` | |
 | `(virtual_line, configure)` | PUT `/telephony/config/virtualLines/{id}` | Returns `[]` if no settings |
 | `(monitoring_list, configure)` | PUT `/people/{id}/features/monitoring` | Returns `[]` if no resolved members; silently omits unresolved |
@@ -186,7 +186,7 @@ All 31 handlers in `HANDLER_REGISTRY`:
 
 - Each batch: all ops run concurrently via `asyncio.gather()`, bounded by a semaphore (`concurrency=20` by default).
 - **429 handling** — backs off by `Retry-After` header value, retries up to `MAX_RETRIES=5` times.
-- **409 handling** — auto-recovery: searches for the existing resource by name/email and uses its ID. Supported for: user, location, translation_pattern, trunk, dial_plan. Other types cascade-fail.
+- **409 handling** — auto-recovery: searches for the existing resource by name/email and uses its ID. Supported for: user, location, translation_pattern, trunk, dial_plan, operating_mode, schedule. Other types cascade-fail.
 - **Multi-call ops** — sequential: the engine iterates `calls` in order. First call's response `id` becomes the `webex_id`. Any sub-call failure fails the whole op.
 - Handler returning `[]` → op marked `completed` with no API call.
 - No handler in registry → op marked `failed` immediately.
@@ -225,4 +225,4 @@ All 31 handlers in `HANDLER_REGISTRY`:
 - **`operating_mode` — field is `type` not `scheduleType`** — The POST body must use `"type"` not `"scheduleType"` for the schedule type field. The GET response also uses `"type"`.
 - **`operating_mode` — `sameHoursDaily` format** — Canonical stores `{startTime, endTime}`, but the API requires `{mondayToFriday: {enabled, allDayEnabled, startTime?, endTime?}, saturdayToSunday: ...}`. The handler converts automatically.
 - **`operating_mode` — `differentHoursDaily` format** — Canonical stores `{day_0: {startTime, endTime}, ...}` (numeric keys). API uses `{monday: {enabled, allDayEnabled, startTime?, endTime?}, ...}` (day names). The handler maps `day_N` → day name.
-- **`operating_mode` — no 409 recovery** — If an operating mode with the same name already exists, the engine will 409 and fail (no search URL defined). Workaround: manually set the op to `completed` with the existing Webex ID in the SQLite store.
+- **`operating_mode` — 409 auto-recovery** — If an operating mode with the same name already exists, the engine searches by name and uses the existing ID.
