@@ -1,4 +1,5 @@
 <!-- Not directly verified via CLI — documents wxcadm library (not generated CLI commands) -->
+<!-- wxcadm v4.6.1 review 2026-03-27: All v4.5.0–v4.6.1 changes verified present. Meraki optional dependency (lazy import), CPAPI auto-init commented out, Applications(org) signature — all accurately documented. Location.set_default_moh/upload_moh_file removed from Location class (only in CPAPI section, which is correct). No discrepancies found. -->
 # wxcadm Advanced Modules
 
 Covers wxcadm capabilities that go **beyond** the standard Webex Calling API: RedSky E911 management, Meraki network-to-E911 integration, the CP-API (Control Hub internal API), application/service-app lifecycle, Wholesale provisioning, and the Bifrost internal API.

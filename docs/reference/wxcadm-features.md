@@ -1,4 +1,5 @@
 <!-- Not directly verified via CLI — documents wxcadm library (not generated CLI commands) -->
+<!-- wxcadm v4.6.1 review 2026-03-27: All v4.5.0–v4.6.1 changes verified present. AutoAttendantList(org, location), CallQueueList(org, location), HuntGroupList(org, location) signatures, RecordingList.reassign_owner(), Recording.metadata property, ComplianceAnnouncementSettings.push() implementation, OrgRecordingVendorSelection.set_failure_behavior still unimplemented — all accurately documented. No discrepancies found. -->
 # wxcadm Call Features Reference
 
 Reference document covering wxcadm's call feature modules: Auto Attendant, Call Queue, Hunt Group, Pickup Group, Announcements (including Playlists), and Recording.
