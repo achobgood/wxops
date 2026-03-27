@@ -126,6 +126,10 @@ def update(
             body["personId"] = person_id
         if org_id is not None:
             body["orgId"] = org_id
+    if not json_body:
+        if not body.get("email") and not body.get("personId"):
+            typer.echo("Error: At least one of --email or --person-id is required.", err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_patch(url, json=body)
     except RestError as e:
