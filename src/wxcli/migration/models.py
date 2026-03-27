@@ -569,6 +569,58 @@ class CanonicalDeviceLayout(MigrationObject):
     device_id_surface: str = "telephony"  # Copied from associated device at map time
 
 
+class CanonicalMusicOnHold(MigrationObject):
+    """CUCM MOH Audio Source → Webex per-location MOH."""
+    location_canonical_id: str | None = None
+    source_name: str | None = None
+    source_file_name: str | None = None
+    is_default: bool = False
+    cucm_source_id: str | None = None
+
+
+class CanonicalAnnouncement(MigrationObject):
+    """CUCM Announcement / Unity greeting → Webex announcement repo."""
+    name: str | None = None
+    location_canonical_id: str | None = None
+    file_name: str | None = None
+    media_type: str | None = None
+    source_system: str | None = None
+    usage: str | None = None
+    associated_feature_canonical_id: str | None = None
+
+
+class CanonicalDeviceProfile(MigrationObject):
+    """CUCM Device Profile → informs Webex hot desking decisions."""
+    profile_name: str | None = None
+    user_canonical_id: str | None = None
+    model: str | None = None
+    protocol: str | None = None
+    lines: list[dict[str, Any]] = Field(default_factory=list)
+    device_pool_name: str | None = None
+    speed_dial_count: int = 0
+    blf_count: int = 0
+
+
+class CanonicalE911Config(MigrationObject):
+    """CUCM ELIN/GeoLocation → Webex E911 advisory."""
+    location_canonical_id: str | None = None
+    elin_group_name: str | None = None
+    elin_numbers: list[str] = Field(default_factory=list)
+    geo_location_name: str | None = None
+    geo_country: str | None = None
+    has_emergency_route_pattern: bool = False
+
+
+class CanonicalSingleNumberReach(MigrationObject):
+    """CUCM Remote Destination → Webex Single Number Reach."""
+    user_canonical_id: str | None = None
+    enabled: bool = True
+    alert_click_to_dial: bool = False
+    numbers: list[dict[str, Any]] = Field(default_factory=list)
+    # Each entry: {phone_number, enabled, name, answer_confirmation,
+    #              cucm_answer_too_soon, cucm_answer_too_late}
+
+
 class CanonicalSoftkeyConfig(MigrationObject):
     """CUCM Softkey Template → Webex PSK config (9800/8875) or report flag (classic MPP)."""
     cucm_template_name: str | None = None
@@ -650,6 +702,11 @@ CANONICAL_TYPE_REGISTRY: dict[str, type[MigrationObject]] = {
     "line_key_template": CanonicalLineKeyTemplate,
     "device_layout": CanonicalDeviceLayout,
     "softkey_config": CanonicalSoftkeyConfig,
+    "single_number_reach": CanonicalSingleNumberReach,
+    "e911_config": CanonicalE911Config,
+    "device_profile": CanonicalDeviceProfile,
+    "music_on_hold": CanonicalMusicOnHold,
+    "announcement": CanonicalAnnouncement,
 }
 
 # Reverse lookup: class -> type name string (O(1) for _object_type_for)

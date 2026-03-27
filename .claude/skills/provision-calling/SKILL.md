@@ -163,9 +163,7 @@ wxcli location-settings create \
 
 ```bash
 wxcli users create \
-  --email jsmith@example.com \
-  --first John \
-  --last Smith
+  --json-body '{"emails":["jsmith@example.com"],"firstName":"John","lastName":"Smith"}'
 ```
 
 **Gotcha:** A POST that returns 400 may **still have created the person**. Always check with a GET before retrying:
@@ -212,7 +210,7 @@ For small batches (< 20 users), loop wxcli commands:
 # Small batch: loop wxcli commands
 for email in user1@example.com user2@example.com user3@example.com; do
   name=$(echo "$email" | cut -d@ -f1)
-  wxcli users create --email "$email" --first "$name" --last "User"
+  wxcli users create --json-body "{\"emails\":[\"$email\"],\"firstName\":\"$name\",\"lastName\":\"User\"}"
   echo "Created: $email"
 done
 ```
@@ -227,7 +225,7 @@ EXT=1001
 
 for email in user1@example.com user2@example.com user3@example.com; do
   # Create the user
-  wxcli users create --email "$email" --display-name "User $EXT" --first-name "User" --last-name "$EXT"
+  wxcli users create --json-body "{\"emails\":[\"$email\"],\"displayName\":\"User $EXT\",\"firstName\":\"User\",\"lastName\":\"$EXT\"}"
   echo "Created $email"
   EXT=$((EXT + 1))
 done
@@ -261,7 +259,7 @@ wxcli locations show LOCATION_ID --output json
 ### Verify bulk:
 ```bash
 # List all users at a location
-wxcli users list --location LOCATION_ID --output json
+wxcli users list --location-id LOCATION_ID --output json
 # Count results to confirm expected number of users provisioned
 ```
 

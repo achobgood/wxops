@@ -411,6 +411,20 @@ def _expand_call_forwarding(obj: dict[str, Any]) -> list[MigrationOp]:
                 depends_on=deps)]
 
 
+def _expand_single_number_reach(obj: dict[str, Any]) -> list[MigrationOp]:
+    """Single Number Reach → 0-1 ops: configure (tier 5).
+    Skip if no numbers.
+    """
+    if not obj.get("numbers"):
+        return []
+    cid = obj["canonical_id"]
+    user_cid = obj.get("user_canonical_id")
+    deps = [_node_id(user_cid, "create")] if user_cid else []
+    return [_op(cid, "configure", "single_number_reach",
+                f"Configure SNR for {cid}",
+                depends_on=deps)]
+
+
 def _expand_monitoring_list(obj: dict[str, Any]) -> list[MigrationOp]:
     """Monitoring list → 0-1 ops: configure (tier 6).
     Skip if no monitored_members.
@@ -521,6 +535,7 @@ _EXPANDERS: dict[str, Any] = {
     "virtual_line": lambda obj, _: _expand_virtual_line(obj),
     "line_key_template": lambda obj, _: _expand_line_key_template(obj),
     "call_forwarding": lambda obj, _: _expand_call_forwarding(obj),
+    "single_number_reach": lambda obj, _: _expand_single_number_reach(obj),
     "monitoring_list": lambda obj, _: _expand_monitoring_list(obj),
     "device_layout": lambda obj, _: _expand_device_layout(obj),
     "softkey_config": lambda obj, _: _expand_softkey_config(obj),

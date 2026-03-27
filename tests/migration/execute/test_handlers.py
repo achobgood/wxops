@@ -33,6 +33,7 @@ from wxcli.migration.execute.handlers import (
     handle_virtual_line_create,
     handle_virtual_line_configure,
     handle_shared_line_configure,
+    handle_snr_configure,
 )
 
 BASE = "https://webexapis.com/v1"
@@ -648,25 +649,85 @@ class TestCallingPermissionAssign:
 
 
 class TestSharedLineConfigure:
-    def test_stub_returns_put_per_device(self):
-        data = {"device_canonical_ids": ["device:d1", "device:d2"]}
-        deps = {"device:d1": "wx-dev-111", "device:d2": "wx-dev-222"}
+    def test_two_owners_produces_two_puts(self):
+        """Each owner gets a PUT with the other owner as a shared line member."""
+        data = {
+            "owner_canonical_ids": ["user:alice", "user:bob"],
+            "device_canonical_ids": ["device:d1", "device:d2"],
+        }
+        deps = {"user:alice": "wx-alice", "user:bob": "wx-bob",
+                "device:d1": "wx-dev-1", "device:d2": "wx-dev-2"}
         result = handle_shared_line_configure(data, deps, {})
         assert len(result) == 2
-        for method, url, body in result:
-            assert method == "PUT"
-            assert "/members" in url
+        # First PUT: alice's app gets bob as member
+        method, url, body = result[0]
+        assert method == "PUT"
+        assert "wx-alice" in url
+        assert "/applications/members" in url
+        assert len(body["members"]) == 1
+        assert body["members"][0]["memberId"] == "wx-bob"
+        assert body["members"][0]["lineType"] == "SHARED_CALL_APPEARANCE"
+        # Second PUT: bob's app gets alice as member
+        method2, url2, body2 = result[1]
+        assert "wx-bob" in url2
+        assert body2["members"][0]["memberId"] == "wx-alice"
 
-    def test_unresolved_device_excluded(self):
-        data = {"device_canonical_ids": ["device:d1", "device:missing"]}
-        deps = {"device:d1": "wx-dev-111"}
+    def test_three_owners_each_gets_two_members(self):
+        """With 3 owners, each gets the other 2 as shared line members."""
+        data = {
+            "owner_canonical_ids": ["user:a", "user:b", "user:c"],
+            "device_canonical_ids": [],
+        }
+        deps = {"user:a": "wx-a", "user:b": "wx-b", "user:c": "wx-c"}
         result = handle_shared_line_configure(data, deps, {})
-        assert len(result) == 1
+        assert len(result) == 3
+        for _, _, body in result:
+            assert len(body["members"]) == 2
 
-    def test_no_devices_returns_empty(self):
-        data = {"device_canonical_ids": []}
-        result = handle_shared_line_configure(data, {}, {})
+    def test_unresolved_owner_excluded(self):
+        """If one of 3 owners is unresolved, the remaining 2 still configure."""
+        data = {
+            "owner_canonical_ids": ["user:a", "user:missing", "user:c"],
+            "device_canonical_ids": [],
+        }
+        deps = {"user:a": "wx-a", "user:c": "wx-c"}
+        result = handle_shared_line_configure(data, deps, {})
+        assert len(result) == 2
+
+    def test_single_owner_returns_empty(self):
+        """A shared line with only 1 resolved owner is a no-op."""
+        data = {
+            "owner_canonical_ids": ["user:alice"],
+            "device_canonical_ids": [],
+        }
+        deps = {"user:alice": "wx-alice"}
+        result = handle_shared_line_configure(data, deps, {})
         assert result == []
+
+    def test_no_resolved_owners_returns_empty(self):
+        """If no owners resolve, return empty."""
+        data = {
+            "owner_canonical_ids": ["user:gone1", "user:gone2"],
+            "device_canonical_ids": [],
+        }
+        deps = {}
+        result = handle_shared_line_configure(data, deps, {})
+        assert result == []
+
+    def test_primary_owner_flag(self):
+        """First owner in the list is marked as primaryOwner on other owners' member lists."""
+        data = {
+            "owner_canonical_ids": ["user:primary", "user:secondary"],
+            "device_canonical_ids": [],
+        }
+        deps = {"user:primary": "wx-primary", "user:secondary": "wx-secondary"}
+        result = handle_shared_line_configure(data, deps, {})
+        # On secondary's member list, primary should have primaryOwner=True
+        _, _, body_secondary = result[1]
+        assert body_secondary["members"][0]["primaryOwner"] is True
+        # On primary's member list, secondary should have primaryOwner=False
+        _, _, body_primary = result[0]
+        assert body_primary["members"][0]["primaryOwner"] is False
 
 
 class TestVirtualLineCreate:
@@ -1124,6 +1185,61 @@ class TestSoftkeyConfigConfigure:
         result = handle_softkey_config_configure(data, deps, {"orgId": "ORG777"})
         for _, url, _ in result:
             assert "orgId=ORG777" in url
+
+
+class TestSNRConfigure:
+    def test_basic_snr(self):
+        data = {
+            "user_canonical_id": "user:jdoe",
+            "enabled": True,
+            "alert_click_to_dial": False,
+            "numbers": [
+                {"phone_number": "+14155551234", "enabled": True, "name": "Mobile", "answer_confirmation": False},
+            ],
+        }
+        deps = {"user:jdoe": "wx-person-111"}
+        result = handle_snr_configure(data, deps, {})
+        # 1 PUT enable + 1 POST number = 2 calls
+        assert len(result) == 2
+        assert result[0][0] == "PUT"
+        assert "singleNumberReach" in result[0][1]
+        assert result[1][0] == "POST"
+        assert "singleNumberReach/numbers" in result[1][1]
+
+    def test_no_person_returns_empty(self):
+        data = {"user_canonical_id": "user:jdoe", "numbers": [{"phone_number": "+1"}]}
+        result = handle_snr_configure(data, {}, {})
+        assert result == []
+
+    def test_no_numbers_returns_empty(self):
+        data = {"user_canonical_id": "user:jdoe", "numbers": []}
+        result = handle_snr_configure(data, {"user:jdoe": "wx-1"}, {})
+        assert result == []
+
+    def test_multiple_numbers(self):
+        data = {
+            "user_canonical_id": "user:jdoe",
+            "enabled": True,
+            "numbers": [
+                {"phone_number": "+14155551111", "enabled": True},
+                {"phone_number": "+14155552222", "enabled": True},
+            ],
+        }
+        deps = {"user:jdoe": "wx-person-111"}
+        result = handle_snr_configure(data, deps, {})
+        # 1 PUT + 2 POST = 3 calls
+        assert len(result) == 3
+
+    def test_orgid_injected(self):
+        data = {
+            "user_canonical_id": "user:jdoe",
+            "enabled": True,
+            "numbers": [{"phone_number": "+14155551234", "enabled": True}],
+        }
+        deps = {"user:jdoe": "wx-1"}
+        result = handle_snr_configure(data, deps, {"orgId": "ORG123"})
+        for _, url, _ in result:
+            assert "orgId=ORG123" in url
 
 
 class TestHandlerRegistry:

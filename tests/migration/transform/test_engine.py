@@ -49,7 +49,7 @@ class TestMapperOrder:
     """Verify MAPPER_ORDER contains all 14 mappers in correct dependency order."""
 
     def test_has_nine_mappers(self) -> None:
-        assert len(MAPPER_ORDER) == 14
+        assert len(MAPPER_ORDER) == 19
 
     def test_order_names(self) -> None:
         names = [cls.__name__ for cls in MAPPER_ORDER]
@@ -65,6 +65,11 @@ class TestMapperOrder:
             "VoicemailMapper",
             "CallForwardingMapper",
             "MonitoringMapper",
+            "SNRMapper",
+            "DeviceProfileMapper",
+            "E911Mapper",
+            "MOHMapper",
+            "AnnouncementMapper",
             "SoftkeyMapper",
             "ButtonTemplateMapper",
             "DeviceLayoutMapper",

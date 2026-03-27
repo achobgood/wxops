@@ -228,7 +228,7 @@ wxcli location-settings list-1
 wxcli licenses list
 
 # Check existing users at a location
-wxcli users list --location LOCATION_ID --output table
+wxcli users list --location-id LOCATION_ID --output table
 ```
 
 Report what you find and identify gaps:
@@ -282,7 +282,7 @@ Read `docs/templates/deployment-plan.md` to get the template. Fill in every sect
 - **Prerequisites**: what must exist before we start (locations, licenses, users) -- mark each as confirmed or needs-creation
 - **Execution Steps**: numbered list of commands in dependency order. For each step:
   - Step number and description
-  - Command (e.g., `wxcli users create --email ... --display-name ...`)
+  - Command (e.g., `wxcli users create --json-body '{"emails":["..."],"displayName":"..."}'`)
   - Input parameters (show actual values, not placeholders)
   - Expected result
   - Depends on: which prior steps must complete first
@@ -317,7 +317,7 @@ Step 2/7: Enabling Webex Calling for location...
   $ wxcli locations enable-calling Y2lz...abc
   Done
 Step 3/7: Provisioning user alice@example.com...
-  $ wxcli users create --email alice@example.com --first "Alice" --last "Smith" ...
+  $ wxcli users create --json-body '{"emails":["alice@example.com"],"firstName":"Alice","lastName":"Smith"}' ...
   Created: Y2lz...def
 Step 4/7: Provisioning user bob@example.com... FAILED
   Error: 409 Conflict — user already has a Calling license
@@ -363,7 +363,7 @@ wxcli locations create --name "..." --time-zone "America/Los_Angeles" --preferre
   --json-body '{"address": {"address1": "123 Main St", "city": "...", "state": "...", "postalCode": "...", "country": "US"}}'
 # Enable calling (requires location details — fetch first with wxcli locations show LOCATION_ID)
 wxcli location-settings create --id LOCATION_ID --name "..." --time-zone "..." --preferred-language en_US --announcement-language en_us
-wxcli users create --email "..." --first "..." --last "..."
+wxcli users create --json-body '{"emails":["..."],"firstName":"...","lastName":"..."}'
 
 # Features
 wxcli location-schedules create LOCATION_ID --name "Business Hours" --type businessHours
@@ -399,7 +399,7 @@ This engine is currently wired into the CUCM migration pipeline (`wxcli cucm exe
 
 ```bash
 for email in alice@example.com bob@example.com charlie@example.com; do
-  wxcli users create --email "$email" --display-name "..." --first-name "..." --last-name "..."
+  wxcli users create --json-body "{\"emails\":[\"$email\"],\"displayName\":\"...\",\"firstName\":\"...\",\"lastName\":\"...\"}"
 done
 ```
 
@@ -407,7 +407,7 @@ done
 
 ```bash
 for email in ...; do
-  wxcli users create --email "$email" ...
+  wxcli users create --json-body "{\"emails\":[\"$email\"]}" ...
   sleep 1
 done
 ```
@@ -445,7 +445,7 @@ wxcli inherits wxc_sdk's automatic 429 retry handling. If you still hit rate lim
 
 ```bash
 for email in ...; do
-  wxcli users create --email "$email" ...
+  wxcli users create --json-body "{\"emails\":[\"$email\"]}" ...
   sleep 1
 done
 ```

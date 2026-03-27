@@ -37,6 +37,11 @@ from wxcli.migration.transform.mappers.monitoring_mapper import MonitoringMapper
 from wxcli.migration.transform.mappers.voicemail_mapper import VoicemailMapper
 from wxcli.migration.transform.mappers.button_template_mapper import ButtonTemplateMapper
 from wxcli.migration.transform.mappers.device_layout_mapper import DeviceLayoutMapper
+from wxcli.migration.transform.mappers.device_profile_mapper import DeviceProfileMapper
+from wxcli.migration.transform.mappers.e911_mapper import E911Mapper
+from wxcli.migration.transform.mappers.announcement_mapper import AnnouncementMapper
+from wxcli.migration.transform.mappers.moh_mapper import MOHMapper
+from wxcli.migration.transform.mappers.snr_mapper import SNRMapper
 from wxcli.migration.transform.mappers.softkey_mapper import SoftkeyMapper
 from wxcli.migration.transform.mappers.workspace_mapper import WorkspaceMapper
 
@@ -62,6 +67,11 @@ MAPPER_ORDER: list[type[Mapper]] = [
     VoicemailMapper,      # Tier 5 (depends on users)
     CallForwardingMapper, # Tier 6 (depends on users, phones/device cross-refs)
     MonitoringMapper,     # Tier 6 (depends on users, phones, lines)
+    SNRMapper,            # Tier 6 (depends on users — remote destinations)
+    DeviceProfileMapper,  # Tier 6 (depends on users, workspaces — EM/hot desking)
+    E911Mapper,           # Tier 6 (depends on locations — E911 advisory)
+    MOHMapper,            # Tier 6 (depends on locations — MOH audio sources)
+    AnnouncementMapper,   # Tier 6 (depends on locations, features — announcements)
     SoftkeyMapper,        # Tier 6 (depends on devices for phone model info)
     ButtonTemplateMapper, # Tier 6 (depends on devices for phone→template cross-refs)
     DeviceLayoutMapper,   # Tier 7 (depends on button_template, monitoring, line, device mappers)
@@ -206,6 +216,12 @@ class TransformEngine:
 
         if mapper_cls is ButtonTemplateMapper:
             return ButtonTemplateMapper()
+
+        if mapper_cls is MOHMapper:
+            return MOHMapper()
+
+        if mapper_cls is AnnouncementMapper:
+            return AnnouncementMapper()
 
         if mapper_cls is DeviceLayoutMapper:
             return DeviceLayoutMapper()

@@ -160,6 +160,7 @@ class CrossReferenceBuilder:
                 self._build_feature_refs,
                 self._build_voicemail_refs,
                 self._build_template_refs,
+                self._build_remote_destination_refs,
             ]:
                 try:
                     counts.update(method())
@@ -681,6 +682,23 @@ class CrossReferenceBuilder:
             "phone_uses_button_template": bt_count,
             "phone_uses_softkey_template": sk_count,
         }
+
+    def _build_remote_destination_refs(self) -> dict[str, int]:
+        """Build user → remote_destination cross-refs for SNR.
+
+        (from tier2-enterprise-expansion.md §4: user_has_snr)
+        """
+        count = 0
+        for rd in self.store.get_objects("remote_destination"):
+            state = rd.get("pre_migration_state") or {}
+            owner_userid = state.get("ownerUserId") or ""
+            if not owner_userid:
+                continue
+            user_cid = f"user:{owner_userid}"
+            if self.store.get_object(user_cid):
+                self.store.add_cross_ref(user_cid, rd["canonical_id"], "user_has_remote_destination")
+                count += 1
+        return {"user_has_remote_destination": count}
 
     @staticmethod
     def _ref_value(field: Any) -> str | None:

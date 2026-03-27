@@ -141,6 +141,65 @@ class TestMonitoringMapperUnresolvable:
         ml = store.get_object("monitoring_list:jdoe")
         assert ml is not None
 
+    def test_unresolvable_blf_produces_missing_data_decision(self):
+        phone = _make_phone(blf_entries=[{"blfDest": "9999", "label": "Unknown"}])
+        user = _make_user()
+        store = _setup_store(phone, user)
+
+        mapper = MonitoringMapper()
+        result = mapper.map(store)
+
+        assert result.objects_created == 1
+        assert len(result.decisions) == 1
+        d = result.decisions[0]
+        assert d.type.value == "MISSING_DATA"
+        assert "9999" in d.context["unresolved_dns"]
+
+    def test_mixed_resolved_and_unresolved_blf(self):
+        phone = _make_phone(blf_entries=[
+            {"blfDest": "1002", "label": "Jane"},
+            {"blfDest": "9999", "label": "Unknown"},
+        ])
+        user = _make_user()
+        target_line = _make_line("1002")
+        target_user = _make_user("jane")
+
+        store = MigrationStore(":memory:")
+        store.upsert_object(phone)
+        store.upsert_object(user)
+        store.upsert_object(target_user)
+        store.upsert_object(target_line)
+        store.add_cross_ref(phone.canonical_id, user.canonical_id, "device_owned_by_user")
+        store.add_cross_ref(target_line.canonical_id, target_user.canonical_id, "line_assigned_to_user")
+
+        mapper = MonitoringMapper()
+        result = mapper.map(store)
+
+        assert result.objects_created == 1
+        # MISSING_DATA for the 1 unresolved entry
+        assert len(result.decisions) == 1
+        assert result.decisions[0].type.value == "MISSING_DATA"
+
+    def test_all_resolved_no_decision(self):
+        phone = _make_phone(blf_entries=[{"blfDest": "1002", "label": "Jane"}])
+        user = _make_user()
+        target_line = _make_line("1002")
+        target_user = _make_user("jane")
+
+        store = MigrationStore(":memory:")
+        store.upsert_object(phone)
+        store.upsert_object(user)
+        store.upsert_object(target_user)
+        store.upsert_object(target_line)
+        store.add_cross_ref(phone.canonical_id, user.canonical_id, "device_owned_by_user")
+        store.add_cross_ref(target_line.canonical_id, target_user.canonical_id, "line_assigned_to_user")
+
+        mapper = MonitoringMapper()
+        result = mapper.map(store)
+
+        assert result.objects_created == 1
+        assert len(result.decisions) == 0
+
 
 class TestMonitoringMapperOverflow:
     def test_over_50_entries_truncation(self):
@@ -153,8 +212,11 @@ class TestMonitoringMapperOverflow:
         result = mapper.map(store)
 
         assert result.objects_created == 1
-        assert len(result.decisions) == 1
-        assert result.decisions[0].type.value == "FEATURE_APPROXIMATION"
+        # 2 decisions: MISSING_DATA (unresolved) + FEATURE_APPROXIMATION (overflow)
+        assert len(result.decisions) == 2
+        decision_types = {d.type.value for d in result.decisions}
+        assert "MISSING_DATA" in decision_types
+        assert "FEATURE_APPROXIMATION" in decision_types
 
 
 class TestMonitoringMapperNoBlf:

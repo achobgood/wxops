@@ -76,13 +76,13 @@ If no location matches, the user must create one first (see provisioning skill).
 For CQ, HG, Paging, Call Park, Call Pickup -- confirm the people who will be agents/members:
 
 ```bash
-wxcli users list --calling-enabled --output json
+wxcli users list --calling-data true --output json
 ```
 
 To filter by location:
 
 ```bash
-wxcli users list --calling-enabled --location LOCATION_ID --output json
+wxcli users list --calling-data true --location-id LOCATION_ID --output json
 ```
 
 ### 4c. Phone numbers available (for features that need a number)
@@ -121,7 +121,7 @@ No additional prerequisites beyond location + agents. Can be created with zero a
 
 | Prerequisite | Verification | If missing |
 |-------------|-------------|-----------|
-| Originators/targets exist | `wxcli users list --calling-enabled -o json` | Originators and targets are added via `wxcli paging-group update` AFTER creation (not in the create call) |
+| Originators/targets exist | `wxcli users list --calling-data true -o json` | Originators and targets are added via `wxcli paging-group update` AFTER creation (not in the create call) |
 
 #### Call Park
 
@@ -576,7 +576,7 @@ Next steps:
 
 1. **Always verify location exists** before creating any feature. Every feature is location-scoped.
 2. **Always show the deployment plan** (Step 5) and wait for user confirmation before executing.
-3. **Agent/member assignment requires valid person IDs.** Use `wxcli users list --calling-enabled` or the feature-specific `available-agents` subcommand to find them.
+3. **Agent/member assignment requires valid person IDs.** Use `wxcli users list --calling-data true` or the feature-specific `available-agents` subcommand to find them.
 4. **Phone number vs. extension** -- at least one is required for AA, CQ, HG, Paging, VM Groups. Use `wxcli numbers list --location-id LOCATION_ID` to find unassigned numbers.
 5. **Audio file upload is not supported via API** -- custom greetings for AA and CQ must be uploaded through Webex Control Hub.
 6. **Call Park and Call Pickup IDs change on name modification.** Always re-fetch after renaming.

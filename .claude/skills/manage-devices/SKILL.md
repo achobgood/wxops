@@ -98,7 +98,7 @@ Devices must be assigned to a person or workspace:
 
 ```bash
 # List calling-enabled users
-wxcli users list --calling-enabled --output json
+wxcli users list --calling-data true --output json
 
 # List workspaces
 wxcli workspaces list --output json

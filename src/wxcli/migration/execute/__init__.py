@@ -105,6 +105,7 @@ TIER_ASSIGNMENTS: dict[tuple[str, str], int] = {
     ("device", "configure_settings"): 5,
     ("calling_permission", "assign"): 5,
     ("call_forwarding", "configure"): 5,
+    ("single_number_reach", "configure"): 5,
     # Tier 6: Shared/virtual lines + monitoring (depend on users + devices)
     ("shared_line", "configure"): 6,
     ("virtual_line", "create"): 6,
@@ -151,6 +152,7 @@ API_CALL_ESTIMATES: dict[str, int] = {
     "calling_permission:assign": 1,   # PUT /people/{id}/features/outgoingPermission per user
                                       # (from person-call-settings-permissions.md line 401)
     "call_forwarding:configure": 1,   # PUT /people/{id}/features/callForwarding
+    "single_number_reach:configure": 2,  # PUT SNR enable + POST per number
     # Tier 4: Call features
     "hunt_group:create": 1,         # POST /telephony/config/locations/{id}/huntGroups
                                     # agents optional at create (from call-features-major.md line 894)
@@ -162,8 +164,8 @@ API_CALL_ESTIMATES: dict[str, int] = {
     "pickup_group:create": 1,       # POST /telephony/config/locations/{id}/callPickups (from call-features-additional.md)
     "paging_group:create": 1,       # POST /telephony/config/locations/{id}/paging (from call-features-additional.md)
     # Tier 6: Shared/virtual lines + monitoring
-    "shared_line:configure": 2,     # PUT /telephony/config/devices/{id}/members + POST applyChanges per device
-                                    # (from devices-core.md lines 1369-1378, 1410)
+    "shared_line:configure": 2,     # Approximate — one PUT per owner to /people/{id}/applications/members
+                                    # (from person-call-settings-behavior.md §4)
     "virtual_line:create": 1,       # POST /telephony/config/virtualLines (from virtual-lines.md lines 93-104)
     "virtual_line:configure": 1,    # PUT /telephony/config/virtualLines/{id} (from virtual-lines.md lines 132-147)
     "monitoring_list:configure": 1, # PUT /people/{id}/features/monitoring

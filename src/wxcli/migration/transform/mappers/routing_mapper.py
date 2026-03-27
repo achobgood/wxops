@@ -60,6 +60,20 @@ _MAX_TRUNKS_PER_ROUTE_GROUP = 10
 _TRUNK_PASSWORD_LENGTH = 16
 
 
+def _bool_field(val: Any) -> bool | None:
+    """Coerce an AXL field to bool or None."""
+    if val is None:
+        return None
+    if isinstance(val, bool):
+        return val
+    s = str(val).lower()
+    if s in ("true", "t", "1"):
+        return True
+    if s in ("false", "f", "0"):
+        return False
+    return None
+
+
 def _generate_temp_password() -> str:
     """Generate a temporary password for trunk authentication.
 
@@ -258,6 +272,11 @@ class RoutingMapper(Mapper):
                     dual_identity_support_enabled=dual_identity,
                     device_type=device_type,
                     p_charge_info_support_policy=p_charge_info,
+                    # Tier 2 §2.8: SIP/security profile detail
+                    sip_profile_early_offer=_bool_field(state.get("sip_profile_early_offer")),
+                    sip_profile_srtp_fallback=_bool_field(state.get("sip_profile_srtp_fallback")),
+                    security_mode=state.get("security_mode"),
+                    security_digest_auth=_bool_field(state.get("security_digest_auth")),
                 )
 
                 store.upsert_object(trunk)
