@@ -156,7 +156,7 @@ wxcli supports partner/VAR/MSP admins who manage multiple customer orgs with a s
 - **`wxcli clear-org`** — remove the saved `orgId` to revert to single-org behavior.
 - **`wxcli whoami`** — shows a "Target:" line when an org is set.
 - **668 of 804 generated commands** auto-inject `orgId` from config on endpoints that accept it. No flag is required — the parameter is injected transparently.
-- **4 hand-coded command files** (users, licenses, locations, numbers) also inject `orgId` from config.
+- **3 hand-coded command files** (licenses, locations, numbers) also inject `orgId` from config. `users` is now an alias for the generated `people` command group.
 - The builder agent has a blocking org confirmation step at session start (section 2b) when a partner token is detected.
 
 See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for full details.
@@ -174,6 +174,7 @@ See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for fu
 9. **Supervisor delete returns 204 but supervisor persists.** `delete-supervisors-config-1 --has-cx-essentials true` gets 204 from the API but the supervisor remains. Workaround: use `update-supervisors` with `action: DELETE` on each agent — removing the last agent auto-removes the supervisor.
 10. **CUCM CallPickupGroup creation with members fails on CUCM 15.0.** The AXL `addCallPickupGroup` operation with `<members>` containing `<directoryNumber>` fails with a null priority foreign key constraint. Workaround: create the pickup group empty, then use `updateLine` with `callPickupGroupName` to assign members at the line level. Affects both wxcadm and raw AXL calls.
 11. **Create commands now support `-o json`.** All create commands accept `-o json` to output the full API response as JSON. Default behavior (`-o id`) prints just the created ID.
+12. **`virtual-extensions` commands use wrong ID type.** The generated `virtual-extensions` command group maps to the Virtual Extensions API which uses `VIRTUAL_EXTENSION`-encoded IDs. Virtual lines created via `/telephony/config/virtualLines` use `VIRTUAL_LINE` IDs. `virtual-extensions list` returns empty, and `virtual-extensions delete` returns 400. **Workaround:** Use raw REST calls (`DELETE /v1/telephony/config/virtualLines/{id}`). The `wxcli cleanup` command already uses raw REST for this reason. The `virtual-line-settings` group uses the correct path family but only has settings commands, not CRUD.
 
 ### Cleanup Command
 
@@ -200,7 +201,7 @@ See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for fu
 ### Generator rules
 
 - **Never hand-edit generated files.** Fix bugs by updating `tools/field_overrides.yaml` and regenerating.
-- **Never create new hand-written command files.** 4 legacy hand-written files exist (`users.py`, `locations.py`, `numbers.py`, `licenses.py`) — these are a known drift risk that miss generator improvements. All new commands must go through the generator. If a generated command needs custom behavior, use `field_overrides.yaml`. These 4 files are queued for replacement (see roadmap).
+- **Never create new hand-written command files.** 3 legacy hand-written files remain (`locations.py`, `numbers.py`, `licenses.py`) — these are a known drift risk that miss generator improvements. `users.py` was retired and replaced with an alias to the generated `people` command group. All new commands must go through the generator. If a generated command needs custom behavior, use `field_overrides.yaml`.
 - **`auto_inject_from_config`** — `field_overrides.yaml` supports an `auto_inject_from_config: ["orgId"]` key per endpoint. Parameters listed here are omitted from `--help` and injected automatically from the saved config at runtime. This replaces the older `omit_query_params` approach for `orgId`.
 - **Spec files:** 5 OpenAPI 3.0 specs in `specs/` (`webex-cloud-calling.json`, `webex-admin.json`, `webex-device.json`, `webex-messaging.json`, `webex-wholesale.json`)
 - Regenerate one tag: `PYTHONPATH=. python3.11 tools/generate_commands.py --spec specs/webex-cloud-calling.json --tag "Tag Name"`
