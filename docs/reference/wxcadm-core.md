@@ -1,4 +1,5 @@
 <!-- Not directly verified via CLI — documents wxcadm library (not generated CLI commands) -->
+<!-- wxcadm v4.6.1 review 2026-03-27: All v4.5.0–v4.6.1 changes verified present. WebexApi class, Org.api, Webex constructor simplification, WebexLicenseList/WebexLicense, parent→org renaming, Org.create_person removal, CPAPI auto-init commented out — all accurately documented. No discrepancies found. -->
 # wxcadm Core Architecture
 
 Reference for the core modules that form the foundation of wxcadm: entry point, organization management, API transport, data models, and exceptions.

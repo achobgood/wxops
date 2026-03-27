@@ -1,4 +1,5 @@
 <!-- Not directly verified via CLI — documents wxcadm library (not generated CLI commands) -->
+<!-- wxcadm v4.6.1 review 2026-03-27: All v4.5.0–v4.6.1 changes verified present. DeviceList(org, parent) signature, Device.calling_id property, DeviceMember.esn/routing_prefix/location_id, VirtualLine.name, Workspace.unassign_wxc(), WorkspaceLocation removal — all accurately documented. No discrepancies found. -->
 # wxcadm: Devices, DECT, Workspaces & Virtual Lines
 
 Reference for device management, DECT networks, workspaces, virtual lines, and number management in wxcadm.

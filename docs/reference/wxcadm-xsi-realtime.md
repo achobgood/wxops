@@ -1,4 +1,5 @@
 <!-- Not directly verified via CLI — documents wxcadm library (not generated CLI commands) -->
+<!-- wxcadm v4.6.1 review 2026-03-27: All v4.5.0–v4.6.1 changes verified present. XSI(org, person) constructor signature, RealtimeClass(api, data_url, api_fields) signature, org.api.headers usage for XSI auth — all accurately documented. No discrepancies found. -->
 # wxcadm XSI & Real-time Call Monitoring
 
 ## Why This Matters

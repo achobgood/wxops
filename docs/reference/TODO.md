@@ -3,10 +3,10 @@
 ## Ready
 
 - [x] Audit docs for Batch 4 findings -- verified 2026-03-27
-- [ ] Cross-reference wxcadm docs against wxcadm v4.6.1 changelog -- wxcadm-*.md docs were written from source; check if any methods were added/deprecated since initial authoring
+- [x] Cross-reference wxcadm docs against wxcadm v4.6.1 changelog -- reviewed 2026-03-27
 - [x] Add verified-date comments to remaining docs -- annotated 2026-03-27
 - [x] Document workspace license tier behavior -- verified 2026-03-27
-- [ ] Review self-service-call-settings.md completeness -- Batch 1 found 6 user-only person endpoints. Confirm all 138 /people/me/ endpoints are enumerated.
+- [x] Review self-service-call-settings.md completeness -- reviewed 2026-03-27. Found 11 missing paths (12 endpoints): bargeIn (GET/PUT), contactCenterExtensions (GET), and 9 modeManagement endpoints. Updated count from 138 to 151. All 95 paths now documented.
 - [x] Audit admin-identity-scim.md for SCIM URL fixes -- verified 2026-03-27
 
 ## Done

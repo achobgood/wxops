@@ -1,4 +1,5 @@
 <!-- Not directly verified via CLI — documents wxcadm library (not generated CLI commands) -->
+<!-- wxcadm v4.6.1 review 2026-03-27: All v4.5.0–v4.6.1 changes verified present. PersonList(org, location) signature, PersonList.all(), Person(org=) constructor, Person.single_number_reach, Person.appearance_devices, Person.delete(), PersonList.get_by_email() removal, get_barge_in/push_barge_in removal — all accurately documented. No discrepancies found. -->
 # wxcadm — Person Module Reference
 
 Source: `wxcadm/person.py`
