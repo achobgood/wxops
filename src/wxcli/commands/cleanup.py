@@ -187,8 +187,15 @@ def list_resources(
     rt: ResourceType,
     org_id: str | None,
     location_ids: list[str] | None,
+    scope_filter: bool = True,
 ) -> list[dict]:
-    """List all resources of a given type, respecting scope."""
+    """List all resources of a given type, respecting scope.
+
+    Args:
+        scope_filter: When True, filter supports_location_filter resources by
+            location_ids. Set False for org-wide cleanup so resources without
+            a locationId are not silently excluded.
+    """
     params = {}
     if org_id:
         params["orgId"] = org_id
@@ -223,7 +230,7 @@ def list_resources(
         return []
 
     # Filter by location scope if requested and items have locationId
-    if location_ids and rt.supports_location_filter:
+    if scope_filter and location_ids and rt.supports_location_filter:
         loc_set = set(location_ids)
         items = [i for i in items if i.get("locationId") in loc_set]
 
@@ -236,6 +243,7 @@ def build_inventory(
     location_ids: list[str] | None,
     include_users: bool,
     include_locations: bool,
+    scope_filter: bool = True,
 ) -> dict[str, list[dict]]:
     """Build a full inventory of resources to delete."""
     inventory: dict[str, list[dict]] = {}
@@ -248,7 +256,7 @@ def build_inventory(
                 continue
 
             rt = RESOURCE_TYPES[key]
-            items = list_resources(api, rt, org_id, location_ids)
+            items = list_resources(api, rt, org_id, location_ids, scope_filter=scope_filter)
             if items:
                 inventory[key] = items
 
@@ -299,7 +307,7 @@ def delete_resource(
             resource_name=resource_name,
             success=True,
         )
-    except (RestError, Exception) as e:
+    except Exception as e:
         return DeleteResult(
             resource_type=rt.name,
             resource_id=resource_id,
@@ -544,10 +552,13 @@ def cleanup_run(
         all_location_ids = location_ids
 
     # Build inventory — always pass all_location_ids so location-scoped types get enumerated
+    # scope_filter=False for --all mode: don't exclude resources missing locationId
+    is_scoped = scope is not None
     console.print("[bold]Building inventory...[/bold]")
     inventory = build_inventory(
         api, org_id, location_ids=all_location_ids,
         include_users=include_users, include_locations=include_locations,
+        scope_filter=is_scoped,
     )
 
     if not inventory:
