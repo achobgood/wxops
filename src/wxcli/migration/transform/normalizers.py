@@ -1276,6 +1276,366 @@ def normalize_softkey_template(raw: dict, cluster: str = "default") -> Migration
 
 
 # ---------------------------------------------------------------------------
+# Device Profile normalizer (Tier 2 — §2.2 Extension Mobility)
+# ---------------------------------------------------------------------------
+
+def normalize_device_profile(
+    raw: dict[str, Any],
+    cluster: str = "unknown",
+) -> MigrationObject:
+    """Normalize a CUCM Device Profile to a MigrationObject.
+
+    (from tier2-enterprise-expansion.md §5)
+    """
+    name = raw.get("name") or ""
+    product = raw.get("product") or ""
+    protocol = raw.get("protocol") or ""
+    device_pool = _extract_ref(raw.get("devicePoolName"))
+
+    # Extract line info
+    lines_raw = raw.get("lines") or []
+    if isinstance(lines_raw, dict):
+        lines_raw = lines_raw.get("line", [])
+    if isinstance(lines_raw, dict):
+        lines_raw = [lines_raw]
+
+    lines = []
+    for line in (lines_raw if isinstance(lines_raw, list) else []):
+        if not isinstance(line, dict):
+            continue
+        dirn = line.get("dirn") or {}
+        if isinstance(dirn, dict):
+            pattern = dirn.get("pattern") or ""
+            partition = _extract_ref(dirn.get("routePartitionName"))
+        else:
+            pattern = str(dirn)
+            partition = None
+        lines.append({
+            "dn_pattern": pattern,
+            "partition": partition,
+            "index": line.get("index"),
+        })
+
+    # Count speed dials and BLFs
+    sd = raw.get("speeddials") or []
+    blf = raw.get("busyLampFields") or []
+    sd_count = len(sd) if isinstance(sd, list) else 0
+    blf_count = len(blf) if isinstance(blf, list) else 0
+
+    return MigrationObject(
+        canonical_id=f"device_profile:{name}",
+        provenance=_make_provenance(raw, cluster),
+        status=MigrationStatus.NORMALIZED,
+        pre_migration_state={
+            "profile_name": name,
+            "model": product,
+            "protocol": protocol,
+            "device_pool_name": device_pool,
+            "lines": lines,
+            "speed_dial_count": sd_count,
+            "blf_count": blf_count,
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# E911 normalizers (Tier 2 — §2.6 E911/ELIN)
+# ---------------------------------------------------------------------------
+
+def normalize_elin_group(
+    raw: dict[str, Any],
+    cluster: str = "unknown",
+) -> MigrationObject:
+    """Normalize a CUCM ELIN Group to a MigrationObject.
+
+    (from tier2-enterprise-expansion.md §6)
+    """
+    name = raw.get("name") or ""
+    # ELIN numbers may come as a nested structure or flat list
+    elin_raw = raw.get("elinNumbers") or raw.get("elinNumber") or []
+    elin_numbers = []
+    if isinstance(elin_raw, list):
+        for e in elin_raw:
+            if isinstance(e, str):
+                elin_numbers.append(e)
+            elif isinstance(e, dict):
+                num = e.get("_value_1") or e.get("number") or e.get("dirn") or ""
+                if num:
+                    elin_numbers.append(str(num))
+    elif isinstance(elin_raw, str) and elin_raw:
+        elin_numbers = [elin_raw]
+
+    return MigrationObject(
+        canonical_id=f"elin_group:{name}",
+        provenance=_make_provenance(raw, cluster),
+        status=MigrationStatus.NORMALIZED,
+        pre_migration_state={
+            "name": name,
+            "description": raw.get("description") or "",
+            "elin_numbers": elin_numbers,
+        },
+    )
+
+
+def normalize_geo_location(
+    raw: dict[str, Any],
+    cluster: str = "unknown",
+) -> MigrationObject:
+    """Normalize a CUCM Geographic Location to a MigrationObject.
+
+    (from tier2-enterprise-expansion.md §6)
+    """
+    name = raw.get("name") or ""
+    return MigrationObject(
+        canonical_id=f"geo_location:{name}",
+        provenance=_make_provenance(raw, cluster),
+        status=MigrationStatus.NORMALIZED,
+        pre_migration_state={
+            "name": name,
+            "description": raw.get("description") or "",
+            "country": raw.get("country") or "",
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# Remote Destination normalizer (Tier 2 — §2.7 SNR)
+# ---------------------------------------------------------------------------
+
+def normalize_remote_destination(
+    raw: dict[str, Any],
+    cluster: str = "unknown",
+) -> MigrationObject:
+    """Normalize a CUCM Remote Destination to a MigrationObject.
+
+    Preserves raw fields for the SNR mapper to consume.
+    (from tier2-enterprise-expansion.md §4)
+    """
+    name = raw.get("name") or ""
+    owner = raw.get("ownerUserId") or ""
+    dest = raw.get("destination") or ""
+
+    return MigrationObject(
+        canonical_id=f"remote_destination:{owner}:{name}" if owner else f"remote_destination:{name}",
+        provenance=_make_provenance(raw, cluster),
+        status=MigrationStatus.NORMALIZED,
+        pre_migration_state={
+            "name": name,
+            "destination": dest,
+            "ownerUserId": owner,
+            "isMobilePhone": raw.get("isMobilePhone"),
+            "enableMobileConnect": raw.get("enableMobileConnect"),
+            "answerTooSoonTimer": raw.get("answerTooSoonTimer"),
+            "answerTooLateTimer": raw.get("answerTooLateTimer"),
+            "lineAssociations": raw.get("lineAssociations"),
+            "remoteDestinationProfileName": raw.get("remoteDestinationProfileName"),
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# MOH normalizer (Tier 2 — §2.3 MOH Sources)
+# ---------------------------------------------------------------------------
+
+def normalize_moh_source(
+    raw: dict[str, Any],
+    cluster: str = "unknown",
+) -> MigrationObject:
+    """Normalize a CUCM MOH Audio Source to a MigrationObject.
+
+    Preserves raw fields for the MOH mapper to consume.
+    (from tier2-enterprise-expansion.md §2.3)
+    """
+    name = raw.get("name") or ""
+    source_file = raw.get("sourceFileName") or ""
+    is_default_raw = raw.get("isDefault")
+    # AXL returns isDefault as string "true"/"false" or bool
+    if isinstance(is_default_raw, str):
+        is_default = is_default_raw.lower() == "true"
+    else:
+        is_default = bool(is_default_raw) if is_default_raw is not None else False
+    source_id = raw.get("sourceId") or ""
+
+    return MigrationObject(
+        canonical_id=f"moh_source:{name}",
+        provenance=_make_provenance(raw, cluster),
+        status=MigrationStatus.NORMALIZED,
+        pre_migration_state={
+            "name": name,
+            "source_file_name": source_file,
+            "is_default": is_default,
+            "source_id": source_id,
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# Announcement normalizer (Tier 2 — §2.4 Announcements)
+# ---------------------------------------------------------------------------
+
+def normalize_announcement(
+    raw: dict[str, Any],
+    cluster: str = "unknown",
+) -> MigrationObject:
+    """Normalize a CUCM Announcement to a MigrationObject.
+
+    Preserves name, description, and file name for the announcement mapper.
+    (from tier2-enterprise-expansion.md §2.4)
+    """
+    name = raw.get("name") or ""
+    file_name = raw.get("announcementFile") or ""
+
+    return MigrationObject(
+        canonical_id=f"announcement:{name}",
+        provenance=_make_provenance(raw, cluster),
+        status=MigrationStatus.NORMALIZED,
+        pre_migration_state={
+            "name": name,
+            "description": raw.get("description") or "",
+            "file_name": file_name,
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# Tier 4 informational normalizers (Wave 1: extract + flag, no mappers)
+# ---------------------------------------------------------------------------
+
+def normalize_recording_profile(
+    raw: dict[str, Any],
+    cluster: str = "unknown",
+) -> MigrationObject:
+    """Normalize a CUCM Recording Profile to informational MigrationObject."""
+    name = raw.get("name") or ""
+    return MigrationObject(
+        canonical_id=f"info_recording:{name}",
+        provenance=_make_provenance(raw, cluster),
+        status=MigrationStatus.NORMALIZED,
+        pre_migration_state={
+            "name": name,
+            "recordingCssName": raw.get("recordingCssName") or "",
+            "recorderDestination": raw.get("recorderDestination") or "",
+        },
+    )
+
+
+def normalize_calling_party_xform(
+    raw: dict[str, Any],
+    cluster: str = "unknown",
+) -> MigrationObject:
+    """Normalize a CUCM Calling Party Transformation Pattern."""
+    pattern = raw.get("pattern") or ""
+    partition = raw.get("routePartitionName") or ""
+    return MigrationObject(
+        canonical_id=f"info_calling_xform:{pattern}:{partition}" if partition else f"info_calling_xform:{pattern}",
+        provenance=_make_provenance(raw, cluster),
+        status=MigrationStatus.NORMALIZED,
+        pre_migration_state={
+            "pattern": pattern,
+            "description": raw.get("description") or "",
+            "callingSearchSpaceName": raw.get("callingSearchSpaceName") or "",
+            "routePartitionName": partition,
+            "callingPartyTransformationMask": raw.get("callingPartyTransformationMask") or "",
+            "callingPartyPrefixDigits": raw.get("callingPartyPrefixDigits") or "",
+            "digitDiscardInstructionName": raw.get("digitDiscardInstructionName") or "",
+        },
+    )
+
+
+def normalize_called_party_xform(
+    raw: dict[str, Any],
+    cluster: str = "unknown",
+) -> MigrationObject:
+    """Normalize a CUCM Called Party Transformation Pattern."""
+    pattern = raw.get("pattern") or ""
+    partition = raw.get("routePartitionName") or ""
+    return MigrationObject(
+        canonical_id=f"info_called_xform:{pattern}:{partition}" if partition else f"info_called_xform:{pattern}",
+        provenance=_make_provenance(raw, cluster),
+        status=MigrationStatus.NORMALIZED,
+        pre_migration_state={
+            "pattern": pattern,
+            "description": raw.get("description") or "",
+            "callingSearchSpaceName": raw.get("callingSearchSpaceName") or "",
+            "routePartitionName": partition,
+            "calledPartyTransformationMask": raw.get("calledPartyTransformationMask") or "",
+            "calledPartyPrefixDigits": raw.get("calledPartyPrefixDigits") or "",
+            "digitDiscardInstructionName": raw.get("digitDiscardInstructionName") or "",
+        },
+    )
+
+
+def normalize_info_device_profile(
+    raw: dict[str, Any],
+    cluster: str = "unknown",
+) -> MigrationObject:
+    """Normalize a CUCM Device Profile (Extension Mobility) — Tier 4 informational.
+
+    Note: NOT the same as the Tier 2 `normalize_device_profile` which creates
+    `device_profile:*` objects for the full mapper pipeline. This creates
+    `info_device_profile:*` objects for report-only flagging.
+    """
+    name = raw.get("name") or ""
+    return MigrationObject(
+        canonical_id=f"info_device_profile:{name}",
+        provenance=_make_provenance(raw, cluster),
+        status=MigrationStatus.NORMALIZED,
+        pre_migration_state={
+            "name": name,
+            "description": raw.get("description") or "",
+            "product": raw.get("product") or "",
+            "protocol": raw.get("protocol") or "",
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# Tier 3: Informational type normalizers (generic factory)
+# ---------------------------------------------------------------------------
+
+def _make_info_normalizer(suffix: str):
+    """Factory: creates a normalizer for an informational type."""
+    if suffix == "app_user":
+        name_field = "userid"
+    elif suffix == "intercom":
+        name_field = "dnorpattern"
+    else:
+        name_field = "name"
+
+    def normalizer(item: dict, cluster: str = "default") -> MigrationObject | None:
+        name_val = item.get(name_field)
+        if not name_val:
+            return None
+        if isinstance(name_val, dict):
+            name_val = name_val.get("_value_1", str(name_val))
+        return MigrationObject(
+            canonical_id=f"info_{suffix}:{name_val}",
+            provenance=Provenance(
+                source_system="cucm",
+                source_id=item.get("pkid", ""),
+                source_name=str(name_val),
+                cluster=cluster,
+                extracted_at=_now(),
+            ),
+            status=MigrationStatus.NORMALIZED,
+            pre_migration_state=item,
+        )
+
+    return normalizer
+
+
+_INFO_SUFFIXES = [
+    "region", "srst", "media_resource_group", "media_resource_list",
+    "aar_group", "device_mobility_group", "conference_bridge",
+    "softkey_template", "ip_phone_service", "intercom",
+    "common_phone_config", "phone_button_template",
+    "feature_control_policy", "credential_policy",
+    "recording_profile", "ldap_directory",
+    "app_user", "h323_gateway", "enterprise_params", "service_params",
+]
+
+
+# ---------------------------------------------------------------------------
 # Registry: maps extractor object types to normalizer functions
 # ---------------------------------------------------------------------------
 
@@ -1306,6 +1666,17 @@ NORMALIZER_REGISTRY: dict[str, callable] = {
     "cucm_location": normalize_cucm_location,
     "button_template": normalize_button_template,
     "softkey_template": normalize_softkey_template,
+    "remote_destination": normalize_remote_destination,
+    "recording_profile": normalize_recording_profile,
+    "calling_party_xform": normalize_calling_party_xform,
+    "called_party_xform": normalize_called_party_xform,
+    "info_device_profile": normalize_info_device_profile,
+    "elin_group": normalize_elin_group,
+    "geo_location": normalize_geo_location,
+    "device_profile": normalize_device_profile,
+    "moh_source": normalize_moh_source,
+    "announcement": normalize_announcement,
+    **{f"info_{s}": _make_info_normalizer(s) for s in _INFO_SUFFIXES},
 }
 
 
@@ -1343,4 +1714,17 @@ RAW_DATA_MAPPING: list[tuple[str, str, str]] = [
     ("voicemail", "voicemail_pilots", "voicemail_pilot"),
     ("templates", "button_templates", "button_template"),
     ("templates", "softkey_templates", "softkey_template"),
+    ("remote_destinations", "remote_destinations", "remote_destination"),
+    ("tier4", "recording_profiles", "recording_profile"),
+    ("tier4", "remote_destination_profiles", "remote_destination"),  # reuses existing normalizer
+    ("tier4", "calling_party_transformations", "calling_party_xform"),
+    ("tier4", "called_party_transformations", "called_party_xform"),
+    ("tier4", "device_profiles", "info_device_profile"),
+    ("e911", "elin_groups", "elin_group"),
+    ("e911", "geo_locations", "geo_location"),
+    ("device_profiles", "device_profiles", "device_profile"),
+    ("moh", "moh_sources", "moh_source"),
+    ("announcements", "announcements", "announcement"),
+    # Tier 3: Informational types (all under "informational" extractor key)
+    *[("informational", suffix, f"info_{suffix}") for suffix in _INFO_SUFFIXES],
 ]

@@ -27,6 +27,8 @@ from wxcli.migration.cucm.extractors.routing import RoutingExtractor
 from wxcli.migration.cucm.extractors.users import UserExtractor
 from wxcli.migration.cucm.extractors.templates import TemplateExtractor
 from wxcli.migration.cucm.extractors.voicemail import VoicemailExtractor
+from wxcli.migration.cucm.extractors.informational import InformationalExtractor
+from wxcli.migration.cucm.extractors.tier4 import Tier4Extractor
 from wxcli.migration.cucm.unity_connection import UnityConnectionClient
 from wxcli.migration.store import MigrationStore
 
@@ -45,6 +47,8 @@ EXTRACTOR_ORDER = [
     "features",    # Hunt pilots, CTI RPs, call park, pickup, schedules — no dependencies
     "voicemail",   # Voicemail profiles, pilot numbers — no dependencies
     "templates",   # Button templates, softkey templates — no dependencies
+    "informational",  # Tier 3: report-only informational objects — no dependencies
+    "tier4",  # Tier 4 feature gaps: recording, SNR, transformations, EM profiles
 ]
 
 
@@ -144,6 +148,8 @@ def run_discovery(
         "features": FeatureExtractor(connection),
         "voicemail": VoicemailExtractor(connection, unity_client=unity_client),
         "templates": TemplateExtractor(connection),
+        "informational": InformationalExtractor(connection),
+        "tier4": Tier4Extractor(connection),
     }
 
     # Run each extractor in order

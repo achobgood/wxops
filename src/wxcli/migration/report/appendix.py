@@ -1,10 +1,13 @@
 """Technical appendix HTML generator for CUCM assessment reports (v4).
 
-Generates 14 lettered sections (A-N), each as a collapsed <details> element:
+Generates 22 lettered sections (A-V), each as a collapsed <details> element:
 A. Object Inventory, B. Decision Detail, C. CSS/Partitions, D. Device Inventory,
 E. DN Analysis, F. User/Device Map, G. Routing Topology, H. Voicemail Analysis,
 I. Data Coverage, J. Gateways, K. Call Features, L. Button Templates,
-M. Device Layouts, N. Softkey Migration.
+M. Device Layouts, N. Softkey Migration, O. Cloud-Managed Resources,
+P. Feature Gaps, Q. Manual Reconfiguration, R. Planning Inputs,
+S. Call Recording, T. Single Number Reach, U. Caller ID Transformations,
+V. Extension Mobility.
 
 One public function: generate_appendix().
 """
@@ -22,10 +25,15 @@ from wxcli.migration.report.explainer import (
 )
 from wxcli.migration.report.helpers import friendly_site_name, strip_canonical_id
 from wxcli.migration.store import MigrationStore
+from wxcli.migration.cucm.extractors.informational import (
+    DISPLAY_NAMES,
+    NOT_MIGRATABLE_WORKAROUNDS,
+    WEBEX_EQUIVALENTS,
+)
 
 
 def generate_appendix(store: MigrationStore) -> str:
-    """Generate the technical appendix HTML with lettered A-N sections."""
+    """Generate the technical appendix HTML with lettered A-V sections."""
     sections = [
         ("A", _object_inventory(store)),
         ("B", _decisions_group(store)),
@@ -41,6 +49,14 @@ def generate_appendix(store: MigrationStore) -> str:
         ("L", _button_template_group(store)),
         ("M", _device_layout_group(store)),
         ("N", _softkey_group(store)),
+        ("O", _cloud_managed_group(store)),
+        ("P", _feature_gaps_group(store)),
+        ("Q", _manual_reconfig_group(store)),
+        ("R", _planning_inputs_group(store)),
+        ("S", _recording_inventory(store)),
+        ("T", _snr_inventory(store)),
+        ("U", _caller_id_xforms(store)),
+        ("V", _extension_mobility_group(store)),
     ]
     # Filter out empty sections
     sections = [(letter, section_html) for letter, section_html in sections if section_html]
@@ -980,5 +996,490 @@ def _softkey_group(store: MigrationStore) -> str:
             )
         parts.append('</tbody></table>')
 
+    parts.append('</div></details>')
+    return "\n".join(parts)
+
+# ---------------------------------------------------------------------------
+# O. Cloud-Managed Resources (Tier 3)
+# ---------------------------------------------------------------------------
+
+_CLOUD_MANAGED_TYPES = [
+    "info_region", "info_srst", "info_media_resource_group",
+    "info_media_resource_list", "info_aar_group",
+    "info_device_mobility_group", "info_conference_bridge",
+]
+
+
+def _cloud_managed_group(store: MigrationStore) -> str:
+    """O. Cloud-Managed Resources — CUCM objects handled automatically by Webex."""
+    rows = []
+    total = 0
+    for ot in _CLOUD_MANAGED_TYPES:
+        count = store.count_by_type(ot)
+        if count > 0:
+            suffix = ot.replace("info_", "")
+            display = DISPLAY_NAMES.get(suffix, suffix.replace("_", " ").title())
+            rows.append((display, count))
+            total += count
+
+    if not rows:
+        return ""
+
+    parts = [
+        '<details id="cloud-managed">',
+        f'<summary>O. Cloud-Managed Resources <span class="summary-count">'
+        f'— {total} objects across {len(rows)} types</span></summary>',
+        '<div class="details-content">',
+        '<p>These CUCM resources are managed automatically by the Webex cloud. '
+        'No migration action is needed.</p>',
+        '<table>',
+        '<thead><tr><th>Resource Type</th><th class="num">Count</th><th>Note</th></tr></thead>',
+        '<tbody>',
+    ]
+    for display, count in rows:
+        parts.append(
+            f'<tr><td>{html.escape(display)}</td>'
+            f'<td class="num">{count}</td>'
+            f'<td>Webex manages this automatically</td></tr>'
+        )
+    parts.append('</tbody></table>')
+    parts.append('</div></details>')
+    return "\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# P. Feature Gaps (Tier 3)
+# ---------------------------------------------------------------------------
+
+_NOT_MIGRATABLE_TYPES = [
+    "info_softkey_template", "info_ip_phone_service", "info_intercom",
+]
+
+
+def _feature_gaps_group(store: MigrationStore) -> str:
+    """P. Feature Gaps — CUCM features with no Webex equivalent."""
+    rows = []
+    total = 0
+    for ot in _NOT_MIGRATABLE_TYPES:
+        count = store.count_by_type(ot)
+        if count > 0:
+            suffix = ot.replace("info_", "")
+            display = DISPLAY_NAMES.get(suffix, suffix.replace("_", " ").title())
+            workaround = NOT_MIGRATABLE_WORKAROUNDS.get(suffix, "None")
+            rows.append((display, count, workaround))
+            total += count
+
+    if not rows:
+        return ""
+
+    parts = [
+        '<details id="feature-gaps">',
+        f'<summary>P. Feature Gaps <span class="summary-count">'
+        f'— {total} objects across {len(rows)} types</span></summary>',
+        '<div class="details-content">',
+        '<div class="callout warning">'
+        '<p>These CUCM features have no direct Webex equivalent. '
+        'Functionality may be lost or require workarounds.</p></div>',
+        '<table>',
+        '<thead><tr><th>Feature</th><th class="num">Count</th>'
+        '<th>Impact</th><th>Workaround</th></tr></thead>',
+        '<tbody>',
+    ]
+    for display, count, workaround in rows:
+        parts.append(
+            f'<tr><td>{html.escape(display)}</td>'
+            f'<td class="num">{count}</td>'
+            f'<td>No Webex equivalent</td>'
+            f'<td>{html.escape(workaround)}</td></tr>'
+        )
+    parts.append('</tbody></table>')
+    parts.append('</div></details>')
+    return "\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# Q. Manual Reconfiguration (Tier 3)
+# ---------------------------------------------------------------------------
+
+_DIFFERENT_ARCH_TYPES = [
+    "info_common_phone_config", "info_phone_button_template",
+    "info_feature_control_policy", "info_credential_policy",
+    "info_recording_profile", "info_ldap_directory",
+]
+
+
+def _manual_reconfig_group(store: MigrationStore) -> str:
+    """Q. Manual Reconfiguration — features that must be reconfigured in Webex."""
+    rows = []
+    total = 0
+    for ot in _DIFFERENT_ARCH_TYPES:
+        count = store.count_by_type(ot)
+        if count > 0:
+            suffix = ot.replace("info_", "")
+            display = DISPLAY_NAMES.get(suffix, suffix.replace("_", " ").title())
+            webex_eq = WEBEX_EQUIVALENTS.get(suffix, "Manual configuration required")
+            rows.append((display, count, webex_eq))
+            total += count
+
+    if not rows:
+        return ""
+
+    parts = [
+        '<details id="manual-reconfig">',
+        f'<summary>Q. Manual Reconfiguration <span class="summary-count">'
+        f'— {total} objects across {len(rows)} types</span></summary>',
+        '<div class="details-content">',
+        '<p>These CUCM features have Webex equivalents but are configured differently. '
+        'They must be set up manually in Webex Control Hub.</p>',
+        '<table>',
+        '<thead><tr><th>CUCM Feature</th><th class="num">Count</th>'
+        '<th>Webex Equivalent</th></tr></thead>',
+        '<tbody>',
+    ]
+    for display, count, webex_eq in rows:
+        parts.append(
+            f'<tr><td>{html.escape(display)}</td>'
+            f'<td class="num">{count}</td>'
+            f'<td>{html.escape(webex_eq)}</td></tr>'
+        )
+    parts.append('</tbody></table>')
+    parts.append('</div></details>')
+    return "\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# R. Planning Inputs (Tier 3)
+# ---------------------------------------------------------------------------
+
+_INTEGRATION_KEYWORDS = ("jtapi", "tapi", "cer", "recording", "finesse", "uccx", "cuic")
+
+
+def _planning_inputs_group(store: MigrationStore) -> str:
+    """R. Planning Inputs — data for migration planning decisions."""
+    app_users = store.get_objects("info_app_user")
+    h323_gws = store.get_objects("info_h323_gateway")
+    enterprise = store.get_objects("info_enterprise_params")
+    service_params = store.get_objects("info_service_params")
+
+    total = len(app_users) + len(h323_gws) + len(enterprise) + len(service_params)
+    if total == 0:
+        return ""
+
+    parts = [
+        '<details id="planning-inputs">',
+        f'<summary>R. Planning Inputs <span class="summary-count">'
+        f'— {total} items</span></summary>',
+        '<div class="details-content">',
+    ]
+
+    if app_users:
+        integration_users = []
+        other_users = []
+        for u in app_users:
+            state = u.get("pre_migration_state", {})
+            uid = state.get("userid", "")
+            desc = (state.get("description") or "").lower()
+            is_integration = any(
+                kw in uid.lower() or kw in desc for kw in _INTEGRATION_KEYWORDS
+            )
+            if is_integration:
+                integration_users.append(u)
+            else:
+                other_users.append(u)
+
+        parts.append(f'<h4>Application Users ({len(app_users)})</h4>')
+        if integration_users:
+            parts.append(
+                '<div class="callout warning">'
+                f'<p><strong>{len(integration_users)} integration-related application user'
+                f'{"s" if len(integration_users) != 1 else ""} detected.</strong> '
+                'JTAPI/TAPI apps, CER, and recording integrations must be reviewed '
+                'for Webex compatibility.</p></div>'
+            )
+        parts.append('<table>')
+        parts.append(
+            '<thead><tr><th>User ID</th><th>Description</th>'
+            '<th>Devices</th><th>Integration?</th></tr></thead>'
+        )
+        parts.append('<tbody>')
+        for u in app_users:
+            state = u.get("pre_migration_state", {})
+            uid = state.get("userid", "")
+            desc = state.get("description", "")
+            devices = state.get("associatedDevices", "")
+            is_int = u in integration_users
+            flag = "Yes" if is_int else ""
+            parts.append(
+                f'<tr><td>{html.escape(uid)}</td>'
+                f'<td>{html.escape(desc)}</td>'
+                f'<td>{html.escape(str(devices))}</td>'
+                f'<td>{flag}</td></tr>'
+            )
+        parts.append('</tbody></table>')
+
+    if h323_gws:
+        parts.append(f'<h4>H.323 Gateways ({len(h323_gws)})</h4>')
+        parts.append(
+            '<div class="callout warning">'
+            '<p><strong>H.323 gateways require protocol conversion.</strong> '
+            'Webex Calling uses SIP only — these gateways must be replaced or '
+            'converted to SIP Local Gateway.</p></div>'
+        )
+        parts.append('<table>')
+        parts.append('<thead><tr><th>Name</th><th>Product</th><th>Description</th></tr></thead>')
+        parts.append('<tbody>')
+        for gw in h323_gws:
+            state = gw.get("pre_migration_state", {})
+            parts.append(
+                f'<tr><td>{html.escape(state.get("name", ""))}</td>'
+                f'<td>{html.escape(state.get("product", ""))}</td>'
+                f'<td>{html.escape(state.get("description", ""))}</td></tr>'
+            )
+        parts.append('</tbody></table>')
+
+    if enterprise:
+        parts.append('<h4>Enterprise Parameters</h4>')
+        parts.append('<p>Enterprise parameter baseline captured for reference. '
+                     'Review cluster-wide settings during migration planning.</p>')
+
+    if service_params:
+        parts.append(f'<h4>Service Parameters ({len(service_params)})</h4>')
+        parts.append('<p>Telephony-related service parameters captured. '
+                     'Key parameters may need equivalent Webex configuration.</p>')
+        parts.append('<table>')
+        parts.append('<thead><tr><th>Parameter</th><th>Service</th><th>Value</th></tr></thead>')
+        parts.append('<tbody>')
+        for sp in service_params[:20]:
+            state = sp.get("pre_migration_state", {})
+            parts.append(
+                f'<tr><td>{html.escape(state.get("name", ""))}</td>'
+                f'<td>{html.escape(state.get("service", ""))}</td>'
+                f'<td>{html.escape(str(state.get("value", "")))}</td></tr>'
+            )
+        parts.append('</tbody></table>')
+        if len(service_params) > 20:
+            parts.append(f'<p class="muted">{len(service_params) - 20} additional parameters not shown.</p>')
+
+    parts.append('</div></details>')
+    return "\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# S. Call Recording Inventory (Tier 4 Item 1)
+# ---------------------------------------------------------------------------
+
+def _recording_inventory(store: MigrationStore) -> str:
+    """S. Users with call recording enabled -- from phone line data."""
+    phones = store.get_objects("phone")
+    if not phones:
+        return ""
+
+    recording_entries: list[tuple[str, str, str, str, str]] = []  # (user, phone, dn, flag, profile)
+
+    for phone in phones:
+        pre = phone.get("pre_migration_state", {}) or {}
+        owner = pre.get("ownerUserName", "") or ""
+        phone_name = pre.get("name", strip_canonical_id(phone.get("canonical_id", "")))
+        for line in (pre.get("lines") or []):
+            if not isinstance(line, dict):
+                continue
+            flag = line.get("recordingFlag", "Call Recording Disabled")
+            if flag and flag != "Call Recording Disabled":
+                dirn = line.get("dirn", {})
+                pattern = dirn.get("pattern", "") if isinstance(dirn, dict) else ""
+                profile_ref = line.get("recordingProfileName")
+                profile = ""
+                if isinstance(profile_ref, dict):
+                    profile = profile_ref.get("_value_1", "")
+                elif isinstance(profile_ref, str):
+                    profile = profile_ref
+                recording_entries.append((owner or "\u2014", phone_name, pattern, flag, profile))
+
+    if not recording_entries:
+        return ""
+
+    users = set(e[0] for e in recording_entries if e[0] != "\u2014")
+    summary = f"{len(recording_entries)} lines with recording enabled across {len(users)} users"
+
+    parts = [
+        '<details id="recording-inventory">',
+        f'<summary>S. Call Recording Inventory <span class="summary-count">'
+        f'\u2014 {summary}</span></summary>',
+        '<div class="details-content">',
+        '<div class="callout warning">',
+        '<p><strong>Call recording requires separate Webex configuration.</strong> '
+        'Each recording-enabled user needs: (1) Webex Call Recording license, '
+        '(2) location-level recording vendor configuration, and '
+        '(3) person-level recording settings enabled.</p>',
+        '</div>',
+        '<table>',
+        '<thead><tr><th>User</th><th>Phone</th><th>DN</th><th>Recording Mode</th><th>Recording Profile</th></tr></thead>',
+        '<tbody>',
+    ]
+
+    em_dash = "\u2014"
+    for owner, phone_name, pattern, flag, profile in sorted(recording_entries):
+        mode = flag.replace("Call Recording ", "").replace(" Enabled", "")
+        profile_display = html.escape(profile) if profile else em_dash
+        parts.append(
+            f'<tr><td>{html.escape(owner)}</td>'
+            f'<td>{html.escape(phone_name)}</td>'
+            f'<td>{html.escape(pattern)}</td>'
+            f'<td>{html.escape(mode)}</td>'
+            f'<td>{profile_display}</td></tr>'
+        )
+
+    parts.append('</tbody></table>')
+    parts.append('</div></details>')
+    return "\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# T. Single Number Reach Inventory (Tier 4 Item 2)
+# ---------------------------------------------------------------------------
+
+def _snr_inventory(store: MigrationStore) -> str:
+    """T. Remote destination profiles -- Single Number Reach."""
+    rdps = store.get_objects("remote_destination")
+    if not rdps:
+        return ""
+
+    owners: dict[str, list[dict]] = defaultdict(list)
+    for rdp in rdps:
+        pre = rdp.get("pre_migration_state", {}) or {}
+        owner = pre.get("ownerUserId", "") or "\u2014"
+        owners[owner].append(pre)
+
+    summary = f"{len(rdps)} remote destinations for {len(owners)} users"
+
+    parts = [
+        '<details id="snr-inventory">',
+        f'<summary>T. Single Number Reach <span class="summary-count">'
+        f'\u2014 {summary}</span></summary>',
+        '<div class="details-content">',
+        '<div class="callout">',
+        '<p><strong>Webex SNR is simpler than CUCM.</strong> '
+        'CUCM timer controls (answer-too-soon, answer-too-late thresholds) '
+        'do not have Webex equivalents. Manual setup required per user.</p>',
+        '</div>',
+        '<table>',
+        '<thead><tr><th>User</th><th>Profile Name</th><th>Destination</th></tr></thead>',
+        '<tbody>',
+    ]
+
+    for owner in sorted(owners):
+        for rdp in owners[owner]:
+            name = rdp.get("name", "\u2014")
+            dest = rdp.get("destination", "\u2014")
+            parts.append(
+                f'<tr><td>{html.escape(owner)}</td>'
+                f'<td>{html.escape(name)}</td>'
+                f'<td>{html.escape(dest)}</td></tr>'
+            )
+
+    parts.append('</tbody></table>')
+    parts.append('</div></details>')
+    return "\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# U. Caller ID Transformation Patterns (Tier 4 Item 4)
+# ---------------------------------------------------------------------------
+
+def _caller_id_xforms(store: MigrationStore) -> str:
+    """U. Calling/Called party transformation patterns."""
+    calling = store.get_objects("info_calling_xform")
+    called = store.get_objects("info_called_xform")
+    total = len(calling) + len(called)
+
+    if total == 0:
+        return ""
+
+    summary = f"{len(calling)} calling party, {len(called)} called party"
+
+    parts = [
+        '<details id="caller-id-xforms">',
+        f'<summary>U. Caller ID Transformations <span class="summary-count">'
+        f'\u2014 {summary}</span></summary>',
+        '<div class="details-content">',
+        '<div class="callout">',
+        '<p><strong>CUCM caller ID transformations &rarr; Webex location-level outbound caller ID.</strong> '
+        'Each pattern requires manual review to determine the equivalent Webex configuration.</p>',
+        '</div>',
+    ]
+
+    if calling:
+        parts.append('<h4>Calling Party Transformations</h4>')
+        parts.append('<table>')
+        parts.append('<thead><tr><th>Pattern</th><th>Partition</th><th>Mask</th><th>Description</th></tr></thead>')
+        parts.append('<tbody>')
+        for obj in calling:
+            pre = obj.get("pre_migration_state", {}) or {}
+            parts.append(
+                f'<tr><td>{html.escape(pre.get("pattern", ""))}</td>'
+                f'<td>{html.escape(pre.get("routePartitionName", ""))}</td>'
+                f'<td>{html.escape(pre.get("callingPartyTransformationMask", ""))}</td>'
+                f'<td>{html.escape(pre.get("description", ""))}</td></tr>'
+            )
+        parts.append('</tbody></table>')
+
+    if called:
+        parts.append('<h4>Called Party Transformations</h4>')
+        parts.append('<table>')
+        parts.append('<thead><tr><th>Pattern</th><th>Partition</th><th>Mask</th><th>Description</th></tr></thead>')
+        parts.append('<tbody>')
+        for obj in called:
+            pre = obj.get("pre_migration_state", {}) or {}
+            parts.append(
+                f'<tr><td>{html.escape(pre.get("pattern", ""))}</td>'
+                f'<td>{html.escape(pre.get("routePartitionName", ""))}</td>'
+                f'<td>{html.escape(pre.get("calledPartyTransformationMask", ""))}</td>'
+                f'<td>{html.escape(pre.get("description", ""))}</td></tr>'
+            )
+        parts.append('</tbody></table>')
+
+    parts.append('</div></details>')
+    return "\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# V. Extension Mobility Usage (Tier 4 Item 6)
+# ---------------------------------------------------------------------------
+
+def _extension_mobility_group(store: MigrationStore) -> str:
+    """V. Extension Mobility device profiles -- hot desking."""
+    profiles = store.get_objects("info_device_profile")
+    if not profiles:
+        return ""
+
+    summary = f"{len(profiles)} device profiles"
+
+    parts = [
+        '<details id="extension-mobility">',
+        f'<summary>V. Extension Mobility <span class="summary-count">'
+        f'\u2014 {summary}</span></summary>',
+        '<div class="details-content">',
+        '<div class="callout">',
+        '<p><strong>Extension Mobility &rarr; Webex hot desking.</strong> '
+        'CUCM device profile switching does not carry over. Webex hot desking provides '
+        'user login/logout with primary line on shared workspaces.</p>',
+        '</div>',
+        '<table>',
+        '<thead><tr><th>Profile Name</th><th>Product</th><th>Description</th></tr></thead>',
+        '<tbody>',
+    ]
+
+    for p in profiles:
+        pre = p.get("pre_migration_state", {}) or {}
+        name = pre.get("name", strip_canonical_id(p.get("canonical_id", "")))
+        product = pre.get("product", "\u2014")
+        desc = pre.get("description", "\u2014")
+        parts.append(
+            f'<tr><td>{html.escape(name)}</td>'
+            f'<td>{html.escape(product)}</td>'
+            f'<td>{html.escape(desc)}</td></tr>'
+        )
+
+    parts.append('</tbody></table>')
     parts.append('</div></details>')
     return "\n".join(parts)
