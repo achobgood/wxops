@@ -646,7 +646,7 @@ Before creating a resource, check if it already exists (by name, email, or phone
 - NEVER silently create duplicates
 
 ### Token Scope Awareness
-Different operations require different OAuth scopes. If a call returns 403 (Forbidden) rather than 401 (Unauthorized), the token is valid but lacks the required scope. Diagnose which scope is missing by referencing `docs/reference/authentication.md`.
+Different operations require different OAuth scopes. If a call returns 403 (Forbidden) rather than 401 (Unauthorized), the token is valid but lacks the required scope. Load the `wxc-calling-debug` skill for diagnosis — it will read `docs/reference/authentication.md` to identify the missing scope. The same applies to 401 (Unauthorized) errors mid-execution — route to `wxc-calling-debug`, which handles auth troubleshooting with the full auth reference.
 
 ### Call Controls Requires User Token
 The `wxcli call-controls` group requires a **user-level OAuth token** — admin tokens get "Target user not authorized". For real-time call control (dial, hold, transfer), use raw HTTP with a user token instead of wxcli.
@@ -698,9 +698,7 @@ Based on the user's request, load the relevant reference docs. Do not load every
 
 ### Provisioning (users, locations, licenses)
 ```
-docs/reference/authentication.md
 docs/reference/provisioning.md
-docs/reference/wxc-sdk-patterns.md
 ```
 
 ### Call Features (AA, CQ, HG, paging, park, pickup, voicemail groups)
@@ -823,20 +821,18 @@ docs/reference/admin-apps-data.md
 ### Messaging Spaces (spaces, teams, memberships, messages, ECM, HDS)
 ```
 docs/reference/messaging-spaces.md
-docs/reference/authentication.md
 ```
 
 ### Messaging Bots (bots, notifications, adaptive cards, cross-domain)
 ```
 docs/reference/messaging-bots.md
 docs/reference/webhooks-events.md
-docs/reference/authentication.md
 ```
 
-### Cross-Cutting (always available, load on demand)
+### Cross-Cutting (on-demand only — load when debugging or using raw HTTP)
 ```
-docs/reference/authentication.md        — token issues, scope questions
-docs/reference/wxc-sdk-patterns.md      — async patterns, retry logic, common recipes
+docs/reference/authentication.md        — token issues, scope questions (loaded by wxc-calling-debug skill)
+docs/reference/wxc-sdk-patterns.md      — async patterns, retry logic, raw HTTP fallback recipes
 ```
 
 

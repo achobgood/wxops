@@ -21,7 +21,6 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
 ## Step 1: Load references
 
 1. Read `docs/reference/devices-platform.md` for device configurations, workspace personalization, xAPI commands and status queries
-2. Read `docs/reference/authentication.md` for auth token conventions
 
 ## Step 2: Verify auth token
 

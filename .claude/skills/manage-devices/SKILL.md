@@ -22,7 +22,6 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
 1. Read `docs/reference/devices-core.md` for device CRUD, activation codes, MAC provisioning, line key templates, device settings
 2. Read `docs/reference/devices-dect.md` for DECT networks, base stations, handsets, hot desking
 3. Read `docs/reference/devices-workspaces.md` for workspace creation, workspace device assignment, workspace call settings
-4. Read `docs/reference/authentication.md` for auth token conventions
 
 ## Step 2: Verify auth token
 

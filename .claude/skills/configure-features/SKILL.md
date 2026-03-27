@@ -23,7 +23,6 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
 
 1. Read `docs/reference/call-features-major.md` for AA, CQ, HG data models and API signatures
 2. Read `docs/reference/call-features-additional.md` for Paging, Call Park, Call Pickup, VM Groups, CX Essentials
-3. Read `docs/reference/authentication.md` for auth token conventions
 
 ## Step 2: Verify auth token
 

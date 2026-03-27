@@ -20,7 +20,6 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
 
 1. Read `docs/reference/messaging-bots.md` for bot patterns, card recipes, attachment actions, room tabs
 2. Read `docs/reference/webhooks-events.md` for webhook CRUD, messaging event payloads, bot webhook patterns (sections 4b and 6b)
-3. Read `docs/reference/authentication.md` for auth token conventions
 
 ## Step 2: Verify auth token
 

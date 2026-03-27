@@ -19,7 +19,6 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
 ## Step 1: Load references
 
 1. Read `docs/reference/admin-audit-security.md` for audit event APIs, security audit scopes, event categories, and date parameter conventions
-2. Read `docs/reference/authentication.md` for auth token conventions and scope requirements
 
 ## Step 2: Verify auth token
 

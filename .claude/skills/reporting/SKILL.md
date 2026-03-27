@@ -19,7 +19,6 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
 ## Step 1: Load references
 
 1. Read `docs/reference/reporting-analytics.md` for CDR fields, report templates, API constraints
-2. Read `docs/reference/authentication.md` for auth token conventions
 
 ## Step 2: Verify auth token
 

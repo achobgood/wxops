@@ -18,9 +18,8 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
 
 ## Step 1: Load references
 
-1. Read `docs/reference/authentication.md` for token setup and scope requirements
-2. Read `docs/reference/admin-licensing.md` for license API patterns, PATCH body schema, and error codes
-3. Read `docs/reference/provisioning.md` for how licensing connects to user provisioning
+1. Read `docs/reference/admin-licensing.md` for license API patterns, PATCH body schema, and error codes
+2. Read `docs/reference/provisioning.md` for how licensing connects to user provisioning
 
 ## Step 2: Verify auth token is working
 

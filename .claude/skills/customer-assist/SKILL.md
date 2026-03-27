@@ -20,7 +20,6 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
 
 1. Read `docs/reference/call-features-additional.md` — Customer Assist data models, screen pop, wrap-up reasons, queue recording, available agents
 2. Read `docs/reference/location-call-settings-advanced.md` — Supervisors data models, API methods, key behaviors
-3. Read `docs/reference/authentication.md` — auth token conventions
 
 ## Step 2: Verify auth token
 

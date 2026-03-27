@@ -22,7 +22,6 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
 
 1. Read `docs/reference/admin-identity-scim.md` for SCIM users, groups, bulk, schemas, identity org, and People/Groups API patterns
 2. Read `docs/reference/admin-org-management.md` for domains, org contacts, roles, and org settings
-3. Read `docs/reference/authentication.md` for token setup, scope requirements, and OAuth flows
 
 ## Step 2: Verify auth token is working
 
