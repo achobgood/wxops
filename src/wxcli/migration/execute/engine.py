@@ -171,6 +171,23 @@ async def _try_find_existing(
                 params["orgId"] = ctx["orgId"]
             search_url = f"{BASE}/telephony/config/premisePstn/dialPlans?{urlencode(params)}"
             item_key = "dialPlans"
+    elif resource_type == "operating_mode":
+        name = data.get("name")
+        if name:
+            params = {"name": name, "max": "100"}
+            if ctx.get("orgId"):
+                params["orgId"] = ctx["orgId"]
+            search_url = f"{BASE}/telephony/config/operatingModes?{urlencode(params)}"
+            item_key = "operatingModes"
+    elif resource_type == "schedule":
+        name = data.get("name")
+        location_id = data.get("locationId", "")
+        if name and location_id:
+            params = {"name": name, "max": "100"}
+            if ctx.get("orgId"):
+                params["orgId"] = ctx["orgId"]
+            search_url = f"{BASE}/telephony/config/locations/{location_id}/schedules?{urlencode(params)}"
+            item_key = "schedules"
     elif resource_type in ("call_park", "pickup_group", "paging_group",
                            "hunt_group", "call_queue", "auto_attendant"):
         # Location-scoped features — need location_id from deps
