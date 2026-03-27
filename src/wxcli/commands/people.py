@@ -20,7 +20,7 @@ def cmd_list(
     max: str = typer.Option(None, "--max", help="Limit the maximum number of people in the response. If `call"),
     exclude_status: str = typer.Option(None, "--exclude-status", help="Omit people status/availability to enhance query performance"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -52,7 +52,12 @@ def cmd_list(
     if org_id is not None:
         params["orgId"] = org_id
     try:
-        result = api.session.rest_get(url, params=params)
+        if limit > 0:
+            result = api.session.rest_get(url, params=params)
+            result = result or {}
+            items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+        else:
+            items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -70,8 +75,6 @@ def cmd_list(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -95,6 +98,7 @@ def create(
     manager_id: str = typer.Option(None, "--manager-id", help="Person ID of the manager."),
     title: str = typer.Option(None, "--title", help="The person's title."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create a Person\n\nExample --json-body:\n  '{"emails":["..."],"phoneNumbers":[{"type":"...","value":"..."}],"extension":"...","locationId":"...","displayName":"...","firstName":"..."}'."""
@@ -150,7 +154,9 @@ def create(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")

@@ -34,9 +34,9 @@ only when `--json-body` is NOT used. This allows domain skills to pass
 
 ### License assignment at create time
 
-`wxcli users update` does NOT have a `--license` flag. The `--license` flag only
-exists on `wxcli users create`. License and extension are included in the
-`user:create` step.
+`wxcli users update` does NOT have a `--license` flag. License assignment uses
+`--json-body` on update. License and extension are included in the `user:create` step.
+Note: `wxcli users` is now an alias for the generated `people` command group.
 
 ### Feature delete commands need LOCATION_ID
 

@@ -27,6 +27,11 @@ from wxcli.migration.transform.mappers.user_mapper import UserMapper
 from wxcli.migration.transform.mappers.voicemail_mapper import VoicemailMapper
 from wxcli.migration.transform.mappers.device_layout_mapper import DeviceLayoutMapper
 from wxcli.migration.transform.mappers.softkey_mapper import SoftkeyMapper
+from wxcli.migration.transform.mappers.device_profile_mapper import DeviceProfileMapper
+from wxcli.migration.transform.mappers.e911_mapper import E911Mapper
+from wxcli.migration.transform.mappers.moh_mapper import MOHMapper
+from wxcli.migration.transform.mappers.snr_mapper import SNRMapper
+from wxcli.migration.transform.mappers.announcement_mapper import AnnouncementMapper
 from wxcli.migration.transform.mappers.workspace_mapper import WorkspaceMapper
 
 __all__ = [
@@ -45,6 +50,11 @@ __all__ = [
     "ButtonTemplateMapper",
     "DeviceLayoutMapper",
     "SoftkeyMapper",
+    "SNRMapper",
+    "E911Mapper",
+    "MOHMapper",
+    "AnnouncementMapper",
+    "DeviceProfileMapper",
     "skip_option",
     "manual_option",
     "accept_option",

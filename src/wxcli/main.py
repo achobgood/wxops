@@ -128,14 +128,12 @@ def clear_org():
 # Hand-coded modules
 from wxcli.commands.configure import app as configure_app
 from wxcli.commands.locations import app as locations_app
-from wxcli.commands.users import app as users_app
 from wxcli.commands.numbers import app as numbers_app
 from wxcli.commands.licenses import app as licenses_app
 from wxcli.commands.cucm import app as cucm_app
 
 app.add_typer(configure_app, name="configure")
 app.add_typer(locations_app, name="locations")
-app.add_typer(users_app, name="users")
 app.add_typer(numbers_app, name="numbers")
 app.add_typer(licenses_app, name="licenses")
 app.add_typer(cucm_app, name="cucm")
@@ -218,6 +216,7 @@ from wxcli.commands.partner_reports import app as partner_reports_app
 app.add_typer(partner_reports_app, name="partner-reports")
 from wxcli.commands.people import app as people_app
 app.add_typer(people_app, name="people")
+app.add_typer(people_app, name="users")  # alias: users → people (replaced hand-coded users.py)
 from wxcli.commands.recording_report import app as recording_report_app
 app.add_typer(recording_report_app, name="recording-report")
 from wxcli.commands.reports import app as reports_app

@@ -66,7 +66,7 @@ wxcli locations create --help
 
 ```bash
 wxcli locations list --calling-only        # Get location IDs
-wxcli users list --location LOC_ID         # Get person IDs
+wxcli users list --location-id LOC_ID      # Get person IDs
 wxcli numbers list --location-id LOC_ID  # Get number inventory
 ```
 

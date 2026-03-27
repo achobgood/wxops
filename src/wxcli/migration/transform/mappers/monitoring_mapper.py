@@ -150,6 +150,30 @@ class MonitoringMapper(Mapper):
                 if target:
                     store.add_cross_ref(ml.canonical_id, target, "monitoring_watches")
 
+            # Decision: unresolved BLF targets
+            unresolved = [m for m in monitored_members if m.get("target_canonical_id") is None]
+            if unresolved:
+                decision = self._create_decision(
+                    store=store,
+                    decision_type=DecisionType.MISSING_DATA,
+                    severity="LOW",
+                    summary=(
+                        f"User '{user_name}' has {len(unresolved)} BLF "
+                        f"target(s) that cannot be resolved to a Webex user"
+                    ),
+                    context={
+                        "user_id": user_id,
+                        "unresolved_dns": [m.get("unresolved_dn", "") for m in unresolved],
+                        "total_blf_entries": total_count,
+                    },
+                    options=[
+                        accept_option("Skip unresolved entries — exclude from monitoring list"),
+                        skip_option("Skip entire monitoring list migration for this user"),
+                    ],
+                    affected_objects=[user_id, ml.canonical_id],
+                )
+                result.decisions.append(decision)
+
             # Decision: overflow
             if truncated:
                 decision = self._create_decision(

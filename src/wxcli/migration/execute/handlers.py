@@ -671,6 +671,58 @@ def handle_call_forwarding_configure(data: dict, deps: dict, ctx: dict) -> Handl
 
 
 # ---------------------------------------------------------------------------
+# Tier 5: Single Number Reach
+# ---------------------------------------------------------------------------
+
+def handle_snr_configure(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    """Configure Single Number Reach for a person.
+
+    Produces 1 PUT (enable SNR) + 1 POST per number.
+    (from tier2-enterprise-expansion.md §4)
+    """
+    person_wid = deps.get(data.get("user_canonical_id", ""))
+    if not person_wid:
+        return []
+    numbers = data.get("numbers") or []
+    if not numbers:
+        return []
+
+    calls: list[tuple[str, str, dict | None]] = []
+
+    # Call 1: Enable SNR at the top level
+    enable_body = {
+        "enabled": bool(data.get("enabled", True)),
+        "alertAllNumbersForClickToDialCallsEnabled": bool(data.get("alert_click_to_dial", False)),
+    }
+    calls.append((
+        "PUT",
+        _url(f"/telephony/config/people/{person_wid}/singleNumberReach", ctx),
+        enable_body,
+    ))
+
+    # Call 2+: Add each number
+    for num in numbers:
+        phone_number = num.get("phone_number") or ""
+        if not phone_number:
+            continue
+        num_body = {
+            "phoneNumber": phone_number,
+            "enabled": bool(num.get("enabled", True)),
+            "answerConfirmationEnabled": bool(num.get("answer_confirmation", False)),
+        }
+        name = num.get("name")
+        if name:
+            num_body["name"] = name
+        calls.append((
+            "POST",
+            _url(f"/telephony/config/people/{person_wid}/singleNumberReach/numbers", ctx),
+            num_body,
+        ))
+
+    return calls
+
+
+# ---------------------------------------------------------------------------
 # Tier 6: Monitoring list
 # ---------------------------------------------------------------------------
 
@@ -806,15 +858,44 @@ def handle_softkey_config_configure(data: dict, deps: dict, ctx: dict) -> Handle
 # ---------------------------------------------------------------------------
 
 def handle_shared_line_configure(data: dict, deps: dict, ctx: dict) -> HandlerResult:
-    # Shared line requires updating device members + apply-changes
+    owner_cids = data.get("owner_canonical_ids", [])
+
+    # Resolve all owner Webex IDs
+    resolved_owners = []
+    for cid in owner_cids:
+        wid = deps.get(cid)
+        if wid:
+            resolved_owners.append((cid, wid))
+
+    if len(resolved_owners) < 2:
+        return []  # Need at least 2 owners for a shared line
+
     calls = []
-    for dev_cid in data.get("device_canonical_ids", []):
-        dev_wid = deps.get(dev_cid)
-        if dev_wid:
-            # This is a complex multi-step operation — simplified for bulk execution
-            # Full shared-line config is better handled by the domain skill
-            calls.append(("PUT", _url(f"/telephony/config/devices/{dev_wid}/members", ctx),
-                          {"members": []}))  # Populated from canonical data
+
+    for owner_cid, owner_wid in resolved_owners:
+        # Build members list: all OTHER resolved owners
+        members = []
+        port = 1
+        for other_idx, (other_cid, other_wid) in enumerate(resolved_owners):
+            if other_cid == owner_cid:
+                continue
+            is_primary = (other_idx == 0)  # First owner in list is primary
+            members.append({
+                "memberId": other_wid,
+                "port": port,
+                "primaryOwner": is_primary,
+                "lineType": "SHARED_CALL_APPEARANCE",
+                "lineWeight": port,
+            })
+            port += 1
+
+        if members:
+            calls.append((
+                "PUT",
+                _url(f"/telephony/config/people/{owner_wid}/applications/members", ctx),
+                {"members": members},
+            ))
+
     return calls
 
 
@@ -874,6 +955,7 @@ HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("workspace", "configure_settings"): handle_workspace_configure_settings,
     ("calling_permission", "assign"): handle_calling_permission_assign,
     ("call_forwarding", "configure"): handle_call_forwarding_configure,
+    ("single_number_reach", "configure"): handle_snr_configure,
     # Tier 6
     ("monitoring_list", "configure"): handle_monitoring_list_configure,
     ("shared_line", "configure"): handle_shared_line_configure,
