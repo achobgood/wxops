@@ -20,11 +20,13 @@ Connects to CUCM via AXL SOAP and extracts raw configuration into the SQLite sto
 | `extractors/voicemail.py` | Unity Connection voicemail pilot, voicemail profiles |
 | `extractors/helpers.py` | `to_list()`, zeep response normalization helpers |
 | `extractors/workspaces.py` | Common-area phone workspace classification (post-normalization) |
+| `extractors/informational.py` | Tier 3: 20 informational object types (regions, SRST, MRG, app users, etc.) — report only |
+| `extractors/tier4.py` | Tier 4 feature gaps: recording profiles, remote destinations, transformation patterns, EM device profiles |
 
 ## Extraction Order
 
 ```
-locations → users → devices → features → routing → templates → voicemail
+locations → users → devices → features → routing → templates → voicemail → informational → tier4
 ```
 
 Extractors are independent at extraction time — the order is a documentation convention, not a dependency constraint. All raw dicts go into `raw_data` keyed by extractor name.

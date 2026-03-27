@@ -392,6 +392,91 @@ def populated_store(tmp_path):
     for d in decisions:
         store.save_decision(d)
 
+    # Tier 3: Informational objects for report sections O-R
+    info_prov = Provenance(
+        source_system="cucm", source_id="info", source_name="info",
+        extracted_at=datetime(2026, 3, 27, tzinfo=timezone.utc),
+    )
+
+    for name in ["Default", "LowBandwidth"]:
+        store.upsert_object(MigrationObject(
+            canonical_id=f"info_region:{name}", provenance=info_prov,
+            status=MigrationStatus.NORMALIZED,
+            pre_migration_state={"name": name, "defaultCodec": "G.711", "_category": "cloud_managed", "_info_type": "region"},
+        ))
+    store.upsert_object(MigrationObject(
+        canonical_id="info_srst:SRST-HQ", provenance=info_prov,
+        status=MigrationStatus.NORMALIZED,
+        pre_migration_state={"name": "SRST-HQ", "ipAddress": "10.1.1.1", "_category": "cloud_managed", "_info_type": "srst"},
+    ))
+    store.upsert_object(MigrationObject(
+        canonical_id="info_ip_phone_service:Corp Directory", provenance=info_prov,
+        status=MigrationStatus.NORMALIZED,
+        pre_migration_state={"name": "Corp Directory", "url": "http://dir.local", "_category": "not_migratable", "_info_type": "ip_phone_service"},
+    ))
+    store.upsert_object(MigrationObject(
+        canonical_id="info_recording_profile:Default Recording", provenance=info_prov,
+        status=MigrationStatus.NORMALIZED,
+        pre_migration_state={"name": "Default Recording", "recorderDestination": "recorder.local", "_category": "different_arch", "_info_type": "recording_profile"},
+    ))
+    store.upsert_object(MigrationObject(
+        canonical_id="info_app_user:JTAPI_USER", provenance=info_prov,
+        status=MigrationStatus.NORMALIZED,
+        pre_migration_state={"userid": "JTAPI_USER", "description": "JTAPI for Finesse", "associatedDevices": "CTI-1", "_category": "planning", "_info_type": "app_user"},
+    ))
+
+    # -- Tier 4: Recording data on phones --
+    # Override dev-001 with recording-enabled line data
+    store.upsert_object(MigrationObject(
+        canonical_id="phone:SEP00000000001",
+        provenance=_prov("phone-1", "SEP00000000001"),
+        status=MigrationStatus.ANALYZED,
+        pre_migration_state={
+            "name": "SEP00000000001",
+            "ownerUserName": "user001",
+            "lines": [
+                {"dirn": {"pattern": "1001"},
+                 "recordingFlag": "Automatic Call Recording Enabled",
+                 "recordingProfileName": {"_value_1": "RecProfile-Default"}},
+            ],
+        },
+    ))
+
+    # -- Tier 4: Remote Destinations (SNR) --
+    store.upsert_object(MigrationObject(
+        canonical_id="remote_destination:user001:Mobile",
+        provenance=_prov("rdp-1", "user001-Mobile"),
+        status=MigrationStatus.ANALYZED,
+        pre_migration_state={
+            "name": "Mobile", "ownerUserId": "user001",
+            "destination": "+15551234567",
+        },
+    ))
+
+    # -- Tier 4: Transformation Patterns --
+    store.upsert_object(MigrationObject(
+        canonical_id="info_calling_xform:9.!",
+        provenance=_prov("xform-1", "9.!"),
+        status=MigrationStatus.NORMALIZED,
+        pre_migration_state={
+            "pattern": "9.!",
+            "callingPartyTransformationMask": "1XXX",
+            "routePartitionName": "PT-Internal",
+            "description": "Strip access code",
+        },
+    ))
+
+    # -- Tier 4: Extension Mobility --
+    store.upsert_object(MigrationObject(
+        canonical_id="info_device_profile:DP-user001",
+        provenance=_prov("em-1", "DP-user001"),
+        status=MigrationStatus.NORMALIZED,
+        pre_migration_state={
+            "name": "DP-user001", "product": "Cisco 8845",
+            "description": "user001 EM profile",
+        },
+    ))
+
     return store
 
 
@@ -444,6 +529,42 @@ def sample_collector_file(tmp_path):
             "timePeriod": [],
             "voicemailProfile": [],
             "voicemailPilot": [],
+            # Tier 3: Informational objects
+            "region": [
+                {"name": "Default", "defaultCodec": "G.711"},
+                {"name": "LowBandwidth", "defaultCodec": "G.729"},
+            ],
+            "srst": [
+                {"name": "SRST-HQ", "ipAddress": "10.1.1.1", "port": "2000"},
+            ],
+            "mediaResourceGroup": [
+                {"name": "MRG-HQ", "description": "HQ media resources"},
+            ],
+            "conferenceBridge": [
+                {"name": "CFB-1", "description": "", "product": "Cisco IOS"},
+            ],
+            "ipPhoneService": [
+                {"name": "Corp Directory", "url": "http://dir.local", "serviceType": "Standard"},
+            ],
+            "softkeyTemplate": [
+                {"name": "Standard", "description": "Default softkey template"},
+            ],
+            "commonPhoneConfig": [
+                {"name": "Standard Common Phone", "description": "Default CPP"},
+            ],
+            "recordingProfile": [
+                {"name": "Default Recording", "recorderDestination": "recorder.local"},
+            ],
+            "ldapDirectory": [
+                {"name": "Corp AD", "ldapDn": "dc=corp,dc=local"},
+            ],
+            "appUser": [
+                {"userid": "JTAPI_USER", "description": "JTAPI for Finesse", "associatedDevices": "CTI-1"},
+                {"userid": "CUCXNSvc", "description": "CUC Service", "associatedDevices": ""},
+            ],
+            "h323Gateway": [
+                {"name": "GW-Analog", "description": "Analog gateway", "product": "Cisco VG310"},
+            ],
         },
     }
     file_path = tmp_path / "collector-output.json.gz"

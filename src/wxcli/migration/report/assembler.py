@@ -126,6 +126,14 @@ def _build_sidebar_nav(executive_only: bool) -> str:
         ("L", "#button-templates", "Button Templates"),
         ("M", "#device-layouts", "Device Layouts"),
         ("N", "#softkeys", "Softkey Migration"),
+        ("O", "#cloud-managed", "Cloud-Managed"),
+        ("P", "#feature-gaps", "Feature Gaps"),
+        ("Q", "#manual-reconfig", "Manual Reconfig"),
+        ("R", "#planning-inputs", "Planning Inputs"),
+        ("S", "#recording-inventory", "Call Recording"),
+        ("T", "#snr-inventory", "Single Number Reach"),
+        ("U", "#caller-id-xforms", "Caller ID Transforms"),
+        ("V", "#extension-mobility", "Extension Mobility"),
     ]
 
     parts = [

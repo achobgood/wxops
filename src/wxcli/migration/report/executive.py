@@ -288,6 +288,31 @@ def _page_environment(
             rows=site_rows,
         ))
 
+    # Migration coverage callout — Tier 3 informational types
+    info_prefixes = [
+        "info_region", "info_srst", "info_media_resource_group",
+        "info_media_resource_list", "info_aar_group",
+        "info_device_mobility_group", "info_conference_bridge",
+        "info_softkey_template", "info_ip_phone_service", "info_intercom",
+        "info_common_phone_config", "info_phone_button_template",
+        "info_feature_control_policy", "info_credential_policy",
+        "info_recording_profile", "info_ldap_directory",
+        "info_app_user", "info_h323_gateway",
+        "info_enterprise_params", "info_service_params",
+    ]
+    info_total = sum(store.count_by_type(p) for p in info_prefixes)
+    if info_total > 0:
+        mapped_types = sum(1 for t in _REPORT_OBJECT_TYPES if store.count_by_type(t) > 0)
+        info_types = sum(1 for p in info_prefixes if store.count_by_type(p) > 0)
+        parts.append(
+            '<div class="callout">'
+            f'<p><strong>Migration Coverage:</strong> '
+            f'{mapped_types} object types fully mapped for migration, '
+            f'{info_types} additional CUCM types documented for reference '
+            f'(see Technical Appendix sections O\u2013R).</p>'
+            '</div>'
+        )
+
     parts.append('</section>')
     return "\n".join(parts)
 

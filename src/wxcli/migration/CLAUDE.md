@@ -1,6 +1,6 @@
 # migration/ — CUCM→Webex Migration Tool
 
-All 11 phases complete. **1507 tests passing.** Wired into the CLI as `wxcli cucm <command>`. Does NOT use the auto-generator.
+All 11 phases complete. **1642 tests passing.** Wired into the CLI as `wxcli cucm <command>`. Does NOT use the auto-generator.
 
 ## File Map
 
@@ -23,7 +23,7 @@ All 11 phases complete. **1507 tests passing.** Wired into the CLI as `wxcli cuc
 | `execute/` | Phase 07 — planner.py, dependency.py (NetworkX DAG), batch.py |
 | `export/` | Phase 09 — deployment_plan.py, json/csv exports (command_builder.py removed in Phase 12b) |
 | `preflight/` | Phase 10 — checks.py (8 preflight checks), runner.py (orchestrator), CLI `wxcli cucm preflight` |
-| `advisory/` | Phase 13 — Advisory system: per-decision recommendations (19 rules) + cross-cutting advisor (16 patterns) |
+| `advisory/` | Phase 13 — Advisory system: per-decision recommendations (19 rules) + cross-cutting advisor (20 patterns) |
 | `report/` | Assessment report generator — complexity score, SVG charts, executive summary + appendix → HTML/PDF. See its CLAUDE.md. |
 | `.claude/skills/cucm-migrate/SKILL.md` | Phase 11 — 6-step execution skill: preflight → plan summary → batch execute → delegate → report |
 

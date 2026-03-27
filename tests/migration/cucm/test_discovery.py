@@ -46,6 +46,8 @@ def _make_mock_extractor(name, total=5, failed=0, errors=None):
 class TestRunDiscovery:
     """run_discovery: orchestrates all extractors in order."""
 
+    @patch("wxcli.migration.cucm.discovery.Tier4Extractor")
+    @patch("wxcli.migration.cucm.discovery.InformationalExtractor")
     @patch("wxcli.migration.cucm.discovery.TemplateExtractor")
     @patch("wxcli.migration.cucm.discovery.VoicemailExtractor")
     @patch("wxcli.migration.cucm.discovery.FeatureExtractor")
@@ -62,8 +64,10 @@ class TestRunDiscovery:
         MockFeature,
         MockVoicemail,
         MockTemplate,
+        MockInformational,
+        MockTier4,
     ):
-        """All 7 extractors run in order, journal entry written."""
+        """All 9 extractors run in order, journal entry written."""
         mock_conn = MagicMock()
         mock_conn.get_version.return_value = "14.0.1.12345"
         mock_store = _make_mock_store()
@@ -77,6 +81,8 @@ class TestRunDiscovery:
             "features": _make_mock_extractor("features", total=8),
             "voicemail": _make_mock_extractor("voicemail", total=2),
             "templates": _make_mock_extractor("templates", total=4),
+            "informational": _make_mock_extractor("informational", total=1),
+            "tier4": _make_mock_extractor("tier4", total=6),
         }
 
         MockLocation.return_value = mock_extractors["locations"]
@@ -86,20 +92,22 @@ class TestRunDiscovery:
         MockFeature.return_value = mock_extractors["features"]
         MockVoicemail.return_value = mock_extractors["voicemail"]
         MockTemplate.return_value = mock_extractors["templates"]
+        MockInformational.return_value = mock_extractors["informational"]
+        MockTier4.return_value = mock_extractors["tier4"]
 
         result = run_discovery(mock_conn, mock_store)
 
-        # All 7 extractors should have been called
+        # All 9 extractors should have been called
         for name in EXTRACTOR_ORDER:
             mock_extractors[name].extract.assert_called_once()
 
-        # Result should contain all 7 extractor results
-        assert len(result.extractor_results) == 7
+        # Result should contain all 9 extractor results
+        assert len(result.extractor_results) == len(EXTRACTOR_ORDER)
         for name in EXTRACTOR_ORDER:
             assert name in result.extractor_results
 
         # Total objects should be sum of all extractors
-        assert result.total_objects == 3 + 10 + 20 + 15 + 8 + 2 + 4
+        assert result.total_objects == 3 + 10 + 20 + 15 + 8 + 2 + 4 + 1 + 6
 
         # Journal entry should have been written
         mock_store.add_journal_entry.assert_called_once()
@@ -110,6 +118,8 @@ class TestRunDiscovery:
         # Run ID should be set from store
         assert result.run_id == "20260322T120000-abc12345"
 
+    @patch("wxcli.migration.cucm.discovery.Tier4Extractor")
+    @patch("wxcli.migration.cucm.discovery.InformationalExtractor")
     @patch("wxcli.migration.cucm.discovery.TemplateExtractor")
     @patch("wxcli.migration.cucm.discovery.VoicemailExtractor")
     @patch("wxcli.migration.cucm.discovery.FeatureExtractor")
@@ -126,6 +136,8 @@ class TestRunDiscovery:
         MockFeature,
         MockVoicemail,
         MockTemplate,
+        MockInformational,
+        MockTier4,
     ):
         """get_version() is called and result stored."""
         mock_conn = MagicMock()
@@ -133,7 +145,7 @@ class TestRunDiscovery:
         mock_store = _make_mock_store()
 
         # Set up extractors to return minimal results
-        for MockClass in [MockLocation, MockUser, MockDevice, MockRouting, MockFeature, MockVoicemail, MockTemplate]:
+        for MockClass in [MockLocation, MockUser, MockDevice, MockRouting, MockFeature, MockVoicemail, MockTemplate, MockInformational, MockTier4]:
             ext = _make_mock_extractor("test")
             MockClass.return_value = ext
 
@@ -142,6 +154,8 @@ class TestRunDiscovery:
         mock_conn.get_version.assert_called_once()
         assert result.cucm_version == "12.5.1.15000"
 
+    @patch("wxcli.migration.cucm.discovery.Tier4Extractor")
+    @patch("wxcli.migration.cucm.discovery.InformationalExtractor")
     @patch("wxcli.migration.cucm.discovery.TemplateExtractor")
     @patch("wxcli.migration.cucm.discovery.VoicemailExtractor")
     @patch("wxcli.migration.cucm.discovery.FeatureExtractor")
@@ -158,6 +172,8 @@ class TestRunDiscovery:
         MockFeature,
         MockVoicemail,
         MockTemplate,
+        MockInformational,
+        MockTier4,
     ):
         """One extractor raises exception — others still run, error captured."""
         mock_conn = MagicMock()
@@ -179,13 +195,15 @@ class TestRunDiscovery:
             ("features", MockFeature),
             ("voicemail", MockVoicemail),
             ("templates", MockTemplate),
+            ("informational", MockInformational),
+            ("tier4", MockTier4),
         ]:
             MockClass.return_value = _make_mock_extractor(name, total=5)
 
         result = run_discovery(mock_conn, mock_store)
 
-        # All 7 extractors should still have results (locations with error)
-        assert len(result.extractor_results) == 7
+        # All extractors should still have results (locations with error)
+        assert len(result.extractor_results) == len(EXTRACTOR_ORDER)
 
         # The failing extractor should have error captured
         loc_result = result.extractor_results["locations"]
@@ -194,7 +212,7 @@ class TestRunDiscovery:
         assert "AXL connection lost" in loc_result.errors[0]
 
         # Other extractors should have succeeded
-        for name in ["users", "devices", "routing", "features", "voicemail", "templates"]:
+        for name in ["users", "devices", "routing", "features", "voicemail", "templates", "informational", "tier4"]:
             assert result.extractor_results[name].total == 5
             assert result.extractor_results[name].failed == 0
 

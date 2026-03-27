@@ -1048,6 +1048,23 @@ class TestNormalizerRegistry:
             "gateway", "sip_trunk", "route_group", "route_list",
             "voicemail_profile", "voicemail_pilot",
             "button_template", "softkey_template",
+            "remote_destination",
+            "elin_group", "geo_location",
+            "device_profile",
+            "moh_source", "announcement",
+            # Tier 3: Informational types
+            "info_region", "info_srst", "info_media_resource_group",
+            "info_media_resource_list", "info_aar_group",
+            "info_device_mobility_group", "info_conference_bridge",
+            "info_softkey_template", "info_ip_phone_service", "info_intercom",
+            "info_common_phone_config", "info_phone_button_template",
+            "info_feature_control_policy", "info_credential_policy",
+            "info_recording_profile", "info_ldap_directory",
+            "info_app_user", "info_h323_gateway",
+            "info_enterprise_params", "info_service_params",
+            # Tier 4: Feature gap normalizers
+            "recording_profile", "calling_party_xform",
+            "called_party_xform", "info_device_profile",
         }
         assert set(NORMALIZER_REGISTRY.keys()) == expected_types
 

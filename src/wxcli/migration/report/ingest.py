@@ -47,6 +47,27 @@ COLLECTOR_TO_RAW_DATA_MAP: dict[str, tuple[str, str]] = {
     # voicemail group
     "voicemailProfile": ("voicemail", "voicemail_profiles"),
     "voicemailPilot": ("voicemail", "voicemail_pilots"),
+    # informational group (Tier 3)
+    "region": ("informational", "region"),
+    "srst": ("informational", "srst"),
+    "mediaResourceGroup": ("informational", "media_resource_group"),
+    "mediaResourceList": ("informational", "media_resource_list"),
+    "aarGroup": ("informational", "aar_group"),
+    "deviceMobilityGroup": ("informational", "device_mobility_group"),
+    "conferenceBridge": ("informational", "conference_bridge"),
+    "softkeyTemplate": ("informational", "softkey_template"),
+    "ipPhoneService": ("informational", "ip_phone_service"),
+    "intercom": ("informational", "intercom"),
+    "commonPhoneConfig": ("informational", "common_phone_config"),
+    "phoneButtonTemplate": ("informational", "phone_button_template"),
+    "featureControlPolicy": ("informational", "feature_control_policy"),
+    "credentialPolicy": ("informational", "credential_policy"),
+    "recordingProfile": ("informational", "recording_profile"),
+    "ldapDirectory": ("informational", "ldap_directory"),
+    "appUser": ("informational", "app_user"),
+    "h323Gateway": ("informational", "h323_gateway"),
+    "enterpriseParams": ("informational", "enterprise_params"),
+    "processConfig": ("informational", "service_params"),
 }
 
 
@@ -113,6 +134,14 @@ def ingest_collector_file(
             "time_schedules": [], "time_periods": [],
         },
         "voicemail": {"voicemail_profiles": [], "voicemail_pilots": []},
+        "informational": {
+            "region": [], "srst": [], "media_resource_group": [], "media_resource_list": [],
+            "aar_group": [], "device_mobility_group": [], "conference_bridge": [],
+            "softkey_template": [], "ip_phone_service": [], "intercom": [],
+            "common_phone_config": [], "phone_button_template": [], "feature_control_policy": [],
+            "credential_policy": [], "recording_profile": [], "ldap_directory": [],
+            "app_user": [], "h323_gateway": [], "enterprise_params": [], "service_params": [],
+        },
     }
 
     # Map collector keys to raw_data structure

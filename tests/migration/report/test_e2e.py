@@ -39,6 +39,12 @@ class TestEndToEnd:
         out.write_text(html)
         assert out.stat().st_size > 2000
 
+        # Tier 3 sections should appear when informational data is present
+        assert 'id="cloud-managed"' in html
+        assert 'id="feature-gaps"' in html
+        assert 'id="manual-reconfig"' in html
+        assert 'id="planning-inputs"' in html
+
     def test_report_from_populated_fixture(self, populated_store, tmp_path):
         """Report from test fixture should have all expected sections."""
         from wxcli.migration.report.assembler import assemble_report
@@ -59,3 +65,10 @@ class TestEndToEnd:
         assert 'id="objects"' in html or 'id="device-detail"' in html
         assert 'id="decision-detail"' in html
         assert 'id="device-detail"' in html
+
+        # Tier 3 appendix sections O-R
+        assert 'id="cloud-managed"' in html
+        assert 'id="feature-gaps"' in html
+        assert 'id="manual-reconfig"' in html
+        assert 'id="planning-inputs"' in html
+        assert "JTAPI_USER" in html
