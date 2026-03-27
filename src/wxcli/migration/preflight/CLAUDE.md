@@ -25,7 +25,7 @@ wxcli cucm preflight
 
 1. **User licenses** — enough Calling Professional licenses
 2. **Workspace licenses** — enough Workspace licenses (matches API's `UserLicenseType.WORKSPACE`)
-3. **Locations** — target locations exist in Webex (PSTN check not available via CLI)
+3. **Locations** — target locations exist in Webex + PSTN connection check per location
 4. **Trunks** — no trunk name conflicts
 5. **Feature entitlements** — AA/CQ/HG/Paging within known limits
 6. **Number conflicts** — E.164 and extension collisions (produces NUMBER_CONFLICT decisions, skips same-owner)
@@ -47,5 +47,5 @@ wxcli cucm preflight
 
 ## Known Limitations
 
-- PSTN connection check requires `GET /telephony/pstn/locations/{id}/connection` — no wxcli command exists
-- `wxcli users list` doesn't support `callingData=true` without `--calling-enabled` filter, so all duplicate users classify as `exists_no_calling`
+- PSTN connection check calls `wxcli pstn list-connection` per location — produces WARN (not FAIL) for locations without PSTN
+- ~~`wxcli users list` callingData limitation~~ — FIXED: `users` is now an alias for the generated `people` command group, and the preflight runner passes `--calling-data true`

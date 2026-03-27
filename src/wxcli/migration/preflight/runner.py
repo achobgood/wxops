@@ -85,12 +85,19 @@ class PreflightRunner:
         licenses = self._fetch("licenses", ["licenses-api", "list", "--output", "json"]) if _needs("licenses", "workspace-licenses") else []
         locations = self._fetch("locations", ["locations", "list"]) if _needs("locations") else []
         numbers = self._fetch("numbers", ["numbers", "list", "--limit", "0"]) if _needs("numbers") else []
-        # Note: ideally would fetch with callingData=true to detect
-        # already-calling users. Without it, locationId is absent and all
-        # duplicates classify as exists_no_calling (safe but imprecise).
-        # Adding a --calling-data flag to wxcli users list is a future enhancement.
-        people = self._fetch("people", ["users", "list", "--limit", "0"]) if _needs("users") else []
+        people = self._fetch("people", ["users", "list", "--calling-data", "true", "--limit", "0"]) if _needs("users") else []
         trunks = self._fetch("trunks", ["call-routing", "list-trunks"]) if _needs("trunks") else []
+
+        # Fetch PSTN connection data per location
+        pstn_by_loc: dict[str, dict] = {}
+        if locations and _needs("locations"):
+            for loc in locations:
+                loc_id = loc.get("id")
+                if loc_id:
+                    conn = self._fetch(f"pstn-{loc_id}",
+                                       ["pstn", "list-connection", loc_id, "--output", "json"])
+                    if conn:
+                        pstn_by_loc[loc_id] = conn[0] if isinstance(conn, list) and conn else conn if isinstance(conn, dict) else {}
 
         existing_features: dict[str, int] = {}
         if _needs("features"):
@@ -100,7 +107,7 @@ class PreflightRunner:
         all_checks = {
             "licenses": lambda: check_licenses(store, licenses),
             "workspace-licenses": lambda: check_workspace_licenses(store, licenses),
-            "locations": lambda: check_locations(store, locations),
+            "locations": lambda: check_locations(store, locations, pstn_connections=pstn_by_loc if locations else None),
             "trunks": lambda: check_trunks(store, trunks),
             "features": lambda: check_feature_entitlements(store, existing_features),
             "numbers": lambda: self._run_number_check(store, numbers),
