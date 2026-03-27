@@ -118,6 +118,7 @@ below for what the pipeline does.
 | `specs/webex-admin.json` | OpenAPI 3.0 spec — admin/org management APIs |
 | `specs/webex-device.json` | OpenAPI 3.0 spec — device management APIs |
 | `specs/webex-messaging.json` | OpenAPI 3.0 spec — messaging/rooms/teams APIs |
+| `src/wxcli/commands/cleanup.py` | Batch cleanup: inventory + parallel layered deletion |
 
 ### CUCM→Webex Migration Tool (All 11 phases complete)
 
@@ -210,6 +211,28 @@ See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for fu
 9. **Supervisor delete returns 204 but supervisor persists.** `delete-supervisors-config-1 --has-cx-essentials true` gets 204 from the API but the supervisor remains. Workaround: use `update-supervisors` with `action: DELETE` on each agent — removing the last agent auto-removes the supervisor.
 10. **CUCM CallPickupGroup creation with members fails on CUCM 15.0.** The AXL `addCallPickupGroup` operation with `<members>` containing `<directoryNumber>` fails with a null priority foreign key constraint. Workaround: create the pickup group empty, then use `updateLine` with `callPickupGroupName` to assign members at the line level. Affects both wxcadm and raw AXL calls.
 11. **Create commands now support `-o json`.** All create commands accept `-o json` to output the full API response as JSON. Default behavior (`-o id`) prints just the created ID.
+
+### Cleanup Command
+
+`wxcli cleanup run` batch-deletes Webex Calling resources in dependency-safe order.
+
+**Flags:**
+- `--scope "Name1,Name2"` — limit to specific locations (by name or ID)
+- `--all` — clean up entire org (required if --scope not given)
+- `--include-users` — also delete users (off by default)
+- `--include-locations` — also delete locations (off by default, includes 90s wait for calling disable propagation)
+- `--dry-run` — show what would be deleted without deleting
+- `--max-concurrent N` — parallel deletions per layer (default 5)
+- `--force` — skip confirmation prompt
+
+**Deletion order** (12 layers, reverse of creation): dial plans → route lists → route groups → translation patterns → trunks → call features → schedules/operating modes → virtual lines → devices → workspaces → users → locations.
+
+**Known behaviors:**
+- Virtual lines use raw API (not `wxcli virtual-extensions`) due to ID type mismatch bug
+- Location deletion requires disabling calling first + 90s propagation wait
+- Location delete may still 409 after wait — re-run cleanup to retry
+- Call parks and call pickups are enumerated per-location (no org-wide list endpoint)
+- Workspaces must be deleted before disable-calling can succeed — API has no location filter, client-side filtering by locationId
 
 ### Generator rules
 
