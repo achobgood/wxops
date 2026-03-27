@@ -20,7 +20,6 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
 ## Step 1: Load references
 
 1. Read `docs/reference/messaging-spaces.md` for spaces/messages/teams/ECM/HDS data models and CLI commands
-2. Read `docs/reference/authentication.md` for auth token conventions
 
 ---
 

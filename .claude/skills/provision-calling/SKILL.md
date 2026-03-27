@@ -22,9 +22,7 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
 
 ## Step 1: Load references
 
-1. Read `docs/reference/authentication.md` for token setup and scope requirements
-2. Read `docs/reference/provisioning.md` for People, Licenses, and Locations API patterns
-3. Read `docs/reference/wxc-sdk-patterns.md` for SDK setup (sync vs async, bulk patterns)
+1. Read `docs/reference/provisioning.md` for People, Licenses, and Locations API patterns
 
 ## Step 2: Verify auth token is working
 
