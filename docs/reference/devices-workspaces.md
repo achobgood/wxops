@@ -1346,28 +1346,46 @@ wxcli workspace-locations show-floors <location_id> <floor_id>
 
 9. **Personalization is one-time** — The Workspace Personalization API is for migrating Edge devices from shared to personal mode. It requires the device to be online and the workspace to have no calendar configured.
 
-10. **Workspace call settings endpoint access by license tier.** <!-- Verified via live API 2026-03-19 -->
+10. **Workspace call settings endpoint access by license tier.** <!-- Verified via live API 2026-03-19, matrix completed 2026-03-27 -->
 
-    | Endpoint Path | Basic (webexCalling) | Professional Required |
-    |---------------|---------------------|-----------------------|
-    | `/workspaces/{id}/features/callForwarding` | 200 | — |
-    | `/workspaces/{id}/features/callWaiting` | 200 | — |
-    | `/workspaces/{id}/features/callerId` | 200 | — |
-    | `/workspaces/{id}/features/intercept` | 200 | — |
-    | `/workspaces/{id}/features/monitoring` | 200 | — |
-    | `/workspaces/{id}/features/voicemail` | 404 | N/A (wrong path) |
-    | `/telephony/config/workspaces/{id}/musicOnHold` | 200 | — |
-    | `/telephony/config/workspaces/{id}/doNotDisturb` | 200 | — |
-    | `/telephony/config/workspaces/{id}/anonymousCallReject` | 405 | Yes |
-    | `/telephony/config/workspaces/{id}/callPolicies` | 405 | Yes |
-    | `/telephony/config/workspaces/{id}/voicemail` | 405 | Yes |
-    | `/telephony/config/workspaces/{id}/bargeIn` | 405 | Yes |
-    | `/telephony/config/workspaces/{id}/callBridge` | 405 | Yes |
-    | `/telephony/config/workspaces/{id}/pushToTalk` | 405 | Yes |
-    | `/telephony/config/workspaces/{id}/privacy` | 405 | Yes |
-    | `/telephony/config/workspaces/{id}/selectiveReject` | 405 | Yes |
-    | `/telephony/config/workspaces/{id}/selectiveAccept` | 405 | Yes |
-    | `/telephony/config/workspaces/{id}/callRecording` | 404 | May not exist |
+    **Rule of thumb:** Under `/telephony/config/workspaces/{id}/`, only `musicOnHold` and `doNotDisturb` work on Basic. Everything else returns 405 "Invalid Professional Place". For Basic workspaces, use the `/workspaces/{id}/features/` path family instead (5 endpoints listed below).
+
+    | Endpoint Path | Basic | Professional | Notes |
+    |---------------|:-----:|:------------:|-------|
+    | **`/workspaces/{id}/features/` path (works on Basic)** | | | |
+    | `/workspaces/{id}/features/callForwarding` | 200 | 200 | |
+    | `/workspaces/{id}/features/callWaiting` | 200 | 200 | |
+    | `/workspaces/{id}/features/callerId` | 200 | 200 | |
+    | `/workspaces/{id}/features/intercept` | 200 | 200 | |
+    | `/workspaces/{id}/features/monitoring` | 200 | 200 | |
+    | `/workspaces/{id}/features/incomingPermission` | 200 | 200 | |
+    | `/workspaces/{id}/features/outgoingPermission` | 200 | 200 | |
+    | `/workspaces/{id}/features/voicemail` | 404 | N/A | Wrong path for voicemail; use `/telephony/config/` |
+    | **`/telephony/config/workspaces/{id}/` path (Basic exceptions)** | | | |
+    | `/telephony/config/workspaces/{id}/musicOnHold` | 200 | 200 | Basic exception |
+    | `/telephony/config/workspaces/{id}/doNotDisturb` | 200 | 200 | Basic exception |
+    | **`/telephony/config/workspaces/{id}/` path (Professional only)** | | | |
+    | `/telephony/config/workspaces/{id}/anonymousCallReject` | 405 | 200 | |
+    | `/telephony/config/workspaces/{id}/bargeIn` | 405 | 200 | |
+    | `/telephony/config/workspaces/{id}/callBridge` | 405 | 200 | |
+    | `/telephony/config/workspaces/{id}/callForwarding` | 405 | 200 | Duplicate of `/features/` path |
+    | `/telephony/config/workspaces/{id}/callPolicies` | 405 | 200 | |
+    | `/telephony/config/workspaces/{id}/callRecording` | 405 | 200 | |
+    | `/telephony/config/workspaces/{id}/callWaiting` | 405 | 200 | Duplicate of `/features/` path |
+    | `/telephony/config/workspaces/{id}/callerId` | 405 | 200 | Duplicate of `/features/` path |
+    | `/telephony/config/workspaces/{id}/ecbn` | 405 | 200 | |
+    | `/telephony/config/workspaces/{id}/intercept` | 405 | 200 | Duplicate of `/features/` path |
+    | `/telephony/config/workspaces/{id}/monitoring` | 405 | 200 | Duplicate of `/features/` path |
+    | `/telephony/config/workspaces/{id}/numbers` | 405 | 200 | |
+    | `/telephony/config/workspaces/{id}/priorityAlert` | 405 | 200 | |
+    | `/telephony/config/workspaces/{id}/privacy` | 405 | 200 | |
+    | `/telephony/config/workspaces/{id}/pushToTalk` | 405 | 200 | |
+    | `/telephony/config/workspaces/{id}/selectiveAccept` | 405 | 200 | |
+    | `/telephony/config/workspaces/{id}/selectiveForward` | 405 | 200 | |
+    | `/telephony/config/workspaces/{id}/selectiveReject` | 405 | 200 | |
+    | `/telephony/config/workspaces/{id}/sequentialRing` | 405 | 200 | |
+    | `/telephony/config/workspaces/{id}/simultaneousRing` | 405 | 200 | |
+    | `/telephony/config/workspaces/{id}/voicemail` | 405 | 200 | |
 
 ## CLI: `workspace-metrics` (Workspace Sensor Metrics)
 
