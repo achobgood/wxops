@@ -193,8 +193,12 @@ def check_workspace_licenses(store: MigrationStore, licenses: list[dict]) -> Che
 # ---------------------------------------------------------------------------
 
 
-def check_locations(store: MigrationStore, webex_locations: list[dict]) -> CheckResult:
-    """Check if target locations exist in the Webex org."""
+def check_locations(
+    store: MigrationStore,
+    webex_locations: list[dict],
+    pstn_connections: dict[str, dict] | None = None,
+) -> CheckResult:
+    """Check if target locations exist in the Webex org and have PSTN configured."""
     planned = store.get_objects("location")
     if not planned:
         return CheckResult(
@@ -204,13 +208,14 @@ def check_locations(store: MigrationStore, webex_locations: list[dict]) -> Check
         )
 
     wx_by_name = {loc.get("name", "").lower(): loc for loc in webex_locations}
-    missing = []
-    found = []
+    missing: list[str] = []
+    found: list[tuple[str, str]] = []  # (name, location_id)
 
     for loc in planned:
         name = loc.get("name", "")
-        if name.lower() in wx_by_name:
-            found.append(name)
+        wx_loc = wx_by_name.get(name.lower())
+        if wx_loc:
+            found.append((name, wx_loc.get("id", "")))
         else:
             missing.append(name)
 
@@ -224,15 +229,37 @@ def check_locations(store: MigrationStore, webex_locations: list[dict]) -> Check
             data={"found": len(found), "missing": len(missing), "missing_names": missing},
         )
 
-    # Note: spec (05a-preflight-checks.md Check 3) also calls for PSTN
-    # connection verification per location. No wxcli command exists for
-    # GET /telephony/pstn/locations/{id}/connection — would need raw HTTP.
-    # Locations without PSTN should produce WARN per spec.
+    # PSTN connection sub-check
+    if pstn_connections is None:
+        return CheckResult(
+            name="Locations",
+            status=CheckStatus.PASS,
+            detail=f"{len(found)}/{len(planned)} target locations exist (PSTN check not available)",
+            data={"found": len(found), "total": len(planned)},
+        )
+
+    no_pstn: list[str] = []
+    for name, loc_id in found:
+        if loc_id not in pstn_connections:
+            no_pstn.append(name)
+
+    if no_pstn:
+        return CheckResult(
+            name="Locations",
+            status=CheckStatus.WARN,
+            detail=(
+                f"{len(found)}/{len(planned)} target locations exist; "
+                f"{len(no_pstn)} without PSTN: {', '.join(no_pstn)}"
+            ),
+            issues=[PreflightIssue("PSTN_NOT_CONFIGURED", f"Location '{n}' has no PSTN connection")
+                    for n in no_pstn],
+            data={"found": len(found), "total": len(planned), "no_pstn": no_pstn},
+        )
 
     return CheckResult(
         name="Locations",
         status=CheckStatus.PASS,
-        detail=f"{len(found)}/{len(planned)} target locations exist (PSTN check not available via CLI)",
+        detail=f"{len(found)}/{len(planned)} target locations exist, all have PSTN connections",
         data={"found": len(found), "total": len(planned)},
     )
 
