@@ -181,7 +181,7 @@ async def _try_find_existing(
             item_key = "operatingModes"
     elif resource_type == "schedule":
         name = data.get("name")
-        location_id = data.get("locationId", "")
+        location_id = data.get("location_id") or data.get("locationId", "")
         if name and location_id:
             params = {"name": name, "max": "100"}
             if ctx.get("orgId"):

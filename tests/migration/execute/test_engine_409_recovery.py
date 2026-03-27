@@ -73,6 +73,20 @@ class TestTryFindExistingOperatingMode:
 
 
 class TestTryFindExistingSchedule:
+    def test_finds_by_name_snake_case_key(self):
+        """Canonical data uses location_id (snake_case), not locationId."""
+        session = MagicMock()
+        session.get = MagicMock(return_value=FakeResponse(200, {
+            "schedules": [{"id": "sched-2", "name": "Business Hours"}]
+        }))
+        semaphore = asyncio.Semaphore(1)
+        result = _run(_try_find_existing(session, semaphore, "schedule",
+                                         {"name": "Business Hours", "location_id": "loc-99"},
+                                         {}))
+        assert result == "sched-2"
+        call_url = session.get.call_args[0][0]
+        assert "loc-99" in call_url
+
     def test_finds_by_name(self):
         session = MagicMock()
         session.get = MagicMock(return_value=FakeResponse(200, {

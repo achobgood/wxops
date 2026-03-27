@@ -42,8 +42,8 @@ wxcli cucm preflight
 
 ## Tests
 
-- `tests/migration/preflight/test_checks.py` — 36 unit tests for all check functions
-- `tests/migration/preflight/test_runner.py` — 13 integration tests (mocked wxcli)
+- `tests/migration/preflight/test_checks.py` — 38 unit tests for all check functions
+- `tests/migration/preflight/test_runner.py` — 14 integration tests (mocked wxcli)
 
 ## Known Limitations
 
