@@ -139,6 +139,7 @@ Ask the user what they want to configure. Present this decision matrix if they a
 |------|-----------|-------------|
 | Call monitoring | Monitor/barge/coach live calls | `cc-call-monitoring` |
 | Real-time stats | Real-time queue/agent statistics | `cc-realtime` |
+| Queue statistics | Queue performance metrics | `cc-queue-stats` |
 | Event subscriptions | Subscribe to CC events (webhooks) | `cc-subscriptions` |
 | Task management | Agent task lifecycle (accept, hold, transfer, wrapup) | `cc-tasks` |
 | Notifications | Notification management | `cc-notification` |
@@ -192,17 +193,17 @@ wxcli cc-site create --json-body '{
 
 | Prerequisite | Verification | If missing |
 |-------------|-------------|-----------|
-| Entry point exists | `wxcli cc-entry-point list -o json` | Create entry point first |
+| Entry point exists | `wxcli cc-entry-point list-entry-point-v2 -o json` | Create entry point first |
 | Team exists (for team-based routing) | `wxcli cc-team list -o json` | Create team first |
-| Skill profiles (for skill-based routing) | `wxcli cc-skill-profile list -o json` | Create skills and skill profiles first |
+| Skill profiles (for skill-based routing) | `wxcli cc-skill-profile list-skill-profile-v2 -o json` | Create skills and skill profiles first |
 
 #### Teams
 
 | Prerequisite | Verification | If missing |
 |-------------|-------------|-----------|
 | Site exists | `wxcli cc-site list -o json` | Create site first |
-| Multimedia profile exists | `wxcli cc-multimedia-profile list -o json` | Create multimedia profile first |
-| Skill profile (optional) | `wxcli cc-skill-profile list -o json` | Create if using skill-based routing |
+| Multimedia profile exists | `wxcli cc-multimedia-profile list-multimedia-profile-v2 -o json` | Create multimedia profile first |
+| Skill profile (optional) | `wxcli cc-skill-profile list-skill-profile-v2 -o json` | Create if using skill-based routing |
 
 #### Campaigns
 
@@ -210,26 +211,26 @@ wxcli cc-site create --json-body '{
 |-------------|-------------|-----------|
 | Contact list uploaded | `wxcli cc-contact-list list -o json` | Upload contact list first |
 | Outdial ANI configured | `wxcli cc-outdial-ani list -o json` | Configure outbound caller ID first |
-| Entry point exists (outbound) | `wxcli cc-entry-point list -o json` | Create outbound entry point |
+| Entry point exists (outbound) | `wxcli cc-entry-point list-entry-point-v2 -o json` | Create outbound entry point |
 
 #### Flows
 
 | Prerequisite | Verification | If missing |
 |-------------|-------------|-----------|
-| Audio files uploaded (if used in flow) | `wxcli cc-audio-files list -o json` | Upload audio files first |
-| Global variables defined (if used) | `wxcli cc-global-vars list -o json` | Create global variables first |
+| Audio files uploaded (if used in flow) | `wxcli cc-audio-files list-audio-file -o json` | Upload audio files first |
+| Global variables defined (if used) | `wxcli cc-global-vars list-cad-variable -o json` | Create global variables first |
 
 #### Skill Profiles
 
 | Prerequisite | Verification | If missing |
 |-------------|-------------|-----------|
-| Skills defined | `wxcli cc-skill list -o json` | Create skill definitions first |
+| Skills defined | `wxcli cc-skill list-skill -o json` | Create skill definitions first |
 
 #### Desktop Profiles
 
 | Prerequisite | Verification | If missing |
 |-------------|-------------|-----------|
-| Desktop layout exists | `wxcli cc-desktop-layout list -o json` | Create or use default layout |
+| Desktop layout exists | `wxcli cc-desktop-layout list -o json` | Create or use default layout (note: `list` is the correct list-all for desktop layouts) |
 
 #### Event Subscriptions
 
@@ -367,7 +368,7 @@ Skill types: `PROFICIENCY` (1-10 scale), `BOOLEAN` (true/false), `TEXT` (string 
 **List skills:**
 
 ```bash
-wxcli cc-skill list -o json
+wxcli cc-skill list-skill -o json
 ```
 
 **Create a skill profile:**
@@ -406,6 +407,8 @@ wxcli cc-dial-plan create-dial-plan --json-body '{
 ```bash
 wxcli cc-dial-plan list-dial-plan-v2 -o json
 ```
+
+> **NOTE:** `cc-dial-plan list` is a references endpoint (shows what references a specific dial plan), not a list-all. Always use `list-dial-plan-v2` to list all dial plans.
 
 **Map a dial number to an entry point:**
 
@@ -485,7 +488,7 @@ wxcli cc-desktop-profile create-agent-profile --json-body '{
 **List desktop profiles:**
 
 ```bash
-wxcli cc-desktop-profile list -o json
+wxcli cc-desktop-profile list-agent-profile -o json
 ```
 
 ---
@@ -526,7 +529,7 @@ wxcli cc-aux-code create --json-body '{
 **List aux codes:**
 
 ```bash
-wxcli cc-aux-code list -o json
+wxcli cc-aux-code list-auxiliary-code-v2 -o json
 ```
 
 **Create a work type:**
@@ -541,7 +544,7 @@ wxcli cc-work-types create --json-body '{
 **List work types:**
 
 ```bash
-wxcli cc-work-types list -o json
+wxcli cc-work-types list-work-type -o json
 ```
 
 ---
@@ -564,7 +567,7 @@ Variable types: `STRING`, `INTEGER`, `BOOLEAN`, `DECIMAL`, `DATE_TIME`, `JSON`.
 **List global variables:**
 
 ```bash
-wxcli cc-global-vars list -o json
+wxcli cc-global-vars list-cad-variable -o json
 ```
 
 ---
@@ -589,15 +592,13 @@ wxcli cc-flow create --json-body '{
 **Export a flow:**
 
 ```bash
-wxcli cc-flow list-export --flow-id FLOW_ID -o json
+wxcli cc-flow list-export PROJECT_ID FLOW_ID -o json
 ```
 
 **Publish a flow:**
 
 ```bash
-wxcli cc-flow create-export --json-body '{
-  "flowId": "FLOW_ID"
-}'
+wxcli cc-flow create-export PROJECT_ID FLOW_ID --comment "Initial publish"
 ```
 
 ---
@@ -845,7 +846,7 @@ Next steps:
     - Customer Assist (CX Essentials on Calling queues) → `customer-assist` skill
     - Webex Calling reporting (CDR, queue stats) → `reporting` skill
     - Person/workspace call settings → `manage-call-settings` skill
-    - Routing (Calling trunks, dial plans, PSTN) → `configure-routing` skill
+    - Webex Calling routing (trunks, route groups, PSTN) → `configure-routing` skill (CC dial plans stay in this skill)
     - Location teardown → `teardown` skill
 
 ---
