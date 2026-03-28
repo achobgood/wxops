@@ -117,6 +117,14 @@ below for what the pipeline does.
 | `docs/reference/meetings-settings.md` | Preferences, session types, tracking codes, site settings, polls, Q&A, reports |
 | `docs/reference/meetings-infrastructure.md` | Video Mesh (clusters, nodes, health, utilization), participants, invitees |
 
+### Reference Docs — Contact Center APIs
+
+| Path | Purpose |
+|------|---------|
+| `docs/reference/contact-center-core.md` | CC agents, queues, entry points, teams, skills, desktop, configuration |
+| `docs/reference/contact-center-routing.md` | CC dial plans, campaigns, flows, audio, contacts, outdial |
+| `docs/reference/contact-center-analytics.md` | CC AI, journey, monitoring, subscriptions, tasks |
+
 ### CLI (wxcli) — Primary Execution Layer
 
 | Path | Purpose |
@@ -268,6 +276,20 @@ See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for fu
 | `docs/templates/execution-report.md` | Template: what the agent produces after executing |
 | `docs/plans/` | Generated design docs (one per customer build) |
 | `docs/later/` | Parked: meetings (messaging now has full reference docs and skills) |
+
+### Agent Teams
+
+Two reusable agent team patterns for development workflows. Requires Claude Code v2.1.32+.
+Enabled via `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` in `.claude/settings.json`.
+
+| Pattern | Template | When to Use |
+|---------|----------|-------------|
+| **Spec-to-Ship** | `docs/team-prompts/spec-to-ship.md` | Features touching 2+ of: code, tests, docs. 3 teammates (impl/tests/docs). |
+| **Reference Audit** | `docs/team-prompts/reference-audit.md` | Weekly/monthly drift check across 46 reference docs. 4 teammates by doc category. |
+
+**Usage:** Open the template, copy the spawn prompt, fill in the bracketed values, paste into a session.
+
+**Not for:** Quick bug fixes, single-file edits, exploratory research — use normal sessions or subagents.
 
 ## Reference Doc Sources
 
