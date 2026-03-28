@@ -3,7 +3,7 @@
 Build and configure Webex Calling, admin, device, and messaging APIs programmatically with guided Claude Code assistance.
 
 **Execution pattern:** `wxcli` CLI commands (primary) → `wxcadm` (XSI/E911/CP-API) → raw HTTP (fallback).
-The wxcli CLI has 165 command groups covering calling, admin, device, messaging, meetings, and contact center APIs. Raw HTTP docs in `docs/reference/` serve as reference and fallback.
+The wxcli CLI has 166 command groups covering calling, admin, device, messaging, meetings, and contact center APIs. Raw HTTP docs in `docs/reference/` serve as reference and fallback.
 
 ## Quick Start
 
@@ -130,7 +130,7 @@ below for what the pipeline does.
 
 | Path | Purpose |
 |------|---------|
-| `src/wxcli/main.py` | CLI entry point — 165 command groups |
+| `src/wxcli/main.py` | CLI entry point — 166 command groups |
 | `src/wxcli/commands/*.py` | All command implementations (raw HTTP pattern) |
 | `wxcli --help` | Shows all command groups |
 | `wxcli <group> --help` | Shows commands within a group |
@@ -142,6 +142,7 @@ below for what the pipeline does.
 | `specs/webex-meetings.json` | OpenAPI 3.0 spec — meetings/video mesh/transcripts APIs |
 | `specs/webex-contact-center.json` | OpenAPI 3.0 spec — contact center APIs (48 groups, 431 commands) |
 | `src/wxcli/commands/cleanup.py` | Batch cleanup: inventory + parallel layered deletion |
+| `src/wxcli/commands/converged_recordings_export.py` | Hand-written download/export for converged recordings (registered into generated group) |
 
 ### CUCM→Webex Migration Tool (All 11 phases complete)
 
@@ -191,11 +192,11 @@ Mock server URLs (public, no auth required — return saved response examples):
 
 ## CLI Status & Known Issues
 
-**165 command groups covering calling, admin, device, messaging, meetings, and contact center APIs.** All generated from 7 OpenAPI 3.0 specs via `tools/generate_commands.py`.
+**166 command groups covering calling, admin, device, messaging, meetings, and contact center APIs.** Nearly all generated from 7 OpenAPI 3.0 specs via `tools/generate_commands.py`. The `converged-recordings` group combines generated CRUD commands with hand-written `download` and `export` commands (`converged_recordings_export.py`).
 
 ### CLI test status
 
-165 command groups, all generated from OpenAPI specs. Calling/admin/device/messaging groups live-tested across 4 batch sweeps (2026-03-19 through 2026-03-21). Contact center and meetings groups are newly generated and not yet live-tested. CUCM pipeline tested against live test bed (10.201.123.107) with 2 test bed expansions. See git history for detailed test logs.
+166 command groups, all generated from OpenAPI specs. Calling/admin/device/messaging groups live-tested across 4 batch sweeps (2026-03-19 through 2026-03-21). Contact center and meetings groups are newly generated and not yet live-tested. CUCM pipeline tested against live test bed (10.201.123.107) with 2 test bed expansions. See git history for detailed test logs.
 
 ### Partner Multi-Org Support
 
@@ -253,7 +254,7 @@ See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for fu
 ### Generator rules
 
 - **Never hand-edit generated files.** Fix bugs by updating `tools/field_overrides.yaml` and regenerating.
-- **Never create new hand-written command files.** 3 legacy hand-written files remain (`locations.py`, `numbers.py`, `licenses.py`) — these are a known drift risk that miss generator improvements. `users.py` was retired and replaced with an alias to the generated `people` command group. All new commands must go through the generator. If a generated command needs custom behavior, use `field_overrides.yaml`.
+- **Never create new hand-written command files** unless adding functionality that the generator cannot produce (e.g., multi-step workflows, file downloads). 3 legacy hand-written files remain (`locations.py`, `numbers.py`, `licenses.py`) — these are a known drift risk that miss generator improvements. `users.py` was retired and replaced with an alias to the generated `people` command group. `converged_recordings_export.py` is a deliberate hand-written extension that registers `download` and `export` commands onto the generated `converged_recordings` group via a `register(app)` pattern. For simple CRUD commands, use the generator. If a generated command needs custom behavior, use `field_overrides.yaml`.
 - **`auto_inject_from_config`** — `field_overrides.yaml` supports an `auto_inject_from_config: ["orgId"]` key per endpoint. Parameters listed here are omitted from `--help` and injected automatically from the saved config at runtime. This replaces the older `omit_query_params` approach for `orgId`.
 - **Spec files:** 7 OpenAPI 3.0 specs in `specs/` (`webex-cloud-calling.json`, `webex-admin.json`, `webex-device.json`, `webex-messaging.json`, `webex-meetings.json`, `webex-contact-center.json`, `webex-wholesale.json`)
 - Regenerate one tag: `PYTHONPATH=. python3.11 tools/generate_commands.py --spec specs/webex-cloud-calling.json --tag "Tag Name"`

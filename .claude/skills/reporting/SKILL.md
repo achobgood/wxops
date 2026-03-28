@@ -45,7 +45,7 @@ If this fails, stop and resolve authentication first (`wxcli configure`).
 After identifying the report type (Step 3), verify the token has the required scope:
 - **CDR:** Run `wxcli cdr list --start-time <recent> --end-time <recent> -o json` — if 403, token lacks `spark-admin:calling_cdr_read`
 - **Reports/Templates:** Run `wxcli report-templates show -o json` — if 403, token lacks `analytics:read_all` or org lacks Pro Pack
-- **Recordings:** Run `wxcli recordings list --limit 1 -o json` — if 403, token lacks `spark-admin:telephony_config_read`
+- **Recordings:** Run `wxcli converged-recordings list --limit 1 -o json` — if 403, token lacks `spark-admin:telephony_config_read`
 - **Do not proceed to Step 4 until the required scope is confirmed.**
 
 ## Step 3: Identify the reporting need
@@ -61,7 +61,9 @@ Ask the user what they want to analyze. Present this decision matrix if they are
 | Auto attendant key-press patterns by time period | **AA Business/After-Hours Key Details report** | `wxcli reports` + `wxcli report-templates` |
 | Call quality (jitter, latency, packet loss) | **Calling Quality / Media Quality report** | `wxcli reports` + `wxcli report-templates` |
 | Call usage trends and adoption | **Calling Engagement report** | `wxcli reports` + `wxcli report-templates` |
-| Call recordings (list, download, manage) | **Converged Recordings** | `wxcli recordings` |
+| Call recordings (list, download, manage) | **Converged Recordings** | `wxcli converged-recordings` |
+| Download single recording artifacts | **Recording Download** | `wxcli converged-recordings download` |
+| Bulk export recordings for BI | **Recording Export** | `wxcli converged-recordings export` |
 | Recording access audit | **Recording Reports** | `wxcli recording-report` |
 | Partner-level report generation | **Partner Reports** | `wxcli partner-reports` |
 
@@ -442,7 +444,47 @@ wxcli recordings create-purge --json-body '{"purgeAll": true, "ownerEmail": "use
 wxcli recordings delete RECORDING_ID
 ```
 
-#### 6f-v. Recording audit reports
+#### 6f-v. Download recording artifacts
+
+```bash
+# Download transcript + AI notes for a single recording
+wxcli converged-recordings download RECORDING_ID
+
+# Include the MP3 audio file
+wxcli converged-recordings download RECORDING_ID --include-audio
+
+# Custom output directory
+wxcli converged-recordings download RECORDING_ID -d /tmp/my-recordings
+```
+
+Output: `{output_dir}/{recording_id}/metadata.json`, `transcript.txt`, `suggested_notes.html`, `short_notes.html`, `action_items.html`, `audio.mp3` (if opted in and available).
+
+#### 6f-vi. Bulk export recordings for BI
+
+```bash
+# Export all recordings in a date range to JSONL
+wxcli converged-recordings export \
+  --from "2026-03-01T00:00:00Z" --to "2026-03-28T00:00:00Z"
+
+# Export with filters
+wxcli converged-recordings export \
+  --from "2026-03-01T00:00:00Z" --to "2026-03-28T00:00:00Z" \
+  --owner-email user@company.com --service-type calling
+
+# Export as individual files per recording
+wxcli converged-recordings export \
+  --from "2026-03-01T00:00:00Z" --to "2026-03-28T00:00:00Z" \
+  --format json-per-file
+
+# Export with audio files included
+wxcli converged-recordings export \
+  --from "2026-03-01T00:00:00Z" --to "2026-03-28T00:00:00Z" \
+  --include-audio -d /data/recording-export
+```
+
+JSONL output (`recordings.jsonl`): one JSON object per line with all metadata + inline text content. Audio files go to `audio/{recording_id}.mp3`.
+
+#### 6f-vii. Recording audit reports
 
 ```bash
 # Access summary (who accessed which recordings)

@@ -150,7 +150,7 @@ async with AsWebexSimpleApi(tokens='<token>') as api:
 
 #### User-only settings (no admin endpoint — 404 guaranteed)
 
-These 6 settings exist ONLY at `/people/me/settings/{feature}`. Admin tokens **always** get 404. There is no workaround — the user must configure these themselves via the Webex app or a user-level OAuth flow.
+These 6 settings exist ONLY at `/people/me/settings/{feature}`. Admin tokens **always** get 404. With a **user-level OAuth token**, use `wxcli my-call-settings` (120 commands covering all self-service `/people/me/` endpoints including these 6). Without user-level OAuth, the user must configure these via the Webex app.
 
 | Setting | Self-service path | Workspace equivalent? |
 |---------|-------------------|----------------------|
@@ -542,7 +542,7 @@ All 3 changes applied successfully.
 - **Always show plan before executing** — present the deployment plan (Step 5) and get user confirmation
 - **Handle person vs workspace scope differences** — some scopes use `workspaces_read/write` instead of `people_read/write` (outgoing permissions transfer numbers, access codes, call policy)
 - **Location-level prerequisites** — voicemail, recording, intercept, and MoH have location-level settings that must be configured first; person-level settings may be overridden or ineffective without them
-- **SimRing, SequentialRing, PriorityAlert admin limitation** — these may not be available via admin-level person management; use self-service APIs or workspace-level commands
+- **SimRing, SequentialRing, PriorityAlert admin limitation** — these are not available via admin-level person management; use `wxcli my-call-settings` with user-level OAuth, or workspace-level commands where available
 - **Call Recording read scope bug** — the actual required scope is `people_read`, not `people_write` as some docs state
 - **Selective feature precedence** — Selective Reject > Selective Accept > Selective Forward > Standard Forwarding
 - **SNR uses telephony_config scopes** — Single Number Reach uses `spark-admin:telephony_config_read/write`, not `people_read/write`
