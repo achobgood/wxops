@@ -44,6 +44,8 @@ below for what the pipeline does.
 | `.claude/skills/manage-licensing/` | Skill: license audit, assignment, reclamation |
 | `.claude/skills/messaging-spaces/` | Skill: manage spaces, teams, memberships, ECM, HDS |
 | `.claude/skills/messaging-bots/` | Skill: build bots, adaptive cards, webhooks, cross-domain integrations |
+| `.claude/skills/manage-meetings/` | Skill: schedule, manage, query meetings + content |
+| `.claude/skills/video-mesh/` | Skill: Video Mesh monitoring and threshold configuration |
 | `.claude/skills/cucm-migrate/` | Skill: execute CUCM-to-Webex migration from exported deployment plan |
 
 ### Reference Docs — wxc_sdk (Official Cisco SDK)
