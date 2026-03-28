@@ -82,18 +82,21 @@ def get_tags(spec: dict) -> list[str]:
 def parse_parameters(
     params: list[dict], spec: dict, omit_query_params: list[str] | None = None,
     auto_inject_params: set[str] | None = None,
-) -> tuple[list[str], list[EndpointField], list[str]]:
-    """Parse OpenAPI parameters into (path_vars, query_params, auto_inject_names).
+) -> tuple[list[str], list[EndpointField], list[str], list[str]]:
+    """Parse OpenAPI parameters into (path_vars, query_params, auto_inject_names, auto_inject_path_names).
 
     Path params become path_vars list of variable names.
     Query params become EndpointField list with type, description, required, enum.
     Params in omit_query_params are skipped entirely.
     Params in auto_inject_params are separated into auto_inject_names and not
     added to query_params (they will be injected from config at runtime).
+    Path params in auto_inject_params are kept in path_vars (for URL substitution)
+    but also tracked in auto_inject_path_names (to skip CLI argument generation).
     """
     omit = set(omit_query_params or [])
     auto_inject = auto_inject_params or set()
     auto_inject_names: list[str] = []
+    auto_inject_path_names: list[str] = []
     path_vars: list[str] = []
     query_params: list[EndpointField] = []
 
@@ -108,6 +111,8 @@ def parse_parameters(
 
         if location == "path":
             path_vars.append(name)
+            if name in auto_inject:
+                auto_inject_path_names.append(name)
         elif location == "query":
             if name in omit:
                 continue
@@ -129,7 +134,7 @@ def parse_parameters(
                 )
             )
 
-    return path_vars, query_params, auto_inject_names
+    return path_vars, query_params, auto_inject_names, auto_inject_path_names
 
 
 def _openapi_type_to_field_type(schema: dict) -> str:
@@ -421,7 +426,7 @@ def parse_operation(
 ) -> Endpoint:
     """Convert one OpenAPI operation to an Endpoint dataclass."""
     params = op.get("parameters", [])
-    path_vars, query_params, auto_inject_names = parse_parameters(
+    path_vars, query_params, auto_inject_names, auto_inject_path_names = parse_parameters(
         params, spec, omit_query_params, auto_inject_params
     )
     body_fields = parse_request_body(op, spec)
@@ -472,6 +477,7 @@ def parse_operation(
         deprecated=deprecated,
         json_body_example=json_body_example,
         auto_inject_params=auto_inject_names,
+        auto_inject_path_params=auto_inject_path_names,
         content_type=content_type,
         paginates=paginates,
     )
@@ -523,6 +529,21 @@ def parse_tag(
                     op.get("summary") or op_id or f"{method.upper()} {path}"
                 )
                 continue
+
+            # Merge path-level parameters with operation-level parameters.
+            # OpenAPI 3.0 §8.1: path-level params apply to all operations
+            # but operation-level params override by (name, in) identity.
+            path_params = path_obj.get("parameters", [])
+            op_params = op.get("parameters", [])
+            if path_params:
+                op_param_keys = {
+                    (p.get("name"), p.get("in")) for p in op_params
+                }
+                merged = [
+                    p for p in path_params
+                    if (p.get("name"), p.get("in")) not in op_param_keys
+                ] + op_params
+                op = {**op, "parameters": merged}
 
             ep = parse_operation(method, path, op, spec, omit_query_params, auto_inject_params)
             ep.command_name = _derive_command_name(

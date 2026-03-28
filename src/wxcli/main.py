@@ -335,3 +335,137 @@ from wxcli.commands.teams import app as teams_app
 app.add_typer(teams_app, name="teams")
 from wxcli.commands.webhooks import app as webhooks_app
 app.add_typer(webhooks_app, name="webhooks")
+
+# Auto-generated from meetings spec (specs/webex-meetings.json)
+from wxcli.commands.meeting_chats import app as meeting_chats_app
+app.add_typer(meeting_chats_app, name="meeting-chats")
+from wxcli.commands.meeting_captions import app as meeting_captions_app
+app.add_typer(meeting_captions_app, name="meeting-captions")
+from wxcli.commands.meeting_invitees import app as meeting_invitees_app
+app.add_typer(meeting_invitees_app, name="meeting-invitees")
+from wxcli.commands.meeting_messages import app as meeting_messages_app
+app.add_typer(meeting_messages_app, name="meeting-messages")
+from wxcli.commands.meeting_polls import app as meeting_polls_app
+app.add_typer(meeting_polls_app, name="meeting-polls")
+from wxcli.commands.meeting_qa import app as meeting_qa_app
+app.add_typer(meeting_qa_app, name="meeting-qa")
+from wxcli.commands.meetings import app as meetings_app
+app.add_typer(meetings_app, name="meetings")
+from wxcli.commands.meeting_reports import app as meeting_reports_app
+app.add_typer(meeting_reports_app, name="meeting-reports")
+from wxcli.commands.meeting_participants import app as meeting_participants_app
+app.add_typer(meeting_participants_app, name="meeting-participants")
+from wxcli.commands.meeting_preferences import app as meeting_preferences_app
+app.add_typer(meeting_preferences_app, name="meeting-preferences")
+from wxcli.commands.meeting_session_types import app as meeting_session_types_app
+app.add_typer(meeting_session_types_app, name="meeting-session-types")
+from wxcli.commands.meeting_site import app as meeting_site_app
+app.add_typer(meeting_site_app, name="meeting-site")
+from wxcli.commands.meeting_slido import app as meeting_slido_app
+app.add_typer(meeting_slido_app, name="meeting-slido")
+from wxcli.commands.meeting_summaries import app as meeting_summaries_app
+app.add_typer(meeting_summaries_app, name="meeting-summaries")
+from wxcli.commands.meeting_tracking_codes import app as meeting_tracking_codes_app
+app.add_typer(meeting_tracking_codes_app, name="meeting-tracking-codes")
+from wxcli.commands.meeting_transcripts import app as meeting_transcripts_app
+app.add_typer(meeting_transcripts_app, name="meeting-transcripts")
+from wxcli.commands.video_mesh import app as video_mesh_app
+app.add_typer(video_mesh_app, name="video-mesh")
+
+# Auto-generated from contact center spec (specs/webex-contact-center.json)
+from wxcli.commands.cc_ai_assistant import app as cc_ai_assistant_app
+app.add_typer(cc_ai_assistant_app, name="cc-ai-assistant")
+from wxcli.commands.cc_ai_feature import app as cc_ai_feature_app
+app.add_typer(cc_ai_feature_app, name="cc-ai-feature")
+from wxcli.commands.cc_address_book import app as cc_address_book_app
+app.add_typer(cc_address_book_app, name="cc-address-book")
+from wxcli.commands.cc_agent_greetings import app as cc_agent_greetings_app
+app.add_typer(cc_agent_greetings_app, name="cc-agent-greetings")
+from wxcli.commands.cc_agent_summaries import app as cc_agent_summaries_app
+app.add_typer(cc_agent_summaries_app, name="cc-agent-summaries")
+from wxcli.commands.cc_agent_wellbeing import app as cc_agent_wellbeing_app
+app.add_typer(cc_agent_wellbeing_app, name="cc-agent-wellbeing")
+from wxcli.commands.cc_agents import app as cc_agents_app
+app.add_typer(cc_agents_app, name="cc-agents")
+from wxcli.commands.cc_audio_files import app as cc_audio_files_app
+app.add_typer(cc_audio_files_app, name="cc-audio-files")
+from wxcli.commands.cc_auto_csat import app as cc_auto_csat_app
+app.add_typer(cc_auto_csat_app, name="cc-auto-csat")
+from wxcli.commands.cc_aux_code import app as cc_aux_code_app
+app.add_typer(cc_aux_code_app, name="cc-aux-code")
+from wxcli.commands.cc_business_hour import app as cc_business_hour_app
+app.add_typer(cc_business_hour_app, name="cc-business-hour")
+from wxcli.commands.cc_call_monitoring import app as cc_call_monitoring_app
+app.add_typer(cc_call_monitoring_app, name="cc-call-monitoring")
+from wxcli.commands.cc_callbacks import app as cc_callbacks_app
+app.add_typer(cc_callbacks_app, name="cc-callbacks")
+from wxcli.commands.cc_campaign import app as cc_campaign_app
+app.add_typer(cc_campaign_app, name="cc-campaign")
+from wxcli.commands.cc_captures import app as cc_captures_app
+app.add_typer(cc_captures_app, name="cc-captures")
+from wxcli.commands.cc_contact_list import app as cc_contact_list_app
+app.add_typer(cc_contact_list_app, name="cc-contact-list")
+from wxcli.commands.cc_contact_number import app as cc_contact_number_app
+app.add_typer(cc_contact_number_app, name="cc-contact-number")
+from wxcli.commands.cc_data_sources import app as cc_data_sources_app
+app.add_typer(cc_data_sources_app, name="cc-data-sources")
+from wxcli.commands.cc_desktop_layout import app as cc_desktop_layout_app
+app.add_typer(cc_desktop_layout_app, name="cc-desktop-layout")
+from wxcli.commands.cc_desktop_profile import app as cc_desktop_profile_app
+app.add_typer(cc_desktop_profile_app, name="cc-desktop-profile")
+from wxcli.commands.cc_dial_number import app as cc_dial_number_app
+app.add_typer(cc_dial_number_app, name="cc-dial-number")
+from wxcli.commands.cc_dial_plan import app as cc_dial_plan_app
+app.add_typer(cc_dial_plan_app, name="cc-dial-plan")
+from wxcli.commands.cc_dnc import app as cc_dnc_app
+app.add_typer(cc_dnc_app, name="cc-dnc")
+from wxcli.commands.cc_entry_point import app as cc_entry_point_app
+app.add_typer(cc_entry_point_app, name="cc-entry-point")
+from wxcli.commands.cc_ewt import app as cc_ewt_app
+app.add_typer(cc_ewt_app, name="cc-ewt")
+from wxcli.commands.cc_flow import app as cc_flow_app
+app.add_typer(cc_flow_app, name="cc-flow")
+from wxcli.commands.cc_global_vars import app as cc_global_vars_app
+app.add_typer(cc_global_vars_app, name="cc-global-vars")
+from wxcli.commands.cc_holiday_list import app as cc_holiday_list_app
+app.add_typer(cc_holiday_list_app, name="cc-holiday-list")
+from wxcli.commands.cc_journey import app as cc_journey_app
+app.add_typer(cc_journey_app, name="cc-journey")
+from wxcli.commands.cc_multimedia_profile import app as cc_multimedia_profile_app
+app.add_typer(cc_multimedia_profile_app, name="cc-multimedia-profile")
+from wxcli.commands.cc_notification import app as cc_notification_app
+app.add_typer(cc_notification_app, name="cc-notification")
+from wxcli.commands.cc_outdial_ani import app as cc_outdial_ani_app
+app.add_typer(cc_outdial_ani_app, name="cc-outdial-ani")
+from wxcli.commands.cc_overrides import app as cc_overrides_app
+app.add_typer(cc_overrides_app, name="cc-overrides")
+from wxcli.commands.cc_queue import app as cc_queue_app
+app.add_typer(cc_queue_app, name="cc-queue")
+from wxcli.commands.cc_queues import app as cc_queues_app
+app.add_typer(cc_queues_app, name="cc-queues")
+from wxcli.commands.cc_realtime import app as cc_realtime_app
+app.add_typer(cc_realtime_app, name="cc-realtime")
+from wxcli.commands.cc_resource_collection import app as cc_resource_collection_app
+app.add_typer(cc_resource_collection_app, name="cc-resource-collection")
+from wxcli.commands.cc_search import app as cc_search_app
+app.add_typer(cc_search_app, name="cc-search")
+from wxcli.commands.cc_site import app as cc_site_app
+app.add_typer(cc_site_app, name="cc-site")
+from wxcli.commands.cc_skill import app as cc_skill_app
+app.add_typer(cc_skill_app, name="cc-skill")
+from wxcli.commands.cc_skill_profile import app as cc_skill_profile_app
+app.add_typer(cc_skill_profile_app, name="cc-skill-profile")
+from wxcli.commands.cc_subscriptions import app as cc_subscriptions_app
+app.add_typer(cc_subscriptions_app, name="cc-subscriptions")
+from wxcli.commands.cc_summaries import app as cc_summaries_app
+app.add_typer(cc_summaries_app, name="cc-summaries")
+from wxcli.commands.cc_tasks import app as cc_tasks_app
+app.add_typer(cc_tasks_app, name="cc-tasks")
+from wxcli.commands.cc_team import app as cc_team_app
+app.add_typer(cc_team_app, name="cc-team")
+from wxcli.commands.cc_user_profiles import app as cc_user_profiles_app
+app.add_typer(cc_user_profiles_app, name="cc-user-profiles")
+from wxcli.commands.cc_users import app as cc_users_app
+app.add_typer(cc_users_app, name="cc-users")
+from wxcli.commands.cc_work_types import app as cc_work_types_app
+app.add_typer(cc_work_types_app, name="cc-work-types")
