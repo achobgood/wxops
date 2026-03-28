@@ -22203,7 +22203,7 @@
         "description": "Get workspace details. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjds:admin_org_read or cjds:admin_org_write scopes or cjp:config_read or cjp:config_write scopes",
         "summary": "Get Workspace",
         "tags": [
-          "Journey"
+          "Journey - Workspace management API"
         ],
         "responses": {
           "200": {
@@ -22427,7 +22427,7 @@
         "description": "Delete Workspace By Id. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjds:admin_org_write or cjp:config_write scopes",
         "summary": "Delete Workspace",
         "tags": [
-          "Journey"
+          "Journey - Workspace management API"
         ],
         "responses": {
           "200": {
@@ -22649,7 +22649,7 @@
       },
       "put": {
         "tags": [
-          "Journey"
+          "Journey - Workspace management API"
         ],
         "summary": "Update Workspace",
         "description": "Update workspace by Id. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjds:admin_org_write or cjp:config_write scopes",
@@ -28138,7 +28138,7 @@
         "description": "Get Template details by template Id in JDS. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjp:config_read or cjp:config_write scopes",
         "summary": "Get A specific Template searched by template id",
         "tags": [
-          "Journey"
+          "Journey - Profile Creation & Insights API"
         ],
         "responses": {
           "200": {
@@ -28324,7 +28324,7 @@
         "description": "Delete Template By template id in JDS. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjp:config_write scope",
         "summary": "Delete Template by template Id",
         "tags": [
-          "Journey"
+          "Journey - Profile Creation & Insights API"
         ],
         "responses": {
           "200": {
@@ -28490,7 +28490,7 @@
       },
       "put": {
         "tags": [
-          "Journey"
+          "Journey - Profile Creation & Insights API"
         ],
         "summary": "Update existing ProfileViewTemplate",
         "description": "Update existing Profile View Template in JDS. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjp:config_write scope",
@@ -32379,7 +32379,7 @@
         "description": "Delete Person Details searched by Person id in JDS. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjp:config_write scope",
         "summary": "Delete specific Person by id",
         "tags": [
-          "Journey"
+          "Journey - Customer Identification API"
         ],
         "responses": {
           "200": {
@@ -32487,7 +32487,7 @@
       },
       "patch": {
         "tags": [
-          "Journey"
+          "Journey - Customer Identification API"
         ],
         "summary": "Add/Remove/Replace details of a Person.",
         "description": "The Patch Api can be used to add/remove identities(email, phone, customerId) or replace firstName and lastName of an Individual. We support only add, replace and remove operations. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjp:config_write scope. \n\nFor a more information on Patch Requests, see this  [JSON PATCH guide](https://jsonpatch.com)",
@@ -35326,7 +35326,7 @@
     "/admin/v1/api/person/add-identities/workspace-id/{workspaceId}/person-id/{personId}": {
       "patch": {
         "tags": [
-          "Journey"
+          "Journey - Customer Identification API"
         ],
         "summary": "Add one/more Identities to a person",
         "description": "This Patch Api can be used to add identities(email, phone, customerId) to a person. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjp:config_write scope.",
@@ -36626,7 +36626,7 @@
         "description": "Get WXCC Subscription in JDS. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjds:admin_org_read or cjds:admin_org_write scopes or cjp:config_read or cjp:config_write scopes",
         "summary": "Get WXCC Subscription",
         "tags": [
-          "Journey"
+          "Journey - Subscription API"
         ],
         "responses": {
           "200": {
@@ -36884,7 +36884,7 @@
         "description": "Delete WXCC Subscription in JDS. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjds:admin_org_write or cjp:config_write scopes",
         "summary": "Delete WXCC Subscription",
         "tags": [
-          "Journey"
+          "Journey - Subscription API"
         ],
         "responses": {
           "200": {
@@ -37065,7 +37065,7 @@
         "description": "Create WXCC Subscription in JDS. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjds:admin_org_write or cjp:config_write scopes",
         "summary": "Create WXCC Subscription",
         "tags": [
-          "Journey"
+          "Journey - Subscription API"
         ],
         "responses": {
           "201": {
@@ -38824,7 +38824,7 @@
           }
         ],
         "tags": [
-          "Journey"
+          "Journey - Workspace management API"
         ],
         "summary": "Get All Workspaces",
         "description": "Get All Workspaces. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjds:admin_org_read or cjds:admin_org_write scopes or cjp:config_read or cjp:config_write scopes",
@@ -39072,7 +39072,7 @@
           }
         ],
         "tags": [
-          "Journey"
+          "Journey - Workspace management API"
         ],
         "responses": {
           "200": {
@@ -43401,7 +43401,7 @@
           }
         ],
         "tags": [
-          "Journey"
+          "Journey - Profile Creation & Insights API"
         ],
         "summary": "Get All Template Details.",
         "description": "Get Template details by Organization Id and workspaceId in JDS. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjp:config_read or cjp:config_write scopes",
@@ -43645,7 +43645,7 @@
       },
       "post": {
         "tags": [
-          "Journey"
+          "Journey - Profile Creation & Insights API"
         ],
         "summary": "Create Template",
         "description": "Creates a Profile View Template in JDS. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjp:config_write scope",
@@ -44598,7 +44598,7 @@
           }
         ],
         "tags": [
-          "Journey"
+          "Journey - Customer Identification API"
         ],
         "summary": "Get all or a specific Person Details",
         "description": "Get Person Details in JDS. If personId is provided by query parameter, this returns the Person whose personId matches the parameter.\nIf not, this will return ALL the Persons within the organization and workspace. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjp:config_read or cjp:config_write scopes",
@@ -44737,7 +44737,7 @@
       },
       "post": {
         "tags": [
-          "Journey"
+          "Journey - Customer Identification API"
         ],
         "summary": "Create a Person",
         "description": "Creates a Person in JDS. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjp:config_write scope",
@@ -48781,7 +48781,7 @@
         "description": "Get Template details by template Name in JDS. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjp:config_read or cjp:config_write scopes",
         "summary": "Get A specific Template searched by template name",
         "tags": [
-          "Journey"
+          "Journey - Profile Creation & Insights API"
         ],
         "responses": {
           "200": {
@@ -49539,7 +49539,7 @@
           }
         ],
         "tags": [
-          "Journey"
+          "Journey - Customer Identification API"
         ],
         "summary": "Search for an Identity via aliases",
         "description": "Get one or more Person Details searched by aliases in JDS. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjp:config_read or cjp:config_write scopes. Multiple aliases should be separated by a comma.",
@@ -50035,7 +50035,7 @@
         "description": "Get all Journey Actions for a template in JDS. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjp:config_read or cjp:config_write scopes",
         "summary": "Get all Journey Actions for a template",
         "tags": [
-          "Journey"
+          "Journey - Trigger Actions API"
         ],
         "responses": {
           "200": {
@@ -50198,7 +50198,7 @@
       },
       "post": {
         "tags": [
-          "Journey"
+          "Journey - Trigger Actions API"
         ],
         "summary": "Create a new  Journey Action.",
         "description": "Create a new Journey Action in JDS. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjp:config_write scope",
@@ -51946,7 +51946,7 @@
         "description": "Get specific Journey Action By Name in JDS. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjp:config_read or cjp:config_write scopes",
         "summary": "Get specific Journey Action By Name",
         "tags": [
-          "Journey"
+          "Journey - Trigger Actions API"
         ],
         "responses": {
           "200": {
@@ -86059,7 +86059,7 @@
           }
         ],
         "tags": [
-          "Journey"
+          "Journey - Profile Creation & Insights API"
         ],
         "summary": "Historic Journey Events",
         "description": "Getting Historic Customer Journey Events from Pinot. These events are append-only, immutable data ledger that can be queried to retrieve snapshot of latest events that moment in time or historically to play-back events as they occurred to understand or analyze Journeys using ML/AI models. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjds:admin_org_read or cjds:admin_org_write scopes or cjp:config_read or cjp:config_write scopes ",
@@ -86379,7 +86379,7 @@
         "description": "Real-time streaming enables API consumers to listen for Progressive profile Views as it created/updated as part of the Journey; these may be transformed, value-added/enriched, and ready to be consumed or forwarded to another destination. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjds:admin_org_read or cjds:admin_org_write scopes or cjp:config_read or cjp:config_write scopes",
         "summary": "Stream Progressive profile Views",
         "tags": [
-          "Journey"
+          "Journey - Profile Creation & Insights API"
         ],
         "responses": {
           "200": {
@@ -91945,7 +91945,7 @@
         "description": "Get specific Journey Action By ActionId in JDS. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjp:config_read or cjp:config_write scopes",
         "summary": "Get specific Journey Action By ActionId",
         "tags": [
-          "Journey"
+          "Journey - Trigger Actions API"
         ],
         "responses": {
           "200": {
@@ -92078,7 +92078,7 @@
         "description": "Delete Journey Action configuration By ActionId in JDS. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjp:config_write scope",
         "summary": "Delete Journey Action configuration By ActionId.",
         "tags": [
-          "Journey"
+          "Journey - Trigger Actions API"
         ],
         "responses": {
           "200": {
@@ -92191,7 +92191,7 @@
       },
       "put": {
         "tags": [
-          "Journey"
+          "Journey - Trigger Actions API"
         ],
         "summary": "Update existing Journey Action.",
         "description": "Update existing Journey Action in JDS. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjp:config_write scope",
@@ -92550,7 +92550,7 @@
           }
         ],
         "tags": [
-          "Journey"
+          "Journey - Trigger Actions API"
         ],
         "summary": "Get all Journey Actions",
         "description": "Get all Journey Actions in JDS. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjp:config_read or cjp:config_write scopes",
@@ -93446,7 +93446,7 @@
     "/admin/v1/api/person/merge-identities/workspace-id/{workspaceId}": {
       "post": {
         "tags": [
-          "Journey"
+          "Journey - Customer Identification API"
         ],
         "summary": "Creates or merges aliases to an Individual in JDS.",
         "description": "Merges one/more aliases in JDS. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjp:config_write scope",
@@ -93634,7 +93634,7 @@
     "/admin/v1/api/person/merge/workspace-id/{workspaceId}/primary-person-id/{primaryPersonId}": {
       "post": {
         "tags": [
-          "Journey"
+          "Journey - Customer Identification API"
         ],
         "summary": "Merges Identities to a Primary Identity.",
         "description": "Merges one/more Identities to a **Primary** Individual in JDS. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjp:config_write scope",
@@ -104426,7 +104426,7 @@
         "description": "Get Historic Progressive Profile View in JDS. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjds:admin_org_read or cjds:admin_org_write scopes or cjp:config_read or cjp:config_write scopes",
         "summary": "Historic Progressive Profile View.",
         "tags": [
-          "Journey"
+          "Journey - Profile Creation & Insights API"
         ],
         "responses": {
           "200": {
@@ -106176,7 +106176,7 @@
         "description": "Get Historic Progressive Profile View in JDS. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjds:admin_org_read or cjds:admin_org_write scopes or cjp:config_read or cjp:config_write scopes",
         "summary": "Historic Progressive Profile View By Identity and Template Name.",
         "tags": [
-          "Journey"
+          "Journey - Profile Creation & Insights API"
         ],
         "responses": {
           "200": {
@@ -107778,7 +107778,7 @@
         "description": "Get Historic Progressive Profile View in JDS. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjds:admin_org_read or cjds:admin_org_write scopes or cjp:config_read or cjp:config_write scopes",
         "summary": "Historic Progressive Profile View By Identity and Template Id",
         "tags": [
-          "Journey"
+          "Journey - Profile Creation & Insights API"
         ],
         "responses": {
           "200": {
@@ -108750,7 +108750,7 @@
         "description": "Real-time streaming enables API consumers to listen for Progressive profile Views as it created/updated as part of the Journey; these may be transformed, value-added/enriched, and ready to be consumed or forwarded to another destination. Use the cjp scope if you have a contact center license; otherwise, use the cjds scope. It requires the appropriate cjds:admin_org_read or cjds:admin_org_write scopes or cjp:config_read or cjp:config_write scopes",
         "summary": "Stream Progressive profile Views By Template Name",
         "tags": [
-          "Journey"
+          "Journey - Profile Creation & Insights API"
         ],
         "responses": {
           "200": {
@@ -120824,7 +120824,7 @@
           }
         ],
         "tags": [
-          "Journey"
+          "Journey - Profile Creation & Insights API"
         ],
         "summary": "Stream Events By Identity",
         "description": "Real-time streaming enables API consumers to listen for events as it arrives as part of the Journey; these may be transformed, value-added/enriched, and ready to be consumed or forwarded to another destination. Optionally accepts filter and data parameters slice/dice further. It  requires the appropriate cjds:admin_org_read or cjds:admin_org_write scopes or cjp:config_read or cjp:config_write scopes",
@@ -122469,7 +122469,7 @@
           }
         ],
         "tags": [
-          "Journey"
+          "Journey - Data Ingestion API"
         ],
         "responses": {
           "200": {
