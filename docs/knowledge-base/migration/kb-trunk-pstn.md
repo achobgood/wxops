@@ -44,19 +44,6 @@ Route groups provide two routing strategies via the `priority` field on each tru
 
 A single route group can combine both strategies (e.g., two primary trunks with priority 1 for load balancing, one backup trunk with priority 2 for failover).
 
-## Webex Trunk Types
-
-Two trunk types exist in Webex Calling, determined at creation time and immutable after:
-<!-- Source: call-routing.md §Trunks, TrunkType enum -->
-
-| Type | API Value | Use Case | Authentication | Required Fields |
-|------|-----------|----------|---------------|-----------------|
-| **Registering** | `REGISTERING` | Cisco CUBE Local Gateway. SBC registers with Webex cloud. | Password-based (SIP registration) | `name`, `locationId`, `password` |
-| **Certificate-based** | `CERTIFICATE_BASED` | Third-party SBCs: AudioCodes, Ribbon, Oracle ACME, Cisco UBE. Uses mutual TLS. | mTLS certificate | `name`, `locationId`, `password`, `address` (FQDN/SRV), `domain`, `port`, `maxConcurrentCalls` |
-
-**Immutable after creation:** `trunkType`, `locationId`, `deviceType`. Must delete and recreate to change these.
-<!-- Source: call-routing.md §Update Trunk limitation -->
-
 ## Edge Cases & Exceptions
 
 ### CUCM Trunks with Complex Transformation Masks
@@ -123,6 +110,21 @@ CUCM and Webex running in parallel during migration --> Local Gateway trunk betw
 
 ## Webex Constraints
 
+### Webex Trunk Types
+
+Two trunk types exist in Webex Calling, determined at creation time and immutable after:
+<!-- Source: call-routing.md §Trunks, TrunkType enum -->
+
+| Type | API Value | Use Case | Authentication | Required Fields |
+|------|-----------|----------|---------------|-----------------|
+| **Registering** | `REGISTERING` | Cisco CUBE Local Gateway. SBC registers with Webex cloud. | Password-based (SIP registration) | `name`, `locationId`, `password` |
+| **Certificate-based** | `CERTIFICATE_BASED` | Third-party SBCs: AudioCodes, Ribbon, Oracle ACME, Cisco UBE. Uses mutual TLS. | mTLS certificate | `name`, `locationId`, `password`, `address` (FQDN/SRV), `domain`, `port`, `maxConcurrentCalls` |
+
+**Immutable after creation:** `trunkType`, `locationId`, `deviceType`. Must delete and recreate to change these.
+<!-- Source: call-routing.md §Update Trunk limitation -->
+
+### Limits & Constraints
+
 1. **Route groups max 10 trunks** -- a single route group can contain up to 10 trunks from different locations.
    <!-- Source: call-routing.md line 58: "A Route Group bundles up to 10 trunks" and line 820: "up to 10, from different locations" -->
 
@@ -176,3 +178,13 @@ CUCM and Webex running in parallel during migration --> Local Gateway trunk betw
 - `docs/reference/emergency-services.md` -- E911 implications for PSTN routing
 - `src/wxcli/migration/advisory/advisory_patterns.py` -- Pattern 8 (trunk consolidation), Pattern 12 (CPN transformation), Pattern 13 (PSTN connection type), Pattern 19 (transformation patterns)
 - `docs/knowledge-base/migration/kb-css-routing.md` -- CSS/partition routing decisions (related: dial plan scoping differences)
+
+---
+
+## Verification Log
+
+| # | Claim | Verified | Source | Finding |
+|---|-------|----------|--------|---------|
+| 1 | Route groups max 10 trunks | Yes | `call-routing.md` lines 58, 820 | "A Route Group bundles up to 10 trunks" confirmed twice. |
+| 2 | Trunk types (Local Gateway, CCPSTN, Premises) | Yes | `call-routing.md` PSTNType enum lines 1571-1575 | `LOCAL_GATEWAY`, `NON_INTEGRATED_CCP`, `INTEGRATED_CCP`, `CISCO_PSTN` confirmed. Doc adds Cisco Calling Plan as 4th type beyond plan's 3. |
+| 3 | No H.323 support | Not in docs | `call-routing.md` TrunkType enum | TrunkType only has REGISTERING and CERTIFICATE_BASED (both SIP). No H.323 type exists. Absence strongly implies SIP-only but no explicit "H.323 not supported" statement found. Marked `<!-- From training, needs verification -->`. |

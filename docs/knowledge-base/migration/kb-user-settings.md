@@ -131,3 +131,13 @@ CUCM forwarding → Webex mapping:
 - **Advisor should:** Flag users with these CUCM features as requiring post-migration manual configuration or user-assisted setup. Bulk migration of these settings is not possible via admin API.
 - **Confidence:** HIGH
 <!-- Source: self-service-call-settings.md sec 2; person-call-settings-handling.md admin vs user-only table -->
+
+---
+
+## Verification Log
+
+| # | Claim | Verified | Source | Finding |
+|---|-------|----------|--------|---------|
+| 1 | 6 user-only settings list | Yes | `self-service-call-settings.md` lines 53-64; `person-call-settings-handling.md` lines 30-36 | simultaneousRing, sequentialRing, priorityAlert, callNotify, anonymousCallReject, callPolicies — exact match across both docs. |
+| 2 | Workspace Basic limited to musicOnHold + DND | Yes | `devices-workspaces.md` gotcha #10 (verified 2026-03-27); CLAUDE.md known issue #6 | Under `/telephony/config/workspaces/{id}/`, only musicOnHold and doNotDisturb work on Basic. Full endpoint matrix confirms. |
+| 3 | rings = cfna_timeout // 6 | Yes | `recommendation_rules.py` lines 434-441 | `rings = cfna_timeout // 6` (integer division) confirmed in source code. |

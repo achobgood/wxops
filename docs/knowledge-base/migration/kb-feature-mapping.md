@@ -169,3 +169,13 @@ AA with 4-8 key options, each transferring to a department Hunt Group or Call Qu
 - **Confidence:** LOW
 - **Test:** Create a hunt_group object with 8 agents, `distributionAlgorithm="Circular"`, `voiceMailUsage="NONE"`, 1 line group. Verify `detect_hunt_pilot_reclassification` fires (2 signals: >6 agents + Circular algorithm). Verify the advisory detail reflects the weak signal.
 - **Source:** advisory_patterns.py lines 478-540 (the 4 signals: >6 agents, >1 line groups, algorithm in Circular/Longest Idle Time, voiceMailUsage != NONE; threshold >= 2)
+
+---
+
+## Verification Log
+
+| # | Claim | Verified | Source | Finding |
+|---|-------|----------|--------|---------|
+| 1 | HG max 20 agents | **Corrected** | `call-features-major.md` lines 1282-1284 | HG max is 50 (SIMULTANEOUS), 100 (WEIGHTED), 1,000 (CIRCULAR/REGULAR/UNIFORM). Plan's "max 20" was wrong. Doc uses correct per-policy limits. |
+| 2 | CQ max 50 simultaneous / 525 non-simultaneous | **Partially corrected** | `call-features-major.md` line 344, lines 1282-1284 | CQ SIMULTANEOUS limit of 50 confirmed. "525 non-simultaneous" not found — actual limits are 100 (WEIGHTED) and 1,000 (CIRCULAR/REGULAR/UNIFORM). HG and CQ share the same Policy enum with identical per-policy agent caps. |
+| 3 | CQ requires call_policies in create | Yes | `call-features-major.md` line 329 (verified comment); `customer-assist/SKILL.md` line 442 | Both regular CQ and CX queues require `callPolicies` with `routingType` at create time. |

@@ -142,6 +142,7 @@ The `detect_partition_time_routing` pattern (advisory_patterns.py line 615) fire
 
 ### DT-CSS-003: Translation pattern flagged for elimination but implements inter-site routing
 
+
 **Condition:** `translation_pattern_elimination` fires AND the pattern transforms a short code to a full E.164 with a site-specific prefix (e.g., `8XXX` -> `+14155551XXX` for the SF office).
 
 **Why static fires incorrectly:** The heuristic at advisory_patterns.py line 144 matches any pattern where the replacement starts with `+` or `\+`. This correctly identifies E.164 normalization (stripping a dial prefix and adding country code) but also matches inter-site short-code translation, which is business logic. Short codes like `8XXX` for "call the SF office" are not simple digit normalization -- they encode organizational routing decisions that must be preserved.
@@ -149,3 +150,13 @@ The `detect_partition_time_routing` pattern (advisory_patterns.py line 615) fire
 **Advisor should:** When the advisory fires and affected patterns include short-code-to-E.164 translations (matching pattern is a short digit string like 1-4 digits, not a full number with prefix strip), recommend keeping the translation pattern. Webex supports location-level translation patterns that can implement the same short-code routing. The pattern should be recreated as a Webex translation pattern at the appropriate location, not eliminated.
 
 **Confidence:** MEDIUM -- the `+` prefix heuristic has a known false positive rate for short-code patterns. The detection could be improved by checking whether the matching pattern length is significantly shorter than the replacement (indicating business-logic transformation rather than normalization), but the current code does not make this distinction.
+
+---
+
+## Verification Log
+
+| # | Claim | Verified | Source | Finding |
+|---|-------|----------|--------|---------|
+| 1 | Dial plans are org-wide | Yes | `call-routing.md` line 55, line 128 | "Dial Plans are configured globally (org-wide, not per-location)" confirmed twice. |
+| 2 | Route groups max 10 trunks | Yes | `call-routing.md` line 58, line 820 | "A Route Group bundles up to 10 trunks (from different locations)" confirmed twice. |
+| 3 | Calling permissions are per-location | Expanded | `person-call-settings-permissions.md` line 136; `location-call-settings-media.md` line 594 | Calling permissions exist at person, workspace, location, AND virtual line levels — not just per-location. Doc updated to reflect full scope. |
