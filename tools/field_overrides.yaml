@@ -626,7 +626,7 @@ cli_name_overrides:
   "Subscriptions": "cc-subscriptions"
   "Callbacks": "cc-callbacks"
   "Estimated Wait Time": "cc-ewt"
-  "Queues": "cc-queues"
+  "Queues": "cc-queue-stats"
   "AI Feature": "cc-ai-feature"
   "AI Assistant": "cc-ai-assistant"
   "Auto CSAT": "cc-auto-csat"

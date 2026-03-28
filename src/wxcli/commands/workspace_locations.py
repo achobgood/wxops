@@ -63,7 +63,7 @@ def cmd_list(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Display Name', 'displayName'), ('City', 'address.city')], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Display Name', 'displayName'), ('City', 'cityName')], limit=limit)
 
 
 
@@ -309,7 +309,7 @@ def list_floors(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Display Name', 'displayName'), ('City', 'address.city')], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Display Name', 'displayName'), ('City', 'cityName')], limit=limit)
 
 
 

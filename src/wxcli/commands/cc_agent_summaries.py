@@ -3,9 +3,10 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
+from wxcli.config import get_cc_base_url
 
 
-app = typer.Typer(help="Manage Webex Calling agent-summaries.")
+app = typer.Typer(help="Manage Webex Contact Center cc-agent-summaries.")
 
 
 @app.command("create")
@@ -18,7 +19,8 @@ def create(
 ):
     """List summaries."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/generated-summaries/search"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/generated-summaries/search"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -43,6 +45,9 @@ def create(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -68,7 +73,8 @@ def create_list(
 ):
     """List summaries."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/summary/list"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/summary/list"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -95,6 +101,9 @@ def create_list(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)

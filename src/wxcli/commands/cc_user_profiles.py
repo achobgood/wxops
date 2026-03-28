@@ -3,14 +3,14 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
+from wxcli.config import get_org_id, get_cc_base_url
 
 
-app = typer.Typer(help="Manage Webex Calling user-profiles.")
+app = typer.Typer(help="Manage Webex Contact Center cc-user-profiles.")
 
 
 @app.command("create")
 def create(
-    orgid: str = typer.Argument(help="orgid"),
     next_start_id: str = typer.Option(None, "--next-start-id", help="This is the entity ID from which items for the next purge ba"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
@@ -18,7 +18,9 @@ def create(
 ):
     """Purge inactive User Profile(s)."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/user-profile/purge-inactive-entities"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/user-profile/purge-inactive-entities"
     params = {}
     if next_start_id is not None:
         params["nextStartId"] = next_start_id
@@ -42,6 +44,9 @@ def create(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -58,14 +63,15 @@ def create(
 
 @app.command("show")
 def show(
-    orgid: str = typer.Argument(help="orgid"),
     id: str = typer.Argument(help="id"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get specific User Profile by ID."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/user-profile/{id}"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/user-profile/{id}"
     try:
         result = api.session.rest_get(url)
     except RestError as e:
@@ -82,6 +88,9 @@ def show(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -99,7 +108,6 @@ def show(
 
 @app.command("update")
 def update(
-    orgid: str = typer.Argument(help="orgid"),
     id: str = typer.Argument(help="id"),
     active: str = typer.Option(None, "--active", help=""),
     description: str = typer.Option(None, "--description", help=""),
@@ -119,7 +127,9 @@ def update(
 ):
     """Update specific User Profile by ID\n\nExample --json-body:\n  '{"teams":["..."],"active":"...","description":"...","accessAllEntryPoints":"...","accessAllModules":"...","accessAllQueues":"..."}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/user-profile/{id}"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/user-profile/{id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -166,6 +176,9 @@ def update(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -175,16 +188,17 @@ def update(
 
 @app.command("delete")
 def delete(
-    orgid: str = typer.Argument(help="orgid"),
     id: str = typer.Argument(help="id"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete specific User Profile by ID."""
     if not force:
-        typer.confirm(f"Delete {id}?", abort=True)
+        typer.confirm(f"Delete {orgid}?", abort=True)
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/user-profile/{id}"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/user-profile/{id}"
     try:
         api.session.rest_delete(url)
     except RestError as e:
@@ -201,16 +215,18 @@ def delete(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    typer.echo(f"Deleted: {id}")
+    typer.echo(f"Deleted: {orgid}")
 
 
 
 @app.command("list")
 def cmd_list(
-    orgid: str = typer.Argument(help="orgid"),
     id: str = typer.Argument(help="id"),
     type_param: str = typer.Option(None, "--type", help="Entity type of the other entity that has a reference to this"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
@@ -222,7 +238,9 @@ def cmd_list(
 ):
     """List references for a specific User Profile."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/user-profile/{id}/incoming-references"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/user-profile/{id}/incoming-references"
     params = {}
     if type_param is not None:
         params["type"] = type_param
@@ -250,6 +268,9 @@ def cmd_list(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -264,7 +285,6 @@ def cmd_list(
 
 @app.command("list-user-profile-v2")
 def list_user_profile_v2(
-    orgid: str = typer.Argument(help="orgid"),
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes"),
     search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search col"),
@@ -278,7 +298,9 @@ def list_user_profile_v2(
 ):
     """List User Profile(s)."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/v2/user-profile"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/v2/user-profile"
     params = {}
     if filter_param is not None:
         params["filter"] = filter_param
@@ -312,6 +334,9 @@ def list_user_profile_v2(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -326,7 +351,6 @@ def list_user_profile_v2(
 
 @app.command("list-user-profile-v3")
 def list_user_profile_v3(
-    orgid: str = typer.Argument(help="orgid"),
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attri"),
     search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search col"),
@@ -339,7 +363,9 @@ def list_user_profile_v3(
 ):
     """List user profiles."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/v3/user-profile"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/v3/user-profile"
     params = {}
     if filter_param is not None:
         params["filter"] = filter_param
@@ -371,6 +397,9 @@ def list_user_profile_v3(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -385,7 +414,6 @@ def list_user_profile_v3(
 
 @app.command("create-user-profile")
 def create_user_profile(
-    orgid: str = typer.Argument(help="orgid"),
     version: str = typer.Option(None, "--version", help=""),
     id_param: str = typer.Option(None, "--id", help=""),
     profile_type: str = typer.Option(None, "--profile-type", help=""),
@@ -403,7 +431,9 @@ def create_user_profile(
 ):
     """Create a new User Profile\n\nExample --json-body:\n  '{"resourceCollections":[{"name":"...","version":"...","organizationId":"...","resources":"...","description":"...","resourceCount":"..."}],"version":"...","id":"...","profileType":"...","systemDefault":"...","nonViewableFolderIds":["..."]}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/v3/user-profile"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/v3/user-profile"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -446,6 +476,9 @@ def create_user_profile(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -462,14 +495,15 @@ def create_user_profile(
 
 @app.command("create-bulk-user-profile")
 def create_bulk_user_profile(
-    orgid: str = typer.Argument(help="orgid"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Bulk save User Profiles\n\nExample --json-body:\n  '{"items":[{"item":"...","itemIdentifier":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/v3/user-profile/bulk"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/v3/user-profile/bulk"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -490,6 +524,9 @@ def create_bulk_user_profile(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -506,7 +543,6 @@ def create_bulk_user_profile(
 
 @app.command("show-user-profile")
 def show_user_profile(
-    orgid: str = typer.Argument(help="orgid"),
     id: str = typer.Argument(help="id"),
     include_names: str = typer.Option(None, "--include-names", help="Flag to include resource names in the response."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
@@ -514,7 +550,9 @@ def show_user_profile(
 ):
     """Get specific User Profile by ID."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/v3/user-profile/{id}"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/v3/user-profile/{id}"
     params = {}
     if include_names is not None:
         params["includeNames"] = include_names
@@ -534,6 +572,9 @@ def show_user_profile(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -551,7 +592,6 @@ def show_user_profile(
 
 @app.command("update-user-profile")
 def update_user_profile(
-    orgid: str = typer.Argument(help="orgid"),
     id: str = typer.Argument(help="id"),
     version: str = typer.Option(None, "--version", help=""),
     id_param: str = typer.Option(None, "--id", help=""),
@@ -569,7 +609,9 @@ def update_user_profile(
 ):
     """Update specific User Profile by ID\n\nExample --json-body:\n  '{"resourceCollections":[{"name":"...","version":"...","organizationId":"...","resources":"...","description":"...","resourceCount":"..."}],"version":"...","id":"...","profileType":"...","systemDefault":"...","nonViewableFolderIds":["..."]}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/v3/user-profile/{id}"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/v3/user-profile/{id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -612,6 +654,9 @@ def update_user_profile(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -621,16 +666,17 @@ def update_user_profile(
 
 @app.command("delete-user-profile")
 def delete_user_profile(
-    orgid: str = typer.Argument(help="orgid"),
     id: str = typer.Argument(help="id"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete specific User Profile by ID."""
     if not force:
-        typer.confirm(f"Delete {id}?", abort=True)
+        typer.confirm(f"Delete {orgid}?", abort=True)
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/v3/user-profile/{id}"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/v3/user-profile/{id}"
     try:
         api.session.rest_delete(url)
     except RestError as e:
@@ -647,16 +693,18 @@ def delete_user_profile(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    typer.echo(f"Deleted: {id}")
+    typer.echo(f"Deleted: {orgid}")
 
 
 
 @app.command("list-acl")
 def list_acl(
-    orgid: str = typer.Argument(help="orgid"),
     id: str = typer.Argument(help="id"),
     names: str = typer.Option(None, "--names", help="Default all resources are returned in the ACL.     If yo"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
@@ -666,7 +714,9 @@ def list_acl(
 ):
     """Get specific User Profile ACL by ID."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/v3/user-profile/{id}/acl"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/v3/user-profile/{id}/acl"
     params = {}
     if names is not None:
         params["names"] = names
@@ -690,6 +740,9 @@ def list_acl(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -704,7 +757,6 @@ def list_acl(
 
 @app.command("list-bulk-export-user-profile")
 def list_bulk_export_user_profile(
-    orgid: str = typer.Argument(help="orgid"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
@@ -714,7 +766,9 @@ def list_bulk_export_user_profile(
 ):
     """Bulk export User Profiles."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/v3/user-profile/bulk-export"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/v3/user-profile/bulk-export"
     params = {}
     if page is not None:
         params["page"] = page
@@ -740,6 +794,9 @@ def list_bulk_export_user_profile(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -754,14 +811,15 @@ def list_bulk_export_user_profile(
 
 @app.command("create-bulk-user-profile-1")
 def create_bulk_user_profile_1(
-    orgid: str = typer.Argument(help="orgid"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Bulk save User Profile(s)\n\nExample --json-body:\n  '{"items":[{"item":"...","itemIdentifier":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/user-profile/bulk"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/user-profile/bulk"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -782,6 +840,9 @@ def create_bulk_user_profile_1(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -798,7 +859,6 @@ def create_bulk_user_profile_1(
 
 @app.command("list-user-profile-organization")
 def list_user_profile_organization(
-    orgid: str = typer.Argument(help="orgid"),
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes"),
     single_object_response: str = typer.Option(None, "--single-object-response", help="Specifiy whether to include array fields in the response, Th"),
@@ -809,7 +869,9 @@ def list_user_profile_organization(
 ):
     """List User Profile(s)."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/user-profile"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/user-profile"
     params = {}
     if filter_param is not None:
         params["filter"] = filter_param
@@ -837,6 +899,9 @@ def list_user_profile_organization(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -851,7 +916,6 @@ def list_user_profile_organization(
 
 @app.command("list-bulk-export-user-profile-1")
 def list_bulk_export_user_profile_1(
-    orgid: str = typer.Argument(help="orgid"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
@@ -861,7 +925,9 @@ def list_bulk_export_user_profile_1(
 ):
     """Bulk export User Profiles."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/user-profile/bulk-export"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/user-profile/bulk-export"
     params = {}
     if page is not None:
         params["page"] = page
@@ -887,6 +953,9 @@ def list_bulk_export_user_profile_1(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)

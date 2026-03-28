@@ -3,14 +3,14 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
+from wxcli.config import get_org_id, get_cc_base_url
 
 
-app = typer.Typer(help="Manage Webex Calling audio-files.")
+app = typer.Typer(help="Manage Webex Contact Center cc-audio-files.")
 
 
 @app.command("show")
 def show(
-    orgid: str = typer.Argument(help="orgid"),
     id: str = typer.Argument(help="id"),
     include_url: str = typer.Option(None, "--include-url", help="Indicates if the URL for downloading Audio Fileshould be inc"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
@@ -18,7 +18,9 @@ def show(
 ):
     """Get specific Audio File by ID."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/audio-file/{id}"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/audio-file/{id}"
     params = {}
     if include_url is not None:
         params["includeUrl"] = include_url
@@ -38,6 +40,9 @@ def show(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -55,7 +60,6 @@ def show(
 
 @app.command("update")
 def update(
-    orgid: str = typer.Argument(help="orgid"),
     id: str = typer.Argument(help="id"),
     audio_file: str = typer.Option(None, "--audio-file", help=""),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -63,7 +67,9 @@ def update(
 ):
     """Update specific Audio File by ID\n\nExample --json-body:\n  '{"audioFile":"...","audioFileInfo":{"version":"...","blobId":"...","systemDefault":"...","audioFile":"...","id":"...","organizationId":"..."}}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/audio-file/{id}"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/audio-file/{id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -86,6 +92,9 @@ def update(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -95,7 +104,6 @@ def update(
 
 @app.command("update-audio-file")
 def update_audio_file(
-    orgid: str = typer.Argument(help="orgid"),
     id: str = typer.Argument(help="id"),
     description: str = typer.Option(None, "--description", help=""),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -103,7 +111,9 @@ def update_audio_file(
 ):
     """Partially update Audio File by ID."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/audio-file/{id}"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/audio-file/{id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -126,6 +136,9 @@ def update_audio_file(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -135,16 +148,17 @@ def update_audio_file(
 
 @app.command("delete")
 def delete(
-    orgid: str = typer.Argument(help="orgid"),
     id: str = typer.Argument(help="id"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete specific Audio File by ID."""
     if not force:
-        typer.confirm(f"Delete {id}?", abort=True)
+        typer.confirm(f"Delete {orgid}?", abort=True)
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/audio-file/{id}"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/audio-file/{id}"
     try:
         api.session.rest_delete(url)
     except RestError as e:
@@ -161,16 +175,18 @@ def delete(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    typer.echo(f"Deleted: {id}")
+    typer.echo(f"Deleted: {orgid}")
 
 
 
 @app.command("list")
 def cmd_list(
-    orgid: str = typer.Argument(help="orgid"),
     id: str = typer.Argument(help="id"),
     type_param: str = typer.Option(None, "--type", help="Entity type of the other entity that has a reference to this"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
@@ -182,7 +198,9 @@ def cmd_list(
 ):
     """List references for a specific Audio File."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/audio-file/{id}/incoming-references"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/audio-file/{id}/incoming-references"
     params = {}
     if type_param is not None:
         params["type"] = type_param
@@ -210,6 +228,9 @@ def cmd_list(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -224,7 +245,6 @@ def cmd_list(
 
 @app.command("list-audio-file")
 def list_audio_file(
-    orgid: str = typer.Argument(help="orgid"),
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes"),
     search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search col"),
@@ -237,7 +257,9 @@ def list_audio_file(
 ):
     """List Audio File(s)."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/v2/audio-file"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/v2/audio-file"
     params = {}
     if filter_param is not None:
         params["filter"] = filter_param
@@ -269,6 +291,9 @@ def list_audio_file(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -283,7 +308,6 @@ def list_audio_file(
 
 @app.command("create")
 def create(
-    orgid: str = typer.Argument(help="orgid"),
     audio_file: str = typer.Option(None, "--audio-file", help=""),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
@@ -291,7 +315,9 @@ def create(
 ):
     """Create a new Audio File\n\nExample --json-body:\n  '{"audioFile":"...","audioFileInfo":{"version":"...","blobId":"...","systemDefault":"...","audioFile":"...","id":"...","organizationId":"..."}}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/audio-file"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/audio-file"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -314,6 +340,9 @@ def create(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)

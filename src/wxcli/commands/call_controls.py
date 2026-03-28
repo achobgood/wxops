@@ -1124,7 +1124,7 @@ def cmd_list(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('Call ID', 'callId'), ('Personality', 'personality'), ('State', 'state'), ('Remote Party', 'remoteParty.name')], limit=limit)
+        print_table(items, columns=[('Call ID', 'id'), ('Personality', 'personality'), ('State', 'state'), ('Remote Party', 'remoteParty.name')], limit=limit)
 
 
 
@@ -1214,7 +1214,7 @@ def list_history(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Direction', 'direction'), ('Call Type', 'callType'), ('Start', 'startTime')], limit=limit)
+        print_table(items, columns=[('Type', 'type'), ('Name', 'name'), ('Number', 'number'), ('Time', 'time')], limit=limit)
 
 
 
@@ -1485,7 +1485,7 @@ def list_calls(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('Call ID', 'callId'), ('Personality', 'personality'), ('State', 'state')], limit=limit)
+        print_table(items, columns=[('Call ID', 'id'), ('Personality', 'personality'), ('State', 'state')], limit=limit)
 
 
 

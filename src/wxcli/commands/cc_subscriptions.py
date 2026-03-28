@@ -3,10 +3,10 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
-from wxcli.config import get_org_id
+from wxcli.config import get_org_id, get_cc_base_url
 
 
-app = typer.Typer(help="Manage Webex Calling subscriptions.")
+app = typer.Typer(help="Manage Webex Contact Center cc-subscriptions.")
 
 
 @app.command("show")
@@ -38,6 +38,9 @@ def show(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -97,6 +100,9 @@ def update(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -135,6 +141,9 @@ def delete(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -151,7 +160,8 @@ def cmd_list(
 ):
     """List Subscriptions."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/v2/subscriptions"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/v2/subscriptions"
     params = {}
     if limit > 0:
         params["max"] = limit
@@ -176,6 +186,9 @@ def cmd_list(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -202,7 +215,8 @@ def create(
 ):
     """Register Subscription\n\nExample --json-body:\n  '{"name":"...","resourceVersion":"...","destinationUrl":"...","eventTypes":["..."],"description":"...","orgId":"..."}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/v2/subscriptions"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/v2/subscriptions"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -235,6 +249,9 @@ def create(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -257,7 +274,8 @@ def show_subscriptions(
 ):
     """Get Subscription."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/v2/subscriptions/{id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/v2/subscriptions/{id}"
     params = {}
     org_id = get_org_id()
     if org_id is not None:
@@ -278,6 +296,9 @@ def show_subscriptions(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -307,7 +328,8 @@ def update_subscriptions(
 ):
     """Update Subscription\n\nExample --json-body:\n  '{"resourceVersion":"...","destinationUrl":"...","eventTypes":["..."],"orgId":"...","description":"...","secret":"..."}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/v2/subscriptions/{id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/v2/subscriptions/{id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -340,6 +362,9 @@ def update_subscriptions(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -357,7 +382,8 @@ def delete_subscriptions(
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/v2/subscriptions/{id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/v2/subscriptions/{id}"
     params = {}
     org_id = get_org_id()
     if org_id is not None:
@@ -378,6 +404,9 @@ def delete_subscriptions(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -394,7 +423,8 @@ def list_event_types_v1(
 ):
     """List Event Types."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/event-types"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/event-types"
     params = {}
     if limit > 0:
         params["max"] = limit
@@ -419,6 +449,9 @@ def list_event_types_v1(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -465,6 +498,9 @@ def list_subscriptions(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -521,6 +557,9 @@ def create_subscriptions(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -544,7 +583,8 @@ def list_event_types_v2(
 ):
     """List Event Types."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/v2/event-types"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/v2/event-types"
     params = {}
     if limit > 0:
         params["max"] = limit
@@ -569,6 +609,9 @@ def list_event_types_v2(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)

@@ -6,12 +6,23 @@ from tools.postman_parser import Endpoint, EndpointField, camel_to_snake, camel_
 BASE_URL = "https://webexapis.com/v1"
 BASE_URL_NO_V1 = "https://webexapis.com"
 BASE_URL_ANALYTICS = "https://analytics-calling.webexapis.com/v1"
+BASE_URL_CC = "{cc_base_url}"  # Resolved at runtime from config
 
 # Path prefixes that use the base URL without /v1
 NO_V1_PREFIXES = ("identity/", "Schemas/")
 
 # Paths that use analytics.webexapis.com instead of webexapis.com
 ANALYTICS_PREFIXES = ("cdr_feed", "cdr_stream")
+
+# Contact Center paths use api.wxcc-{region}.cisco.com (no /v1 prefix)
+CC_PREFIXES = ("organization/", "v1/agents", "v1/tasks", "v1/monitor",
+               "v1/callbacks", "v1/ewt", "v1/queues", "v1/subscriptions",
+               "v1/event-types", "v2/subscriptions", "v2/event-types",
+               "v3/campaign", "flow-store/", "admin/v1/", "v1/capture",
+               "v2/agents", "v2/tasks", "v1/dialer/", "v1/notification/",
+               "v1/realtime/", "v1/agentburnout/", "v1/api/",
+               "publish/", "event", "search", "summary/",
+               "generated-summaries/")
 
 # Existing v2 command modules — generate with _generated suffix to avoid collision
 V2_MODULES = {
@@ -34,22 +45,30 @@ def _path_var_to_param(var: str) -> str:
     return camel_to_snake(var)
 
 
-def _render_imports(include_org_id: bool = False) -> str:
+def _render_imports(include_org_id: bool = False, include_cc_url: bool = False) -> str:
     lines = '''import json
 import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 '''
+    config_imports = []
     if include_org_id:
-        lines += 'from wxcli.config import get_org_id\n'
+        config_imports.append('get_org_id')
+    if include_cc_url:
+        config_imports.append('get_cc_base_url')
+    if config_imports:
+        lines += f'from wxcli.config import {", ".join(config_imports)}\n'
     return lines
 
 
 def _render_url_expr(url_path: str, path_vars: list[str]) -> str:
     # CDR paths use analytics.webexapis.com; SCIM/Schema paths skip /v1 prefix
+    # Contact Center paths use api.wxcc-{region}.cisco.com
     if any(url_path.startswith(p) for p in ANALYTICS_PREFIXES):
         base = BASE_URL_ANALYTICS
+    elif any(url_path.startswith(p) for p in CC_PREFIXES):
+        base = BASE_URL_CC
     elif any(url_path.startswith(p) for p in NO_V1_PREFIXES):
         base = BASE_URL_NO_V1
     else:
@@ -76,6 +95,9 @@ def _render_error_handler(indent: str = "    ") -> str:
 {indent}    elif "25409" in err:
 {indent}        typer.echo(f"Error: {{e}}", err=True)
 {indent}        typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+{indent}    elif "wxcc" in err and "403" in err:
+{indent}        typer.echo(f"Error: {{e}}", err=True)
+{indent}        typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
 {indent}    else:
 {indent}        typer.echo(f"Error: {{e}}", err=True)
 {indent}    raise typer.Exit(1)'''
@@ -92,14 +114,26 @@ def _render_auto_inject_params(ep: Endpoint) -> list[str]:
 
 
 def _render_path_inject(ep: Endpoint) -> list[str]:
-    """Return lines to inject auto-inject PATH params from config (before URL line)."""
+    """Return lines to inject auto-inject PATH params from config (before URL line).
+
+    For orgid/orgId, tries saved config first, then resolves from API as fallback.
+    Also injects cc_base_url for Contact Center commands.
+    """
     lines = []
+    # Inject CC base URL if any URL uses the CC placeholder
+    if "{cc_base_url}" in ep.url_path or _uses_cc_base(ep.url_path):
+        lines.append("    cc_base_url = get_cc_base_url()")
     for var in getattr(ep, "auto_inject_path_params", []):
         param = _path_var_to_param(var)
-        # orgid/orgId path params resolve from saved org config
+        # orgid/orgId path params resolve from saved org config, fallback to API
         if var.lower() == "orgid":
-            lines.append(f"    {param} = get_org_id() or ''")
+            lines.append(f"    {param} = get_org_id() or api.people.me().org_id")
     return lines
+
+
+def _uses_cc_base(url_path: str) -> bool:
+    """Check if this URL path would use the CC base URL."""
+    return any(url_path.startswith(p) for p in CC_PREFIXES)
 
 
 def _skip_injected_path_var(var: str, ep: Endpoint) -> bool:
@@ -703,11 +737,21 @@ def render_command_file(
 ) -> str:
     _, cli_name = folder_name_to_module(folder_name)
     needs_org_id = any(
-        "orgId" in getattr(ep, "auto_inject_params", []) for ep in endpoints
+        "orgId" in getattr(ep, "auto_inject_params", [])
+        or any(v.lower() == "orgid" for v in getattr(ep, "auto_inject_path_params", []))
+        for ep in endpoints
     )
+    needs_cc_url = any(_uses_cc_base(ep.url_path) for ep in endpoints)
+    # Detect product area from CLI name prefix
+    if cli_name.startswith("cc-"):
+        product = "Webex Contact Center"
+    elif cli_name.startswith("meeting"):
+        product = "Webex Meetings"
+    else:
+        product = "Webex Calling"
     sections = [
-        _render_imports(include_org_id=needs_org_id),
-        f'app = typer.Typer(help="Manage Webex Calling {cli_name}.")\n',
+        _render_imports(include_org_id=needs_org_id, include_cc_url=needs_cc_url),
+        f'app = typer.Typer(help="Manage {product} {cli_name}.")\n',
     ]
 
     for ep in endpoints:

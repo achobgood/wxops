@@ -3,14 +3,14 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
+from wxcli.config import get_org_id, get_cc_base_url
 
 
-app = typer.Typer(help="Manage Webex Calling dial-number.")
+app = typer.Typer(help="Manage Webex Contact Center cc-dial-number.")
 
 
 @app.command("list")
 def cmd_list(
-    orgid: str = typer.Argument(help="orgid"),
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attri"),
     search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search col"),
@@ -24,7 +24,9 @@ def cmd_list(
 ):
     """List Dialed Number Mapping(s)."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/v3/dial-number"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/v3/dial-number"
     params = {}
     if filter_param is not None:
         params["filter"] = filter_param
@@ -58,6 +60,9 @@ def cmd_list(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -72,7 +77,6 @@ def cmd_list(
 
 @app.command("list-dial-number-organization")
 def list_dial_number_organization(
-    orgid: str = typer.Argument(help="orgid"),
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attri"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
@@ -84,7 +88,9 @@ def list_dial_number_organization(
 ):
     """List Dialed Number Mapping(s)."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/dial-number"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/dial-number"
     params = {}
     if filter_param is not None:
         params["filter"] = filter_param
@@ -114,6 +120,9 @@ def list_dial_number_organization(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -128,7 +137,6 @@ def list_dial_number_organization(
 
 @app.command("create")
 def create(
-    orgid: str = typer.Argument(help="orgid"),
     dialled_number_digits: str = typer.Option(None, "--dialled-number-digits", help=""),
     version: str = typer.Option(None, "--version", help=""),
     last_updated_time: str = typer.Option(None, "--last-updated-time", help=""),
@@ -151,7 +159,9 @@ def create(
 ):
     """Create a new Dialed Number Mapping."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/dial-number"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/dial-number"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -204,6 +214,9 @@ def create(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -220,7 +233,6 @@ def create(
 
 @app.command("delete")
 def delete(
-    orgid: str = typer.Argument(help="orgid"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -228,7 +240,9 @@ def delete(
     if not force:
         typer.confirm(f"Delete {orgid}?", abort=True)
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/dial-number"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/dial-number"
     try:
         api.session.rest_delete(url)
     except RestError as e:
@@ -245,6 +259,9 @@ def delete(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -254,14 +271,15 @@ def delete(
 
 @app.command("create-bulk")
 def create_bulk(
-    orgid: str = typer.Argument(help="orgid"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Bulk save Dialed Number Mapping(s)\n\nExample --json-body:\n  '{"items":[{"item":"...","itemIdentifier":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/dial-number/bulk"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/dial-number/bulk"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -282,6 +300,9 @@ def create_bulk(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -298,7 +319,6 @@ def create_bulk(
 
 @app.command("list-numbers-only")
 def list_numbers_only(
-    orgid: str = typer.Argument(help="orgid"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -306,7 +326,9 @@ def list_numbers_only(
 ):
     """List  only dialed numbers(property - dialledNumber) from Dialed Number Mapping(s)."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/dial-number/numbers-only"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/dial-number/numbers-only"
     params = {}
     if limit > 0:
         params["max"] = limit
@@ -328,6 +350,9 @@ def list_numbers_only(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -342,7 +367,6 @@ def list_numbers_only(
 
 @app.command("list-bulk-export")
 def list_bulk_export(
-    orgid: str = typer.Argument(help="orgid"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
@@ -352,7 +376,9 @@ def list_bulk_export(
 ):
     """Bulk export Dialed Number Mapping(s)."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/dial-number/bulk-export"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/dial-number/bulk-export"
     params = {}
     if page is not None:
         params["page"] = page
@@ -378,6 +404,9 @@ def list_bulk_export(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -392,14 +421,15 @@ def list_bulk_export(
 
 @app.command("show")
 def show(
-    orgid: str = typer.Argument(help="orgid"),
     id: str = typer.Argument(help="id"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get specific Dialed Number Mapping by ID."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/dial-number/{id}"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/dial-number/{id}"
     try:
         result = api.session.rest_get(url)
     except RestError as e:
@@ -416,6 +446,9 @@ def show(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -433,7 +466,6 @@ def show(
 
 @app.command("update")
 def update(
-    orgid: str = typer.Argument(help="orgid"),
     id: str = typer.Argument(help="id"),
     dialled_number_digits: str = typer.Option(None, "--dialled-number-digits", help=""),
     version: str = typer.Option(None, "--version", help=""),
@@ -456,7 +488,9 @@ def update(
 ):
     """Update specific Dialed Number Mapping by ID."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/dial-number/{id}"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/dial-number/{id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -509,6 +543,9 @@ def update(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -518,16 +555,17 @@ def update(
 
 @app.command("delete-dial-number")
 def delete_dial_number(
-    orgid: str = typer.Argument(help="orgid"),
     id: str = typer.Argument(help="id"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete specific Dialed Number Mapping by ID."""
     if not force:
-        typer.confirm(f"Delete {id}?", abort=True)
+        typer.confirm(f"Delete {orgid}?", abort=True)
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/dial-number/{id}"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/dial-number/{id}"
     try:
         api.session.rest_delete(url)
     except RestError as e:
@@ -544,16 +582,18 @@ def delete_dial_number(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    typer.echo(f"Deleted: {id}")
+    typer.echo(f"Deleted: {orgid}")
 
 
 
 @app.command("list-incoming-references")
 def list_incoming_references(
-    orgid: str = typer.Argument(help="orgid"),
     id: str = typer.Argument(help="id"),
     type_param: str = typer.Option(None, "--type", help="Entity type of the other entity that has a reference to this"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
@@ -565,7 +605,9 @@ def list_incoming_references(
 ):
     """List references for a specific Dialed Number Mapping."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/dial-number/{id}/incoming-references"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/dial-number/{id}/incoming-references"
     params = {}
     if type_param is not None:
         params["type"] = type_param
@@ -593,6 +635,9 @@ def list_incoming_references(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -607,7 +652,6 @@ def list_incoming_references(
 
 @app.command("list-dial-number-v2")
 def list_dial_number_v2(
-    orgid: str = typer.Argument(help="orgid"),
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attri"),
     search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search col"),
@@ -621,7 +665,9 @@ def list_dial_number_v2(
 ):
     """List Dialed Number Mapping(s)."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/v2/dial-number"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/v2/dial-number"
     params = {}
     if filter_param is not None:
         params["filter"] = filter_param
@@ -655,6 +701,9 @@ def list_dial_number_v2(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)

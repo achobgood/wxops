@@ -3,20 +3,21 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
+from wxcli.config import get_org_id
 
 
-app = typer.Typer(help="Manage Webex Calling callbacks.")
+app = typer.Typer(help="Manage Webex Contact Center cc-callbacks.")
 
 
 @app.command("show")
 def show(
-    org_id: str = typer.Argument(help="orgId"),
     id: str = typer.Argument(help="id"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get scheduled callback by Id."""
     api = get_api(debug=debug)
+    org_id = get_org_id() or api.people.me().org_id
     url = f"https://webexapis.com/v1/callbacks/organization/{org_id}/scheduled-callback/{id}"
     try:
         result = api.session.rest_get(url)
@@ -34,6 +35,9 @@ def show(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -51,7 +55,6 @@ def show(
 
 @app.command("update")
 def update(
-    org_id: str = typer.Argument(help="orgId"),
     id: str = typer.Argument(help="id"),
     callback_number: str = typer.Option(None, "--callback-number", help=""),
     schedule_date: str = typer.Option(None, "--schedule-date", help=""),
@@ -69,6 +72,7 @@ def update(
 ):
     """Update scheduled callback by Id."""
     api = get_api(debug=debug)
+    org_id = get_org_id() or api.people.me().org_id
     url = f"https://webexapis.com/v1/callbacks/organization/{org_id}/scheduled-callback/{id}"
     if json_body:
         body = json.loads(json_body)
@@ -112,6 +116,9 @@ def update(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -121,15 +128,15 @@ def update(
 
 @app.command("delete")
 def delete(
-    org_id: str = typer.Argument(help="orgId"),
     id: str = typer.Argument(help="id"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete scheduled callback by Id."""
     if not force:
-        typer.confirm(f"Delete {id}?", abort=True)
+        typer.confirm(f"Delete {org_id}?", abort=True)
     api = get_api(debug=debug)
+    org_id = get_org_id() or api.people.me().org_id
     url = f"https://webexapis.com/v1/callbacks/organization/{org_id}/scheduled-callback/{id}"
     try:
         api.session.rest_delete(url)
@@ -147,16 +154,18 @@ def delete(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    typer.echo(f"Deleted: {id}")
+    typer.echo(f"Deleted: {org_id}")
 
 
 
 @app.command("list")
 def cmd_list(
-    org_id: str = typer.Argument(help="orgId"),
     callback_number: str = typer.Option(None, "--callback-number", help="The callback customer number to filter the scheduled callbac"),
     assignee_agent: str = typer.Option(None, "--assignee-agent", help="The unique identifier of the agent assigned to handle the ca"),
     page: str = typer.Option(None, "--page", help="The page number to retrieve."),
@@ -170,6 +179,7 @@ def cmd_list(
 ):
     """Get scheduled callbacks."""
     api = get_api(debug=debug)
+    org_id = get_org_id() or api.people.me().org_id
     url = f"https://webexapis.com/v1/callbacks/organization/{org_id}/scheduled-callback"
     params = {}
     if callback_number is not None:
@@ -204,6 +214,9 @@ def cmd_list(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -218,7 +231,6 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    org_id: str = typer.Argument(help="orgId"),
     callback_number: str = typer.Option(None, "--callback-number", help=""),
     schedule_date: str = typer.Option(None, "--schedule-date", help=""),
     callback_reason: str = typer.Option(None, "--callback-reason", help=""),
@@ -235,6 +247,7 @@ def create(
 ):
     """Schedule a Callback."""
     api = get_api(debug=debug)
+    org_id = get_org_id() or api.people.me().org_id
     url = f"https://webexapis.com/v1/callbacks/organization/{org_id}/scheduled-callback"
     if json_body:
         body = json.loads(json_body)
@@ -276,6 +289,9 @@ def create(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)

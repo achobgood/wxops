@@ -3,9 +3,10 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
+from wxcli.config import get_cc_base_url
 
 
-app = typer.Typer(help="Manage Webex Calling dnc-management.")
+app = typer.Typer(help="Manage Webex Contact Center cc-dnc.")
 
 
 @app.command("create")
@@ -20,7 +21,8 @@ def create(
 ):
     """Add Phone Number to DNC List."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/v3/campaign-management/dncList/{dnc_list_name}/phoneNumber"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/v3/campaign-management/dncList/{dnc_list_name}/phoneNumber"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -47,6 +49,9 @@ def create(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -70,7 +75,8 @@ def show(
 ):
     """Get Phone Number from DNC List."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/v3/campaign-management/dncList/{dnc_list_name}/phoneNumber/{phone_number}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/v3/campaign-management/dncList/{dnc_list_name}/phoneNumber/{phone_number}"
     try:
         result = api.session.rest_get(url)
     except RestError as e:
@@ -87,6 +93,9 @@ def show(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -113,7 +122,8 @@ def delete(
     if not force:
         typer.confirm(f"Delete {phone_number}?", abort=True)
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/v3/campaign-management/dncList/{dnc_list_name}/phoneNumber/{phone_number}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/v3/campaign-management/dncList/{dnc_list_name}/phoneNumber/{phone_number}"
     try:
         api.session.rest_delete(url)
     except RestError as e:
@@ -130,6 +140,9 @@ def delete(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)

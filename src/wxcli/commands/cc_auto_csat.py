@@ -3,14 +3,14 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
+from wxcli.config import get_org_id, get_cc_base_url
 
 
-app = typer.Typer(help="Manage Webex Calling auto-csat.")
+app = typer.Typer(help="Manage Webex Contact Center cc-auto-csat.")
 
 
 @app.command("create")
 def create(
-    orgid: str = typer.Argument(help="orgid"),
     auto_csat_id: str = typer.Argument(help="autoCsatId"),
     id_param: str = typer.Option(None, "--id", help=""),
     question_id: str = typer.Option(None, "--question-id", help=""),
@@ -23,7 +23,9 @@ def create(
 ):
     """Create a new Auto CSAT mapped Question."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/auto-csat/{auto_csat_id}/question"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/auto-csat/{auto_csat_id}/question"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -54,6 +56,9 @@ def create(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -70,7 +75,6 @@ def create(
 
 @app.command("create-bulk")
 def create_bulk(
-    orgid: str = typer.Argument(help="orgid"),
     auto_csat_id: str = typer.Argument(help="autoCsatId"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
@@ -78,7 +82,9 @@ def create_bulk(
 ):
     """Bulk save Auto CSAT mapped Question(s)\n\nExample --json-body:\n  '{"items":[{"item":"...","itemIdentifier":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/auto-csat/{auto_csat_id}/question/bulk"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/auto-csat/{auto_csat_id}/question/bulk"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -99,6 +105,9 @@ def create_bulk(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -115,7 +124,6 @@ def create_bulk(
 
 @app.command("show")
 def show(
-    orgid: str = typer.Argument(help="orgid"),
     auto_csat_id: str = typer.Argument(help="autoCsatId"),
     id: str = typer.Argument(help="id"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
@@ -123,7 +131,9 @@ def show(
 ):
     """Get specific Auto CSAT mapped Question by ID."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/auto-csat/{auto_csat_id}/question/{id}"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/auto-csat/{auto_csat_id}/question/{id}"
     try:
         result = api.session.rest_get(url)
     except RestError as e:
@@ -140,6 +150,9 @@ def show(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -157,7 +170,6 @@ def show(
 
 @app.command("delete")
 def delete(
-    orgid: str = typer.Argument(help="orgid"),
     auto_csat_id: str = typer.Argument(help="autoCsatId"),
     id: str = typer.Argument(help="id"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
@@ -165,9 +177,11 @@ def delete(
 ):
     """Delete specific Auto CSAT mapped Question by ID."""
     if not force:
-        typer.confirm(f"Delete {id}?", abort=True)
+        typer.confirm(f"Delete {orgid}?", abort=True)
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/auto-csat/{auto_csat_id}/question/{id}"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/auto-csat/{auto_csat_id}/question/{id}"
     try:
         api.session.rest_delete(url)
     except RestError as e:
@@ -184,16 +198,18 @@ def delete(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    typer.echo(f"Deleted: {id}")
+    typer.echo(f"Deleted: {orgid}")
 
 
 
 @app.command("list")
 def cmd_list(
-    orgid: str = typer.Argument(help="orgid"),
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
@@ -205,7 +221,9 @@ def cmd_list(
 ):
     """List Auto CSAT resource(s)."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/v2/auto-csat"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/v2/auto-csat"
     params = {}
     if filter_param is not None:
         params["filter"] = filter_param
@@ -235,6 +253,9 @@ def cmd_list(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -249,7 +270,6 @@ def cmd_list(
 
 @app.command("list-question")
 def list_question(
-    orgid: str = typer.Argument(help="orgid"),
     auto_csat_id: str = typer.Argument(help="autoCsatId"),
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes"),
@@ -262,7 +282,9 @@ def list_question(
 ):
     """List Auto CSAT mapped Question(s)."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/v2/auto-csat/{auto_csat_id}/question"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/v2/auto-csat/{auto_csat_id}/question"
     params = {}
     if filter_param is not None:
         params["filter"] = filter_param
@@ -292,6 +314,9 @@ def list_question(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -306,14 +331,15 @@ def list_question(
 
 @app.command("show-auto-csat")
 def show_auto_csat(
-    orgid: str = typer.Argument(help="orgid"),
     id: str = typer.Argument(help="id"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get specific Auto CSAT resource by ID."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/auto-csat/{id}"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/auto-csat/{id}"
     try:
         result = api.session.rest_get(url)
     except RestError as e:
@@ -330,6 +356,9 @@ def show_auto_csat(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -347,7 +376,6 @@ def show_auto_csat(
 
 @app.command("update")
 def update(
-    orgid: str = typer.Argument(help="orgid"),
     id: str = typer.Argument(help="id"),
     id_param: str = typer.Option(None, "--id", help=""),
     agent_inclusion_type: str = typer.Option(None, "--agent-inclusion-type", help=""),
@@ -361,7 +389,9 @@ def update(
 ):
     """Update specific Auto CSAT resource by ID."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/auto-csat/{id}"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/auto-csat/{id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -396,6 +426,9 @@ def update(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)

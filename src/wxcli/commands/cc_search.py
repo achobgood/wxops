@@ -3,10 +3,10 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
-from wxcli.config import get_org_id
+from wxcli.config import get_org_id, get_cc_base_url
 
 
-app = typer.Typer(help="Manage Webex Calling search.")
+app = typer.Typer(help="Manage Webex Contact Center cc-search.")
 
 
 @app.command("create")
@@ -18,7 +18,8 @@ def create(
 ):
     """Search tasks\n\nExample --json-body:\n  '{"query":"...","variables":{}}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/search"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/search"
     params = {}
     org_id = get_org_id()
     if org_id is not None:
@@ -45,6 +46,9 @@ def create(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)

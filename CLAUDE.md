@@ -110,7 +110,7 @@ below for what the pipeline does.
 
 | Path | Purpose |
 |------|---------|
-| `src/wxcli/main.py` | CLI entry point — 118 command groups |
+| `src/wxcli/main.py` | CLI entry point — 165 command groups |
 | `src/wxcli/commands/*.py` | All command implementations (raw HTTP pattern) |
 | `wxcli --help` | Shows all command groups |
 | `wxcli <group> --help` | Shows commands within a group |
@@ -171,11 +171,11 @@ Mock server URLs (public, no auth required — return saved response examples):
 
 ## CLI Status & Known Issues
 
-**118 command groups covering calling, admin, device, messaging, and meetings APIs.** All generated from 6 OpenAPI 3.0 specs via `tools/generate_commands.py`.
+**165 command groups covering calling, admin, device, messaging, meetings, and contact center APIs.** All generated from 7 OpenAPI 3.0 specs via `tools/generate_commands.py`.
 
 ### CLI test status
 
-118 command groups, all generated from OpenAPI specs, live-tested across 4 batch sweeps (2026-03-19 through 2026-03-21). All found bugs fixed. CUCM pipeline tested against live test bed (10.201.123.107) with 2 test bed expansions. See git history for detailed test logs.
+165 command groups, all generated from OpenAPI specs. Calling/admin/device/messaging groups live-tested across 4 batch sweeps (2026-03-19 through 2026-03-21). Contact center and meetings groups are newly generated and not yet live-tested. CUCM pipeline tested against live test bed (10.201.123.107) with 2 test bed expansions. See git history for detailed test logs.
 
 ### Partner Multi-Org Support
 
@@ -205,6 +205,8 @@ See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for fu
 10. **CUCM CallPickupGroup creation with members fails on CUCM 15.0.** The AXL `addCallPickupGroup` operation with `<members>` containing `<directoryNumber>` fails with a null priority foreign key constraint. Workaround: create the pickup group empty, then use `updateLine` with `callPickupGroupName` to assign members at the line level. Affects both wxcadm and raw AXL calls.
 11. **Create commands now support `-o json`.** All create commands accept `-o json` to output the full API response as JSON. Default behavior (`-o id`) prints just the created ID.
 12. **`virtual-extensions` commands use wrong ID type.** The generated `virtual-extensions` command group maps to the Virtual Extensions API which uses `VIRTUAL_EXTENSION`-encoded IDs. Virtual lines created via `/telephony/config/virtualLines` use `VIRTUAL_LINE` IDs. `virtual-extensions list` returns empty, and `virtual-extensions delete` returns 400. **Workaround:** Use raw REST calls (`DELETE /v1/telephony/config/virtualLines/{id}`). The `wxcli cleanup` command already uses raw REST for this reason. The `virtual-line-settings` group uses the correct path family but only has settings commands, not CRUD.
+
+13. **Contact Center (`cc-*`) commands require CC-scoped OAuth and region config.** The 48 `cc-*` command groups target the Webex Contact Center API at `api.wxcc-{region}.cisco.com`. They require CC-specific OAuth scopes (`cjp:config_read`, `cjp:config_write`). The `orgid` path parameter is auto-injected from saved config or resolved from the authenticated user's org. Set the CC region with `wxcli set-cc-region <region>` (defaults to `us1`). Valid regions: `us1`, `eu1`, `eu2`, `anz1`, `ca1`, `jp1`, `sg1`. The CLI detects CC 403 errors and prints a scope tip.
 
 ### Cleanup Command
 

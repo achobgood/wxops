@@ -118,7 +118,7 @@ def cmd_list(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Route Type', 'routeType')], limit=limit)
 
 
 
@@ -165,7 +165,7 @@ def list_usage_pstn_connection_trunks(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Route Type', 'routeType')], limit=limit)
 
 
 
@@ -212,7 +212,7 @@ def list_usage_route_group(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Route Type', 'routeType')], limit=limit)
 
 
 
@@ -402,7 +402,7 @@ def list_dial_plans(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Route Type', 'routeType')], limit=limit)
 
 
 
@@ -705,7 +705,7 @@ def list_trunks(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Route Type', 'routeType')], limit=limit)
 
 
 
@@ -972,7 +972,7 @@ def list_trunk_types(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Route Type', 'routeType')], limit=limit)
 
 
 
@@ -1030,7 +1030,7 @@ def list_route_groups(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Route Type', 'routeType')], limit=limit)
 
 
 
@@ -1312,7 +1312,7 @@ def list_usage_call_to_extension_route_groups(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Route Type', 'routeType')], limit=limit)
 
 
 
@@ -1371,7 +1371,7 @@ def list_usage_dial_plan(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Route Type', 'routeType')], limit=limit)
 
 
 
@@ -1430,7 +1430,7 @@ def list_usage_pstn_connection_route_groups(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Route Type', 'routeType')], limit=limit)
 
 
 
@@ -1489,7 +1489,7 @@ def list_usage_route_list(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Route Type', 'routeType')], limit=limit)
 
 
 
@@ -1550,7 +1550,7 @@ def list_route_lists(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Route Type', 'routeType')], limit=limit)
 
 
 
@@ -1797,7 +1797,7 @@ def list_numbers(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Route Type', 'routeType')], limit=limit)
 
 
 
@@ -1899,7 +1899,7 @@ def list_usage_call_to_extension_trunks(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Route Type', 'routeType')], limit=limit)
 
 
 
@@ -1966,7 +1966,7 @@ def list_translation_patterns(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Route Type', 'routeType')], limit=limit)
 
 
 
