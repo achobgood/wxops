@@ -557,7 +557,11 @@ tag_merge:
   "CC Journey":
     - "Journey"
     - "Journey - Customer Identification API"
+    - "Journey - Data Ingestion API"
     - "Journey - Profile Creation & Insights API"
+    - "Journey - Subscription API"
+    - "Journey - Trigger Actions API"
+    - "Journey - Workspace management API"
 
 # Human-friendly CLI group names (OpenAPI tag → CLI name)
 cli_name_overrides:
