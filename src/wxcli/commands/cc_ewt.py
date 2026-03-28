@@ -3,7 +3,7 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
-from wxcli.config import get_org_id
+from wxcli.config import get_org_id, get_cc_base_url
 
 
 app = typer.Typer(help="Manage Webex Contact Center cc-ewt.")
@@ -20,7 +20,8 @@ def show(
 ):
     """Get Estimated Wait Time."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/ewt"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/ewt"
     params = {}
     if queue_id is not None:
         params["queueId"] = queue_id

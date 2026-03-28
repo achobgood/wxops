@@ -3,6 +3,7 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
+from wxcli.config import get_cc_base_url
 
 
 app = typer.Typer(help="Manage Webex Contact Center cc-call-monitoring.")
@@ -17,7 +18,8 @@ def create(
 ):
     """Unhold Monitoring Request."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/monitor/{task_id}/unhold"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/monitor/{task_id}/unhold"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -64,7 +66,8 @@ def cmd_list(
 ):
     """Fetch Monitoring Sessions."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/monitor/sessions"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/monitor/sessions"
     params = {}
     if limit > 0:
         params["max"] = limit
@@ -111,7 +114,8 @@ def delete(
     if not force:
         typer.confirm(f"Delete {request_id}?", abort=True)
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/monitor/{request_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/monitor/{request_id}"
     try:
         api.session.rest_delete(url)
     except RestError as e:
@@ -151,7 +155,8 @@ def create_monitor(
 ):
     """Create Monitoring Request\n\nExample --json-body:\n  '{"monitorType":"...","invisibleMode":"...","teams":["..."],"trackingId":"...","taskId":"...","id":"..."}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/monitor"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/monitor"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -208,7 +213,8 @@ def create_barge_in(
 ):
     """BargeIn Request."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/monitor/{task_id}/bargeIn"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/monitor/{task_id}/bargeIn"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -255,7 +261,8 @@ def create_end(
 ):
     """End Monitoring Request."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/monitor/{task_id}/end"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/monitor/{task_id}/end"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -302,7 +309,8 @@ def create_hold(
 ):
     """Hold Monitoring Request."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/monitor/{task_id}/hold"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/monitor/{task_id}/hold"
     if json_body:
         body = json.loads(json_body)
     else:

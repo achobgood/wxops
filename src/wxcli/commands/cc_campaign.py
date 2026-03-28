@@ -3,6 +3,7 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
+from wxcli.config import get_cc_base_url
 
 
 app = typer.Typer(help="Manage Webex Contact Center cc-campaign.")
@@ -26,7 +27,8 @@ def update(
 ):
     """Update Campaign Request\n\nExample --json-body:\n  '{"dialingListFetchURL":"...","outdialANI":"...","reservationPercentage":"...","previewActionsDisabled":["..."],"previewOfferTimeoutAutoAction":"...","previewOfferTimeout":"..."}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/dialer/campaign/{campaign_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/dialer/campaign/{campaign_id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -87,7 +89,8 @@ def delete(
     if not force:
         typer.confirm(f"Delete {campaign_id}?", abort=True)
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/dialer/campaign/{campaign_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/dialer/campaign/{campaign_id}"
     try:
         api.session.rest_delete(url)
     except RestError as e:
@@ -141,7 +144,8 @@ def create(
 ):
     """Start Campaign Request\n\nExample --json-body:\n  '{"dialingListFetchURL":"...","outdialANI":"...","predictiveCorrectionPace":"...","predictiveGain":"...","reservationPercentage":"...","callProgressAnalysisParams":{"minSilencePeriod":"...","analysisPeriod":"...","minimumValidSpeech":"...","maxTimeAnalysis":"...","maxTermToneAnalysis":"...","terminatingToneDetect":"..."}}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/dialer/campaign"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/dialer/campaign"
     if json_body:
         body = json.loads(json_body)
     else:

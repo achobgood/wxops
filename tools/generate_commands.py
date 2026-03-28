@@ -7,7 +7,7 @@ from pathlib import Path
 
 from tools.openapi_parser import load_spec, get_tags, parse_tag
 from tools.postman_parser import load_overrides, apply_endpoint_overrides
-from tools.command_renderer import render_command_file, folder_name_to_module
+from tools.command_renderer import render_command_file, folder_name_to_module, BASE_URL_CC
 
 
 DEFAULT_SPEC = Path(__file__).parent.parent / "specs" / "webex-cloud-calling.json"
@@ -43,6 +43,7 @@ def generate_tag(
     output_dir: Path,
     dry_run: bool,
     seen_op_ids: set,
+    base_url_override: str | None = None,
 ) -> tuple[str, str, int]:
     """Generate commands for one tag. Returns (module_name, cli_name, command_count)."""
     omit_qp = list(overrides.get("omit_query_params", []))
@@ -79,7 +80,7 @@ def generate_tag(
             for name in skipped_uploads:
                 print(f"  {'SKIP':30s} {'':6s} {'upload':15s} {name}")
     else:
-        code = render_command_file(cli_name, endpoints, folder_ovr)
+        code = render_command_file(cli_name, endpoints, folder_ovr, base_url_override=base_url_override)
         out_path = output_dir / f"{module_name}.py"
         out_path.write_text(code)
         print(
@@ -126,6 +127,10 @@ def main():
     spec = load_spec(args.spec)
     overrides = load_overrides(args.overrides)
 
+    # Detect spec-specific base URL override
+    spec_name = Path(args.spec).stem
+    base_url_override = BASE_URL_CC if "contact-center" in spec_name else None
+
     # Apply tag merging
     tag_merge = overrides.get("tag_merge", {})
     if tag_merge:
@@ -166,7 +171,8 @@ def main():
 
     for t in targets:
         module_name, cli_name, cmd_count = generate_tag(
-            t, spec, overrides, output_dir, args.dry_run, seen_op_ids
+            t, spec, overrides, output_dir, args.dry_run, seen_op_ids,
+            base_url_override=base_url_override,
         )
         total_cmds += cmd_count
         generated_modules.append((module_name, cli_name))

@@ -186,7 +186,8 @@ def create(
 ):
     """Subscribe for realtime burnout events\n\nExample --json-body:\n  '{"name":"...","orgId":"...","destinationUrl":"...","eventTypes":["..."],"description":"...","secret":"..."}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/agentburnout/subscribe"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/agentburnout/subscribe"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -246,7 +247,8 @@ def create_action(
 ):
     """Record the realtime burnout events\n\nExample --json-body:\n  '{"clientId":"...","actionType":"...","actionDateType":{},"interactionId":"...","agentId":"..."}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/agentburnout/action"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/agentburnout/action"
     if json_body:
         body = json.loads(json_body)
     else:
