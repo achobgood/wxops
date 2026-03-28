@@ -46,6 +46,7 @@ below for what the pipeline does.
 | `.claude/skills/messaging-bots/` | Skill: build bots, adaptive cards, webhooks, cross-domain integrations |
 | `.claude/skills/manage-meetings/` | Skill: schedule, manage, query meetings + content |
 | `.claude/skills/video-mesh/` | Skill: Video Mesh monitoring and threshold configuration |
+| `.claude/skills/contact-center/` | Skill: CC provisioning (agents, queues, flows, campaigns) |
 | `.claude/skills/cucm-migrate/` | Skill: execute CUCM-to-Webex migration from exported deployment plan |
 
 ### Reference Docs — wxc_sdk (Official Cisco SDK)
