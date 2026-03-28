@@ -1,6 +1,6 @@
 # docs/reference — Webex API Reference Docs
 
-40 reference docs grounded in wxc_sdk (v1.30.0), wxcadm (v4.6.1), and 4 OpenAPI 3.0 specs. Each doc covers SDK method signatures, wxcli CLI examples, and raw HTTP fallback. These docs serve the CLI, the playbook agent, and the CUCM migration tool's mapper/executor designs.
+44 reference docs grounded in wxc_sdk (v1.30.0), wxcadm (v4.6.1), and 7 OpenAPI 3.0 specs. Each doc covers SDK method signatures, wxcli CLI examples, and raw HTTP fallback. These docs serve the CLI, the playbook agent, and the CUCM migration tool's mapper/executor designs.
 
 ## Doc Families
 
@@ -9,6 +9,7 @@
 - **Devices** (4): `devices-{core,dect,workspaces,platform}.md`
 - **wxcadm** (8): `wxcadm-{core,person,locations,features,devices-workspaces,xsi-realtime,routing,advanced}.md`
 - **Admin** (7): `admin-{org-management,identity-scim,licensing,audit-security,hybrid,partner,apps-data}.md`
+- **Meetings** (4): `meetings-{core,content,settings,infrastructure}.md`
 - **Messaging** (2): `messaging-{spaces,bots}.md`
 - **Standalone** (11): `authentication.md`, `provisioning.md`, `wxc-sdk-patterns.md`, `call-features-major.md`, `call-features-additional.md`, `call-routing.md`, `call-control.md`, `webhooks-events.md`, `reporting-analytics.md`, `virtual-lines.md`, `emergency-services.md`
 
