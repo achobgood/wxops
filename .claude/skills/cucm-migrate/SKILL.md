@@ -109,7 +109,71 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
    > "I've generated a decision review at [review_file path]. There are N
    > auto-apply decisions and M that need your input."
 
-### Phase A: Architecture Review
+### Step 1b: Migration Architecture Analysis
+
+Launch the migration-advisor agent in analysis mode to produce an architectural reasoning
+narrative with cross-decision analysis, dissent flags, and domain summaries.
+
+```
+Agent(migration-advisor, mode=bypassPermissions, model=opus, prompt="""
+Analyze this CUCM-to-Webex migration and produce an architectural reasoning narrative.
+
+Project path: <project>
+Pipeline output:
+  - Run `wxcli cucm decisions -o json -p <project>` for all decisions
+  - Run `wxcli cucm decisions --type advisory -o json -p <project>` for advisories
+  - Run `wxcli cucm inventory -o json -p <project>` for canonical model summary
+
+Write the narrative to: <project>/exports/migration-narrative.md
+""")
+```
+
+Wait for the agent to complete. Read the returned summary.
+
+**If the agent fails** (error, no narrative file written):
+- Tell the admin: "Architecture analysis unavailable. Proceeding with static recommendations only."
+- Fall through to Step 1c-fallback (the original Phase A/B presentation below).
+
+**If the agent succeeds:**
+- Tell the admin: "Architecture analysis complete. Narrative written to `<project>/exports/migration-narrative.md`."
+- Share the key findings summary.
+- Proceed to Step 1c.
+
+### Step 1c: Decision Review
+
+Launch the migration-advisor agent in review mode to guide the admin through
+architecture advisory review and per-decision review with narrative context,
+dissent flags, and CCIE-level explanation.
+
+```
+Agent(migration-advisor, mode=bypassPermissions, model=opus, prompt="""
+Guide the admin through migration decision review.
+
+Project path: <project>
+Narrative: <project>/exports/migration-narrative.md
+Pipeline output: Run wxcli cucm commands as needed
+
+Present Phase A (architecture advisory) and Phase B (per-decision review)
+with narrative context, dissent flags, and CCIE-level explanation.
+Resolve decisions via: wxcli cucm decide <ID> <option> -p <project>
+After all decisions resolved, apply auto-resolvable decisions and re-plan/re-export.
+""")
+```
+
+Wait for the agent to complete. Verify all decisions are resolved:
+```bash
+wxcli cucm decisions --status pending -p <project>
+```
+
+If pending decisions remain, inform the admin and ask whether to continue
+with unresolved decisions or re-enter review.
+
+### Step 1c-fallback: Static Decision Review
+
+**Only used if Step 1b's advisor agent failed.** This is the original Phase A/B
+presentation with static recommendations and no narrative context.
+
+#### Phase A: Architecture Review
 
 Before per-decision review, present `ARCHITECTURE_ADVISORY` decisions. Pull them:
 ```bash
@@ -143,7 +207,7 @@ Accept all advisory recommendations? [Y/n] Or review individually? [r]
 - If **n**: skip advisory resolution (admin will handle later)
 - If **r**: present each advisory individually with accept/dismiss options
 
-### Phase B: Per-Decision Review
+#### Phase B: Per-Decision Review
 
 Present remaining (non-advisory) decisions in three groups:
 
