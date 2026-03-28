@@ -120,3 +120,13 @@ Rationale: Webex is the target system. Existing Webex assignments represent prod
 - **Advisor should:** Flag when the Webex number assignment timestamp is more recent than the CUCM discovery timestamp. Recommend re-running discovery or confirming current ownership.
 - **Confidence:** LOW -- requires temporal awareness that the static rules do not currently track.
 - **Testable condition:** `context.get("same_owner") and webex_assignment_date > cucm_discovery_date`
+
+---
+
+## Verification Log
+
+| # | Claim | Verified | Source | Finding |
+|---|-------|----------|--------|---------|
+| 1 | Max 1000 virtual lines per org | **Not verified** | `virtual-lines.md` | No org-level limit documented. The `max=1000` values in the doc are pagination page sizes, not org limits. A `LIMIT_EXCEEDED` validation status exists but no number is stated. Marked `<!-- From training, needs verification -->`. |
+| 2 | Virtual extension vs virtual line ID type issue | Yes | CLAUDE.md Known Issue #12 | `virtual-extensions` uses `VIRTUAL_EXTENSION` IDs, virtual lines use `VIRTUAL_LINE` IDs. `virtual-extensions list` returns empty, `delete` returns 400. Confirmed. |
+| 3 | Email as primary Webex identifier | Yes | `provisioning.md` Person data model line 1109 | `emails: list[str]` — currently only one email supported. People API uses email as filter/lookup key. |

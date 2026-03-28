@@ -216,3 +216,13 @@ A single phone at a location without a validated emergency address means a 911 c
 **Test:** Construct a LOCATION_AMBIGUOUS decision with `dependent_device_count=4` and context indicating all devices are gateway models. Verify the advisor recommends `skip` rather than `provide_address`.
 
 **Confidence:** MEDIUM (depends on ability to classify device types from context)
+
+---
+
+## Verification Log
+
+| # | Claim | Verified | Source | Finding |
+|---|-------|----------|--------|---------|
+| 1 | Location creation requires valid street address | Yes | `provisioning.md` lines 603-608 | `address1`, `city`, `state`, `postal_code`, `country` listed as required parameters for `locations.create()`. |
+| 2 | E911 compliance (Kari's Law + RAY BAUM's Act) | Yes | `emergency-services.md` line 17, lines 581-609 | Three interlocking layers: Emergency Call Notifications (Kari's Law), Emergency Addresses (RAY BAUM's Act), and ECBN. Full compliance checklist documented. |
+| 3 | 90s propagation wait for calling disable | Yes | `provisioning.md` lines 1286-1295 (verified via stress test 2026-03-25); CLAUDE.md cleanup section line 240, 249 | "Wait 90+ seconds for the backend to propagate the change" confirmed in both sources. |
