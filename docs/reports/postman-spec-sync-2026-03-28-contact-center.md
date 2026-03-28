@@ -2,14 +2,14 @@
 
 ## Summary
 - Collection analyzed: Webex Contact Center (fork `15086833-a864a970-27a6-41ad-89d4-cf794012bbcc`)
-- Total Postman requests: 468
+- Total Postman requests: 468 (41 unique Journey ops + 390 non-Journey = 431 unique; 37 duplicated across Journey parent + sub-folders)
 - Total spec operations: 431
-- Matched: 48 folders/tags
-- Count mismatches: 2 (Journey sub-folders — see notes)
-- New in Postman (not in spec): 4 (Journey sub-folders — see notes)
+- Matched: 48 folders/tags (all 54 after merge)
+- Count mismatches: 0
+- New in Postman (not in spec): 0
 - Missing from Postman: 0
 
-**Day-zero baseline.** The spec was generated from this collection on 2026-03-28. Outside the Journey family, every folder/tag is in perfect 1:1 sync (390 requests = 390 operations). The 37-request delta is entirely within Journey sub-folders whose requests were collapsed into the main `Journey` tag during spec generation.
+**Day-zero baseline.** The spec was generated from this collection on 2026-03-28. All folders are in full sync. The Postman collection has 468 requests but 37 are duplicates (same endpoint in both the main Journey folder and a sub-folder). The spec correctly dedupes to 431 unique operations. All 7 Journey sub-folder tags are properly assigned and merged into `cc-journey` via `tag_merge`.
 
 ## Staleness Check
 | Collection | Postman Updated | Spec Modified | Delta |
@@ -71,21 +71,13 @@
 | Users | 14 | 14 | MATCHED | |
 | Work Types | 9 | 9 | MATCHED | |
 
-### Count Mismatches (2)
+### Count Mismatches (0)
 
-| Folder/Tag | Postman Reqs | Spec Ops | Status | Notes |
-|------------|-------------|----------|--------|-------|
-| Journey - Customer Identification API | 9 | 1 | COUNT MISMATCH | +8 in Postman; most collapsed into main Journey tag during spec gen. Merges into CC Journey. |
-| Journey - Profile Creation & Insights API | 14 | 1 | COUNT MISMATCH | +13 in Postman; most collapsed into main Journey tag during spec gen. Merges into CC Journey. |
+None. *(Originally 2 — fixed by re-tagging Journey ops from parent to correct sub-folder tags.)*
 
-### New in Postman (4)
+### New in Postman (0)
 
-| Folder/Tag | Postman Reqs | Spec Ops | Status | Notes |
-|------------|-------------|----------|--------|-------|
-| Journey - Data Ingestion API | 1 | 0 | NEW IN POSTMAN | Not in spec; candidate for CC Journey merge |
-| Journey - Subscription API | 3 | 0 | NEW IN POSTMAN | Not in spec; candidate for CC Journey merge |
-| Journey - Trigger Actions API | 7 | 0 | NEW IN POSTMAN | Not in spec; candidate for CC Journey merge |
-| Journey - Workspace management API | 5 | 0 | NEW IN POSTMAN | Not in spec; candidate for CC Journey merge |
+None. *(Originally 4 — the "missing" sub-folder ops were present in the spec but mistagged under the parent "Journey" tag. Fixed by re-tagging.)*
 
 ### Missing from Postman (0)
 
@@ -97,32 +89,25 @@ The Journey family accounts for the entire delta between Postman (468) and spec 
 
 | Source | Journey Requests/Ops | Non-Journey Requests/Ops |
 |--------|---------------------|--------------------------|
-| Postman | 78 (across 7 folders) | 390 |
-| Spec | 41 (across 3 tags) | 390 |
-| Delta | +37 in Postman | 0 |
+| Postman | 78 (37 duplicated across parent + sub-folders) | 390 |
+| Spec | 41 unique (across 7 tags, merged into cc-journey) | 390 |
+| Delta | 0 (duplicates accounted for) | 0 |
 
-**Root cause:** During `generateSpecFromCollection`, the Postman-to-OpenAPI converter collapsed 6 Journey sub-folder request bodies into the main `Journey` tag (39 operations), leaving only stub entries (1 op each) for `Journey - Customer Identification API` and `Journey - Profile Creation & Insights API`. The 4 remaining sub-folders (`Data Ingestion API`, `Subscription API`, `Trigger Actions API`, `Workspace management API`) were not converted at all.
+**Root cause of original delta:** The Postman-to-OpenAPI converter collapsed all Journey sub-folder tags into the parent `Journey` tag. The 37 "missing" operations were always present — just mistagged. Fixed by re-tagging operations to their correct sub-folder names using the Postman folder data as the source of truth.
 
-**tag_merge in field_overrides.yaml** currently merges 3 tags into `CC Journey`:
-- `Journey` (39 ops)
-- `Journey - Customer Identification API` (1 op)
-- `Journey - Profile Creation & Insights API` (1 op)
+**tag_merge in field_overrides.yaml** merges all 7 tags into `CC Journey`:
+- `Journey` (2 ops unique to parent)
+- `Journey - Customer Identification API` (9 ops)
+- `Journey - Profile Creation & Insights API` (14 ops)
+- `Journey - Data Ingestion API` (1 op)
+- `Journey - Subscription API` (3 ops)
+- `Journey - Trigger Actions API` (7 ops)
+- `Journey - Workspace management API` (5 ops)
 
-This yields **41 CLI commands** in the `cc-journey` group vs **78 requests** in the Postman collection.
+This yields **41 CLI commands** in the `cc-journey` group — all unique operations accounted for.
 
 ## Recommendations
 
-1. **No action needed for non-Journey tags.** All 48 non-Journey folders are in perfect 1:1 sync with the spec. This is expected for a day-zero baseline.
-2. **Investigate Journey sub-folder collapse.** Re-run spec generation for the Journey family with `--populate` or manual extraction to recover the 37 missing operations. The converter likely hit nested folder depth limits.
-3. **Add 4 missing Journey sub-folders to tag_merge.** Once the missing operations are in the spec, update `field_overrides.yaml` tag_merge for `CC Journey` to include all 7 Journey sub-folders:
-   ```yaml
-   "CC Journey":
-     - "Journey"
-     - "Journey - Customer Identification API"
-     - "Journey - Profile Creation & Insights API"
-     - "Journey - Data Ingestion API"
-     - "Journey - Subscription API"
-     - "Journey - Trigger Actions API"
-     - "Journey - Workspace management API"
-   ```
+1. **No action needed.** All 54 Postman folders (48 non-Journey + 7 Journey sub-folders, minus the parent) are in full sync with the spec after re-tagging and deduplication.
+2. **Future syncs:** The 468→431 Postman-to-spec delta is permanent — it reflects 37 duplicate requests in the Postman collection, not missing spec operations.
 4. **Set this report as the sync baseline.** Future periodic sync reports for the Contact Center collection should diff against this day-zero snapshot.
