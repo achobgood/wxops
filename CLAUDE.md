@@ -28,6 +28,7 @@ below for what the pipeline does.
 | Path | Purpose |
 |------|---------|
 | `.claude/agents/wxc-calling-builder.md` | Main builder agent — drives the full workflow |
+| `.claude/agents/migration-advisor.md` | Opus-powered CCIE-level migration advisor — architectural reasoning + decision review |
 | `.claude/skills/provision-calling/` | Skill: provision users, locations, licenses |
 | `.claude/skills/teardown/` | Skill: dependency-safe teardown, `wxcli cleanup`, manual deletion procedure |
 | `.claude/skills/configure-features/` | Skill: set up call features (AA, CQ, HG, etc.; CX Essentials → see customer-assist skill) |
@@ -126,6 +127,21 @@ below for what the pipeline does.
 | `docs/reference/contact-center-routing.md` | CC dial plans, campaigns, flows, audio, contacts, outdial |
 | `docs/reference/contact-center-analytics.md` | CC AI, journey, monitoring, subscriptions, tasks |
 
+### Migration Knowledge Base (Opus Advisor)
+
+Structured knowledge base read by the `migration-advisor` agent (Opus) during CUCM migration analysis and decision review. Grounded in the reference docs above + static advisory heuristics. The advisor reads relevant KB docs based on which decision types are present, then applies its own training for edge cases.
+
+| Path | Purpose |
+|------|---------|
+| `docs/knowledge-base/migration/kb-css-routing.md` | CSS/partition ordering, dial plan decomposition, calling permissions |
+| `docs/knowledge-base/migration/kb-device-migration.md` | Device replacement paths, firmware conversion, MPP vs RoomOS |
+| `docs/knowledge-base/migration/kb-trunk-pstn.md` | Trunk topology, LGW vs CCPP, CPN transformation chains |
+| `docs/knowledge-base/migration/kb-feature-mapping.md` | Hunt Group vs Call Queue depth, AA mapping, shared line semantics |
+| `docs/knowledge-base/migration/kb-user-settings.md` | Call forwarding, voicemail, calling permissions, workspace licensing |
+| `docs/knowledge-base/migration/kb-location-design.md` | Device pool → location consolidation, E911, numbering plan |
+| `docs/knowledge-base/migration/kb-identity-numbering.md` | DN ownership, extension conflicts, duplicate users, number porting |
+| `docs/knowledge-base/migration/kb-webex-limits.md` | Platform hard limits, feature gaps, scope requirements (always loaded) |
+
 ### CLI (wxcli) — Primary Execution Layer
 
 | Path | Purpose |
@@ -149,6 +165,8 @@ below for what the pipeline does.
 The migration tool is at `src/wxcli/migration/` and wired into the CLI as `wxcli cucm <command>`. **1642 tests passing.** See `src/wxcli/migration/CLAUDE.md` for the full file map, architecture, and pipeline commands. Use `/cucm-migrate` to execute a migration after running the pipeline.
 
 **To run a migration:** `wxcli cucm init` → `discover` → `normalize` → `map` → `analyze` → `decisions` → `plan` → `preflight` → `export` → then invoke `/cucm-migrate`.
+
+**Migration advisory workflow:** During `/cucm-migrate`, the cucm-migrate skill delegates to the `migration-advisor` agent (Opus) at two points: (1) after pipeline verification, it produces a `migration-narrative.md` with cross-decision analysis, dissent flags, and risk assessment; (2) during decision review, it presents advisories and recommendations with CCIE-level contextual explanation, grounded in the knowledge base at `docs/knowledge-base/migration/`. The static heuristics (`recommendation_rules.py`, `advisory_patterns.py`) remain the backbone — the Opus layer adds interpretation and structured dissent when heuristics are likely wrong. Falls back to mechanical presentation if the advisor agent is unavailable.
 
 **To generate an assessment report:** `wxcli cucm init` → `discover` (or `discover --from-file`) → `normalize` → `map` → `analyze` → `report --brand "..." --prepared-by "..."`. Does not require plan/preflight/export — the report reads directly from the post-analyze store.
 
