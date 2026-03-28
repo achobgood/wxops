@@ -106,6 +106,15 @@ below for what the pipeline does.
 | `docs/reference/messaging-spaces.md` | Spaces, messages, memberships, teams, ECM, HDS |
 | `docs/reference/messaging-bots.md` | Bot development, adaptive cards, room tabs, cross-domain recipes |
 
+### Reference Docs — Meetings APIs
+
+| Path | Purpose |
+|------|---------|
+| `docs/reference/meetings-core.md` | Meeting CRUD, templates, controls, registrants, interpreters, breakouts, surveys |
+| `docs/reference/meetings-content.md` | Transcripts, captions, chats, summaries, meeting messages |
+| `docs/reference/meetings-settings.md` | Preferences, session types, tracking codes, site settings, polls, Q&A, reports |
+| `docs/reference/meetings-infrastructure.md` | Video Mesh (clusters, nodes, health, utilization), participants, invitees |
+
 ### CLI (wxcli) — Primary Execution Layer
 
 | Path | Purpose |
