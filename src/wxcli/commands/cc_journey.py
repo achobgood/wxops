@@ -60,7 +60,8 @@ def show(
 ):
     """Historic Progressive Profile View by Template Name."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/api/progressive-profile-view/workspace-id/{workspace_id}/person-id/{person_id}/template-name/{template_name}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/api/progressive-profile-view/workspace-id/{workspace_id}/person-id/{person_id}/template-name/{template_name}"
     try:
         result = api.session.rest_get(url)
     except RestError as e:
@@ -1262,7 +1263,8 @@ def show_workspace_id_events(
 ):
     """Historic Journey Events."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/api/events/workspace-id/{workspace_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/api/events/workspace-id/{workspace_id}"
     params = {}
     if identity is not None:
         params["identity"] = identity
@@ -1322,7 +1324,8 @@ def show_template_id_identity(
 ):
     """Stream Progressive profile Views."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/api/progressive-profile-view/stream/workspace-id/{workspace_id}/identity/{identity}/template-id/{template_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/api/progressive-profile-view/stream/workspace-id/{workspace_id}/identity/{identity}/template-id/{template_id}"
     try:
         result = api.session.rest_get(url)
     except RestError as e:
@@ -1366,7 +1369,8 @@ def update_person_id_workspace_id_2(
 ):
     """Remove one/more Identities from a person."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/api/person/remove-identities/workspace-id/{workspace_id}/person-id/{person_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/api/person/remove-identities/workspace-id/{workspace_id}/person-id/{person_id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -1704,7 +1708,8 @@ def show_template_id_person_id(
 ):
     """Historic Progressive Profile View.."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/api/progressive-profile-view/workspace-id/{workspace_id}/person-id/{person_id}/template-id/{template_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/api/progressive-profile-view/workspace-id/{workspace_id}/person-id/{person_id}/template-id/{template_id}"
     try:
         result = api.session.rest_get(url)
     except RestError as e:
@@ -1749,7 +1754,8 @@ def show_template_name_identity(
 ):
     """Historic Progressive Profile View By Identity and Template Name.."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/api/progressive-profile-view/workspace-id/{workspace_id}/identity/{identity}/template-name/{template_name}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/api/progressive-profile-view/workspace-id/{workspace_id}/identity/{identity}/template-name/{template_name}"
     try:
         result = api.session.rest_get(url)
     except RestError as e:
@@ -1794,7 +1800,8 @@ def show_template_id_identity_1(
 ):
     """Historic Progressive Profile View By Identity and Template Id."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/api/progressive-profile-view/workspace-id/{workspace_id}/identity/{identity}/template-id/{template_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/api/progressive-profile-view/workspace-id/{workspace_id}/identity/{identity}/template-id/{template_id}"
     try:
         result = api.session.rest_get(url)
     except RestError as e:
@@ -1839,7 +1846,8 @@ def show_template_name_identity_1(
 ):
     """Stream Progressive profile Views By Template Name."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/api/progressive-profile-view/stream/workspace-id/{workspace_id}/identity/{identity}/template-name/{template_name}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/api/progressive-profile-view/stream/workspace-id/{workspace_id}/identity/{identity}/template-name/{template_name}"
     try:
         result = api.session.rest_get(url)
     except RestError as e:
@@ -1885,7 +1893,8 @@ def show_identity(
 ):
     """Stream Events By Identity."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/api/events/stream/workspace-id/{workspace_id}/identity/{identity}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/api/events/stream/workspace-id/{workspace_id}/identity/{identity}"
     params = {}
     if filter_param is not None:
         params["filter"] = filter_param

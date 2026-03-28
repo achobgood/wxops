@@ -3,6 +3,7 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
+from wxcli.config import get_cc_base_url
 
 
 app = typer.Typer(help="Manage Webex Contact Center cc-notification.")
@@ -20,7 +21,8 @@ def create(
 ):
     """Subscribe Notification."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/notification/subscribe"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/notification/subscribe"
     if json_body:
         body = json.loads(json_body)
     else:

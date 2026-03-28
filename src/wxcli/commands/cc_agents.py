@@ -18,7 +18,8 @@ def update(
 ):
     """Logout."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/agents/logout"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/agents/logout"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -64,7 +65,8 @@ def update_state_session(
 ):
     """State Change."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/agents/session/state"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/agents/session/state"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -111,7 +113,8 @@ def create(
 ):
     """Reload."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/agents/reload"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/agents/reload"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -160,7 +163,8 @@ def create_buddy_list(
 ):
     """Buddy Agents List."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/agents/buddyList"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/agents/buddyList"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -220,7 +224,8 @@ def cmd_list(
 ):
     """Get Agent Activities."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/agents/activities"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/agents/activities"
     params = {}
     if agent_ids is not None:
         params["agentIds"] = agent_ids
@@ -287,7 +292,8 @@ def list_statistics(
 ):
     """Get Agent Statistics."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/agents/statistics"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/agents/statistics"
     params = {}
     if from_param is not None:
         params["from"] = from_param
@@ -553,7 +559,8 @@ def create_login_agents_1(
 ):
     """Login\n\nExample --json-body:\n  '{"teamId":"...","dialNumber":"...","isExtension":"...","roles":["..."],"deviceId":"...","deviceType":"..."}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/agents/login"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/agents/login"
     if json_body:
         body = json.loads(json_body)
     else:

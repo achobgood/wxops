@@ -22,7 +22,8 @@ def cmd_list(
 ):
     """Get Tasks."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/tasks"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/tasks"
     params = {}
     if channel_types is not None:
         params["channelTypes"] = channel_types
@@ -83,7 +84,8 @@ def create(
 ):
     """Create Task\n\nExample --json-body:\n  '{"mediaType":"...","customAttributes":{},"attributes":{},"callback":{"callbackType":"...","callbackOrigin":"..."},"destination":"...","outboundType":"..."}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/tasks"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/tasks"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -139,7 +141,8 @@ def update(
 ):
     """Update Task\n\nExample --json-body:\n  '{"attributes":{}}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/tasks/{task_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/tasks/{task_id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -180,7 +183,8 @@ def create_end_consult(
 ):
     """Consult End Task."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/tasks/{task_id}/consult/end"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/tasks/{task_id}/consult/end"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -229,7 +233,8 @@ def create_accept_tasks(
 ):
     """Accept Task."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/tasks/{task_id}/accept"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/tasks/{task_id}/accept"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -276,7 +281,8 @@ def create_exit(
 ):
     """Exit Conference Task."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/tasks/{task_id}/conference/exit"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/tasks/{task_id}/conference/exit"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -323,7 +329,8 @@ def create_end_tasks(
 ):
     """End Task."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/tasks/{task_id}/end"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/tasks/{task_id}/end"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -372,7 +379,8 @@ def create_wrapup(
 ):
     """Wrap Up Task."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/tasks/{task_id}/wrapup"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/tasks/{task_id}/wrapup"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -424,7 +432,8 @@ def create_accept_preview_task(
 ):
     """Accept Preview Task."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/dialer/campaign/{campaign_id}/preview-task/{task_id}/accept"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/dialer/campaign/{campaign_id}/preview-task/{task_id}/accept"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -472,7 +481,8 @@ def create_skip(
 ):
     """Skip Preview Task."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/dialer/campaign/{campaign_id}/preview-task/{task_id}/skip"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/dialer/campaign/{campaign_id}/preview-task/{task_id}/skip"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -520,7 +530,8 @@ def create_remove(
 ):
     """Remove Preview Task."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/dialer/campaign/{campaign_id}/preview-task/{task_id}/remove"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/dialer/campaign/{campaign_id}/preview-task/{task_id}/remove"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -633,7 +644,8 @@ def create_resume(
 ):
     """Resume Recording Task."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/tasks/{task_id}/record/resume"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/tasks/{task_id}/record/resume"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -684,7 +696,8 @@ def create_transfer_tasks(
 ):
     """Transfer Task."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/tasks/{task_id}/transfer"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/tasks/{task_id}/transfer"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -738,7 +751,8 @@ def create_consult(
 ):
     """Consult Task."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/tasks/{task_id}/consult"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/tasks/{task_id}/consult"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -842,7 +856,8 @@ def create_conference(
 ):
     """Consult Conference Task."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/tasks/{task_id}/consult/conference"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/tasks/{task_id}/consult/conference"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -897,7 +912,8 @@ def create_transfer_consult(
 ):
     """Consult Transfer Task."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/tasks/{task_id}/consult/transfer"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/tasks/{task_id}/consult/transfer"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -948,7 +964,8 @@ def create_accept_consult(
 ):
     """Consult Accept Task."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/tasks/{task_id}/consult/accept"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/tasks/{task_id}/consult/accept"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -995,7 +1012,8 @@ def create_assign(
 ):
     """Assign Task."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/tasks/{task_id}/assign"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/tasks/{task_id}/assign"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -1042,7 +1060,8 @@ def create_pause(
 ):
     """Pause Recording Task."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/tasks/{task_id}/record/pause"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/tasks/{task_id}/record/pause"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -1090,7 +1109,8 @@ def create_reject(
 ):
     """Reject Task."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/tasks/{task_id}/reject"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/tasks/{task_id}/reject"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -1140,7 +1160,8 @@ def create_unhold(
 ):
     """Resume Task."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/tasks/{task_id}/unhold"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/tasks/{task_id}/unhold"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -1190,7 +1211,8 @@ def create_hold(
 ):
     """Hold Task."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/tasks/{task_id}/hold"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/tasks/{task_id}/hold"
     if json_body:
         body = json.loads(json_body)
     else:

@@ -3,6 +3,7 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
+from wxcli.config import get_cc_base_url
 
 
 app = typer.Typer(help="Manage Webex Contact Center cc-captures.")
@@ -16,7 +17,8 @@ def create(
 ):
     """List Captures\n\nExample --json-body:\n  '{"query":{"taskIds":["..."],"orgId":"...","includeSegments":"...","urlExpiration":"..."}}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/captures/query"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/captures/query"
     if json_body:
         body = json.loads(json_body)
     else:

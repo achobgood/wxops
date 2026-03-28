@@ -17,7 +17,8 @@ def show(
 ):
     """Get Subscription."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/subscriptions/{id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/subscriptions/{id}"
     params = {}
     org_id = get_org_id()
     if org_id is not None:
@@ -69,7 +70,8 @@ def update(
 ):
     """Update Subscription\n\nExample --json-body:\n  '{"orgId":"...","destinationUrl":"...","eventTypes":["..."],"description":"...","secret":"...","status":"..."}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/subscriptions/{id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/subscriptions/{id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -120,7 +122,8 @@ def delete(
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/subscriptions/{id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/subscriptions/{id}"
     params = {}
     org_id = get_org_id()
     if org_id is not None:
@@ -473,7 +476,8 @@ def list_subscriptions(
 ):
     """List Subscriptions."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/subscriptions"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/subscriptions"
     params = {}
     if limit > 0:
         params["max"] = limit
@@ -526,7 +530,8 @@ def create_subscriptions(
 ):
     """Register Subscription\n\nExample --json-body:\n  '{"name":"...","orgId":"...","destinationUrl":"...","eventTypes":["..."],"description":"...","secret":"..."}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/subscriptions"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/subscriptions"
     if json_body:
         body = json.loads(json_body)
     else:

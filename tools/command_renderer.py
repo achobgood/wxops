@@ -14,15 +14,8 @@ NO_V1_PREFIXES = ("identity/", "Schemas/")
 # Paths that use analytics.webexapis.com instead of webexapis.com
 ANALYTICS_PREFIXES = ("cdr_feed", "cdr_stream")
 
-# Contact Center paths use api.wxcc-{region}.cisco.com (no /v1 prefix)
-CC_PREFIXES = ("organization/", "v1/agents", "v1/tasks", "v1/monitor",
-               "v1/callbacks", "v1/ewt", "v1/queues", "v1/subscriptions",
-               "v1/event-types", "v2/subscriptions", "v2/event-types",
-               "v3/campaign", "flow-store/", "admin/v1/", "v1/capture",
-               "v2/agents", "v2/tasks", "v1/dialer/", "v1/notification/",
-               "v1/realtime/", "v1/agentburnout/", "v1/api/",
-               "publish/", "event", "search", "summary/",
-               "generated-summaries/")
+# Module-level override set by render_command_file for spec-specific base URLs (e.g., CC)
+_active_base_url_override: str | None = None
 
 # Existing v2 command modules — generate with _generated suffix to avoid collision
 V2_MODULES = {
@@ -63,12 +56,11 @@ from wxcli.output import print_table, print_json
 
 
 def _render_url_expr(url_path: str, path_vars: list[str]) -> str:
-    # CDR paths use analytics.webexapis.com; SCIM/Schema paths skip /v1 prefix
-    # Contact Center paths use api.wxcc-{region}.cisco.com
-    if any(url_path.startswith(p) for p in ANALYTICS_PREFIXES):
+    # Module-level override takes precedence (set by render_command_file for CC spec)
+    if _active_base_url_override:
+        base = _active_base_url_override
+    elif any(url_path.startswith(p) for p in ANALYTICS_PREFIXES):
         base = BASE_URL_ANALYTICS
-    elif any(url_path.startswith(p) for p in CC_PREFIXES):
-        base = BASE_URL_CC
     elif any(url_path.startswith(p) for p in NO_V1_PREFIXES):
         base = BASE_URL_NO_V1
     else:
@@ -120,8 +112,8 @@ def _render_path_inject(ep: Endpoint) -> list[str]:
     Also injects cc_base_url for Contact Center commands.
     """
     lines = []
-    # Inject CC base URL if any URL uses the CC placeholder
-    if "{cc_base_url}" in ep.url_path or _uses_cc_base(ep.url_path):
+    # Inject CC base URL if this file uses the CC base URL override
+    if _active_base_url_override == BASE_URL_CC:
         lines.append("    cc_base_url = get_cc_base_url()")
     for var in getattr(ep, "auto_inject_path_params", []):
         param = _path_var_to_param(var)
@@ -130,10 +122,6 @@ def _render_path_inject(ep: Endpoint) -> list[str]:
             lines.append(f"    {param} = get_org_id() or api.people.me().org_id")
     return lines
 
-
-def _uses_cc_base(url_path: str) -> bool:
-    """Check if this URL path would use the CC base URL."""
-    return any(url_path.startswith(p) for p in CC_PREFIXES)
 
 
 def _skip_injected_path_var(var: str, ep: Endpoint) -> bool:
@@ -733,7 +721,8 @@ RENDERERS = {
 
 
 def render_command_file(
-    folder_name: str, endpoints: list[Endpoint], folder_overrides: dict
+    folder_name: str, endpoints: list[Endpoint], folder_overrides: dict,
+    base_url_override: str | None = None,
 ) -> str:
     _, cli_name = folder_name_to_module(folder_name)
     needs_org_id = any(
@@ -741,7 +730,9 @@ def render_command_file(
         or any(v.lower() == "orgid" for v in getattr(ep, "auto_inject_path_params", []))
         for ep in endpoints
     )
-    needs_cc_url = any(_uses_cc_base(ep.url_path) for ep in endpoints)
+    global _active_base_url_override
+    _active_base_url_override = base_url_override
+    needs_cc_url = base_url_override == BASE_URL_CC
     # Detect product area from CLI name prefix
     if cli_name.startswith("cc-"):
         product = "Webex Contact Center"

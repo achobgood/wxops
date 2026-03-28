@@ -3,7 +3,7 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
-from wxcli.config import get_org_id
+from wxcli.config import get_org_id, get_cc_base_url
 
 
 app = typer.Typer(help="Manage Webex Contact Center cc-callbacks.")
@@ -17,8 +17,9 @@ def show(
 ):
     """Get scheduled callback by Id."""
     api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
     org_id = get_org_id() or api.people.me().org_id
-    url = f"https://webexapis.com/v1/callbacks/organization/{org_id}/scheduled-callback/{id}"
+    url = f"{cc_base_url}/callbacks/organization/{org_id}/scheduled-callback/{id}"
     try:
         result = api.session.rest_get(url)
     except RestError as e:
@@ -72,8 +73,9 @@ def update(
 ):
     """Update scheduled callback by Id."""
     api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
     org_id = get_org_id() or api.people.me().org_id
-    url = f"https://webexapis.com/v1/callbacks/organization/{org_id}/scheduled-callback/{id}"
+    url = f"{cc_base_url}/callbacks/organization/{org_id}/scheduled-callback/{id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -136,8 +138,9 @@ def delete(
     if not force:
         typer.confirm(f"Delete {org_id}?", abort=True)
     api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
     org_id = get_org_id() or api.people.me().org_id
-    url = f"https://webexapis.com/v1/callbacks/organization/{org_id}/scheduled-callback/{id}"
+    url = f"{cc_base_url}/callbacks/organization/{org_id}/scheduled-callback/{id}"
     try:
         api.session.rest_delete(url)
     except RestError as e:
@@ -179,8 +182,9 @@ def cmd_list(
 ):
     """Get scheduled callbacks."""
     api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
     org_id = get_org_id() or api.people.me().org_id
-    url = f"https://webexapis.com/v1/callbacks/organization/{org_id}/scheduled-callback"
+    url = f"{cc_base_url}/callbacks/organization/{org_id}/scheduled-callback"
     params = {}
     if callback_number is not None:
         params["callbackNumber"] = callback_number
@@ -247,8 +251,9 @@ def create(
 ):
     """Schedule a Callback."""
     api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
     org_id = get_org_id() or api.people.me().org_id
-    url = f"https://webexapis.com/v1/callbacks/organization/{org_id}/scheduled-callback"
+    url = f"{cc_base_url}/callbacks/organization/{org_id}/scheduled-callback"
     if json_body:
         body = json.loads(json_body)
     else:
