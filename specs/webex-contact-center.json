@@ -145054,7 +145054,32 @@
   "openapi": "3.0.0",
   "servers": [
     {
-      "url": "/"
+      "url": "https://api.wxcc-us1.cisco.com",
+      "description": "US data center"
+    },
+    {
+      "url": "https://api.wxcc-eu1.cisco.com",
+      "description": "EU data center"
+    },
+    {
+      "url": "https://api.wxcc-eu2.cisco.com",
+      "description": "EU 2 data center"
+    },
+    {
+      "url": "https://api.wxcc-anz1.cisco.com",
+      "description": "ANZ data center"
+    },
+    {
+      "url": "https://api.wxcc-ca1.cisco.com",
+      "description": "Canada data center"
+    },
+    {
+      "url": "https://api.wxcc-jp1.cisco.com",
+      "description": "Japan data center"
+    },
+    {
+      "url": "https://api.wxcc-sg1.cisco.com",
+      "description": "Singapore data center"
     }
   ]
 }
