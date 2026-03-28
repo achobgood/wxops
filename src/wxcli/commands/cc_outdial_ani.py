@@ -3,14 +3,14 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
+from wxcli.config import get_org_id, get_cc_base_url
 
 
-app = typer.Typer(help="Manage Webex Calling outdial-ani.")
+app = typer.Typer(help="Manage Webex Contact Center cc-outdial-ani.")
 
 
 @app.command("list")
 def cmd_list(
-    orgid: str = typer.Argument(help="orgid"),
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
@@ -23,7 +23,9 @@ def cmd_list(
 ):
     """List Outdial ANI(s)."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/outdial-ani"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/outdial-ani"
     params = {}
     if filter_param is not None:
         params["filter"] = filter_param
@@ -55,6 +57,9 @@ def cmd_list(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -69,7 +74,6 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    orgid: str = typer.Argument(help="orgid"),
     name: str = typer.Option(None, "--name", help=""),
     version: str = typer.Option(None, "--version", help=""),
     organization_id: str = typer.Option(None, "--organization-id", help=""),
@@ -81,7 +85,9 @@ def create(
 ):
     """Create a new Outdial ANI\n\nExample --json-body:\n  '{"name":"...","version":"...","organizationId":"...","description":"...","outdialANIEntries":[{"name":"...","number":"...","organizationId":"...","version":"...","id":"..."}],"id":"..."}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/outdial-ani"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/outdial-ani"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -112,6 +118,9 @@ def create(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -128,7 +137,6 @@ def create(
 
 @app.command("list-bulk-export")
 def list_bulk_export(
-    orgid: str = typer.Argument(help="orgid"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
@@ -138,7 +146,9 @@ def list_bulk_export(
 ):
     """Bulk export Outdial ANI(s)."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/outdial-ani/bulk-export"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/outdial-ani/bulk-export"
     params = {}
     if page is not None:
         params["page"] = page
@@ -164,6 +174,9 @@ def list_bulk_export(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -178,7 +191,6 @@ def list_bulk_export(
 
 @app.command("list-entry-outdial-ani")
 def list_entry_outdial_ani(
-    orgid: str = typer.Argument(help="orgid"),
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes"),
     search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search col"),
@@ -191,7 +203,9 @@ def list_entry_outdial_ani(
 ):
     """List Outdial ANI Entry(s)."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/outdial-ani/entry"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/outdial-ani/entry"
     params = {}
     if filter_param is not None:
         params["filter"] = filter_param
@@ -223,6 +237,9 @@ def list_entry_outdial_ani(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -237,14 +254,15 @@ def list_entry_outdial_ani(
 
 @app.command("show")
 def show(
-    orgid: str = typer.Argument(help="orgid"),
     id: str = typer.Argument(help="id"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get specific Outdial ANI by ID."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/outdial-ani/{id}"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/outdial-ani/{id}"
     try:
         result = api.session.rest_get(url)
     except RestError as e:
@@ -261,6 +279,9 @@ def show(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -278,7 +299,6 @@ def show(
 
 @app.command("update")
 def update(
-    orgid: str = typer.Argument(help="orgid"),
     id: str = typer.Argument(help="id"),
     name: str = typer.Option(None, "--name", help=""),
     version: str = typer.Option(None, "--version", help=""),
@@ -290,7 +310,9 @@ def update(
 ):
     """Update specific Outdial ANI by ID\n\nExample --json-body:\n  '{"name":"...","version":"...","organizationId":"...","description":"...","outdialANIEntries":[{"name":"...","number":"...","organizationId":"...","version":"...","id":"..."}],"id":"..."}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/outdial-ani/{id}"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/outdial-ani/{id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -321,6 +343,9 @@ def update(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -330,16 +355,17 @@ def update(
 
 @app.command("delete")
 def delete(
-    orgid: str = typer.Argument(help="orgid"),
     id: str = typer.Argument(help="id"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete specific Outdial ANI by ID."""
     if not force:
-        typer.confirm(f"Delete {id}?", abort=True)
+        typer.confirm(f"Delete {orgid}?", abort=True)
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/outdial-ani/{id}"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/outdial-ani/{id}"
     try:
         api.session.rest_delete(url)
     except RestError as e:
@@ -356,16 +382,18 @@ def delete(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    typer.echo(f"Deleted: {id}")
+    typer.echo(f"Deleted: {orgid}")
 
 
 
 @app.command("list-incoming-references")
 def list_incoming_references(
-    orgid: str = typer.Argument(help="orgid"),
     id: str = typer.Argument(help="id"),
     type_param: str = typer.Option(None, "--type", help="Entity type of the other entity that has a reference to this"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
@@ -377,7 +405,9 @@ def list_incoming_references(
 ):
     """List references for a specific Outdial ANI."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/outdial-ani/{id}/incoming-references"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/outdial-ani/{id}/incoming-references"
     params = {}
     if type_param is not None:
         params["type"] = type_param
@@ -405,6 +435,9 @@ def list_incoming_references(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -419,7 +452,6 @@ def list_incoming_references(
 
 @app.command("list-outdial-ani")
 def list_outdial_ani(
-    orgid: str = typer.Argument(help="orgid"),
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes"),
     search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search col"),
@@ -433,7 +465,9 @@ def list_outdial_ani(
 ):
     """List Outdial ANI(s)."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/v2/outdial-ani"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/v2/outdial-ani"
     params = {}
     if filter_param is not None:
         params["filter"] = filter_param
@@ -467,6 +501,9 @@ def list_outdial_ani(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -481,7 +518,6 @@ def list_outdial_ani(
 
 @app.command("list-entry-outdial-ani-1")
 def list_entry_outdial_ani_1(
-    orgid: str = typer.Argument(help="orgid"),
     out_dial_ani_id: str = typer.Argument(help="outDialAniId"),
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes"),
@@ -495,7 +531,9 @@ def list_entry_outdial_ani_1(
 ):
     """List Outdial ANI Entry(s)."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/v2/outdial-ani/{out_dial_ani_id}/entry"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/v2/outdial-ani/{out_dial_ani_id}/entry"
     params = {}
     if filter_param is not None:
         params["filter"] = filter_param
@@ -527,6 +565,9 @@ def list_entry_outdial_ani_1(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -541,14 +582,15 @@ def list_entry_outdial_ani_1(
 
 @app.command("create-bulk-outdial-ani")
 def create_bulk_outdial_ani(
-    orgid: str = typer.Argument(help="orgid"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Bulk save Outdial ANI(s)\n\nExample --json-body:\n  '{"items":[{"item":"...","itemIdentifier":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/outdial-ani/bulk"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/outdial-ani/bulk"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -569,6 +611,9 @@ def create_bulk_outdial_ani(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -585,7 +630,6 @@ def create_bulk_outdial_ani(
 
 @app.command("create-entry")
 def create_entry(
-    orgid: str = typer.Argument(help="orgid"),
     out_dial_ani_id: str = typer.Argument(help="outDialAniId"),
     name: str = typer.Option(None, "--name", help=""),
     number: str = typer.Option(None, "--number", help=""),
@@ -598,7 +642,9 @@ def create_entry(
 ):
     """Create a new Outdial ANI Entry."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/outdial-ani/{out_dial_ani_id}/entry"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/outdial-ani/{out_dial_ani_id}/entry"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -629,6 +675,9 @@ def create_entry(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -645,7 +694,6 @@ def create_entry(
 
 @app.command("create-bulk-entry")
 def create_bulk_entry(
-    orgid: str = typer.Argument(help="orgid"),
     out_dial_ani_id: str = typer.Argument(help="outDialAniId"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
@@ -653,7 +701,9 @@ def create_bulk_entry(
 ):
     """Bulk save Outdial ANI Entry(s)\n\nExample --json-body:\n  '{"items":[{"item":"...","itemIdentifier":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/outdial-ani/{out_dial_ani_id}/entry/bulk"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/outdial-ani/{out_dial_ani_id}/entry/bulk"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -674,6 +724,9 @@ def create_bulk_entry(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -690,7 +743,6 @@ def create_bulk_entry(
 
 @app.command("show-entry")
 def show_entry(
-    orgid: str = typer.Argument(help="orgid"),
     out_dial_ani_id: str = typer.Argument(help="outDialAniId"),
     id: str = typer.Argument(help="id"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
@@ -698,7 +750,9 @@ def show_entry(
 ):
     """Get specific Outdial ANI Entry by ID."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/outdial-ani/{out_dial_ani_id}/entry/{id}"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/outdial-ani/{out_dial_ani_id}/entry/{id}"
     try:
         result = api.session.rest_get(url)
     except RestError as e:
@@ -715,6 +769,9 @@ def show_entry(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -732,7 +789,6 @@ def show_entry(
 
 @app.command("update-entry")
 def update_entry(
-    orgid: str = typer.Argument(help="orgid"),
     out_dial_ani_id: str = typer.Argument(help="outDialAniId"),
     id: str = typer.Argument(help="id"),
     name: str = typer.Option(None, "--name", help=""),
@@ -745,7 +801,9 @@ def update_entry(
 ):
     """Update specific Outdial ANI Entry by ID."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/outdial-ani/{out_dial_ani_id}/entry/{id}"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/outdial-ani/{out_dial_ani_id}/entry/{id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -776,6 +834,9 @@ def update_entry(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -785,7 +846,6 @@ def update_entry(
 
 @app.command("delete-entry")
 def delete_entry(
-    orgid: str = typer.Argument(help="orgid"),
     out_dial_ani_id: str = typer.Argument(help="outDialAniId"),
     id: str = typer.Argument(help="id"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
@@ -793,9 +853,11 @@ def delete_entry(
 ):
     """Delete specific Outdial ANI Entry by ID."""
     if not force:
-        typer.confirm(f"Delete {id}?", abort=True)
+        typer.confirm(f"Delete {orgid}?", abort=True)
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/outdial-ani/{out_dial_ani_id}/entry/{id}"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/outdial-ani/{out_dial_ani_id}/entry/{id}"
     try:
         api.session.rest_delete(url)
     except RestError as e:
@@ -812,9 +874,12 @@ def delete_entry(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    typer.echo(f"Deleted: {id}")
+    typer.echo(f"Deleted: {orgid}")
 
 

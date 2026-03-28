@@ -3,9 +3,10 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
+from wxcli.config import get_cc_base_url
 
 
-app = typer.Typer(help="Manage Webex Calling contact-list-management.")
+app = typer.Typer(help="Manage Webex Contact Center cc-contact-list.")
 
 
 @app.command("create")
@@ -19,7 +20,8 @@ def create(
 ):
     """Create contact list\n\nExample --json-body:\n  '{"supportedChannels":["..."],"activationTimeLagMinutes":"...","activationDateTime":"..."}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/v3/campaign-management/campaigns/{campaign_id}/contact-list"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/v3/campaign-management/campaigns/{campaign_id}/contact-list"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -44,6 +46,9 @@ def create(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -71,7 +76,8 @@ def update(
 ):
     """Update a contact's status within a contact list."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/v3/campaign-management/campaigns/{campaign_id}/contact-list/{contact_list_id}/contacts/{contact_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/v3/campaign-management/campaigns/{campaign_id}/contact-list/{contact_list_id}/contacts/{contact_id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -94,6 +100,9 @@ def update(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -113,7 +122,8 @@ def cmd_list(
 ):
     """Get Contact Lists within a Campaign."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/v3/campaign-management/campaigns/{campaign_id}/contact-lists"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/v3/campaign-management/campaigns/{campaign_id}/contact-lists"
     params = {}
     if status is not None:
         params["status"] = status
@@ -139,6 +149,9 @@ def cmd_list(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -161,7 +174,8 @@ def update_status(
 ):
     """Update contact list status."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/v3/campaign-management/campaigns/{campaign_id}/contact-list/{contact_list_id}/status"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/v3/campaign-management/campaigns/{campaign_id}/contact-list/{contact_list_id}/status"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -184,6 +198,9 @@ def update_status(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -201,7 +218,8 @@ def create_contacts(
 ):
     """Create contacts within a contact list\n\nExample --json-body:\n  '{"contacts":[{"contactAttributes":"..."}]}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/v3/campaign-management/campaigns/{campaign_id}/contact-list/{contact_list_id}/contacts"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/v3/campaign-management/campaigns/{campaign_id}/contact-list/{contact_list_id}/contacts"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -222,6 +240,9 @@ def create_contacts(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)

@@ -3,21 +3,23 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
+from wxcli.config import get_org_id, get_cc_base_url
 
 
-app = typer.Typer(help="Manage Webex Calling contact-service-queue.")
+app = typer.Typer(help="Manage Webex Contact Center cc-queue.")
 
 
 @app.command("create")
 def create(
-    orgid: str = typer.Argument(help="orgid"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Bulk save Contact Service Queue(s)\n\nExample --json-body:\n  '{"items":[{"item":"...","itemIdentifier":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/contact-service-queue/bulk"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/bulk"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -38,6 +40,9 @@ def create(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -54,13 +59,14 @@ def create(
 
 @app.command("update")
 def update(
-    orgid: str = typer.Argument(help="orgid"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Bulk partial update Contact Service Queue(s)\n\nExample --json-body:\n  '{"items":[{"item":"...","itemIdentifier":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/contact-service-queue/bulk"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/bulk"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -81,6 +87,9 @@ def update(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -90,7 +99,6 @@ def update(
 
 @app.command("list")
 def cmd_list(
-    orgid: str = typer.Argument(help="orgid"),
     type_param: str = typer.Option(None, "--type", help="Indicates the queue type; can be INBOUND or OUTBOUND."),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
@@ -101,7 +109,9 @@ def cmd_list(
 ):
     """Bulk export Contact Service Queue(s)."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/contact-service-queue/bulk-export"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/bulk-export"
     params = {}
     if type_param is not None:
         params["type"] = type_param
@@ -129,6 +139,9 @@ def cmd_list(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -143,14 +156,15 @@ def cmd_list(
 
 @app.command("show")
 def show(
-    orgid: str = typer.Argument(help="orgid"),
     id: str = typer.Argument(help="id"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get specific By skill profile ID."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/contact-service-queue/by-skill-profile-id/{id}"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/by-skill-profile-id/{id}"
     try:
         result = api.session.rest_get(url)
     except RestError as e:
@@ -167,6 +181,9 @@ def show(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -184,7 +201,6 @@ def show(
 
 @app.command("create-fetch-manually-assignable-queues")
 def create_fetch_manually_assignable_queues(
-    orgid: str = typer.Argument(help="orgid"),
     team_id: str = typer.Option(None, "--team-id", help=""),
     agent_id: str = typer.Option(None, "--agent-id", help=""),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -193,7 +209,9 @@ def create_fetch_manually_assignable_queues(
 ):
     """Fetch manually assignable Queues."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/contact-service-queue/fetch-manually-assignable-queues"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/fetch-manually-assignable-queues"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -218,6 +236,9 @@ def create_fetch_manually_assignable_queues(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -234,7 +255,6 @@ def create_fetch_manually_assignable_queues(
 
 @app.command("list-incoming-references")
 def list_incoming_references(
-    orgid: str = typer.Argument(help="orgid"),
     id: str = typer.Argument(help="id"),
     type_param: str = typer.Option(None, "--type", help="Entity type of the other entity that has a reference to this"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
@@ -246,7 +266,9 @@ def list_incoming_references(
 ):
     """List references for a specific Contact Service Queue."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/contact-service-queue/{id}/incoming-references"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/{id}/incoming-references"
     params = {}
     if type_param is not None:
         params["type"] = type_param
@@ -274,6 +296,9 @@ def list_incoming_references(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -288,7 +313,6 @@ def list_incoming_references(
 
 @app.command("list-contact-service-queue-v2")
 def list_contact_service_queue_v2(
-    orgid: str = typer.Argument(help="orgid"),
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes"),
     search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search col"),
@@ -304,7 +328,9 @@ def list_contact_service_queue_v2(
 ):
     """List Contact Service Queue(s)."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/v2/contact-service-queue"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/v2/contact-service-queue"
     params = {}
     if filter_param is not None:
         params["filter"] = filter_param
@@ -342,6 +368,9 @@ def list_contact_service_queue_v2(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -356,7 +385,6 @@ def list_contact_service_queue_v2(
 
 @app.command("create-contact-service-queue-v2")
 def create_contact_service_queue_v2(
-    orgid: str = typer.Argument(help="orgid"),
     channel_type: str = typer.Option(None, "--channel-type", help=""),
     check_agent_availability: str = typer.Option(None, "--check-agent-availability", help=""),
     control_flow_script_url: str = typer.Option(None, "--control-flow-script-url", help=""),
@@ -399,7 +427,9 @@ def create_contact_service_queue_v2(
 ):
     """Create a new Contact Service Queue\n\nExample --json-body:\n  '{"channelType":"...","checkAgentAvailability":"...","controlFlowScriptUrl":"...","defaultMusicInQueueMediaFileId":"...","ivrRequeueUrl":"...","maxActiveContacts":"..."}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/v2/contact-service-queue"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/v2/contact-service-queue"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -492,6 +522,9 @@ def create_contact_service_queue_v2(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -508,7 +541,6 @@ def create_contact_service_queue_v2(
 
 @app.command("list-agent-based-queues")
 def list_agent_based_queues(
-    orgid: str = typer.Argument(help="orgid"),
     userid: str = typer.Argument(help="userid"),
     search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search col"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
@@ -520,7 +552,9 @@ def list_agent_based_queues(
 ):
     """List agent based Contact Service Queue(s)by user ID."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/v2/contact-service-queue/by-user-id/{userid}/agent-based-queues"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/v2/contact-service-queue/by-user-id/{userid}/agent-based-queues"
     params = {}
     if search is not None:
         params["search"] = search
@@ -548,6 +582,9 @@ def list_agent_based_queues(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -562,7 +599,6 @@ def list_agent_based_queues(
 
 @app.command("list-skill-based-queues")
 def list_skill_based_queues(
-    orgid: str = typer.Argument(help="orgid"),
     userid: str = typer.Argument(help="userid"),
     search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search col"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
@@ -574,7 +610,9 @@ def list_skill_based_queues(
 ):
     """List skill based Contact Service Queue(s)by user ID."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/v2/contact-service-queue/by-user-id/{userid}/skill-based-queues"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/v2/contact-service-queue/by-user-id/{userid}/skill-based-queues"
     params = {}
     if search is not None:
         params["search"] = search
@@ -602,6 +640,9 @@ def list_skill_based_queues(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -616,7 +657,6 @@ def list_skill_based_queues(
 
 @app.command("list-team-based-queues")
 def list_team_based_queues(
-    orgid: str = typer.Argument(help="orgid"),
     userid: str = typer.Argument(help="userid"),
     search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search col"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
@@ -628,7 +668,9 @@ def list_team_based_queues(
 ):
     """List Team based Contact Service Queue(s)by user id."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/v2/contact-service-queue/by-user-id/{userid}/team-based-queues"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/v2/contact-service-queue/by-user-id/{userid}/team-based-queues"
     params = {}
     if search is not None:
         params["search"] = search
@@ -656,6 +698,9 @@ def list_team_based_queues(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -670,7 +715,6 @@ def list_team_based_queues(
 
 @app.command("show-contact-service-queue-v2")
 def show_contact_service_queue_v2(
-    orgid: str = typer.Argument(help="orgid"),
     id: str = typer.Argument(help="id"),
     agents_updated_info: str = typer.Option(None, "--agents-updated-info", help="If `true`, returns the user details who has last updated the"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
@@ -678,7 +722,9 @@ def show_contact_service_queue_v2(
 ):
     """Get specific Contact Service Queue by Id."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/v2/contact-service-queue/{id}"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/v2/contact-service-queue/{id}"
     params = {}
     if agents_updated_info is not None:
         params["agentsUpdatedInfo"] = agents_updated_info
@@ -698,6 +744,9 @@ def show_contact_service_queue_v2(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -715,7 +764,6 @@ def show_contact_service_queue_v2(
 
 @app.command("update-contact-service-queue-v2")
 def update_contact_service_queue_v2(
-    orgid: str = typer.Argument(help="orgid"),
     id: str = typer.Argument(help="id"),
     channel_type: str = typer.Option(None, "--channel-type", help=""),
     check_agent_availability: str = typer.Option(None, "--check-agent-availability", help=""),
@@ -758,7 +806,9 @@ def update_contact_service_queue_v2(
 ):
     """Update specific Contact Service Queue by ID\n\nExample --json-body:\n  '{"channelType":"...","checkAgentAvailability":"...","controlFlowScriptUrl":"...","defaultMusicInQueueMediaFileId":"...","ivrRequeueUrl":"...","maxActiveContacts":"..."}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/v2/contact-service-queue/{id}"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/v2/contact-service-queue/{id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -851,6 +901,9 @@ def update_contact_service_queue_v2(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -860,7 +913,6 @@ def update_contact_service_queue_v2(
 
 @app.command("create-reassign-agents")
 def create_reassign_agents(
-    orgid: str = typer.Argument(help="orgid"),
     id: str = typer.Argument(help="id"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
@@ -868,7 +920,9 @@ def create_reassign_agents(
 ):
     """Add or remove agents/users to/from an agent based queue\n\nExample --json-body:\n  '{"add":["..."],"remove":["..."]}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/v2/contact-service-queue/{id}/reassign-agents"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/v2/contact-service-queue/{id}/reassign-agents"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -889,6 +943,9 @@ def create_reassign_agents(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -905,7 +962,6 @@ def create_reassign_agents(
 
 @app.command("create-purge-inactive-entities")
 def create_purge_inactive_entities(
-    orgid: str = typer.Argument(help="orgid"),
     next_start_id: str = typer.Option(None, "--next-start-id", help="This is the entity ID from which items for the next purge ba"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
@@ -913,7 +969,9 @@ def create_purge_inactive_entities(
 ):
     """Purge inactive Contact Service Queue(s)."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/contact-service-queue/purge-inactive-entities"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/purge-inactive-entities"
     params = {}
     if next_start_id is not None:
         params["nextStartId"] = next_start_id
@@ -937,6 +995,9 @@ def create_purge_inactive_entities(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -953,7 +1014,6 @@ def create_purge_inactive_entities(
 
 @app.command("show-contact-service-queue-organization")
 def show_contact_service_queue_organization(
-    orgid: str = typer.Argument(help="orgid"),
     id: str = typer.Argument(help="id"),
     agents_updated_info: str = typer.Option(None, "--agents-updated-info", help="If `true`, returns the user details who has last updated the"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
@@ -961,7 +1021,9 @@ def show_contact_service_queue_organization(
 ):
     """Get specific Contact Service Queue by Id."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/contact-service-queue/{id}"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/{id}"
     params = {}
     if agents_updated_info is not None:
         params["agentsUpdatedInfo"] = agents_updated_info
@@ -981,6 +1043,9 @@ def show_contact_service_queue_organization(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -998,7 +1063,6 @@ def show_contact_service_queue_organization(
 
 @app.command("update-contact-service-queue-organization")
 def update_contact_service_queue_organization(
-    orgid: str = typer.Argument(help="orgid"),
     id: str = typer.Argument(help="id"),
     channel_type: str = typer.Option(None, "--channel-type", help=""),
     check_agent_availability: str = typer.Option(None, "--check-agent-availability", help=""),
@@ -1041,7 +1105,9 @@ def update_contact_service_queue_organization(
 ):
     """Update specific Contact Service Queue by ID\n\nExample --json-body:\n  '{"channelType":"...","checkAgentAvailability":"...","controlFlowScriptUrl":"...","defaultMusicInQueueMediaFileId":"...","ivrRequeueUrl":"...","maxActiveContacts":"..."}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/contact-service-queue/{id}"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/{id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -1134,6 +1200,9 @@ def update_contact_service_queue_organization(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -1143,16 +1212,17 @@ def update_contact_service_queue_organization(
 
 @app.command("delete")
 def delete(
-    orgid: str = typer.Argument(help="orgid"),
     id: str = typer.Argument(help="id"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete specific Contact Service Queue by ID."""
     if not force:
-        typer.confirm(f"Delete {id}?", abort=True)
+        typer.confirm(f"Delete {orgid}?", abort=True)
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/contact-service-queue/{id}"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/{id}"
     try:
         api.session.rest_delete(url)
     except RestError as e:
@@ -1169,16 +1239,18 @@ def delete(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    typer.echo(f"Deleted: {id}")
+    typer.echo(f"Deleted: {orgid}")
 
 
 
 @app.command("list-contact-service-queue-v3")
 def list_contact_service_queue_v3(
-    orgid: str = typer.Argument(help="orgid"),
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes"),
     search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search col"),
@@ -1194,7 +1266,9 @@ def list_contact_service_queue_v3(
 ):
     """List Contact Service Queue(s)."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/v3/contact-service-queue"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/v3/contact-service-queue"
     params = {}
     if filter_param is not None:
         params["filter"] = filter_param
@@ -1232,6 +1306,9 @@ def list_contact_service_queue_v3(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -1246,14 +1323,15 @@ def list_contact_service_queue_v3(
 
 @app.command("create-bulk")
 def create_bulk(
-    orgid: str = typer.Argument(help="orgid"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Bulk save Contact Service Queue(s)\n\nExample --json-body:\n  '{"items":[{"item":"...","itemIdentifier":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/contact-service-queue/v2/bulk"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/v2/bulk"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -1274,6 +1352,9 @@ def create_bulk(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -1290,14 +1371,15 @@ def create_bulk(
 
 @app.command("create-delete-reference")
 def create_delete_reference(
-    orgid: str = typer.Argument(help="orgid"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete References\n\nExample --json-body:\n  '{"references":{"key_0":"...","key_1":"..."}}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/contact-service-queue/delete-reference"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/delete-reference"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -1318,6 +1400,9 @@ def create_delete_reference(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -1334,7 +1419,6 @@ def create_delete_reference(
 
 @app.command("list-contact-service-queue-organization")
 def list_contact_service_queue_organization(
-    orgid: str = typer.Argument(help="orgid"),
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
     channel_types: str = typer.Option(None, "--channel-types", help="[DEPRECATED] Channel type(s) allowed by the system.Separate"),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes"),
@@ -1348,7 +1432,9 @@ def list_contact_service_queue_organization(
 ):
     """List Contact Service Queue(s)."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/contact-service-queue"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/contact-service-queue"
     params = {}
     if filter_param is not None:
         params["filter"] = filter_param
@@ -1382,6 +1468,9 @@ def list_contact_service_queue_organization(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -1396,7 +1485,6 @@ def list_contact_service_queue_organization(
 
 @app.command("create-contact-service-queue-organization")
 def create_contact_service_queue_organization(
-    orgid: str = typer.Argument(help="orgid"),
     channel_type: str = typer.Option(None, "--channel-type", help=""),
     check_agent_availability: str = typer.Option(None, "--check-agent-availability", help=""),
     control_flow_script_url: str = typer.Option(None, "--control-flow-script-url", help=""),
@@ -1439,7 +1527,9 @@ def create_contact_service_queue_organization(
 ):
     """Create a new Contact Service Queue\n\nExample --json-body:\n  '{"channelType":"...","checkAgentAvailability":"...","controlFlowScriptUrl":"...","defaultMusicInQueueMediaFileId":"...","ivrRequeueUrl":"...","maxActiveContacts":"..."}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/organization/{orgid}/contact-service-queue"
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/contact-service-queue"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -1532,6 +1622,9 @@ def create_contact_service_queue_organization(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)

@@ -206,7 +206,7 @@ def list_resources(
             return []
         all_items = []
         for loc_id in location_ids:
-            url = rt.list_url.format(location_id=loc_id)
+            url = f"{BASE}{rt.list_url.format(location_id=loc_id)}"
             try:
                 items = list(api.session.follow_pagination(
                     url=url, params=dict(params), item_key=rt.item_key,
@@ -220,7 +220,7 @@ def list_resources(
         return all_items
 
     # Org-scoped list
-    url = rt.list_url
+    url = f"{BASE}{rt.list_url}"
     try:
         items = list(api.session.follow_pagination(
             url=url, params=params, item_key=rt.item_key,
@@ -294,7 +294,7 @@ def delete_resource(
     for field_name in rt.extra_delete_fields:
         fmt_kwargs[field_name] = item.get(field_name, "")
 
-    url = rt.delete_url.format(**fmt_kwargs)
+    url = f"{BASE}{rt.delete_url.format(**fmt_kwargs)}"
     params = {}
     if org_id:
         params["orgId"] = org_id

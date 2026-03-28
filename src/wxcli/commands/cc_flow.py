@@ -3,14 +3,14 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
+from wxcli.config import get_org_id, get_cc_base_url
 
 
-app = typer.Typer(help="Manage Webex Calling flow.")
+app = typer.Typer(help="Manage Webex Contact Center cc-flow.")
 
 
 @app.command("list")
 def cmd_list(
-    org_id: str = typer.Argument(help="orgId"),
     project_id: str = typer.Argument(help="projectId"),
     flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
     ids: str = typer.Option(None, "--ids", help="Filters results based on a comma-separated list of flow IDs."),
@@ -25,7 +25,9 @@ def cmd_list(
 ):
     """List Flows or Subflows."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/flow-store/{org_id}/project/{project_id}/flows"
+    cc_base_url = get_cc_base_url()
+    org_id = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/flow-store/{org_id}/project/{project_id}/flows"
     params = {}
     if flow_type is not None:
         params["flowType"] = flow_type
@@ -59,6 +61,9 @@ def cmd_list(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -73,7 +78,6 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    org_id: str = typer.Argument(help="orgId"),
     project_id: str = typer.Argument(help="projectId"),
     overwrite: str = typer.Option(None, "--overwrite", help="Determines whether to overwrite the existing flow or not. Po"),
     flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
@@ -83,7 +87,9 @@ def create(
 ):
     """Import a Flow or Subflow."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/flow-store/{org_id}/project/{project_id}/flows/import"
+    cc_base_url = get_cc_base_url()
+    org_id = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/flow-store/{org_id}/project/{project_id}/flows/import"
     params = {}
     if overwrite is not None:
         params["overwrite"] = overwrite
@@ -109,6 +115,9 @@ def create(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -125,7 +134,6 @@ def create(
 
 @app.command("list-export")
 def list_export(
-    org_id: str = typer.Argument(help="orgId"),
     project_id: str = typer.Argument(help="projectId"),
     flow_id: str = typer.Argument(help="flowId"),
     version: str = typer.Option(None, "--version", help="Version ID. Possible values are 'draft', 'latest' or version"),
@@ -136,7 +144,9 @@ def list_export(
 ):
     """Export a Flow or Subflow."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/flow-store/{org_id}/project/{project_id}/flows/{flow_id}/export"
+    cc_base_url = get_cc_base_url()
+    org_id = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/flow-store/{org_id}/project/{project_id}/flows/{flow_id}/export"
     params = {}
     if version is not None:
         params["version"] = version
@@ -160,6 +170,9 @@ def list_export(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -174,7 +187,6 @@ def list_export(
 
 @app.command("create-export")
 def create_export(
-    org_id: str = typer.Argument(help="orgId"),
     project_id: str = typer.Argument(help="projectId"),
     flow_id: str = typer.Argument(help="flowId"),
     comment: str = typer.Option(None, "--comment", help=""),
@@ -184,7 +196,9 @@ def create_export(
 ):
     """Publish a Flow or Subflow\n\nExample --json-body:\n  '{"comment":"...","tagIds":["..."]}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/flow-store/{org_id}/project/{project_id}/flows/{flow_id}/export"
+    cc_base_url = get_cc_base_url()
+    org_id = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/flow-store/{org_id}/project/{project_id}/flows/{flow_id}/export"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -207,6 +221,9 @@ def create_export(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)

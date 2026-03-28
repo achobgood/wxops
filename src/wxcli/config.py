@@ -34,6 +34,28 @@ def get_org_name(path: Path = DEFAULT_CONFIG_PATH) -> str | None:
     profile = config.get("profiles", {}).get("default", {})
     return profile.get("org_name")
 
+CC_REGIONS = {
+    "us1": "https://api.wxcc-us1.cisco.com",
+    "eu1": "https://api.wxcc-eu1.cisco.com",
+    "eu2": "https://api.wxcc-eu2.cisco.com",
+    "anz1": "https://api.wxcc-anz1.cisco.com",
+    "ca1": "https://api.wxcc-ca1.cisco.com",
+    "jp1": "https://api.wxcc-jp1.cisco.com",
+    "sg1": "https://api.wxcc-sg1.cisco.com",
+}
+
+def get_cc_base_url(path: Path = DEFAULT_CONFIG_PATH) -> str:
+    config = load_config(path)
+    profile = config.get("profiles", {}).get("default", {})
+    region = profile.get("cc_region", "us1")
+    return CC_REGIONS.get(region, CC_REGIONS["us1"])
+
+def save_cc_region(region: str, path: Path = DEFAULT_CONFIG_PATH) -> None:
+    config = load_config(path)
+    profile = config.setdefault("profiles", {}).setdefault("default", {})
+    profile["cc_region"] = region
+    save_config(config, path)
+
 def save_org(org_id: str | None, org_name: str | None, path: Path = DEFAULT_CONFIG_PATH) -> None:
     config = load_config(path)
     profile = config.setdefault("profiles", {}).setdefault("default", {})

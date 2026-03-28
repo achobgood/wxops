@@ -471,7 +471,7 @@ def list_vendor_users_call_recording(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Email', 'email')], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('First Name', 'firstName'), ('Last Name', 'lastName')], limit=limit)
 
 
 
@@ -632,7 +632,7 @@ def list_vendor_users_call_recording_1(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Email', 'email')], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('First Name', 'firstName'), ('Last Name', 'lastName')], limit=limit)
 
 
 

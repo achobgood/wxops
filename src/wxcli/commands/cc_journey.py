@@ -3,9 +3,10 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
+from wxcli.config import get_cc_base_url
 
 
-app = typer.Typer(help="Manage Webex Calling cc-journey.")
+app = typer.Typer(help="Manage Webex Contact Center cc-journey.")
 
 
 @app.command("update")
@@ -17,7 +18,8 @@ def update(
 ):
     """Remove one/more Identities from a person."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/v1/api/person/remove-identities/workspace-id/{workspace_id}/person-id/{person_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/admin/v1/api/person/remove-identities/workspace-id/{workspace_id}/person-id/{person_id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -38,6 +40,9 @@ def update(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -72,6 +77,9 @@ def show(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -95,7 +103,8 @@ def show_workspace_id_api(
 ):
     """Get Workspace."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/v1/api/workspace/workspace-id/{workspace_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/admin/v1/api/workspace/workspace-id/{workspace_id}"
     try:
         result = api.session.rest_get(url)
     except RestError as e:
@@ -112,6 +121,9 @@ def show_workspace_id_api(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -137,7 +149,8 @@ def update_workspace_id(
 ):
     """Update Workspace."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/v1/api/workspace/workspace-id/{workspace_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/admin/v1/api/workspace/workspace-id/{workspace_id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -162,6 +175,9 @@ def update_workspace_id(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -179,7 +195,8 @@ def delete(
     if not force:
         typer.confirm(f"Delete {workspace_id}?", abort=True)
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/v1/api/workspace/workspace-id/{workspace_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/admin/v1/api/workspace/workspace-id/{workspace_id}"
     try:
         api.session.rest_delete(url)
     except RestError as e:
@@ -196,6 +213,9 @@ def delete(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -212,7 +232,8 @@ def show_template_id_workspace_id(
 ):
     """Get A specific Template searched by template id."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/v1/api/profile-view-template/workspace-id/{workspace_id}/template-id/{template_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/admin/v1/api/profile-view-template/workspace-id/{workspace_id}/template-id/{template_id}"
     try:
         result = api.session.rest_get(url)
     except RestError as e:
@@ -229,6 +250,9 @@ def show_template_id_workspace_id(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -254,7 +278,8 @@ def update_template_id(
 ):
     """Update existing ProfileViewTemplate\n\nExample --json-body:\n  '{"attributes":[{"version":"...","rules":"...","widgetAttributes":"...","limit":"...","metaDataType":"...","metaData":"..."}],"name":"..."}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/v1/api/profile-view-template/workspace-id/{workspace_id}/template-id/{template_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/admin/v1/api/profile-view-template/workspace-id/{workspace_id}/template-id/{template_id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -277,6 +302,9 @@ def update_template_id(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -295,7 +323,8 @@ def delete_template_id(
     if not force:
         typer.confirm(f"Delete {template_id}?", abort=True)
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/v1/api/profile-view-template/workspace-id/{workspace_id}/template-id/{template_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/admin/v1/api/profile-view-template/workspace-id/{workspace_id}/template-id/{template_id}"
     try:
         api.session.rest_delete(url)
     except RestError as e:
@@ -312,6 +341,9 @@ def delete_template_id(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -328,7 +360,8 @@ def update_person_id_workspace_id(
 ):
     """Add/Remove/Replace details of a Person.."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/v1/api/person/workspace-id/{workspace_id}/person-id/{person_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/admin/v1/api/person/workspace-id/{workspace_id}/person-id/{person_id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -349,6 +382,9 @@ def update_person_id_workspace_id(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -367,7 +403,8 @@ def delete_person_id(
     if not force:
         typer.confirm(f"Delete {person_id}?", abort=True)
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/v1/api/person/workspace-id/{workspace_id}/person-id/{person_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/admin/v1/api/person/workspace-id/{workspace_id}/person-id/{person_id}"
     try:
         api.session.rest_delete(url)
     except RestError as e:
@@ -384,6 +421,9 @@ def delete_person_id(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -400,7 +440,8 @@ def update_person_id_workspace_id_1(
 ):
     """Add one/more Identities to a person\n\nExample --json-body:\n  '{"temporaryId":["..."],"customerId":["..."],"email":["..."],"phone":["..."]}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/v1/api/person/add-identities/workspace-id/{workspace_id}/person-id/{person_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/admin/v1/api/person/add-identities/workspace-id/{workspace_id}/person-id/{person_id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -421,6 +462,9 @@ def update_person_id_workspace_id_1(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -436,7 +480,8 @@ def show_workspace_id_wxcc_subscription(
 ):
     """Get WXCC Subscription."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/v1/api/wxcc-subscription/workspace-id/{workspace_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/admin/v1/api/wxcc-subscription/workspace-id/{workspace_id}"
     try:
         result = api.session.rest_get(url)
     except RestError as e:
@@ -453,6 +498,9 @@ def show_workspace_id_wxcc_subscription(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -477,7 +525,8 @@ def create(
 ):
     """Create WXCC Subscription."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/v1/api/wxcc-subscription/workspace-id/{workspace_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/admin/v1/api/wxcc-subscription/workspace-id/{workspace_id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -498,6 +547,9 @@ def create(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -522,7 +574,8 @@ def delete_workspace_id(
     if not force:
         typer.confirm(f"Delete {workspace_id}?", abort=True)
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/v1/api/wxcc-subscription/workspace-id/{workspace_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/admin/v1/api/wxcc-subscription/workspace-id/{workspace_id}"
     try:
         api.session.rest_delete(url)
     except RestError as e:
@@ -539,6 +592,9 @@ def delete_workspace_id(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -560,7 +616,8 @@ def cmd_list(
 ):
     """Get All Workspaces."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/v1/api/workspace"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/admin/v1/api/workspace"
     params = {}
     if filter_param is not None:
         params["filter"] = filter_param
@@ -592,6 +649,9 @@ def cmd_list(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -615,7 +675,8 @@ def create_workspace(
 ):
     """Create Workspace."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/v1/api/workspace"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/admin/v1/api/workspace"
     params = {}
     if organization_id is not None:
         params["organizationId"] = organization_id
@@ -643,6 +704,9 @@ def create_workspace(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -670,7 +734,8 @@ def show_workspace_id_profile_view_template(
 ):
     """Get All Template Details.."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/v1/api/profile-view-template/workspace-id/{workspace_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/admin/v1/api/profile-view-template/workspace-id/{workspace_id}"
     params = {}
     if filter_param is not None:
         params["filter"] = filter_param
@@ -698,6 +763,9 @@ def show_workspace_id_profile_view_template(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -723,7 +791,8 @@ def create_workspace_id_profile_view_template(
 ):
     """Create Template\n\nExample --json-body:\n  '{"attributes":[{"version":"...","rules":"...","widgetAttributes":"...","limit":"...","metaDataType":"...","metaData":"..."}],"name":"..."}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/v1/api/profile-view-template/workspace-id/{workspace_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/admin/v1/api/profile-view-template/workspace-id/{workspace_id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -746,6 +815,9 @@ def create_workspace_id_profile_view_template(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -774,7 +846,8 @@ def show_workspace_id_person(
 ):
     """Get all or a specific Person Details."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/v1/api/person/workspace-id/{workspace_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/admin/v1/api/person/workspace-id/{workspace_id}"
     params = {}
     if person_id is not None:
         params["personId"] = person_id
@@ -804,6 +877,9 @@ def show_workspace_id_person(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -830,7 +906,8 @@ def create_workspace_id_person(
 ):
     """Create a Person\n\nExample --json-body:\n  '{"firstName":"...","lastName":"...","phone":["..."],"temporaryId":["..."],"customerId":["..."],"email":["..."]}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/v1/api/person/workspace-id/{workspace_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/admin/v1/api/person/workspace-id/{workspace_id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -855,6 +932,9 @@ def create_workspace_id_person(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -878,7 +958,8 @@ def show_template_name_workspace_id(
 ):
     """Get A specific Template searched by template name."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/v1/api/profile-view-template/workspace-id/{workspace_id}/template-name/{template_name}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/admin/v1/api/profile-view-template/workspace-id/{workspace_id}/template-name/{template_name}"
     try:
         result = api.session.rest_get(url)
     except RestError as e:
@@ -895,6 +976,9 @@ def show_template_name_workspace_id(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -923,7 +1007,8 @@ def show_aliases(
 ):
     """Search for an Identity via aliases."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/v1/api/person/workspace-id/{workspace_id}/aliases/{aliases}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/admin/v1/api/person/workspace-id/{workspace_id}/aliases/{aliases}"
     params = {}
     if sort_by is not None:
         params["sortBy"] = sort_by
@@ -949,6 +1034,9 @@ def show_aliases(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -973,7 +1061,8 @@ def show_template_id_workspace_id_1(
 ):
     """Get all Journey Actions for a template."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/v1/api/journey-actions/workspace-id/{workspace_id}/template-id/{template_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/admin/v1/api/journey-actions/workspace-id/{workspace_id}/template-id/{template_id}"
     try:
         result = api.session.rest_get(url)
     except RestError as e:
@@ -990,6 +1079,9 @@ def show_template_id_workspace_id_1(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -1018,7 +1110,8 @@ def create_template_id(
 ):
     """Create a new  Journey Action.\n\nExample --json-body:\n  '{"name":"...","isActive":"...","rules":{"logic":"...","args":["..."]},"actionTriggers":[{"welcomeMessage":"...","title":"...","type":"...","agentId":"..."}],"cooldownPeriodInMinutes":"..."}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/v1/api/journey-actions/workspace-id/{workspace_id}/template-id/{template_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/admin/v1/api/journey-actions/workspace-id/{workspace_id}/template-id/{template_id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -1045,6 +1138,9 @@ def create_template_id(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -1069,7 +1165,8 @@ def show_action_name(
 ):
     """Get specific Journey Action By Name."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/v1/api/journey-actions/workspace-id/{workspace_id}/template-id/{template_id}/action-name/{action_name}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/admin/v1/api/journey-actions/workspace-id/{workspace_id}/template-id/{template_id}/action-name/{action_name}"
     try:
         result = api.session.rest_get(url)
     except RestError as e:
@@ -1086,6 +1183,9 @@ def show_action_name(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -1111,7 +1211,8 @@ def show_template_name_person_id(
 ):
     """Historic Progressive Profile View using Template Name.."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/v1/api/progressive-profile-view/workspace-id/{workspace_id}/person-id/{person_id}/template-name/{template_name}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/admin/v1/api/progressive-profile-view/workspace-id/{workspace_id}/person-id/{person_id}/template-name/{template_name}"
     try:
         result = api.session.rest_get(url)
     except RestError as e:
@@ -1128,6 +1229,9 @@ def show_template_name_person_id(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -1190,6 +1294,9 @@ def show_workspace_id_events(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -1232,6 +1339,9 @@ def show_template_id_identity(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -1277,6 +1387,9 @@ def update_person_id_workspace_id_2(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -1294,7 +1407,8 @@ def show_action_id(
 ):
     """Get specific Journey Action By ActionId."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/v1/api/journey-actions/workspace-id/{workspace_id}/template-id/{template_id}/action-id/{action_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/admin/v1/api/journey-actions/workspace-id/{workspace_id}/template-id/{template_id}/action-id/{action_id}"
     try:
         result = api.session.rest_get(url)
     except RestError as e:
@@ -1311,6 +1425,9 @@ def show_action_id(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -1339,7 +1456,8 @@ def update_action_id(
 ):
     """Update existing Journey Action.\n\nExample --json-body:\n  '{"name":"...","isActive":"...","rules":{"logic":"...","args":["..."]},"actionTriggers":[{"welcomeMessage":"...","title":"...","type":"...","agentId":"..."}],"cooldownPeriodInMinutes":"..."}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/v1/api/journey-actions/workspace-id/{workspace_id}/template-id/{template_id}/action-id/{action_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/admin/v1/api/journey-actions/workspace-id/{workspace_id}/template-id/{template_id}/action-id/{action_id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -1366,6 +1484,9 @@ def update_action_id(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -1385,7 +1506,8 @@ def delete_action_id(
     if not force:
         typer.confirm(f"Delete {action_id}?", abort=True)
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/v1/api/journey-actions/workspace-id/{workspace_id}/template-id/{template_id}/action-id/{action_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/admin/v1/api/journey-actions/workspace-id/{workspace_id}/template-id/{template_id}/action-id/{action_id}"
     try:
         api.session.rest_delete(url)
     except RestError as e:
@@ -1402,6 +1524,9 @@ def delete_action_id(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -1421,7 +1546,8 @@ def show_workspace_id_journey_actions(
 ):
     """Get all Journey Actions."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/v1/api/journey-actions/workspace-id/{workspace_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/admin/v1/api/journey-actions/workspace-id/{workspace_id}"
     params = {}
     if sort_by is not None:
         params["sortBy"] = sort_by
@@ -1447,6 +1573,9 @@ def show_workspace_id_journey_actions(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -1473,7 +1602,8 @@ def create_workspace_id_merge_identities(
 ):
     """Creates or merges aliases to an Individual in JDS.\n\nExample --json-body:\n  '{"firstName":"...","lastName":"...","phone":["..."],"temporaryId":["..."],"customerId":["..."],"email":["..."]}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/v1/api/person/merge-identities/workspace-id/{workspace_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/admin/v1/api/person/merge-identities/workspace-id/{workspace_id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -1498,6 +1628,9 @@ def create_workspace_id_merge_identities(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -1522,7 +1655,8 @@ def create_primary_person_id(
 ):
     """Merges Identities to a Primary Identity.\n\nExample --json-body:\n  '{"personIdsToMerge":["..."]}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/v1/api/person/merge/workspace-id/{workspace_id}/primary-person-id/{primary_person_id}"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/admin/v1/api/person/merge/workspace-id/{workspace_id}/primary-person-id/{primary_person_id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -1543,6 +1677,9 @@ def create_primary_person_id(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -1584,6 +1721,9 @@ def show_template_id_person_id(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -1626,6 +1766,9 @@ def show_template_name_identity(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -1668,6 +1811,9 @@ def show_template_id_identity_1(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -1710,6 +1856,9 @@ def show_template_name_identity_1(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -1758,6 +1907,9 @@ def show_identity(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -1791,7 +1943,8 @@ def create_event(
 ):
     """Journey Event Posting\n\nExample --json-body:\n  '{"source":"...","identity":"...","id":"...","datacontenttype":"...","identitytype":"...","specversion":"..."}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/publish/v1/api/event"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/publish/v1/api/event"
     params = {}
     if workspace_id is not None:
         params["workspaceId"] = workspace_id
@@ -1833,6 +1986,9 @@ def create_event(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)

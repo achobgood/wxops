@@ -125,6 +125,21 @@ def clear_org():
     typer.echo("Cleared target org. Commands will now target your own organization.")
 
 
+@app.command("set-cc-region")
+def set_cc_region(
+    region: str = typer.Argument(
+        help="Contact Center region: us1, eu1, eu2, anz1, ca1, jp1, sg1"
+    ),
+):
+    """Set the Contact Center API region for cc-* commands."""
+    from wxcli.config import CC_REGIONS, save_cc_region
+    if region not in CC_REGIONS:
+        typer.echo(f"Error: Unknown region '{region}'. Valid: {', '.join(sorted(CC_REGIONS))}", err=True)
+        raise typer.Exit(1)
+    save_cc_region(region)
+    typer.echo(f"CC region set: {region} ({CC_REGIONS[region]})")
+
+
 # Hand-coded modules
 from wxcli.commands.configure import app as configure_app
 from wxcli.commands.locations import app as locations_app
@@ -441,8 +456,8 @@ from wxcli.commands.cc_overrides import app as cc_overrides_app
 app.add_typer(cc_overrides_app, name="cc-overrides")
 from wxcli.commands.cc_queue import app as cc_queue_app
 app.add_typer(cc_queue_app, name="cc-queue")
-from wxcli.commands.cc_queues import app as cc_queues_app
-app.add_typer(cc_queues_app, name="cc-queues")
+from wxcli.commands.cc_queue_stats import app as cc_queue_stats_app
+app.add_typer(cc_queue_stats_app, name="cc-queue-stats")
 from wxcli.commands.cc_realtime import app as cc_realtime_app
 app.add_typer(cc_realtime_app, name="cc-realtime")
 from wxcli.commands.cc_resource_collection import app as cc_resource_collection_app

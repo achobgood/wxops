@@ -79,7 +79,7 @@ def generate_tag(
             for name in skipped_uploads:
                 print(f"  {'SKIP':30s} {'':6s} {'upload':15s} {name}")
     else:
-        code = render_command_file(tag_name, endpoints, folder_ovr)
+        code = render_command_file(cli_name, endpoints, folder_ovr)
         out_path = output_dir / f"{module_name}.py"
         out_path.write_text(code)
         print(
