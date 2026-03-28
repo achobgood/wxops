@@ -945,6 +945,30 @@ wxcli recordings create-restore \
 # Purge recordings permanently from recycle bin
 wxcli recordings create-purge \
   --json-body '{"purgeAll": true, "ownerEmail": "user@company.com"}'
+
+# Download a single recording's artifacts (transcript, AI notes, audio)
+wxcli converged-recordings download "Y2lz...cmVj"
+wxcli converged-recordings download "Y2lz...cmVj" --include-audio
+wxcli converged-recordings download "Y2lz...cmVj" -d /tmp/my-recordings
+
+# Bulk export recordings to JSONL (BI-ready)
+wxcli converged-recordings export \
+  --from "2026-03-01T00:00:00Z" --to "2026-03-28T00:00:00Z"
+
+# Export with filters
+wxcli converged-recordings export \
+  --from "2026-03-01T00:00:00Z" --to "2026-03-28T00:00:00Z" \
+  --owner-email user@company.com --service-type calling
+
+# Export as individual files per recording
+wxcli converged-recordings export \
+  --from "2026-03-01T00:00:00Z" --to "2026-03-28T00:00:00Z" \
+  --format json-per-file
+
+# Export with audio files
+wxcli converged-recordings export \
+  --from "2026-03-01T00:00:00Z" --to "2026-03-28T00:00:00Z" \
+  --include-audio -d /data/recording-export
 ```
 
 #### List Recordings (User)
@@ -1058,6 +1082,39 @@ body = {
 }
 result = api.session.rest_post(f"{BASE}/convergedRecordings/restore", json=body)
 ```
+
+#### Download Recording Artifacts
+
+Downloads a single recording's transcript, AI-generated notes, and optionally the MP3 audio file to a local directory. Uses the `temporaryDirectDownloadLinks` from the recording detail response. The download URLs are pre-signed — they are fetched directly with HTTP GET, no Bearer token needed.
+
+```bash
+wxcli converged-recordings download RECORDING_ID [--include-audio] [-d OUTPUT_DIR]
+```
+
+Output structure:
+```
+{output_dir}/{recording_id}/
+  metadata.json          # full recording detail response
+  transcript.txt         # if available
+  suggested_notes.html   # if available
+  short_notes.html       # if available
+  action_items.html      # if available
+  audio.mp3              # if --include-audio and available
+```
+
+#### Bulk Export Recordings
+
+Paginates the admin listing endpoint, fetches detail for each recording, and downloads all text/AI artifacts. Produces either a single JSONL file (BI-ready) or one directory per recording.
+
+```bash
+wxcli converged-recordings export --from START --to END [filters...] [--format jsonl|json-per-file]
+```
+
+JSONL mode (default): writes `recordings.jsonl` with one JSON object per line containing all metadata and inline text content. Audio files (if `--include-audio`) go to `{output_dir}/audio/{recording_id}.mp3`.
+
+JSON-per-file mode: same directory structure as the `download` command, one directory per recording.
+
+Processing is sequential — each recording is fully fetched and downloaded before moving to the next, since download links expire in 3 hours.
 
 #### Purge Recordings from Recycle Bin
 

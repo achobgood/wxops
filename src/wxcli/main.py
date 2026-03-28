@@ -156,6 +156,12 @@ app.add_typer(cucm_app, name="cucm")
 from wxcli.commands.cleanup import app as cleanup_app
 app.add_typer(cleanup_app, name="cleanup")
 
+# Auto-generated converged recordings CRUD + hand-written download/export
+from wxcli.commands.converged_recordings import app as converged_recordings_app
+app.add_typer(converged_recordings_app, name="converged-recordings")
+from wxcli.commands import converged_recordings_export
+converged_recordings_export.register(converged_recordings_app)
+
 # Auto-generated from OpenAPI spec
 from wxcli.commands.call_controls import app as call_controls_app
 app.add_typer(call_controls_app, name="call-controls")
