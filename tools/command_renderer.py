@@ -91,6 +91,22 @@ def _render_auto_inject_params(ep: Endpoint) -> list[str]:
     return lines
 
 
+def _render_path_inject(ep: Endpoint) -> list[str]:
+    """Return lines to inject auto-inject PATH params from config (before URL line)."""
+    lines = []
+    for var in getattr(ep, "auto_inject_path_params", []):
+        param = _path_var_to_param(var)
+        # orgid/orgId path params resolve from saved org config
+        if var.lower() == "orgid":
+            lines.append(f"    {param} = get_org_id() or ''")
+    return lines
+
+
+def _skip_injected_path_var(var: str, ep: Endpoint) -> bool:
+    """Return True if this path var is auto-injected and should not be a CLI argument."""
+    return var in getattr(ep, "auto_inject_path_params", [])
+
+
 PYTHON_KEYWORDS = {
     "list", "type", "id", "format", "input", "print", "open", "set", "map", "filter",
     "from", "import", "class", "def", "return", "yield", "for", "while", "if", "else",
@@ -160,6 +176,8 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
     params = []
 
     for var in ep.path_vars:
+        if _skip_injected_path_var(var, ep):
+            continue
         param = _path_var_to_param(var)
         params.append(f'    {param}: str = typer.Argument(help="{var}"),')
 
@@ -247,6 +265,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
             "):",
             _render_docstring(ep),
             "    api = get_api(debug=debug)",
+            *_render_path_inject(ep),
             f'    url = f"{url_expr}"',
             *param_build,
             *_render_auto_inject_params(ep),
@@ -265,6 +284,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
             "):",
             _render_docstring(ep),
             "    api = get_api(debug=debug)",
+            *_render_path_inject(ep),
             f'    url = f"{url_expr}"',
             *param_build,
             *_render_auto_inject_params(ep),
@@ -284,6 +304,8 @@ def _render_show_command(ep: Endpoint, folder_overrides: dict | None = None) -> 
     func_name = _safe_func_name(ep.command_name)
     params = []
     for var in ep.path_vars:
+        if _skip_injected_path_var(var, ep):
+            continue
         param = _path_var_to_param(var)
         params.append(f'    {param}: str = typer.Argument(help="{var}"),')
     qp_defs, qp_build = _render_query_params(ep)
@@ -320,6 +342,7 @@ def _render_show_command(ep: Endpoint, folder_overrides: dict | None = None) -> 
             "):",
             _render_docstring(ep),
             "    api = get_api(debug=debug)",
+            *_render_path_inject(ep),
             f'    url = f"{url_expr}"',
             *param_init,
             *auto_inject,
@@ -336,6 +359,7 @@ def _render_show_command(ep: Endpoint, folder_overrides: dict | None = None) -> 
             "):",
             _render_docstring(ep),
             "    api = get_api(debug=debug)",
+            *_render_path_inject(ep),
             f'    url = f"{url_expr}"',
             "    try:",
             "        result = api.session.rest_get(url)",
@@ -377,6 +401,8 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
     folder_overrides = folder_overrides or {}
     params = []
     for var in ep.path_vars:
+        if _skip_injected_path_var(var, ep):
+            continue
         param = _path_var_to_param(var)
         params.append(f'    {param}: str = typer.Argument(help="{var}"),')
 
@@ -444,6 +470,7 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
         "):",
         _render_docstring(ep),
         "    api = get_api(debug=debug)",
+        *_render_path_inject(ep),
         f'    url = f"{url_expr}"',
         *qp_build,
         *auto_inject,
@@ -462,6 +489,8 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
     is_json_patch = ep.content_type == "application/json-patch+json"
     params = []
     for var in ep.path_vars:
+        if _skip_injected_path_var(var, ep):
+            continue
         param = _path_var_to_param(var)
         params.append(f'    {param}: str = typer.Argument(help="{var}"),')
 
@@ -537,6 +566,7 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
         "):",
         _render_docstring(ep),
         "    api = get_api(debug=debug)",
+        *_render_path_inject(ep),
         f'    url = f"{url_expr}"',
         *qp_build,
         *auto_inject,
@@ -553,6 +583,8 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
     func_name = _safe_func_name(ep.command_name)
     params = []
     for var in ep.path_vars:
+        if _skip_injected_path_var(var, ep):
+            continue
         param = _path_var_to_param(var)
         params.append(f'    {param}: str = typer.Argument(help="{var}"),')
     qp_defs, qp_build = _render_query_params(ep)
@@ -585,6 +617,7 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
         "    if not force:",
         confirm_line,
         "    api = get_api(debug=debug)",
+        *_render_path_inject(ep),
         f'    url = f"{url_expr}"',
         *qp_build,
         *auto_inject,
@@ -600,6 +633,8 @@ def _render_action_command(ep: Endpoint, folder_overrides: dict | None = None) -
     func_name = _safe_func_name(ep.command_name)
     params = []
     for var in ep.path_vars:
+        if _skip_injected_path_var(var, ep):
+            continue
         param = _path_var_to_param(var)
         params.append(f'    {param}: str = typer.Argument(help="{var}"),')
 
@@ -638,6 +673,7 @@ def _render_action_command(ep: Endpoint, folder_overrides: dict | None = None) -
         "):",
         _render_docstring(ep),
         "    api = get_api(debug=debug)",
+        *_render_path_inject(ep),
         f'    url = f"{url_expr}"',
         *qp_build,
         *auto_inject,

@@ -39,6 +39,7 @@
       - ["ID", "id"]
       - ["Name", "name"]
       - ["Extension", "extension"]
+      - ["Location", "locationName"]
       - ["Enabled", "enabled"]
 
 "Features:  Call Queue":
@@ -92,6 +93,7 @@
       - ["ID", "id"]
       - ["Name", "name"]
       - ["Extension", "extension"]
+      - ["Location", "locationName"]
       - ["Enabled", "enabled"]
 
 "Call Routing":
@@ -99,7 +101,7 @@
     table_columns:
       - ["ID", "id"]
       - ["Name", "name"]
-      - ["Type", "type"]
+      - ["Route Type", "routeType"]
 
 "DECT Devices Settings":
   list:
@@ -136,17 +138,17 @@
 "Call Controls":
   table_columns:
     list:
-      - ["Call ID", "callId"]
+      - ["Call ID", "id"]
       - ["Personality", "personality"]
       - ["State", "state"]
       - ["Remote Party", "remoteParty.name"]
     list-history:
-      - ["ID", "id"]
-      - ["Direction", "direction"]
-      - ["Call Type", "callType"]
-      - ["Start", "startTime"]
+      - ["Type", "type"]
+      - ["Name", "name"]
+      - ["Number", "number"]
+      - ["Time", "time"]
     list-calls:
-      - ["Call ID", "callId"]
+      - ["Call ID", "id"]
       - ["Personality", "personality"]
       - ["State", "state"]
 
@@ -212,7 +214,7 @@
       - ["ID", "id"]
       - ["First Name", "firstName"]
       - ["Last Name", "lastName"]
-      - ["Extension", "extension"]
+      - ["Phone Number", "phoneNumber"]
       - ["Member Type", "memberType"]
     list-supported-devices-config:
       - ["Model", "model"]
@@ -221,11 +223,11 @@
     list-supported-devices-dects:
       - ["Model", "model"]
       - ["Display Name", "displayName"]
-      - ["Base Stations", "numberOfSupportedBaseStations"]
+      - ["Base Stations", "numberOfBaseStations"]
     list-supported-devices-dect-networks:
       - ["Model", "model"]
       - ["Display Name", "displayName"]
-      - ["Base Stations", "numberOfSupportedBaseStations"]
+      - ["Base Stations", "numberOfBaseStations"]
     list-devices-people:
       - ["ID", "id"]
       - ["Model", "model"]
@@ -240,7 +242,7 @@
       - ["ID", "id"]
       - ["Template Name", "templateName"]
       - ["Device Model", "deviceModel"]
-      - ["Display Name", "userDisplayName"]
+      - ["Display Name", "modelDisplayName"]
     list-apply-line-key-template:
       - ["ID", "id"]
       - ["Status", "latestExecutionStatus"]
@@ -253,9 +255,9 @@
     list-connection: "settings-get"
   table_columns:
     list:
-      - ["Type", "type"]
-      - ["Name", "name"]
       - ["ID", "id"]
+      - ["Name", "displayName"]
+      - ["PSTN Services", "pstnServices"]
 
 "Features: Single Number Reach":
   table_columns:
@@ -279,12 +281,12 @@
       - ["Default", "defaultEnabled"]
     list-vendor-users-call-recording:
       - ["ID", "id"]
-      - ["Name", "name"]
-      - ["Email", "email"]
+      - ["First Name", "firstName"]
+      - ["Last Name", "lastName"]
     list-vendor-users-call-recording-1:
       - ["ID", "id"]
-      - ["Name", "name"]
-      - ["Email", "email"]
+      - ["First Name", "firstName"]
+      - ["Last Name", "lastName"]
 
 "People":
   table_columns:
@@ -395,7 +397,7 @@
     table_columns:
       - ["ID", "id"]
       - ["Display Name", "displayName"]
-      - ["City", "address.city"]
+      - ["City", "cityName"]
 
 "Rooms":
   list:
@@ -462,10 +464,67 @@
       - ["Created", "timeRecorded"]
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# Meetings spec — table columns
+# ═══════════════════════════════════════════════════════════════════════════════
+
+"Meetings":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Title", "title"]
+      - ["Start", "start"]
+      - ["End", "end"]
+      - ["State", "state"]
+
+"Participants":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Display Name", "displayName"]
+      - ["Email", "email"]
+      - ["Joined", "joinedTime"]
+      - ["State", "state"]
+
+"Invitees":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Display Name", "displayName"]
+      - ["Email", "email"]
+
+"Transcripts":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Meeting ID", "meetingId"]
+      - ["Title", "title"]
+
+"Video Mesh":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Name", "name"]
+
+"Session Types":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Type", "type"]
+
+"Tracking Codes":
+  list:
+    table_columns:
+      - ["Name", "name"]
+      - ["Site URL", "siteUrl"]
+      - ["Service", "service"]
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # Global settings
 # ═══════════════════════════════════════════════════════════════════════════════
 
 omit_query_params: []
+auto_inject_from_config: ["orgId", "orgid"]
 
 # Tags to skip entirely (glob patterns matched against OpenAPI tag names)
 skip_tags:
@@ -494,6 +553,11 @@ tag_merge:
     - "Call Settings For Me With UserHub Phase2"
     - "Call Settings For Me With UserHub Phase3"
     - "Call Settings For Me Phase 4"
+  # Contact Center: merge Journey sub-folders into one group
+  "CC Journey":
+    - "Journey"
+    - "Journey - Customer Identification API"
+    - "Journey - Profile Creation & Insights API"
 
 # Human-friendly CLI group names (OpenAPI tag → CLI name)
 cli_name_overrides:
@@ -509,6 +573,72 @@ cli_name_overrides:
   "Features: Customer Experience Essentials": "cx-essentials"
   "Features: Hot Desking Sign-in via Voice Portal": "hot-desking-portal"
   "Features: Operating Modes": "operating-modes"
+  # Meetings spec overrides
+  "Meeting Polls": "meeting-polls"
+  "Meeting Q and A": "meeting-qa"
+  "Meetings Summary Report": "meeting-reports"
+  "Session Types": "meeting-session-types"
+  "Closed Captions": "meeting-captions"
+  "Slido Secure Premium": "meeting-slido"
+  "Meeting Messages": "meeting-messages"
+  "Chats": "meeting-chats"
+  "Summaries": "meeting-summaries"
+  "Tracking Codes": "meeting-tracking-codes"
+  "Site": "meeting-site"
+  "Preferences": "meeting-preferences"
+  "Invitees": "meeting-invitees"
+  "Participants": "meeting-participants"
+  "Transcripts": "meeting-transcripts"
+  "Video Mesh": "video-mesh"
+  # Contact Center spec overrides
+  "Address Book": "cc-address-book"
+  "Audio Files": "cc-audio-files"
+  "Auxiliary Code": "cc-aux-code"
+  "Business Hour": "cc-business-hour"
+  "Contact Number": "cc-contact-number"
+  "Contact Service Queue": "cc-queue"
+  "Desktop Layout": "cc-desktop-layout"
+  "Desktop Profile": "cc-desktop-profile"
+  "Dial Number": "cc-dial-number"
+  "Dial Plan": "cc-dial-plan"
+  "Entry Point": "cc-entry-point"
+  "Global Variables": "cc-global-vars"
+  "Holiday List": "cc-holiday-list"
+  "Multimedia Profile": "cc-multimedia-profile"
+  "Outdial ANI": "cc-outdial-ani"
+  "Overrides": "cc-overrides"
+  "CC Site": "cc-site"
+  "Skill": "cc-skill"
+  "Skill Profile": "cc-skill-profile"
+  "Team": "cc-team"
+  "User Profiles": "cc-user-profiles"
+  "Users": "cc-users"
+  "Work Types": "cc-work-types"
+  "DNC Management": "cc-dnc"
+  "Resource Collection": "cc-resource-collection"
+  "Contact List Management": "cc-contact-list"
+  "Agents": "cc-agents"
+  "Agent Personal Greeting Files": "cc-agent-greetings"
+  "Agent Wellbeing": "cc-agent-wellbeing"
+  "Agent Summaries": "cc-agent-summaries"
+  "Call Monitoring": "cc-call-monitoring"
+  "Tasks": "cc-tasks"
+  "Subscriptions": "cc-subscriptions"
+  "Callbacks": "cc-callbacks"
+  "Estimated Wait Time": "cc-ewt"
+  "Queues": "cc-queues"
+  "AI Feature": "cc-ai-feature"
+  "AI Assistant": "cc-ai-assistant"
+  "Auto CSAT": "cc-auto-csat"
+  "Generated Summaries": "cc-summaries"
+  "Realtime": "cc-realtime"
+  "CC Journey": "cc-journey"
+  "Campaign Manager": "cc-campaign"
+  "Captures": "cc-captures"
+  "CC Data Sources": "cc-data-sources"
+  "Flow": "cc-flow"
+  "Notification": "cc-notification"
+  "Search": "cc-search"
 
 "Features: Operating Modes":
   make_optional:

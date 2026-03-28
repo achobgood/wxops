@@ -3,7 +3,7 @@
 Build and configure Webex Calling, admin, device, and messaging APIs programmatically with guided Claude Code assistance.
 
 **Execution pattern:** `wxcli` CLI commands (primary) → `wxcadm` (XSI/E911/CP-API) → raw HTTP (fallback).
-The wxcli CLI has 100 command groups covering calling, admin, device, and messaging APIs. Raw HTTP docs in `docs/reference/` serve as reference and fallback.
+The wxcli CLI has 165 command groups covering calling, admin, device, messaging, meetings, and contact center APIs. Raw HTTP docs in `docs/reference/` serve as reference and fallback.
 
 ## Quick Start
 
@@ -110,7 +110,7 @@ below for what the pipeline does.
 
 | Path | Purpose |
 |------|---------|
-| `src/wxcli/main.py` | CLI entry point — 100 command groups |
+| `src/wxcli/main.py` | CLI entry point — 118 command groups |
 | `src/wxcli/commands/*.py` | All command implementations (raw HTTP pattern) |
 | `wxcli --help` | Shows all command groups |
 | `wxcli <group> --help` | Shows commands within a group |
@@ -119,6 +119,8 @@ below for what the pipeline does.
 | `specs/webex-admin.json` | OpenAPI 3.0 spec — admin/org management APIs |
 | `specs/webex-device.json` | OpenAPI 3.0 spec — device management APIs |
 | `specs/webex-messaging.json` | OpenAPI 3.0 spec — messaging/rooms/teams APIs |
+| `specs/webex-meetings.json` | OpenAPI 3.0 spec — meetings/video mesh/transcripts APIs |
+| `specs/webex-contact-center.json` | OpenAPI 3.0 spec — contact center APIs (48 groups, 431 commands) |
 | `src/wxcli/commands/cleanup.py` | Batch cleanup: inventory + parallel layered deletion |
 
 ### CUCM→Webex Migration Tool (All 11 phases complete)
@@ -138,14 +140,42 @@ The migration tool is at `src/wxcli/migration/` and wired into the CLI as `wxcli
 | `tools/command_renderer.py` | Renders `Endpoint` objects into Click command files |
 | `tools/field_overrides.yaml` | Table columns, display config, and endpoint overrides |
 | `tools/generate_commands.py` | Orchestrates OpenAPI parse → render → write pipeline |
+| `tools/postman_spec_diff.py` | Offline Postman↔spec gap diff — compares exported collection JSON against local OpenAPI spec |
+
+### Postman↔Spec Sync
+
+Periodic gap reports live in `docs/reports/postman-spec-sync-YYYY-MM-DD.md`. Run the prompt at
+`docs/prompts/postman-sync-periodic-report.md` to generate a new one via Postman MCP.
+
+Offline alternative (no MCP needed — export the Postman collection first):
+```
+python3.11 tools/postman_spec_diff.py \
+    --spec specs/webex-cloud-calling.json \
+    --postman exported-calling.json \
+    --skip-tags tools/field_overrides.yaml
+```
+
+Postman fork IDs (wxcli-dev):
+- Cloud Calling: `15086833-e014a019-ecc3-4140-ab56-f2e9ccf7f95b`
+- Admin: `15086833-5c8bec2d-afcd-4f60-a0ca-cf3bfc798755`
+- Device: `15086833-6e026ee0-1f83-4d2b-bba6-b481ab62d0b6`
+- Messaging: `15086833-12f8091a-7404-46a7-a1df-61eef3f31435`
+- Meetings: `15086833-19910ac6-e687-4b90-b33a-3a02c6f50ce9`
+- Contact Center: `15086833-a864a970-27a6-41ad-89d4-cf794012bbcc`
+
+Mock server URLs (public, no auth required — return saved response examples):
+- Cloud Calling: `https://f550a728-63cc-4da0-8a6f-e3eda351b9a9.mock.pstmn.io`
+- Admin: `https://4ba8e16c-a764-4812-8eb3-e5dc00edcfff.mock.pstmn.io`
+- Device: `https://24f543e0-234c-49b6-989d-1627497bf1b0.mock.pstmn.io`
+- Messaging: `https://c87534f1-1e5c-477e-a249-333815c03415.mock.pstmn.io`
 
 ## CLI Status & Known Issues
 
-**100 command groups covering calling, admin, device, and messaging APIs.** All generated from 4 OpenAPI 3.0 specs via `tools/generate_commands.py`.
+**118 command groups covering calling, admin, device, messaging, and meetings APIs.** All generated from 6 OpenAPI 3.0 specs via `tools/generate_commands.py`.
 
 ### CLI test status
 
-100 command groups, all generated from OpenAPI specs, live-tested across 4 batch sweeps (2026-03-19 through 2026-03-21). All found bugs fixed. CUCM pipeline tested against live test bed (10.201.123.107) with 2 test bed expansions. See git history for detailed test logs.
+118 command groups, all generated from OpenAPI specs, live-tested across 4 batch sweeps (2026-03-19 through 2026-03-21). All found bugs fixed. CUCM pipeline tested against live test bed (10.201.123.107) with 2 test bed expansions. See git history for detailed test logs.
 
 ### Partner Multi-Org Support
 
@@ -165,8 +195,8 @@ See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for fu
 
 1. **call-controls requires user-level OAuth.** Admin tokens get 400 "Target user not authorized". The CLI now detects this error and prints a tip about needing user-level OAuth.
 2. **Complex nested settings need `--json-body`.** The generator skips deeply nested object/array body fields. Commands with nested fields now show an example JSON snippet in `--help` output (e.g., `wxcli user-settings update-call-forwarding --help`).
-3. **my-settings and mode-management require calling-licensed user.** All `/people/me/*` endpoints return 404 (error 4008) if the authenticated user doesn't have a Webex Calling license. The CLI now detects this error and prints a tip.
-4. **6 person settings are user-only (no admin path).** `simultaneousRing`, `sequentialRing`, `priorityAlert`, `callNotify`, `anonymousCallReject`, and `callPolicies` only exist at `/telephony/config/people/me/settings/{feature}`. Admin tokens get 404. Use user-level OAuth for these. See `docs/reference/self-service-call-settings.md` for the full 151-endpoint /people/me/ surface.
+3. **my-call-settings and mode-management require calling-licensed user.** All `/people/me/*` endpoints return 404 (error 4008) if the authenticated user doesn't have a Webex Calling license. The `my-call-settings` group (120 commands) covers base + UserHub Phase 2/3/4 self-service endpoints. The CLI detects this error and prints a tip.
+4. **6 person settings are user-only (no admin path).** `simultaneousRing`, `sequentialRing`, `priorityAlert`, `callNotify`, `anonymousCallReject`, and `callPolicies` only exist at `/telephony/config/people/me/settings/{feature}`. Admin tokens get 404. Use `wxcli my-call-settings` with user-level OAuth for these. See `docs/reference/self-service-call-settings.md` for the full 151-endpoint /people/me/ surface.
 5. **Two path families for person settings.** Classic settings use `/people/{personId}/features/{feature}`. Newer settings use `/telephony/config/people/{personId}/{feature}`. Some names differ between families: `intercept` (not `callIntercept`), `reception` (not `receptionist`), `applications` (not `applicationServicesSettings`), `autoTransferNumbers` (not `transferNumbers`), `pushToTalk` (not `pushToTalkSettings`).
 6. **Workspace `/telephony/config/` settings require Professional license.** Most workspace call settings under `/telephony/config/workspaces/{id}/` return 405 "Invalid Professional Place" for Basic-licensed workspaces. Only `musicOnHold` and `doNotDisturb` work on Basic. The `/workspaces/{id}/features/` path family (callForwarding, callWaiting, callerId, intercept, monitoring) works on Basic. The CLI now detects this error and prints a tip.
 7. **Settings endpoints now support table output.** Settings-get commands (show-*) now accept `-o table` and auto-detect columns from the response data. List commands with non-standard response shapes (no `id`/`name` fields) also auto-detect columns.
@@ -203,7 +233,7 @@ See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for fu
 - **Never hand-edit generated files.** Fix bugs by updating `tools/field_overrides.yaml` and regenerating.
 - **Never create new hand-written command files.** 3 legacy hand-written files remain (`locations.py`, `numbers.py`, `licenses.py`) — these are a known drift risk that miss generator improvements. `users.py` was retired and replaced with an alias to the generated `people` command group. All new commands must go through the generator. If a generated command needs custom behavior, use `field_overrides.yaml`.
 - **`auto_inject_from_config`** — `field_overrides.yaml` supports an `auto_inject_from_config: ["orgId"]` key per endpoint. Parameters listed here are omitted from `--help` and injected automatically from the saved config at runtime. This replaces the older `omit_query_params` approach for `orgId`.
-- **Spec files:** 5 OpenAPI 3.0 specs in `specs/` (`webex-cloud-calling.json`, `webex-admin.json`, `webex-device.json`, `webex-messaging.json`, `webex-wholesale.json`)
+- **Spec files:** 7 OpenAPI 3.0 specs in `specs/` (`webex-cloud-calling.json`, `webex-admin.json`, `webex-device.json`, `webex-messaging.json`, `webex-meetings.json`, `webex-contact-center.json`, `webex-wholesale.json`)
 - Regenerate one tag: `PYTHONPATH=. python3.11 tools/generate_commands.py --spec specs/webex-cloud-calling.json --tag "Tag Name"`
 - Regenerate one spec (all tags): `PYTHONPATH=. python3.11 tools/generate_commands.py --spec specs/webex-cloud-calling.json --all`
 - Regenerate all specs:
@@ -212,6 +242,8 @@ See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for fu
   PYTHONPATH=. python3.11 tools/generate_commands.py --spec specs/webex-admin.json --all
   PYTHONPATH=. python3.11 tools/generate_commands.py --spec specs/webex-device.json --all
   PYTHONPATH=. python3.11 tools/generate_commands.py --spec specs/webex-messaging.json --all
+  PYTHONPATH=. python3.11 tools/generate_commands.py --spec specs/webex-meetings.json --all
+  PYTHONPATH=. python3.11 tools/generate_commands.py --spec specs/webex-contact-center.json --all
   ```
 - Reinstall after regen: `pip3.11 install -e . -q`
 
@@ -230,7 +262,7 @@ All reference docs are grounded in actual source code and official documentation
 
 - **wxc_sdk v1.30.0** (github.com/jeokrohn/wxc_sdk) — cloned at `../wxc_sdk_reference/`
 - **wxcadm v4.6.1** (github.com/kctrey/wxcadm) — cloned at `../wxcadm_reference/`
-- **OpenAPI 3.0 specs** — `specs/webex-cloud-calling.json` (calling), `specs/webex-admin.json` (admin), `specs/webex-device.json` (devices), `specs/webex-messaging.json` (messaging)
+- **OpenAPI 3.0 specs** — `specs/webex-cloud-calling.json` (calling), `specs/webex-admin.json` (admin), `specs/webex-device.json` (devices), `specs/webex-messaging.json` (messaging), `specs/webex-meetings.json` (meetings), `specs/webex-contact-center.json` (contact center)
 - **Postman collection** (`../postman-webex-collections/webex_cloud_calling.json`) — legacy reference, 22.5MB, 1,079 endpoints
 - **developer.webex.com** — Official API docs, guides, and blog posts
 - **Cisco Live LTRCOL-2574** — Hands-on provisioning lab

@@ -38,6 +38,7 @@ class Endpoint:
     deprecated: bool = False
     json_body_example: str | None = None
     auto_inject_params: list[str] = field(default_factory=list)
+    auto_inject_path_params: list[str] = field(default_factory=list)
     content_type: str | None = None
     paginates: bool = False
 
