@@ -470,8 +470,6 @@ omit_query_params: []
 # Tags to skip entirely (glob patterns matched against OpenAPI tag names)
 skip_tags:
   - "Beta *"
-  - "Call Settings For Me*"
-  - "* Phase*"
   # Cross-spec overlaps (identical endpoints already generated from calling spec)
   - "Partner Reports/Templates"
   - "Recording Report"
@@ -491,6 +489,11 @@ tag_merge:
   "Workspace Call Settings":
     - "Workspace Call Settings (1/2)"
     - "Workspace Call Settings (2/2)"
+  "My Call Settings":
+    - "Call Settings For Me"
+    - "Call Settings For Me With UserHub Phase2"
+    - "Call Settings For Me With UserHub Phase3"
+    - "Call Settings For Me Phase 4"
 
 # Human-friendly CLI group names (OpenAPI tag → CLI name)
 cli_name_overrides:
@@ -519,6 +522,7 @@ cli_name_overrides:
   "Reports: Detailed Call History": "cdr"
   "User Call Settings": "user-settings"
   "Workspace Call Settings": "workspace-settings"
+  "My Call Settings": "my-call-settings"
   "DECT Devices Settings": "dect-devices"
   "Device Call Settings": "device-settings"
   "Emergency Services Settings": "emergency-services"

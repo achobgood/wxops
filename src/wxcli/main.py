@@ -229,6 +229,8 @@ from wxcli.commands.virtual_line_settings import app as virtual_line_settings_ap
 app.add_typer(virtual_line_settings_app, name="virtual-line-settings")
 from wxcli.commands.workspace_settings import app as workspace_settings_app
 app.add_typer(workspace_settings_app, name="workspace-settings")
+from wxcli.commands.my_call_settings import app as my_call_settings_app
+app.add_typer(my_call_settings_app, name="my-call-settings")
 from wxcli.commands.workspaces import app as workspaces_app
 app.add_typer(workspaces_app, name="workspaces")
 
