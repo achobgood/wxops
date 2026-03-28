@@ -1,23 +1,18 @@
-# Generate Skills: Meetings, Video Mesh, Contact Center
+# Generate Skills: Meetings + Video Mesh
 
 ## What This Session Does
 
-Write 3 CLI skills for the Webex Meetings, Video Mesh, and Contact Center API surfaces.
+Write 2 CLI skills for the Webex Meetings and Video Mesh API surfaces.
 The reference docs, OpenAPI specs, and CLI commands all exist already — this session creates
 the guided workflow skills that make them usable through the wxc-calling-builder agent.
 
-**Prerequisites:** The reference docs must exist before running this prompt:
+**Prerequisites:** The meetings reference docs must exist before running this prompt:
 - `docs/reference/meetings-core.md`
 - `docs/reference/meetings-content.md`
 - `docs/reference/meetings-settings.md`
 - `docs/reference/meetings-infrastructure.md`
-- `docs/reference/contact-center-core.md`
-- `docs/reference/contact-center-routing.md`
-- `docs/reference/contact-center-analytics.md`
 
-If any are missing, run these prompts first:
-- `docs/prompts/generate-meetings-reference-docs.md`
-- `docs/prompts/generate-cc-reference-docs.md`
+If any are missing, run `docs/prompts/generate-meetings-reference-docs.md` first.
 
 ## Context (Zero-Context Briefing)
 
@@ -34,7 +29,7 @@ This project is a Webex Calling CLI (`wxcli`) with guided agent assistance. The 
 7. Verify results
 8. Report results
 
-Meetings, Video Mesh, and Contact Center have reference docs and CLI commands but NO skills.
+Meetings and Video Mesh have reference docs and CLI commands but NO skills yet.
 
 ## Key Files
 
@@ -53,41 +48,40 @@ Meetings, Video Mesh, and Contact Center have reference docs and CLI commands bu
 |-------|---------------|
 | manage-meetings | `meetings-core.md`, `meetings-content.md`, `meetings-settings.md` |
 | video-mesh | `meetings-infrastructure.md` |
-| contact-center | `contact-center-core.md`, `contact-center-routing.md`, `contact-center-analytics.md` |
 
 ### CLI Groups
 
 **Meetings (17 groups, 139 commands):**
-`meetings` (46), `meeting-participants` (7), `meeting-invitees` (6), `meeting-transcripts` (7),
-`meeting-preferences` (14), `meeting-tracking-codes` (7), `video-mesh` (30),
-`meeting-captions` (3), `meeting-polls` (3), `meeting-summaries` (3), `meeting-session-types` (3),
-`meeting-chats` (2), `meeting-qa` (2), `meeting-reports` (2), `meeting-site` (2),
-`meeting-slido` (1), `meeting-messages` (1)
 
-**Contact Center (48 groups, 431 commands):**
-`cc-agents` (11), `cc-agent-greetings` (13), `cc-agent-summaries` (2), `cc-agent-wellbeing` (5),
-`cc-user-profiles` (17), `cc-users` (14), `cc-queue` (23), `cc-queues` (1),
-`cc-entry-point` (10), `cc-dial-plan` (9), `cc-dial-number` (12), `cc-callbacks` (5),
-`cc-ewt` (1), `cc-overrides` (9), `cc-campaign` (3), `cc-contact-list` (5),
-`cc-contact-number` (8), `cc-dnc` (3), `cc-outdial-ani` (16), `cc-captures` (1),
-`cc-site` (10), `cc-business-hour` (9), `cc-holiday-list` (9), `cc-aux-code` (11),
-`cc-work-types` (9), `cc-desktop-layout` (9), `cc-desktop-profile` (10),
-`cc-multimedia-profile` (10), `cc-global-vars` (10), `cc-skill` (10),
-`cc-skill-profile` (9), `cc-team` (10), `cc-flow` (4), `cc-data-sources` (7),
-`cc-audio-files` (7), `cc-resource-collection` (8), `cc-ai-assistant` (1),
-`cc-ai-feature` (3), `cc-auto-csat` (8), `cc-summaries` (3), `cc-journey` (41),
-`cc-call-monitoring` (7), `cc-realtime` (1), `cc-subscriptions` (12), `cc-tasks` (24),
-`cc-notification` (1), `cc-search` (1), `cc-address-book` (19)
+| CLI Group | Ops | Domain |
+|-----------|-----|--------|
+| `meetings` | 46 | Core CRUD, templates, controls, registrants, interpreters, breakouts, surveys |
+| `meeting-participants` | 7 | Participant list, details, admit, SIP callout |
+| `meeting-invitees` | 6 | Invitee CRUD, batch operations |
+| `meeting-transcripts` | 7 | Transcript list, download, snippets, CRUD |
+| `meeting-preferences` | 14 | Personal room, audio/video/scheduling, delegates, sites |
+| `meeting-tracking-codes` | 7 | Tracking code CRUD, user codes |
+| `video-mesh` | 30 | Clusters, nodes, availability, utilization, reachability, health monitoring |
+| `meeting-captions` | 3 | Caption list, snippets, download |
+| `meeting-polls` | 3 | Poll list, results, respondents |
+| `meeting-summaries` | 3 | AI summary get/delete, compliance |
+| `meeting-session-types` | 3 | Site/user session types |
+| `meeting-chats` | 2 | In-meeting chat list, delete |
+| `meeting-qa` | 2 | Q&A list, answer list |
+| `meeting-reports` | 2 | Usage reports, attendee reports |
+| `meeting-site` | 2 | Site-wide meeting settings |
+| `meeting-slido` | 1 | Compliance events |
+| `meeting-messages` | 1 | Delete meeting message |
 
 ## Guardrails
 
 - **Read the pattern files first.** Do not write any skills until you've read at least
   one existing skill to understand the 8-step structure.
-- **Verify reference docs exist.** Check that all 7 reference docs are present before
-  starting. If any are missing, stop and tell the user.
+- **Verify reference docs exist.** Check that all 4 meetings reference docs are present
+  before starting. If any are missing, stop and tell the user.
 - **Use actual wxcli commands.** Run `wxcli <group> --help` and `wxcli <group> <command> --help`
   to verify command names and flags before including them in examples.
-- **Break large writes into sections.** Skills are 400-800 lines.
+- **Break large writes into sections.** Skills are 400-700 lines.
 - **Stage specific files only.** Never `git add -A` or `git add .`.
 - **Self-review after each skill.** Verify YAML frontmatter parses correctly and all
   referenced CLI groups/commands exist.
@@ -105,9 +99,9 @@ Meetings, Video Mesh, and Contact Center have reference docs and CLI commands bu
    - Deployment plan presentation (SHOW BEFORE EXECUTING)
    - wxcli execution examples
    - Verification steps
-3. Verify all 7 reference docs exist:
+3. Verify all 4 meetings reference docs exist:
    ```bash
-   ls docs/reference/meetings-*.md docs/reference/contact-center-*.md
+   ls docs/reference/meetings-*.md
    ```
 
 ### Step 2: Write Meetings Skill
@@ -183,83 +177,35 @@ argument-hint: [mesh-operation]
 | View call redirects | Redirect details per cluster | `video-mesh list-call-redirects-video-mesh` |
 | Not Video Mesh? | For meetings, use `manage-meetings` skill | — |
 
-### Step 4: Write Contact Center Skill
-
-#### `.claude/skills/contact-center/SKILL.md` (~700-800 lines)
-
-```yaml
-name: contact-center
-description: |
-  Provision and manage Webex Contact Center resources using wxcli CLI commands:
-  agents, queues, entry points, teams, skills, flows, campaigns, dial plans,
-  desktop profiles, and monitoring. Guides from prerequisites through execution
-  and verification.
-allowed-tools: Read, Grep, Glob, Bash
-argument-hint: [cc-operation]
-```
-
-**Step 1 — Load References:** `contact-center-core.md`, `contact-center-routing.md`,
-`contact-center-analytics.md`
-
-**Step 3 — Decision Matrix:**
-
-| Need | Operation | CLI Group(s) |
-|------|-----------|-------------|
-| Manage agents | Create/update/delete agents, state changes | `cc-agents`, `cc-users` |
-| Configure agent greetings | Upload, assign, manage greeting files | `cc-agent-greetings` |
-| Agent wellbeing | Configure agent wellbeing settings | `cc-agent-wellbeing` |
-| Configure queues | Create/update queues, assign agents | `cc-queue` |
-| Set up entry points | Create/manage entry points | `cc-entry-point` |
-| Create teams | Team CRUD, assign agents | `cc-team` |
-| Manage skills | Skill definitions and profiles | `cc-skill`, `cc-skill-profile` |
-| Configure dial plans | Dial plan CRUD, number management | `cc-dial-plan`, `cc-dial-number` |
-| Set up campaigns | Campaign management, contact lists | `cc-campaign`, `cc-contact-list` |
-| Manage outdial ANI | Outdial ANI configuration | `cc-outdial-ani` |
-| Configure desktops | Desktop layouts and profiles | `cc-desktop-layout`, `cc-desktop-profile` |
-| Manage flows | Flow CRUD | `cc-flow` |
-| Configure business hours | Business hours and holidays | `cc-business-hour`, `cc-holiday-list` |
-| Manage audio files | Upload and manage audio | `cc-audio-files` |
-| Set up aux codes | Auxiliary codes and work types | `cc-aux-code`, `cc-work-types` |
-| Configure multimedia | Multimedia profiles | `cc-multimedia-profile` |
-| Manage global variables | Global variable CRUD | `cc-global-vars` |
-| Monitor calls | Call monitoring, realtime stats | `cc-call-monitoring`, `cc-realtime` |
-| Manage subscriptions | Event subscriptions | `cc-subscriptions` |
-| View tasks | Task management | `cc-tasks` |
-| Journey analytics | Customer journey, identification, insights | `cc-journey` |
-| AI features | AI assistant, auto CSAT, summaries | `cc-ai-assistant`, `cc-auto-csat`, `cc-summaries` |
-| Not Contact Center? | For Calling features, use `configure-features` skill | — |
-
 **Steps 4-8:** Follow the configure-features pattern. Prerequisites: auth token,
-Contact Center license, CC admin role, sites configured (`cc-site list`).
+Video Mesh deployed, admin role with `spark-admin:video_mesh_read` scope.
 
-### Step 5: Update CLAUDE.md
+### Step 4: Update CLAUDE.md
 
-Add the 3 new skills to the file map table:
+Add the 2 new skills to the file map table:
 
 ```
 | `.claude/skills/manage-meetings/` | Skill: schedule, manage, query meetings + content |
 | `.claude/skills/video-mesh/` | Skill: Video Mesh monitoring and threshold configuration |
-| `.claude/skills/contact-center/` | Skill: CC provisioning (agents, queues, flows, campaigns) |
 ```
 
-### Step 6: Commit
+### Step 5: Commit
 
 Stage specific files:
 ```
 .claude/skills/manage-meetings/SKILL.md
 .claude/skills/video-mesh/SKILL.md
-.claude/skills/contact-center/SKILL.md
 CLAUDE.md
 ```
 
-Commit message: `feat(skills): add manage-meetings, video-mesh, and contact-center skills`
+Commit message: `feat(skills): add manage-meetings and video-mesh skills`
 
 ## Success Criteria
 
-- [ ] 3 skills exist with correct YAML frontmatter (name, description, allowed-tools, argument-hint)
+- [ ] 2 skills exist with correct YAML frontmatter (name, description, allowed-tools, argument-hint)
 - [ ] Each skill follows the 8-step workflow pattern
 - [ ] Each skill references its corresponding reference docs in Step 1
-- [ ] Decision matrices cover all major operations for each API surface
+- [ ] Decision matrices cover all major operations
 - [ ] wxcli command examples use actual CLI group and command names (verified via --help)
 - [ ] Prerequisites include auth verification with `wxcli whoami`
 - [ ] Deployment plans have explicit "SHOW BEFORE EXECUTING" gates
