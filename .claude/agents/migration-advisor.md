@@ -112,7 +112,7 @@ When launched with an analysis mode prompt:
    why it matters, and what information the admin should provide.]
    ```
 
-5. **Return a summary** of key findings to the launching agent.
+5. **Return the full narrative text** in your response to the launching agent. Do not summarize — return the complete contents of the narrative file you just wrote. The launching agent will display it directly to the user.
 
 **Narrative quality rules:**
 - Every claim must be grounded — reference specific objects/properties from pipeline data
