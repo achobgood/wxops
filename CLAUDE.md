@@ -21,6 +21,24 @@ below for what the pipeline does.
 
 **To debug a failing configuration:** Use `/wxc-calling-debug` (this one is a skill, invoked directly).
 
+### Agent Invocation Pattern
+
+wxc-calling-builder is a **phase-per-invocation** agent. Each major phase runs as a
+fresh agent invocation — do not resume agents via `SendMessage` for multi-phase workflows.
+
+**Invocation rules:**
+- Always spawn a fresh agent for each phase
+- Pass current state in the prompt: project name, current pipeline stage, key context
+- The agent reads state from disk on startup and validates against the prompt
+- For single-phase work (quick config, one-off query), one invocation is sufficient
+
+**CUCM migration example:**
+1. Spawn agent: "Run CUCM discovery for project X against host Y"
+2. Agent completes discover + normalize + map + analyze, writes session-state, terminates
+3. Spawn fresh agent: "Project X is at ANALYZED. Run decision review and generate report"
+4. Agent completes decisions + report, writes session-state, terminates
+5. Continue pattern through plan → execute
+
 ## File Map
 
 ### Agent & Skills
@@ -245,7 +263,9 @@ See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for fu
 11. **Create commands now support `-o json`.** All create commands accept `-o json` to output the full API response as JSON. Default behavior (`-o id`) prints just the created ID.
 12. **`virtual-extensions` commands use wrong ID type.** The generated `virtual-extensions` command group maps to the Virtual Extensions API which uses `VIRTUAL_EXTENSION`-encoded IDs. Virtual lines created via `/telephony/config/virtualLines` use `VIRTUAL_LINE` IDs. `virtual-extensions list` returns empty, and `virtual-extensions delete` returns 400. **Workaround:** Use raw REST calls (`DELETE /v1/telephony/config/virtualLines/{id}`). The `wxcli cleanup` command already uses raw REST for this reason. The `virtual-line-settings` group uses the correct path family but only has settings commands, not CRUD.
 
-13. **Contact Center (`cc-*`) commands require CC-scoped OAuth and region config.** The 48 `cc-*` command groups target the Webex Contact Center API at `api.wxcc-{region}.cisco.com`. They require CC-specific OAuth scopes (`cjp:config_read`, `cjp:config_write`). The `orgid` path parameter is auto-injected from saved config or resolved from the authenticated user's org. Set the CC region with `wxcli set-cc-region <region>` (defaults to `us1`). Valid regions: `us1`, `eu1`, `eu2`, `anz1`, `ca1`, `jp1`, `sg1`. The CLI detects CC 403 errors and prints a scope tip.
+13. **Device config schema is firmware-dependent; some Control Hub settings aren't in the API.** The Device Configurations API schema is device-reported — keys only appear after the device registers on firmware that includes them. Example: per-line ringtone (`Lines.Line[N].CallFeatureSettings.Ringtone`) is visible in Control Hub for 9800/8875 phones but absent from the API on PhoneOS 3.5.1/3.6.1. Offline/expired devices retain a stale schema. See `docs/reference/devices-platform.md` gotchas #10-11.
+
+14. **Contact Center (`cc-*`) commands require CC-scoped OAuth and region config.** The 48 `cc-*` command groups target the Webex Contact Center API at `api.wxcc-{region}.cisco.com`. They require CC-specific OAuth scopes (`cjp:config_read`, `cjp:config_write`). The `orgid` path parameter is auto-injected from saved config or resolved from the authenticated user's org. Set the CC region with `wxcli set-cc-region <region>` (defaults to `us1`). Valid regions: `us1`, `eu1`, `eu2`, `anz1`, `ca1`, `jp1`, `sg1`. The CLI detects CC 403 errors and prints a scope tip.
 
 ### Cleanup Command
 
