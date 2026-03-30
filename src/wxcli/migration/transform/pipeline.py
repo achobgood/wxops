@@ -130,18 +130,62 @@ def normalize_discovery(
     # ------------------------------------------------------------------
     # Post-normalization: classify common-area phones as workspaces
     # (from 02b §2.8: common-area phones have ownerUserName=None, class=Phone)
+    # Skip phones whose description matches a known user — those are
+    # user-owned phones that just lack an explicit ownerUserName in CUCM.
+    # A user can own multiple phones; the cross-ref builder handles this.
     # ------------------------------------------------------------------
 
+    # Build a simple user lookup for description matching
+    _user_names: dict[str, str] = {}  # lowercase key → user canonical_id
+    for u in store.get_objects("user"):
+        uid = (u.get("cucm_userid") or "").lower()
+        fn = (u.get("first_name") or "").lower().strip()
+        ln = (u.get("last_name") or "").lower().strip()
+        cid = u["canonical_id"]
+        if uid:
+            _user_names[uid] = cid
+        if fn and ln:
+            _user_names[f"{fn} {ln}"] = cid
+            _user_names[f"{ln}, {fn}"] = cid
+            _user_names[f"{ln} {fn}"] = cid
+
+    def _description_matches_user(desc: str) -> bool:
+        if not desc:
+            return False
+        dl = desc.lower().strip()
+        if dl in _user_names:
+            return True
+        # Substring: check if a full name (2+ words) appears in description
+        for key in _user_names:
+            if " " in key and len(key) >= 4 and key in dl:
+                return True
+        return False
+
     workspace_count = 0
+    inferred_owner_count = 0
     for phone in phones:
         if is_common_area_device(phone):
+            desc = phone.get("description", "")
+            if _description_matches_user(desc):
+                inferred_owner_count += 1
+                logger.info(
+                    "Skipping workspace for %s — description '%s' matches a user",
+                    phone.get("name", "?"), desc,
+                )
+                continue
             ws_obj = normalize_workspace(phone, cluster=cluster)
             store.upsert_object(ws_obj)
             workspace_count += 1
 
     summary["pass1"]["workspaces_classified"] = workspace_count
+    summary["pass1"]["device_owners_inferred"] = inferred_owner_count
     if workspace_count > 0:
         logger.info("Classified %d common-area phones as workspaces", workspace_count)
+    if inferred_owner_count > 0:
+        logger.info(
+            "Inferred user ownership for %d phones from description field",
+            inferred_owner_count,
+        )
 
     # ------------------------------------------------------------------
     # Unity Connection per-user VM settings (if present)

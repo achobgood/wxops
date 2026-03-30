@@ -296,9 +296,81 @@ class CrossReferenceBuilder:
     # Cross-ref #7, #8, #9: Device → Pool, Device → Owner, Common-area
     # ------------------------------------------------------------------
 
+    def _build_user_lookup(self) -> dict[str, str]:
+        """Build a lookup table for matching device descriptions to users.
+
+        Returns {lowercase_key: canonical_id} for multiple match strategies:
+        - userid (e.g., "amckenzie")
+        - "firstname lastname" (e.g., "adam mckenzie")
+        - "lastname, firstname" (e.g., "mckenzie, adam")
+        - "firstname" if unique across all users
+
+        A user can own multiple phones — this lookup just identifies the user,
+        the cross-ref system handles multi-device naturally.
+        """
+        lookup: dict[str, str] = {}
+        first_name_counts: dict[str, int] = {}
+        users_by_first: dict[str, str] = {}
+
+        for user_data in self.store.get_objects("user"):
+            cid = user_data["canonical_id"]
+            userid = (user_data.get("cucm_userid") or "").lower()
+            first = (user_data.get("first_name") or "").lower().strip()
+            last = (user_data.get("last_name") or "").lower().strip()
+
+            if userid:
+                lookup[userid] = cid
+            if first and last:
+                lookup[f"{first} {last}"] = cid
+                lookup[f"{last}, {first}"] = cid
+                lookup[f"{last} {first}"] = cid
+            if first:
+                first_name_counts[first] = first_name_counts.get(first, 0) + 1
+                users_by_first[first] = cid
+
+        # Only add first-name-only matches if the name is unique
+        for first, count in first_name_counts.items():
+            if count == 1:
+                lookup[first] = users_by_first[first]
+
+        return lookup
+
+    def _match_description_to_user(
+        self, description: str, user_lookup: dict[str, str]
+    ) -> str | None:
+        """Try to match a device description to a user.
+
+        Tries exact match first, then checks if any user key appears as a
+        substring in the description (handles "Adam McKenzie - 8845" style).
+        """
+        if not description:
+            return None
+        desc_lower = description.lower().strip()
+
+        # Exact match
+        if desc_lower in user_lookup:
+            return user_lookup[desc_lower]
+
+        # Substring match — check if a user's full name appears in the description
+        # Only match on names with 2+ parts to avoid false positives on short strings
+        best_match: str | None = None
+        best_len = 0
+        for key, cid in user_lookup.items():
+            if len(key) < 4 or " " not in key:
+                continue  # Skip short keys and single-word keys for substring matching
+            if key in desc_lower and len(key) > best_len:
+                best_match = cid
+                best_len = len(key)
+
+        return best_match
+
     def _build_device_ownership_refs(self) -> dict[str, int]:
         """Build device_in_pool (#7), device_owned_by_user (#8),
         and common_area_device_in_pool (#9).
+
+        For devices without an explicit CUCM owner, attempts to match the
+        device description to a known user (handles "Adam McKenzie - 8845"
+        style descriptions). A user can own multiple phones.
 
         (from 02-normalization-architecture.md manifest rows 7-9)
         """
@@ -306,13 +378,30 @@ class CrossReferenceBuilder:
             "device_in_pool": 0,
             "device_owned_by_user": 0,
             "common_area_device_in_pool": 0,
+            "device_owner_inferred": 0,
         }
+
+        user_lookup = self._build_user_lookup()
 
         for dev_data in self.store.get_objects("device"):
             dev_id = dev_data["canonical_id"]
             state = dev_data.get("pre_migration_state") or {}
             dp_name = state.get("cucm_device_pool")
             owner = state.get("cucm_owner_user")
+
+            # Fallback: try to infer owner from device description
+            if not owner:
+                description = dev_data.get("display_name", "")
+                matched_user = self._match_description_to_user(
+                    description, user_lookup
+                )
+                if matched_user:
+                    owner = matched_user.removeprefix("user:")
+                    counts["device_owner_inferred"] += 1
+                    logger.info(
+                        "Inferred owner for %s from description '%s' → %s",
+                        dev_id, description, matched_user,
+                    )
 
             if dp_name:
                 dp_id = f"device_pool:{dp_name}"
