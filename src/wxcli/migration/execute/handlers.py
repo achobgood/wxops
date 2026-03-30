@@ -136,7 +136,7 @@ def handle_location_enable_calling(data: dict, deps: dict, ctx: dict) -> Handler
 # ---------------------------------------------------------------------------
 
 def handle_trunk_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
-    loc_wid = _resolve_location(data, deps)
+    loc_wid = _resolve_location(data, deps) or _resolve_location_from_deps(deps)
     body: dict[str, Any] = {
         "name": data.get("name"),
         "locationId": loc_wid,
@@ -163,7 +163,7 @@ def handle_route_group_create(data: dict, deps: dict, ctx: dict) -> HandlerResul
         trunk_wid = deps.get(trunk_cid) if trunk_cid else None
         if trunk_wid:
             gateways.append({
-                "trunkId": trunk_wid,
+                "id": trunk_wid,
                 "priority": gw.get("priority", 1),
             })
     body: dict[str, Any] = {
@@ -400,6 +400,9 @@ def handle_device_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
                 body["personId"] = owner_wid
             elif owner_cid.startswith("workspace:"):
                 body["workspaceId"] = owner_wid
+    # API requires exactly one of personId or workspaceId
+    if "personId" not in body and "workspaceId" not in body:
+        return []  # No-op: owner unresolvable, skip device creation
     return [("POST", _url("/devices", ctx), body)]
 
 
@@ -497,10 +500,14 @@ def handle_auto_attendant_create(data: dict, deps: dict, ctx: dict) -> HandlerRe
     loc_wid = _resolve_location(data, deps) or _resolve_location_from_deps(deps)
     body: dict[str, Any] = {
         "name": data.get("name"),
-        "extension": data.get("extension"),
     }
+    if data.get("extension"):
+        body["extension"] = data["extension"]
     if data.get("phone_number"):
         body["phoneNumber"] = data["phone_number"]
+    # API requires at least one of extension or phoneNumber
+    if "extension" not in body and "phoneNumber" not in body:
+        return []  # No-op: no reachable number, skip AA creation
     if data.get("business_schedule"):
         body["businessSchedule"] = data["business_schedule"]
     if data.get("business_hours_menu"):
@@ -792,8 +799,27 @@ def handle_device_layout_configure(data: dict, deps: dict, ctx: dict) -> Handler
             entry["kemKeyLabel"] = k["label"]
         return entry
 
-    line_keys = data.get("resolved_line_keys", [])
-    kem_keys = data.get("resolved_kem_keys", [])
+    raw_line_keys = data.get("resolved_line_keys", [])
+    raw_kem_keys = data.get("resolved_kem_keys", [])
+    # Filter line keys for Webex layout API:
+    # - Skip PRIMARY_LINE (auto-assigned by Webex at index 1)
+    # - Skip keys that require a value but have none (MONITOR, BLF, CALL_PARK_EXTENSION)
+    # - Skip OPEN keys (no-op placeholders)
+    # - Keep only SPEED_DIAL with a value
+    _SKIP_TYPES = {"PRIMARY_LINE", "OPEN"}
+    _VALUE_REQUIRED_TYPES = {"SPEED_DIAL", "MONITOR", "CALL_PARK_EXTENSION", "BLF"}
+    line_keys = []
+    idx = 2  # Start at 2 — index 1 is the primary line (auto-assigned)
+    for k in raw_line_keys:
+        kt = k.get("key_type", "OPEN")
+        if kt in _SKIP_TYPES:
+            continue
+        if kt in _VALUE_REQUIRED_TYPES and not k.get("value"):
+            continue
+        line_keys.append({**k, "index": idx, "key_type": kt})
+        idx += 1
+    # Skip KEM keys if device model doesn't support KEM (7841, 78xx without KEM)
+    kem_keys = raw_kem_keys if data.get("kem_supported") else []
     layout_mode = "CUSTOM" if line_keys else "DEFAULT"
     layout_body: dict[str, Any] = {"layoutMode": layout_mode}
     if line_keys:

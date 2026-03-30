@@ -413,6 +413,18 @@ class MigrationStore:
     # Cleanup (for pipeline re-run safety)
     # ------------------------------------------------------------------
 
+    def clear_all(self) -> dict[str, int]:
+        """Delete all data from every table in FK-safe order. Returns counts per table."""
+        counts: dict[str, int] = {}
+        for table in [
+            "plan_edges", "plan_operations", "merge_log",
+            "decisions", "journal", "cross_refs", "objects",
+        ]:
+            cursor = self.conn.execute(f"DELETE FROM {table}")  # noqa: S608
+            counts[table] = cursor.rowcount
+        self.conn.commit()
+        return counts
+
     def clear_journal(self) -> int:
         """Delete all journal entries. Returns count deleted."""
         cursor = self.conn.execute("DELETE FROM journal")

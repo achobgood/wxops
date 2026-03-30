@@ -752,10 +752,8 @@ def normalize(
     config = load_config(project_dir)
     store = _open_store(project_dir)
 
-    # Clean slate for re-normalization (cross_refs and journal have FK to objects)
-    store.clear_cross_refs()
-    store.clear_journal()
-    store.clear_objects()
+    # Clean slate for re-normalization (all tables have FK chains to objects)
+    store.clear_all()
 
     t0 = time.time()
 

@@ -221,12 +221,22 @@ def _expand_workspace(obj: dict[str, Any]) -> list[MigrationOp]:
     ]
 
 
+_NON_WEBEX_DEVICE_MODELS = {
+    "Cisco Unified Client Services Framework",
+    "Analog Phone",
+    "Cisco ATA 191",
+}
+
+
 def _expand_device(obj: dict[str, Any]) -> list[MigrationOp]:
     """Device → 2 ops: create, configure_settings.
     Skip decisions handled generically in expand_to_operations.
     (from 05-dependency-graph.md — device:create at tier 3, api_calls=2)
     """
     cid = obj["canonical_id"]
+    # Skip devices with non-Webex models (CSF soft phones, analog, ATA)
+    if obj.get("model") in _NON_WEBEX_DEVICE_MODELS:
+        return []
     name = obj.get("display_name") or obj.get("mac") or cid
     owner_cid = obj.get("owner_canonical_id")
     loc_cid = obj.get("location_canonical_id")

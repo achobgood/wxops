@@ -135,9 +135,9 @@ Wait for the agent to complete. Read the returned summary.
 - Fall through to Step 1c-fallback (the original Phase A/B presentation below).
 
 **If the agent succeeds:**
-- Tell the admin: "Architecture analysis complete. Narrative written to `<project>/exports/migration-narrative.md`."
-- Share the key findings summary.
-- Proceed to Step 1c.
+- Read the full narrative file: `<project>/exports/migration-narrative.md`
+- **Display the entire narrative to the user as direct text in your response.** Do not summarize it, do not just mention the file path. The user must see the full document on screen.
+- Then proceed to Step 1c.
 
 ### Step 1c: Decision Review
 

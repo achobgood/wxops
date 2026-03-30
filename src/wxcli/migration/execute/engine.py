@@ -188,6 +188,14 @@ async def _try_find_existing(
                 params["orgId"] = ctx["orgId"]
             search_url = f"{BASE}/telephony/config/locations/{location_id}/schedules?{urlencode(params)}"
             item_key = "schedules"
+    elif resource_type == "line_key_template":
+        name = data.get("name")
+        if name:
+            params = {"name": name, "max": "100"}
+            if ctx.get("orgId"):
+                params["orgId"] = ctx["orgId"]
+            search_url = f"{BASE}/telephony/config/devices/lineKeyTemplates?{urlencode(params)}"
+            item_key = "lineKeyTemplates"
     elif resource_type in ("call_park", "pickup_group", "paging_group",
                            "hunt_group", "call_queue", "auto_attendant"):
         # Location-scoped features — need location_id from deps

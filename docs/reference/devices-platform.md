@@ -453,6 +453,10 @@ Content-Type: application/json
 
 9. **xAPI `create` with `--json-body` does not auto-inject deviceId.** When you pass `--json-body`, the CLI uses the JSON body as-is without injecting the `--device-id` value. You must include `"deviceId"` in your JSON body manually. Without `--json-body`, the CLI correctly populates `deviceId` from `--device-id`.
 
+10. **Device configuration schema is device-reported and firmware-dependent.** The set of available config keys is not static — each device reports its own schema when it registers with Webex cloud. Newer PhoneOS/RoomOS firmware versions may expose keys that older versions do not. Offline or `offline_expired` devices retain a stale schema. A key visible in Control Hub's UI may not appear in the Device Configurations API if the device's firmware hasn't been updated to a version that includes it in the reported schema. <!-- Verified via CLI investigation 2026-03-30 -->
+
+11. **Per-line ringtone (`Lines.Line[N].CallFeatureSettings.Ringtone`) requires newer PhoneOS firmware.** Control Hub shows a per-line ringtone selector under Lines > Line[N] > Call Feature Settings > Ringtone for 9800/8875 phones. However, this key does not appear in the Device Configurations API schema on PhoneOS 3.5.1 or 3.6.1. The only per-line config keys on those versions are `Lines.Line[N].CallFeatureSettings.MissedCallNotification`. The ringtone key likely requires PhoneOS 3.7+ to appear in the API schema. <!-- Verified via CLI investigation 2026-03-30 -->
+
 ---
 
 ## See Also
