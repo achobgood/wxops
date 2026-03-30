@@ -239,7 +239,61 @@ webexCalling/
 
 - Python 3.11+
 - A Webex admin account with access tokens
-- Required scopes: `spark-admin:telephony_config_read`, `spark-admin:telephony_config_write`, `spark-admin:people_read`, `spark-admin:people_write`
+
+### OAuth Scopes
+
+The CLI covers 166 command groups across calling, admin, device, messaging, meetings, and contact center APIs. Not all scopes are needed — request only those for the API domains you use.
+
+**Minimum scopes for Webex Calling admin operations:**
+
+| Scope | Purpose |
+|-------|---------|
+| `spark-admin:telephony_config_read` | Read telephony config (locations, numbers, call routing, features) |
+| `spark-admin:telephony_config_write` | Create/edit/delete telephony config |
+| `spark-admin:people_read` | Read people across the organization |
+| `spark-admin:people_write` | Create/update/delete people |
+| `spark-admin:locations_read` | List and view locations |
+| `spark-admin:locations_write` | Create/update/delete locations |
+| `spark-admin:licenses_read` | List and inspect licenses |
+| `spark-admin:devices_read` | View devices |
+| `spark-admin:devices_write` | Add/update/delete devices |
+| `spark-admin:workspaces_read` | View workspaces and workspace settings |
+| `spark-admin:workspaces_write` | Create/update/delete workspaces |
+
+**Additional scopes by API domain:**
+
+| Domain | Scopes |
+|--------|--------|
+| PSTN / routing | `spark-admin:telephony_pstn_read`, `spark-admin:telephony_pstn_write` |
+| Workspace locations | `spark-admin:workspace_locations_read`, `spark-admin:workspace_locations_write` |
+| Org-wide call control | `spark-admin:calls_read`, `spark-admin:calls_write` |
+| CDR / call history | `spark-admin:calling_cdr_read` (+ admin role "Webex Calling Detailed Call History API access") |
+| Reports / analytics | `analytics:read_all` (requires Pro Pack) |
+| Org & roles | `spark-admin:organizations_read` |
+| Audit events | `spark-admin:audit_events_read` |
+| SCIM identity sync | `identity:people_rw`, `identity:people_read` |
+| Hybrid services | `spark-admin:hybrid_clusters_read`, `spark-admin:hybrid_connectors_read` |
+| Recordings | `spark-admin:recordings_read`, `spark-admin:recordings_write` |
+| Data sources | `spark-admin:datasource_read`, `spark-admin:datasource_write` |
+| Resource groups | `spark-admin:resource_groups_read`, `spark-admin:resource_group_memberships_write` |
+| Partner reports | `spark-admin:reports_read`, `spark-admin:reports_write` |
+| Messaging (rooms) | `spark:rooms_read`, `spark:rooms_write` |
+| Messaging (memberships) | `spark:memberships_read`, `spark:memberships_write` |
+| RoomOS xAPI | `spark:xapi_commands`, `spark:xapi_statuses` |
+| Device activation | `identity:placeonetimepassword_create` or `Identity:one_time_password` |
+| Contact center | `cjp:config_read`, `cjp:config_write` (also requires `wxcli set-cc-region`) |
+
+**User-level scopes** (for call control and self-service settings — requires a user token, not admin):
+
+| Scope | Purpose |
+|-------|---------|
+| `spark:calls_read` | List active calls and call history |
+| `spark:calls_write` | Call control (answer, hold, transfer, park) |
+| `spark:people_read` | Read own user info |
+| `spark:people_write` | Modify own call settings |
+| `spark:xsi` | XSI events and call monitoring |
+
+See [`docs/reference/authentication.md`](docs/reference/authentication.md) for full details on token types, OAuth flows, and scope requirements per endpoint.
 
 ## License
 
