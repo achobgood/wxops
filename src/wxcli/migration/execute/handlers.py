@@ -400,9 +400,6 @@ def handle_device_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
                 body["personId"] = owner_wid
             elif owner_cid.startswith("workspace:"):
                 body["workspaceId"] = owner_wid
-    # API requires exactly one of personId or workspaceId
-    if "personId" not in body and "workspaceId" not in body:
-        return []  # No-op: owner unresolvable, skip device creation
     return [("POST", _url("/devices", ctx), body)]
 
 
