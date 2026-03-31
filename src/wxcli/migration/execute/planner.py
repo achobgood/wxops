@@ -194,7 +194,7 @@ def _expand_user(obj: dict[str, Any]) -> list[MigrationOp]:
                        depends_on=[_node_id(cid, "create")], batch=batch))
 
     # Only generate voicemail op if user has custom voicemail config
-    vm = obj.get("voicemail") or obj.get("voicemail_settings")
+    vm = obj.get("voicemail") or obj.get("voicemail_settings") or obj.get("voicemail_profile_id")
     if vm:
         ops.append(_op(cid, "configure_voicemail", "user",
                        f"Configure voicemail for {email}",
