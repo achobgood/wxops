@@ -24,7 +24,6 @@ import logging
 from typing import Any
 
 from wxcli.migration.models import (
-    CanonicalUser,
     CanonicalVoicemailProfile,
     DecisionType,
     MapperResult,
@@ -35,6 +34,7 @@ from wxcli.migration.transform.mappers.base import (
     Mapper,
     accept_option,
     decision_to_store_dict,
+    enrich_user,
     extract_provenance,
     hash_id,
     manual_option,
@@ -234,14 +234,7 @@ class VoicemailMapper(Mapper):
             # --- Enrich user object with voicemail reference ---
             # The planner checks user.voicemail_profile_id to decide whether
             # to produce a configure_voicemail operation.
-            user_obj_data = store.get_object(user_id)
-            if user_obj_data:
-                user_obj_data["voicemail_profile_id"] = vm_profile.canonical_id
-                enriched = CanonicalUser(**{
-                    k: v for k, v in user_obj_data.items()
-                    if k in CanonicalUser.model_fields
-                })
-                store.upsert_object(enriched)
+            enrich_user(store, user_id, voicemail_profile_id=vm_profile.canonical_id)
 
             # --- Gap analysis: check all 13 rows ---
             # (from 03b-transform-mappers.md §11: Voicemail Gap Analysis)

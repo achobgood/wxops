@@ -142,11 +142,16 @@ class CallForwardingMapper(Mapper):
 
         return result
 
-    def _get_primary_line(self, lines: list) -> dict | None:
-        """Get the primary line (index 1) from a phone's line list."""
+    def _get_primary_line(self, lines: list | dict) -> dict | None:
+        """Get the primary line (index 1) from a phone's line list or dict."""
         if not lines:
             return None
-        # Find line with index "1" or 1
+        # lines may be a list or a dict (integer-keyed) depending on AXL normalization
+        if isinstance(lines, dict):
+            # Integer-keyed dict: try key 1 or "1"
+            first = lines.get(1) or lines.get("1")
+            return first if isinstance(first, dict) else None
+        # List form
         for line in lines:
             if isinstance(line, dict):
                 idx = line.get("index")
