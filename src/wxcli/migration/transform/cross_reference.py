@@ -415,6 +415,12 @@ class CrossReferenceBuilder:
                     user_id = f"user:{owner}"
                     self.store.add_cross_ref(dev_id, user_id, "device_owned_by_user")
                     counts["device_owned_by_user"] += 1
+
+                    # Mirror from phone:{name} for mappers that read raw phone objects
+                    # (CallForwardingMapper, MonitoringMapper, DeviceLayoutMapper)
+                    device_name = dev_id.removeprefix("device:")
+                    phone_id = f"phone:{device_name}"
+                    self.store.add_cross_ref(phone_id, user_id, "device_owned_by_user")
                 else:
                     # #9: common-area device → pool
                     self.store.add_cross_ref(dev_id, dp_id, "common_area_device_in_pool")
