@@ -299,6 +299,9 @@ class CanonicalUser(MigrationObject):
     cucm_manager_user_id: str | None = None
     cucm_userid: str | None = None
     cucm_mailid: str | None = None
+    # Enrichment fields (set by mappers, consumed by planner)
+    voicemail_profile_id: str | None = None
+    call_settings: dict[str, Any] | None = None
 
 
 class CanonicalLine(MigrationObject):
