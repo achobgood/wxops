@@ -14,7 +14,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from wxcli.migration.models import DecisionType
+from wxcli.migration.models import DecisionType, MigrationStatus
 from wxcli.migration.store import MigrationStore
 from wxcli.migration.transform.analyzers import (
     Analyzer,
@@ -181,6 +181,19 @@ class AnalysisPipeline:
         rec_count = populate_recommendations(store)
         if rec_count:
             logger.info("Advisory: %d recommendations populated", rec_count)
+
+        # Step 7: Transition shared_line objects from normalized → analyzed
+        # Shared lines are created by the cross-reference builder at normalized
+        # status. No mapper processes them. Transition to analyzed so the
+        # planner can expand them into configure operations.
+        sl_objects = store.query_by_type("shared_line", status="normalized")
+        transitioned = 0
+        for sl in sl_objects:
+            sl.status = MigrationStatus.ANALYZED
+            store.upsert_object(sl)
+            transitioned += 1
+        if transitioned:
+            logger.info("Transitioned %d shared_line objects to analyzed", transitioned)
 
         return AnalysisResult(
             decisions=all_decisions,
