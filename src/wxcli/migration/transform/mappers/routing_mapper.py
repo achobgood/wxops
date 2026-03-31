@@ -453,6 +453,10 @@ class RoutingMapper(Mapper):
         # Track route types per target
         target_route_types: dict[str, str] = {}
 
+        rp_count = 0
+        skipped_at_macro = 0
+        skipped_no_target = 0
+
         for rp_data in store.get_objects("route_pattern"):
             rp_id = rp_data["canonical_id"]
             state = rp_data.get("pre_migration_state") or {}
@@ -485,6 +489,7 @@ class RoutingMapper(Mapper):
                 store.save_decision(decision_to_store_dict(decision))
                 result.decisions.append(decision)
                 # Skip this pattern — can't convert automatically
+                skipped_at_macro += 1
                 continue
 
             # --- Convert pattern ---
@@ -552,6 +557,7 @@ class RoutingMapper(Mapper):
                 )
                 store.save_decision(decision_to_store_dict(decision))
                 result.decisions.append(decision)
+                skipped_no_target += 1
                 continue
 
             # Accumulate pattern into target group
@@ -559,6 +565,13 @@ class RoutingMapper(Mapper):
             if target_id not in target_names:
                 target_names[target_id] = target_id.split(":", 1)[-1]
             target_route_types[target_id] = route_type
+            rp_count += 1
+
+        logger.info(
+            "Dial plan mapping: %d route patterns processed, %d skipped (@ macro), "
+            "%d skipped (no target), %d dial plans created",
+            rp_count, skipped_at_macro, skipped_no_target, len(target_groups),
+        )
 
         # --- Create CanonicalDialPlan per target ---
         for target_id, patterns in target_groups.items():
@@ -596,7 +609,10 @@ class RoutingMapper(Mapper):
 
         (from 03b-transform-mappers.md §6: translation pattern field mapping table)
         """
-        for tp_data in store.get_objects("translation_pattern"):
+        tp_objects = list(store.get_objects("translation_pattern"))
+        logger.info("Translation pattern mapping: %d source objects found", len(tp_objects))
+
+        for tp_data in tp_objects:
             tp_id = tp_data["canonical_id"]
             state = tp_data.get("pre_migration_state") or {}
 

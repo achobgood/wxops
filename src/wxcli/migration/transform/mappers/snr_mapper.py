@@ -71,12 +71,19 @@ class SNRMapper(Mapper):
 
         # Group remote destinations by owner user ID
         user_dests: dict[str, list[dict[str, Any]]] = {}
+        rd_count = 0
         for rd in store.get_objects("remote_destination"):
+            rd_count += 1
             state = rd.get("pre_migration_state") or {}
             owner = state.get("ownerUserId") or ""
             if not owner:
                 continue
             user_dests.setdefault(owner, []).append(rd)
+
+        logger.info(
+            "SNR mapping: %d remote_destination objects, %d unique owners",
+            rd_count, len(user_dests),
+        )
 
         for owner_userid, rd_list in user_dests.items():
             user_cid = f"user:{owner_userid}"
