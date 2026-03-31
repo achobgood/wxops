@@ -177,6 +177,27 @@ def normalize_discovery(
             store.upsert_object(ws_obj)
             workspace_count += 1
 
+            # Inject is_common_area flag into the stored phone object
+            # so WorkspaceMapper and DeviceMapper can detect common-area phones
+            phone_name = phone.get("name", "")
+            if phone_name:
+                phone_obj = store.get_object(f"phone:{phone_name}")
+                if phone_obj:
+                    pms = dict(phone_obj.get("pre_migration_state") or {})
+                    pms["is_common_area"] = True
+                    store.upsert_object(MigrationObject(
+                        canonical_id=f"phone:{phone_name}",
+                        provenance=Provenance(
+                            source_system="cucm",
+                            source_id=phone.get("pkid", ""),
+                            source_name=phone_name,
+                            cluster=cluster,
+                            extracted_at=datetime.now(timezone.utc),
+                        ),
+                        status=MigrationStatus.NORMALIZED,
+                        pre_migration_state=pms,
+                    ))
+
     summary["pass1"]["workspaces_classified"] = workspace_count
     summary["pass1"]["device_owners_inferred"] = inferred_owner_count
     if workspace_count > 0:
