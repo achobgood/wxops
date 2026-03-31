@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from wxcli.migration.models import (
+    CanonicalUser,
     Decision,
     DecisionOption,
     DecisionType,
@@ -164,6 +165,24 @@ def extract_provenance(data: dict[str, Any]) -> Provenance:
         extracted_at=extracted_at,
         cucm_version=prov.get("cucm_version"),
     )
+
+
+def enrich_user(store: MigrationStore, user_id: str, **fields: Any) -> None:
+    """Update fields on a CanonicalUser in the store.
+
+    Re-reads the user dict, merges the provided fields, reconstructs
+    a CanonicalUser (filtering to known model fields), and upserts.
+    Used by enrichment mappers (VoicemailMapper, CallSettingsMapper).
+    """
+    user_data = store.get_object(user_id)
+    if not user_data:
+        return
+    user_data.update(fields)
+    enriched = CanonicalUser(**{
+        k: v for k, v in user_data.items()
+        if k in CanonicalUser.model_fields
+    })
+    store.upsert_object(enriched)
 
 
 def hash_id(value: str) -> str:

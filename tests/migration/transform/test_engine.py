@@ -46,9 +46,9 @@ def _make_store() -> MigrationStore:
 
 
 class TestMapperOrder:
-    """Verify MAPPER_ORDER contains all 14 mappers in correct dependency order."""
+    """Verify MAPPER_ORDER contains all 20 mappers in correct dependency order."""
 
-    def test_has_nine_mappers(self) -> None:
+    def test_has_twenty_mappers(self) -> None:
         assert len(MAPPER_ORDER) == 20
 
     def test_order_names(self) -> None:

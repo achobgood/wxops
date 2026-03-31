@@ -4,6 +4,11 @@ Reads phone objects, resolves user ownership, and populates call_settings
 on CanonicalUser objects. Settings extracted: DND, call waiting, caller ID,
 privacy, barge-in, recording.
 
+Multi-device users: first phone encountered wins (store insertion order).
+This is acceptable because most CUCM users have one primary phone with
+non-default settings. If a user has conflicting settings across phones,
+the first phone's settings are used.
+
 Runs AFTER CallForwardingMapper and MonitoringMapper (depends on user_mapper,
 uses device_owned_by_user cross-ref from phone:{name}).
 """
@@ -12,9 +17,9 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from wxcli.migration.models import CanonicalUser, MapperResult, MigrationStatus
+from wxcli.migration.models import MapperResult
 from wxcli.migration.store import MigrationStore
-from wxcli.migration.transform.mappers.base import Mapper
+from wxcli.migration.transform.mappers.base import Mapper, enrich_user
 
 logger = logging.getLogger(__name__)
 
@@ -55,12 +60,7 @@ class CallSettingsMapper(Mapper):
                 continue
 
             # Enrich user object
-            user_data["call_settings"] = settings
-            enriched = CanonicalUser(**{
-                k: v for k, v in user_data.items()
-                if k in CanonicalUser.model_fields
-            })
-            store.upsert_object(enriched)
+            enrich_user(store, user_id, call_settings=settings)
             result.objects_updated += 1
             logger.debug(
                 "Enriched user %s with call_settings from phone %s: %s",
