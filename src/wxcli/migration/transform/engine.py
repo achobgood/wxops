@@ -44,6 +44,7 @@ from wxcli.migration.transform.mappers.moh_mapper import MOHMapper
 from wxcli.migration.transform.mappers.snr_mapper import SNRMapper
 from wxcli.migration.transform.mappers.softkey_mapper import SoftkeyMapper
 from wxcli.migration.transform.mappers.workspace_mapper import WorkspaceMapper
+from wxcli.migration.transform.mappers.call_settings_mapper import CallSettingsMapper
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +75,7 @@ MAPPER_ORDER: list[type[Mapper]] = [
     AnnouncementMapper,   # Tier 6 (depends on locations, features — announcements)
     SoftkeyMapper,        # Tier 6 (depends on devices for phone model info)
     ButtonTemplateMapper, # Tier 6 (depends on devices for phone→template cross-refs)
+    CallSettingsMapper,   # Tier 6 (depends on users — call settings enrichment)
     DeviceLayoutMapper,   # Tier 7 (depends on button_template, monitoring, line, device mappers)
 ]
 
@@ -225,6 +227,9 @@ class TransformEngine:
 
         if mapper_cls is DeviceLayoutMapper:
             return DeviceLayoutMapper()
+
+        if mapper_cls is CallSettingsMapper:
+            return CallSettingsMapper()
 
         # Fallback: attempt no-arg construction
         return mapper_cls()  # type: ignore[call-arg]
