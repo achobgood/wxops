@@ -45,6 +45,11 @@ LABEL_THRESHOLDS = [
 ]
 
 
+# Score calibration status — set to True once validated against real environments.
+# When False, reports include an UNCALIBRATED disclaimer.
+SCORE_CALIBRATED: bool = False
+
+
 @dataclass
 class ScoreResult:
     """Result of complexity score computation."""
@@ -52,6 +57,7 @@ class ScoreResult:
     label: str = "Straightforward"
     color: str = "#2E7D32"
     factors: list[dict[str, Any]] = field(default_factory=list)
+    calibrated: bool = SCORE_CALIBRATED
 
 
 def compute_complexity_score(store: MigrationStore) -> ScoreResult:

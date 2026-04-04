@@ -70,7 +70,7 @@ Ambiguous cases return `None`. Honest uncertainty is a feature.
 
 ## Cross-Cutting Advisory Patterns (Layer 2)
 
-`advisory_patterns.py` has 20 pattern detector functions. Each takes a `MigrationStore` and returns `list[AdvisoryFinding]`.
+`advisory_patterns.py` has 26 pattern detector functions. Each takes a `MigrationStore` and returns `list[AdvisoryFinding]`.
 
 **Critical patterns (highest migration impact):**
 1. **Partition Ordering Loss** — CSSes that depend on partition ordering to resolve overlapping patterns. Webex uses longest-match routing — no ordering equivalent. Calls may route differently after migration.
@@ -129,7 +129,7 @@ The `category` field classifies advisories into the migration decision framework
 
 **Pattern 16 (E911) always fires**, even on empty stores. When no E911 signals are detected, it produces a warning that CER data may not be visible via AXL. This is by design per the spec's "if detection data is sparse" guidance.
 
-**Test count:** 42 tests (35 pattern + 7 advisor). The prompt estimated ~50; the actual count is lower because some patterns share positive/negative cases and the simpler patterns need fewer test scenarios.
+**Test count:** 81 tests (35 pattern + 7 advisor + 39 new-pattern/rule tests). The prompt estimated ~50; the actual count is lower because some patterns share positive/negative cases and the simpler patterns need fewer test scenarios.
 
 ## Pipeline Integration (Phase 13d — COMPLETE)
 

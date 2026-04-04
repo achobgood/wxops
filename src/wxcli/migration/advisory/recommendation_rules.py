@@ -149,14 +149,33 @@ def recommend_feature_approximation(
 
     has_queue = context.get("has_queue_features", False)
     agent_count = context.get("agent_count", 0)
+    algorithm = context.get("algorithm")
 
-    # Agent limit exceeded — recommend split
-    if agent_count > 50:
+    # Agent limit check — routing-type-aware (kb-webex-limits.md DT-LIMITS-001).
+    # Simultaneous routing caps at 50 agents; other routing types cap at 1,000.
+    target_routing = context.get("target_routing_type")  # explicit override
+    if target_routing is None:
+        # Infer: Broadcast/Top Down maps to Simultaneous; others to priority-based
+        is_simultaneous = algorithm in ("Broadcast", "Top Down", "undefined", None)
+    else:
+        is_simultaneous = target_routing.upper() == "SIMULTANEOUS"
+
+    simultaneous_cap = 50
+    priority_cap = 1000
+
+    if is_simultaneous and agent_count > simultaneous_cap:
         return (
             "split",
-            f"Agent count ({agent_count}) exceeds Call Queue limit of 50 for "
-            f"simultaneous distribution. Split into multiple queues with "
-            f"overflow chain.",
+            f"Agent count ({agent_count}) exceeds Simultaneous routing cap of "
+            f"{simultaneous_cap}. Split into multiple queues with overflow chain, "
+            f"or switch to priority-based routing (supports up to {priority_cap}).",
+        )
+    if not is_simultaneous and agent_count > priority_cap:
+        return (
+            "split",
+            f"Agent count ({agent_count}) exceeds Call Queue limit of "
+            f"{priority_cap} for priority-based routing. Split into multiple "
+            f"queues with overflow chain.",
         )
 
     if has_queue:
@@ -175,7 +194,6 @@ def recommend_feature_approximation(
             f"and wait-time handling at this scale.",
         )
 
-    algorithm = context.get("algorithm")
     if agent_count <= 4 and algorithm in ("Top Down", "undefined", None):
         return (
             "hunt_group",

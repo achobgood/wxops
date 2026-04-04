@@ -124,6 +124,15 @@ def _page_verdict(store: MigrationStore, brand: str, cluster_name: str = "", cuc
         parts.append('</div>')
     parts.append('</div>')  # close score-layout
 
+    # Calibration disclaimer
+    if not result.calibrated:
+        parts.append(
+            '<p class="callout" style="margin-top:0.5rem;font-size:0.85rem;">'
+            '<strong>Note:</strong> This complexity score uses design-time weights '
+            'that have not yet been calibrated against completed migrations. '
+            'Use as a relative indicator, not an absolute measure.</p>'
+        )
+
     # Key findings
     if findings:
         parts.append('<ul class="key-findings">')

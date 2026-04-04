@@ -11,6 +11,27 @@ from pathlib import Path
 from typing import Any
 
 
+# Default auto-resolution rules for clear-cut, low-risk decisions.
+# These reduce manual review burden without risking incorrect choices.
+# Override per-project by writing "auto_rules" to config.json.
+DEFAULT_AUTO_RULES: list[dict[str, Any]] = [
+    # Incompatible devices have no migration path — always skip
+    {"type": "DEVICE_INCOMPATIBLE", "choice": "skip"},
+    # Convertible devices can always be firmware-flashed
+    {"type": "DEVICE_FIRMWARE_CONVERTIBLE", "choice": "convert"},
+    # Hotdesk DN conflicts — primary DN always wins
+    {"type": "HOTDESK_DN_CONFLICT", "choice": "keep_primary"},
+    # CUCM-only forwarding variants — accept the loss (rarely configured)
+    {"type": "FORWARDING_LOSSY", "choice": "accept_loss"},
+    # SNR timer controls — accept Webex simplification
+    {"type": "SNR_LOSSY", "choice": "accept_loss"},
+    # Unmappable CUCM button types — no Webex equivalent exists
+    {"type": "BUTTON_UNMAPPABLE", "choice": "accept_loss"},
+    # Calling permissions with 0 affected users — orphaned profile
+    {"type": "CALLING_PERMISSION_MISMATCH",
+     "match": {"affected_user_count": 0}, "choice": "skip"},
+]
+
 DEFAULT_CONFIG: dict[str, Any] = {
     "country_code": "+1",
     "default_language": "en_us",
@@ -18,7 +39,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "outside_dial_digit": "9",
     "create_method": "people_api",
     "include_phoneless_users": False,
-    "auto_rules": [],
+    "auto_rules": DEFAULT_AUTO_RULES,
     "site_prefix_rules": [],
     "category_rules": None,
 }
