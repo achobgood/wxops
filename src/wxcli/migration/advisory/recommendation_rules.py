@@ -164,11 +164,15 @@ def recommend_feature_approximation(
     priority_cap = 1000
 
     if is_simultaneous and agent_count > simultaneous_cap:
+        routing_note = ""
+        if target_routing is None and algorithm in ("undefined", None):
+            routing_note = " (assumed simultaneous — no algorithm detected in CUCM data)"
         return (
             "split",
             f"Agent count ({agent_count}) exceeds Simultaneous routing cap of "
-            f"{simultaneous_cap}. Split into multiple queues with overflow chain, "
-            f"or switch to priority-based routing (supports up to {priority_cap}).",
+            f"{simultaneous_cap}{routing_note}. Split into multiple queues with "
+            f"overflow chain, or switch to priority-based routing (supports up "
+            f"to {priority_cap}).",
         )
     if not is_simultaneous and agent_count > priority_cap:
         return (

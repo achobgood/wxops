@@ -127,10 +127,11 @@ def _page_verdict(store: MigrationStore, brand: str, cluster_name: str = "", cuc
     # Calibration disclaimer
     if not result.calibrated:
         parts.append(
-            '<p class="callout" style="margin-top:0.5rem;font-size:0.85rem;">'
-            '<strong>Note:</strong> This complexity score uses design-time weights '
+            '<div class="callout info">'
+            '<p><strong>Note:</strong> This complexity score uses design-time weights '
             'that have not yet been calibrated against completed migrations. '
             'Use as a relative indicator, not an absolute measure.</p>'
+            '</div>'
         )
 
     # Key findings
@@ -405,7 +406,7 @@ def _page_scope(store: MigrationStore) -> str:
     if total > 0:
         pct = round(resolved / total * 100)
         parts.append(
-            f'<p style="font-size:0.85rem;color:var(--color-text-muted);">'
+            f'<p class="small muted">'
             f'Decision resolution: <strong>{resolved} of {total}</strong> auto-resolved ({pct}%)</p>'
         )
 

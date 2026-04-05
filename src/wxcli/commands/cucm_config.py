@@ -28,8 +28,9 @@ DEFAULT_AUTO_RULES: list[dict[str, Any]] = [
     # Unmappable CUCM button types — no Webex equivalent exists
     {"type": "BUTTON_UNMAPPABLE", "choice": "accept_loss"},
     # Calling permissions with 0 affected users — orphaned profile
+    # Analyzer writes "assigned_users_count" in context (css_permission.py line 128)
     {"type": "CALLING_PERMISSION_MISMATCH",
-     "match": {"affected_user_count": 0}, "choice": "skip"},
+     "match": {"assigned_users_count": 0}, "choice": "skip"},
 ]
 
 DEFAULT_CONFIG: dict[str, Any] = {

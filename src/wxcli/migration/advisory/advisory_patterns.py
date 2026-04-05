@@ -1346,10 +1346,13 @@ def detect_mixed_css(store: MigrationStore) -> list[AdvisoryFinding]:
     names = [c.get("name", c.get("canonical_id", "?")) for c in mixed_csses]
     css_ids = [c.get("canonical_id", "") for c in mixed_csses]
 
+    names_str = ", ".join(names[:5])
+    if len(names) > 5:
+        names_str += f" +{len(names) - 5} more"
+
     detail = (
-        f"These {len(mixed_csses)} CSSes ({', '.join(names[:5])}"
-        + (f" +{len(names)-5} more" if len(names) > 5 else "")
-        + f") mix routing partitions with blocking partitions. "
+        f"{len(mixed_csses)} CSS(es) ({names_str}) mix routing partitions with "
+        f"blocking partitions. "
         f"This is the most common CUCM pattern — users can dial internal and local "
         f"but are restricted from international by partition omission or blocking rules. "
         f"In Webex, the routing partitions become dial plan entries while the blocking "
@@ -1395,7 +1398,7 @@ def detect_cumulative_virtual_line_consumption(store: MigrationStore) -> list[Ad
             vl_count += 1
             vl_decision_ids.append(dec.get("decision_id", ""))
 
-        # Also count existing virtual_line objects already in the store
+    # Also count existing virtual_line objects already in the store
     existing_vl = store.count_by_type("virtual_line")
     total_vl = vl_count + existing_vl
 
@@ -1435,6 +1438,20 @@ _USER_ONLY_SETTINGS = {
 }
 
 
+def _resolve_user_canonical_id(store: MigrationStore, cucm_username: str) -> str | None:
+    """Resolve a CUCM username to a canonical user ID, or return None."""
+    # Try direct lookup first (canonical_id = "user:{username}")
+    obj = store.get_object(f"user:{cucm_username}")
+    if obj:
+        return obj.get("canonical_id")
+    # Fall back to scanning user objects for cucm_userid match
+    users = store.get_objects("user")
+    for user in users:
+        if user.get("cucm_userid") == cucm_username:
+            return user.get("canonical_id")
+    return None
+
+
 def detect_user_oauth_required(store: MigrationStore) -> list[AdvisoryFinding]:
     """Flag features that require per-user OAuth — admin tokens can't set them.
 
@@ -1445,9 +1462,7 @@ def detect_user_oauth_required(store: MigrationStore) -> list[AdvisoryFinding]:
 
     (from kb-webex-limits.md lines 151-163, kb-user-settings.md DT-SETTINGS-001)
     """
-    # Check call_forwarding objects for simultaneous/sequential ring indicators
-    users_with_user_only = set()
-    affected_ids: list[str] = []
+    affected_user_ids: set[str] = set()
 
     # Check call settings on users
     users = store.get_objects("user")
@@ -1455,11 +1470,9 @@ def detect_user_oauth_required(store: MigrationStore) -> list[AdvisoryFinding]:
         call_settings = user.get("call_settings", {}) or {}
         for setting_name in _USER_ONLY_SETTINGS:
             if call_settings.get(setting_name):
-                users_with_user_only.add(user.get("canonical_id", ""))
-                if user.get("canonical_id", "") not in affected_ids:
-                    affected_ids.append(user.get("canonical_id", ""))
+                affected_user_ids.add(user.get("canonical_id", ""))
 
-    # Check raw phone data for remote destinations (SNR → simultaneousRing)
+    # Check raw phone data for line-level indicators of simRing/seqRing
     phones = store.get_objects("phone")
     for phone in phones:
         pre = phone.get("pre_migration_state", {}) or {}
@@ -1470,34 +1483,38 @@ def detect_user_oauth_required(store: MigrationStore) -> list[AdvisoryFinding]:
         else:
             owner = owner_raw or ""
 
+        if not owner:
+            continue
+
         for line in lines:
             if not isinstance(line, dict):
                 continue
-            # Check for CUCM forwarding variants that map to simRing/seqRing
-            cfwd_all = line.get("callForwardAll", {}) or {}
             # simultaneousRingNumRingCycles indicates simRing was configured
             if line.get("simultaneousRingNumRingCycles"):
-                if owner:
-                    users_with_user_only.add(f"user:{owner}")
-            # ringSettingIdleInternal/ringSettingIdleBelowRingDuration → seqRing
+                # Resolve to canonical_id via cross-ref if possible
+                owner_id = _resolve_user_canonical_id(store, owner)
+                if owner_id:
+                    affected_user_ids.add(owner_id)
+                break
+            # ringSettingIdleBelowRingDuration → seqRing
             if line.get("ringSettingIdleBelowRingDuration"):
-                if owner:
-                    users_with_user_only.add(f"user:{owner}")
+                owner_id = _resolve_user_canonical_id(store, owner)
+                if owner_id:
+                    affected_user_ids.add(owner_id)
+                break
 
     # Also check single_number_reach objects — these map to simultaneousRing
     snr_objects = store.get_objects("single_number_reach")
     for snr in snr_objects:
         user_id = snr.get("user_canonical_id", "")
         if user_id:
-            users_with_user_only.add(user_id)
-            if user_id not in affected_ids:
-                affected_ids.append(user_id)
+            affected_user_ids.add(user_id)
 
-    if not users_with_user_only:
+    if not affected_user_ids:
         return []
 
     detail = (
-        f"{len(users_with_user_only)} user(s) have CUCM settings that map to Webex features "
+        f"{len(affected_user_ids)} user(s) have CUCM settings that map to Webex features "
         f"requiring per-user OAuth tokens. The 6 affected settings "
         f"({', '.join(sorted(_USER_ONLY_SETTINGS))}) only exist at "
         f"/telephony/config/people/me/settings/ endpoints — admin tokens get 404. "
@@ -1510,9 +1527,9 @@ def detect_user_oauth_required(store: MigrationStore) -> list[AdvisoryFinding]:
     return [AdvisoryFinding(
         pattern_name="user_oauth_required",
         severity="HIGH",
-        summary=f"{len(users_with_user_only)} users need per-user OAuth for simRing/seqRing/callPolicies settings",
+        summary=f"{len(affected_user_ids)} users need per-user OAuth for simRing/seqRing/callPolicies settings",
         detail=detail,
-        affected_objects=affected_ids,
+        affected_objects=sorted(affected_user_ids),
         category="out_of_scope",
     )]
 
@@ -1522,7 +1539,7 @@ def detect_user_oauth_required(store: MigrationStore) -> list[AdvisoryFinding]:
 # ===================================================================
 
 _CISCO_CUBE_PATTERNS = re.compile(
-    r"(?i)(cube|ios[- ]?xe|isr|csr|c8[0-9]{3}|vedge|catalyst.*voice)",
+    r"(?i)(cube|ios[- ]?xe|\bisr\b|\bcsr\b|c8[0-9]{3}|vedge|catalyst.*voice)",
 )
 _THIRD_PARTY_SBC_PATTERNS = re.compile(
     r"(?i)(audiocodes|ribbon|oracle|acme.?packet|mediant|sonus|swe.?lite|"

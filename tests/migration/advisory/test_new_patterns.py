@@ -242,6 +242,20 @@ class TestUserOAuthRequired:
         findings = detect_user_oauth_required(store)
         assert len(findings) == 1
 
+    def test_phone_line_simring_cycles_triggers(self) -> None:
+        """Phone with simultaneousRingNumRingCycles on a line → resolves owner and fires."""
+        store = _store()
+        _insert_obj(store, "user:bwayne", "user", {"cucm_userid": "bwayne"})
+        _insert_obj(store, "phone:SEP112233445566", "phone", {
+            "pre_migration_state": {
+                "ownerUserName": "bwayne",
+                "lines": [{"simultaneousRingNumRingCycles": "3"}],
+            },
+        })
+        findings = detect_user_oauth_required(store)
+        assert len(findings) == 1
+        assert "user:bwayne" in findings[0].affected_objects
+
 
 # ===================================================================
 # Pattern 24: Trunk Type Selection
@@ -285,6 +299,15 @@ class TestTrunkTypeSelection:
         assert findings[0].pattern_name == "trunk_type_selection"
         assert findings[0].severity == "CRITICAL"
         assert "trunk:pstn1" in findings[0].affected_objects
+
+    def test_isr_word_boundary_no_false_positive(self) -> None:
+        """Trunk named 'First-Trunk' should NOT match \\bisr\\b pattern."""
+        store = _store()
+        _insert_obj(store, "trunk:first1", "trunk",
+                    {"name": "First-Trunk", "trunk_type": None, "address": "10.0.0.5"})
+        findings = detect_trunk_type_selection(store)
+        assert len(findings) == 1  # Should fire as unknown, NOT auto-classify as CUBE
+        assert "trunk:first1" in findings[0].affected_objects
 
 
 # ===================================================================
@@ -436,6 +459,16 @@ class TestFeatureApproximationRoutingAware:
             [],
         )
         assert result is None
+
+    def test_none_algorithm_51_agents_splits_with_assumed_note(self) -> None:
+        """None algorithm + 51 agents → split with '(assumed simultaneous)' note."""
+        result = recommend_feature_approximation(
+            {"agent_count": 51, "algorithm": None, "has_queue_features": True},
+            [],
+        )
+        assert result is not None
+        assert result[0] == "split"
+        assert "assumed simultaneous" in result[1]
 
 
 # ===================================================================
