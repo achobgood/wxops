@@ -275,7 +275,40 @@ The 7 default auto-rules above are the *only* `DecisionType` values that the pip
 
 ## Score Weights and the Calibration Disclaimer
 
-_TBD — Wave 3 Phase D Task D4 — names SCORE_CALIBRATED flag, lists 8 factors, links to executive disclaimer_
+The migration complexity score (`wxcli cucm report`) is a 0-100 number computed from eight weighted factors. Weights live in the `WEIGHTS` dict at `src/wxcli/migration/report/score.py:17` and must sum to 100. They were chosen at design time to reflect what the team believed would predict effort — none of them have been fit against real migrations yet.
+
+### The Eight Factors
+
+| Factor | Weight | What this measures |
+|--------|--------|--------------------|
+| CSS Complexity | 20 | CSS count, average partition depth, and `CSS_ROUTING_MISMATCH` / `CALLING_PERMISSION_MISMATCH` decisions. CSS dial-plan rewriting is the highest-touch part of most migrations. |
+| Feature Parity | 17 | Ratio of `FEATURE_APPROXIMATION` decisions to total CUCM features (hunt groups, call queues, AAs, call park, pickup, paging). Approximations need design conversations with the customer. |
+| Device Compatibility | 15 | Mix of native MPP / convertible / incompatible devices, weighted so incompatible (hardware replacement) hurts more than convertible (firmware flash). |
+| Decision Density | 15 | Unresolved decisions per total object, log-scaled. Captures "how much hand-tuning the operator still owes" rather than absolute count. |
+| Scale | 10 | `log10(user_count) * 10`, capped at 100. Deliberately log-scaled so a 5,000-user customer doesn't flatten the rest of the score. |
+| Shared Line Complexity | 10 | Sum of `shared_line` objects and `SHARED_LINE_COMPLEX` decisions. Webex shared-line semantics are looser than CUCM's, and every shared line is a manual review. |
+| Phone Config Complexity | 8 | Button-template / softkey / per-line override volume — the Tier 2 phone-config pipeline producers. |
+| Routing Complexity | 5 | Trunks + route groups + translation patterns. Lowest weight because the routing pipeline is mostly mechanical once trunks are designed. |
+
+The weights are listed here in the same order as the dict; their sum (100) is enforced by the test suite.
+
+### What `SCORE_CALIBRATED = False` Means
+
+`src/wxcli/migration/report/score.py:50` declares `SCORE_CALIBRATED: bool = False`. This is the source of truth — it propagates into `ScoreResult.calibrated` (`score.py:60`) and from there into the rendered report. While it stays `False`, every report carries an "uncalibrated" disclaimer block in the executive summary, rendered by `src/wxcli/migration/report/executive.py:127-135`:
+
+> **Note:** This complexity score uses design-time weights that have not yet been calibrated against completed migrations. Use as a relative indicator, not an absolute measure.
+
+The disclaimer is a `callout info` block that appears immediately below the score gauge on Page 1 of the executive summary. It is conditional on `not result.calibrated` — flipping `SCORE_CALIBRATED` to `True` removes the block from every subsequent report without any other code change.
+
+### When to Recalibrate
+
+When sufficient real-migration data exists to fit the weights against actual operator effort. "Sufficient" means: enough completed migrations have been logged with both a headline score and an actual-hours record for a statistical fit between the eight factor inputs and reported effort to be meaningful. Once that fit produces weight adjustments that the team accepts, edit `WEIGHTS` and flip `SCORE_CALIBRATED` to `True` in the same commit.
+
+What calibration would look like: a regression (or comparable statistical fit) between the eight factor raw scores and operator-reported effort hours across N completed migrations, where the residuals are small enough to justify replacing the design-time weights. The methodology — what fit to use, what N is large enough, how to handle outliers — is **out of scope for this runbook** (per spec D9). This section only documents the flag, the factors, and where the disclaimer renders.
+
+### Where Calibration Data Comes From
+
+The operational instructions for logging calibration data live in [operator-runbook.md §Calibration Data Capture](operator-runbook.md#calibration-data-capture), not here. That section tells the operator what to record during a live migration so the data exists when the calibration workstream opens.
 
 ## What Is and Isn't Tunable
 
