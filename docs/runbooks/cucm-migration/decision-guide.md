@@ -20,7 +20,7 @@
 
 ## How to Read a Decision
 
-When you run `wxcli cucm decisions -p <project>`, you get a Rich table with five columns and (when any decision has been enriched with a recommendation) a separate **Recommendations** block printed below the table. Each row in the table represents one `Decision` instance — the dataclass lives at `src/wxcli/migration/models.py:141-159`.
+When you run `wxcli cucm decisions -p <project>`, you get a Rich table with five columns and (when any decision has been enriched with a recommendation) a separate **Recommendations** block printed below the table. Each row in the table represents one `Decision` instance — the Pydantic model lives at `src/wxcli/migration/models.py:141-159`.
 
 **Columns in the main table** (rendered by `src/wxcli/commands/cucm.py:1184-1205`):
 
@@ -28,7 +28,7 @@ When you run `wxcli cucm decisions -p <project>`, you get a Rich table with five
 - **Type** — the `DecisionType` enum value as a string. There are 20 types defined at `src/wxcli/migration/models.py:66-94`. Examples: `EXTENSION_CONFLICT`, `DEVICE_INCOMPATIBLE`, `FEATURE_APPROXIMATION`, `ARCHITECTURE_ADVISORY`. Use `--type` to filter, e.g. `wxcli cucm decisions --type FEATURE_APPROXIMATION -p <project>`.
 - **Severity** — a free-form string field (not an enum), color-coded by `SEVERITY_COLORS` at `src/wxcli/commands/cucm.py:62-67`. Values you will see in practice: `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, and (advisories only) `INFO`. See [§Severity Reference](#severity-reference) below.
 - **Summary** — one-line human-readable description, truncated to 50 characters in the table view. Run with `-o json` to see the full text.
-- **Status** — derived from `chosen_option`. The renderer prints the literal `chosen_option` value (e.g. `convert`, `skip`, `accept`) when set, or the string `pending` when not. There is no separate `status` column in the data model — see `src/wxcli/migration/store.py:518-525` and the table-build loop at `src/wxcli/commands/cucm.py:1195-1202`. To filter for unresolved work use `--status pending`.
+- **Status** — derived from `chosen_option`. The renderer prints the literal `chosen_option` value (e.g. `convert`, `skip`, `accept`) when set, or the string `pending` when not. There is no separate `status` column in the data model — see the field list at `src/wxcli/migration/models.py:141-159` and the table-build loop at `src/wxcli/commands/cucm.py:1195-1202`. To filter for unresolved work use `--status pending`.
 
 **Hidden but important fields** (visible only via `-o json`):
 
