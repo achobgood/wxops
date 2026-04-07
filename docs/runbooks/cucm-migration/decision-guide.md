@@ -60,16 +60,19 @@ _TBD — Wave 3 Phase C Task C1_
 ## Advisory Patterns
 
 <!-- Wave 3 Phase C Task C3: one entry per advisory pattern in ALL_ADVISORY_PATTERNS, grouped by category.
-     Anchors below match the pattern_name field exactly (verified by test_advisory_pattern_coverage.py).
-     Group order: eliminate / rebuild / out_of_scope / migrate_as_is. -->
+     Anchors below match the function name (with detect_ prefix stripped) — verified by
+     test_advisory_pattern_coverage.py. Group order: eliminate / rebuild / out_of_scope / migrate_as_is.
+     Note: 2 patterns have a pattern_name field that differs from their function name
+     (detect_mixed_css → pattern_name "mixed_css_routing_restriction"; detect_intercluster_trunks →
+     "intercluster_trunk_detection"). The anchor uses the function name. -->
 
 ### eliminate
 
 #### restriction-css-consolidation
 #### translation-pattern-elimination
 #### partition-time-routing
-#### overengineered-dial-plan
 #### voicemail-pilot-simplification
+#### overengineered-dial-plan
 
 ### rebuild
 
@@ -77,29 +80,29 @@ _TBD — Wave 3 Phase C Task C1_
 #### location-consolidation
 #### shared-line-simplification
 #### trunk-destination-consolidation
-
-### out-of-scope
-
-#### media-resource-scope-removal
-#### e911-migration-flag
-
-### migrate-as-is
-
-#### device-bulk-upgrade
-#### globalized-vs-localized
 #### partition-ordering-loss
 #### cpn-transformation-chain
 #### pstn-connection-type
-#### recording-enabled-users
 #### snr-configured-users
 #### transformation-patterns
 #### extension-mobility-usage
 #### mixed-css
 #### cumulative-virtual-line-consumption
-#### user-oauth-required
 #### trunk-type-selection
 #### intercluster-trunks
+
+### out-of-scope
+
+#### media-resource-scope-removal
+#### e911-migration-flag
+#### recording-enabled-users
+#### user-oauth-required
 #### legacy-gateway-protocols
+
+### migrate-as-is
+
+#### device-bulk-upgrade
+#### globalized-vs-localized
 
 ## Dissent Handling
 
