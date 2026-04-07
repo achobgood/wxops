@@ -119,7 +119,7 @@ See §[Auto-Rules: How They Work, the 7 Defaults, How to Add Your Own](#auto-rul
 **When to change:** Add rules when the customer has a strict CSS/partition model with non-standard blocking patterns — for example, a partition that blocks only 976/900 premium numbers should map to a specific Webex category rather than the default classification. Leave it `null` for most migrations; the default heuristic handles typical CUCM deployments.
 **Example non-default:**
 ```json
-{"category_rules": [{"pattern": "9.1900[2-9]XXXXXX", "webex_category": "premium"}]}
+{"category_rules": [{"cucm_pattern": "9.1900[2-9]XXXXXX", "webex_category": "premium"}]}
 ```
 **Consumed by:** `src/wxcli/migration/transform/engine.py:202` — passed into `CSSMapper`, which applies the rules at `src/wxcli/migration/transform/mappers/css_mapper.py:612` and `:671` during calling-permission classification.
 
