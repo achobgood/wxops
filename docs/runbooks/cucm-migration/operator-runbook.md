@@ -122,18 +122,256 @@ If `wxcli whoami` shows a **"Target: \<org name\>"** line, the operator is worki
 
 ## Pipeline Walkthrough
 
-_TBD — Wave 2 Phase B Task B2 (one subsection per command)_
+The pipeline has 10 operator-facing stages, run in the order below. Each stage is idempotent unless noted, and each writes its output to the project's SQLite store (`<project>/store.db`) so that subsequent stages can read it. Run `wxcli cucm status` at any point to see what has already landed in the store and which decisions are open.
+
+→ Pipeline command list and ordering: `src/wxcli/migration/CLAUDE.md:41` and `src/wxcli/commands/cucm.py:450`.
 
 ### init
+
+**What it does:** Creates a new migration project directory in the current working directory, initializes an empty SQLite store at `<project>/store.db`, and writes a default `config.json`. → `src/wxcli/commands/cucm.py:450`
+
+**Inputs:** A single positional argument `PROJECT_NAME`. No flags. (`wxcli cucm init --help` shows the project name as the only required argument.)
+
+**Outputs:**
+- `<project>/store.db` — empty SQLite store with the schema initialized.
+- `<project>/config.json` — default config (auto-rules, advisory thresholds, batch sizes).
+- Run `wxcli cucm status -p <project>` to confirm the project exists and is at the `init` stage.
+
+**Common issues:**
+- **Existing project directory.** `init` refuses to overwrite an existing `<project>/` — it errors out rather than risk clobbering prior work.
+- **Wrong cwd.** `init` creates the project relative to the current working directory. Run from the directory where you want the project to live.
+- **Permissions.** SQLite cannot create the store on read-only filesystems or NFS mounts that block file locking.
+
+**When to re-run vs. investigate:** Never re-run `init` against an existing project — it will fail. If you need to reset a project, see [§Failure Patterns](#failure-patterns) for the recovery procedure (delete and re-create, or branch the project under a new name).
+
+**See also:** [§Prerequisites](#prerequisites) for what must be in place before `init`.
+
 ### discover
+
+**What it does:** Extracts CUCM configuration objects via AXL SOAP (live mode) or loads them from a previously captured collector file. Discovery runs all 19 extractors (users, devices, lines, CSS, partitions, route patterns, hunt pilots, voicemail, etc.) and writes raw object rows into the SQLite store. → `src/wxcli/migration/cucm/extractors/` and `src/wxcli/commands/cucm.py:583`
+
+**Inputs:**
+- **Live mode:** `--host <cucm-publisher>`, `--username <axl-admin>`, `--password <password>`. Optional: `--port` (default 8443), `--version` (auto-detected if omitted), `--wsdl <local-wsdl-path>`.
+- **File mode:** `--from-file <path>` accepts `.json.gz` or `.json` collector output (e.g., from a standalone field-collector script).
+- Common flags on every stage command: `-p/--project <name>` and `-v/--verbose`.
+- Verified against `wxcli cucm discover --help` (2026-04-07).
+
+**Outputs:**
+- Raw object rows in `store.db` (one row per CUCM object, indexed by extractor and source XML).
+- Run `wxcli cucm status -p <project>` to see per-extractor object counts.
+- Run `wxcli cucm inventory -p <project>` to browse extracted objects.
+
+**Common issues:**
+- **AXL auth failure.** Wrong username/password, or the admin account is missing the **Standard AXL API Access** role. The error message comes back as a SOAP fault from CUCM.
+- **AXL throttling on large clusters.** CUCM publishers under load can rate-limit AXL queries; symptoms are intermittent timeouts mid-extraction.
+- **Partial extractor failures.** A single extractor (e.g., routing or SNR) failing should not halt discovery. Diagnostic logging added in commit `f1eeaf1` traces the offending object through routing/SNR extractors. → `src/wxcli/migration/cucm/extractors/routing.py`
+- **Network reachability.** AXL is on TCP 8443 of the publisher only — subscribers do not expose AXL.
+
+**When to re-run vs. investigate:** `discover` is idempotent — re-running overwrites prior raw rows for the same project, so it is safe to retry after fixing AXL credentials or network issues. If only one extractor fails, re-run with `-v` to capture the trace, then file the discrepancy as an extractor bug rather than editing `store.db` by hand.
+
+**See also:** [§Prerequisites — AXL Access](#axl-access) for credential and port requirements; [§Failure Patterns](#failure-patterns) for AXL throttling recovery.
+
 ### normalize
+
+**What it does:** Two passes. **Pass 1** runs 27 normalizer functions that convert raw CUCM objects (device pools, phones, users, CSS, partitions, route patterns, hunt pilots, voicemail profiles, etc.) into canonical `MigrationObject` rows. **Pass 2** runs the `CrossReferenceBuilder` which links objects together (line ↔ device, device ↔ user, route pattern ↔ partition, etc.) and stores the relationships in the `cross_refs` table. → `src/wxcli/migration/transform/normalizers.py:145` and `src/wxcli/migration/transform/cross_reference.py:113`
+
+**Inputs:**
+- `discover` must have run (raw object rows must exist in `store.db`).
+- Flags: `-p/--project <name>`, `-v/--verbose`. (`wxcli cucm normalize --help` shows no other flags.)
+
+**Outputs:**
+- `objects` table populated with canonical `MigrationObject` rows.
+- `cross_refs` table populated with object-to-object relationships.
+- Run `wxcli cucm status -p <project>` to see object counts by type, or `wxcli cucm inventory -p <project>` to browse.
+
+**Common issues:**
+- **Malformed CUCM data.** A normalizer hits a field that the schema does not document or a value that violates an assumption (empty `<dirn>` block on a phone, missing partition reference, etc.). This is almost always a discover-side bug — the extractor should have caught it before the normalizer ran. Surface as a discover bug, not a normalize bug.
+- **Cluster name mismatch.** Normalizers tag every canonical object with a `cluster` value (default `"default"`). Multi-cluster runs need explicit cluster IDs to avoid object collisions.
+
+**When to re-run vs. investigate:** `normalize` is idempotent — re-run freely after fixing upstream extractor issues. If a normalizer raises an exception you cannot explain, capture the offending raw object via `wxcli cucm inventory` and treat it as a discover-stage data-quality bug.
+
+**See also:** Cross-reference relationships and enrichments are documented at `src/wxcli/migration/transform/cross_reference.py:113`. The full normalizer list and field mapping rules live in `src/wxcli/migration/CLAUDE.md:17`.
+
 ### map
+
+**What it does:** Runs the transform mappers — currently 14 mapper modules (announcement, button template, call forwarding, call settings, CSS, device, device layout, device profile, e911, feature, line, location, MoH, monitoring, routing, SNR, softkey, user, voicemail, workspace) — that convert canonical CUCM objects into canonical Webex objects and emit `Decision` rows for any choice the pipeline cannot make on its own. Mapping is where most of the project's decisions are produced. → `src/wxcli/migration/transform/mappers/feature_mapper.py` and `src/wxcli/commands/cucm.py:788`
+
+> **Note:** The CLI help text says "9 transform mappers" — this counts the original Phase 05 mapper set. The current implementation has 14 mapper modules (Phase 12+); the CLI help string is stale but the command runs all of them. → `src/wxcli/migration/CLAUDE.md:20`
+
+**Inputs:**
+- `normalize` must have run.
+- Flags: `-p/--project <name>`, `-v/--verbose`.
+
+**Outputs:**
+- `objects` table grows with the canonical Webex object rows the mappers produce.
+- `decisions` table populates with `Decision` rows (one per choice the mapper deferred).
+- Run `wxcli cucm status -p <project>` to see decision counts by severity and type.
+
+**Common issues:**
+- **Unmapped CUCM features.** Features the mapper does not know how to translate produce `MISSING_DATA` or `UNSUPPORTED_FEATURE` decisions rather than silently dropping the object.
+- **Mapper failures from extractor data shape changes.** If a discover-side change adds or renames a field, a mapper may raise `KeyError` or `AttributeError`. Re-run with `-v` to see which mapper and which object.
+- **Decision noise.** Mapping is the heaviest decision-producing stage. Volume is normal — `analyze` and `decisions --status pending` will help triage.
+
+**When to re-run vs. investigate:** `map` is idempotent — re-run freely. If you see exceptions, treat them as either a data-quality issue (fix in `discover`) or a mapper bug (fix in `transform/mappers/`). Do not edit decisions in `store.db` directly.
+
+**See also:** [Decision Guide](decision-guide.md) for the full taxonomy of decision types and how to resolve each one.
+
 ### analyze
+
+**What it does:** Runs 12 analyzers (CSS routing, CSS permission, device compatibility, DN ambiguity, duplicate user, extension conflict, feature approximation, layout overflow, location ambiguity, missing data, shared line, voicemail compatibility, workspace license) over the canonical objects, merges new decisions with the existing set, applies auto-resolution rules, then runs the two-phase advisor system: per-decision recommendations via `populate_recommendations()` followed by the cross-cutting `ArchitectureAdvisor`. → `src/wxcli/migration/transform/analyzers/css_routing.py`, `src/wxcli/migration/transform/analysis_pipeline.py:204`, `src/wxcli/migration/advisory/__init__.py:18`, and `src/wxcli/migration/advisory/advisor.py:26`
+
+**Inputs:**
+- `map` must have run.
+- Flags: `-p/--project <name>`, `-v/--verbose`.
+
+**Outputs:**
+- More `Decision` rows in the `decisions` table (analyzer-produced).
+- Every decision now has populated `recommendation` and `recommendation_reasoning` fields.
+- `ARCHITECTURE_ADVISORY` decisions appear, representing cross-cutting design observations from the advisor.
+- Run `wxcli cucm decisions -p <project>` to see the full set or `--status pending` to see what still needs review.
+
+**Common issues:**
+- **Cascade re-evaluation.** When a decision is later resolved, `resolve_and_cascade()` re-runs only the analyzers whose decision types intersect the resolved decision's `cascades_to` context. This means resolving one decision can produce new decisions or dismiss existing ones — changes during decision review are expected, not a bug.
+- **Auto-rules masking real issues.** The default `DEFAULT_AUTO_RULES` resolve common cases automatically; review `--status resolved` if you suspect over-aggressive auto-resolution.
+- **Advisor dependency.** The `ArchitectureAdvisor` runs as part of `analyze`. If you see no advisories, it means none of the cross-cutting patterns matched, not that the advisor failed.
+
+**When to re-run vs. investigate:** `analyze` is idempotent, but cascade behavior may move decisions around between runs. Re-run freely after a `map` re-run, but expect the decision set to shift if new objects entered the pipeline upstream.
+
+**See also:** [Decision Guide](decision-guide.md) for resolution patterns; cascade mechanics in `src/wxcli/migration/transform/analysis_pipeline.py:204`.
+
 ### decisions
+
+**What it does:** Read-only command that lists all migration decisions in a Rich table (or JSON). This is **not** a pipeline stage — it does not modify the store and does not re-run analyzers. Use it to triage open decisions before `plan`. → `src/wxcli/commands/cucm.py:1086`
+
+**Inputs:**
+- `analyze` must have run for there to be decisions worth listing.
+- Flags (verified against `wxcli cucm decisions --help`):
+  - `-t/--type <DecisionType>` — filter by decision type (e.g., `MISSING_DATA`, `ARCHITECTURE_ADVISORY`).
+  - `-s/--severity <severity>` — filter by severity.
+  - `--status pending` or `--status resolved` — filter by status; **use `--status pending` to focus on what still needs action**.
+  - `--export-review` — write a markdown decision review file alongside the table.
+  - `-o/--output table|json` — switch to JSON output for scripting.
+  - `-p/--project <name>`.
+
+**Outputs:**
+- Rich table on stdout (default) or JSON (with `-o json`).
+- With `--export-review`, a markdown review file under the project directory.
+- No changes to `store.db`.
+
+**Common issues:**
+- **Noise from auto-resolved decisions.** Default output includes both pending and resolved rows. Filter with `--status pending` for the actionable set.
+- **Type mis-spelling.** `--type` matches against `DecisionType` enum values exactly; check `src/wxcli/migration/models.py` for the canonical list if a filter returns nothing.
+
+**When to re-run vs. investigate:** Run anytime — read-only and free of side effects. If a decision is missing that you expected to see, the issue is upstream in `map` or `analyze`, not here.
+
+**See also:** [Decision Guide](decision-guide.md) for what each `DecisionType` means and how to resolve it; [§Decision Review](#decision-review) for the resolution workflow.
+
 ### plan
+
+**What it does:** Expands the canonical Webex objects in the store into individual operations (create-user, create-location, create-device, etc.), builds a NetworkX directed acyclic graph encoding the dependency order between them, and partitions the operations into execution batches that can run in parallel within a batch but must complete in order across batches. → `src/wxcli/migration/execute/planner.py` and `src/wxcli/migration/execute/dependency.py`
+
+**Inputs:**
+- `analyze` must have run.
+- All decisions must be resolved (`wxcli cucm decisions -p <project> --status pending` should return an empty set). The planner refuses to run while pending decisions exist.
+- Flags: `-p/--project <name>`. (`wxcli cucm plan --help` shows no other flags.)
+
+**Outputs:**
+- `operations` table populated in `store.db`.
+- `<project>/exports/plan.json` with the full DAG and batch partitioning.
+- Run `wxcli cucm next-batch -p <project>` to see the first batch ready to execute, or `wxcli cucm dry-run -p <project>` to preview the full sequence.
+
+**Common issues:**
+- **Pending decisions block planning.** The planner refuses to run if any decision is still in `pending` status. Resolve all decisions in `decisions` before running `plan`.
+- **Dependency cycles.** Should not happen in healthy data, but a corrupted cross-reference graph can produce a cycle. The DAG builder will raise an exception identifying the cycle.
+- **Empty plan.** If `operations` is empty after a successful run, the canonical object set is empty — re-check `wxcli cucm status` and look for a missing `map` step.
+
+**When to re-run vs. investigate:** Idempotent — re-run after resolving any newly produced decisions. If the planner reports unresolved decisions you thought were resolved, the cascade may have produced new ones; loop back to `decisions`.
+
+**See also:** [§Decision Review](#decision-review) for resolving pending decisions; [§Failure Patterns](#failure-patterns) for cycle and empty-plan recovery.
+
 ### preflight
+
+**What it does:** Runs 8 read-only preflight checks against the live Webex Calling org to verify the target environment can absorb the planned migration. The checks are: licenses, workspace-licenses, locations, trunks, feature entitlements, number conflicts, duplicate users, and rate-limit budget. → `src/wxcli/migration/preflight/checks.py:46`
+
+**Inputs:**
+- `plan` must have run (preflight reads from the `operations` table).
+- A valid OAuth token loaded for the target Webex org (`wxcli configure` completed and `wxcli whoami` shows the right Target).
+- Flags (verified against `wxcli cucm preflight --help`):
+  - `-c/--check <name>` — run only one check (`licenses`, `workspace-licenses`, `locations`, `trunks`, `features`, `numbers`, `users`, `rate-limit`).
+  - `--dry-run` — show what would be checked without querying Webex.
+  - `-o/--output table|json` — output format (default `table`).
+  - `-p/--project <name>`.
+
+**Outputs:**
+- PASS/FAIL report per check on stdout (or JSON with `-o json`).
+- No changes to `store.db` and no changes to the live Webex org — preflight is strictly read-only.
+
+**Common issues:**
+- **License shortage.** `licenses` or `workspace-licenses` reports fewer available seats than the plan needs. Resolve by reclaiming licenses (`wxcli manage-licensing`) or by adding to the order before execution.
+- **Location address gaps.** `locations` reports addresses missing from the target org for locations the plan expects to create. Resolve via `wxcli cucm import-locations` (CSV worksheet) before re-running.
+- **Scope mismatches.** A check fails because the loaded token does not have the required scope (e.g., `spark-admin:telephony_config_write`). Re-run `wxcli configure` to refresh scopes.
+- **Number conflicts.** `numbers` finds DNs in the plan that already exist in Webex under another resource. Resolve via decision review or by altering the source data.
+
+**When to re-run vs. investigate:** Idempotent and read-only — re-run as often as you need. If a check fails for a transient reason (rate limit, network blip), re-run it with `-c <name>` rather than re-running the full preflight.
+
+**See also:** [§Failure Patterns](#failure-patterns) for license shortage and address gap recovery; the per-check implementation logic in `src/wxcli/migration/preflight/checks.py:46`.
+
 ### export
+
+**What it does:** Writes the migration artifacts to disk in human-readable and machine-readable formats. The default format is `deployment-plan` (a markdown summary suitable for stakeholder review); other formats produce JSON, CSV decision exports, and a CSV location worksheet for filling in addresses. → `src/wxcli/migration/export/deployment_plan.py`
+
+> **Note:** The previous `command_builder.py` (which pre-built executable shell commands) was removed in Phase 12b. Execution is now skill-delegated via `/cucm-migrate` rather than pre-built — `export` writes review artifacts only, not runnable scripts. → `src/wxcli/migration/CLAUDE.md:24`
+
+**Inputs:**
+- `preflight` should have passed (export does not enforce this, but exporting before passing preflight gives stakeholders a misleading picture).
+- Flags (verified against `wxcli cucm export --help`):
+  - `-f/--format deployment-plan|json|csv-decisions|location-worksheet` — output format (default `deployment-plan`).
+  - `-p/--project <name>`.
+
+**Outputs:**
+- `<project>/exports/deployment-plan.md` — human-readable summary (default).
+- `<project>/exports/<...>.json` — full machine-readable export with `--format json`.
+- `<project>/exports/decisions.csv` — decision register with `--format csv-decisions`.
+- `<project>/exports/location-worksheet.csv` — fillable address worksheet with `--format location-worksheet` (consumed by `wxcli cucm import-locations`).
+
+**Common issues:**
+- **Nothing structural.** This is a write-out step; failures here almost always mean a permission issue on the `<project>/exports/` directory or a missing earlier stage.
+- **Stale exports.** Re-running an upstream stage (`map`, `analyze`, `plan`) does not auto-regenerate exports — you must re-run `export` to refresh the markdown plan.
+
+**When to re-run vs. investigate:** Idempotent and safe — re-run after any upstream change. If a format produces an empty file, the underlying store is empty for that data type; investigate the upstream stage rather than the exporter.
+
+**See also:** [§Assessment Report Orientation](#assessment-report-orientation) for how the exported deployment plan maps to the assessment report; [§Decision Review](#decision-review) for using the CSV decision register during review.
+
 ### execute (via /cucm-migrate)
+
+**What it does:** Executes the planned migration against the live Webex org. The skill at `.claude/skills/cucm-migrate/SKILL.md` is invoked by Claude Code when the operator types `/cucm-migrate <project>` — it is the **only** supported execution path. There is no `wxcli cucm execute` direct invocation for the full migration; the underlying `wxcli cucm execute` (and the granular `next-batch` / `mark-complete` / `mark-failed` commands) exist but are designed to be driven by the skill, not run by hand. → `.claude/skills/cucm-migrate/SKILL.md`
+
+**Inputs:**
+- `export` must have run; the deployment plan and store are the skill's inputs.
+- A **fresh Claude Code session** is preferred — the skill expects to drive the conversation from a clean state.
+- A loaded OAuth token with execution-grade scopes for the target Webex org.
+
+**High-level skill flow (6 steps):**
+1. **Load** — read project state from `<project>/store.db` and validate it is at the post-export stage.
+2. **Preflight** — re-run preflight checks just-in-time before any writes.
+3. **Plan summary** — present the operator with batch counts, license consumption, and risk highlights.
+4. **Batch execute** — process operations one batch at a time, marking each operation complete or failed in the store as it lands.
+5. **Delegate** — hand off complex per-stage work (decision review, advisory presentation) to the migration-advisor agent where appropriate.
+6. **Report** — produce a final execution report summarizing what landed, what failed, and what remains.
+
+**Outputs:**
+- Updated `operations` table with `completed`/`failed` status for every operation.
+- A final execution report (markdown).
+- Live changes in the target Webex org.
+
+**Common issues:**
+- **Mid-execution failures.** A single operation failing should not halt the run — the skill marks the operation `failed` and continues with the rest of its batch (subject to dependency rules). See [§Failure Patterns](#failure-patterns) for the recovery procedure (`wxcli cucm retry-failed` then re-invoke the skill).
+- **Token expiry mid-run.** A 12-hour PAT can expire during a long migration. Use a Service App token for runs over a few hours.
+- **Webex rate limits.** The skill respects the rate-limit budget computed during preflight. If you see throttling, the budget calculation needs tuning; do not raise concurrency by hand.
+
+**When to re-run vs. investigate:** Re-running `/cucm-migrate <project>` picks up from the last successful operation — completed operations are not re-attempted. Failed operations are not retried automatically; you must explicitly run `wxcli cucm retry-failed` to reset them to `pending` first. If the same operation fails repeatedly, investigate the underlying API error (see [§Failure Patterns](#failure-patterns)) rather than retrying blindly.
+
+**See also:** [§Execution & Recovery](#execution--recovery) for the full recovery playbook; [§Failure Patterns](#failure-patterns) for symptom-to-cause mapping.
 
 ## Assessment Report Orientation
 
