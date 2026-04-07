@@ -77,4 +77,15 @@ _TBD — Wave 2 Phase B Task B6_
 
 ## Glossary
 
-_TBD — Wave 1 Phase A Task A4_
+- **Decision** — a `Decision` row representing a choice the pipeline cannot make alone. → `src/wxcli/migration/models.py:141`
+- **Advisory** — an `ARCHITECTURE_ADVISORY` decision produced by `ArchitectureAdvisor`, spans multiple objects. → `src/wxcli/migration/models.py:89`
+- **Recommendation** — the `recommendation` field on a Decision; populated by `populate_recommendations()`. → `src/wxcli/migration/advisory/__init__.py:18`
+- **Dissent** — a flag from the `migration-advisor` agent disagreeing with the static recommendation, grounded in a `DT-{DOMAIN}-NNN` KB entry. → `.claude/agents/migration-advisor.md`
+- **Cascade** — re-evaluation of dependent decisions after one is resolved. → `src/wxcli/migration/transform/analysis_pipeline.py:204`
+- **Fingerprint** — content-hash of a Decision used to detect when it has gone stale across re-runs. → `src/wxcli/migration/models.py:155`
+- **Stale** — a Decision whose source object has changed since the decision was first produced. → `src/wxcli/migration/models.py:44`
+- **Mapper** — a function in `transform/mappers/` that converts CUCM objects to canonical Webex objects + decisions. → `src/wxcli/migration/transform/mappers/feature_mapper.py`
+- **Analyzer** — a function in `transform/analyzers/` that produces decisions from canonical objects (linter pattern). → `src/wxcli/migration/transform/analyzers/css_routing.py`
+- **Advisor** — the `migration-advisor` Opus agent that adds CCIE-level reasoning around static recommendations. → `src/wxcli/migration/advisory/advisor.py:26`
+- **Auto-rule** — a `DEFAULT_AUTO_RULES` (or user-supplied) rule that auto-resolves a Decision matching a `type`/`match` pattern. → `src/wxcli/commands/cucm_config.py:17`
+- **Phase A vs Phase B** — the two halves of `cucm-migrate` Step 1c (architecture advisories vs per-decision review). → `.claude/skills/cucm-migrate/SKILL.md`
