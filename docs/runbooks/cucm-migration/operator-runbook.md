@@ -95,10 +95,10 @@ Meet all of these before running `wxcli cucm init`.
 
 ### Webex OAuth Credentials
 
-Run `wxcli configure` to complete the interactive OAuth flow. The CLI prompts for your token and saves it to the config file. Do not enumerate scopes manually — `wxcli configure` handles scope selection. For the full list of required `spark-admin:` scopes and token types, see [`docs/reference/authentication.md` §Calling-Related Scopes](../../../docs/reference/authentication.md#calling-related-scopes).
+Run `wxcli configure` to complete the interactive OAuth flow. The CLI prompts for your token and saves it to the config file. Do not enumerate scopes manually — `wxcli configure` handles scope selection. For the full list of required `spark-admin:` scopes and token types, see [`docs/reference/authentication.md` §Calling-Related Scopes](../../reference/authentication.md#calling-related-scopes).
 
 - If you are using a **Personal Access Token** (12-hour lifetime), re-run `wxcli configure` when it expires.
-- If you are using a **Service App** token, set up the refresh loop before starting a long migration run. See [`docs/reference/authentication.md` §Service Apps](../../../docs/reference/authentication.md#service-apps).
+- If you are using a **Service App** token, set up the refresh loop before starting a long migration run. See [`docs/reference/authentication.md` §Service Apps](../../reference/authentication.md#service-apps).
 
 ### Webex Org Readiness
 
@@ -116,7 +116,7 @@ Run `wxcli configure` to complete the interactive OAuth flow. The CLI prompts fo
 
 ### Partner Token Note
 
-If `wxcli whoami` shows a **"Target: \<org name\>"** line, the operator is working against the saved customer org (partner/VAR/MSP scenario). This is the correct state for multi-org deployments. If no Target line appears and you are a partner admin, run `wxcli configure` again — it detects multi-org tokens automatically and prompts for org selection. See [`docs/reference/authentication.md` §Partner/Multi-Org Tokens](../../../docs/reference/authentication.md#partnerulti-org-tokens) for the full multi-org workflow.
+If `wxcli whoami` shows a **"Target: \<org name\>"** line, the operator is working against the saved customer org (partner/VAR/MSP scenario). This is the correct state for multi-org deployments. If no Target line appears and you are a partner admin, run `wxcli configure` again — it detects multi-org tokens automatically and prompts for org selection. See [`docs/reference/authentication.md` §Partner/Multi-Org Tokens](../../reference/authentication.md#partnermulti-org-tokens) for the full multi-org workflow.
 
 → Multi-org detection logic: `docs/reference/authentication.md` §How wxcli handles partner tokens.
 
