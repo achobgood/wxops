@@ -129,13 +129,127 @@ See §[Auto-Rules: How They Work, the 7 Defaults, How to Add Your Own](#auto-rul
      `type` field, with a `-N` suffix when multiple rules share a type (none currently do).
      Validated by test_default_auto_rules_coverage.py. -->
 
+**What auto-rules do.** An auto-rule is a declarative shortcut that resolves a pending decision at pipeline load-time, before that decision ever reaches the human decision-review queue. Each rule is a small dict with a `type` (matching a `DecisionType` value), an optional `match` block (structural filter against the decision's `context`), and a `choice` (the option ID the rule should select). When `apply_auto_rules()` runs during `wxcli cucm analyze`, it walks every unresolved decision, finds the first rule whose `type` and `match` match, validates that `choice` is a real option ID, and resolves the decision with `resolved_by = "auto_rule"`. The decision then disappears from `wxcli cucm decisions list` and review.
+
+**Match operators.** Declarative only — no `eval`/`exec`. All match keys AND together (every key must match). The operator is inferred from the key's suffix. Implemented in `src/wxcli/migration/transform/rules.py:_match_rule()`:
+
+- **Plain key** (no suffix) — exact equality, or list membership if the value is a list.
+  `{"cucm_model": "7841"}` matches when `context["cucm_model"] == "7841"`.
+  `{"cucm_model": ["7841", "7861"]}` matches when `context["cucm_model"]` is in that list.
+- **`_lte`** — less-than-or-equal numeric comparison. Non-numeric context values skip the rule gracefully (no crash).
+  `{"assigned_users_count_lte": 0}` matches when `context["assigned_users_count"] <= 0`.
+- **`_gte`** — greater-than-or-equal numeric comparison. Same graceful-skip on non-numeric.
+  `{"agent_count_gte": 10}` matches when `context["agent_count"] >= 10`.
+- **`_contains`** — substring match (both sides must be strings).
+  `{"name_contains": "lobby"}` matches when `"lobby" in context["name"]`.
+
+Missing context keys cause the rule to skip (return `False`), not crash. A rule with no `match` field at all is type-only and matches every decision of that type.
+
+**How to add a new rule.** Edit `<project>/config.json` (written by `wxcli cucm init`, loaded by `load_config()` at `src/wxcli/commands/cucm_config.py:50`). The `auto_rules` key is a list — append your new rule dict and re-run `wxcli cucm analyze`. For example, to auto-resolve every `FEATURE_APPROXIMATION` decision in favor of the `hunt_group` option when the hunt list is small and uses the top-down algorithm:
+
+```json
+{
+  "auto_rules": [
+    {
+      "type": "FEATURE_APPROXIMATION",
+      "match": {"algorithm": "topDown", "agent_count_lte": 4},
+      "choice": "hunt_group"
+    }
+  ]
+}
+```
+
+The 7 `DEFAULT_AUTO_RULES` below are merged into the list, so your additions augment the defaults rather than replacing them.
+
+**When NOT to add an auto-rule.** Auto-rules are the wrong tool whenever the correct answer depends on judgment or on information the pipeline cannot see:
+
+- The decision requires a conversation with the customer (licensing tier, PSTN architecture, number-porting cutover strategy).
+- The match would hide a signal the operator needs to see — for example, silencing every `CALLING_PERMISSION` decision would bury real outbound-dialing policy gaps that the customer must ratify.
+- The rule is correct "most of the time" but the exceptions are high-blast-radius (silently skipping devices with real users attached, silently accepting voicemail data loss).
+- You are using it to suppress a failing analyzer rather than fix the underlying mapper or data-quality bug.
+
+In every "NOT" case, prefer a per-decision override via `wxcli cucm decide <decision-id> <choice>` so the resolution is auditable and reviewable rather than invisible.
+
 ### default-rule-device-incompatible
+
+**Rule:**
+```json
+{"type": "DEVICE_INCOMPATIBLE", "choice": "skip"}
+```
+**What it does:** Every decision of type `DEVICE_INCOMPATIBLE` (a CUCM device model that has no Webex Calling equivalent at all — old SCCP-only phones, analog endpoints behind VG series gateways, legacy video units) is resolved to `skip`, meaning the device is left out of the migration plan entirely and its owner keeps working from CUCM until a replacement is procured.
+**Why safe as default:** There is no correct "migrate it anyway" answer for a truly incompatible device. The analyzer only flags models that cannot onboard — not ones that merely need a firmware path — so the only real options are `skip` or `procure_replacement`, and procurement is a customer-side decision that happens outside the pipeline. Silently skipping here keeps the migration plan buildable without misrepresenting what will actually work post-cutover.
+**When to remove:** If the customer has already ordered replacement hardware and you want each incompatible device to surface in decision review so you can manually attach the replacement model ID, remove this rule and resolve each decision explicitly. Also remove it in assessment-only runs where the count of incompatible devices IS the deliverable — an auto-resolved decision can vanish from some summary views.
+**See also:** `dt-devices-001`
+
 ### default-rule-device-firmware-convertible
+
+**Rule:**
+```json
+{"type": "DEVICE_FIRMWARE_CONVERTIBLE", "choice": "convert"}
+```
+**What it does:** Every decision of type `DEVICE_FIRMWARE_CONVERTIBLE` (a CUCM phone running enterprise firmware that also ships an MPP or PhoneOS load — classic 88xx, 78xx in convertible SKUs, 9800-series in native MPP mode) is resolved to `convert`, meaning the pipeline will plan a firmware conversion instead of a hardware swap.
+**Why safe as default:** Firmware-convertible is a property of the hardware SKU, not a judgment call. The `DeviceCompatibilityAnalyzer` only emits this decision for models where the conversion path is known, supported, and documented by Cisco. The alternative choice (`replace`) is strictly more expensive and disruptive, and there is no deployment scenario where replacing a convertible phone with the same model is the right answer.
+**When to remove:** Remove this rule when the customer's refresh cycle already lined up with the migration and they are buying new MPP hardware anyway — in that case, each device should be resolved to `replace` so the cutover plan ships the new phones instead of preserving the old chassis. Also remove it when firmware management is centralized on a partner-supplied config server that the customer does not control (rare) and you need the firmware step to be explicit and reviewable.
+**See also:** `dt-devices-002`
+
 ### default-rule-hotdesk-dn-conflict
+
+**Rule:**
+```json
+{"type": "HOTDESK_DN_CONFLICT", "choice": "keep_primary"}
+```
+**What it does:** Every decision of type `HOTDESK_DN_CONFLICT` (a CUCM hot-dial or Extension Mobility login where the user's primary DN collides with the DN of the device they log into) is resolved to `keep_primary`, meaning the user's primary DN wins and the device-native DN is dropped from the migrated line appearance.
+**Why safe as default:** In CUCM hot-dial and Extension Mobility, the intent is almost always that the user's identity (primary DN) follows them onto whatever device they sit at; the device's "home" DN is a fallback that only matters when nobody is logged in. Webex Calling has no direct Extension Mobility analog, so preserving the user's primary DN is the only mapping that keeps inbound calls reaching the right person post-migration. Keeping the device DN instead would disconnect the user from their existing number.
+**When to remove:** Remove this rule in environments where the device DN is a real, published extension (a lobby or shared workspace where the device is the identity and no single user "owns" it long-term). In those cases you want each conflict to reach decision review so the operator can resolve to `keep_device` or create a separate hot-desking workspace. Also remove for customers using CUCM Extension Mobility Cross Cluster (EMCC) where the primary/device distinction is deliberately blurred.
+**See also:** `dt-identity-001`
+
 ### default-rule-forwarding-lossy
+
+**Rule:**
+```json
+{"type": "FORWARDING_LOSSY", "choice": "accept_loss"}
+```
+**What it does:** Every decision of type `FORWARDING_LOSSY` (a CUCM call-forwarding configuration that uses a feature Webex Calling cannot fully express — per-CSS forwarding, forward-to-voicemail with a CSS override, forward to an internal-only route pattern that won't exist post-cut) is resolved to `accept_loss`, meaning the closest-matching Webex forwarding rule is applied and the fidelity gap is logged.
+**Why safe as default:** The `CallForwardingMapper` only marks a forwarding config as lossy when the Webex target exists but the CSS-scoped routing or the internal-only target cannot be carried forward. In every case, the user-visible behavior after migration is the same or strictly better — a forwarded call still reaches the same destination, just without the CSS-gated filter. The gap is in the edge case (caller-specific routing), not the primary path, so accepting the loss preserves the everyday experience without a conversation per user.
+**When to remove:** Remove this rule for customers with regulatory or privacy requirements tied to their forwarding rules (healthcare after-hours routing, legal firms with ethical-wall CSSes, compliance-driven forward-to-record flows) — in those environments, every lossy forwarding decision should reach the operator so the gap can be documented and a compensating Webex control (operating modes, schedules, call-intercept) can be planned.
+**See also:** `dt-call-handling-001`
+
 ### default-rule-snr-lossy
+
+**Rule:**
+```json
+{"type": "SNR_LOSSY", "choice": "accept_loss"}
+```
+**What it does:** Every decision of type `SNR_LOSSY` (a CUCM Single Number Reach configuration that uses a feature Webex Calling cannot fully express — SNR with a per-CSS answer-too-soon timer, SNR with multiple remote destinations that exceed Webex's sequential-ring limits, SNR tied to a time-of-day schedule not representable in Webex) is resolved to `accept_loss`, meaning the closest Webex equivalent (Office Anywhere, simultaneous ring, or sequential ring) is applied and the fidelity gap is logged.
+**Why safe as default:** The `SNRMapper` only emits this decision when the remote destination ring-to reach and the primary single-number behavior both succeed, and only the secondary knobs (answer-too-soon thresholds, per-destination schedules, ring delays beyond the Webex cap) don't carry forward. Users will still see their calls ring their mobile and their desk phone — just with simpler timing. Because SNR fidelity gaps rarely cause missed calls (they usually cause extra rings or slightly early voicemail), accepting the loss is a safe default for the overwhelming majority of users.
+**When to remove:** Remove this rule when the customer has executive or on-call staff whose escalation chains depend on the exact SNR timing (emergency responders, on-call engineers, 24×7 NOC rotations) — for those users, the answer-too-soon and ring-duration values are load-bearing and every lossy SNR decision should reach decision review. Also remove for customers who have built SNR around an auto-attendant or call-queue pre-filter that Webex can't reproduce.
+**See also:** `dt-call-handling-002`
+
 ### default-rule-button-unmappable
+
+**Rule:**
+```json
+{"type": "BUTTON_UNMAPPABLE", "choice": "accept_loss"}
+```
+**What it does:** Every decision of type `BUTTON_UNMAPPABLE` (a line-key slot on a CUCM phone button template that uses a feature Webex Calling cannot bind to a key — service URL to an XML phone service, feature button for a CUCM-only capability like Mobility, Abbreviated Dial with a CUCM-only directory hook) is resolved to `accept_loss`, meaning the key is left empty (or reassigned to a default line) on the migrated device layout and the gap is logged.
+**Why safe as default:** The `DeviceLayoutMapper` only flags buttons whose underlying service target either does not exist in Webex Calling or requires a different binding mechanism (XSI macro, device configuration template, workflow integration). Leaving the key blank is a strictly no-harm outcome — the user loses a shortcut they often never used, and the rest of the line layout migrates intact. Pushing these into decision review would generate hundreds of near-identical decisions per environment with no path to a better answer.
+**When to remove:** Remove this rule for customers who depend on specific service-URL buttons for daily workflows (retail POS integrations, healthcare EHR launchers, emergency notification buttons, executive VIP dial buttons) — in those cases the unmappable buttons should surface in decision review so the operator can plan the replacement workflow (macro, workspace personalization, RoomOS device configuration, or a paper cutover). Also remove for any customer using shared-line BLF for call-center-style supervisor monitoring that must be preserved.
+**See also:** `dt-devices-003`
+
 ### default-rule-calling-permission-mismatch-assigned-users-count-0
+
+**Rule:**
+```json
+{
+  "type": "CALLING_PERMISSION_MISMATCH",
+  "match": {"assigned_users_count": 0},
+  "choice": "skip"
+}
+```
+**What it does:** Every decision of type `CALLING_PERMISSION_MISMATCH` whose context reports `assigned_users_count == 0` (a CUCM CSS whose calling permissions don't line up cleanly with any Webex category, but which has no users actually assigned to it at the time of discovery) is resolved to `skip`, meaning the CSS is left out of the migration and no Webex calling permission is provisioned from it.
+**Why safe as default:** A CSS with zero assigned users is a CUCM configuration artifact, not a live policy. Migrating a mismatched calling permission that nobody uses would create a Webex category that exists only to match a CUCM construct — it would clutter the tenant, confuse future auditors, and provide no user-visible benefit. This is the only auto-rule in the default set that uses a `match` filter (`assigned_users_count: 0`), which narrows it to the one case where "skip" is unambiguously correct. Mismatched CSSes WITH users still reach decision review.
+**When to remove:** Remove this rule if the customer intends to reuse the CSS shortly after cutover (a known phased-rollout strategy where certain CSSes are staged in CUCM for users who will migrate in a later wave), so that the permission model can be planned rather than silently dropped. Also remove in environments where CSS reuse patterns are load-bearing for compliance audits and every CSS must be accounted for in the migration record.
+**See also:** `dt-permissions-001`
 
 ### The 14 Non-Auto-Ruled DecisionTypes and Why
 
