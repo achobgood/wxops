@@ -424,7 +424,83 @@ When three or more of these fire at once, stop and escalate to a solution-archit
 
 ## Decision Review
 
-_TBD — Wave 2 Phase B Task B4_
+Decision review is Step 1c of the `cucm-migrate` skill. It runs after the pipeline has produced static recommendations for every discovered entity. The operator works alongside Claude (acting as migration-advisor) to accept, reject, skip, or override each recommendation before anything is provisioned. Nothing is committed to Webex until review is complete and you approve the final plan.
+
+### How `cucm-migrate` Invokes the Advisor
+
+At Step 1c, `cucm-migrate` spawns the `migration-advisor` agent (Opus model, `bypassPermissions`) with a review-mode prompt. The agent reads the migration narrative from `<project>/exports/migration-narrative.md`, loads the static recommendations from the pipeline, and presents two review phases in sequence.
+
+→ `.claude/skills/cucm-migrate/SKILL.md:142` — Step 1c definition and agent spawn parameters.
+
+### Phase A: Architecture Advisories
+
+Phase A presents `ARCHITECTURE_ADVISORY` decisions grouped by category before any per-entity review begins. The categories are `ELIMINATE` (CUCM workarounds to remove), `REBUILD` (patterns that need redesign in Webex), `OUT_OF_SCOPE` (items outside the migration boundary), and `MIGRATE_AS_IS` (safe to carry forward unchanged). For each group, the advisor presents a 2–3 sentence narrative connecting the advisory to your specific migration, then lists the individual advisories within it.
+
+The operator can accept a whole group ("accept all ELIMINATE advisories") or drill into individual items. Accepting means the recommended action will be applied in planning. Rejecting flags the advisory for manual follow-up. Architecture advisories shape the framing of Phase B — resolve them before proceeding.
+
+→ `.claude/agents/migration-advisor.md:123` — Review Mode, Phase A presentation protocol.
+
+### Phase B: Per-Decision Review
+
+Phase B works through every non-auto-resolved decision one at a time. For each decision the advisor presents: the entity being decided (device, user, feature, etc.), the static recommendation and its confidence level, any KB entry the static heuristics cited, and — when there is a dissent flag — the advisor's competing view with CCIE-level explanation.
+
+At each prompt the operator chooses one of:
+
+- **accept** — take the static recommendation as-is
+- **reject** — reject and override with a manual choice (advisor prompts for the alternative)
+- **skip** — defer this entity; it will not appear in the deployment plan
+- **override** — accept the advisory's dissent recommendation instead of the static one
+- **bulk-accept** — accept all remaining decisions of this `DecisionType` in one step (only offered when the advisor's confidence is HIGH for every remaining instance)
+
+For any specific decision type and what each choice means, look it up in [decision-guide.md §Decision Types A–Z](decision-guide.md#decision-types-az).
+
+### Dissent Flags
+
+A dissent flag appears when the migration-advisor disagrees with the static recommendation. The static system applies `recommendation_rules.py` mechanically; the advisor applies CCIE-level reasoning and may reach a different conclusion. A dissent looks like:
+
+```
+⚠ DISSENT [DT-DEVICE-003]: Static recommendation is CONVERT. Advisory: REPLACE.
+Reason: This model's SIP firmware path has known CFB issues on Webex Calling 44.x.
+Confidence: HIGH
+```
+
+The `DT-{DOMAIN}-NNN` code identifies the KB entry the advisor is citing. Do not dismiss dissents without reading the reason — HIGH-confidence dissents from the advisor are more often right than the static rule when edge-case conditions are present.
+
+For what each confidence level means and when to trust the dissent over the static recommendation, see [decision-guide.md §Dissent Handling](decision-guide.md#dissent-handling).
+
+### Auto-Resolved Decisions
+
+Seven decision types are pre-resolved by `DEFAULT_AUTO_RULES` and never appear in the interactive review at all:
+
+| DecisionType | Auto-choice | Rationale |
+|---|---|---|
+| `DEVICE_INCOMPATIBLE` | skip | No migration path exists |
+| `DEVICE_FIRMWARE_CONVERTIBLE` | convert | Firmware flash is always safe |
+| `HOTDESK_DN_CONFLICT` | keep_primary | Primary DN wins by definition |
+| `FORWARDING_LOSSY` | accept_loss | CUCM-only variant, rarely configured |
+| `SNR_LOSSY` | accept_loss | Webex simplification is acceptable |
+| `BUTTON_UNMAPPABLE` | accept_loss | No Webex equivalent exists |
+| `CALLING_PERMISSION_MISMATCH` (0 users) | skip | Orphaned profile, no impact |
+
+Source: `src/wxcli/commands/cucm_config.py:17` — `DEFAULT_AUTO_RULES`. These rules can be removed or reconfigured per project; see [tuning-reference.md §Auto-Rules](tuning-reference.md#auto-rules).
+
+### When to Break the Review
+
+In almost all cases, issues surfaced during review are fixable inside review — override the recommendation, adjust a choice, or skip and handle manually after migration. **Breaking the review to re-run an upstream stage is rare and disruptive.**
+
+Break the review and re-run only when:
+
+- Discovery data was incorrect (wrong CUCM cluster, missing AXL scope, or incomplete export) — the root data is wrong, not the recommendations
+- The normalize or map stage produced systematically incorrect output that cannot be corrected decision-by-decision
+
+Do not break the review for: wrong recommendations on individual entities (use override), missing E911 addresses (fix in the address resolution step, not by re-running), or high decision counts (use bulk-accept).
+
+### See Also
+
+- Per-DecisionType reference: [decision-guide.md §Decision Types A–Z](decision-guide.md#decision-types-az)
+- Dissent handling detail: [decision-guide.md §Dissent Handling](decision-guide.md#dissent-handling)
+- Auto-rule tuning: [tuning-reference.md §Auto-Rules](tuning-reference.md#auto-rules)
+- Failure recovery: [§Failure Patterns](#failure-patterns)
 
 ## Execution & Recovery
 
