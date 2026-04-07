@@ -312,11 +312,128 @@ The operational instructions for logging calibration data live in [operator-runb
 
 ## What Is and Isn't Tunable
 
-_TBD — Wave 3 Phase D Task D5_
+The pipeline exposes a deliberate, narrow tuning surface. Anything not listed under "tunable" below is intentionally locked and should not be changed without a code-review conversation.
+
+**What IS tunable:**
+
+- **`config.json` keys** — the nine keys documented in [§config.json: Every Key Explained](#configjson-every-key-explained). These are the per-project knobs the operator is expected to set: `country-code`, `default-language`, `default-country`, `outside-dial-digit`, `create-method`, `include-phoneless-users`, `auto-rules`, `site-prefix-rules`, and `category-rules`.
+- **Auto-rules** — both the seven defaults documented in [§Auto-Rules](#auto-rules-how-they-work-the-7-defaults-how-to-add-your-own) and any custom rules the operator adds to `config.json` under `auto_rules`. Match operators (`_lte`, `_gte`, `_contains`, plain/list) are listed in `src/wxcli/migration/transform/rules.py:21-91`.
+- **Per-decision overrides via `wxcli cucm decide`** — the one-off escape hatch documented in [§Per-Decision Overrides](#per-decision-overrides) immediately below.
+
+**What is NOT tunable (and why):**
+
+- **Severity is NOT tunable.** Severity (`HIGH` / `MEDIUM` / `LOW`) is set by the producing mapper or analyzer at decision-creation time — for example `MissingDataAnalyzer._highest_severity()` at `src/wxcli/migration/transform/analyzers/missing_data.py:135`. There is no config key, no rule, and no CLI flag that re-grades severity after the fact. This is a documented limitation, not a bug: severity reflects the technical impact of the underlying CUCM artifact, not the operator's appetite for risk on a given migration. If a class of decisions is consistently mis-graded, that's a code change to the producer, not a tuning knob.
+- **Score weights are tunable in code, NOT via `config.json`.** The `WEIGHTS` dict at `src/wxcli/migration/report/score.py:17` is intentionally code-only. Weights are a calibration artifact that should change exactly once — when sufficient real-migration data exists to fit them — not per-project, not per-customer, and not as a knob to make a particular score look better. See [§Score Weights and the Calibration Disclaimer](#score-weights-and-the-calibration-disclaimer) for the full rationale.
+- **`SCORE_CALIBRATED` is tunable only by flipping the flag in code.** It lives at `src/wxcli/migration/report/score.py:50`. Flipping it from `False` to `True` removes the uncalibrated disclaimer from every subsequent report and is a one-way claim about the trustworthiness of the score. **Don't flip it speculatively** — the flip should land in the same commit as the calibrated weights and should be backed by the regression evidence described in [§When to Recalibrate](#when-to-recalibrate).
+- **`DecisionType` options are NOT tunable.** The set of choices presented for a decision (e.g. `provide_data` / `skip` / `manual` for `MISSING_DATA`) is hardcoded in the producing module's option-generation logic — for `MISSING_DATA`, see `analyzers/missing_data.py:149-165`. There is no config to add, remove, or rename options. If a new option is needed, it's a code change to the producer (and almost always needs a matching `recommend_*` rule and an advisory pattern, so it's not a small change).
+
+The dividing line: **per-project knobs go in `config.json`**, **per-migration overrides go through `wxcli cucm decide`**, and **everything that affects how decisions are graded or what choices exist requires a code change**. That separation is why the tuning surface stays small enough to reason about across hundreds of migrations.
 
 ## Per-Decision Overrides
 
-_TBD — Wave 3 Phase D Task D5 — when to use `wxcli cucm decide` vs an auto-rule_
+`wxcli cucm decide` is the operator's escape hatch for resolving decisions that aren't covered by an auto-rule. It supports both single-decision and batch resolution, and the choice between `decide` and an auto-rule is the most common tuning question during a live migration.
+
+### CLI usage
+
+The command (verified via `wxcli cucm decide --help`):
+
+```
+Usage: wxcli cucm decide [OPTIONS] [DECISION_ID] [CHOICE]
+
+  Resolve a single decision or batch-resolve by type.
+
+Arguments:
+  decision_id      [DECISION_ID]  Decision ID to resolve (e.g. D001)
+  choice           [CHOICE]       Chosen option ID
+
+Options:
+  --type        -t   TEXT  Decision type for batch resolve
+  --all                    Batch resolve all matching decisions
+  --choice           TEXT  Choice for batch resolve
+  --apply-auto             Apply all auto-resolvable decisions
+  --yes         -y         Skip confirmation prompt (for non-interactive use)
+  --project     -p   TEXT  Project name
+```
+
+Three usage modes:
+
+1. **Single decision** — pass the decision ID and the chosen option ID positionally:
+   ```bash
+   wxcli cucm decide D042 provide_data -p mig-acme
+   ```
+2. **Batch by type** — resolve every pending decision of one `DecisionType` to the same choice:
+   ```bash
+   wxcli cucm decide --type MISSING_DATA --all --choice skip -p mig-acme
+   ```
+3. **Apply all auto-resolvable** — replay the auto-rules in `config.json` against the current decision set without re-running `analyze`:
+   ```bash
+   wxcli cucm decide --apply-auto -p mig-acme
+   ```
+
+The `--all` flag is required when using `--type` to make batch intent explicit; the `/cucm-migrate` skill also exposes batch-accept prompts that wrap this same command for interactive review.
+
+### When to use `decide` vs an auto-rule
+
+The two mechanisms exist for two different timescales:
+
+| Use `wxcli cucm decide` when… | Use an auto-rule when… |
+|--|--|
+| The override is **one-off**: this specific decision, this specific migration, no expectation of seeing it again. | The override describes a **recurring pattern** — either across many decisions in the current migration, or across future migrations. |
+| You're working a single ambiguous case the recommender flagged with no clear answer. | You can name a property of the decision's context (`object_type`, `cucm_model`, `dn_length`, etc.) that uniquely identifies the class of decisions you want resolved the same way. |
+| You don't want this answer applied to any future migration. | You want the answer captured in `config.json` so the next `analyze` run for this project — or a sibling project that copies the config — resolves it automatically. |
+
+The mental model: **`decide` writes to the decision row in the SQLite store**, **auto-rules write to `config.json`** and re-resolve on every `analyze` pass. If you find yourself running `decide` more than two or three times for decisions that look the same, stop and write an auto-rule instead.
+
+### Worked example: 30 `MISSING_DATA` decisions on already-incompatible devices
+
+Scenario: `wxcli cucm decisions` shows 30 pending `MISSING_DATA` decisions, all of them `object_type = "phone"`, all on devices that are also flagged `DEVICE_INCOMPATIBLE` and slated for skip. The customer has no intention of supplying the missing fields for hardware that isn't migrating.
+
+The naive approach is 30 separate commands:
+
+```bash
+wxcli cucm decide D012 skip -p mig-acme
+wxcli cucm decide D027 skip -p mig-acme
+wxcli cucm decide D031 skip -p mig-acme
+# … 27 more …
+```
+
+The right approach is one auto-rule. The `MissingDataAnalyzer` puts these fields in every decision's context (`src/wxcli/migration/transform/analyzers/missing_data.py:143-147`):
+
+```python
+context = {
+    "object_type": object_type,      # "phone", "user", "line", …
+    "canonical_id": canonical_id,
+    "missing_fields": missing_names,
+}
+```
+
+So `object_type` is a real, matchable context key. Add this rule to `config.json`:
+
+```json
+{
+  "auto_rules": [
+    {
+      "type": "MISSING_DATA",
+      "match": { "object_type": "phone" },
+      "choice": "skip"
+    }
+  ]
+}
+```
+
+Then re-run analyze (or `wxcli cucm decide --apply-auto -p mig-acme` to replay the rules without a full re-analyze) and all 30 decisions resolve in one pass. The rule travels with the project: a follow-up run after a CUCM re-discovery still resolves the same class automatically, and the operator's review queue stays focused on decisions that actually need a human.
+
+A more conservative variant matches a specific subset of missing fields by adding a second match key — useful when only certain missing fields are safe to skip:
+
+```json
+{
+  "type": "MISSING_DATA",
+  "match": { "object_type": "phone", "missing_fields": ["model"] },
+  "choice": "skip"
+}
+```
+
+Note that `missing_fields` is a list in the context — the auto-rule engine's plain-key matcher does an exact equality check, so this matches only decisions where `model` is the **only** missing field. For partial-list matches you'd need a code change to add a `_contains_any` operator. The rule engine's full operator vocabulary lives in `transform/rules.py:21-91`.
 
 ## Tuning Recipes
 
