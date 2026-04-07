@@ -635,7 +635,53 @@ Two layers of advisory output coexist on every decision: the **static recommenda
 
 ## Dissent Handling
 
-_TBD — Wave 3 Phase C Task C5_
+Dissent flags appear when the `migration-advisor` Opus agent disagrees with the static recommendation produced by `recommendation_rules.py`. The confidence-level semantics are covered in [§Recommendation Confidence and When to Override](#recommendation-confidence-and-when-to-override); this section is the operator field reference for the **two surfaces** the flag renders on — the mid-review terminal prompt and the written migration narrative — and how to act at each decision point.
+
+**Surface 1 — Review-mode terminal prompt.** During per-decision review in `/cucm-migrate` Step 1c (the advisor-led path), a dissented decision appears in Group 2b exactly as defined at `.claude/agents/migration-advisor.md:185-197`:
+
+```
+2. [D0048] <one-line summary>
+   Recommended: <static option_id> - "<static reasoning>"
+
+   >>> Advisor note: <KB-grounded alternative reasoning>
+   [Confidence: HIGH/MEDIUM/LOW]
+   [KB: <doc> section <section name>]
+
+   Accept system recommendation? [Y]
+   Override with advisor suggestion? [a]
+   Skip for now? [s]
+```
+
+The three-option prompt is deliberate — there is no single "take the advisor" default. `Y` (capital, default on bare Enter) accepts the static recommendation; `a` accepts the advisor's alternative option; `s` defers the decision so it stays pending for a later pass. All three resolve via the same `wxcli cucm decide <ID> <option_id> -p <project>` call under the hood — the agent just picks which `option_id` to pass based on the operator's keystroke.
+
+**Surface 2 — Written migration narrative.** When the advisor runs in analysis mode (Step 1b), dissents are also written into `<project>/exports/migration-narrative.md` under the `## Dissent Flags` section in the markdown block format defined at `.claude/agents/migration-advisor.md:91-100`:
+
+```markdown
+### Dissent: <Decision ID> - <summary>
+**Static recommendation:** <option> - "<reasoning>"
+**Advisor alternative:** <option> - "<KB-grounded reasoning>"
+**Confidence:** HIGH | MEDIUM | LOW
+**KB source:** <which KB doc section>
+**Admin action:** <what to consider>
+```
+
+The narrative surface is for reviewing dissents **before** entering per-decision review — operators who want to pre-read the full set of disagreements and think through them, rather than reacting to each prompt in turn. The terminal surface is the same information re-rendered inline with the decision it dissents against.
+
+**How to act, by confidence level.** (See [§Recommendation Confidence and When to Override](#recommendation-confidence-and-when-to-override) for the full semantics; this is the terminal-prompt-time cheat sheet.)
+
+- **HIGH** — Press `a`. Trust the dissent and override the static recommendation, unless you know customer-specific context the advisor does not (e.g., a parallel migration project, an in-flight license re-tier, a contractual feature-parity clause). The advisor has direct KB support and the static rule is operating on incomplete signal.
+- **MEDIUM** — Read the cited KB section (`docs/knowledge-base/migration/<doc>.md`) before answering. The KB pattern is suggestive but the migration-specific data is mixed. If the section's reasoning matches your customer's environment, press `a`; if not, press `Y`. If you cannot decide in under a minute, press `s` and come back after batch-resolving the straightforward decisions.
+- **LOW** — Default to `Y`. The advisor is flagging a *possibility*, not a confident counter-recommendation — usually a pattern that has bitten other migrations but whose signal in this environment is weak. Only press `a` if the advisor's reasoning resonates with something you already know about the customer.
+
+**Q&A escape hatch.** If the dissent is confusing or you need to probe further before pressing a key, the review-mode agent accepts free-form follow-up questions mid-prompt — the behavior is defined at `.claude/agents/migration-advisor.md:213-217` as "Handle follow-up Q&A: reference KB docs and pipeline data, trace downstream impacts of choices, follow grounding priority (KB first, heuristics second, training third)." Type the question in plain English (e.g., `why does the KB say intercluster trunks need LGW termination?` or `what does accepting the advisor alternative do to the 47 dependent decisions on D0048?`) and the agent will answer from KB + pipeline store, then re-present the `Y / a / s` prompt. There is no dedicated keybinding — the Q&A mode is how the agent reacts to any input that is not `Y`, `a`, `s`, or a numeric batch response like `2a`. The escape hatch is also described alongside the override checklist at [§Recommendation Confidence and When to Override](#recommendation-confidence-and-when-to-override) ("Escape hatch — ask the advisor").
+
+**Audit trail.** Every dissent the agent emits cites a specific KB section via the `KB: <doc> section <section name>` tag. Once Wave 4 lands the anchor backfill into the KB files, those section names will normalize to short-form lowercase IDs in the form `dt-<domain>-NNN` — for example `dt-routing-001`, `dt-device-003`, `dt-user-007`, `dt-trunk-002`, `dt-id-001`. The [§Decision Types A–Z](#decision-types-az) and [§Advisory Patterns](#advisory-patterns) sections already cite those IDs in their **See also** footers (e.g. `kb-css-routing.md#dt-routing-002`), so operators can grep the relevant KB file to see the evidence base the advisor is reasoning from:
+
+```bash
+grep -n '^##.*dt-routing-002' docs/knowledge-base/migration/kb-css-routing.md
+```
+
+When a dissent is accepted or overridden, the resolution is written to the project store like any other decision (same fingerprint, same `chosen_option`, same cascade re-evaluation through `resolve_and_cascade()`). The advisor's reasoning is **not** persisted to the Decision model — it lives in the narrative file and the agent transcript. If you need a durable record of why a dissent was accepted, paste the agent's Q&A answer into the project's `notes/` directory or into the execution report during the export step.
 
 ## Bulk-Accept Patterns
 
