@@ -279,40 +279,359 @@ Two layers of advisory output coexist on every decision: the **static recommenda
 ### eliminate
 
 #### restriction-css-consolidation
+
+**Category:** eliminate
+**Triggered by:** `advisory_patterns.py:41-109` (`detect_restriction_css_consolidation`) — fires when 2+ CSSes contain only blocking route patterns and no routing patterns, signalling that those CSSes exist purely to restrict calling rather than route it.
+**Detection signals:**
+- Iterates every CSS, walks its `css_contains_partition` cross-refs, then each partition's `partition_has_pattern` cross-refs.
+- Flags a CSS as "restriction-only" when every pattern's `pre_migration_state.blockEnable` is `True` (and at least one pattern exists).
+- Fires a single finding when 2+ such CSSes are found; `affected_objects` includes the CSS canonical_ids plus any dial_plan objects the css_mapper already created from them (via `css_mapped_to_dial_plan` cross-refs).
+**Why/impact:** CUCM operators routinely model "no international," "no long-distance," or "executive-only" as a dedicated CSS full of blocking patterns. In Webex Calling, call restriction is not a routing concern — it is handled by outgoing calling permissions attached to a user or location. Migrating these CSSes as dial plans creates dead routing objects that clutter the Webex config without affecting call behaviour, and the real restriction has to be rebuilt anyway.
+**Example:** A CUCM tenant with `CSS_Block_International` and `CSS_Block_LongDistance`, each containing a partition whose route patterns all have `blockEnable=true`. The advisor fires once covering both and points at the dial_plan objects the mapper already staged for deletion.
+**Recommended action:** Migrate the routing CSSes as dial plans, then replace these N restriction CSSes with calling permission policies configured on the affected users/locations (`severity=HIGH`, see the `AdvisoryFinding.detail` text).
+**See also:** `mixed-css` (fires when routing and blocking live in the same CSS — the common hybrid case that Pattern 1 skips), `partition-ordering-loss` (routing CSSes that survive this elimination may still trip the longest-match gap), `dt-css-002` and `dt-css-permission-001` in `kb-css-routing.md`.
+
 #### translation-pattern-elimination
+
+**Category:** eliminate
+**Triggered by:** `advisory_patterns.py:120-173` (`detect_translation_pattern_elimination`) — fires when 2+ translation patterns look like digit normalization (access-code strip, country-code insert, or period-delimited prefix stripping).
+**Detection signals:**
+- A matching pattern that starts with `N.` (e.g., `9.XXXX`) — classic dial-9 access-code strip.
+- A replacement pattern that begins with `+` or `\+` (E.164 country-code insertion).
+- A matching pattern containing `.` where the replacement has no `.` (strips/adds the access code separator).
+**Why/impact:** Webex Calling normalizes digits natively at the location level — `outside_dial_digit`, `outside_dial_prefix`, and the internal dialing prefix cover access-code and country-code transformations without any explicit routing object. Migrating the CUCM translation patterns as-is produces redundant rules that the operator has to maintain forever, and (worse) they can conflict with Webex's built-in normalization.
+**Example:** Two translation patterns `9.XXXX` → `XXXX` (strip dial-9) and `9.[2-9]XXXXXXXXX` → `+1\1` (strip dial-9 and E.164ize NANP). Both are handled by a single Webex location setting (`outside_dial_digit=9`, country code `+1`).
+**Recommended action:** Configure each location's `outside_dial_digit` and internal dialing settings in Webex, then skip these translation patterns (`severity=MEDIUM`).
+**See also:** `globalized-vs-localized` (classifies the overall dial plan style — informs whether these translations are part of a broader E.164 conversion), `overengineered-dial-plan`, `dt-routing-002` in `kb-css-routing.md`.
+
 #### partition-time-routing
+
+**Category:** eliminate
+**Triggered by:** `advisory_patterns.py:615-660` (`detect_partition_time_routing`) — fires when any route partition has a CUCM time schedule attached, indicating time-of-day call routing via the schedule→partition→CSS chain.
+**Detection signals:**
+- Scans all `route_partition` objects for a `pre_migration_state.timeScheduleIdName` or `time_schedule_name` value.
+- Fires one finding per detected set of time-scheduled partitions, listing each partition name and the schedule name.
+**Why/impact:** CUCM's classic time-of-day pattern is to build a time schedule, attach it to a partition, and put that partition in a CSS — the partition (and its patterns) only participate in routing during the scheduled window. Webex has no partition-level time activation; instead, Auto Attendant business hours / after-hours menus and operating modes handle all time-of-day routing. Migrating the chain verbatim produces dial plans that never do anything (because Webex ignores any time dimension on a dial plan), so the intended behaviour is silently lost.
+**Example:** A partition `PT_AfterHours_Routing` attached to schedule `After-Hours` that is only active 17:00–08:00; a CSS `CSS_MainNumber` includes this partition and a route pattern `5551000` that routes to a night auto-attendant during that window.
+**Recommended action:** Configure the corresponding Auto Attendant's business-hours schedule directly and drop the time-schedule→partition→CSS chain from the migration plan (`severity=MEDIUM`).
+**See also:** `restriction-css-consolidation` (often fires on the same set of CSSes), `partition-ordering-loss` (if the time partition overlaps a non-time partition, ordering loss can compound), `dt-css-001` in `kb-css-routing.md`, `dt-features-002` in `kb-feature-mapping.md`.
+
 #### voicemail-pilot-simplification
+
+**Category:** eliminate
+**Triggered by:** `advisory_patterns.py:329-373` (`detect_voicemail_pilot_simplification`) — fires when 2+ voicemail pilots all resolve to the same voicemail system (same first-3-digits prefix and same CSS name).
+**Detection signals:**
+- Requires `len(voicemail_pilot) > 1`.
+- Builds a grouping key per pilot: `first-3-digits-of-pilot-number | css_name` (from `pre_migration_state.voice_mail_pilot_number` and `css_name`).
+- Only fires when every pilot shares the same key — deployments with genuinely independent Unity Connection systems are left alone to avoid false positives.
+**Why/impact:** CUCM operators often create multiple voicemail pilots (one per site, one per language, one per tenant) that all route to a single Unity Connection cluster. Webex Calling has no "voicemail pilot" object — voicemail is per-user with location-level configuration, so the pilots don't need individual migration. Treating each pilot as a feature-to-migrate wastes execution time and can confuse the operator during decision review.
+**Example:** Three pilots `VM_Pilot_HQ` (55500), `VM_Pilot_BR1` (55500), and `VM_Pilot_BR2` (55500) — same prefix, same CSS `CSS_VM`. All three point to the same Unity cluster.
+**Recommended action:** Skip the pilots and configure Webex voicemail at the location level instead (`severity=LOW`).
+**See also:** `media-resource-scope-removal` (Unity Connection is similarly out-of-scope for the calling workstream), `dt-voicemail-001` in `kb-feature-mapping.md`.
+
 #### overengineered-dial-plan
+
+**Category:** eliminate
+**Triggered by:** `advisory_patterns.py:384-423` (`detect_overengineered_dial_plan`) — fires when 2+ dial plan objects contain patterns matching an internal extension range (e.g., `XXXX`, `[2-9]XXX`).
+**Detection signals:**
+- Iterates every `dial_plan.dial_patterns` list.
+- Uses `_EXT_RANGE_RE = r"^(\[[\d\-]+\])?X{2,4}$"` (plus a literal `XXXX` check) to decide whether a pattern is extension-range dialing.
+- Fires once with every redundant dial plan's ID listed.
+**Why/impact:** Webex Calling automatically routes calls to extensions inside the location's configured extension range — no explicit dial plan entry is required. CUCM operators who came from a pure-dial-plan mindset often build `XXXX` and `[2-9]XXX` route patterns just to get basic on-net extension dialing working, which Webex does for free. Migrating them creates redundant dial plans that have to be kept in sync with the location's extension range or they start overriding Webex's built-in routing.
+**Example:** A CUCM route list containing `XXXX` and `[2-9]XXX` patterns pointing back at the hunt-list-of-CUCM-phones. Once users live in a Webex location with a 4-digit extension range, the same dialing just works with zero config.
+**Recommended action:** Verify the Webex location's extension range covers the relevant extensions, then skip these dial plans (`severity=LOW`).
+**See also:** `translation-pattern-elimination` (operators that over-engineered extension routing often also over-engineered normalization), `globalized-vs-localized`, `dt-routing-001` in `kb-css-routing.md`.
 
 ### rebuild
 
 #### hunt-pilot-reclassification
+
+**Category:** rebuild
+**Triggered by:** `advisory_patterns.py:478-540` (`detect_hunt_pilot_reclassification`) — fires when a hunt group exhibits 2+ "queue-like" behavioural signals, suggesting it was really a call centre that got modelled as a plain hunt group because `queueCalls` was never flipped on in CUCM.
+**Detection signals:** The function looks for any two of the following per hunt group:
+- More than 6 agents in the `agents` list.
+- More than one line group attached (via `hunt_list_has_line_group` cross-refs).
+- A `distributionAlgorithm` of `Circular` or `Longest Idle Time`.
+- A non-`NONE` `voiceMailUsage` value.
+**Why/impact:** CUCM hunt pilots can behave like queues even without the explicit queueing checkbox, because CUCM lets you cascade line groups, use longest-idle distribution, and fall through to voicemail. Webex Hunt Groups don't have queuing, overflow management, per-agent reporting, or queue announcements — if you map a queue-shaped hunt pilot straight into a Webex Hunt Group you lose the call-centre behaviour. Call Queues are the native equivalent.
+**Example:** Hunt pilot `5550100` with 12 agents, two line groups (`Sales_Primary` and `Sales_Overflow`), `Longest Idle Time` algorithm, and `voiceMailUsage=busyGreeting`. Pattern 3 fires with signals `12 agents`, `2 line groups`, `algorithm=Longest Idle Time`, `voiceMailUsage=busyGreeting`.
+**Recommended action:** Rebuild these hunt pilots as Call Queues in Webex — not Hunt Groups — so you preserve queuing, per-agent stats, overflow rules, and queue announcements (`severity=HIGH`).
+**See also:** `shared-line-simplification` (hunt-pilot agents often have shared-line appearances on supervisor phones — both patterns may fire on the same org), `feature-approximation` (DecisionType), `dt-features-001` and `dt-features-003` in `kb-feature-mapping.md`.
+
 #### location-consolidation
+
+**Category:** rebuild
+**Triggered by:** `advisory_patterns.py:225-267` (`detect_location_consolidation`) — fires when 3+ locations share the same `(timezone, cucm_region_name)` tuple, suggesting the device-pool-per-concern CUCM modelling can flatten into fewer Webex locations.
+**Detection signals:**
+- Groups `location` objects by `(location.time_zone, pre_migration_state.cucm_region_name)`.
+- Only fires for groups with more than 2 members (i.e., 3+).
+- Produces one finding per over-populated group.
+**Why/impact:** CUCM device pools do a lot of jobs — media resources, SRST failover, region (codec) selection, device defaults — so multi-pool-per-physical-site is normal. In Webex, a location is just an administrative container for users, numbers, and dial-plan settings; the media resource / region concerns go away entirely. Consolidating gives you fewer locations to manage, cleaner reporting, and avoids N×PSTN provisioning duplication. Don't consolidate blindly, though: true multi-site deployments also share a timezone.
+**Example:** Device pools `DP_HQ_1st_Floor`, `DP_HQ_2nd_Floor`, `DP_HQ_3rd_Floor`, `DP_HQ_Lab` all in timezone `America/New_York` and region `G711_Region`. Four CUCM device pools → candidate for a single Webex location `HQ`.
+**Recommended action:** Consider consolidating based on physical office sites rather than per-floor or per-VLAN groupings (`severity=LOW`).
+**See also:** `e911-migration-flag` (consolidating locations changes ERL/address design — coordinate with the E911 workstream), `dt-location-001` and `dt-location-002` in `kb-location-design.md`.
+
 #### shared-line-simplification
+
+**Category:** rebuild
+**Triggered by:** `advisory_patterns.py:550-608` (`detect_shared_line_simplification`) — fires when pre-existing `SHARED_LINE_COMPLEX` decisions describe secondary appearances whose labels look like BLF/monitor buttons rather than shared-call-handling lines.
+**Detection signals:**
+- Loads decisions of type `SHARED_LINE_COMPLEX`.
+- For each, inspects `context.appearances` and looks at `appearances[1:]` (secondary appearances only).
+- Runs the regex `_MONITORING_LABELS = r"(?i)(blf|monitor|busy\s*lamp|speed|dss)"` against each secondary appearance's `lineText` / `label`. If every secondary label matches, the shared line is "monitoring only."
+**Why/impact:** In CUCM it's very common for an executive-assistant pattern (EA watching five execs) to eat up shared-line appearance slots on every exec's DN. In Webex Calling you get the same presence/BLF effect with a virtual extension (or a regular line-key monitoring config) without consuming real shared-line capacity on the monitored user — and without the line-level settings ambiguity that full shared lines create during migration. Migrating every monitoring button as a full shared line wastes Webex licence and user capacity.
+**Example:** A `SHARED_LINE_COMPLEX` decision whose appearances are `[{label: "CEO"}, {label: "CEO BLF"}, {label: "CFO Monitor"}, {label: "Speed Dial - COO"}]`. The primary is a real shared line, but the three secondary appearances all match the monitoring regex.
+**Recommended action:** Keep shared lines only for DNs where multiple users genuinely answer the call. Rebuild monitoring-only appearances as virtual extensions or line-key monitoring (`severity=LOW`).
+**See also:** `hunt-pilot-reclassification` (supervisors of queue-shaped hunt pilots often show up here as monitoring secondaries), `cumulative-virtual-line-consumption` (converting monitoring lines to virtual extensions adds to the org-level VL count), `dt-shared-line-001` in `kb-feature-mapping.md`.
+
 #### trunk-destination-consolidation
+
+**Category:** rebuild
+**Triggered by:** `advisory_patterns.py:274-322` (`detect_trunk_destination_consolidation`) — fires when 2+ trunks have the same primary destination address (IPv4, IPv6, or hostname).
+**Detection signals:**
+- For each trunk, extracts a destination key: first entry of `pre_migration_state.destinations` (trying `addressIpv4` → `addressIpv6` → `host`) with the trunk's `address` as a fallback.
+- Groups trunks by destination key.
+- Fires one finding per destination that has 2+ trunks pointing at it.
+**Why/impact:** CUCM often has multiple trunk objects pointing at the same SBC or gateway because CUCM uses duplicate trunks to distribute capacity, provide failover, or carve up CSS contexts. Webex trunks support multiple destination addresses inside a single trunk with priority/weight, so consolidating gives you simpler operations and fewer objects to manage in route groups and route lists. Keeping duplicates just moves the CUCM sprawl into Webex.
+**Example:** Four CUCM trunks — `Trunk_to_SBC_Site1_Primary`, `Trunk_to_SBC_Site1_Backup`, `Trunk_to_SBC_Site1_International`, `Trunk_to_SBC_Site1_Internal` — all pointing at `sbc1.corp.local`. The advisor recommends one Webex trunk to `sbc1.corp.local` with the four destinations reduced to priority/weight rules.
+**Recommended action:** Consolidate into one Webex trunk per destination, listing each address as a priority/weight destination (`severity=LOW`).
+**See also:** `pstn-connection-type` (if the consolidated destination is a local SBC, this flows into the Local Gateway recommendation), `trunk-type-selection` (the consolidated trunk still needs a REGISTERING vs CERTIFICATE_BASED decision), `dt-trunk-002` in `kb-trunk-pstn.md`.
+
 #### partition-ordering-loss
+
+**Category:** rebuild (severity CRITICAL)
+**Triggered by:** `advisory_patterns.py:667-794` (`detect_partition_ordering_loss`) — fires when a CSS's ordered partitions contain overlapping or duplicate route patterns that resolve to different destinations depending on partition position, i.e., the CSS depends on CUCM's ordered-search behaviour that Webex's longest-match routing cannot replicate.
+**Detection signals:**
+- Walks `css_contains_partition` cross-refs, sorted by `ordinal`, to reconstruct partition order.
+- Builds a map of `pattern_string → [(partition_id, ordinal, destination)]` across all partitions in the CSS.
+- Uses `cucm_patterns_overlap()` from `transform/cucm_pattern.py` to compare every pair of patterns (same-pattern pairs are treated as overlapping by definition).
+- Fires when any overlap has different destinations at different ordinals within the same CSS — those are the calls whose destination depends on which partition came first.
+**Why/impact:** This is the single most dangerous category of CUCM→Webex routing regression. CUCM resolves `9.1800X` in partition `PT_A` before the same pattern in partition `PT_B` because `PT_A` is earlier in the CSS; the two can point at different trunks, different caller-ID masks, different TEHO routes. Webex uses longest-match routing with no partition ordering — whichever dial plan the longest-match algorithm picks wins, and there is no way to fall back to "try this trunk first, then that one." After migration, calls matching these overlapping patterns may route to a completely different destination, silently.
+**Example:** A CSS containing `PT_International_Cheap` (ordinal 1, pattern `9.011!` → carrier A) and `PT_International_Fallback` (ordinal 2, same pattern `9.011!` → carrier B). CUCM always uses carrier A; Webex has no way to model "prefer A, fall back to B by partition order."
+**Recommended action:** Resolve each overlap before migration by either (a) making one pattern more specific so longest-match picks the right winner, (b) removing the redundant pattern entirely, or (c) consolidating both routes into a single dial plan entry that points at the correct trunk (`severity=CRITICAL`). The advisor marks this as CRITICAL because the regressions are silent.
+**See also:** `restriction-css-consolidation` (this pattern is scoped to routing CSSes — restriction-only CSSes eliminated in Pattern 1 don't contribute to ordering loss), `cpn-transformation-chain` (CSSes that trip ordering loss often also trip CPN transformation because CUCM used CSS context for caller ID masking), `mixed-css`, `dt-css-routing-001` and `dt-css-routing-003` in `kb-css-routing.md`.
+
 #### cpn-transformation-chain
+
+**Category:** rebuild
+**Triggered by:** `advisory_patterns.py:801-880` (`detect_cpn_transformation_chain`) — fires when any route pattern or trunk has calling or called party transformations configured (masks or prefix-digits-out), or when both are present and form a multi-level chain.
+**Detection signals:**
+- For each `route_pattern`, checks `callingPartyTransformationMask` / `calling_transform_mask` (caller ID masking), `calledPartyTransformationMask` / `called_transform_mask`, and `prefixDigitsOut` / `prefix_digits_out` (called party manipulation).
+- For each `trunk`, checks the same four fields.
+- Classifies into `caller_id_masking`, `called_party_manipulation`, and `multi_level` (when both a route pattern AND a trunk in the same flow have transforms — up to 5 levels in CUCM).
+- Notes in the detail text that CSS-level CPN transformations are NOT extracted and require manual review.
+**Why/impact:** CUCM can chain calling-party and called-party transformations across up to five levels: phone → device pool → CSS → route pattern → trunk. The same call can be masked, unmasked, and re-masked multiple times before hitting the PSTN. Webex has exactly one layer: a flat caller ID per user or location, configured once. If you migrate without consolidating the chain, outbound caller ID ends up wrong (or leaks an extension that was supposed to be masked) and inbound called-party digits may be unrecognizable.
+**Example:** A route pattern `9.[2-9]XXXXXXXXX` has `callingPartyTransformationMask=4085551XXX` (site main number), and the trunk it points at also has `callingPartyTransformationMask=+1408555XXXX`. CUCM applies both; Webex will only honour one, and it must be set at the user/location level, not the trunk.
+**Recommended action:** Configure Webex caller ID at the user or location level to cover caller ID masking. Verify that Webex location dialing settings handle called-party manipulation natively. Collapse multi-level chains into a single transformation (`severity=HIGH`). CSS-level transformations need manual review because the extractor doesn't capture them.
+**See also:** `transformation-patterns` (same data family — info_calling_xform/info_called_xform objects are a separate input for this problem), `pstn-connection-type` (trunk-level CPN transformations usually resolve when you consolidate to a Local Gateway with one caller ID per site), `dt-trunk-003` and `dt-identity-002` in `kb-trunk-pstn.md`, `dt-user-005` in `kb-user-settings.md`.
+
 #### pstn-connection-type
+
+**Category:** rebuild
+**Triggered by:** `advisory_patterns.py:892-985` (`detect_pstn_connection_type`) — always fires when any trunk, device pool, or gateway is present; classifies trunk topology and recommends Local Gateway, Cloud Connected PSTN, or Premises-based PSTN.
+**Detection signals:**
+- Scans device pools for SRST presence (`cucm_srst` or `srstName` fields) — SRST presence generally forces Local Gateway.
+- Classifies each trunk by regex `_SBC_PATTERNS = r"(?i)(cube|audiocodes|ribbon|oracle|sbc|session.?border|mediant|gateway)"` against name, address, and `sipTrunkType`. SBC-matching trunks go into `sbc_trunks`; everything else goes into `carrier_trunks`.
+- Checks for existing `gateway` objects as PRI/legacy gateway indicators.
+- Decision tree: no trunks+no gateways → CCPP; SBC trunks present → Local Gateway (reuse existing SBC); gateways present → Local Gateway (PRI needs local hardware, convert to CUBE); carrier SIP + SRST → Local Gateway; carrier SIP only → CCPP if carrier is a CCPP partner, otherwise premises PSTN with Webex-registered LGW.
+**Why/impact:** The PSTN connection type is the single highest-leverage architectural decision in the migration — it drives trunk provisioning, route group and route list design, caller ID layout, failover strategy, and even whether the operator needs CUBE licences. Getting it wrong means re-architecting trunk infrastructure mid-cutover. This pattern doesn't fire at anything lower than HIGH and the recommendation is intended to be the anchor for the whole routing design review.
+**Example:** An org with three trunks — `SBC_NYC_CUBE`, `SBC_LON_Ribbon`, `Carrier_BT_Sip` — and two device pools with SRST enabled. SBC trunks detected → recommend Local Gateway with SRST survivability.
+**Recommended action:** Use the advisory's summary line as the PSTN architecture anchor. Provision the Webex trunk infrastructure (trunks, route groups, route lists) before migrating any routing patterns (`severity=HIGH`).
+**See also:** `trunk-type-selection` (once you commit to Local Gateway, you still need REGISTERING vs CERTIFICATE_BASED per trunk), `trunk-destination-consolidation`, `intercluster-trunks`, `legacy-gateway-protocols`, `dt-trunk-001` in `kb-trunk-pstn.md`.
+
 #### snr-configured-users
+
+**Category:** rebuild
+**Triggered by:** `advisory_patterns.py:1200-1230` (`detect_snr_configured_users`) — fires when 1+ `remote_destination` objects are present, indicating users configured Single Number Reach (Mobile Connect) in CUCM.
+**Detection signals:**
+- Loads all `remote_destination` objects.
+- Collects unique `pre_migration_state.ownerUserId` values for reporting.
+- Fires a single finding listing every RDP canonical_id.
+**Why/impact:** CUCM's Mobile Connect / SNR has a rich set of controls the operator may be depending on: answer-too-soon / answer-too-late thresholds, timer-based delays before the remote leg rings, caller-ID filters, on-net/off-net policies, and per-time-of-day behaviour. Webex simultaneous-ring is intentionally simpler — you list numbers, they ring at the same time, period. There is no timer control, no answer-timing gate, no partition-scoped filtering. Users who relied on SNR timer behaviour will find the experience different after migration, and the setup has to be redone per user because there is no bulk import for simultaneous-ring lists.
+**Example:** Six users with RDPs configured, each with a mobile number, 4-second delay before ringing the mobile, and a "Do Not Ring This Phone When On A Work Call" rule. Webex can match the ring-both behaviour but can't honour the 4-second delay or the busy filter.
+**Recommended action:** Manually set up Webex simultaneous ring per affected user — acknowledge the timer/filter controls do not port and confirm each user is OK with the simpler behaviour (`severity=MEDIUM`).
+**See also:** `user-oauth-required` (`simultaneousRing` is one of the six user-only settings that need per-user OAuth to configure), `dt-user-003` in `kb-user-settings.md`.
+
 #### transformation-patterns
+
+**Category:** rebuild
+**Triggered by:** `advisory_patterns.py:1237-1263` (`detect_transformation_patterns`) — fires when any `info_calling_xform` or `info_called_xform` objects are extracted from CUCM, indicating explicit calling/called party transformation patterns (separate from the route-pattern and trunk-level transforms covered by `cpn-transformation-chain`).
+**Detection signals:**
+- Loads `info_calling_xform` objects (calling-party transformation patterns).
+- Loads `info_called_xform` objects (called-party transformation patterns).
+- Fires once if the combined count is > 0.
+**Why/impact:** CUCM transformation patterns let operators rewrite ANI/CLI or DNIS on a per-pattern basis — a common use is to normalize inbound caller ID from `4085551234` to `+14085551234` or to strip site access codes from incoming called-party digits. Webex has no pattern-object equivalent: inbound caller ID normalization happens at the location level and outbound caller ID is configured per user or per location. Each CUCM transformation pattern requires a manual review to find its Webex equivalent — some map to location settings, some map to per-user caller ID, and some are just no longer needed.
+**Example:** A `calling_party_transformation_pattern` `XXXX` → `+14085551\1` that globalizes any 4-digit extension into E.164. In Webex, this is handled automatically when the location's country code is set.
+**Recommended action:** Review each calling/called party transformation pattern manually and map to Webex location-level outbound caller ID or per-user caller ID settings (`severity=MEDIUM`).
+**See also:** `cpn-transformation-chain` (the route-pattern/trunk-level version of the same problem — they often both fire), `globalized-vs-localized`, `dt-identity-002` in `kb-identity-numbering.md`.
+
 #### extension-mobility-usage
+
+**Category:** rebuild
+**Triggered by:** `advisory_patterns.py:1270-1294` (`detect_extension_mobility_usage`) — fires when 1+ `info_device_profile` objects are present, indicating CUCM Extension Mobility (EM) is in use.
+**Detection signals:**
+- Loads all `info_device_profile` objects (EM device profiles).
+- Fires once if any exist, listing every profile canonical_id.
+**Why/impact:** CUCM Extension Mobility lets a user log into any EM-enabled phone, and the phone loads their personal line configuration, speed dials, services, MOH, and softkey template. Webex maps this to hot desking — a user signs into a shared device and their primary line becomes available — but the semantics are simpler: no device-profile swap, no service URL re-load, no softkey template change, just login/logout with the user's primary line. Operators who relied on per-profile customizations (different softkey templates per role, service URLs for business applications) will lose them at the EM-to-hot-desking boundary.
+**Example:** Forty nurses sharing twelve phones at a nursing station, each with an EM profile containing their DID, voicemail button, and a speed dial to the patient management system. Hot desking preserves the login model and the primary line but drops the custom speed dial and service URL.
+**Recommended action:** Create Webex workspaces for each shared device and enable hot desking. Manually recreate per-user customizations (speed dials, line-key layouts) via user-level line-key templates (`severity=LOW`).
+**See also:** `hotdesk-dn-conflict` (DecisionType for DID ambiguity under hot desking), `dt-devices-003` in `kb-device-migration.md`.
+
 #### mixed-css
+
+**Category:** rebuild
+**Triggered by:** `advisory_patterns.py:1301-1371` (`detect_mixed_css`, pattern_name `mixed_css_routing_restriction`) — fires when a CSS contains both routing partitions (patterns with `blockEnable=false`) AND blocking partitions (patterns with `blockEnable=true`) in the same CSS.
+**Detection signals:**
+- For each CSS, walks its partitions via `css_contains_partition` cross-refs.
+- For each partition, walks `partition_has_pattern` cross-refs and checks each route pattern's `pre_migration_state.blockEnable`.
+- Sets `has_routing=True` on any non-blocking pattern, `has_blocking=True` on any blocking pattern, short-circuits once both are observed.
+- Fires once per CSS that has both characteristics.
+**Why/impact:** This is the silent gap in `restriction-css-consolidation` (Pattern 1). Pattern 1 only fires when EVERY partition in the CSS is blocking — but the most common real-world CUCM pattern is a hybrid CSS: a user can dial internal and local, but not international, because the international partition is either omitted (block-by-absence) or present with blocking patterns mixed in. Without this pattern, mixed CSSes get migrated straight through as dial plans and the operator either loses the restriction or, worse, the mapper picks up one half of the CSS and silently drops the other. The name reflects the two Webex constructs you have to decompose into: dial plans for the routing half, calling permission policies for the restriction half.
+**Example:** CSS `CSS_Standard_User` contains `PT_Internal` (routing), `PT_Local` (routing), and `PT_Block_International` (blocking 011 and 9.011 patterns). Pattern 1 doesn't fire because not every partition is blocking. Pattern 21 (mixed_css) fires and recommends decomposition.
+**Recommended action:** Decompose each mixed CSS into (a) dial plan entries for the routing partitions and (b) calling permission policies (or category rules) for the blocking partitions (`severity=HIGH`). Without this decomposition, either the routing patterns are missed or the restrictions are lost.
+**See also:** `restriction-css-consolidation` (the all-blocking case — this pattern is specifically the "not covered by Pattern 1" gap), `partition-ordering-loss` (mixed CSSes are extra vulnerable to ordering loss because the blocking partitions change what Webex sees), `dt-css-002` in `kb-css-routing.md`.
+
 #### cumulative-virtual-line-consumption
+
+**Category:** rebuild
+**Triggered by:** `advisory_patterns.py:1378-1427` (`detect_cumulative_virtual_line_consumption`) — fires when the projected total of virtual lines (existing + recommended) is ≥ 5, with severity scaling by count.
+**Detection signals:**
+- Iterates all decisions and counts those whose `recommendation` is `virtual_extension` or `virtual_line`.
+- Adds the existing count of `virtual_line` objects from `store.count_by_type("virtual_line")`.
+- Total = existing + recommended. Fires only if total ≥ 5.
+- Severity: `HIGH` if total > 100, `MEDIUM` if > 25, `LOW` otherwise.
+**Why/impact:** `DN_AMBIGUOUS` and `SHARED_LINE_COMPLEX` decisions both independently recommend virtual extensions for their own reasons. Neither checks the other. Webex has an org-level virtual line limit that isn't published in API documentation and behaves as a hard cap at provisioning time. A large CUCM deployment with aggressive monitoring patterns can rack up hundreds of virtual extensions just from shared-line simplification alone, and the first sign of trouble is provisioning failures mid-cutover. This pattern gives the operator a cumulative count so they can course-correct (consolidate, use regular shared lines where appropriate, or request a limit increase from TAC) before execution.
+**Example:** An org with 40 existing virtual_line objects + 70 SHARED_LINE_COMPLEX decisions recommending `virtual_extension` + 15 DN_AMBIGUOUS decisions recommending `virtual_extension` = 125 projected. Severity HIGH.
+**Recommended action:** Verify the org's virtual line capacity with Cisco TAC before migration. Consider keeping shared lines for DNs where users genuinely need to answer (not just monitor) to reduce the virtual line burn (`severity=LOW/MEDIUM/HIGH`).
+**See also:** `shared-line-simplification` (the main feeder of new virtual extension recommendations), `dn-ambiguous`, `dt-limits-003` in `kb-webex-limits.md`.
+
 #### trunk-type-selection
+
+**Category:** rebuild (severity CRITICAL)
+**Triggered by:** `advisory_patterns.py:1550-1612` (`detect_trunk_type_selection`) — fires when one or more trunks cannot be auto-classified as either REGISTERING (Cisco IOS-XE CUBE) or CERTIFICATE_BASED (third-party SBC) from their name, address, or SIP trunk type.
+**Detection signals:**
+- If `trunk.trunk_type` is already set to `REGISTERING` or `CERTIFICATE_BASED`, bucket the trunk into the auto-classified set and move on.
+- Otherwise try two regexes against `{name} {address} {sipTrunkType}`:
+  - `_CISCO_CUBE_PATTERNS = r"(?i)(cube|ios[- ]?xe|\bisr\b|\bcsr\b|c8[0-9]{3}|vedge|catalyst.*voice)"` → REGISTERING.
+  - `_THIRD_PARTY_SBC_PATTERNS = r"(?i)(audiocodes|ribbon|oracle|acme.?packet|mediant|sonus|swe.?lite|teams.?sbc|microsoft|avaya|genband|net[- ]?border)"` → CERTIFICATE_BASED.
+- Any trunk that matches neither regex lands in `needs_type_decision` — the finding lists those unclassifiable trunks.
+**Why/impact:** Webex trunk type is IMMUTABLE after creation. Choose wrong and the only recovery is to delete and recreate the trunk, which takes the route-group/route-list entries down with it mid-cutover. REGISTERING uses SIP registration with username/password and is for Cisco IOS-XE CUBE (ISR, CSR, Catalyst). CERTIFICATE_BASED uses mutual TLS with certificates and is for third-party SBCs (AudioCodes, Ribbon, Oracle, etc.). Getting it wrong is not just an inconvenience — it breaks live call routing during the cutover window.
+**Example:** A trunk named `Main_SIP_Trunk_Voice` pointing at `10.50.1.100`. No regex matches either direction. The advisor fires CRITICAL and asks the operator to verify which SBC model handles this trunk before execution.
+**Recommended action:** For each flagged trunk, check what hardware actually terminates the trunk and set the type explicitly before provisioning (`severity=CRITICAL`). Don't guess.
+**See also:** `intercluster-trunks` (ICTs always need a type decision — they are CUCM-to-CUCM originally), `pstn-connection-type`, `trunk-destination-consolidation`, `dt-trunk-004` in `kb-trunk-pstn.md`, `dt-limits-002` in `kb-webex-limits.md`.
+
 #### intercluster-trunks
+
+**Category:** rebuild
+**Triggered by:** `advisory_patterns.py:1625-1676` (`detect_intercluster_trunks`, pattern_name `intercluster_trunk_detection`) — fires when any trunk matches the inter-cluster trunk regex against its name, `sipTrunkType`, or description.
+**Detection signals:**
+- Uses `_ICT_PATTERNS = r"(?i)(inter[- ]?cluster|ict[- ]|ict$|intercluster|cluster[- ]?to[- ]?cluster|emcc|extension.?mobility.?cross)"` against the concatenated `{name} {sipTrunkType} {description}` of each trunk.
+- Fires once, listing every matched trunk.
+**Why/impact:** Inter-cluster trunks (ICTs) connect CUCM clusters to each other for intercluster call routing and Extension Mobility Cross Cluster (EMCC). Webex doesn't have a native ICT concept, so every ICT needs a disposition decision: eliminate (if both clusters are migrating to the same Webex org), convert to Local Gateway (if one cluster stays on CUCM during coexistence), or replace with Webex-to-Webex inter-org dialing (if the clusters land in separate Webex orgs — rare). Ignoring ICTs during migration leaves dangling trunks in CUCM and calling loops between the two environments.
+**Example:** Trunks `ICT_SJC_to_RTP`, `ICT_SJC_to_AMS`, and `EMCC_Primary_Trunk` all match the regex. The advisor asks the operator to commit to a disposition per trunk.
+**Recommended action:** Decide per-ICT: eliminate (both clusters migrating to one Webex org), convert (coexistence period — repoint at surviving CUCM via Local Gateway), or replace (separate Webex orgs — very rare). Make the decision before migration planning starts (`severity=HIGH`).
+**See also:** `trunk-type-selection` (ICTs that become Local Gateway trunks still need REGISTERING vs CERTIFICATE_BASED), `pstn-connection-type`, `legacy-gateway-protocols`, `dt-trunk-005` in `kb-trunk-pstn.md`.
 
 ### out-of-scope
 
 #### media-resource-scope-removal
+
+**Category:** out_of_scope
+**Triggered by:** `advisory_patterns.py:430-471` (`detect_media_resource_scope_removal`) — fires when any `device_pool` has a `pre_migration_state.cucm_media_resource_list` value, indicating it references a Media Resource Group List.
+**Detection signals:**
+- Scans all `device_pool` objects.
+- Collects device pools where `pre_migration_state.cucm_media_resource_list` is truthy.
+- Fires a single finding listing all affected device pools and the unique MRGL names.
+**Why/impact:** CUCM MRGLs manage conference bridges, Music on Hold servers, transcoders, and Media Termination Points — operators spend hours provisioning them and tuning capacity. Webex Calling manages all media resources in the cloud automatically; there are no conference bridge objects, no transcoder objects, no MRGL objects to provision. The entire subtree is out-of-scope for the calling migration. The only thing the operator still has to decide is whether the default Webex MOH audio is acceptable or whether custom MOH needs to be uploaded per location.
+**Example:** Device pools `DP_HQ_Phones` and `DP_BR1_Phones` both reference MRGL `MRGL_Standard` (which bundles `CFB_Software`, `MOH_Server_1`, `ANN_Default`, `XCODE_Pool`). The advisor fires informational and tells the operator to drop this whole subtree from scope.
+**Recommended action:** Remove MRGLs, conference bridges, transcoders, and MTPs from the migration scope. Verify the default Webex MOH meets business requirements; if custom MOH is needed, upload per-location via `wxcli announcements` (`severity=INFO`).
+**See also:** `voicemail-pilot-simplification` (Unity Connection and MoH servers are often scoped together as "media infrastructure that stays on-prem"), `dt-location-004` in `kb-location-design.md`.
+
 #### e911-migration-flag
+
+**Category:** out_of_scope
+**Triggered by:** `advisory_patterns.py:1066-1136` (`detect_e911_migration_flag`) — always fires. If E911/CER signals are detected it lists them; if nothing is detected it still fires an informational warning noting that CER data may not be visible via AXL.
+**Detection signals:**
+- Uses `_E911_RE = r"(?i)(e911|emergency|elin)"` against:
+  - Route pattern `routePartitionName` values.
+  - Partition names (`pre_migration_state.name` or top-level `name`).
+  - Translation pattern names and replacement patterns.
+- When any match is found, the finding lists every matching object with a `signals` description.
+- When nothing matches, still fires — produces a warning that no E911 config was found but CER uses its own database and may not be fully visible via AXL. By design per the spec's "if detection data is sparse" guidance.
+**Why/impact:** E911 / CER migration is categorically a separate workstream from the calling migration because it has its own compliance, its own data (Cisco Emergency Responder's ERL database), its own vendor (Webex uses RedSky/Intrado, not CER), and its own testing path. Doing it inside the calling migration window is how organizations end up shipping non-compliant emergency calling — floor/zone mapping for nomadic users, ELIN range configuration, and PSAP test calls cannot be done opportunistically. The "always fires" behaviour is deliberate: even when nothing is detected, the operator needs to know CER might still be there.
+**Example:** A partition named `PT_E911_Emergency_Routing` with a route pattern `911` → `ELIN_ROUTE_GROUP`. The advisor fires with signals `route pattern in partition 'PT_E911_Emergency_Routing'`.
+**Recommended action:** Initiate a separate Webex E911 workstream in parallel with the calling migration. Map ERLs to Webex locations, configure ELIN ranges, set up nomadic-user floor/zone, run PSAP test calls, verify compliance (`severity=HIGH`). Do not attempt inside the calling cutover.
+**See also:** `location-consolidation` (consolidating locations mid-migration forces ERL remapping — coordinate with the E911 workstream), `dt-location-003` and `dt-location-005` in `kb-location-design.md`.
+
 #### recording-enabled-users
+
+**Category:** out_of_scope
+**Triggered by:** `advisory_patterns.py:1143-1193` (`detect_recording_enabled_users`) — fires when any phone has a line with `recordingFlag` set to anything other than `"Call Recording Disabled"`.
+**Detection signals:**
+- Scans every phone's `pre_migration_state.lines`.
+- For each line, inspects the `recordingFlag` field.
+- A line whose flag is not `"Call Recording Disabled"` (e.g., `"Automatic Call Recording Enabled"`, `"Application Invoked Call Recording Enabled"`) counts; the phone's owner and canonical_id are collected.
+- Fires once summarizing unique users and affected phones.
+**Why/impact:** Call recording in Webex Calling is not a single toggle — it requires a separate subscription / licence, a vendor selection (Webex native, Dubber, Red Box, Eleveo, NICE), location-level configuration of compliance announcements and storage, and per-user recording settings. Recording doesn't follow the user automatically during migration. If the operator migrates the users without standing up the recording subscription first, recording silently stops working on cutover — which is often a regulatory problem (FINRA, MiFID II, HIPAA), not just an inconvenience.
+**Example:** 25 phones have lines where `recordingFlag` is `"Automatic Call Recording Enabled"`, owned by 18 unique users. The advisor fires HIGH and tells the operator to configure Webex recording before migration.
+**Recommended action:** Configure the Webex recording subscription, vendor integration, location-level compliance config, and per-user recording settings BEFORE migration execution. Verify compliance with the relevant regulatory body (`severity=HIGH`).
+**See also:** `user-oauth-required` (per-user recording settings are administered differently), `dt-user-004` in `kb-user-settings.md`, `dt-location-006` in `kb-location-design.md`.
+
 #### user-oauth-required
+
+**Category:** out_of_scope
+**Triggered by:** `advisory_patterns.py:1455-1534` (`detect_user_oauth_required`) — fires when 1+ users have CUCM settings that map to Webex features whose endpoints only exist at `/telephony/config/people/me/settings/...` (admin tokens get 404).
+**Detection signals:** `_USER_ONLY_SETTINGS = {simultaneousRing, sequentialRing, priorityAlert, callNotify, anonymousCallReject, callPolicies}`. The function collects affected users from three sources:
+- Users whose `call_settings` dict contains any of the six keys truthy.
+- Phones whose lines have `simultaneousRingNumRingCycles` or `ringSettingIdleBelowRingDuration` set (indicates simRing / seqRing) — owner is resolved to a canonical user ID via `_resolve_user_canonical_id()`.
+- Any `single_number_reach` objects (these map directly to `simultaneousRing`).
+**Why/impact:** The standard migration pipeline runs on an admin OAuth token. Six CUCM settings map to Webex endpoints that only exist under `/telephony/config/people/me/...`, which require a user-level OAuth token — the admin endpoint returns 404. The pipeline migrates everything else, but these six settings silently do not get set unless the operator arranges a user-level OAuth integration or has each user configure the settings via Webex User Hub post-migration. Without this advisory, operators routinely find out months later that "simultaneous ring stopped working" for a group of users.
+**Example:** 30 users have `simultaneousRing` lists configured in CUCM (plus 8 SNR objects tied to 8 of those users). The advisor reports 30 affected users and explains the three remediation options.
+**Recommended action:** Choose one: (a) configure a user-level OAuth integration for batch setting of these six features, (b) have each user configure them via Webex User Hub post-migration, or (c) accept the loss if these features are not business-critical (`severity=HIGH`).
+**See also:** `snr-configured-users` (`simultaneousRing` is the primary landing zone for SNR), `dt-user-003` and `dt-settings-001` in `kb-user-settings.md`, `dt-limits-001` in `kb-webex-limits.md`.
+
 #### legacy-gateway-protocols
+
+**Category:** out_of_scope
+**Triggered by:** `advisory_patterns.py:1687-1758` (`detect_legacy_gateway_protocols`) — fires when any trunk, gateway, or device matches MGCP or H.323 protocol regexes.
+**Detection signals:**
+- `_MGCP_PATTERNS = r"(?i)(mgcp|vg[0-9]{2,3}|fxs|fxo|analog[- ]?gateway)"` matched against `{name} {protocol} {product|type} {description}` for each trunk and gateway.
+- `_H323_PATTERNS = r"(?i)(h\.?323|gatekeeper|ras[- ]?registration)"` matched against the same concatenation.
+- Also scans `device` objects for analog gateway models via `{model} {cucm_protocol}`.
+- Fires once summarizing MGCP gateway count and H.323 gateway count.
+**Why/impact:** Webex Calling only supports SIP trunks. MGCP and H.323 protocols have no migration path — there is nothing the migration tool can do to make an MGCP VG224 gateway appear in Webex. Operators running MGCP (for analog endpoints — paging, fax, door phones, legacy intercoms) need to either reconfigure the gateway as SIP (if the IOS supports it), replace with an ATA 192 per analog endpoint, or run the VG400 series as a Local Gateway. H.323 gatekeepers are eliminated entirely — Webex uses SIP registration. All of this conversion has to happen BEFORE Webex trunk provisioning, which means it's a prerequisite workstream, not something the migration tool handles.
+**Example:** A VG224 gateway with 24 FXS ports for analog fax machines and a `Cisco 2911` with H.323 protocol for a legacy call recorder. Both show up in `mgcp_objects` / `h323_objects`, severity HIGH.
+**Recommended action:** Convert MGCP to SIP (IOS-XE CUBE) or replace with ATA 192 devices. Convert H.323 to SIP trunk registration or certificate-based. This conversion must happen BEFORE the Webex trunk provisioning step (`severity=HIGH`).
+**See also:** `pstn-connection-type` (post-conversion the SIP trunk still needs LGW/CCPP classification), `trunk-type-selection` (post-conversion the trunk still needs REGISTERING vs CERTIFICATE_BASED), `dt-trunk-006` in `kb-trunk-pstn.md`, `dt-devices-004` in `kb-device-migration.md`.
 
 ### migrate-as-is
 
 #### device-bulk-upgrade
+
+**Category:** migrate_as_is
+**Triggered by:** `advisory_patterns.py:180-218` (`detect_device_bulk_upgrade`) — fires when 3+ existing `DEVICE_INCOMPATIBLE` decisions share the same CUCM model, indicating a volume-replacement opportunity.
+**Detection signals:**
+- Iterates existing decisions, keeping only those of type `DEVICE_INCOMPATIBLE`.
+- Groups them by `context.cucm_model`.
+- Fires one finding per model group with 3+ entries, listing every affected device.
+**Why/impact:** The per-device `DEVICE_INCOMPATIBLE` decisions (from the device_compatibility analyzer) tell the operator each individual phone needs replacement. This pattern aggregates them by model so procurement can negotiate volume pricing and deployment can be batched (bulk DHCP / activation code generation, staged installs, trade-in programs). It's categorized `migrate_as_is` because the devices themselves are on a straight migration path — just with new hardware — not a rebuild of the logical feature model.
+**Example:** 47 `DEVICE_INCOMPATIBLE` decisions across the org, with 22 for model `CP-7841` and 18 for model `CP-7832`. The advisor fires two findings: "22 CP-7841 phones need bulk replacement" and "18 CP-7832 phones need bulk replacement."
+**Recommended action:** Group the replacement order per model to negotiate volume pricing and streamline deployment logistics (`severity=MEDIUM`). The per-device replacement recommendations (e.g., 7841 → 9841) come from `recommendation_rules.py`'s `recommend_device_incompatible()`.
+**See also:** `device-incompatible` (DecisionType), `device-firmware-convertible`, `dt-devices-001` and `dt-devices-002` in `kb-device-migration.md`.
+
 #### globalized-vs-localized
+
+**Category:** migrate_as_is
+**Triggered by:** `advisory_patterns.py:995-1056` (`detect_globalized_vs_localized`) — always fires when the org has any route patterns; classifies the dial plan as `globalized`, `localized`, or `hybrid` based on the percentage of E.164 patterns.
+**Detection signals:**
+- Counts route patterns whose `pre_migration_state.pattern` starts with `+` or `\+` (via `_E164_PREFIX = r"^\\?\+"`).
+- Computes the ratio `e164_count / total`.
+- Classifies: `>50%` → globalized, `<20%` → localized, in-between → hybrid.
+- Fires once with a category-specific `detail` explaining the migration implications.
+**Why/impact:** The E.164 / localized classification changes how you approach the migration. A globalized plan maps cleanly to Webex Calling (which is E.164-native); the translation patterns that convert local→E.164 are usually redundant. A localized plan means you need to rely on Webex location settings (`outside_dial_digit`, internal dialing prefix) to reproduce the local dialing behaviour. A hybrid plan usually signals an in-flight E.164 conversion or multi-site inconsistency and needs manual review before standardizing. The pattern is informational but it frames the whole routing migration conversation.
+**Example:** A tenant with 240 route patterns, 187 of which start with `+`. Ratio 78%. Style: globalized. The advisor notes that existing CUCM translation patterns converting local to E.164 are likely redundant.
+**Recommended action:** Use the classification to frame the routing migration approach. For globalized, look for redundant CUCM translations. For localized, configure Webex location settings to reproduce the local dialing. For hybrid, review manually and standardize (`severity=MEDIUM`).
+**See also:** `translation-pattern-elimination` (globalized plans often have lots of redundant normalization), `overengineered-dial-plan`, `transformation-patterns`, `dt-routing-002` in `kb-css-routing.md`, `dt-identity-001` in `kb-identity-numbering.md`.
 
 ## Dissent Handling
 
