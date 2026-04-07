@@ -1,4 +1,4 @@
-"""Analysis pipeline — runs all 12 analyzers, then auto-rules, then merge.
+"""Analysis pipeline — runs all 13 analyzers, then auto-rules, then merge.
 
 Orchestrates the conflict detection engine. Each analyzer sweeps the
 mapped inventory independently and produces Decision objects. After all

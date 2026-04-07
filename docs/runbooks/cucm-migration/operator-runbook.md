@@ -53,10 +53,10 @@ wxcli cucm discover
 # 4. Run pass-1 normalizers + pass-2 cross-reference builder
 wxcli cucm normalize
 
-# 5. Run 9 transform mappers → canonical Webex objects + decisions
+# 5. Run 20 transform mappers → canonical Webex objects + decisions
 wxcli cucm map
 
-# 6. Run 12 analyzers + auto-rules + merge decisions
+# 6. Run 13 analyzers + auto-rules + merge decisions
 wxcli cucm analyze
 
 # 7. Review open decisions (Rich table; resolve interactively or via batch rules)
@@ -173,7 +173,7 @@ The pipeline has 10 operator-facing stages, run in the order below. Each stage i
 
 ### normalize
 
-**What it does:** Two passes. **Pass 1** runs 27 normalizer functions that convert raw CUCM objects (device pools, phones, users, CSS, partitions, route patterns, hunt pilots, voicemail profiles, etc.) into canonical `MigrationObject` rows. **Pass 2** runs the `CrossReferenceBuilder` which links objects together (line ↔ device, device ↔ user, route pattern ↔ partition, etc.) and stores the relationships in the `cross_refs` table. → `src/wxcli/migration/transform/normalizers.py:145` and `src/wxcli/migration/transform/cross_reference.py:113`
+**What it does:** Two passes. **Pass 1** runs 37 normalizer functions that convert raw CUCM objects (device pools, phones, users, CSS, partitions, route patterns, hunt pilots, voicemail profiles, etc.) into canonical `MigrationObject` rows. **Pass 2** runs the `CrossReferenceBuilder` which links objects together (line ↔ device, device ↔ user, route pattern ↔ partition, etc.) and stores the relationships in the `cross_refs` table. → `src/wxcli/migration/transform/normalizers.py` and `src/wxcli/migration/transform/cross_reference.py:113`
 
 **Inputs:**
 - `discover` must have run (raw object rows must exist in `store.db`).
@@ -194,9 +194,7 @@ The pipeline has 10 operator-facing stages, run in the order below. Each stage i
 
 ### map
 
-**What it does:** Runs the transform mappers — currently 14 mapper modules (announcement, button template, call forwarding, call settings, CSS, device, device layout, device profile, e911, feature, line, location, MoH, monitoring, routing, SNR, softkey, user, voicemail, workspace) — that convert canonical CUCM objects into canonical Webex objects and emit `Decision` rows for any choice the pipeline cannot make on its own. Mapping is where most of the project's decisions are produced. → `src/wxcli/migration/transform/mappers/feature_mapper.py` and `src/wxcli/commands/cucm.py:788`
-
-> **Note:** The CLI help text says "9 transform mappers" — this counts the original Phase 05 mapper set. The current implementation has 14 mapper modules (Phase 12+); the CLI help string is stale but the command runs all of them. → `src/wxcli/migration/CLAUDE.md:20`
+**What it does:** Runs the 20 transform mappers (announcement, button template, call forwarding, call settings, CSS, device, device layout, device profile, e911, feature, line, location, MoH, monitoring, routing, SNR, softkey, user, voicemail, workspace) that convert canonical CUCM objects into canonical Webex objects and emit `Decision` rows for any choice the pipeline cannot make on its own. Mapping is where most of the project's decisions are produced. → `src/wxcli/migration/transform/mappers/feature_mapper.py` and `src/wxcli/commands/cucm.py:788`
 
 **Inputs:**
 - `normalize` must have run.
@@ -218,7 +216,7 @@ The pipeline has 10 operator-facing stages, run in the order below. Each stage i
 
 ### analyze
 
-**What it does:** Runs 12 analyzers (CSS routing, CSS permission, device compatibility, DN ambiguity, duplicate user, extension conflict, feature approximation, layout overflow, location ambiguity, missing data, shared line, voicemail compatibility, workspace license) over the canonical objects, merges new decisions with the existing set, applies auto-resolution rules, then runs the two-phase advisor system: per-decision recommendations via `populate_recommendations()` followed by the cross-cutting `ArchitectureAdvisor`. → `src/wxcli/migration/transform/analyzers/css_routing.py`, `src/wxcli/migration/transform/analysis_pipeline.py:204`, `src/wxcli/migration/advisory/__init__.py:18`, and `src/wxcli/migration/advisory/advisor.py:26`
+**What it does:** Runs 13 analyzers (CSS routing, CSS permission, device compatibility, DN ambiguity, duplicate user, extension conflict, feature approximation, layout overflow, location ambiguity, missing data, shared line, voicemail compatibility, workspace license) over the canonical objects, merges new decisions with the existing set, applies auto-resolution rules, then runs the two-phase advisor system: per-decision recommendations via `populate_recommendations()` followed by the cross-cutting `ArchitectureAdvisor`. → `src/wxcli/migration/transform/analyzers/css_routing.py`, `src/wxcli/migration/transform/analysis_pipeline.py:204`, `src/wxcli/migration/advisory/__init__.py:18`, and `src/wxcli/migration/advisory/advisor.py:26`
 
 **Inputs:**
 - `map` must have run.

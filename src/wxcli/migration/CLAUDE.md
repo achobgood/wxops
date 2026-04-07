@@ -14,11 +14,11 @@ All 11 phases complete. **1642 tests passing.** Wired into the CLI as `wxcli cuc
 | `models.py` | Canonical data models — 26 types, DecisionType (21 values), Decision, MapperResult, TransformResult |
 | `store.py` | SQLite-backed store — objects, cross_refs, decisions, journal, merge_log, merge_decisions() |
 | `cucm/` | Phase 03 — AXL connection, 9 extractors, discovery pipeline |
-| `transform/normalizers.py` | Phase 04 — 27 Pass 1 normalizers |
+| `transform/normalizers.py` | Phase 04 — 37 Pass 1 normalizers |
 | `transform/cross_reference.py` | Phase 04 — CrossReferenceBuilder (30 relationships + 3 enrichments) |
 | `transform/pipeline.py` | Phase 04 — `normalize_discovery()` entry point |
-| `transform/mappers/` | Phase 05 — 14 mappers + base.py + engine.py (9 original + call_forwarding + monitoring + button_template + device_layout + softkey) |
-| `transform/analyzers/` | Phase 06 — 12 analyzers (3 analyzer-owned + 9 mapper-owned) |
+| `transform/mappers/` | Phase 05 — 20 mappers + base.py (announcement, button_template, call_forwarding, call_settings, css, device, device_layout, device_profile, e911, feature, line, location, moh, monitoring, routing, snr, softkey, user, voicemail, workspace) |
+| `transform/analyzers/` | Phase 06 — 13 analyzers (css_permission, css_routing, device_compatibility, dn_ambiguity, duplicate_user, extension_conflict, feature_approximation, layout_overflow, location_ambiguity, missing_data, shared_line, voicemail_compatibility, workspace_license) |
 | `transform/analysis_pipeline.py` | Phase 06 — Orchestrator: run analyzers → merge → auto-rules + resolve_and_cascade() |
 | `execute/` | Phase 07 — planner.py, dependency.py (NetworkX DAG), batch.py |
 | `export/` | Phase 09 — deployment_plan.py, json/csv exports (command_builder.py removed in Phase 12b) |
@@ -31,6 +31,10 @@ All 11 phases complete. **1642 tests passing.** Wired into the CLI as `wxcli cuc
 
 Each subdirectory has its own CLAUDE.md (local context) and TODO.md (outstanding work).
 See `docs/plans/cucm-migration-roadmap.md` for the master project status.
+
+## Known Issues
+
+1. **CUCM CallPickupGroup creation with members fails on CUCM 15.0.** The AXL `addCallPickupGroup` operation with `<members>` containing `<directoryNumber>` fails with a null priority foreign key constraint (`pickupgroupmember.priority`). Workaround: create the pickup group empty, then use `updateLine` with `callPickupGroupName` to assign members at the line level. Affects both wxcadm and raw AXL calls. <!-- Verified on CUCM 15.0.1.13901(2), 2026-03-24 -->
 
 ## Pipeline Commands
 

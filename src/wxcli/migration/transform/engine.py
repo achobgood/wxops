@@ -1,4 +1,4 @@
-"""TransformEngine — orchestrates all 14 mappers in dependency order.
+"""TransformEngine — orchestrates all 20 mappers in dependency order.
 
 Runs each mapper sequentially in MAPPER_ORDER (tier-sorted), aggregates
 decisions and errors into a single TransformResult. If a mapper raises
@@ -81,7 +81,7 @@ MAPPER_ORDER: list[type[Mapper]] = [
 
 
 class TransformEngine:
-    """Orchestrates all 14 transform mappers in dependency order.
+    """Orchestrates all 20 transform mappers in dependency order.
 
     (from 03b-transform-mappers.md section 13)
     """
@@ -103,7 +103,7 @@ class TransformEngine:
         self.config = config or {}
 
     def run(self, store: MigrationStore) -> TransformResult:
-        """Run all 14 mappers in dependency order.
+        """Run all 20 mappers in dependency order.
 
         Failure handling: if a mapper raises an exception, log the error,
         record a MapperError, and continue to the next mapper. Downstream

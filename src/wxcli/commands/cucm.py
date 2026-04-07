@@ -790,7 +790,7 @@ def map_cmd(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed logging"),
     project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
 ):
-    """Run 9 transform mappers to produce canonical Webex objects + decisions."""
+    """Run 20 transform mappers to produce canonical Webex objects + decisions."""
     if verbose:
         import logging as _logging
         _logging.basicConfig(level=_logging.INFO, format="%(name)s: %(message)s")
@@ -830,7 +830,7 @@ def analyze(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed logging"),
     project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
 ):
-    """Run 12 analyzers + auto-rules + merge decisions."""
+    """Run 13 analyzers + auto-rules + merge decisions."""
     if verbose:
         import logging as _logging
         _logging.basicConfig(level=_logging.INFO, format="%(name)s: %(message)s")

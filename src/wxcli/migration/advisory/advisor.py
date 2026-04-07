@@ -27,7 +27,7 @@ class ArchitectureAdvisor(Analyzer):
     """Cross-cutting advisory analyzer producing ARCHITECTURE_ADVISORY decisions.
 
     Not registered in ALL_ANALYZERS — runs separately in Phase 2 of the
-    analysis pipeline, after the first 12 analyzers have merged their
+    analysis pipeline, after the first 13 analyzers have merged their
     decisions into the store.
     """
 
