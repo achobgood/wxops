@@ -504,11 +504,111 @@ Do not break the review for: wrong recommendations on individual entities (use o
 
 ## Execution & Recovery
 
-_TBD — Wave 2 Phase B Task B5_
+Execution runs through the `/cucm-migrate` skill — not by issuing `wxcli cucm execute` directly. The skill handles the full lifecycle: dry-run preview, admin confirmation, bulk async execution, failure triage, and post-execution report generation. See `## Execute via /cucm-migrate` above for the stage-level walkthrough. This section covers the status commands, failure handling patterns, and recovery procedures operators need during and after that stage.
+
+### How Execution Runs
+
+When the skill reaches Step 4b, it calls `wxcli cucm execute --concurrency 20`. This triggers a bulk async executor (`→ src/wxcli/migration/execute/batch.py`) that processes all pending operations in dependency order, concurrently at API throughput (~100 req/min). Operations are grouped into batches — each batch runs after all operations in the prior batch have completed or been skipped. Claude is not involved during active execution; it re-enters only when the skill checks `execution-status` and finds failures.
+
+Operations are recorded in the migration SQLite store with status `pending` → `running` → `completed` or `failed`. The `<project>/exports/` directory holds per-run JSON and CSV artifacts generated at report time.
+
+### Execution Status Commands
+
+Use these commands to observe state and intervene manually when the skill prompts you, or when you are diagnosing a migration outside of an active skill session.
+
+| Command | What it does |
+|---|---|
+| `wxcli cucm execution-status -p <project>` | Show current batch state and per-operation status counts (pending / running / completed / failed) |
+| `wxcli cucm execution-status -p <project> -o json` | Full JSON output — use this for failure triage; shows per-operation error messages |
+| `wxcli cucm next-batch -p <project>` | Show the next batch of operations whose dependencies are all completed/skipped — ready to run |
+| `wxcli cucm mark-complete <node-id> -p <project>` | Manually mark an operation as completed; optionally pass `--webex-id <id>` to record the created resource ID for downstream dependency resolution |
+| `wxcli cucm mark-failed <node-id> --error "<message>" -p <project>` | Manually mark an operation as failed (does NOT cascade). Required before retry. Add `--skip` to cascade the failure to all dependent operations (use only when the resource is genuinely not needed) |
+| `wxcli cucm retry-failed -p <project>` | Reset all failed operations to `pending` so they can be retried on the next `execute` run |
+| `wxcli cucm rollback-ops -p <project>` | List all completed CREATE operations in reverse dependency order — the sequence you'd need to delete to roll back. Use `--batch <name>` to scope to a single batch |
+
+**Flags are positional or named — do not guess.** `mark-complete` and `mark-failed` take `node_id` as a required positional argument, not `--operation-id`. Verify with `wxcli cucm mark-failed --help` if unsure.
+
+### Mid-Execution Failure Handling
+
+When `execution-status` shows failed operations:
+
+1. Run `wxcli cucm execution-status -p <project> -o json` to read the error message for each failed operation.
+2. Diagnose the root cause using the skill's domain dispatch table (SKILL.md Step 4c). The error message usually points to: rate limiting (retry immediately), conflict/409 (check for existing resource — partial create), auth failure (token expiry — renew and retry), or a data issue (fix upstream, re-run).
+3. For each failed operation, either fix the root cause or decide to skip:
+   - Fix + retry: `wxcli cucm mark-failed <node-id> --error "<reason>" -p <project>` (marks as failed, retainable), then `wxcli cucm retry-failed -p <project>` to reset to pending, then `wxcli cucm execute -p <project>` to resume.
+   - Skip + cascade: `wxcli cucm mark-failed <node-id> --error "<reason>" --skip -p <project>` — this marks the op skipped and propagates the skip to all dependent operations. Use only when the resource is intentionally not needed.
+4. After all failures are resolved, run `wxcli cucm execute` again. Repeat until `execution-status` shows 0 failed, 0 pending.
+
+See `§Failure Patterns` below for specific recipes by failure type.
+
+### Partial-Create Recovery
+
+The most common mid-execution failure is a partial user create: the Webex People API creates the user record but fails on calling setup (license assignment, extension, location binding). The resource exists in Webex — a retry will get a 409 conflict.
+
+Recovery procedure (from SKILL.md Step 4c and roadmap `26419ab`):
+1. Check whether the user already exists: `wxcli people list --email <email> -o json`.
+2. If the user exists but is not calling-enabled: update with calling data using `wxcli people update <id> --json-body '{"locationId": ..., "extension": ..., "licenses": [...]}'`.
+3. Mark the original operation complete with the existing user's ID: `wxcli cucm mark-complete <node-id> --webex-id <user-id> -p <project>`.
+4. Continue execution normally.
+
+If the user does NOT exist, it was a genuine failure — present fix+retry or skip options.
+
+This pattern applies to any create operation (locations, call queues, hunt groups) where the API is not atomic. Always check for the existing resource before retrying. See `→ docs/plans/cucm-migration-roadmap.md` Known Issues table (commit `26419ab` upstream data gaps) for the full history.
+
+### Where Logs Live
+
+`<project>/exports/` holds operation records (JSON and CSV) generated at report time. Live operation state is in the migration SQLite store — query it via `wxcli cucm execution-status -p <project>` for the human-readable summary, or `-o json` for full per-operation detail.
+
+### When to Abort Entirely
+
+Aborting entirely — stopping mid-migration, tearing down, and restarting — is rare and should only happen when a structural issue makes fix-forward impractical:
+
+- **Wrong target org.** Resources are being created in the wrong Webex organization. Stop immediately; tearing down is easier now than later.
+- **Wrong license tier.** Professional licenses were assumed but only Standard are available. Continuing will misconfigure users — stop, resolve licenses, then replay from plan.
+- **Catastrophic data drift.** The CUCM source changed significantly after discovery (a phone remap, a location rename) and the canonical store no longer reflects reality. Restart from `wxcli cucm discover`.
+
+For everything else — rate limits, transient 500s, single-resource conflicts, missing extensions — fix forward using `mark-failed` / `retry-failed`. Tearing down a partial migration and restarting costs more time than diagnosing the failure. When in doubt, check `execution-status -o json`, identify the specific failure, and fix it.
 
 ### Calibration Data Capture
 
-_TBD — Wave 2 Phase B Task B5 (per spec D9)_
+> **Why this exists.** `SCORE_CALIBRATED = False` (→ `src/wxcli/migration/report/score.py:50`). The migration complexity score in `wxcli cucm report` is a direction, not a validated number — it was built on structural heuristics before any real environments were tested. Calibration is a separate workstream that requires real-environment data. This section tells you what to log during your migration so that data can exist. The methodology for turning logs into calibrated scores lives elsewhere; your job here is to capture.
+
+**What to log.** Create a file at `<project>/calibration-log.md` and fill in the following fields as you go. This is a manual log — nothing in the pipeline writes to it automatically.
+
+---
+
+#### Score vs Actual Effort
+
+Record immediately after the migration closes:
+
+- **Headline score.** The overall complexity score and band (Low / Medium / High / Very High) from `wxcli cucm report --brand "..." --prepared-by "..."`. Copy the exact numbers.
+- **Actual hours.** Elapsed wall-clock time broken into: decision review (Step 3) / execution + triage (Step 4) / cleanup and verification (Steps 5–6). Round to half-hours.
+- **Environment characteristics.** Size (user count, device count, location count), device mix (MPP-convertible % / native MPP % / incompatible %), feature complexity (number of auto attendants, hunt groups, call queues, trunks). These are the factors the score uses — recording them lets you later check which ones predicted effort and which didn't.
+- **Any score anomalies.** If the score said Medium but the migration took twice as long as a prior High, note why. This is the most valuable signal for calibration.
+
+#### Decision Counts vs Resolution Time
+
+Record at the end of decision review (Step 3):
+
+- **Pending decision counts at review start.** How many decisions were in each status: `PENDING` / `ADVISORY` / `MISSING_DATA` / `CONFLICT`.
+- **Review duration.** Wall-clock time from first `wxcli cucm decisions` to issuing `wxcli cucm export`.
+- **Bulk accept count vs individual review count.** How many decisions did you accept/reject in bulk (same decision type, same recommendation)? How many required individual inspection?
+- **Decision types that required the most time.** Which `decision_type` values caused the most discussion or lookup? (e.g., `DEVICE_FIRMWARE_CONVERTIBLE`, `HUNT_GROUP_MEMBER_LIMIT`, `CSS_PARTITION_DEPTH`).
+
+#### Advisory Firing Rates vs Perceived Value
+
+Record during and after decision review:
+
+- **Which advisory patterns fired.** List the `advisory_pattern` codes shown in the ADVISORY decisions (visible in `wxcli cucm decisions --type ARCHITECTURE_ADVISORY`).
+- **Which were useful.** For each advisory: did it surface a real issue you would have missed? Did it change a decision you would have made differently?
+- **Which were noise.** Advisories that fired but were irrelevant to this environment — either because the heuristic doesn't apply to this customer's feature profile, or because the threshold was too low.
+- **Any false negatives.** Issues you encountered during execution that no advisory flagged.
+
+---
+
+**Where the data goes next.** This is a manual log for now — no automation collects it. Feed the completed `calibration-log.md` to the score-calibration workstream when it opens. The methodology lives elsewhere; your job is to make the data exist.
+
+For context on what the score is measuring and which factors drive each band, see `§Assessment Report Orientation` above.
 
 ## Failure Patterns
 
