@@ -482,7 +482,7 @@ Seven decision types are pre-resolved by `DEFAULT_AUTO_RULES` and never appear i
 | `BUTTON_UNMAPPABLE` | accept_loss | No Webex equivalent exists |
 | `CALLING_PERMISSION_MISMATCH` (0 users) | skip | Orphaned profile, no impact |
 
-Source: `src/wxcli/commands/cucm_config.py:17` — `DEFAULT_AUTO_RULES`. These rules can be removed or reconfigured per project; see [tuning-reference.md §Auto-Rules](tuning-reference.md#auto-rules).
+Source: `src/wxcli/commands/cucm_config.py:17` — `DEFAULT_AUTO_RULES`. These rules can be removed or reconfigured per project; see [tuning-reference.md §Auto-Rules](tuning-reference.md#auto-rules-how-they-work-the-7-defaults-how-to-add-your-own).
 
 ### When to Break the Review
 
@@ -499,7 +499,7 @@ Do not break the review for: wrong recommendations on individual entities (use o
 
 - Per-DecisionType reference: [decision-guide.md §Decision Types A–Z](decision-guide.md#decision-types-az)
 - Dissent handling detail: [decision-guide.md §Dissent Handling](decision-guide.md#dissent-handling)
-- Auto-rule tuning: [tuning-reference.md §Auto-Rules](tuning-reference.md#auto-rules)
+- Auto-rule tuning: [tuning-reference.md §Auto-Rules](tuning-reference.md#auto-rules-how-they-work-the-7-defaults-how-to-add-your-own)
 - Failure recovery: [§Failure Patterns](#failure-patterns)
 
 ## Execution & Recovery
