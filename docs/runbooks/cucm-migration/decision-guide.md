@@ -88,25 +88,184 @@ Two layers of advisory output coexist on every decision: the **static recommenda
      the exact slug-form of each DecisionType. Order is alphabetical for findability. -->
 
 ### audio-asset-manual
+
+**Triggered by:** `src/wxcli/migration/transform/mappers/moh_mapper.py:77-101` (non-default MOH source) and `src/wxcli/migration/transform/mappers/announcement_mapper.py:92-116` (every announcement). Fires whenever CUCM holds custom audio (MOH track or announcement WAV) that cannot be pulled over AXL — the bytes have to be downloaded from the CUCM TFTP directory and uploaded into Webex by a human.
+**Options:** Accept the manual migration (admin downloads + re-uploads), use the Webex default audio, or skip the asset entirely.
+**Recommendation:** `recommend_audio_asset_manual` at `src/wxcli/migration/advisory/recommendation_rules.py:532-543` returns `accept` for customer-facing usage (`AA_GREETING`, `QUEUE_COMFORT`, `QUEUE_WHISPER`), `use_default` for MOH confined to 1-2 locations, and `accept` otherwise. Reasoning: customer-facing audio is worth the manual effort for brand consistency; low-usage MOH is not.
+**Dissent triggers:** none documented as of 2026-04-07.
+**Cascade impact:** none — resolving an audio asset decision does not feed any other analyzer via `cascades_to`.
+**See also:** [Advisory Patterns §voicemail-pilot-simplification](#voicemail-pilot-simplification) (parallel "manual effort" decision for voicemail), [Tuning Reference §Recipe 1](tuning-reference.md#recipe-1-small-smb-single-location-1050-users) (small deployments where `use_default` is usually right).
+
 ### button-unmappable
+
+**Triggered by:** `src/wxcli/migration/transform/mappers/button_template_mapper.py:164-190`. Fires when a phone button template contains button types that have no Webex line-key equivalent (Service URL, Intercom, Privacy, etc.) AND at least one phone actually uses the template (`phones_using > 0`). Dead templates are silently skipped by the planner, so this decision is only surfaced when a real device would lose a button at cutover.
+**Options:** Accept the loss (the button simply does not appear on the Webex device), or skip the template migration for the affected phones.
+**Recommendation:** `recommend_button_unmappable` at `src/wxcli/migration/advisory/recommendation_rules.py:546-563` always returns `accept_loss` — the reasoning enumerates the unmapped feature names from `context["unmapped_features"]` and states that no alternate action is possible on the Webex side.
+**Dissent triggers:** [`kb-device-migration.md#dt-dev-003`](../../knowledge-base/migration/kb-device-migration.md#dt-dev-003) — button-type CUCM→Webex mapping rules and exceptions.
+**Cascade impact:** none — the decision does not alter downstream device layout or softkey decisions; those run independently.
+**See also:** [`device-incompatible`](#device-incompatible) and [`device-firmware-convertible`](#device-firmware-convertible) (sibling device-side decisions), [Advisory Patterns §device-bulk-upgrade](#device-bulk-upgrade) (bulk handling pattern).
+
 ### calling-permission-mismatch
+
+**Triggered by:** `src/wxcli/migration/transform/mappers/css_mapper.py:623-654` (block patterns that cannot be classified into Webex permission categories like `INTERNATIONAL_CALL` or `PREMIUM_SERVICES_NUMBER_ONE`) and `src/wxcli/migration/transform/analyzers/css_permission.py:43-172` (safety-net analyzer that flags empty or contradictory calling-permission objects — e.g., `INTERNAL_CALL` set to BLOCK).
+**Options:** Accept the current mapping as-is, configure manually in Webex post-migration, or skip the restriction entirely (affected users get unrestricted access for those call types).
+**Recommendation:** `recommend_calling_permission_mismatch` at `src/wxcli/migration/advisory/recommendation_rules.py:378-400` matches `context["block_pattern"]` against international prefixes (`011`, `00`, `+2` through `+9`) and premium/toll prefixes (`1900`, `900`, `976`), returning the corresponding Webex call-type (`INTERNATIONAL_CALL` or `PREMIUM_SERVICES_NUMBER_ONE`). Returns `None` when no prefix matches — a deliberate signal that the human needs to decide.
+**Dissent triggers:** [`kb-css-routing.md#dt-css-002`](../../knowledge-base/migration/kb-css-routing.md#dt-css-002) — restriction CSS vs calling permission semantics and the `INTERNAL_CALL` block footgun.
+**Cascade impact:** Resolving this can change which users end up assigned to a given `CanonicalCallingPermission`, which cascades into user provisioning. The analyzer's `decision_types` list is the cascade key.
+**See also:** [Advisory Patterns §restriction-css-consolidation](#restriction-css-consolidation) (the cross-cutting "CSS is doing permission work" finding), [`css-routing-mismatch`](#css-routing-mismatch) (routing sibling of this permission decision).
+
 ### css-routing-mismatch
+
+**Triggered by:** `src/wxcli/migration/transform/mappers/css_mapper.py:236-261` (MIXED partitions containing both ROUTE and BLOCK patterns, split into virtual routing + blocking partitions), `css_mapper.py:478-482` and `:832-838` (additional mapper-level mismatches), plus the cross-object safety net at `src/wxcli/migration/transform/analyzers/css_routing.py:42-299` that flags a pattern appearing in multiple dial plans with different route destinations.
+**Options:** Union all routing scopes (merge routes — most permissive), use the most restrictive intersection, configure manually, or skip the pattern entirely.
+**Recommendation:** `recommend_css_routing_mismatch` at `src/wxcli/migration/advisory/recommendation_rules.py:342-371` branches on `context["mismatch_type"]`: `partition_ordering` → `manual` (Webex has no partition-ordering equivalent), `scope_difference` → `use_union`, `pattern_conflict` → `manual` with a reasoning string that names both competing routes. Returns `None` for any other mismatch kind — genuine ambiguity.
+**Dissent triggers:** [`kb-css-routing.md#dt-css-001`](../../knowledge-base/migration/kb-css-routing.md#dt-css-001) — partition-ordering semantics and why longest-match routing is not equivalent.
+**Cascade impact:** Resolving a routing mismatch can invalidate dial-plan decisions for every user or device that used the affected CSS. `analyzer.decision_types` includes `CSS_ROUTING_MISMATCH`, so `resolve_and_cascade()` will re-run the CSS routing analyzer on the touched dial plans.
+**See also:** [Advisory Patterns §partition-ordering-loss](#partition-ordering-loss) (the cross-cutting "this customer depends on ordering" detector), [Tuning Reference §Recipe 3](tuning-reference.md#recipe-3-css-heavy-customer-with-strict-partition-ordering).
+
 ### device-firmware-convertible
+
+**Triggered by:** `src/wxcli/migration/transform/mappers/device_mapper.py:171-192` (Enterprise-firmware phone that can be flashed to MPP) and `src/wxcli/migration/transform/analyzers/device_compatibility.py:121-162` (safety net that builds the same decision for devices the mapper did not classify). Devices land here when their model belongs to the MPP-eligible 88xx/78xx families and they currently run Enterprise firmware under CUCM.
+**Options:** Convert the firmware in place (factory reset + MPP image via TFTP/EDOS), or skip the device.
+**Recommendation:** `recommend_device_firmware_convertible` at `src/wxcli/migration/advisory/recommendation_rules.py:24-35` always returns `convert`. Reasoning names the model and, if `context["has_srst"]` is set, appends a warning that Survivable Gateway behavior changes once the device re-registers with Webex Edge.
+**Dissent triggers:** [`kb-device-migration.md#dt-dev-002`](../../knowledge-base/migration/kb-device-migration.md#dt-dev-002) — firmware conversion path, TFTP staging, and known model-family footguns (e.g., 8861 sidecar compatibility).
+**Cascade impact:** none — firmware conversion does not change the device's identity from the pipeline's perspective, so no downstream analyzer re-runs.
+**See also:** [Advisory Patterns §device-bulk-upgrade](#device-bulk-upgrade) (bulk-accept planning), [`device-incompatible`](#device-incompatible) (the harder sibling case).
+
 ### device-incompatible
+
+**Triggered by:** `src/wxcli/migration/transform/mappers/device_mapper.py:146-169` (phones whose model has no Webex firmware path at all — e.g., 79xx series, 69xx, ATA 190) and `src/wxcli/migration/transform/analyzers/device_compatibility.py:80-119` (safety net). The canonical signal is a compatibility tier of `INCOMPATIBLE` — usually a legacy SCCP/SIP phone.
+**Options:** Skip the device (user goes to Webex app or waits for a replacement), or handle manually (flag for hardware replacement during cutover).
+**Recommendation:** `recommend_device_incompatible` at `src/wxcli/migration/advisory/recommendation_rules.py:245-260` looks up `context["cucm_model"]` in `_DEVICE_REPLACEMENT_MAP` (lines 213-242). Known replacements: 7811→9841, 7821→9841, 7832→conference room device, 79xx/69xx→8845 or 9851, ATA 19x→ATA 192. Returns `replace` plus a reasoning string with the replacement SKU. Returns `None` for any model not in the table.
+**Dissent triggers:** [`kb-device-migration.md#dt-dev-001`](../../knowledge-base/migration/kb-device-migration.md#dt-dev-001) — replacement SKU matrix and MPP-vs-RoomOS day-2 config differences.
+**Cascade impact:** Resolving this can change whether a user has any device at all at cutover, which feeds into workspace and license-tier decisions. Analyzer cascades on both `DEVICE_INCOMPATIBLE` and `DEVICE_FIRMWARE_CONVERTIBLE`.
+**See also:** [Advisory Patterns §device-bulk-upgrade](#device-bulk-upgrade), [`button-unmappable`](#button-unmappable) (button-level counterpart), [Tuning Reference §Recipe 5](tuning-reference.md#recipe-5-analog-gateway-heavy-customer) (ATA 190 story).
+
 ### dn-ambiguous
+
+**Triggered by:** `src/wxcli/migration/transform/mappers/line_mapper.py:148-160` (ambiguous E.164 classification at mapping time) and `src/wxcli/migration/transform/analyzers/dn_ambiguity.py:34-114` (cross-object safety net that sweeps any line whose classification is still `AMBIGUOUS`). The triggering condition is a directory-number pattern where the normalizer cannot tell whether it is an internal extension, national number, or full E.164.
+**Options:** Treat as extension-only (no DID), treat as a national-format DID, treat as full E.164, or skip the line and resolve by hand.
+**Recommendation:** `recommend_dn_ambiguous` at `src/wxcli/migration/advisory/recommendation_rules.py:263-278` returns `assign` when `owner_count == 1` (one clear device owner) or when `primary_owner` is set (DN appears on line 1 for a specific user). Otherwise returns `None` — the shared-across-many-users case is genuinely ambiguous and must be human-resolved.
+**Dissent triggers:** [`kb-identity-numbering.md#dt-id-001`](../../knowledge-base/migration/kb-identity-numbering.md#dt-id-001) — DN ownership semantics and why Webex requires a single owner.
+**Cascade impact:** Resolving a DN ambiguity changes which user or workspace ends up owning the number, which cascades into extension-conflict and number-conflict decisions downstream.
+**See also:** [`extension-conflict`](#extension-conflict), [`number-conflict`](#number-conflict), [`shared-line-complex`](#shared-line-complex) (shared-line version of the same ambiguity).
+
 ### duplicate-user
+
+**Triggered by:** Two producers — the transform analyzer at `src/wxcli/migration/transform/analyzers/duplicate_user.py:40-196` (groups CUCM users by lowercased email and by first+last name for email-less entries, flags any group with 2+ members) and the preflight check at `src/wxcli/migration/preflight/checks.py` (compares planned CUCM users against the *existing* Webex org to detect users who are already there). Both producers create `DUPLICATE_USER` decisions.
+**Options:** Merge (treat both entries as the same Webex user, keeping email-address precedence), keep both as separate users, or skip one of the duplicates.
+**Recommendation:** `recommend_duplicate_user` at `src/wxcli/migration/advisory/recommendation_rules.py:88-100` returns `merge` when `context["email_match"]` is true (same email) or when `context["userid_match"]` is true (same CUCM userid). Returns `keep_both` otherwise (same name, different emails — probably different people).
+**Dissent triggers:** [`kb-identity-numbering.md#dt-id-002`](../../knowledge-base/migration/kb-identity-numbering.md#dt-id-002) — CUCM identity merge footguns and the Active Directory sync edge cases that produce near-duplicates.
+**Cascade impact:** Resolving a merge decision changes downstream user-count metrics used by license-tier and queue-membership decisions. Preflight-produced duplicates cascade into `NUMBER_CONFLICT` detection.
+**See also:** [`number-conflict`](#number-conflict) (preflight's other duplicate-surface decision type), [Advisory Patterns §extension-mobility-usage](#extension-mobility-usage) (EM user-profile cases that look like duplicates).
+
 ### extension-conflict
+
+**Triggered by:** `src/wxcli/migration/transform/analyzers/extension_conflict.py:36-152`. The analyzer resolves every line back to a location via its owning device (`device_has_dn` cross-ref → `device.location_canonical_id`), then groups lines by `(extension, location)` — any group with 2+ lines is a conflict. Webex enforces per-location extension uniqueness; CUCM does not.
+**Options:** Renumber one of the conflicting lines, convert the loser(s) to virtual lines, or skip resolution (leaves the conflict for manual intervention).
+**Recommendation:** `recommend_extension_conflict` at `src/wxcli/migration/advisory/recommendation_rules.py:281-303` uses an appearance-count heuristic. If `context["ext_a_appearances"] > context["ext_b_appearances"]`, recommend `keep_a` (keep the more-heavily-used one); if B wins, recommend `keep_b`. On a tie, returns `None` — ambiguous.
+**Dissent triggers:** [`kb-identity-numbering.md#dt-id-001`](../../knowledge-base/migration/kb-identity-numbering.md#dt-id-001) — shared with `DN_AMBIGUOUS` because the underlying DN-ownership and numbering-plan analysis is the same knowledge.
+**Cascade impact:** Resolving an extension conflict can change which user owns a line, which feeds into device layout and shared-line decisions for the affected lines. Analyzer cascades on `EXTENSION_CONFLICT`.
+**See also:** [`dn-ambiguous`](#dn-ambiguous), [`number-conflict`](#number-conflict) (preflight sibling), [`hotdesk-dn-conflict`](#hotdesk-dn-conflict) (hoteling-specific variant).
+
 ### feature-approximation
+
+**Triggered by:** Multiple producers across both mapper and analyzer layers. `src/wxcli/migration/transform/mappers/feature_mapper.py:281-309` (hunt pilot exceeds policy agent limit), `feature_mapper.py:523-549` (every CTI Route Point → Auto Attendant conversion), and `feature_mapper.py:525` with variations elsewhere. Also produced by `src/wxcli/migration/transform/mappers/device_profile_mapper.py:107`, `src/wxcli/migration/transform/mappers/routing_mapper.py:471`, `src/wxcli/migration/transform/mappers/monitoring_mapper.py:181`, and the cross-object safety net at `src/wxcli/migration/transform/analyzers/feature_approximation.py:77-157` + `layout_overflow.py:84-177`. Fires whenever a CUCM feature (hunt pilot, CTI RP, speed dial, layout) can be migrated only as an approximation of the original.
+**Options:** Accept the approximation, configure manually post-migration, or skip the feature entirely.
+**Recommendation:** `recommend_feature_approximation` at `src/wxcli/migration/advisory/recommendation_rules.py:136-210` is the largest rule. For CTI RPs it recommends `accept` unless `complex_script` is set. For hunt pilots it applies the routing-type-aware agent cap (50 for Simultaneous routing, 1,000 for priority-based per `kb-webex-limits.md DT-LIMITS-001`). Queue-feature indicators → `call_queue`. >8 agents → `call_queue`. ≤4 agents top-down → `hunt_group`. 5-8 agents with no queue features → `None` (genuinely ambiguous).
+**Dissent triggers:** [`kb-feature-mapping.md#dt-feat-001`](../../knowledge-base/migration/kb-feature-mapping.md#dt-feat-001) — Hunt Group vs Call Queue decision depth and the queue-feature signal matrix.
+**Cascade impact:** Resolving a feature approximation can change which Webex feature type (HG vs CQ vs AA) is created, which cascades into license-tier and agent-membership decisions for every member.
+**See also:** [Advisory Patterns §hunt-pilot-reclassification](#hunt-pilot-reclassification) (cross-cutting HG→CQ pattern), [Tuning Reference §Recipe 2](tuning-reference.md#recipe-2-huntlist--callqueue-heavy-migration).
+
 ### forwarding-lossy
+
+**Triggered by:** `src/wxcli/migration/transform/mappers/call_forwarding_mapper.py:120-141`. Fires on any user whose primary line has one of the seven CUCM-only forwarding variants that do not exist in Webex: `callForwardBusyInt`, `callForwardNoAnswerInt`, `callForwardNoCoverage`, `callForwardNoCoverageInt`, `callForwardOnFailure`, `callForwardNotRegistered`, `callForwardNotRegisteredInt`.
+**Options:** Accept the loss (migrate CFA/CFB/CFNA only), or skip the user's forwarding migration entirely.
+**Recommendation:** `recommend_forwarding_lossy` at `src/wxcli/migration/advisory/recommendation_rules.py:514-520` always returns `accept_loss`. Reasoning: the seven CUCM-only variants are rarely configured in real deployments; CFA/CFB/CFNA together cover >95% of observed forwarding behavior.
+**Dissent triggers:** [`kb-user-settings.md#dt-user-001`](../../knowledge-base/migration/kb-user-settings.md#dt-user-001) — call-forwarding semantics, the "internal vs external" split CUCM variants encode, and when it actually matters.
+**Cascade impact:** none — forwarding is a per-user leaf decision.
+**See also:** [`snr-lossy`](#snr-lossy) (the "rarely customized, accept loss" sibling), [Tuning Reference §default-rule-forwarding-lossy](tuning-reference.md#default-rule-forwarding-lossy) (this type has an auto-resolve rule on by default).
+
 ### hotdesk-dn-conflict
+
+**Triggered by:** `src/wxcli/migration/transform/mappers/workspace_mapper.py:143-167`. Fires on a common-area phone that has both a directory number (extension or `phoneNumber`) AND Extension Mobility / hoteling enabled (`hotdesking_status == "on"`). Webex hot-desk workspaces cannot carry a fixed DN — the two concepts are mutually exclusive on the Webex side.
+**Options:** Preserve the extension and disable hot desking, preserve hot desking and drop the DN, or manually resolve the conflict.
+**Recommendation:** `recommend_hotdesk_dn_conflict` at `src/wxcli/migration/advisory/recommendation_rules.py:121-129` always returns `keep_primary` (keep the DN on the device as the primary configuration; configure hoteling so any user can temporarily log in on top of that device). Reasoning: Webex hoteling gives back most of what Extension Mobility provided, without requiring the DN to disappear.
+**Dissent triggers:** [`kb-identity-numbering.md#dt-id-003`](../../knowledge-base/migration/kb-identity-numbering.md#dt-id-003) — hoteling vs hot-desk workspace distinctions and when Extension Mobility semantics are actually load-bearing.
+**Cascade impact:** Resolving this changes whether a phone becomes a workspace or a user-owned device, which cascades into device-layout and workspace-license decisions.
+**See also:** [`workspace-type-uncertain`](#workspace-type-uncertain), [`workspace-license-tier`](#workspace-license-tier), [Advisory Patterns §extension-mobility-usage](#extension-mobility-usage), [Tuning Reference §default-rule-hotdesk-dn-conflict](tuning-reference.md#default-rule-hotdesk-dn-conflict) (auto-resolve rule on by default).
+
 ### location-ambiguous
+
+**Triggered by:** `src/wxcli/migration/transform/mappers/location_mapper.py:119-138` (device-pool → Webex-location consolidation with conflicting CUCM location hints) and `src/wxcli/migration/transform/analyzers/location_ambiguity.py:31-184` (sweeps locations for warning messages containing ambiguity markers or 3+ consolidated device pools). Also captures the critical "location has no street address but has devices" case.
+**Options:** Accept the consolidation, provide a street address (required when devices depend on the location — skip is not offered in that case), manually reassign the device pools, or split into separate per-pool locations.
+**Recommendation:** `recommend_location_ambiguous` at `src/wxcli/migration/advisory/recommendation_rules.py:403-449` hard-codes a safety rule — if the location has no address and `dependent_device_count > 0`, always recommend `provide_address` (never `skip`, because skip would block those devices from migration). Otherwise, returns `consolidate` when timezone + region + site_code all match (or timezone + region when site_code is missing), `None` when `same_timezone=True` but `same_region=False`.
+**Dissent triggers:** [`kb-location-design.md#dt-loc-001`](../../knowledge-base/migration/kb-location-design.md#dt-loc-001) — device-pool consolidation criteria and the E911-address gotcha.
+**Cascade impact:** Resolving this can change which Webex location every device, user, and feature in the affected pools ends up in, cascading into practically every downstream decision type. Analyzer cascades on `LOCATION_AMBIGUOUS`.
+**See also:** [Advisory Patterns §location-consolidation](#location-consolidation), [`missing-data`](#missing-data) (often fires alongside when address is absent).
+
 ### missing-data
+
+**Triggered by:** Ten separate producers — the most-fired decision type in the pipeline. Mapper sources: `src/wxcli/migration/transform/mappers/voicemail_mapper.py:286-300`, `src/wxcli/migration/transform/mappers/snr_mapper.py:181-196`, `src/wxcli/migration/transform/mappers/routing_mapper.py:239, :289, :317, :382, :541, :638`, `src/wxcli/migration/transform/mappers/line_mapper.py:176-188`, `src/wxcli/migration/transform/mappers/monitoring_mapper.py:158`, `src/wxcli/migration/transform/mappers/user_mapper.py:97, :135, :179`. Cross-object safety net: `src/wxcli/migration/transform/analyzers/missing_data.py:111-256`, which sweeps every object type for required fields and emits one decision per missing-field set.
+**Options:** Provide the missing data (user supplies it), skip the object, or handle manually post-migration.
+**Recommendation:** `recommend_missing_data` at `src/wxcli/migration/advisory/recommendation_rules.py:38-69` is deliberately cautious: returns `None` (force human review) when `dependent_count > 0` OR when `object_type in ("location", "trunk", "route_group")`. Only returns `skip` for true leaf objects with zero dependents — the rule refuses to auto-skip infrastructure because doing so cascades to block everything that depends on it.
+**Dissent triggers:** none documented as of 2026-04-07 — this type is generic by design and its context varies per producer. Individual domains (trunks, voicemail, numbering) are covered by their own `DT-{DOMAIN}-NNN` entries.
+**Cascade impact:** Depends on object type. Resolving missing data on a location or trunk cascades into every downstream consumer.
+**See also:** [`location-ambiguous`](#location-ambiguous), [`voicemail-incompatible`](#voicemail-incompatible), [Tuning Reference §Per-Decision Overrides](tuning-reference.md#per-decision-overrides) (how to override this without a global rule).
+
 ### number-conflict
+
+**Triggered by:** `src/wxcli/migration/preflight/checks.py:483-535` (`_build_number_conflict_decision`) — produced exclusively by the **preflight** phase, not by transform mappers or analyzers. The preflight runner at `src/wxcli/migration/preflight/runner.py:151` merges these into the store under `decision_types=["NUMBER_CONFLICT", "DUPLICATE_USER"]` with `stage="preflight"`. The check compares every planned E.164 number and extension+location pair against the current Webex org, skipping same-owner collisions (same email).
+**Options:** Reassign the planned number to a different DID, remove the existing assignment from the Webex owner (destructive), or skip that number entirely.
+**Recommendation:** `recommend_number_conflict` at `src/wxcli/migration/advisory/recommendation_rules.py:72-85` returns `auto_resolve` when `context["same_owner"]` is set (defense-in-depth for the same-owner case the check already filters out), otherwise `keep_existing` with a reasoning string naming both the Webex owner and the CUCM owner.
+**Dissent triggers:** [`kb-identity-numbering.md#dt-id-001`](../../knowledge-base/migration/kb-identity-numbering.md#dt-id-001) — shared with DN ownership and extension conflict because the knowledge is one coherent domain.
+**Cascade impact:** None on the transform side — preflight runs after analysis, so `NUMBER_CONFLICT` decisions do not re-trigger any analyzer. Resolving them still gates `plan` because preflight re-runs on the next pipeline pass.
+**See also:** [`extension-conflict`](#extension-conflict), [`duplicate-user`](#duplicate-user) (preflight's other decision type), [`dn-ambiguous`](#dn-ambiguous).
+
 ### shared-line-complex
+
+**Triggered by:** `src/wxcli/migration/transform/analyzers/shared_line.py:37-152`. Fires when a directory number appears on 3+ devices or when a DN has multiple distinct owners. The analyzer groups lines by `(dn, partition)` and counts unique device + owner sets; anything with `device_count >= 3` or `unique_owners >= 2` becomes a decision.
+**Options:** Virtual line (one virtual line + line assignments on each device — preserves monitoring), Webex shared line (offered only when `device_count <= 2`), Call Park + BLF (loses real-time state), or skip (DN migrates only on the primary owner's device).
+**Recommendation:** `recommend_shared_line_complex` at `src/wxcli/migration/advisory/recommendation_rules.py:309-339` scans `context["secondary_labels"]` for monitoring keywords (`BLF`, `Monitor`, `Busy Lamp`, `Speed`, `DSS`). If every secondary label matches, returns `virtual_extension` — the label evidence shows the "sharing" is actually line monitoring. If `appearance_count <= 10` and labels are mixed, returns `shared_line` (within Webex's 35-appearance limit). Otherwise `None` — high count with mixed usage is genuinely ambiguous.
+**Dissent triggers:** [`kb-feature-mapping.md#dt-feat-002`](../../knowledge-base/migration/kb-feature-mapping.md#dt-feat-002) — shared line vs virtual extension vs Call Park semantics and when each is load-bearing.
+**Cascade impact:** Resolving this changes how many lines and virtual lines get provisioned on each device, cascading into button-template and device-layout decisions. Analyzer cascades on `SHARED_LINE_COMPLEX`.
+**See also:** [Advisory Patterns §shared-line-simplification](#shared-line-simplification), [Advisory Patterns §cumulative-virtual-line-consumption](#cumulative-virtual-line-consumption) (watch out for per-location virtual-line limits), [`dn-ambiguous`](#dn-ambiguous).
+
 ### snr-lossy
+
+**Triggered by:** `src/wxcli/migration/transform/mappers/snr_mapper.py:156-177`. Fires on any Single Number Reach / Remote Destination Profile user whose configuration includes custom `answerTooSoon`/`answerTooLate` timer values. Webex SNR does not expose those timer knobs at all — the nearest equivalent is a single `answerConfirmationEnabled` boolean.
+**Options:** Accept the loss (migrate the numbers without timer control), skip SNR migration for the user, or manually configure custom Webex behavior post-migration.
+**Recommendation:** `recommend_snr_lossy` at `src/wxcli/migration/advisory/recommendation_rules.py:523-529` always returns `accept_loss`. Reasoning: timer controls are rarely customized from defaults in real deployments, and `answerConfirmationEnabled` on Webex provides equivalent "do not connect until the remote side has actually answered" behavior.
+**Dissent triggers:** [`kb-user-settings.md#dt-user-002`](../../knowledge-base/migration/kb-user-settings.md#dt-user-002) — SNR / RDP semantics and the cases where timer control actually matters.
+**Cascade impact:** none — SNR is a per-user leaf decision.
+**See also:** [`forwarding-lossy`](#forwarding-lossy) (sibling "rarely customized, accept loss" case), [Advisory Patterns §snr-configured-users](#snr-configured-users) (cross-cutting advisory for populations with heavy SNR usage), [Tuning Reference §default-rule-snr-lossy](tuning-reference.md#default-rule-snr-lossy).
+
 ### voicemail-incompatible
+
+**Triggered by:** `src/wxcli/migration/transform/mappers/voicemail_mapper.py:242-276` (per-user gap analysis against the 13-row Unity-feature matrix) and `src/wxcli/migration/transform/analyzers/voicemail_compatibility.py:119-203` (safety net that sweeps voicemail profile objects for incompatible features the mapper didn't catch). Fires whenever Unity Connection exposes features with no Webex voicemail equivalent (extensive call-handling rules, transfer-to-number routing, custom greetings, etc.).
+**Options:** Accept the fidelity loss, configure manually post-migration, or skip the profile entirely.
+**Recommendation:** `recommend_voicemail_incompatible` at `src/wxcli/migration/advisory/recommendation_rules.py:452-477` always returns `webex_voicemail`. Reasoning varies by available context: `cfna_timeout` present → computes `rings = cfna_timeout // 6` and documents the mapping; `unity_features` list present → names the features that will be lost; neither present → recommends default 3 rings.
+**Dissent triggers:** [`kb-user-settings.md#dt-user-003`](../../knowledge-base/migration/kb-user-settings.md#dt-user-003) — Unity Connection features that map cleanly vs features that genuinely cannot be represented in Webex voicemail.
+**Cascade impact:** Resolving this changes the user's voicemail profile reference, which cascades into user provisioning but not into other analyzers.
+**See also:** [Advisory Patterns §voicemail-pilot-simplification](#voicemail-pilot-simplification) (the cross-cutting "multiple pilots to the same VM system" finding), [`audio-asset-manual`](#audio-asset-manual) (custom greeting audio lives here).
+
 ### workspace-license-tier
+
+**Triggered by:** `src/wxcli/migration/transform/mappers/workspace_mapper.py:199-228` (always produces a decision per workspace so the admin can confirm the inferred tier) and `src/wxcli/migration/transform/analyzers/workspace_license.py:77-162` (safety net that flags workspaces set to Workspace tier but carrying Professional-only features like voicemail). Webex has exactly two workspace license tiers with a strict feature-vs-cost gap.
+**Options:** Workspace (cheaper, basic calling only, most `/telephony/config/workspaces/` endpoints return 405), Professional Workspace (full feature access), or skip the workspace.
+**Recommendation:** `recommend_workspace_license_tier` at `src/wxcli/migration/advisory/recommendation_rules.py:103-118` checks `context["features_detected"]` against the `_PROFESSIONAL_FEATURES` set. Any hit → returns `professional` with a reasoning string naming which detected features triggered the upgrade. No hits → returns `basic` (`Webex Calling Basic license is sufficient`).
+**Dissent triggers:** [`kb-user-settings.md#dt-user-004`](../../knowledge-base/migration/kb-user-settings.md#dt-user-004) — workspace tier footguns, in particular the 405 behavior on non-Professional workspaces documented in the devices-workspaces reference doc.
+**Cascade impact:** Resolving this affects license inventory in the preflight phase; it does not re-trigger any analyzer.
+**See also:** [`workspace-type-uncertain`](#workspace-type-uncertain), [`hotdesk-dn-conflict`](#hotdesk-dn-conflict), [`device-platform` skill](../../skills/device-platform) (Professional Workspace is required for device configuration templates).
+
 ### workspace-type-uncertain
+
+**Triggered by:** `src/wxcli/migration/transform/mappers/workspace_mapper.py:170-194`. Fires on any common-area device where `_infer_workspace_type(display_name, device_pool_name)` returns `None` — i.e., neither the phone's display name nor its device pool name matches the keyword heuristics for "meeting room", "desk", or "other". The mapper defaults the type to `other` and raises the decision so the admin can correct it.
+**Options:** `meetingRoom` (conference equipment), `desk` (shared / hot desk), or `other` (lobby phone, break room, etc.).
+**Recommendation:** `recommend_workspace_type_uncertain` at `src/wxcli/migration/advisory/recommendation_rules.py:495-511` returns `conference_room` when `context["cucm_model"]` is in `_CONFERENCE_MODELS` (7832, 8832, CP-7832, CP-8832), `common_area` when the model is in `_DESK_PHONE_MODELS` AND `context["has_owner"]` is explicitly `False`. Otherwise `None` — the heuristics are not confident enough.
+**Dissent triggers:** [`kb-user-settings.md#dt-user-005`](../../knowledge-base/migration/kb-user-settings.md#dt-user-005) — workspace-type semantics and the edge cases where conference models are actually in private offices.
+**Cascade impact:** Resolving this can change the downstream license-tier recommendation (conference rooms frequently need Professional for MOH/DND APIs).
+**See also:** [`workspace-license-tier`](#workspace-license-tier), [`hotdesk-dn-conflict`](#hotdesk-dn-conflict), [Advisory Patterns §extension-mobility-usage](#extension-mobility-usage).
 
 ## Advisory Patterns
 
