@@ -23,11 +23,11 @@ analysis_pipeline.py run()
 
 **Layer 1 — Per-Decision Recommendations.** Every decision the pipeline produces (from mappers and analyzers) gets an optional `recommendation` field: which option the system advises, and `recommendation_reasoning`: why. Populated by `populate_recommendations()` which calls into `recommendation_rules.py`. One function per DecisionType (16 total). Returns `(option_id, reasoning)` or `None` for genuinely ambiguous cases.
 
-**Layer 2 — Cross-Cutting Advisor.** The `ArchitectureAdvisor` runs after all 12 analyzers have merged their decisions. It reads the full canonical model plus all prior decisions and produces `ARCHITECTURE_ADVISORY` decisions for patterns spanning multiple objects — things like "6 of your 14 CSSes are restriction-only and should be calling permissions, not dial plans" or "your trunk topology indicates Local Gateway, not Cloud Connected PSTN."
+**Layer 2 — Cross-Cutting Advisor.** The `ArchitectureAdvisor` runs after all 13 analyzers have merged their decisions. It reads the full canonical model plus all prior decisions and produces `ARCHITECTURE_ADVISORY` decisions for patterns spanning multiple objects — things like "6 of your 14 CSSes are restriction-only and should be calling permissions, not dial plans" or "your trunk topology indicates Local Gateway, not Cloud Connected PSTN."
 
 ## Why Two Phases
 
-The ArchitectureAdvisor needs to read decisions from the first 12 analyzers (e.g., Pattern 4 groups DEVICE_INCOMPATIBLE decisions by model for bulk upgrade planning). In a single-phase design, analyzer decisions aren't in the store until after ALL analyzers run — so the ArchitectureAdvisor would see nothing. The two-phase approach merges Phase 1 decisions first, then runs Phase 2 against the populated store.
+The ArchitectureAdvisor needs to read decisions from the first 13 analyzers (e.g., Pattern 4 groups DEVICE_INCOMPATIBLE decisions by model for bulk upgrade planning). In a single-phase design, analyzer decisions aren't in the store until after ALL analyzers run — so the ArchitectureAdvisor would see nothing. The two-phase approach merges Phase 1 decisions first, then runs Phase 2 against the populated store.
 
 Advisory decisions are merged separately using `decision_types=[ARCHITECTURE_ADVISORY]` and `stage="advisory"` so they don't stale-mark the Phase 1 decisions.
 

@@ -1,6 +1,6 @@
 # mappers/ — CUCM-to-Webex Transform Mappers (Phase 05)
 
-14 mapper classes that read normalized CUCM objects from the store, resolve cross-references, and produce Webex-ready canonical objects. Each mapper extends `Mapper` (base.py) and implements `map(store) -> MapperResult`.
+20 mapper classes that read normalized CUCM objects from the store, resolve cross-references, and produce Webex-ready canonical objects. Each mapper extends `Mapper` (base.py) and implements `map(store) -> MapperResult`.
 
 ## Mapper Contract
 

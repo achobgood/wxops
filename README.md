@@ -124,7 +124,7 @@ wxcli cucm discover --host 10.0.0.1 \    # Extract from CUCM via AXL
   --username admin --password secret -p myproject
 wxcli cucm normalize -p myproject         # Normalize to canonical models
 wxcli cucm map -p myproject               # Map CUCM objects to Webex operations
-wxcli cucm analyze -p myproject           # Run 12 analyzers, generate decisions
+wxcli cucm analyze -p myproject           # Run 13 analyzers, generate decisions
 wxcli cucm report --brand "Acme Corp" \   # Generate HTML assessment report
   --prepared-by "Jane Admin" -p myproject
 ```
@@ -148,9 +148,9 @@ The execution engine handles 409 auto-recovery (existing resources), cascade-ski
 ### Architecture
 
 - **SQLite-backed store** with objects, cross-references, decisions, and journal
-- **27 normalizers** (Pass 1) + CrossReferenceBuilder (28 relationships)
-- **14 mappers** that convert CUCM objects to Webex Calling operations
-- **12 analyzers** that surface decisions requiring human review
+- **37 normalizers** (Pass 1) + CrossReferenceBuilder (28 relationships)
+- **20 mappers** that convert CUCM objects to Webex Calling operations
+- **13 analyzers** that surface decisions requiring human review
 - **Advisory system** with 19 per-decision rules + 16 cross-cutting patterns
 - **NetworkX DAG** for dependency ordering and batch planning
 - **Async execution engine** with configurable concurrency
