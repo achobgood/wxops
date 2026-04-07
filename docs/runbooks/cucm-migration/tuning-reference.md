@@ -50,7 +50,7 @@
 ### default-rule-forwarding-lossy
 ### default-rule-snr-lossy
 ### default-rule-button-unmappable
-### default-rule-calling-permission-mismatch-zero-users
+### default-rule-calling-permission-mismatch-assigned-users-count-0
 
 ### The 14 Non-Auto-Ruled DecisionTypes and Why
 
