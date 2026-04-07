@@ -612,7 +612,137 @@ For context on what the score is measuring and which factors drive each band, se
 
 ## Failure Patterns
 
-_TBD — Wave 2 Phase B Task B6_
+The `/cucm-migrate` skill handles most failures automatically: it marks the failed operation, continues with independent operations in the same batch, and surfaces a recovery decision to you only when human judgment is required (see [§Execution & Recovery](#execution--recovery) for the general flow). This section maps symptom → cause → recovery for the seven patterns where the skill requires operator action or where the recovery path is non-obvious.
+
+### Pattern 1: Partial Create
+
+**Trigger:** One or more operations in a batch succeeded before a subsequent operation failed. The plan now has a mix of `completed` and `failed` status rows. Most common after a rate-limit burst, a token expiry mid-batch, or a transient Webex API error.
+
+**Symptoms:** `wxcli cucm execution-status -p <project>` shows rows with `status: failed` alongside rows with `status: completed`. The failed row's `error` field contains the raw API error message.
+
+**Recovery:**
+1. Identify the root cause from the error field — rate limit, auth, or a data problem.
+2. Fix the root cause (e.g., refresh the token, correct the plan JSON for a data problem).
+3. Reset failed operations to `pending`: `wxcli cucm retry-failed -p <project>`
+4. Re-invoke `/cucm-migrate <project>`. The skill resumes from the reset operations; completed operations are not re-attempted.
+5. If the same operation fails again repeatedly, escalate to the 409 Conflict or Mid-Execution Failures patterns below.
+
+See the skill's recovery decision logic at → `.claude/skills/cucm-migrate/SKILL.md:552` (`### 4c. Error handling`).
+
+**Customer communication:** "A subset of objects failed to create during the initial run; we've diagnosed the cause and are re-running the affected operations now."
+
+---
+
+### Pattern 2: 409 Conflict
+
+**Trigger:** A Webex API `POST` returns `409 Conflict` because the target resource already exists. Most common after a partial run was interrupted before the skill could record the created IDs, leaving Webex ahead of the migration store.
+
+**Symptoms:** Execution log shows `409 Conflict` on a create operation. The operation remains `failed` after `retry-failed` because the resource already exists.
+
+**Recovery:**
+1. List what was previously created: `wxcli cucm rollback-ops -p <project>` (shows completed CREATE ops in reverse dependency order). Add `--batch <name>` to scope to a single batch.
+2. Search for the conflicting resource: `wxcli [resource] list --name "<name>" -o json` to find its Webex ID.
+3. Choose one of two paths:
+   - **Resource matches the plan:** Record it as complete — `wxcli cucm mark-complete <node_id> -p <project> --webex-id <webex_id>`. The migration advances past the stuck point.
+   - **Resource is stale/incorrect:** Delete it — `wxcli cleanup run --scope "Location Name" --dry-run` first, then without `--dry-run`. After deletion, `wxcli cucm retry-failed -p <project>` and re-invoke the skill.
+
+See the 409 recovery branch at → `.claude/skills/cucm-migrate/SKILL.md:552` (`### 4c. Error handling`, first block).
+
+**Customer communication:** "Some objects already existed in the Webex org from a prior run; we've reconciled them and are continuing the migration."
+
+---
+
+### Pattern 3: Preflight Failures
+
+**Trigger:** `wxcli cucm preflight -p <project>` reports one or more `FAIL` rows before execution begins. Execution should not start until all preflight checks pass.
+
+**Symptoms:** Preflight output table contains rows with `result: FAIL`. Each row identifies the check name and a short reason.
+
+**Recovery:** Map the failing check to its fix:
+
+| Check | Fix path |
+|-------|----------|
+| `licenses` — insufficient Webex Calling licenses | Acquire additional licenses in Control Hub, then re-run preflight. For sizing guidance see [tuning-reference.md §Recipe 1](tuning-reference.md#recipe-1-small-smb-single-location-1050-users). |
+| `locations` — address gap or location not calling-enabled | Complete Webex org readiness steps: [§Prerequisites — Webex Org Readiness](#webex-org-readiness). |
+| `users` — duplicate users or number conflicts | Resolve duplicates manually; see `wxcli people list --email <email>` to identify conflicts. |
+| `numbers` — number already claimed | Release or port the number in Control Hub before re-running. |
+| `rate-limit` | Wait for the rate-limit window to expire (typically 60 s), then re-run preflight. |
+| OAuth scope mismatch (403 on any check) | Re-authenticate with the correct scopes: [§Prerequisites — Webex OAuth Credentials](#webex-oauth-credentials). |
+
+After fixing, re-run `wxcli cucm preflight -p <project>` to confirm all checks pass before invoking `/cucm-migrate`.
+
+**Customer communication:** "The pre-migration checks found [describe issue] — we need to resolve this in your Webex org before we can proceed."
+
+---
+
+### Pattern 4: Mid-Execution Failures
+
+**Trigger:** A `wxcli cucm` command or Webex API call fails during batch execution for a reason the skill cannot auto-recover (timeout cascade, unexpected 500, dependency cycle, malformed plan JSON).
+
+**Symptoms:** The skill surfaces a recovery decision to you during execution with options: fix-and-retry, skip, rollback batch, or rollback all. The batch halts at the failed operation.
+
+**Recovery:** The `cucm-migrate` skill handles most mid-execution failures automatically — it diagnoses the error and proposes the appropriate recovery path at → `.claude/skills/cucm-migrate/SKILL.md:552` (`### 4c. Error handling`). That section is the source of truth; this pattern is for the cases where the skill surfaces a decision to the operator.
+
+Operator decision tree:
+- **Transient error (timeout, rate limit):** Choose fix-and-retry. The skill resets the failed op and continues.
+- **Data error (malformed field, invalid reference):** Fix the plan (edit `store.db` or re-run the affected pipeline stage), then retry.
+- **Dependency cycle:** Run `wxcli cucm execution-status -o json -p <project>`, identify the cycle, and use `mark-failed <node_id> --error "cycle" --skip -p <project>` to break it.
+- **Unrecoverable:** Choose rollback all and file a support case with the full execution log from `~/.wxcli/migrations/<project>/logs/`.
+
+**Customer communication:** "We encountered an unexpected error mid-execution; we're evaluating whether to retry or roll back the affected batch."
+
+---
+
+### Pattern 5: Orphaned Non-Calling User
+
+**Trigger:** The People API created the Webex user record successfully, but the subsequent calling-setup step failed, leaving a Webex user with no calling license or extension. A retry gets `409 Conflict` on the user create because the user already exists. Documented in `docs/plans/cucm-migration-roadmap.md:459`.
+
+**Symptoms:** Execution log shows user create succeeded (HTTP 200 with a `personId`) but the following calling-assign step shows a 400 or 500. `wxcli cucm execution-status -p <project>` shows the user op as `failed`. `wxcli people list --email "<email>" --calling-data true -o json` returns the user but with no `phoneNumbers` or `extension` fields.
+
+**Recovery:**
+1. Confirm the user exists without calling: `wxcli people list --email "<email>" --calling-data true -o json`
+2. Update the user to add calling: `wxcli people update <person_id> --calling-data true --json-body '{"extension":"<ext>","locationId":"<loc_id>"}'`
+3. If the update succeeds: `wxcli cucm mark-complete <node_id> -p <project> --webex-id <person_id>`
+4. If the update fails: surface the error to the admin and determine whether the location or license is the underlying issue, then retry.
+5. If the user already has calling configured: the skill already recovered it — `wxcli cucm mark-complete <node_id> -p <project> --webex-id <person_id>` to advance past the stuck op.
+
+The full recovery branch for this specific scenario is at → `.claude/skills/cucm-migrate/SKILL.md:552` (`### 4c. Error handling`, "IF 400/500 on user:create" block).
+
+**Customer communication:** "One or more users were created in Webex but their calling settings weren't applied; we're completing the calling setup now."
+
+---
+
+### Pattern 6: Discovery Data Drift Mid-Migration
+
+**Trigger:** A CUCM admin modified the source environment during the migration window — added a phone, renamed a CSS, deleted a route pattern, or changed a DN assignment — after `wxcli cucm discover` ran but before execution completed. The migration plan now references objects that no longer exist or have changed.
+
+**Symptoms:** Execution fails with 404s on objects that should exist, or attempts to create resources that conflict with new CUCM objects not in the original plan. Error messages reference resource names or IDs that don't match the current CUCM state.
+
+**Recovery:**
+1. Stop the `/cucm-migrate` skill immediately — do not retry until the data is reconciled.
+2. Identify the scope of drift: compare the failed operation's source data against current CUCM state (AXL query or CUCM admin UI).
+3. For a small drift (1-2 objects): edit the migration store directly (`wxcli cucm decisions` to inspect, manual `store.db` edits for plan JSON corrections), then `wxcli cucm retry-failed -p <project>`.
+4. For large drift (multiple changed objects): re-run the affected pipeline stages on the changed slice — `wxcli cucm discover → normalize → map → analyze` — then manually reconcile the diff against the in-flight plan before resuming execution.
+5. For production migrations: negotiate a **change freeze** with the CUCM admin covering the full migration window before starting. Document this in your pre-migration checklist.
+
+**Customer communication:** "Changes were made to the CUCM system during the migration window; we need a change freeze in place before we can safely continue."
+
+---
+
+### Pattern 7: Advisor Agent Unavailable
+
+**Trigger:** The `migration-advisor` agent (Opus) fails to launch during decision review — Claude Code is not running, the agent definition is missing, the agent times out, or the model is unavailable.
+
+**Symptoms:** The `/cucm-migrate` skill logs a fallback message and proceeds to static decision review without producing a `migration-narrative.md` or dissent flags. The per-decision recommendations are still present but lack narrative context and cross-decision analysis.
+
+**Recovery:** The skill handles this automatically. It falls back to the static review flow at → `.claude/skills/cucm-migrate/SKILL.md:171` (`### Step 1c-fallback: Static Decision Review`). No operator action is required to continue the migration.
+
+To obtain the advisory layer retroactively:
+1. Ensure Claude Code is running and the `migration-advisor` agent definition exists at `.claude/agents/migration-advisor.md`.
+2. Re-invoke `/cucm-migrate <project>` — the skill will detect the project is past the discovery stages and re-enter at decision review, this time with the advisor available.
+3. Review any dissent flags that appear on the second pass; the static recommendations remain valid as a baseline.
+
+**Customer communication:** "Decision review proceeded without the AI advisory layer; we'll do a second-pass review of the dissent flags before finalizing the plan."
 
 ## Glossary
 
