@@ -950,6 +950,46 @@ def _infer_schedule_type(time_periods: list[dict[str, Any]]) -> str:
     return "DIFFERENT_HOURS_DAILY"
 
 
+def _build_line_uuid_to_dn(store: MigrationStore) -> dict[str, str]:
+    """Build a lookup from CUCM line-level UUIDs to DN canonical IDs.
+
+    Raw phone objects (stored as phone:{name}) contain per-line dirn dicts
+    with uuid, pattern, and routePartitionName.  Pickup group members reference
+    lines by these UUIDs.  This builds the mapping so UUIDs can resolve to
+    dn:{pattern}:{partition} canonical IDs.
+    """
+    uuid_to_dn: dict[str, str] = {}
+    for phone_data in store.get_objects("phone"):
+        state = phone_data.get("pre_migration_state") or {}
+        lines = state.get("lines") or {}
+        line_list = lines if isinstance(lines, list) else lines.get("line", [])
+        if isinstance(line_list, dict):
+            line_list = [line_list]
+        if not isinstance(line_list, list):
+            continue
+        for line_entry in line_list:
+            if not isinstance(line_entry, dict):
+                continue
+            dirn = line_entry.get("dirn")
+            if not isinstance(dirn, dict):
+                continue
+            uuid = dirn.get("uuid")
+            pattern = dirn.get("pattern")
+            if not uuid or not pattern:
+                continue
+            # Extract partition from routePartitionName (zeep ref or string)
+            rp = dirn.get("routePartitionName")
+            if isinstance(rp, dict):
+                partition = rp.get("_value_1") or "<None>"
+            elif isinstance(rp, str):
+                partition = rp or "<None>"
+            else:
+                partition = "<None>"
+            dn_id = f"dn:{pattern}:{partition}"
+            uuid_to_dn[str(uuid)] = dn_id
+    return uuid_to_dn
+
+
 def _resolve_pickup_members_to_owners(
     store: MigrationStore, member_ids: list[str]
 ) -> list[str]:
@@ -958,11 +998,11 @@ def _resolve_pickup_members_to_owners(
     Pickup group members may be:
     - Already canonical IDs (e.g., user:alice) — pass through directly
     - DN canonical IDs (e.g., dn:1002:PT-Internal) — resolve via device chain
-    - CUCM UUIDs (e.g., {5782CE0C-...}) — search DN objects by provenance
+    - CUCM UUIDs (e.g., {5782CE0C-...}) — resolve via raw phone line data
     Falls back to the raw member_id if resolution fails.
     """
-    # Build one-time lookup: provenance source_id → DN canonical_id (Fix I-3: O(N+M) not O(N*M))
-    dn_by_source: dict[str, str] | None = None
+    # Build one-time lookup: line-level UUID → DN canonical_id from raw phone data
+    uuid_to_dn: dict[str, str] | None = None
 
     seen: set[str] = set()
     resolved: list[str] = []
@@ -977,16 +1017,11 @@ def _resolve_pickup_members_to_owners(
             # DN canonical_id — resolve via device chain
             owner = _resolve_dn_to_owner(store, member_id)
         else:
-            # CUCM UUID — find DN by provenance source_id
-            if dn_by_source is None:
-                dn_by_source = {}
-                for dn_obj in store.get_objects("dn"):
-                    prov = dn_obj.get("provenance") or {}
-                    sid = prov.get("source_id") if isinstance(prov, dict) else None
-                    if sid:
-                        dn_by_source[sid] = dn_obj["canonical_id"]
+            # CUCM UUID — resolve via raw phone line data
+            if uuid_to_dn is None:
+                uuid_to_dn = _build_line_uuid_to_dn(store)
 
-            dn_cid = dn_by_source.get(member_id)
+            dn_cid = uuid_to_dn.get(member_id)
             if dn_cid:
                 owner = _resolve_dn_to_owner(store, dn_cid)
 
