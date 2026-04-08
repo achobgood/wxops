@@ -574,6 +574,63 @@ def config_show(
         console.print(f"  {k:<30s} {json.dumps(v)}")
 
 
+@config_app.command("reset")
+def config_reset(
+    key: str = typer.Argument(..., help="Config key to reset (e.g. auto_rules)"),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation"),
+    project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
+):
+    """Reset a single config key to its DEFAULT_CONFIG value.
+
+    Reads the current config.json, replaces just the named key with its
+    default, and writes back. Other keys are preserved.
+
+    Example:
+
+        wxcli cucm config reset auto_rules -p my-project
+
+    WARNING: For ``auto_rules``, reset clobbers any custom rules the
+    operator added. Preserve custom rules by hand-editing config.json
+    to append the new default instead of running reset.
+
+    Refuses unknown keys with a list of valid keys.
+    """
+    import copy
+
+    project_dir = _resolve_project_dir(project)
+
+    if key not in DEFAULT_CONFIG:
+        console.print(f"[red]Unknown config key:[/red] {key}")
+        console.print("\nValid keys:")
+        for k in sorted(DEFAULT_CONFIG):
+            console.print(f"  {k}")
+        raise typer.Exit(code=1)
+
+    config = load_config(project_dir)
+    current = config.get(key)
+    default = DEFAULT_CONFIG[key]
+
+    console.print(f"[bold]Reset config key:[/bold] {key}")
+    console.print(f"  Current: {json.dumps(current)}")
+    console.print(f"  Default: {json.dumps(default)}")
+
+    if not yes:
+        if not typer.confirm(f"\nReset '{key}' to default?"):
+            console.print("Cancelled.")
+            return
+
+    config[key] = copy.deepcopy(default)
+    save_config(project_dir, config)
+
+    if isinstance(default, list):
+        console.print(
+            f"[green]Reset config key '{key}' to default "
+            f"({len(default)} entries restored).[/green]"
+        )
+    else:
+        console.print(f"[green]Reset config key '{key}' to default.[/green]")
+
+
 # ===================================================================
 # PIPELINE COMMANDS
 # ===================================================================
