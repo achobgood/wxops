@@ -197,7 +197,9 @@ Even after waiting, delete may return 409 for minutes to hours. Re-run cleanup t
 
 **Condition:** `LOCATION_AMBIGUOUS` with `dependent_device_count` of 1-3 AND `has_address=False`.
 
-**Why this matters:** The static rule handles this correctly -- it always recommends `provide_address` regardless of device count. However, an advisor reviewing this might deprioritize it because "it's only 1-3 devices." The advisor should SUPPORT and ESCALATE the static rule's recommendation.
+**Why this matters:** The static rule handles this correctly -- it always recommends `provide_address` regardless of device count. However, an advisor reviewing this might deprioritize it because "it's only 1-3 devices."
+
+**Advisor should:** SUPPORT and ESCALATE the static rule's `provide_address` recommendation — do not override or deprioritize it. Device count is irrelevant for E911 compliance; even a single device without a validated dispatchable address is a Kari's Law / RAY BAUM's Act violation (see Reasoning below).
 
 **Reasoning:** Even 1 device without an E911 address is a compliance violation:
 - **Kari's Law** (U.S. Public Law 115-127): requires notification capability for ALL emergency calls, which requires the location to exist with proper configuration <!-- Source: emergency-services.md §1 -->
