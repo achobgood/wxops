@@ -129,9 +129,12 @@ class TestApplyAuto:
         _seed_decisions(tmp_migrations_dir)
         result = runner.invoke(app, ["decide", "--apply-auto", "-y", "-p", "test-project"])
         assert result.exit_code == 0
-        assert "Auto-applied 2 decisions" in result.output
+        # D001 (DEVICE_INCOMPATIBLE), D002 (MISSING_DATA on incompatible device
+        # via enrichment), and D004 (DEVICE_FIRMWARE_CONVERTIBLE) all match
+        # default auto-rules.
+        assert "Auto-applied 3 decisions" in result.output
 
-        # Verify: D001 and D002 resolved, D003 and D004 still pending
+        # Verify: D001, D002, D004 resolved; D003 still pending.
         db_path = tmp_migrations_dir / "test-project" / "migration.db"
         store = MigrationStore(str(db_path))
         d1 = store.get_decision("D001")
@@ -139,19 +142,20 @@ class TestApplyAuto:
         d3 = store.get_decision("D003")
         d4 = store.get_decision("D004")
         assert d1["chosen_option"] == "skip"
-        assert d2["chosen_option"] == "skip"
-        assert d3["chosen_option"] is None  # needs-input, untouched
-        assert d4["chosen_option"] is None  # needs-input, untouched
+        assert d2["chosen_option"] == "skip"  # via is_on_incompatible_device
+        assert d3["chosen_option"] is None     # needs-input, untouched
+        assert d4["chosen_option"] == "convert"
         store.close()
 
-    def test_resolved_by_auto_apply(self, tmp_migrations_dir):
+    def test_resolved_by_auto_rule(self, tmp_migrations_dir):
         _init_project()
         _seed_decisions(tmp_migrations_dir)
         runner.invoke(app, ["decide", "--apply-auto", "-y", "-p", "test-project"])
         db_path = tmp_migrations_dir / "test-project" / "migration.db"
         store = MigrationStore(str(db_path))
         d1 = store.get_decision("D001")
-        assert d1["resolved_by"] == "auto_apply"
+        # Unified matcher writes the "auto_rule" marker, not the legacy "auto_apply".
+        assert d1["resolved_by"] == "auto_rule"
         store.close()
 
     def test_no_auto_decisions_found(self, tmp_migrations_dir):
@@ -159,7 +163,7 @@ class TestApplyAuto:
         # No decisions seeded
         result = runner.invoke(app, ["decide", "--apply-auto", "-y", "-p", "test-project"])
         assert result.exit_code == 0
-        assert "No auto-resolvable decisions" in result.output
+        assert "No pending decisions match current auto-rules" in result.output
 
     def test_prompts_without_yes_flag(self, tmp_migrations_dir):
         _init_project()
@@ -168,6 +172,258 @@ class TestApplyAuto:
         result = runner.invoke(app, ["decide", "--apply-auto", "-p", "test-project"])
         # Should show the summary but not apply (no confirmation input)
         assert "DEVICE_INCOMPATIBLE" in result.output
+
+    def test_decide_apply_auto_runs_config_rules(self, tmp_migrations_dir):
+        """--apply-auto runs the project's config auto_rules, not a
+        hardcoded list."""
+        _init_project()
+
+        # Seed one decision that matches a custom rule.
+        project_dir = tmp_migrations_dir / "test-project"
+        config_path = project_dir / "config.json"
+        config = json.loads(config_path.read_text())
+        config["auto_rules"].append({
+            "type": "DN_AMBIGUOUS",
+            "match": {"dn_length_lte": 3},
+            "choice": "extension_only",
+            "reason": "3-digit extensions are internal",
+        })
+        config_path.write_text(json.dumps(config, indent=2))
+
+        db_path = project_dir / "migration.db"
+        store = MigrationStore(str(db_path))
+        fp = hashlib.sha256(b"DN_AMBIGUOUS:D_APPLY_01").hexdigest()[:16]
+        store.save_decision({
+            "decision_id": "D_APPLY_01",
+            "type": "DN_AMBIGUOUS",
+            "severity": "LOW",
+            "summary": "3-digit DN",
+            "context": {"dn_length": 3, "dn": "101"},
+            "options": [
+                {"id": "extension_only", "label": "Extension", "impact": "Internal"},
+                {"id": "skip", "label": "Skip", "impact": "Excluded"},
+            ],
+            "chosen_option": None,
+            "fingerprint": fp,
+            "run_id": "test",
+        })
+        store.close()
+
+        result = runner.invoke(
+            app, ["decide", "--apply-auto", "-y", "-p", "test-project"]
+        )
+        assert result.exit_code == 0
+
+        store = MigrationStore(str(db_path))
+        d = store.get_decision("D_APPLY_01")
+        assert d["chosen_option"] == "extension_only"
+        assert d["resolved_by"] == "auto_rule"
+        store.close()
+
+    def test_decide_apply_auto_picks_up_config_edits(self, tmp_migrations_dir):
+        """Editing config.json between runs must change what --apply-auto
+        resolves — no need to re-run analyze."""
+        _init_project()
+
+        project_dir = tmp_migrations_dir / "test-project"
+        db_path = project_dir / "migration.db"
+
+        store = MigrationStore(str(db_path))
+        fp = hashlib.sha256(b"DN_AMBIGUOUS:D_EDIT_01").hexdigest()[:16]
+        store.save_decision({
+            "decision_id": "D_EDIT_01",
+            "type": "DN_AMBIGUOUS",
+            "severity": "LOW",
+            "summary": "5-digit DN",
+            "context": {"dn_length": 5, "dn": "10101"},
+            "options": [
+                {"id": "extension_only", "label": "Extension", "impact": "Internal"},
+                {"id": "skip", "label": "Skip", "impact": "Excluded"},
+            ],
+            "chosen_option": None,
+            "fingerprint": fp,
+            "run_id": "test",
+        })
+        store.close()
+
+        # First run: no matching rule → no resolution.
+        result1 = runner.invoke(
+            app, ["decide", "--apply-auto", "-y", "-p", "test-project"]
+        )
+        assert result1.exit_code == 0
+
+        store = MigrationStore(str(db_path))
+        assert store.get_decision("D_EDIT_01")["chosen_option"] is None
+        store.close()
+
+        # Edit config.json to add a rule that matches.
+        config_path = project_dir / "config.json"
+        config = json.loads(config_path.read_text())
+        config["auto_rules"].append({
+            "type": "DN_AMBIGUOUS",
+            "match": {"dn_length_lte": 5},
+            "choice": "extension_only",
+            "reason": "5-digit internal plan",
+        })
+        config_path.write_text(json.dumps(config, indent=2))
+
+        # Second run: edit is picked up, D_EDIT_01 resolves.
+        result2 = runner.invoke(
+            app, ["decide", "--apply-auto", "-y", "-p", "test-project"]
+        )
+        assert result2.exit_code == 0
+
+        store = MigrationStore(str(db_path))
+        assert store.get_decision("D_EDIT_01")["chosen_option"] == "extension_only"
+        store.close()
+
+    def test_decide_apply_auto_runs_enrichment(self, tmp_migrations_dir):
+        """--apply-auto must run enrich_cross_decision_context so
+        MISSING_DATA-on-incompatible decisions get the is_on_incompatible_device
+        field before rules fire, even if analyze ran before enrichment
+        was added."""
+        _init_project()
+
+        project_dir = tmp_migrations_dir / "test-project"
+        db_path = project_dir / "migration.db"
+        store = MigrationStore(str(db_path))
+
+        # Seed a DEVICE_INCOMPATIBLE + MISSING_DATA pair on the same device,
+        # simulating a project whose analyze ran without enrichment.
+        fp_di = hashlib.sha256(b"DEVICE_INCOMPATIBLE:D_DI_01").hexdigest()[:16]
+        store.save_decision({
+            "decision_id": "D_DI_01",
+            "type": "DEVICE_INCOMPATIBLE",
+            "severity": "HIGH",
+            "summary": "Legacy device",
+            "context": {"device_id": "phone:old", "_affected_objects": ["phone:old"]},
+            "options": [
+                {"id": "skip", "label": "Skip", "impact": "Not migrated"},
+                {"id": "manual", "label": "Manual", "impact": "Replace"},
+            ],
+            "chosen_option": None,
+            "fingerprint": fp_di,
+            "run_id": "test",
+        })
+        fp_md = hashlib.sha256(b"MISSING_DATA:D_MD_01").hexdigest()[:16]
+        store.save_decision({
+            "decision_id": "D_MD_01",
+            "type": "MISSING_DATA",
+            "severity": "MEDIUM",
+            "summary": "phone:old missing mac",
+            "context": {
+                "object_type": "device",
+                "canonical_id": "phone:old",
+                "missing_fields": ["mac"],
+                # Deliberately no is_on_incompatible_device field.
+            },
+            "options": [
+                {"id": "skip", "label": "Skip", "impact": "Excluded"},
+                {"id": "provide_data", "label": "Provide", "impact": "Supply"},
+            ],
+            "chosen_option": None,
+            "fingerprint": fp_md,
+            "run_id": "test",
+        })
+        store.close()
+
+        result = runner.invoke(
+            app, ["decide", "--apply-auto", "-y", "-p", "test-project"]
+        )
+        assert result.exit_code == 0
+
+        store = MigrationStore(str(db_path))
+        # Both the DI and MD decisions are auto-resolved via default rules
+        # (MD requires the enrichment step to have run first).
+        assert store.get_decision("D_DI_01")["chosen_option"] == "skip"
+        assert store.get_decision("D_MD_01")["chosen_option"] == "skip"
+        store.close()
+
+    def test_existing_project_without_new_default_rule_still_runs(
+        self, tmp_migrations_dir
+    ):
+        """Backwards compat: a project whose config.json was seeded before
+        the new MISSING_DATA default rule existed must still run without
+        crashing. MISSING_DATA-on-incompatible decisions stay pending
+        (not auto-resolved) because the rule isn't in the saved config."""
+        _init_project()
+
+        project_dir = tmp_migrations_dir / "test-project"
+        config_path = project_dir / "config.json"
+
+        # Overwrite config.json with ONLY the old 7 defaults (no new rule).
+        legacy_rules = [
+            {"type": "DEVICE_INCOMPATIBLE", "choice": "skip"},
+            {"type": "DEVICE_FIRMWARE_CONVERTIBLE", "choice": "convert"},
+            {"type": "HOTDESK_DN_CONFLICT", "choice": "keep_primary"},
+            {"type": "FORWARDING_LOSSY", "choice": "accept_loss"},
+            {"type": "SNR_LOSSY", "choice": "accept_loss"},
+            {"type": "BUTTON_UNMAPPABLE", "choice": "accept_loss"},
+            {"type": "CALLING_PERMISSION_MISMATCH",
+             "match": {"assigned_users_count": 0}, "choice": "skip"},
+        ]
+        config = json.loads(config_path.read_text())
+        config["auto_rules"] = legacy_rules
+        config_path.write_text(json.dumps(config, indent=2))
+
+        db_path = project_dir / "migration.db"
+        store = MigrationStore(str(db_path))
+        fp_di = hashlib.sha256(b"DEVICE_INCOMPATIBLE:D_DI_L").hexdigest()[:16]
+        store.save_decision({
+            "decision_id": "D_DI_L",
+            "type": "DEVICE_INCOMPATIBLE",
+            "severity": "HIGH",
+            "summary": "Legacy device",
+            "context": {"device_id": "phone:old", "_affected_objects": ["phone:old"]},
+            "options": [
+                {"id": "skip", "label": "Skip", "impact": "Not migrated"},
+                {"id": "manual", "label": "Manual", "impact": "Replace"},
+            ],
+            "chosen_option": None,
+            "fingerprint": fp_di,
+            "run_id": "test",
+        })
+        fp_md = hashlib.sha256(b"MISSING_DATA:D_MD_L").hexdigest()[:16]
+        store.save_decision({
+            "decision_id": "D_MD_L",
+            "type": "MISSING_DATA",
+            "severity": "MEDIUM",
+            "summary": "phone:old missing mac",
+            "context": {
+                "object_type": "device",
+                "canonical_id": "phone:old",
+                "missing_fields": ["mac"],
+            },
+            "options": [
+                {"id": "skip", "label": "Skip", "impact": "Excluded"},
+                {"id": "provide_data", "label": "Provide", "impact": "Supply"},
+            ],
+            "chosen_option": None,
+            "fingerprint": fp_md,
+            "run_id": "test",
+        })
+        store.close()
+
+        result = runner.invoke(
+            app, ["decide", "--apply-auto", "-y", "-p", "test-project"]
+        )
+        assert result.exit_code == 0
+
+        store = MigrationStore(str(db_path))
+        # D_DI_L resolved via legacy DEVICE_INCOMPATIBLE rule.
+        assert store.get_decision("D_DI_L")["chosen_option"] == "skip"
+        # D_MD_L stays pending — legacy config has no rule for it.
+        assert store.get_decision("D_MD_L")["chosen_option"] is None
+        store.close()
+
+    def test_decide_apply_auto_empty_store(self, tmp_migrations_dir):
+        """Empty store: --apply-auto prints 'no pending' and exits 0."""
+        _init_project()
+        result = runner.invoke(
+            app, ["decide", "--apply-auto", "-y", "-p", "test-project"]
+        )
+        assert result.exit_code == 0
+        assert "No pending decisions" in result.output or "No auto-resolvable" in result.output
 
 
 class TestExportReviewConfigThreading:

@@ -1245,33 +1245,49 @@ def decide(
     store = _open_store(project_dir)
 
     try:
-        # --apply-auto: resolve only the clear-cut decisions
+        # --apply-auto: re-run config auto-rules against pending decisions.
         if apply_auto:
-            from wxcli.migration.transform.decisions import classify_decisions
-            auto, _needs = classify_decisions(store)
-            if not auto:
-                console.print("No auto-resolvable decisions found.")
+            from wxcli.migration.transform.analysis_pipeline import (
+                enrich_cross_decision_context,
+            )
+            from wxcli.migration.transform.rules import (
+                apply_auto_rules,
+                preview_auto_rules,
+            )
+
+            config = load_config(project_dir)
+
+            # Refresh cross-decision context so newly-pending decisions
+            # get the is_on_incompatible_device field before rules fire.
+            # Exceptions propagate intentionally — swallowing them would
+            # silently skip every MISSING_DATA auto-rule (the Bug F shape).
+            enrich_cross_decision_context(store)
+
+            # Preview what would resolve, for the confirmation prompt.
+            preview = preview_auto_rules(store, config)
+            if not preview:
+                console.print("No pending decisions match current auto-rules.")
                 return
 
-            # Show what will be applied
-            console.print(f"\n[bold]Auto-apply:[/bold] {len(auto)} clear-cut decisions\n")
+            console.print(
+                f"\n[bold]Auto-apply:[/bold] {len(preview)} decisions "
+                f"match current rules\n"
+            )
             by_type: dict[str, list[dict]] = {}
-            for d in auto:
-                t = d.get("type", "UNKNOWN")
-                by_type.setdefault(t, []).append(d)
+            for d in preview:
+                by_type.setdefault(d.get("type", "UNKNOWN"), []).append(d)
             for t, decs in sorted(by_type.items()):
-                choice = decs[0].get("auto_choice", "skip")
-                console.print(f"  {len(decs)} {t} → {choice}")
+                chosen = decs[0].get("auto_choice", "")
+                console.print(f"  {len(decs)} {t} → {chosen}")
 
-            if not yes and not typer.confirm(f"\nApply {len(auto)} auto-resolved decisions?"):
+            if not yes and not typer.confirm(
+                f"\nApply {len(preview)} auto-resolved decisions?"
+            ):
                 console.print("Cancelled.")
                 return
 
-            for d in auto:
-                store.resolve_decision(
-                    d["decision_id"], d["auto_choice"], resolved_by="auto_apply"
-                )
-            console.print(f"[green]Auto-applied {len(auto)} decisions.[/green]")
+            resolved = apply_auto_rules(store, config)
+            console.print(f"[green]Auto-applied {resolved} decisions.[/green]")
             return
 
         # Batch resolve mode
