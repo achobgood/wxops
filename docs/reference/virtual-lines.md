@@ -1101,6 +1101,7 @@ result = api.session.rest_post(
 6. **`orgLevelOnly` is mutually exclusive with `locationId`/`locationName`** -- Only one filter type is allowed when listing virtual extensions or ranges.
 7. **No auto-pagination** -- Use `max=1000` for the first page. Check for pagination links if you have more results.
 8. **Virtual line call settings path vs workspace features path** -- Virtual lines use `/telephony/config/virtualLines/{id}/{feature}`. Workspaces use `/workspaces/{id}/features/{feature}`. These are completely different base paths.
+9. **`virtual-extensions` CLI commands use wrong ID type.** The generated `virtual-extensions` command group maps to the Virtual Extensions API which uses `VIRTUAL_EXTENSION`-encoded IDs. Virtual lines created via `/telephony/config/virtualLines` use `VIRTUAL_LINE` IDs. `virtual-extensions list` returns empty, and `virtual-extensions delete` returns 400. **Workaround:** Use raw REST calls (`DELETE /v1/telephony/config/virtualLines/{id}`). The `wxcli cleanup` command already uses raw REST for this reason. The `virtual-line-settings` group uses the correct path family but only has settings commands, not CRUD. <!-- Documented from CLI known issue, 2026-03-31 -->
 
 ---
 
