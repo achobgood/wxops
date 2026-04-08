@@ -61,6 +61,8 @@ This section is the minimal path for a fresh project. Read it once before you st
 
 **Assumed environment:** You have AXL credentials for the CUCM publisher, an active Webex Calling org with at least one location, and `wxcli` installed. You have run `wxcli configure` at least once and have a valid OAuth token loaded. See [§Prerequisites](#prerequisites) for all requirements.
 
+> **Note:** AXL credentials are separate from the Webex OAuth token — they are passed inline to `wxcli cucm discover` (or via the `WXCLI_CUCM_*` env vars). `wxcli configure` only handles the Webex OAuth flow.
+
 ### Minimal command sequence
 
 ```bash
@@ -94,7 +96,8 @@ wxcli cucm preflight
 # 10. Export deployment plan (JSON/CSV/markdown) for review
 wxcli cucm export
 
-# 11. Execute via the cucm-migrate skill (delegates to wxc-calling-builder agent)
+# 11. Execute via the cucm-migrate skill — this is a Claude Code slash
+#     command, invoke it in the session (not in your shell)
 /cucm-migrate <project>
 ```
 
