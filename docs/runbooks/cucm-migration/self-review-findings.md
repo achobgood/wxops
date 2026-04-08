@@ -330,14 +330,14 @@ Walk-through of every checkbox in `docs/plans/transferability-phase-2.md` §Acce
 | # | Criterion | Status | Evidence |
 |---|---|---|---|
 | 6 | Every internal link resolves | ☑ | `test_runbook_links_resolve` (3 cases) + `test_kb_dissent_trigger_links_resolve` PASS |
-| 7 | Every code reference exists | ☑ with caveat | `test_runbook_cites::test_file_line_citations_resolve` (3 cases) + `test_function_citations_resolve` (2 cases) PASS. **Caveat:** the regex only matches `.py` citations; `.md:line` references were caught manually in G5. Recorded under §Drift Outside Phase 2 Scope. |
+| 7 | Every code reference exists | ☑ | `test_runbook_cites::test_file_line_citations_resolve` (3 cases) + `test_function_citations_resolve` (2 cases) PASS. The `FILE_LINE_RE` regex matches both `.py` and `.md` citations including `:NNN-NNN` ranges (the original `.py`-only version was extended in the post-G8 cleanup pass). Currently catches 218 citations across the 3 runbook files (202 `.py` + 16 `.md`). |
 | 8 | Every CLI command runs cleanly | ☑ | `test_runbook_cli_commands::test_each_cited_command_has_help` (3 cases) PASS — runs `wxcli cucm <cmd> --help` for each cited command and checks exit code 0 |
 
 ### Content correctness (2 criteria)
 
 | # | Criterion | Status | Evidence |
 |---|---|---|---|
-| 9 | Cite-and-grep verification | ☑ with caveat | G2 implements file:line + function name verification. **Caveat:** as in #7 above, only `.py` files are matched. |
+| 9 | Cite-and-grep verification | ☑ | G2 implements file:line + function name verification for both `.py` and `.md` citations (regex extended in the post-G8 cleanup pass). |
 | 10 | Spot-check accuracy (5 random DecisionType + 5 random advisory pattern) | ☑ via test substitute | The G2 cite-and-grep test verifies **every** function citation in decision-guide.md and tuning-reference.md exists in `recommendation_rules.py` / `advisory_patterns.py`. This is strictly stronger than the spec's 5+5 random spot check (it covers 100%, not 10 samples). G5 self-walkthrough also surfaced multiple line-number drifts manually. The spec's "random sample" framing is satisfied by total coverage. |
 
 ### Drift detection (1 criterion)
@@ -380,16 +380,82 @@ Walk-through of every checkbox in `docs/plans/transferability-phase-2.md` §Acce
 
 **Phase 2 is closed.** Layer 3 can begin.
 
+## Code Review Pass
+
+After G8 closure, the work was reviewed end-to-end by the `superpowers:code-reviewer` agent against the revised plan and the original wave file. The reviewer's verdict: **zero critical issues, zero important issues, 4 minor observations**, and Phase 2 can close.
+
+**Reviewer's strengths section confirmed:**
+
+- All 13 backfilled DT entries cite real functions at real line numbers (5 spot-checked: DT-LOC-004/005/006, DT-TRUNK-004/005/006, DT-USER-004/005/006, DT-CSS-004..008, DT-FEAT-004/005 — every `recommend_*`/`detect_*` line number verified)
+- All 8 Phase E9 retargets applied (link resolver: DEAD: 0 across 133 cross-references)
+- All 5 Phase F edits are additive-only (no flow restructuring)
+- 22/22 transferability tests + 1726/1726 migration tests pass
+- G3 silent-pass mitigation (smoke-test assertion) is in place
+- G7 dual-name table matches `score.py:WEIGHTS` and `score.py:DISPLAY_NAMES` exactly
+- G5 self-walkthrough findings are substantive (not floor-padding)
+- G8 acceptance walk covers all 24 spec criteria with real evidence
+
+### Reviewer's 4 minor observations and dispositions
+
+#### Observation 1: Plan §E8 said `×2` but only 1 instance existed
+
+See §Drift Outside Phase 2 Scope below — recorded as plan drift, not implementation drift. No fix.
+
+#### Observation 2: Reviewer claimed `SKILL.md:566` is wrong, should be `:568` (FALSE ALARM)
+
+The reviewer ran `grep -n "Operator help" .claude/skills/cucm-migrate/SKILL.md` and got line 568, then concluded that `### 4c. Error handling` was at line 568 too and that the runbook's `SKILL.md:566` references were stale.
+
+**Verification rebuts the claim.** Reading `SKILL.md` lines 564-568 directly:
+
+```
+564 >  The configure-features skill handles location schedule creation."
+565
+566 ### 4c. Error handling             ← heading IS at 566
+567
+568 > **Operator help:** For runbook coverage of this failure mode...
+```
+
+The `### 4c. Error handling` heading is at line 566. The Operator help blockquote (added by F2) is at line 568, immediately after. The reviewer's `grep -n "Operator help"` matched the blockquote, not the heading. The runbook references to `SKILL.md:566` are correct and were not changed.
+
+**No fix applied.** Recorded here so future readers know the claim was checked and rebutted.
+
+#### Observation 3: G2 cite-and-grep regex doesn't match `.md` citations (FIXED in cleanup pass)
+
+The reviewer flagged this as Layer 3 polish (the original disposition in §Drift Outside Phase 2 Scope before G8), but it was straightforward to actually fix in a post-G8 cleanup pass:
+
+- `FILE_LINE_RE` extended from `\.py` to `\.(?:py|md)` and now also captures the optional `:NNN-NNN` range syntax (`(?:-\d+)?` group) — only the start line is checked for existence, which matches operator semantics
+- File-part regex character class extended from `[a-zA-Z_./]` to `[a-zA-Z_./-]` so paths like `cucm-migrate/SKILL.md` resolve
+- Catches 16 new `.md` citations across the 3 runbook files (including `migration-advisor.md:97-103`, `:188-200`, `:216-220`, `SKILL.md:152/183/566`, plus 3 `src/wxcli/migration/CLAUDE.md` citations)
+- Verified the test catches injected breakage (deliberately bad `SKILL.md:99999` reference produces a failure)
+- All 22 transferability tests still pass
+
+**Fixed in:** post-G8 cleanup commit (extends `tests/migration/transferability/test_runbook_cites.py:FILE_LINE_RE`).
+
+#### Observation 4: `test_advisor_routing_table_lists_all_patterns` is a substring check (FIXED in cleanup pass)
+
+The original test scanned the entire file content after the `By advisory pattern_name` marker for each `ALL_ADVISORY_PATTERNS` member as a substring. The reviewer correctly noted that this would pass even if pattern names appeared in body prose anywhere after the marker (e.g., a "see also" mention rather than an actual table entry).
+
+**Tightened:** `_extract_routing_table_pattern_names()` helper now parses the markdown table structurally:
+
+1. Locate the `By advisory pattern_name` marker
+2. Walk lines after the marker until the first `| ... |` table row (skipping intervening prose)
+3. Continue scanning rows until the first non-table line ends the table
+4. Skip the header row (`| Pattern Name | KB Doc |`) and divider row (`|---|---|`)
+5. Split each row's first cell on commas to extract individual pattern names
+6. Return the set, then compare against `{detect_*.__name__[len("detect_"):] for func in ALL_ADVISORY_PATTERNS}`
+
+Adds an explicit smoke-test assertion that `table_patterns` is non-empty (catches table-format changes that would otherwise produce a silent zero-match pass). Test still passes against the current routing table (which has all 26 patterns under their correct headings).
+
+**Fixed in:** post-G8 cleanup commit (rewrites `tests/migration/transferability/test_advisor_routing_coverage.py`).
+
 ## Drift Outside Phase 2 Scope
 
-### G2 cite-and-grep test does not check `.md:line` references
+### Plan §E8 prescribed `×2` instances but only 1 existed
 
-**Source:** Author Self-Walkthrough Finding 5
-**What:** `tests/migration/transferability/test_runbook_cites.py` only matches `.py:NNN` citations. References to `.md:NNN` (like `SKILL.md:142` or `migration-advisor.md:91-100`) are not checked, so 8+ broken `.md:line` references introduced by Phase F1/F2/F4/F5 silently passed the test suite.
+**Source:** Code review observation #1
+**What:** The revised plan §E8 said the slug repair affected 2 instances of `dt-limits-001-cq-agent-count-exceeds-simultaneous-limit` in `tuning-reference.md:542`. In reality only 1 long-form slug existed at line 542 — the other reference at line 261 was already using the bare-ID convention (`kb-webex-limits.md dt-limits-001`). Commit `f03c957` correctly fixed the only broken instance.
 
-**Why deferred:** Phase 2 self-walkthrough caught the drift manually and applied fixes. Extending the regex to `.py|md` would require careful disambiguation against `.md#anchor` references (which legitimately don't have line numbers). The implementation is straightforward but the test's failure-mode and false-positive surface needs review — this is Layer 3 polish, not a Phase 2 blocker.
-
-**Layer 3 owner:** the test enhancement could be picked up alongside Layer 3 transferability work.
+**Why drift, not bug:** The plan author's count was based on a stale grep from before some other repair. The implementation matched reality, not the plan's count. No fix needed in code or tests.
 
 ### CI wiring for transferability coverage scripts
 
