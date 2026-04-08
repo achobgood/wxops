@@ -8,9 +8,10 @@
 
 ## Table of Contents
 
-1. [Quick Start](#quick-start)
-2. [Prerequisites](#prerequisites)
-3. [Pipeline Walkthrough](#pipeline-walkthrough)
+1. [Quick Index: Where to Start](#quick-index-where-to-start)
+2. [Quick Start](#quick-start)
+3. [Prerequisites](#prerequisites)
+4. [Pipeline Walkthrough](#pipeline-walkthrough)
    - [init](#init)
    - [discover](#discover)
    - [normalize](#normalize)
@@ -21,12 +22,36 @@
    - [preflight](#preflight)
    - [export](#export)
    - [execute (via /cucm-migrate)](#execute-via-cucm-migrate)
-4. [Assessment Report Orientation](#assessment-report-orientation)
-5. [Decision Review](#decision-review)
-6. [Execution & Recovery](#execution--recovery)
+5. [Assessment Report Orientation](#assessment-report-orientation)
+6. [Decision Review](#decision-review)
+7. [Execution & Recovery](#execution--recovery)
    - [Calibration Data Capture](#calibration-data-capture)
-7. [Failure Patterns](#failure-patterns)
-8. [Glossary](#glossary)
+8. [Failure Patterns](#failure-patterns)
+9. [Glossary](#glossary)
+
+---
+
+## Quick Index: Where to Start
+
+Use this index when you don't yet know which section to read first. Match
+your customer's environment shape or your current question to the
+"Scenario" column and start at the listed entry point.
+
+| Scenario | Start here | Then read |
+|---|---|---|
+| Brand-new migration, you've never run wxops | This file's [§Quick Start](#quick-start) | This file's [§Pipeline Walkthrough](#pipeline-walkthrough) top to bottom |
+| Small SMB customer (10–50 users, single location) | [tuning-reference.md §Recipe 1](tuning-reference.md#recipe-1-small-smb-single-location-1050-users) | This file's [§Quick Start](#quick-start) |
+| Hunt-list / call-queue heavy (30+ hunt pilots, mixed algorithms) | [tuning-reference.md §Recipe 2](tuning-reference.md#recipe-2-hunt-list--call-queue-heavy-migration) | [decision-guide.md §feature-approximation](decision-guide.md#feature-approximation) + [§hunt-pilot-reclassification](decision-guide.md#hunt-pilot-reclassification) |
+| CSS-heavy with strict partition ordering | [tuning-reference.md §Recipe 3](tuning-reference.md#recipe-3-css-heavy-customer-with-strict-partition-ordering) | [decision-guide.md §css-routing-mismatch](decision-guide.md#css-routing-mismatch) + [kb-css-routing.md](../../knowledge-base/migration/kb-css-routing.md) |
+| Cert-based trunks (CCPP) | [tuning-reference.md §Recipe 4](tuning-reference.md#recipe-4-cert-based-trunk-customer) | [decision-guide.md §trunk-type-selection](decision-guide.md#trunk-type-selection) + [kb-trunk-pstn.md](../../knowledge-base/migration/kb-trunk-pstn.md) |
+| Heavy analog gateway deployment | [tuning-reference.md §Recipe 5](tuning-reference.md#recipe-5-analog-gateway-heavy-customer) | [decision-guide.md §legacy-gateway-protocols](decision-guide.md#legacy-gateway-protocols) + [kb-device-migration.md](../../knowledge-base/migration/kb-device-migration.md) |
+| Mid-execution failure (operation errored, partial state) | This file's [§Failure Patterns](#failure-patterns) | This file's [§Execution & Recovery](#execution--recovery) |
+| Decision review confusion (don't know whether to take a recommendation) | This file's [§Decision Review](#decision-review) | [decision-guide.md](decision-guide.md) — look up the specific DecisionType |
+| Score lower than expected, you don't know why | [tuning-reference.md §Score Weights and the Calibration Disclaimer](tuning-reference.md#score-weights-and-the-calibration-disclaimer) | This file's [§Calibration Data Capture](#calibration-data-capture) |
+| Not sure if a decision should be auto-ruled | [tuning-reference.md §The 14 Non-Auto-Ruled DecisionTypes and Why](tuning-reference.md#the-14-non-auto-ruled-decisiontypes-and-why) | [decision-guide.md](decision-guide.md) — look up the specific DecisionType |
+| Customer environment doesn't match any recipe above | This file's [§Quick Start](#quick-start) | Run discover + analyze, then use [§Decision Review](#decision-review) to identify the dominant decision patterns and pick the closest recipe |
+
+> **If your situation isn't in this index:** start with `wxcli cucm init` and `wxcli cucm discover`, then come back here once you've seen the inventory.
 
 ---
 
