@@ -135,93 +135,33 @@ def resolved_decisions(store: MigrationStore) -> list[dict[str, Any]]:
 
 def classify_decisions(
     store: MigrationStore,
+    config: dict[str, Any],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Split pending decisions into auto-apply and needs-input groups.
 
-    Auto-apply rules (clear-cut, low-risk):
-    - DEVICE_INCOMPATIBLE → skip (no migration path exists)
-    - MISSING_DATA on a device that also has DEVICE_INCOMPATIBLE → skip
-      (fixing missing data on an incompatible device is pointless)
-    - CALLING_PERMISSION_MISMATCH with 0 affected users → skip
-      (orphaned permission profile, no one uses it)
+    Auto-apply = pending decisions that the project's ``config["auto_rules"]``
+    would resolve. Each item is augmented with ``auto_choice`` and
+    ``auto_reason`` keys (from ``preview_auto_rules``).
 
-    Everything else requires admin judgment.
+    Needs-input = pending decisions that no rule matches.
 
-    Returns:
-        (auto_apply, needs_input) — each item in auto_apply has an extra
-        ``"auto_choice"`` key with the recommended option id, and an
-        ``"auto_reason"`` key explaining why.
+    Both groups exclude already-resolved decisions and ``__stale__``
+    decisions.
     """
+    from wxcli.migration.transform.rules import preview_auto_rules
+
+    auto_apply = preview_auto_rules(store, config)
+    auto_apply_ids = {d["decision_id"] for d in auto_apply}
+
     all_decisions = store.get_all_decisions()
-    pending = [
+    needs_input = [
         d for d in all_decisions
         if d.get("chosen_option") is None
         and d.get("chosen_option") != "__stale__"
+        and d["decision_id"] not in auto_apply_ids
     ]
 
-    if not pending:
-        return [], []
-
-    # Build a set of device canonical_ids that have DEVICE_INCOMPATIBLE decisions.
-    # affected_objects is stored inside context as _affected_objects (see base.py
-    # decision_to_store_dict), not as a top-level key on the decision dict.
-    incompatible_device_ids: set[str] = set()
-    for d in all_decisions:
-        if d.get("type") == "DEVICE_INCOMPATIBLE":
-            ctx = d.get("context", {})
-            for obj_id in ctx.get("_affected_objects", []):
-                incompatible_device_ids.add(obj_id)
-            if ctx.get("device_id"):
-                incompatible_device_ids.add(ctx["device_id"])
-
-    auto_apply: list[dict[str, Any]] = []
-    needs_input: list[dict[str, Any]] = []
-
-    for d in pending:
-        dec_type = d.get("type", "")
-        ctx = d.get("context", {})
-        affected = ctx.get("_affected_objects", [])
-
-        auto = _check_auto_apply(dec_type, ctx, affected, incompatible_device_ids)
-        if auto:
-            d["auto_choice"] = auto[0]
-            d["auto_reason"] = auto[1]
-            auto_apply.append(d)
-        else:
-            needs_input.append(d)
-
     return auto_apply, needs_input
-
-
-def _check_auto_apply(
-    dec_type: str,
-    ctx: dict[str, Any],
-    affected: list[str],
-    incompatible_device_ids: set[str],
-) -> tuple[str, str] | None:
-    """Return (choice_id, reason) if this decision can be auto-applied, else None."""
-
-    # DEVICE_INCOMPATIBLE → always skip (no migration path)
-    if dec_type == "DEVICE_INCOMPATIBLE":
-        return ("skip", "Incompatible device — no MPP migration path")
-
-    # MISSING_DATA on a device that is also DEVICE_INCOMPATIBLE → skip
-    if dec_type == "MISSING_DATA":
-        obj_type = ctx.get("object_type", "")
-        canonical_id = ctx.get("canonical_id", "")
-        if obj_type == "device" and canonical_id in incompatible_device_ids:
-            return ("skip", "Missing data on incompatible device — skipping device anyway")
-        # Also check affected_objects
-        if any(aid in incompatible_device_ids for aid in affected):
-            return ("skip", "Missing data on incompatible device — skipping device anyway")
-
-    # CALLING_PERMISSION_MISMATCH with 0 affected users → skip
-    if dec_type == "CALLING_PERMISSION_MISMATCH":
-        user_count = ctx.get("affected_user_count", len(ctx.get("assigned_users", [])))
-        if user_count == 0:
-            return ("skip", "Orphaned permission profile — 0 users affected")
-
-    return None
 
 
 # ---------------------------------------------------------------------------
@@ -252,9 +192,10 @@ _DECISION_CATEGORY: dict[str, str] = {
 def generate_decision_review(
     store: MigrationStore,
     project_id: str,
+    config: dict[str, Any],
 ) -> str:
     """Generate a markdown decision review file with auto-apply and needs-input sections."""
-    auto_apply, needs_input = classify_decisions(store)
+    auto_apply, needs_input = classify_decisions(store, config)
 
     lines: list[str] = []
     lines.append(f"# Migration Decision Review — {project_id}")
