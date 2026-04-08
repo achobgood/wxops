@@ -248,8 +248,29 @@ add only the entries Wave 3 actually references.
 
 ## External Reviewer Pass
 
-(Populated by G6 — coordinator sends runbooks to a teammate for
-review.)
+**Status:** Deferred to post-Wave-4 (user-managed)
+**Date deferred:** 2026-04-08
+**Reason:** Per Wave 4 controller request, the user opted to handle the external reviewer pass manually after Wave 4 closes. The runbook files are stable on `claude/identify-missing-questions-8Xe2R` at this commit; the user will send the 3 files (operator-runbook.md, decision-guide.md, tuning-reference.md) to a teammate independently and append findings to this document when feedback arrives.
+
+**Briefing template (for the user to send to the reviewer):**
+
+> I'd like a 1-hour cold read of these 3 runbook files for our CUCM-to-Webex migration tool:
+> - `docs/runbooks/cucm-migration/operator-runbook.md` (~9k words — end-to-end pipeline walkthrough)
+> - `docs/runbooks/cucm-migration/decision-guide.md` (~14k words — per-decision reference)
+> - `docs/runbooks/cucm-migration/tuning-reference.md` (~10k words — config keys + recipes)
+>
+> Read them as if you're a Cisco SE new to wxops who has been assigned a CUCM migration. Tell me where you got stuck, what jargon you didn't know, what felt missing, and what you'd want explained differently. Capture findings in this format:
+>
+> - **Document:** which file
+> - **Quoted line:** the exact text that confused you
+> - **Issue:** what's confusing
+> - **Proposed fix:** what would resolve it
+>
+> No need to fix anything yourself — just flag.
+
+**Findings:** _Pending external reviewer feedback._ Append findings under this line as `### External Finding N: ...` with the same field structure as the Author Self-Walkthrough section.
+
+**Phase 2 closure note:** Phase 2 is closed for the purposes of test gates, code/doc artifacts, and pipeline completeness. The G6 external review is the only acceptance criterion that remains in a "pending external input" state. If the external review surfaces fixable findings, they should land as small follow-up commits on the same branch with `docs(transferability): G6 external reviewer fix — ...` messages, NOT as a Layer 3 task.
 
 ## Assessment Report Drift
 
