@@ -30,8 +30,6 @@
 
 ---
 
-<!-- Wave 2 (Phase B) will fill each section below. Section headings here are the canonical anchors that other artifacts link to. Do not rename without updating the cross-reference map. -->
-
 ## Quick Start
 
 This section is the minimal path for a fresh project. Read it once before you start, then use [§Pipeline Walkthrough](#pipeline-walkthrough) for detail on each stage.
@@ -428,7 +426,7 @@ Decision review is Step 1c of the `cucm-migrate` skill. It runs after the pipeli
 
 At Step 1c, `cucm-migrate` spawns the `migration-advisor` agent (Opus model, `bypassPermissions`) with a review-mode prompt. The agent reads the migration narrative from `<project>/exports/migration-narrative.md`, loads the static recommendations from the pipeline, and presents two review phases in sequence.
 
-→ `.claude/skills/cucm-migrate/SKILL.md:142` — Step 1c definition and agent spawn parameters.
+→ `.claude/skills/cucm-migrate/SKILL.md:152` — Step 1c definition and agent spawn parameters.
 
 ### Phase A: Architecture Advisories
 
@@ -436,7 +434,7 @@ Phase A presents `ARCHITECTURE_ADVISORY` decisions grouped by category before an
 
 The operator can accept a whole group ("accept all ELIMINATE advisories") or drill into individual items. Accepting means the recommended action will be applied in planning. Rejecting flags the advisory for manual follow-up. Architecture advisories shape the framing of Phase B — resolve them before proceeding.
 
-→ `.claude/agents/migration-advisor.md:123` — Review Mode, Phase A presentation protocol.
+→ `.claude/agents/migration-advisor.md:136` — Review Mode, Phase A presentation protocol.
 
 ### Phase B: Per-Decision Review
 
@@ -625,7 +623,7 @@ The `/cucm-migrate` skill handles most failures automatically: it marks the fail
 4. Re-invoke `/cucm-migrate <project>`. The skill resumes from the reset operations; completed operations are not re-attempted.
 5. If the same operation fails again repeatedly, escalate to the 409 Conflict or Mid-Execution Failures patterns below.
 
-See the skill's recovery decision logic at → `.claude/skills/cucm-migrate/SKILL.md:552` (`### 4c. Error handling`).
+See the skill's recovery decision logic at → `.claude/skills/cucm-migrate/SKILL.md:566` (`### 4c. Error handling`).
 
 **Customer communication:** "A subset of objects failed to create during the initial run; we've diagnosed the cause and are re-running the affected operations now."
 
@@ -644,7 +642,7 @@ See the skill's recovery decision logic at → `.claude/skills/cucm-migrate/SKIL
    - **Resource matches the plan:** Record it as complete — `wxcli cucm mark-complete <node_id> -p <project> --webex-id <webex_id>`. The migration advances past the stuck point.
    - **Resource is stale/incorrect:** Delete it — `wxcli cleanup run --scope "Location Name" --dry-run` first, then without `--dry-run`. After deletion, `wxcli cucm retry-failed -p <project>` and re-invoke the skill.
 
-See the 409 recovery branch at → `.claude/skills/cucm-migrate/SKILL.md:552` (`### 4c. Error handling`, first block).
+See the 409 recovery branch at → `.claude/skills/cucm-migrate/SKILL.md:566` (`### 4c. Error handling`, first block).
 
 **Customer communication:** "Some objects already existed in the Webex org from a prior run; we've reconciled them and are continuing the migration."
 
@@ -679,7 +677,7 @@ After fixing, re-run `wxcli cucm preflight -p <project>` to confirm all checks p
 
 **Symptoms:** The skill surfaces a recovery decision to you during execution with options: fix-and-retry, skip, rollback batch, or rollback all. The batch halts at the failed operation.
 
-**Recovery:** The `cucm-migrate` skill handles most mid-execution failures automatically — it diagnoses the error and proposes the appropriate recovery path at → `.claude/skills/cucm-migrate/SKILL.md:552` (`### 4c. Error handling`). That section is the source of truth; this pattern is for the cases where the skill surfaces a decision to the operator.
+**Recovery:** The `cucm-migrate` skill handles most mid-execution failures automatically — it diagnoses the error and proposes the appropriate recovery path at → `.claude/skills/cucm-migrate/SKILL.md:566` (`### 4c. Error handling`). That section is the source of truth; this pattern is for the cases where the skill surfaces a decision to the operator.
 
 Operator decision tree:
 - **Transient error (timeout, rate limit):** Choose fix-and-retry. The skill resets the failed op and continues.
@@ -704,7 +702,7 @@ Operator decision tree:
 4. If the update fails: surface the error to the admin and determine whether the location or license is the underlying issue, then retry.
 5. If the user already has calling configured: the skill already recovered it — `wxcli cucm mark-complete <node_id> -p <project> --webex-id <person_id>` to advance past the stuck op.
 
-The full recovery branch for this specific scenario is at → `.claude/skills/cucm-migrate/SKILL.md:552` (`### 4c. Error handling`, "IF 400/500 on user:create" block).
+The full recovery branch for this specific scenario is at → `.claude/skills/cucm-migrate/SKILL.md:566` (`### 4c. Error handling`, "IF 400/500 on user:create" block).
 
 **Customer communication:** "One or more users were created in Webex but their calling settings weren't applied; we're completing the calling setup now."
 
@@ -733,7 +731,7 @@ The full recovery branch for this specific scenario is at → `.claude/skills/cu
 
 **Symptoms:** The `/cucm-migrate` skill logs a fallback message and proceeds to static decision review without producing a `migration-narrative.md` or dissent flags. The per-decision recommendations are still present but lack narrative context and cross-decision analysis.
 
-**Recovery:** The skill handles this automatically. It falls back to the static review flow at → `.claude/skills/cucm-migrate/SKILL.md:171` (`### Step 1c-fallback: Static Decision Review`). No operator action is required to continue the migration.
+**Recovery:** The skill handles this automatically. It falls back to the static review flow at → `.claude/skills/cucm-migrate/SKILL.md:183` (`### Step 1c-fallback: Static Decision Review`). No operator action is required to continue the migration.
 
 To obtain the advisory layer retroactively:
 1. Ensure Claude Code is running and the `migration-advisor` agent definition exists at `.claude/agents/migration-advisor.md`.

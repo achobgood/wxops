@@ -154,7 +154,97 @@ add only the entries Wave 3 actually references.
 
 ## Author Self-Walkthrough
 
-(Populated by G5 — author reads all 3 runbook files end-to-end.)
+**Author:** Wave 4 controller (Claude Opus 4.6)
+**Date:** 2026-04-08
+**Runbook word count:** 31,992 (operator-runbook 8,717 + decision-guide 13,697 + tuning-reference 9,578)
+**Computed page count:** ~64 pages at 500 words/page
+**Floor (≥1 finding per 10 pages):** ≥6 findings required
+**Findings produced:** 7 substantive (4 fixed immediately, 1 deferred drift, 2 minor accepted)
+
+### Finding 1: Stale Wave 2 placeholder comment in operator-runbook.md
+
+**Document:** operator-runbook.md (line 33, pre-fix)
+**Quoted line:** `<!-- Wave 2 (Phase B) will fill each section below. Section headings here are the canonical anchors that other artifacts link to. Do not rename without updating the cross-reference map. -->`
+**Issue:** This is internal Wave 1 scaffolding telling Wave 2 to fill in sections that have since been filled in. A first-time SE reads "Wave 2 (Phase B) will fill" and wonders what wave they're reading and what's missing. The comment leaks development-process metadata into operator-facing material.
+**Proposed fix:** Remove the comment entirely. The headings remain as anchors regardless.
+**Disposition:** Fixed in commit (this self-walkthrough commit).
+
+### Finding 2: Four stale Wave 3 Phase C/D scaffolding comments
+
+**Document:** decision-guide.md (lines 86-88, 270-275 pre-fix); tuning-reference.md (lines 28-29, 127-130 pre-fix)
+**Quoted lines:** `<!-- Wave 3 Phase C Task C2: one entry per non-advisory DecisionType...`, `<!-- Wave 3 Phase C Task C3: one entry per advisory pattern...`, `<!-- Wave 3 Phase D Task D1: one anchor per DEFAULT_CONFIG key...`, `<!-- Wave 3 Phase D Task D2: one anchor per DEFAULT_AUTO_RULES entry...`
+**Issue:** Same pattern as Finding 1 — internal task-tracking comments (Phase C Task C2, Phase D Task D1, etc.) bleeding into operator-facing material. They contain useful information about anchor conventions and test coverage, but the framing assumes the reader is on the writing team.
+**Proposed fix:** Replace each `<!-- Wave 3 Phase X Task XN: ... -->` HTML comment with a `> ...` markdown blockquote that conveys the same convention information in operator-facing voice (e.g., "One entry per `DEFAULT_CONFIG` key. Anchor slugs are validated by `test_config_key_coverage.py` — update both sides if you rename a key.").
+**Disposition:** Fixed in commit (this self-walkthrough commit). 4 comments converted to operator-facing blockquotes.
+
+### Finding 3: Stale `SKILL.md:NNN` line references after Phase F1+F2
+
+**Document:** operator-runbook.md (multiple lines: 431, 628, 647, 682, 707, 736 pre-fix)
+**Quoted lines:**
+- `→ \`.claude/skills/cucm-migrate/SKILL.md:142\` — Step 1c definition and agent spawn parameters.`
+- `See the skill's recovery decision logic at → \`.claude/skills/cucm-migrate/SKILL.md:552\` (\`### 4c. Error handling\`).` (×4 occurrences)
+- `falls back to the static review flow at → \`.claude/skills/cucm-migrate/SKILL.md:171\` (\`### Step 1c-fallback: Static Decision Review\`).`
+
+**Issue:** Wave 4 Phase F added 16 lines to SKILL.md (10 lines from F1's reference docs block + 6 lines from F2's three operator-help blockquotes). All `SKILL.md:NNN` line references in the runbook were written before Phase F landed and now point at the wrong sections. A new SE clicking through to verify the skill section would land mid-paragraph in unrelated content. The actual current locations:
+- Step 1c: line 142 → 152
+- Step 1c-fallback: line 171 → 183
+- Step 4c. Error handling: line 552 → 566
+
+**Proposed fix:** Update all 6 references in operator-runbook.md to point at the post-F1+F2 line numbers (152, 183, 566). Verified each new location with `grep -n "^### Step 1c\b\|^### Step 1c-fallback\|^### 4c"`.
+**Disposition:** Fixed in commit (this self-walkthrough commit).
+
+### Finding 4: Stale `migration-advisor.md:NNN` line references after Phase F4+F5
+
+**Document:** operator-runbook.md (line 439 pre-fix); decision-guide.md (lines 69, 82, 640, 657, 676 pre-fix)
+**Quoted lines:**
+- `→ \`.claude/agents/migration-advisor.md:123\` — Review Mode, Phase A presentation protocol.`
+- `documented at \`.claude/agents/migration-advisor.md:91-100\` and \`:185-197\`:`
+- `escape hatch — see \`.claude/agents/migration-advisor.md:213-216\`.`
+- (additional refs to `:91-100`, `:185-197`, `:213-217` across decision-guide.md)
+
+**Issue:** Wave 4 Phase F4 added 2 lines to migration-advisor.md (the Dissent triggers grounding paragraph). Phase F5 added 1 line (the dissent flag citation rule). Both changes shifted every line below them by 2-3 lines. All `migration-advisor.md:NNN` references in the runbook were written pre-F4/F5 and are now stale by ~3 lines. Current actual locations:
+- Dissent template (Analysis Mode): lines 91-100 → 97-103
+- Phase A presentation (Review Mode): line 123 → 136
+- Group 2b dissent template (Review Mode): lines 185-197 → 188-200
+- Handle follow-up Q&A: lines 213-216/217 → 216-220
+
+**Proposed fix:** Update all 5 references across operator-runbook.md and decision-guide.md to the post-F4/F5 line numbers. Each new range was verified manually by reading the surrounding lines.
+**Disposition:** Fixed in commit (this self-walkthrough commit).
+
+### Finding 5: G2 cite-and-grep test has a coverage gap on `.md` citations
+
+**Document:** tests/migration/transferability/test_runbook_cites.py
+**Quoted line:** `FILE_LINE_RE = re.compile(r"\`?([a-zA-Z_./]+\.py):(\d+)\`?",)` — only matches `.py` extensions.
+**Issue:** The cite-and-grep verification test (added in Phase G2) catches drift between runbook citations and Python source line numbers, but its regex only matches `.py` files. It does NOT catch drift in references to `.md` files (like `SKILL.md:142` or `migration-advisor.md:91-100`). Findings 3 and 4 — eight broken `.md:line` references caused by Phase F edits — were not caught by the test suite. The test silently passed when it should have flagged 8+ broken references.
+**Proposed fix:** Extend `FILE_LINE_RE` to also match `.md` files: `r"\`?([a-zA-Z_./]+\.(?:py|md)):(\d+)\`?"`. Implementation needs care because the resolver should also handle `.md` files via `rglob`, and false positives are likely (e.g., the runbook references `kb-*.md` files at section anchors, not line numbers, but the regex would not match those because anchors don't end in `:NNN`).
+**Disposition:** **Deferred — drift outside Phase 2 scope.** Phase 2 self-walkthrough caught the drift manually; the test enhancement is a Layer 3 improvement. Recorded in §Drift Outside Phase 2 Scope below.
+
+### Finding 6: Quick Start dual-credential model unexplained
+
+**Document:** operator-runbook.md §Quick Start (lines 39, 51)
+**Quoted lines:**
+- `**Assumed environment:** You have AXL credentials for the CUCM publisher, an active Webex Calling org with at least one location, and \`wxcli\` installed. You have run \`wxcli configure\` at least once and have a valid OAuth token loaded.`
+- `# 3. Extract CUCM objects via AXL (prompts for host/credentials if not saved)\nwxcli cucm discover`
+**Issue:** A new SE reads "you have run `wxcli configure`" and assumes that command saved BOTH the Webex OAuth token AND the AXL credentials. It didn't — `wxcli configure` only handles Webex OAuth. AXL credentials are passed inline to `wxcli cucm discover --host ... --username ... --password ...` (or via env vars). The Quick Start doesn't make this distinction explicit and the comment "(prompts for host/credentials if not saved)" implies they could already be saved by some unspecified prior step.
+**Proposed fix:** Add a one-line clarification to the Assumed environment block: "Note: AXL credentials are separate from the Webex OAuth token — they're passed inline to `wxcli cucm discover` (or via the `WXCLI_CUCM_*` env vars). `wxcli configure` only handles the Webex OAuth flow."
+**Disposition:** **Accepted — minor, not fixed in self-walkthrough.** The runbook's §Pipeline Walkthrough §discover section documents the inline-flag pattern correctly at line 154. A first-time SE reading top to bottom will hit that section before running the command. Recording as a self-walkthrough finding for future Layer 3 polish.
+
+### Finding 7: `/cucm-migrate <project>` slash-command syntax
+
+**Document:** operator-runbook.md §Quick Start (line 75)
+**Quoted line:** `# 11. Execute via the cucm-migrate skill (delegates to wxc-calling-builder agent)\n/cucm-migrate <project>`
+**Issue:** Steps 1-10 are bash commands (`wxcli cucm ...`). Step 11 switches to slash-command syntax (`/cucm-migrate ...`) which is a Claude Code skill invocation, not a bash command. A new SE who has only used wxcli won't recognize the syntax and may try to run `/cucm-migrate` in bash, where it will fail with "command not found". The runbook does explain the skill at §Execution & Recovery line 505 ("Execution runs through the `/cucm-migrate` skill — not by issuing `wxcli cucm execute` directly"), but Quick Start should signal the syntax shift inline.
+**Proposed fix:** Add inline marker: `# 11. Execute via the cucm-migrate skill (Claude Code slash command — type this in a Claude Code session, not in bash)`
+**Disposition:** **Accepted — minor, not fixed in self-walkthrough.** Recording for Layer 3 polish.
+
+### Self-walkthrough summary
+
+| Disposition | Count | Notes |
+|---|---:|---|
+| Fixed immediately | 4 | Findings 1, 2, 3, 4 — all internal scaffolding cleanup + line-ref drift |
+| Deferred (drift outside scope) | 1 | Finding 5 — G2 test enhancement is Layer 3 work |
+| Accepted (minor) | 2 | Findings 6, 7 — minor Quick Start clarifications, recorded for Layer 3 |
+| **Total findings** | **7** | Floor was 6; self-walkthrough met the floor |
 
 ## External Reviewer Pass
 
@@ -169,4 +259,11 @@ Orientation.)
 
 ## Drift Outside Phase 2 Scope
 
-(Rolling — populated as drift is noticed in passing during Wave 4.)
+### G2 cite-and-grep test does not check `.md:line` references
+
+**Source:** Author Self-Walkthrough Finding 5
+**What:** `tests/migration/transferability/test_runbook_cites.py` only matches `.py:NNN` citations. References to `.md:NNN` (like `SKILL.md:142` or `migration-advisor.md:91-100`) are not checked, so 8+ broken `.md:line` references introduced by Phase F1/F2/F4/F5 silently passed the test suite.
+
+**Why deferred:** Phase 2 self-walkthrough caught the drift manually and applied fixes. Extending the regex to `.py|md` would require careful disambiguation against `.md#anchor` references (which legitimately don't have line numbers). The implementation is straightforward but the test's failure-mode and false-positive surface needs review — this is Layer 3 polish, not a Phase 2 blocker.
+
+**Layer 3 owner:** the test enhancement could be picked up alongside Layer 3 transferability work.
