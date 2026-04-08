@@ -1172,6 +1172,9 @@ def decisions(
         # --export-review: generate markdown review file + optional JSON
         if export_review:
             import json as json_mod
+            from wxcli.migration.transform.analysis_pipeline import (
+                enrich_cross_decision_context,
+            )
             from wxcli.migration.transform.decisions import (
                 classify_decisions, generate_decision_review,
             )
@@ -1179,6 +1182,14 @@ def decisions(
 
             # Load config so custom auto_rules in config.json are honored.
             config = load_config(project_dir)
+
+            # Refresh cross-decision context so newly-pending decisions get
+            # the is_on_incompatible_device field before the preview runs.
+            # Matches --apply-auto's behavior so the preview counts and
+            # the actual auto-resolution counts line up. Exceptions
+            # propagate intentionally — swallowing them would silently
+            # undercount MISSING_DATA auto-rules (the Bug F shape).
+            enrich_cross_decision_context(store)
 
             # Always write the markdown file for admin offline review
             content = generate_decision_review(store, project_id, config)
@@ -1190,7 +1201,11 @@ def decisions(
             auto, needs = classify_decisions(store, config)
 
             if output == "json":
-                # JSON output for agent consumption — structured data
+                # NOTE: The "auto_apply" key here is the JSON output-contract
+                # name for "decisions matched by auto_rules config." It is
+                # NOT the legacy `resolved_by="auto_apply"` marker (which
+                # the unified matcher replaced with "auto_rule"). Downstream
+                # parsers rely on the "auto_apply" key name — do not rename.
                 data = {
                     "review_file": str(review_path),
                     "auto_apply": [_serialize_decision(d) for d in auto],
