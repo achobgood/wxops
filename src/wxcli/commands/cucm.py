@@ -1188,7 +1188,7 @@ def decisions(
             # Matches --apply-auto's behavior so the preview counts and
             # the actual auto-resolution counts line up. Exceptions
             # propagate intentionally — swallowing them would silently
-            # undercount MISSING_DATA auto-rules (the Bug F shape).
+            # drop MISSING_DATA auto-rules (the Bug F shape).
             enrich_cross_decision_context(store)
 
             # Always write the markdown file for admin offline review
@@ -1203,9 +1203,12 @@ def decisions(
             if output == "json":
                 # NOTE: The "auto_apply" key here is the JSON output-contract
                 # name for "decisions matched by auto_rules config." It is
-                # NOT the legacy resolved_by marker (the unified matcher
-                # replaced that marker with "auto_rule"). Downstream
-                # parsers rely on the "auto_apply" key name — do not rename.
+                # NOT the resolved_by column value — pre-Bug-F projects
+                # stored the literal string 'auto_apply' there, but the
+                # unified matcher now writes 'auto_rule' instead. See
+                # models.py::Decision.resolved_by for the full enum.
+                # Downstream JSON parsers rely on the "auto_apply" key
+                # name — do not rename.
                 data = {
                     "review_file": str(review_path),
                     "auto_apply": [_serialize_decision(d) for d in auto],
@@ -1332,7 +1335,7 @@ def decide(
             # Refresh cross-decision context so newly-pending decisions
             # get the is_on_incompatible_device field before rules fire.
             # Exceptions propagate intentionally — swallowing them would
-            # silently skip every MISSING_DATA auto-rule (the Bug F shape).
+            # silently drop MISSING_DATA auto-rules (the Bug F shape).
             enrich_cross_decision_context(store)
 
             # Preview what would resolve, for the confirmation prompt.
