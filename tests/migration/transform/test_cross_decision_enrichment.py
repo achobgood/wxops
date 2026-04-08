@@ -168,3 +168,98 @@ def test_md_fingerprint_stable_before_and_after_enrichment() -> None:
     fp_before = analyzer.fingerprint(DecisionType.MISSING_DATA, ctx_before)
     fp_after = analyzer.fingerprint(DecisionType.MISSING_DATA, ctx_after)
     assert fp_before == fp_after
+
+
+def test_cascade_produced_md_decisions_enriched() -> None:
+    """When resolve_and_cascade() re-runs MissingDataAnalyzer, the newly
+    produced MISSING_DATA decisions must have is_on_incompatible_device
+    set on first save. We verify this by spying on the pipeline's
+    resolve_and_cascade call and asserting the store state afterwards.
+
+    This test uses a lightweight hand-crafted scenario rather than running
+    the full MissingDataAnalyzer: we pre-seed a DEVICE_INCOMPATIBLE decision,
+    a LOCATION_AMBIGUOUS decision with cascades_to: ["MISSING_DATA"], and
+    a stub "cascade-produced" MISSING_DATA decision via save_decision
+    (simulating what the analyzer would produce). Then we call
+    enrich_cross_decision_context manually to verify that if the cascade
+    path were to call it, the cascade-produced MD decision would be enriched.
+
+    The end-to-end wiring (that resolve_and_cascade actually calls the
+    helper) is verified by test_resolve_and_cascade_enriches_md below.
+    """
+    store = MigrationStore(":memory:")
+    _save(store, "DI01", "DEVICE_INCOMPATIBLE", {
+        "_affected_objects": ["phone:cascade"],
+    })
+    # Simulate a MISSING_DATA decision produced by the cascade analyzer.
+    _save(store, "MD01", "MISSING_DATA", {
+        "object_type": "device",
+        "canonical_id": "phone:cascade",
+        "missing_fields": ["mac"],
+    })
+
+    enrich_cross_decision_context(store)
+    assert store.get_decision("MD01")["context"]["is_on_incompatible_device"] is True
+
+
+def test_resolve_and_cascade_enriches_md() -> None:
+    """End-to-end: resolve_and_cascade() must call enrich_cross_decision_context
+    after its save loop. We use a real AnalysisPipeline with a stub
+    analyzer class list that produces one MISSING_DATA decision during
+    cascade, and a pre-seeded DEVICE_INCOMPATIBLE decision with a matching
+    canonical_id. After the cascade resolves, the MD decision must have
+    is_on_incompatible_device=True.
+    """
+    from wxcli.migration.transform.analysis_pipeline import AnalysisPipeline
+    from wxcli.migration.transform.analyzers.missing_data import MissingDataAnalyzer
+    from wxcli.migration.models import DecisionType
+
+    store = MigrationStore(":memory:")
+
+    # 1. Seed a non-stale DEVICE_INCOMPATIBLE decision that matches phone:xyz.
+    _save(store, "DI01", "DEVICE_INCOMPATIBLE", {
+        "_affected_objects": ["phone:xyz"],
+    })
+
+    # 2. Seed a LOCATION_AMBIGUOUS decision with cascades_to=["MISSING_DATA"].
+    _save(store, "LA01", "LOCATION_AMBIGUOUS", {
+        "name": "HQ",
+        "cascades_to": ["MISSING_DATA"],
+    })
+
+    # 3. Build a MissingDataAnalyzer subclass that produces one MISSING_DATA
+    #    decision for phone:xyz when analyze() is called. We use the base
+    #    class's _create_decision helper so the Decision is constructed
+    #    correctly (decision_id auto-generated, fingerprint computed via
+    #    self.fingerprint, run_id wired, canonical field names).
+    class _StubMD(MissingDataAnalyzer):
+        name = "stub_missing_data"
+        decision_types = [DecisionType.MISSING_DATA]
+
+        def analyze(self, store):  # type: ignore[override]
+            return [
+                self._create_decision(
+                    store=store,
+                    decision_type=DecisionType.MISSING_DATA,
+                    severity="MEDIUM",
+                    summary="phone:xyz missing mac",
+                    context={
+                        "object_type": "device",
+                        "canonical_id": "phone:xyz",
+                        "missing_fields": ["mac"],
+                    },
+                    options=[],
+                    affected_objects=["phone:xyz"],
+                )
+            ]
+
+    pipeline = AnalysisPipeline(analyzers=[_StubMD])
+    pipeline.resolve_and_cascade(store, "LA01", "accept", resolved_by="user")
+
+    # The cascade-produced MD decision must be enriched.
+    md_decisions = [d for d in store.get_all_decisions() if d.get("type") == "MISSING_DATA"]
+    assert len(md_decisions) >= 1
+    assert any(
+        d["context"].get("is_on_incompatible_device") is True
+        for d in md_decisions
+    )
