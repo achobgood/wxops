@@ -546,6 +546,21 @@ def normalize_route_pattern(raw: dict, cluster: str = "default") -> MigrationObj
     block_enable = raw.get("blockEnable")
     action = "BLOCK" if str(block_enable).lower() == "true" else "ROUTE"
 
+    # Destination/target extraction — getRoutePattern returns the routing target
+    # as one of: destination (complex), gatewayName (ref), routeListName (ref)
+    gateway_name = _extract_ref(raw.get("gatewayName"))
+    route_list_name = _extract_ref(raw.get("routeListName"))
+    # Determine target type and name for cross-ref builder and routing mapper
+    if gateway_name:
+        target_type = "gateway"
+        target_name = gateway_name
+    elif route_list_name:
+        target_type = "route_list"
+        target_name = route_list_name
+    else:
+        target_type = None
+        target_name = None
+
     return MigrationObject(
         canonical_id=canonical_id,
         provenance=_make_provenance(raw, cluster),
@@ -559,6 +574,8 @@ def normalize_route_pattern(raw: dict, cluster: str = "default") -> MigrationObj
             "calling_transform_mask": raw.get("callingPartyTransformationMask"),
             "prefix_digits_out": raw.get("prefixDigitsOut"),
             "network_location": raw.get("networkLocation"),
+            "target_type": target_type,
+            "target_name": target_name,
         },
     )
 
