@@ -831,6 +831,49 @@ class TestPreviewAutoRules:
         assert first == 2
         assert second == 0
 
+    # -----------------------------------------------------------------------
+    # Direct _iter_matching_resolutions generator tests (edge cases)
+    # -----------------------------------------------------------------------
+    #
+    # The empty-config path is already covered at the apply_auto_rules layer
+    # (test_no_rules_returns_zero / test_empty_rules_list_returns_zero), but
+    # those tests only assert the integer return value. These tests exercise
+    # the underlying generator directly and pin the "yields nothing" contract
+    # so a future refactor that accidentally turns an early-return into a
+    # yielding branch would be caught immediately.
+
+    def test_iter_matching_resolutions_missing_auto_rules_key(self) -> None:
+        """Config without an 'auto_rules' key → generator yields nothing."""
+        from wxcli.migration.transform.rules import _iter_matching_resolutions
+
+        store = _make_store()
+        _seed_decision(store, "D0001", dec_type="DEVICE_INCOMPATIBLE")
+        assert list(_iter_matching_resolutions(store, {})) == []
+
+    def test_iter_matching_resolutions_empty_auto_rules_list(self) -> None:
+        """Empty auto_rules list → generator yields nothing."""
+        from wxcli.migration.transform.rules import _iter_matching_resolutions
+
+        store = _make_store()
+        _seed_decision(store, "D0001", dec_type="DEVICE_INCOMPATIBLE")
+        assert list(_iter_matching_resolutions(store, {"auto_rules": []})) == []
+
+    def test_iter_matching_resolutions_all_malformed_rules(self) -> None:
+        """All rules missing type or choice → generator yields nothing."""
+        from wxcli.migration.transform.rules import _iter_matching_resolutions
+
+        store = _make_store()
+        _seed_decision(store, "D0001", dec_type="DEVICE_INCOMPATIBLE")
+
+        config = {
+            "auto_rules": [
+                {"choice": "skip"},  # missing type
+                {"type": "DEVICE_INCOMPATIBLE"},  # missing choice
+                {},  # missing both
+            ]
+        }
+        assert list(_iter_matching_resolutions(store, config)) == []
+
 
 class TestDefaultAutoRulesMissingDataEntry:
     """Sanity checks for the new is_on_incompatible_device default rule."""
