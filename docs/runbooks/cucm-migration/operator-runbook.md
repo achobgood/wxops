@@ -47,8 +47,8 @@ your customer's environment shape or your current question to the
 | Heavy analog gateway deployment | [tuning-reference.md §Recipe 5](tuning-reference.md#recipe-5-analog-gateway-heavy-customer) | [decision-guide.md §legacy-gateway-protocols](decision-guide.md#legacy-gateway-protocols) + [kb-device-migration.md](../../knowledge-base/migration/kb-device-migration.md) |
 | Mid-execution failure (operation errored, partial state) | This file's [§Failure Patterns](#failure-patterns) | This file's [§Execution & Recovery](#execution--recovery) |
 | Decision review confusion (don't know whether to take a recommendation) | This file's [§Decision Review](#decision-review) | [decision-guide.md](decision-guide.md) — look up the specific DecisionType |
-| Score lower than expected, you don't know why | [tuning-reference.md §Score Weights and the Calibration Disclaimer](tuning-reference.md#score-weights-and-the-calibration-disclaimer) | This file's [§Calibration Data Capture](#calibration-data-capture) |
-| Not sure if a decision should be auto-ruled | [tuning-reference.md §The 14 Non-Auto-Ruled DecisionTypes and Why](tuning-reference.md#the-14-non-auto-ruled-decisiontypes-and-why) | [decision-guide.md](decision-guide.md) — look up the specific DecisionType |
+| Score lower than expected, you don't know why | [tuning-reference.md §Score Weights](tuning-reference.md#score-weights) | This file's [§Calibration Data Capture](#calibration-data-capture) |
+| Not sure if a decision should be auto-ruled | [tuning-reference.md §Non-Auto-Ruled DecisionTypes](tuning-reference.md#non-auto-ruled-decisiontypes) | [decision-guide.md](decision-guide.md) — look up the specific DecisionType |
 | Customer environment doesn't match any recipe above | This file's [§Quick Start](#quick-start) | Run discover + analyze, then use [§Decision Review](#decision-review) to identify the dominant decision patterns and pick the closest recipe |
 
 > **If your situation isn't in this index:** start with `wxcli cucm init` and `wxcli cucm discover`, then come back here once you've seen the inventory.
@@ -507,7 +507,7 @@ Seven decision types are pre-resolved by `DEFAULT_AUTO_RULES` and never appear i
 | `BUTTON_UNMAPPABLE` | accept_loss | No Webex equivalent exists |
 | `CALLING_PERMISSION_MISMATCH` (0 users) | skip | Orphaned profile, no impact |
 
-Source: `src/wxcli/commands/cucm_config.py:17` — `DEFAULT_AUTO_RULES`. These rules can be removed or reconfigured per project; see [tuning-reference.md §Auto-Rules](tuning-reference.md#auto-rules-how-they-work-the-7-defaults-how-to-add-your-own).
+Source: `src/wxcli/commands/cucm_config.py:17` — `DEFAULT_AUTO_RULES`. These rules can be removed or reconfigured per project; see [tuning-reference.md §Auto-Rule Reference](tuning-reference.md#auto-rule-reference).
 
 ### When to Break the Review
 
@@ -524,7 +524,7 @@ Do not break the review for: wrong recommendations on individual entities (use o
 
 - Per-DecisionType reference: [decision-guide.md §Decision Types A–Z](decision-guide.md#decision-types-az)
 - Dissent handling detail: [decision-guide.md §Dissent Handling](decision-guide.md#dissent-handling)
-- Auto-rule tuning: [tuning-reference.md §Auto-Rules](tuning-reference.md#auto-rules-how-they-work-the-7-defaults-how-to-add-your-own)
+- Auto-rule tuning: [tuning-reference.md §Auto-Rule Reference](tuning-reference.md#auto-rule-reference)
 - Failure recovery: [§Failure Patterns](#failure-patterns)
 
 ## Execution & Recovery
