@@ -558,7 +558,19 @@ On any failure:
 → If found and matches: `wxcli cucm mark-complete [node_id] --webex-id [existing_id]` — continue
 → If found but different: present to admin for decision
 
-**IF 400/500 (may have partially created):**
+**IF 400/500 on user:create (partial creation — most common failure):**
+The People API may create the user record before failing on calling setup, leaving an
+orphaned non-calling user. 409 on retry confirms this. Recovery flow:
+1. Search: `wxcli people list --email "<email>" --calling-data true -o json`
+2. If user exists WITHOUT calling (no `phoneNumbers`/`extension` in response):
+   → Update to add calling: `wxcli people update <person_id> --calling-data true --json-body '{"extension":"<ext>","locationId":"<loc_id>"}'`
+   → If update succeeds: `wxcli cucm mark-complete [node_id] --webex-id <person_id>`
+   → If update fails: present error to admin with fix options
+3. If user exists WITH calling already configured:
+   → `wxcli cucm mark-complete [node_id] --webex-id <person_id>` — continue
+4. If user does NOT exist: genuine failure, present options
+
+**IF 400/500 on other create operations (may have partially created):**
 → Search for existing resource (same as 409 flow)
 → If found: resource was created despite error, mark-complete
 → If not found: genuine failure, present options
