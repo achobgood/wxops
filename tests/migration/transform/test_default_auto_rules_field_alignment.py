@@ -10,6 +10,16 @@ as they're added to DEFAULT_AUTO_RULES. If a rule matches on a field no
 producer knows about, this test fails at collection time (if the analyzer
 cannot be identified) or at assert time (if the synthetic producer output
 doesn't contain the key).
+
+KNOWN LIMITATION: this test uses a hand-maintained `_SYNTHETIC_PRODUCERS`
+registry that mirrors what each analyzer writes. It catches RULE-side
+typos (rule references a field the producer never wrote) but NOT
+ANALYZER-side renames (analyzer renames its output field; registry is
+out of date; Bug F can recur). A more robust version would import each
+real analyzer and run `.analyze()` against a minimal synthetic store,
+but that's a non-trivial integration-test surface. Tracked as follow-up
+work; do not rely on this test alone to catch field-name drift during
+analyzer refactors.
 """
 
 from __future__ import annotations

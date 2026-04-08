@@ -88,6 +88,10 @@ def enrich_cross_decision_context(store: MigrationStore) -> int:
         if d.get("chosen_option") == "__stale__":
             continue
         ctx = d.get("context", {})
+        # Collect from all three places an analyzer might write a device
+        # identifier: _affected_objects (DeviceCompatibilityAnalyzer),
+        # device_id (legacy mapper-produced context), canonical_id (direct).
+        # We take the union; overlap is harmless because incompatible_ids is a set.
         for obj_id in ctx.get("_affected_objects", []):
             incompatible_ids.add(obj_id)
         if ctx.get("device_id"):
@@ -205,16 +209,15 @@ class AnalysisPipeline:
         # decision based on the current set of DEVICE_INCOMPATIBLE decisions.
         # Runs between merge and auto-rules so config rules can match the
         # enriched field. Fingerprint-safe (MissingDataAnalyzer.fingerprint()
-        # does not hash the full context).
-        try:
-            enriched = enrich_cross_decision_context(store)
-            if enriched:
-                logger.info(
-                    "Cross-decision enrichment: %d MISSING_DATA decisions updated",
-                    enriched,
-                )
-        except Exception as exc:
-            logger.warning("Cross-decision enrichment failed: %s", exc)
+        # does not hash the full context). Exceptions propagate intentionally:
+        # a failure here would silently skip every MISSING_DATA auto-rule,
+        # which is the exact shape of the Bug F silent-skip bug we're fixing.
+        enriched = enrich_cross_decision_context(store)
+        if enriched:
+            logger.info(
+                "Cross-decision enrichment: %d MISSING_DATA decisions updated",
+                enriched,
+            )
 
         # Step 5: Apply auto-resolution rules
         try:
