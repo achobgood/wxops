@@ -193,13 +193,15 @@ class RoutingExtractor(BaseExtractor):
         return detail
 
     # ------------------------------------------------------------------
-    # Route Patterns — list only (no get needed)
+    # Route Patterns — list + get (destination requires getRoutePattern)
+    # Verified: listRoutePattern does NOT return destination/gateway/routeList
+    # fields. getRoutePattern returns the full routing target.
     # ------------------------------------------------------------------
 
     def _extract_route_patterns(self) -> tuple[int, list[str]]:
         logger.info("[%s] Listing route patterns...", self.name)
         try:
-            patterns = self.paginated_list(
+            rp_summaries = self.paginated_list(
                 method_name="listRoutePattern",
                 search_criteria={"pattern": "%"},
                 returned_tags=ROUTE_PATTERN_RETURNED_TAGS,
@@ -209,9 +211,34 @@ class RoutingExtractor(BaseExtractor):
             logger.error("[%s] %s", self.name, msg)
             self.results["route_patterns"] = []
             return 0, [msg]
+        logger.info("[%s] Found %d route patterns", self.name, len(rp_summaries))
+
+        patterns: list[dict[str, Any]] = []
+        errors: list[str] = []
+        for summary in rp_summaries:
+            rp_pattern = summary.get("pattern", "")
+            rp_partition = ref_value(summary.get("routePartitionName")) or summary.get("routePartitionName")
+            try:
+                detail = self.get_detail(
+                    "getRoutePattern",
+                    pattern=rp_pattern,
+                    routePartitionName=rp_partition or "",
+                )
+            except Exception as exc:
+                logger.warning(
+                    "[%s] getRoutePattern error for %s:%s: %s",
+                    self.name, rp_pattern, rp_partition, exc,
+                )
+                errors.append(f"getRoutePattern failed for {rp_pattern}:{rp_partition}")
+                patterns.append(summary)
+                continue
+            if detail is None:
+                patterns.append(summary)
+                continue
+            patterns.append(detail)
+
         self.results["route_patterns"] = patterns
-        logger.info("[%s] Found %d route patterns", self.name, len(patterns))
-        return len(patterns), []
+        return len(rp_summaries), errors
 
     # ------------------------------------------------------------------
     # Gateways — list + get (devicePoolName requires getGateway)
