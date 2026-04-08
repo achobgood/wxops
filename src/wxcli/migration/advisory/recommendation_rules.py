@@ -149,16 +149,23 @@ def recommend_feature_approximation(
 
     has_queue = context.get("has_queue_features", False)
     agent_count = context.get("agent_count", 0)
-    algorithm = context.get("algorithm")
+    algorithm = context.get("algorithm")  # legacy; still read below for small-group check
+    policy = context.get("policy")        # preferred; Webex form from mapper
 
     # Agent limit check — routing-type-aware (kb-webex-limits.md DT-LIMITS-001).
-    # Simultaneous routing caps at 50 agents; other routing types cap at 1,000.
-    target_routing = context.get("target_routing_type")  # explicit override
-    if target_routing is None:
-        # Infer: Broadcast/Top Down maps to Simultaneous; others to priority-based
-        is_simultaneous = algorithm in ("Broadcast", "Top Down", "undefined", None)
-    else:
+    # SIMULTANEOUS caps at 50; REGULAR/CIRCULAR/UNIFORM/WEIGHTED cap at 1000.
+    # Prefer `policy` (Webex form set by FeatureMapper) over CUCM `algorithm` —
+    # the mapping is already done.
+    target_routing = context.get("target_routing_type")  # explicit override (future scaffold)
+    if target_routing is not None:
         is_simultaneous = target_routing.upper() == "SIMULTANEOUS"
+    elif policy is not None:
+        is_simultaneous = policy == "SIMULTANEOUS"
+    else:
+        # Fallback: legacy contexts without `policy`. Only "Broadcast" maps to
+        # simultaneous; "Top Down" was incorrectly treated as simultaneous in the
+        # pre-fix code (it actually maps to REGULAR).
+        is_simultaneous = algorithm in ("Broadcast", None)
 
     simultaneous_cap = 50
     priority_cap = 1000
