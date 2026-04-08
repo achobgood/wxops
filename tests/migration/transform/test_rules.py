@@ -830,3 +830,26 @@ class TestPreviewAutoRules:
         second = apply_auto_rules(store, config)
         assert first == 2
         assert second == 0
+
+
+class TestDefaultAutoRulesMissingDataEntry:
+    """Sanity checks for the new is_on_incompatible_device default rule."""
+
+    def test_default_has_md_incompatible_entry(self) -> None:
+        from wxcli.commands.cucm_config import DEFAULT_AUTO_RULES
+
+        matches = [
+            r for r in DEFAULT_AUTO_RULES
+            if r.get("type") == "MISSING_DATA"
+            and r.get("match", {}).get("is_on_incompatible_device") is True
+        ]
+        assert len(matches) == 1, (
+            f"Expected exactly one MISSING_DATA/is_on_incompatible_device "
+            f"rule in DEFAULT_AUTO_RULES, got {len(matches)}"
+        )
+        rule = matches[0]
+        assert rule["choice"] == "skip"
+        # Reason is optional but recommended for markdown clarity.
+        if "reason" in rule:
+            assert isinstance(rule["reason"], str)
+            assert rule["reason"]
