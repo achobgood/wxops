@@ -12,12 +12,28 @@ from .conftest import RUNBOOK_DIR, REPO_ROOT, KB_DIR, slugify
 
 LINK_RE = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
 ANCHOR_RE = re.compile(r"^#{1,6}\s+(.+?)\s*$", re.MULTILINE)
+DT_ID_RE = re.compile(r"^(DT-[A-Z]+-\d+)\b")
 
 
 def _extract_anchors(path: Path) -> set[str]:
-    """All slug-form anchors in a markdown file."""
+    """All slug-form anchors in a markdown file.
+
+    For headings of the form `### DT-XXX-NNN: <description>`, also emit
+    the bare-ID slug `dt-xxx-nnn`. The kb-*.md DT entries use this
+    pattern, and runbooks link to the bare ID rather than the full
+    description-suffixed GFM slug. The bare-ID convention is documented
+    in the runbook audit-trail prose and was used by the link resolver
+    that verified Phase E9 retargets.
+    """
     text = path.read_text(encoding="utf-8")
-    return {slugify(m.group(1)) for m in ANCHOR_RE.finditer(text)}
+    anchors: set[str] = set()
+    for m in ANCHOR_RE.finditer(text):
+        heading = m.group(1)
+        anchors.add(slugify(heading))
+        dt_match = DT_ID_RE.match(heading)
+        if dt_match:
+            anchors.add(dt_match.group(1).lower())
+    return anchors
 
 
 def _resolve_link(source_path: Path, target: str) -> tuple[Path | None, str | None]:
