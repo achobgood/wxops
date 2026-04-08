@@ -140,6 +140,16 @@ def _iter_matching_resolutions(
     for rule in rules:
         if rule.get("type") and rule.get("choice"):
             valid_rules.append(rule)
+        else:
+            # Surface config typos — a rule missing `type` or `choice` is
+            # almost always a typo (e.g., "tpe" or missing quotes). Without
+            # this warning, operators see zero auto-applies with no signal
+            # about why. The warning includes the rule dict so they can
+            # grep config.json for the bad entry.
+            logger.warning(
+                "Auto-rule missing 'type' or 'choice' — skipping: %r",
+                rule,
+            )
 
     if not valid_rules:
         return
