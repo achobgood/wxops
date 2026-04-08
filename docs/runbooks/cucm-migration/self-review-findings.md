@@ -274,9 +274,40 @@ add only the entries Wave 3 actually references.
 
 ## Assessment Report Drift
 
-(Populated by G7 — controller runs `wxcli cucm report` against a
-test project and compares against runbook §Assessment Report
-Orientation.)
+**Source:** `wxcli cucm report` against fixture project `cucm-testbed-2026-03-24` (preflight stage, 89 objects across 17 types)
+**Date:** 2026-04-08
+**Report file:** `~/.wxcli/migrations/cucm-testbed-2026-03-24/assessment-report.html` (68 KB)
+
+### What matched
+
+| Runbook claim | Report state |
+|---|---|
+| 4 executive pages (Migration Complexity Assessment / What You Have / What Needs Attention / Next Steps) | All 4 present |
+| Up to 22 appendix sections A–V (filtered to non-empty) | 11 sections rendered (A–K) — consistent with the runbook's "Empty sections are filtered out before render" disclaimer |
+| Calibration disclaimer ("design-time weights ... not yet been calibrated against completed migrations ... relative indicator, not an absolute measure") | Present, exact wording match |
+| Tier label set: Straightforward / Moderate / Complex | "Moderate" rendered for this fixture; testbed didn't hit Straightforward or Complex tiers |
+
+### What drifted
+
+#### Drift 1: 8 score factors render under display names, not internal weight names
+
+**Runbook claim:** §The 8 Score Factors lists factors as `CSS Complexity`, `Feature Parity`, `Device Compatibility`, `Decision Density`, `Scale`, `Shared Line Complexity`, `Phone Config Complexity`, `Routing Complexity` — sourced directly from `score.py:WEIGHTS` (line 17).
+
+**Report state:** The actual report renders the customer-friendly names from `score.py:DISPLAY_NAMES` (line 28):
+- CSS Complexity → **Calling Restrictions**
+- Feature Parity → **Feature Compatibility**
+- Device Compatibility → **Device Readiness**
+- Decision Density → **Outstanding Decisions**
+- Scale → Scale (unchanged)
+- Shared Line Complexity → **Shared Lines**
+- Phone Config Complexity → **Phone Configuration**
+- Routing Complexity → **Routing**
+
+**Impact:** An operator reading the runbook to explain a customer's report would point at "CSS Complexity" but the customer sees "Calling Restrictions" on the page. Conversation gets confusing fast. The internal names are also what the operator-facing tooling uses (`wxcli cucm report --json` output, log messages, debugging), so they need to stay documented — but the runbook needs to surface BOTH names.
+
+**Fix applied:** Updated the §The 8 Score Factors table in operator-runbook.md to a 4-column layout: Internal name | Display name (in report) | Weight | What it measures. Plus a one-line note explaining when to use each name (display name when explaining to customer; internal name when grepping source or filing bugs). The §"Should I Migrate This Customer?" heuristics table was left alone — it uses internal names because the operator's mental model maps to internal names, and the new dual-name table above provides the customer-facing translation.
+
+**Disposition:** Fixed in commit (this G7 commit).
 
 ## Drift Outside Phase 2 Scope
 
