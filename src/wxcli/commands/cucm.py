@@ -1203,8 +1203,8 @@ def decisions(
             if output == "json":
                 # NOTE: The "auto_apply" key here is the JSON output-contract
                 # name for "decisions matched by auto_rules config." It is
-                # NOT the legacy `resolved_by="auto_apply"` marker (which
-                # the unified matcher replaced with "auto_rule"). Downstream
+                # NOT the legacy resolved_by marker (the unified matcher
+                # replaced that marker with "auto_rule"). Downstream
                 # parsers rely on the "auto_apply" key name — do not rename.
                 data = {
                     "review_file": str(review_path),
