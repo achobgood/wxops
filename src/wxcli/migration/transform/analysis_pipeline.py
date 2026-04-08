@@ -142,22 +142,22 @@ class AnalysisPipeline:
         1. Sort analyzers by depends_on (topological)
         2. Run each analyzer, collect decisions
         3. Merge new decisions with existing (fingerprint-based)
-        3.5. Enrich cross-decision context (is_on_incompatible_device)
-        4. Apply auto-resolution rules from config
-        5. Run ArchitectureAdvisor (Phase 2)
-        6. Populate recommendations on all decisions
-        7. Transition shared_line objects from normalized → analyzed
+        4. Enrich cross-decision context (is_on_incompatible_device)
+        5. Apply auto-resolution rules from config
+        6. Run ArchitectureAdvisor (Phase 2)
+        7. Populate recommendations on all decisions
+        8. Transition shared_line objects from normalized → analyzed
 
         Returns AnalysisResult with all decisions and per-analyzer stats.
         """
-        # Instantiate and sort by dependencies
+        # Step 1: Instantiate and sort analyzers by dependencies
         instances = [cls() for cls in self.analyzer_classes]
         sorted_analyzers = self._sort_by_dependencies(instances)
 
         all_decisions: list[Decision] = []
         stats: dict[str, int] = {}
 
-        # Step 1: Run each analyzer
+        # Step 2: Run each analyzer
         for analyzer in sorted_analyzers:
             analyzer_name = analyzer.name or type(analyzer).__name__
             logger.info("Running analyzer: %s", analyzer_name)
@@ -179,7 +179,7 @@ class AnalysisPipeline:
                 )
                 stats[analyzer_name] = -1  # -1 signals failure
 
-        # Step 2: Convert to store dicts for merge
+        # Convert to store dicts for merge
         new_decision_dicts = [decision_to_store_dict(d) for d in all_decisions]
 
         # Step 3: Merge with existing decisions (fingerprint-based)
@@ -200,7 +200,7 @@ class AnalysisPipeline:
             merge_result["invalidated"],
         )
 
-        # Step 3.5: Enrich cross-decision context.
+        # Step 4: Enrich cross-decision context.
         # Writes is_on_incompatible_device into every non-stale MISSING_DATA
         # decision based on the current set of DEVICE_INCOMPATIBLE decisions.
         # Runs between merge and auto-rules so config rules can match the
@@ -216,7 +216,7 @@ class AnalysisPipeline:
         except Exception as exc:
             logger.warning("Cross-decision enrichment failed: %s", exc)
 
-        # Step 4: Apply auto-resolution rules
+        # Step 5: Apply auto-resolution rules
         try:
             auto_resolved = apply_auto_rules(store, self.config)
             if auto_resolved:
@@ -224,7 +224,7 @@ class AnalysisPipeline:
         except Exception as exc:
             logger.warning("Auto-rules failed: %s", exc)
 
-        # Step 5: Phase 2 — Run ArchitectureAdvisor (reads merged decisions from store)
+        # Step 6: Phase 2 — Run ArchitectureAdvisor (reads merged decisions from store)
         from wxcli.migration.advisory.advisor import ArchitectureAdvisor
         advisor = ArchitectureAdvisor()
         logger.info("Running advisor: architecture_advisor")
@@ -253,13 +253,13 @@ class AnalysisPipeline:
             )
             stats["architecture_advisor"] = -1
 
-        # Step 6: Populate recommendations on ALL decisions (Phase 1 + Phase 2)
+        # Step 7: Populate recommendations on ALL decisions (Phase 1 + Phase 2)
         from wxcli.migration.advisory import populate_recommendations
         rec_count = populate_recommendations(store)
         if rec_count:
             logger.info("Advisory: %d recommendations populated", rec_count)
 
-        # Step 7: Transition shared_line objects from normalized → analyzed
+        # Step 8: Transition shared_line objects from normalized → analyzed
         # Shared lines are created by the cross-reference builder at normalized
         # status. No mapper processes them. Transition to analyzed so the
         # planner can expand them into configure operations.

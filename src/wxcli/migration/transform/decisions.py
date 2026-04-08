@@ -157,7 +157,6 @@ def classify_decisions(
     needs_input = [
         d for d in all_decisions
         if d.get("chosen_option") is None
-        and d.get("chosen_option") != "__stale__"
         and d["decision_id"] not in auto_apply_ids
     ]
 
