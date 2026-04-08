@@ -9,9 +9,9 @@
 ## Table of Contents
 
 1. [config.json: Every Key Explained](#configjson-every-key-explained)
-2. [Auto-Rules: How They Work, the 7 Defaults, How to Add Your Own](#auto-rules-how-they-work-the-7-defaults-how-to-add-your-own)
-   - [The 14 Non-Auto-Ruled DecisionTypes and Why](#the-14-non-auto-ruled-decisiontypes-and-why)
-3. [Score Weights and the Calibration Disclaimer](#score-weights-and-the-calibration-disclaimer)
+2. [Auto-Rule Reference](#auto-rule-reference)
+   - [Non-Auto-Ruled DecisionTypes](#non-auto-ruled-decisiontypes)
+3. [Score Weights](#score-weights)
 4. [What Is and Isn't Tunable](#what-is-and-isnt-tunable)
 5. [Per-Decision Overrides](#per-decision-overrides)
 6. [Tuning Recipes](#tuning-recipes)
@@ -98,7 +98,7 @@
 **Default:** the 7 `DEFAULT_AUTO_RULES` entries (from `src/wxcli/commands/cucm_config.py:43`, defined at `src/wxcli/commands/cucm_config.py:17`)
 **What it controls:** The list of auto-resolution rules the analysis pipeline applies after analyzers finish running. Each rule matches a `DecisionType` (optionally with additional context predicates) and auto-selects a `choice`, bypassing manual review for clear-cut cases.
 
-See §[Auto-Rules: How They Work, the 7 Defaults, How to Add Your Own](#auto-rules-how-they-work-the-7-defaults-how-to-add-your-own) below for the full treatment — per-rule walkthroughs, the add-your-own pattern, and the list of decision types that intentionally have no default rule.
+See §[Auto-Rule Reference](#auto-rule-reference) below for the full treatment — per-rule walkthroughs, the add-your-own pattern, and the list of decision types that intentionally have no default rule.
 
 ### site-prefix-rules
 
@@ -122,7 +122,7 @@ See §[Auto-Rules: How They Work, the 7 Defaults, How to Add Your Own](#auto-rul
 ```
 **Consumed by:** `src/wxcli/migration/transform/engine.py:202` — passed into `CSSMapper`, which applies the rules at `src/wxcli/migration/transform/mappers/css_mapper.py:612` and `:671` during calling-permission classification.
 
-## Auto-Rules: How They Work, the 7 Defaults, How to Add Your Own
+## Auto-Rule Reference
 
 > Anchor convention for the 7 default rules: `default-rule-` plus the slug-form of the rule's `type` field, with `-<match-key>-<match-value>` appended when a `match` filter is present (e.g., `default-rule-calling-permission-mismatch-assigned-users-count-0`). Validated by `test_default_auto_rules_coverage.py`.
 
@@ -248,7 +248,7 @@ In every "NOT" case, prefer a per-decision override via `wxcli cucm decide <deci
 **When to remove:** Remove this rule if the customer intends to reuse the CSS shortly after cutover (a known phased-rollout strategy where certain CSSes are staged in CUCM for users who will migrate in a later wave), so that the permission model can be planned rather than silently dropped. Also remove in environments where CSS reuse patterns are load-bearing for compliance audits and every CSS must be accounted for in the migration record.
 **See also:** `dt-css-002`
 
-### The 14 Non-Auto-Ruled DecisionTypes and Why
+### Non-Auto-Ruled DecisionTypes
 
 The 7 default auto-rules above are the *only* `DecisionType` values that the pipeline resolves on its own. Every other type — 14 in total when you count `CALLING_PERMISSION_MISMATCH` (whose default rule narrowly matches `assigned_users_count == 0` and so leaves the populated case unresolved) — flows into the human decision-review queue with no shortcut. The absence of an auto-rule on these types is intentional, not an omission. Each one falls into one of three buckets: the decision requires *judgment too high* for a declarative match (the right answer depends on customer-specific tradeoffs the pipeline cannot see), the decision's *context is too variable* to capture in a single rule without burying real signals, or there is *no safe single answer* — multiple valid choices exist and silently picking one would violate operator trust. The table below enumerates all 14, classifies each, and forward-links to the canonical decision-guide entry for the producer logic and recommendation algorithm.
 
@@ -269,7 +269,7 @@ The 7 default auto-rules above are the *only* `DecisionType` values that the pip
 | `DUPLICATE_USER` | no safe single answer | Two producers: `analyzers/duplicate_user.py:120` (CUCM-internal duplicates by email + name) and `preflight/checks.py` (planned CUCM users that already exist in the target Webex org). `recommend_duplicate_user` returns `merge` only on `email_match` or `userid_match` and `keep_both` for everything else; in practice the operator usually has to verify the merge target with the customer's identity team. See [`dt-id-002`](../../knowledge-base/migration/kb-identity-numbering.md#dt-id-002). |
 | `NUMBER_CONFLICT` | no safe single answer | Producer: preflight sibling of `DUPLICATE_USER`. Detects E.164/extension collisions between planned CUCM resources and what is already provisioned in the target Webex org. There is no automatic answer for "the customer already owns this DID" — porting strategy, CPN routing, and cutover sequencing all depend on which side is authoritative. Shares the kb-* entry with `DUPLICATE_USER`: [`dt-id-002`](../../knowledge-base/migration/kb-identity-numbering.md#dt-id-002). |
 
-## Score Weights and the Calibration Disclaimer
+## Score Weights
 
 The migration complexity score (`wxcli cucm report`) is a 0-100 number computed from eight weighted factors. Weights live in the `WEIGHTS` dict at `src/wxcli/migration/report/score.py:17` and must sum to 100. They were chosen at design time to reflect what the team believed would predict effort — none of them have been fit against real migrations yet.
 
@@ -313,13 +313,13 @@ The pipeline exposes a deliberate, narrow tuning surface. Anything not listed un
 **What IS tunable:**
 
 - **`config.json` keys** — the nine keys documented in [§config.json: Every Key Explained](#configjson-every-key-explained). These are the per-project knobs the operator is expected to set: `country-code`, `default-language`, `default-country`, `outside-dial-digit`, `create-method`, `include-phoneless-users`, `auto-rules`, `site-prefix-rules`, and `category-rules`.
-- **Auto-rules** — both the seven defaults documented in [§Auto-Rules](#auto-rules-how-they-work-the-7-defaults-how-to-add-your-own) and any custom rules the operator adds to `config.json` under `auto_rules`. Match operators (`_lte`, `_gte`, `_contains`, plain/list) are listed in `src/wxcli/migration/transform/rules.py:21-91`.
+- **Auto-rules** — both the seven defaults documented in [§Auto-Rule Reference](#auto-rule-reference) and any custom rules the operator adds to `config.json` under `auto_rules`. Match operators (`_lte`, `_gte`, `_contains`, plain/list) are listed in `src/wxcli/migration/transform/rules.py:21-91`.
 - **Per-decision overrides via `wxcli cucm decide`** — the one-off escape hatch documented in [§Per-Decision Overrides](#per-decision-overrides) immediately below.
 
 **What is NOT tunable (and why):**
 
 - **Severity is NOT tunable.** Severity (`HIGH` / `MEDIUM` / `LOW`) is set by the producing mapper or analyzer at decision-creation time — for example `MissingDataAnalyzer._highest_severity()` at `src/wxcli/migration/transform/analyzers/missing_data.py:135`. There is no config key, no rule, and no CLI flag that re-grades severity after the fact. This is a documented limitation, not a bug: severity reflects the technical impact of the underlying CUCM artifact, not the operator's appetite for risk on a given migration. If a class of decisions is consistently mis-graded, that's a code change to the producer, not a tuning knob.
-- **Score weights are tunable in code, NOT via `config.json`.** The `WEIGHTS` dict at `src/wxcli/migration/report/score.py:17` is intentionally code-only. Weights are a calibration artifact that should change exactly once — when sufficient real-migration data exists to fit them — not per-project, not per-customer, and not as a knob to make a particular score look better. See [§Score Weights and the Calibration Disclaimer](#score-weights-and-the-calibration-disclaimer) for the full rationale.
+- **Score weights are tunable in code, NOT via `config.json`.** The `WEIGHTS` dict at `src/wxcli/migration/report/score.py:17` is intentionally code-only. Weights are a calibration artifact that should change exactly once — when sufficient real-migration data exists to fit them — not per-project, not per-customer, and not as a knob to make a particular score look better. See [§Score Weights](#score-weights) for the full rationale.
 - **`SCORE_CALIBRATED` is tunable only by flipping the flag in code.** It lives at `src/wxcli/migration/report/score.py:50`. Flipping it from `False` to `True` removes the uncalibrated disclaimer from every subsequent report and is a one-way claim about the trustworthiness of the score. **Don't flip it speculatively** — the flip should land in the same commit as the calibrated weights and should be backed by the calibration evidence described in [§When to Recalibrate](#when-to-recalibrate).
 - **`DecisionType` options are NOT tunable.** The set of choices presented for a decision (e.g. `provide_data` / `skip` / `manual` for `MISSING_DATA`) is hardcoded in the producing module's option-generation logic — for `MISSING_DATA`, see `analyzers/missing_data.py:149-165`. There is no config to add, remove, or rename options. If a new option is needed, it's a code change to the producer (and almost always needs a matching `recommend_*` rule and an advisory pattern, so it's not a small change).
 
@@ -445,7 +445,7 @@ This works for rules like `{"cucm_model": ["7841", "7861"]}` where `actual` is t
 
 ### Recipe 1: Small SMB, single location, 10–50 users
 
-This is the *baseline* recipe — it documents what the defaults assume. If your customer matches the characteristics below, you do not need to touch `config.json`; the 7 default auto-rules (see §[Auto-Rules](#auto-rules-how-they-work-the-7-defaults-how-to-add-your-own)) cover everything that can be resolved automatically, and the review queue will be short enough to walk through in a single sitting.
+This is the *baseline* recipe — it documents what the defaults assume. If your customer matches the characteristics below, you do not need to touch `config.json`; the 7 default auto-rules (see §[Auto-Rule Reference](#auto-rule-reference)) cover everything that can be resolved automatically, and the review queue will be short enough to walk through in a single sitting.
 
 **Source environment characteristics:**
 - Single CUCM device pool (or 1 real + 1 stray "Default" pool).
@@ -564,7 +564,7 @@ CSS routing is the archetypal "context too variable" decision class. CUCM CSSes 
 }
 ```
 
-**Auto-rules to add or remove:** **none**. Do not add auto-rules for `CSS_ROUTING_MISMATCH`, `CALLING_PERMISSION_MISMATCH`, or any CSS-related type. The §[14 Non-Auto-Ruled DecisionTypes](#the-14-non-auto-ruled-decisiontypes-and-why) table classifies CSS_ROUTING_MISMATCH as "context too variable" precisely for this case — partition ordering dependencies differ by CSS, and a single rule cannot capture the difference between a benign overlap and a load-bearing one. Leave the populated case of `CALLING_PERMISSION_MISMATCH` alone too; the default rule narrowly handles only `assigned_users_count == 0`.
+**Auto-rules to add or remove:** **none**. Do not add auto-rules for `CSS_ROUTING_MISMATCH`, `CALLING_PERMISSION_MISMATCH`, or any CSS-related type. The §[Non-Auto-Ruled DecisionTypes](#non-auto-ruled-decisiontypes) table classifies CSS_ROUTING_MISMATCH as "context too variable" precisely for this case — partition ordering dependencies differ by CSS, and a single rule cannot capture the difference between a benign overlap and a load-bearing one. Leave the populated case of `CALLING_PERMISSION_MISMATCH` alone too; the default rule narrowly handles only `assigned_users_count == 0`.
 
 **Decisions to expect:**
 - `CSS_ROUTING_MISMATCH`: several — one per CSS with branching logic. Each one names the competing patterns and the CSS's intended ordering.
@@ -603,7 +603,7 @@ Trunk type is immutable after creation in Webex Calling — you cannot convert a
 }
 ```
 
-**Auto-rules to add or remove:** **none**. Trunk creation cannot be auto-resolved. The §[14 Non-Auto-Ruled DecisionTypes](#the-14-non-auto-ruled-decisiontypes-and-why) framing — "no safe single answer" — applies in spirit even though the formal decision type is `ARCHITECTURE_ADVISORY` rather than a per-decision producer. Adding an auto-rule for any trunk-adjacent type would suppress the architectural conversation that has to happen before the migration can ship.
+**Auto-rules to add or remove:** **none**. Trunk creation cannot be auto-resolved. The §[Non-Auto-Ruled DecisionTypes](#non-auto-ruled-decisiontypes) framing — "no safe single answer" — applies in spirit even though the formal decision type is `ARCHITECTURE_ADVISORY` rather than a per-decision producer. Adding an auto-rule for any trunk-adjacent type would suppress the architectural conversation that has to happen before the migration can ship.
 
 **Decisions to expect:**
 - Trunk creation decisions emitted by `RoutingMapper`: each SIP trunk is mapped to either a Local Gateway trunk (`LGW`) or a Cloud Connected PSTN trunk (`CCPP`) based on the customer's chosen architecture. The mapper raises a decision when the source CUCM trunk does not give an unambiguous signal.
