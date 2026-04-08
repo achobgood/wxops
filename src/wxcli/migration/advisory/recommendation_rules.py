@@ -167,8 +167,20 @@ def recommend_feature_approximation(
         # pre-fix code (it actually maps to REGULAR).
         is_simultaneous = algorithm in ("Broadcast", None)
 
-    simultaneous_cap = 50
-    priority_cap = 1000
+    # Cap from context if mapper provided it (post-fix); otherwise fall back
+    # to defaults for legacy/hand-constructed contexts. The mapper writes
+    # `agent_limit` with the policy-correct value from `_AGENT_LIMITS` —
+    # SIMULTANEOUS=50, WEIGHTED=100, REGULAR/CIRCULAR/UNIFORM=1000. Reading the
+    # context value avoids the prior bug where WEIGHTED hunt pilots exceeded
+    # their 100-cap but the recommender's hard-coded 1000 missed them.
+    context_limit = context.get("agent_limit")
+    simultaneous_cap = 50      # legacy default
+    priority_cap = 1000        # legacy default
+    if context_limit is not None:
+        if is_simultaneous:
+            simultaneous_cap = context_limit
+        else:
+            priority_cap = context_limit
 
     if is_simultaneous and agent_count > simultaneous_cap:
         routing_note = ""
@@ -186,14 +198,15 @@ def recommend_feature_approximation(
             "split",
             f"Agent count ({agent_count}) exceeds Simultaneous routing cap of "
             f"{simultaneous_cap}{routing_note}. Split into multiple queues with "
-            f"overflow chain, or switch to priority-based routing (supports up "
-            f"to {priority_cap}).",
+            f"overflow chain, or switch to priority-based routing (REGULAR/"
+            f"CIRCULAR/UNIFORM support up to 1000).",
         )
     if not is_simultaneous and agent_count > priority_cap:
+        policy_label = policy or "priority-based"
         return (
             "split",
             f"Agent count ({agent_count}) exceeds Call Queue limit of "
-            f"{priority_cap} for priority-based routing. Split into multiple "
+            f"{priority_cap} for {policy_label} routing. Split into multiple "
             f"queues with overflow chain.",
         )
 
