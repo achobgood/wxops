@@ -91,6 +91,15 @@ Layer 3 must be able to detect and measure all six of the following
 failure categories. For each: the signal that detects it, the cost to
 instrument, and the cadence at which it is checked.
 
+**Signal overlap note.** §3.1 (Loops), §3.3 (Token Waste), and §3.6
+(Redundant Re-derivation) share a primary detection signal: Read calls
+targeting `src/wxcli/migration/` during the decision-review phase. They
+are listed as three categories because the *failure mode* they describe
+is distinct (going in circles vs. burning tokens vs. re-computing known
+values), even though a single harness instrumentation point surfaces
+all three. Treat the six modes as four independent detection mechanisms
+plus two interpretive lenses on the source-file-read signal.
+
 ### 3.1 Loops
 
 **Definition:** Claude Code re-runs the same pipeline stage, re-reads
@@ -176,12 +185,16 @@ regression is defined as >20% increase in tokens-per-decision-resolved
 without a corresponding increase in decision accuracy.
 
 **Signal (tertiary, structural):** The `test_runbook_cites.py` suite
-already verifies that runbook prose cites source at specific lines. A
-separate structural probe (see §7 for the display-name variant of this
-pattern) checks whether tuning-reference.md and decision-guide.md
-contain inline answers for the top-10 most commonly re-derived values
-(config key defaults, option IDs, DecisionType semantics). This is a
-static analysis test, not a harness run.
+already verifies that runbook prose cites source at specific lines.
+Layer 3 adds a new structural probe (Plan A's
+`test_recommendation_output_coverage.py`) that checks the specific
+known-answerable values: every `recommend_*` function's output must
+appear as a `**Recommendation:**` field in its decision-guide entry.
+The concrete coverage set is: the 20 `DecisionType` enum values, the
+19 `RECOMMENDATION_DISPATCH` functions, and the 8 keys in `score.py`
+`WEIGHTS`/`DISPLAY_NAMES`. This is a static analysis test, not a
+harness run — it replaces the original spec's vague "top-10 most
+commonly re-derived values" wording with a concrete, enumerable set.
 
 **Cost:** Medium for the harness signal; low for the structural probe.
 
@@ -226,11 +239,15 @@ three runbook files:
    line within 5 lines of the recipe heading. Recipes missing this
    entry-point field are flagged.
 
-**Signal (harness — periodic):** After a benchmark run, the session
-transcript is scanned for phrases that indicate confusion about artifact
-structure: "I don't see a recommendation for this decision type", "the
-table appears to be cut off", "I'll check the source code to understand
-the options". These are flagged as parsability candidates for manual review.
+**Signal (harness — optional manual review):** After a benchmark run,
+the maintainer *may* spot-check the session transcript for signs of
+parsability confusion (e.g., the model mentioning that a table looks
+truncated or that it is reading source to understand options). This
+is an interpretive, manual review step — not an automated metric —
+because model phrasing is too variable to regex reliably. The CI
+structural probes above are the authoritative automated signal; the
+transcript spot-check is optional follow-up when a CI probe fails and
+the maintainer wants context on which section caused the confusion.
 
 **Cost:** Low for the CI structural probes (pure text parsing); medium
 for the harness scan (requires a benchmark run).
