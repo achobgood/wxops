@@ -32,6 +32,246 @@ Phase B wires the new architecture into the Typer CLI. At the start of Phase B, 
 
 ---
 
+## Phase B preamble — triage items from the Phase A code review
+
+Phase A committed with a batch code review that surfaced items Phase B needs to address before the main task work begins. Read this section in full before running Task 9.
+
+### Staging rules (important — `tests/` is gitignored)
+
+**`tests/` is gitignored in this repo.** Phase A's executor discovered this at Task 1 (by force-adding `tests/migration/test_store.py`) and again at Task 7 (where `git rm` on the old test file silently failed because the file was untracked; plain `rm` was used and the replacement was force-added). The Phase A plan's staging commands assumed `tests/` was tracked — that assumption was wrong.
+
+**Rules for Phase B staging:**
+- **New test files** (files that don't yet exist in git) need `git add -f <path>`.
+- **Existing tracked test files** (files already in git history) use normal `git add <path>`. Verify with `git ls-files <path>` before staging — if the file shows up, it's tracked.
+- Never use `git add -A` or `git add .` — the working tree may contain ~3 unrelated `docs/runbooks/cucm-migration/*.md` modifications from Plan 3.
+- Phase B's commit commands are written assuming the current-state files are tracked (which they are — `test_decision_cli.py` and `test_cucm_cli.py` are both already tracked, verified via `git ls-files`). Plain `git add tests/migration/test_decision_cli.py` etc. will work.
+
+**Phase B does NOT introduce any brand-new test files** — every test appended lives inside an existing tracked test file. So `git add -f` should not be needed in Phase B unless you discover a mismatch.
+
+### C1 — three live TypeError sites in `cucm.py` post-Phase-A
+
+Phase A rewrote `classify_decisions` to require a `config` argument but intentionally left the three CLI callers broken, deferring the fix to Phase B. The three call sites are:
+
+- `src/wxcli/commands/cucm.py:1124` — `generate_decision_review(store, project_id)` → Task 9 fixes this.
+- `src/wxcli/commands/cucm.py:1130` — `classify_decisions(store)` → Task 9 fixes this.
+- `src/wxcli/commands/cucm.py:1248` — `classify_decisions(store)` → Task 10 fixes this.
+
+Until Task 9 is committed, running `wxcli cucm decisions --export-review` or `wxcli cucm decide --apply-auto` against any project raises `TypeError`. **Do NOT run either command manually during Phase B until Task 10 is committed.** The unit/integration tests in `tests/migration/test_decision_cli.py` exercise the same code paths via CliRunner; rely on those for verification.
+
+Phase B's Task 9 and Task 10 commits together resolve C1 completely. No separate "Phase A.5 patch" is needed — Phase A was always intended to ship bundled with Phase B.
+
+---
+
+## Task 8.5: Phase A cleanup micro-task (preamble)
+
+**Files:**
+- Modify: `src/wxcli/migration/transform/analysis_pipeline.py` (remove try/except around `enrich_cross_decision_context` in `AnalysisPipeline.run()` step 3.5)
+- Modify: `src/wxcli/migration/transform/rules.py` (add `logger.warning` for malformed rules in `_iter_matching_resolutions`)
+- Modify: `src/wxcli/migration/transform/analysis_pipeline.py` (add a 1-line explanatory comment above the triple-insert DI canonical-id collection in `enrich_cross_decision_context`)
+- Modify: `tests/migration/transform/test_default_auto_rules_field_alignment.py` (add a limitation comment at the top of the file)
+
+**Why:** The Phase A code review surfaced four cleanup items that are purely additive (no behavior change on the happy path) and must be in place before Task 9 lands. Handling them as a single preamble micro-task keeps Task 9 focused on the CLI wiring.
+
+1. **Remove silent enrichment failure (I1 + I2).** Phase A wrapped the `enrich_cross_decision_context` call in `AnalysisPipeline.run()` in a try/except that logs a warning and continues. Two reviewers independently flagged this as the same shape as Bug F — if enrichment fails, every downstream MISSING_DATA rule becomes a silent no-op and no operator sees why. Fingerprint-safety (verified in Phase A) guarantees a crashed enrichment can't corrupt state; a loud crash is strictly better than a silent skip.
+2. **Warn on malformed config rules (I3).** `_iter_matching_resolutions` currently drops any rule missing `type` or `choice` with zero logging. A user who typos `"tpe": "DEVICE_INCOMPATIBLE"` in `config.json` gets "0 auto-applies" with no explanation. A single `logger.warning` restores visibility.
+3. **Comment the triple-insert defensive pattern (M3).** `enrich_cross_decision_context` collects canonical_ids from DI decisions via three paths (`_affected_objects`, `device_id`, `canonical_id`). The pattern is intentional — different analyzers write different key shapes — but it's undocumented and looks like a bug at a glance.
+4. **Document the field-alignment test's limitation (I4).** The hand-maintained synthetic producer registry in `test_default_auto_rules_field_alignment.py` catches rule-side typos but not analyzer-side renames. A proper fix (importing real analyzers and running `.analyze()`) is non-trivial and scoped as follow-up work. Document the limitation so future maintainers know.
+
+- [ ] **Step 1: Remove the try/except wrapper in `AnalysisPipeline.run()`**
+
+Edit `src/wxcli/migration/transform/analysis_pipeline.py`. Find the step 3.5 block (inserted by Phase A Task 3, between `merge_decisions` and `apply_auto_rules`). It currently looks like:
+
+```python
+        # Step 3.5: Enrich cross-decision context.
+        # Writes is_on_incompatible_device into every non-stale MISSING_DATA
+        # decision based on the current set of DEVICE_INCOMPATIBLE decisions.
+        # Runs between merge and auto-rules so config rules can match the
+        # enriched field. Fingerprint-safe (MissingDataAnalyzer.fingerprint()
+        # does not hash the full context).
+        try:
+            enriched = enrich_cross_decision_context(store)
+            if enriched:
+                logger.info(
+                    "Cross-decision enrichment: %d MISSING_DATA decisions updated",
+                    enriched,
+                )
+        except Exception as exc:
+            logger.warning("Cross-decision enrichment failed: %s", exc)
+```
+
+Replace with:
+
+```python
+        # Step 3.5: Enrich cross-decision context.
+        # Writes is_on_incompatible_device into every non-stale MISSING_DATA
+        # decision based on the current set of DEVICE_INCOMPATIBLE decisions.
+        # Runs between merge and auto-rules so config rules can match the
+        # enriched field. Fingerprint-safe (MissingDataAnalyzer.fingerprint()
+        # does not hash the full context). Exceptions propagate intentionally:
+        # a failure here would silently skip every MISSING_DATA auto-rule,
+        # which is the exact shape of the Bug F silent-skip bug we're fixing.
+        enriched = enrich_cross_decision_context(store)
+        if enriched:
+            logger.info(
+                "Cross-decision enrichment: %d MISSING_DATA decisions updated",
+                enriched,
+            )
+```
+
+- [ ] **Step 2: Add warning log for malformed rules in `_iter_matching_resolutions`**
+
+Edit `src/wxcli/migration/transform/rules.py`. Find the `_iter_matching_resolutions` generator (added by Phase A Task 4). It has a block that validates each rule and appends to `valid_rules`:
+
+```python
+    valid_rules: list[dict[str, Any]] = []
+    for rule in rules:
+        if rule.get("type") and rule.get("choice"):
+            valid_rules.append(rule)
+```
+
+Replace with:
+
+```python
+    valid_rules: list[dict[str, Any]] = []
+    for rule in rules:
+        if rule.get("type") and rule.get("choice"):
+            valid_rules.append(rule)
+        else:
+            # Surface config typos — a rule missing `type` or `choice` is
+            # almost always a typo (e.g., "tpe" or missing quotes). Without
+            # this warning, operators see zero auto-applies with no signal
+            # about why. The warning includes the rule dict so they can
+            # grep config.json for the bad entry.
+            logger.warning(
+                "Auto-rule missing 'type' or 'choice' — skipping: %r",
+                rule,
+            )
+```
+
+- [ ] **Step 3: Add explanatory comment on the triple-insert defensive pattern**
+
+Still in `src/wxcli/migration/transform/analysis_pipeline.py`. Find `enrich_cross_decision_context` (added by Phase A Task 2). It has a block that collects canonical_ids:
+
+```python
+    # Collect canonical_ids of non-stale DEVICE_INCOMPATIBLE decisions.
+    incompatible_ids: set[str] = set()
+    for d in all_decisions:
+        if d.get("type") != "DEVICE_INCOMPATIBLE":
+            continue
+        if d.get("chosen_option") == "__stale__":
+            continue
+        ctx = d.get("context", {})
+        for obj_id in ctx.get("_affected_objects", []):
+            incompatible_ids.add(obj_id)
+        if ctx.get("device_id"):
+            incompatible_ids.add(ctx["device_id"])
+        if ctx.get("canonical_id"):
+            incompatible_ids.add(ctx["canonical_id"])
+```
+
+Add a one-line comment immediately BEFORE `for obj_id in ctx.get("_affected_objects", []):`:
+
+```python
+        ctx = d.get("context", {})
+        # Collect from all three places an analyzer might write a device
+        # identifier: _affected_objects (DeviceCompatibilityAnalyzer),
+        # device_id (legacy mapper-produced context), canonical_id (direct).
+        # We take the union; overlap is harmless because incompatible_ids is a set.
+        for obj_id in ctx.get("_affected_objects", []):
+            incompatible_ids.add(obj_id)
+        if ctx.get("device_id"):
+            incompatible_ids.add(ctx["device_id"])
+        if ctx.get("canonical_id"):
+            incompatible_ids.add(ctx["canonical_id"])
+```
+
+- [ ] **Step 4: Add field-alignment test limitation comment**
+
+Edit `tests/migration/transform/test_default_auto_rules_field_alignment.py`. Find the module docstring at the top (starts with `"""Parametrized test: ...`). Add a new paragraph to the end of the docstring, immediately before the closing `"""`:
+
+```python
+"""Parametrized test: every DEFAULT_AUTO_RULES match key must exist in
+the producing analyzer's (or enrichment's) decision context.
+
+This is a CI-time guard against the class of bugs where a rule references
+a context field that no producer writes — the CALLING_PERMISSION_MISMATCH
+silent-skip bug (Bug F) was exactly this shape.
+
+New default rules with a `match` field get covered automatically as soon
+as they're added to DEFAULT_AUTO_RULES. If a rule matches on a field no
+producer knows about, this test fails at collection time (if the analyzer
+cannot be identified) or at assert time (if the synthetic producer output
+doesn't contain the key).
+
+KNOWN LIMITATION: this test uses a hand-maintained `_SYNTHETIC_PRODUCERS`
+registry that mirrors what each analyzer writes. It catches RULE-side
+typos (rule references a field the producer never wrote) but NOT
+ANALYZER-side renames (analyzer renames its output field; registry is
+out of date; Bug F can recur). A more robust version would import each
+real analyzer and run `.analyze()` against a minimal synthetic store,
+but that's a non-trivial integration-test surface. Tracked as follow-up
+work; do not rely on this test alone to catch field-name drift during
+analyzer refactors.
+"""
+```
+
+- [ ] **Step 5: Run the touched tests**
+
+```bash
+python3.11 -m pytest tests/migration/transform/test_rules.py \
+                     tests/migration/transform/test_cross_decision_enrichment.py \
+                     tests/migration/transform/test_default_auto_rules_field_alignment.py \
+                     tests/migration/transform/test_analysis_pipeline.py \
+                     -v 2>&1 | tail -30
+```
+
+Expected: all PASS. The changes are purely additive (comment, warning log, docstring) plus one behavior change (removing try/except). None of the existing Phase A tests assert on the try/except swallowing behavior, so they should still pass.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src/wxcli/migration/transform/analysis_pipeline.py \
+        src/wxcli/migration/transform/rules.py \
+        tests/migration/transform/test_default_auto_rules_field_alignment.py
+git commit -m "$(cat <<'EOF'
+refactor(migration): Phase A cleanup per code review (I1-I4, M3)
+
+Addresses four items surfaced by the Phase A batch code review:
+
+- I1 + I2: Remove try/except wrapper around enrich_cross_decision_context
+  in AnalysisPipeline.run() step 3.5. Swallowing enrichment failures with
+  a warning log was the exact shape of the Bug F silent-skip bug we're
+  fixing — let exceptions propagate so operators see failures loudly.
+  Fingerprint-safety guarantees a crashed enrichment can't corrupt state.
+
+- I3: Add logger.warning in _iter_matching_resolutions when a rule is
+  missing `type` or `choice`. Previously malformed rules were silently
+  dropped with zero signal, so a typo like `"tpe": "..."` in config.json
+  yielded "0 auto-applies" with no explanation. The warning now includes
+  the rule dict so operators can grep config.json for the bad entry.
+
+- M3: Add an explanatory comment above the triple-insert defensive
+  pattern in enrich_cross_decision_context. The pattern collects device
+  canonical_ids from _affected_objects, device_id, and canonical_id
+  because different producers write different key shapes. Union is
+  harmless because incompatible_ids is a set.
+
+- I4: Document the known limitation of test_default_auto_rules_field_alignment.py
+  in its module docstring. The hand-maintained synthetic producer registry
+  catches rule-side typos but not analyzer-side renames. A proper fix
+  (real analyzer imports) is tracked as follow-up.
+
+Part of the auto-rule architecture unification (Bug F). Preamble for
+Phase B CLI wiring. See
+docs/plans/2026-04-07-auto-rule-architecture-unification-plan.md.
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+EOF
+)"
+```
+
+---
+
 ## Task 9: Update `decisions --export-review` CLI branch
 
 **Files:**
@@ -627,10 +867,9 @@ Edit `src/wxcli/commands/cucm.py`. Find the `decide` command (around line 1229) 
 
             # Refresh cross-decision context so newly-pending decisions
             # get the is_on_incompatible_device field before rules fire.
-            try:
-                enrich_cross_decision_context(store)
-            except Exception as exc:
-                logger.warning("Cross-decision enrichment failed: %s", exc)
+            # Exceptions propagate intentionally — swallowing them would
+            # silently skip every MISSING_DATA auto-rule (the Bug F shape).
+            enrich_cross_decision_context(store)
 
             # Preview what would resolve, for the confirmation prompt.
             preview = preview_auto_rules(store, config)
