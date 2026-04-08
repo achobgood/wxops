@@ -178,6 +178,8 @@ wxcli cucm decisions --status pending -p <project>
 If pending decisions remain, inform the admin and ask whether to continue
 with unresolved decisions or re-enter review.
 
+> **Operator help:** If the operator asks what a specific decision means, point them at the corresponding entry in [decision-guide.md §Decision Types A–Z](../../../docs/runbooks/cucm-migration/decision-guide.md#decision-types-az). The guide has one entry per non-advisory DecisionType plus one entry per advisory pattern.
+
 ### Step 1c-fallback: Static Decision Review
 
 **Only used if Step 1b's advisor agent failed.** This is the original Phase A/B
@@ -334,6 +336,8 @@ wxcli cucm preflight
 2. User resolves blockers
 3. Re-run: `wxcli cucm preflight` (or `--check <check-name>` for single check)
 4. Repeat until all pass
+
+> **Operator help:** If a preflight check fails, point the operator at the relevant tuning recipe in [tuning-reference.md §Tuning Recipes](../../../docs/runbooks/cucm-migration/tuning-reference.md#tuning-recipes). License shortage → Recipe 1 (baseline assumptions); routing/CSS issues → Recipe 3; trunk issues → Recipe 4.
 
 ## Step 3: Present Summary and Get Approval
 
@@ -560,6 +564,8 @@ Delete in the order returned (reverse tier: features → devices → users → r
 >  The configure-features skill handles location schedule creation."
 
 ### 4c. Error handling
+
+> **Operator help:** For runbook coverage of this failure mode, see [operator-runbook.md §Failure Patterns](../../../docs/runbooks/cucm-migration/operator-runbook.md#failure-patterns).
 
 On any failure:
 
