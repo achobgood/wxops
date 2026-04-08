@@ -66,7 +66,7 @@ Two layers of advisory output coexist on every decision: the **static recommenda
 
 **The static `recommendation` field.** Populated by `populate_recommendations()` from the dispatch table in `src/wxcli/migration/advisory/recommendation_rules.py` (20 rule functions, one per DecisionType plus a few specializations — verified by `grep -c "^def recommend_" recommendation_rules.py`). Each rule reads the decision's `context` dict and returns either `(option_id, reasoning)` or `None`. A `None` return is meaningful — it means the rule deliberately refuses to recommend because the case is genuinely ambiguous (e.g., a hunt group with 5-8 agents and queue features partially enabled). When you see no `[REC: ...]` token for a pending decision, that is a signal to slow down and look at the context.
 
-**Advisor dissent flags and confidence levels.** The `migration-advisor` agent (Opus, defined at `.claude/agents/migration-advisor.md`) runs after the static layer and produces dissents only when its KB-grounded reasoning disagrees with the static rule. Each dissent carries a `Confidence: HIGH | MEDIUM | LOW` tag — the format is documented at `.claude/agents/migration-advisor.md:91-100` and `:185-197`:
+**Advisor dissent flags and confidence levels.** The `migration-advisor` agent (Opus, defined at `.claude/agents/migration-advisor.md`) runs after the static layer and produces dissents only when its KB-grounded reasoning disagrees with the static rule. Each dissent carries a `Confidence: HIGH | MEDIUM | LOW` tag — the format is documented at `.claude/agents/migration-advisor.md:97-103` and `:188-200`:
 
 - **HIGH confidence dissent** — The advisor has direct KB support (a specific section in `docs/knowledge-base/migration/`) and the static rule is operating on incomplete signal. Strongly consider overriding the static recommendation.
 - **MEDIUM confidence dissent** — KB pattern is suggestive but the migration-specific data is mixed. Treat as a prompt to investigate, not a directive.
@@ -79,13 +79,11 @@ Two layers of advisory output coexist on every decision: the **static recommenda
 3. **License tier.** Does the override require a license the customer does not have? Workspace tier mismatches are the most common trap — promoting a `Common Area` workspace to `Professional` to gain a feature is meaningless if the order does not include the SKU.
 4. **Scale.** Does the override hit a Webex platform hard limit? Check [`docs/knowledge-base/migration/kb-webex-limits.md`](../../knowledge-base/migration/kb-webex-limits.md) for queue size, hunt-group depth, virtual-line counts per location, and dial-plan pattern limits.
 
-**Escape hatch — ask the advisor.** If after running the checklist you are still uncertain, launch the migration-advisor agent in Q&A mode and ask. The agent can read the same project store you can and will reason from the KB before answering. This is the explicit fallback for cases where the static rule and your gut disagree — see `.claude/agents/migration-advisor.md:213-216`.
+**Escape hatch — ask the advisor.** If after running the checklist you are still uncertain, launch the migration-advisor agent in Q&A mode and ask. The agent can read the same project store you can and will reason from the KB before answering. This is the explicit fallback for cases where the static rule and your gut disagree — see `.claude/agents/migration-advisor.md:216-220`.
 
 ## Decision Types A–Z
 
-<!-- Wave 3 Phase C Task C2: one entry per non-advisory DecisionType. Anchors below are placeholders that the
-     test_decision_type_coverage.py test will validate. Do NOT rename — the verification script depends on
-     the exact slug-form of each DecisionType. Order is alphabetical for findability. -->
+> One entry per non-advisory `DecisionType`, ordered alphabetically. Anchor slugs are validated by `test_decision_type_coverage.py` — do not rename without updating the test.
 
 ### audio-asset-manual
 
@@ -269,12 +267,7 @@ Two layers of advisory output coexist on every decision: the **static recommenda
 
 ## Advisory Patterns
 
-<!-- Wave 3 Phase C Task C3: one entry per advisory pattern in ALL_ADVISORY_PATTERNS, grouped by category.
-     Anchors below match the function name (with detect_ prefix stripped) — verified by
-     test_advisory_pattern_coverage.py. Group order: eliminate / rebuild / out_of_scope / migrate_as_is.
-     Note: 2 patterns have a pattern_name field that differs from their function name
-     (detect_mixed_css → pattern_name "mixed_css_routing_restriction"; detect_intercluster_trunks →
-     "intercluster_trunk_detection"). The anchor uses the function name. -->
+> One entry per advisory pattern in `ALL_ADVISORY_PATTERNS`, grouped by category (eliminate / rebuild / out-of-scope / migrate-as-is). Anchors match the detector function name with the `detect_` prefix stripped, validated by `test_advisory_pattern_coverage.py`. Two patterns have a `pattern_name` field that differs from their function name (`detect_mixed_css` → `mixed_css_routing_restriction`; `detect_intercluster_trunks` → `intercluster_trunk_detection`); the anchor uses the function name in both cases.
 
 ### eliminate
 
@@ -637,7 +630,7 @@ Two layers of advisory output coexist on every decision: the **static recommenda
 
 Dissent flags appear when the `migration-advisor` Opus agent disagrees with the static recommendation produced by `recommendation_rules.py`. The confidence-level semantics are covered in [§Recommendation Confidence and When to Override](#recommendation-confidence-and-when-to-override); this section is the operator field reference for the **two surfaces** the flag renders on — the mid-review terminal prompt and the written migration narrative — and how to act at each decision point.
 
-**Surface 1 — Review-mode terminal prompt.** During per-decision review in `/cucm-migrate` Step 1c (the advisor-led path), a dissented decision appears in Group 2b exactly as defined at `.claude/agents/migration-advisor.md:185-197`:
+**Surface 1 — Review-mode terminal prompt.** During per-decision review in `/cucm-migrate` Step 1c (the advisor-led path), a dissented decision appears in Group 2b exactly as defined at `.claude/agents/migration-advisor.md:188-200`:
 
 ```
 2. [D0048] <one-line summary>
@@ -654,7 +647,7 @@ Dissent flags appear when the `migration-advisor` Opus agent disagrees with the 
 
 The three-option prompt is deliberate — there is no single "take the advisor" default. `Y` (capital, default on bare Enter) accepts the static recommendation; `a` accepts the advisor's alternative option; `s` defers the decision so it stays pending for a later pass. All three resolve via the same `wxcli cucm decide <ID> <option_id> -p <project>` call under the hood — the agent just picks which `option_id` to pass based on the operator's keystroke.
 
-**Surface 2 — Written migration narrative.** When the advisor runs in analysis mode (Step 1b), dissents are also written into `<project>/exports/migration-narrative.md` under the `## Dissent Flags` section in the markdown block format defined at `.claude/agents/migration-advisor.md:91-100`:
+**Surface 2 — Written migration narrative.** When the advisor runs in analysis mode (Step 1b), dissents are also written into `<project>/exports/migration-narrative.md` under the `## Dissent Flags` section in the markdown block format defined at `.claude/agents/migration-advisor.md:97-103`:
 
 ```markdown
 ### Dissent: <Decision ID> - <summary>
@@ -673,7 +666,7 @@ The narrative surface is for reviewing dissents **before** entering per-decision
 - **MEDIUM** — Read the cited KB section (`docs/knowledge-base/migration/<doc>.md`) before answering. The KB pattern is suggestive but the migration-specific data is mixed. If the section's reasoning matches your customer's environment, press `a`; if not, press `Y`. If you cannot decide in under a minute, press `s` and come back after batch-resolving the straightforward decisions.
 - **LOW** — Default to `Y`. The advisor is flagging a *possibility*, not a confident counter-recommendation — usually a pattern that has bitten other migrations but whose signal in this environment is weak. Only press `a` if the advisor's reasoning resonates with something you already know about the customer.
 
-**Q&A escape hatch.** If the dissent is confusing or you need to probe further before pressing a key, the review-mode agent accepts free-form follow-up questions mid-prompt. Per `.claude/agents/migration-advisor.md:213-217`, the agent handles follow-up Q&A by referencing KB docs and pipeline data, tracing downstream impacts of choices, following grounding priority (KB first, heuristics second, training third), and signaling when drawing on training vs KB-grounded knowledge. Type the question in plain English (e.g., `why does the KB say intercluster trunks need LGW termination?` or `what does accepting the advisor alternative do to the 47 dependent decisions on D0048?`) and the agent will answer from KB + pipeline store, then re-present the `Y / a / s` prompt. There is no dedicated keybinding — the Q&A mode is how the agent reacts to any input that is not `Y`, `a`, `s`, or a numeric batch response like `2a`. The escape hatch is also described alongside the override checklist at [§Recommendation Confidence and When to Override](#recommendation-confidence-and-when-to-override) ("Escape hatch — ask the advisor").
+**Q&A escape hatch.** If the dissent is confusing or you need to probe further before pressing a key, the review-mode agent accepts free-form follow-up questions mid-prompt. Per `.claude/agents/migration-advisor.md:216-220`, the agent handles follow-up Q&A by referencing KB docs and pipeline data, tracing downstream impacts of choices, following grounding priority (KB first, heuristics second, training third), and signaling when drawing on training vs KB-grounded knowledge. Type the question in plain English (e.g., `why does the KB say intercluster trunks need LGW termination?` or `what does accepting the advisor alternative do to the 47 dependent decisions on D0048?`) and the agent will answer from KB + pipeline store, then re-present the `Y / a / s` prompt. There is no dedicated keybinding — the Q&A mode is how the agent reacts to any input that is not `Y`, `a`, `s`, or a numeric batch response like `2a`. The escape hatch is also described alongside the override checklist at [§Recommendation Confidence and When to Override](#recommendation-confidence-and-when-to-override) ("Escape hatch — ask the advisor").
 
 **Audit trail.** Every dissent the agent emits cites a specific KB section via the `KB: <doc> section <section name>` tag. Section names normalize to short-form lowercase IDs in the form `dt-<domain>-NNN` — for example `dt-css-005`, `dt-dev-003`, `dt-user-005`, `dt-trunk-002`, `dt-id-001`. The [§Decision Types A–Z](#decision-types-az) and [§Advisory Patterns](#advisory-patterns) sections cite those IDs in their **See also** footers (e.g. `kb-css-routing.md#dt-css-006`), so operators can trace the evidence base the advisor is reasoning from.
 

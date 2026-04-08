@@ -25,8 +25,7 @@
 
 ## config.json: Every Key Explained
 
-<!-- Wave 3 Phase D Task D1: one anchor per DEFAULT_CONFIG key. Anchors below are slug-form (lowercase, hyphenated)
-     and validated by test_config_key_coverage.py. Update both sides if you rename a key. -->
+> One entry per `DEFAULT_CONFIG` key. Anchor slugs are validated by `test_config_key_coverage.py` — update both sides if you rename a key.
 
 ### country-code
 
@@ -125,10 +124,7 @@ See §[Auto-Rules: How They Work, the 7 Defaults, How to Add Your Own](#auto-rul
 
 ## Auto-Rules: How They Work, the 7 Defaults, How to Add Your Own
 
-<!-- Wave 3 Phase D Task D2: one anchor per DEFAULT_AUTO_RULES entry. Anchors are `default-rule-` plus the
-     slug-form of the rule's `type` field, with `-<match-key>-<match-value>` appended when a `match` filter
-     is present (see `default-rule-calling-permission-mismatch-assigned-users-count-0` below).
-     Validated by test_default_auto_rules_coverage.py. -->
+> Anchor convention for the 7 default rules: `default-rule-` plus the slug-form of the rule's `type` field, with `-<match-key>-<match-value>` appended when a `match` filter is present (e.g., `default-rule-calling-permission-mismatch-assigned-users-count-0`). Validated by `test_default_auto_rules_coverage.py`.
 
 **What auto-rules do.** An auto-rule is a declarative shortcut that resolves a pending decision at pipeline load-time, before that decision ever reaches the human decision-review queue. Each rule is a small dict with a `type` (matching a `DecisionType` value), an optional `match` block (structural filter against the decision's `context`), and a `choice` (the option ID the rule should select). When `apply_auto_rules()` runs during `wxcli cucm analyze`, it walks every unresolved decision, finds the first rule whose `type` and `match` match, validates that `choice` is a real option ID, and resolves the decision with `resolved_by = "auto_rule"`. The decision then disappears from `wxcli cucm decisions list` and review.
 
