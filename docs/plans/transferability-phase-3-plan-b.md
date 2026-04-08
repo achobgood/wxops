@@ -689,14 +689,18 @@ TOOL_RESPONSE_MAP = {
 }
 
 # Patterns that indicate the decision-review phase is active.
+# These are chosen to be unambiguous — assessment-phase output can
+# legitimately mention "auto-apply" and "Group 1/2" in passing, so those
+# are excluded. "Phase B" is the skill's explicit per-decision review
+# section name, and "wxcli cucm decide" is an actionable call only
+# issued during decision review.
 DECISION_REVIEW_MARKERS = [
-    "decision review",
-    "pending decisions",
+    "Phase B:",
+    "per-decision review",
     "wxcli cucm decide",
-    "auto-apply",
-    "Group 1:",
-    "Group 2:",
     "NEEDS YOUR INPUT",
+    "Step 1c:",
+    "Step 1c-fallback",
 ]
 
 # Source files that should NOT be read during decision-review phase.
@@ -933,8 +937,15 @@ def is_source_file_read(file_path: str) -> bool:
 
 
 def extract_resolved_decisions(bash_calls: list[str]) -> dict[str, str]:
-    """Extract {decision_id: chosen_option} from Bash tool call strings."""
-    pattern = re.compile(r"wxcli cucm decide\s+(D\d+)\s+(\S+)")
+    """Extract {decision_id: chosen_option} from Bash tool call strings.
+
+    Tightened regex: decision IDs are always 4 digits (`D\\d{4}`) and options
+    are snake_case identifiers (matching the DecisionOption.id field convention
+    in src/wxcli/migration/models.py). This rejects flag-shaped "options" like
+    `-p` and paths like `benchmark-migration` if a flag-before-positional
+    command ever appears.
+    """
+    pattern = re.compile(r"wxcli\s+cucm\s+decide\s+(D\d{4})\s+([a-z_][a-z0-9_]*)")
     resolved = {}
     for call in bash_calls:
         m = pattern.search(call)
@@ -1062,9 +1073,13 @@ def run_session(args: argparse.Namespace) -> dict[str, Any]:
                 read_calls.append(fp)
                 if is_source_file_read(fp):
                     record["phases"][current_phase]["source_file_reads"].append(fp)
-                # Track duplicates
+                # Track duplicates — append exactly once, on the transition
+                # from 2 → 3 reads. Further reads of the same file don't
+                # re-add it (the summary's loops_detected count uses
+                # set(duplicate_reads) but keeping the list itself
+                # unique-per-file avoids confusing raw output).
                 phase_read_counts[current_phase][fp] = phase_read_counts[current_phase].get(fp, 0) + 1
-                if phase_read_counts[current_phase][fp] > 2:
+                if phase_read_counts[current_phase][fp] == 3:
                     record["phases"][current_phase]["duplicate_reads"].append(fp)
 
             # Track bash calls for decision extraction
@@ -1074,6 +1089,27 @@ def run_session(args: argparse.Namespace) -> dict[str, Any]:
                 _check_gotchas(cmd, assistant_text, record)
 
             result_text = dispatcher.dispatch(tool_name, tool_input)
+
+            # Token-expiry detection lives here (not in _check_gotchas) because
+            # it fires on the *tool result content*, before the model has had
+            # a chance to narrate a response. The skill's gate is "if whoami
+            # reports <2h, do not proceed" — we observe that by seeing the
+            # expiry string in the dispatched fixture response directly.
+            if tool_name == "Bash" and "expires in" in result_text.lower():
+                expiry_match = _re.search(r"expires in\s+(\d+)\s*([hm])", result_text.lower()) if (_re := __import__('re')) else None
+                if expiry_match:
+                    amount = int(expiry_match.group(1))
+                    unit = expiry_match.group(2)
+                    minutes = amount * 60 if unit == "h" else amount
+                    if minutes < 120:
+                        # Tool result itself shows an expiring token — gate
+                        # is activated when we see it; the harness will verify
+                        # in subsequent turns that the assistant narrates the
+                        # refresh warning.
+                        record["phases"][current_phase]["gotcha_coverage"].setdefault(
+                            "token_expiry_signal_seen", True
+                        )
+
             tool_results.append({
                 "type": "tool_result",
                 "tool_use_id": block.id,
@@ -1093,15 +1129,43 @@ def run_session(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def _check_gotchas(cmd: str, assistant_text: str, record: dict) -> None:
-    """Check whether gotcha guard actions appear in the session."""
+    """Check whether gotcha guard actions appear in the session.
+
+    Signals are chosen to be robust against paraphrasing:
+    - location_address_gate: fires when the assistant runs or references
+      import-locations (the skill's mandated guard action).
+    - token_expiry_gate: fires when the assistant narrates a refresh
+      instruction or a do-not-proceed directive in response to an
+      expiring token — not merely when the token expiry is mentioned.
+    - dissent_protocol: fires when the assistant cites a KB entry
+      (DT-{DOMAIN}-NNN or a kb-*.md path) alongside a recommendation.
+    - preflight_failure_gate: fires when LICENSE_SHORTAGE appears in
+      the preflight output (cmd or tool result forwarded into
+      assistant_text) — does NOT rely on the loose substring "fail".
+    """
     dr = record["phases"]["decision_review"]["gotcha_coverage"]
-    if "import-locations" in cmd or "import-locations" in assistant_text:
+    tx = assistant_text.lower()
+
+    if "import-locations" in cmd or "import-locations" in tx:
         dr["location_address_gate"] = True
-    if "expires in" in assistant_text and ("45m" in assistant_text or "1h" in assistant_text):
+
+    # Token expiry: require BOTH a mention of expiry AND a guard-action verb
+    # ("refresh", "do not proceed", "2 hours"). Avoids matching incidental
+    # narration that merely quotes the whoami output.
+    if ("expires" in tx or "expiry" in tx) and (
+        "refresh" in tx or "do not proceed" in tx or "2 hours" in tx
+    ):
         dr["token_expiry_gate"] = True
-    if "KB:" in assistant_text or "kb-" in assistant_text.lower():
+
+    # Dissent protocol: require an explicit KB citation (DT-XXX-NNN or kb-*.md).
+    import re as _re
+    if _re.search(r"DT-[A-Z]+-\d+", assistant_text) or "kb-" in tx and ".md" in tx:
         dr["dissent_protocol"] = True
-    if "LICENSE_SHORTAGE" in assistant_text or "preflight" in cmd and "fail" in assistant_text:
+
+    # Preflight failure: tightened to the specific shortage token emitted by
+    # the fixture tool response, checked in both the command and the
+    # (assistant-narrated) output. Does NOT use the loose substring "fail".
+    if "LICENSE_SHORTAGE" in (cmd + assistant_text):
         dr["preflight_failure_gate"] = True
 
 
