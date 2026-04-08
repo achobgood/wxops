@@ -287,10 +287,10 @@ The migration complexity score (`wxcli cucm report`) is a 0-100 number computed 
 | Decision Density | 15 | Unresolved decisions per total object, log-scaled. Captures "how much hand-tuning the operator still owes" rather than absolute count. |
 | Scale | 10 | `log10(user_count) * 10`, capped at 100. Deliberately log-scaled so a 5,000-user customer doesn't flatten the rest of the score. |
 | Shared Line Complexity | 10 | Sum of `shared_line` objects and `SHARED_LINE_COMPLEX` decisions. Webex shared-line semantics are looser than CUCM's, and every shared line is a manual review. |
-| Phone Config Complexity | 8 | Button-template / softkey / per-line override volume — the Tier 2 phone-config pipeline producers. |
+| Phone Config Complexity | 8 | Button-template count, KEM-equipped layouts, unmapped button types, and softkey template count — the Tier 2 phone-config pipeline producers. |
 | Routing Complexity | 5 | Trunks + route groups + translation patterns. Lowest weight because the routing pipeline is mostly mechanical once trunks are designed. |
 
-The weights are listed here in the same order as the dict; their sum (100) is enforced by the test suite.
+The weights are listed here ordered by weight descending (matching the report's own factor bars, which sort by descending score); their sum (100) is enforced by the test suite.
 
 ### What `SCORE_CALIBRATED = False` Means
 
@@ -304,7 +304,7 @@ The disclaimer is a `callout info` block that appears immediately below the scor
 
 When sufficient real-migration data exists to fit the weights against actual operator effort. "Sufficient" means: enough completed migrations have been logged with both a headline score and an actual-hours record for a statistical fit between the eight factor inputs and reported effort to be meaningful. Once that fit produces weight adjustments that the team accepts, edit `WEIGHTS` and flip `SCORE_CALIBRATED` to `True` in the same commit.
 
-What calibration would look like: a regression (or comparable statistical fit) between the eight factor raw scores and operator-reported effort hours across N completed migrations, where the residuals are small enough to justify replacing the design-time weights. The methodology — what fit to use, what N is large enough, how to handle outliers — is **out of scope for this runbook** (per spec D9). This section only documents the flag, the factors, and where the disclaimer renders.
+What calibration would look like: a statistical comparison between the eight factor raw scores and operator-reported effort hours across N completed migrations, sufficient to show the weights produce predictions whose residuals are small enough to justify replacing the design-time defaults. The methodology — what fit to use, what N is large enough, how to handle outliers — is **out of scope for this runbook** (per spec D9). This section only documents the flag, the factors, and where the disclaimer renders.
 
 ### Where Calibration Data Comes From
 
@@ -324,7 +324,7 @@ The pipeline exposes a deliberate, narrow tuning surface. Anything not listed un
 
 - **Severity is NOT tunable.** Severity (`HIGH` / `MEDIUM` / `LOW`) is set by the producing mapper or analyzer at decision-creation time — for example `MissingDataAnalyzer._highest_severity()` at `src/wxcli/migration/transform/analyzers/missing_data.py:135`. There is no config key, no rule, and no CLI flag that re-grades severity after the fact. This is a documented limitation, not a bug: severity reflects the technical impact of the underlying CUCM artifact, not the operator's appetite for risk on a given migration. If a class of decisions is consistently mis-graded, that's a code change to the producer, not a tuning knob.
 - **Score weights are tunable in code, NOT via `config.json`.** The `WEIGHTS` dict at `src/wxcli/migration/report/score.py:17` is intentionally code-only. Weights are a calibration artifact that should change exactly once — when sufficient real-migration data exists to fit them — not per-project, not per-customer, and not as a knob to make a particular score look better. See [§Score Weights and the Calibration Disclaimer](#score-weights-and-the-calibration-disclaimer) for the full rationale.
-- **`SCORE_CALIBRATED` is tunable only by flipping the flag in code.** It lives at `src/wxcli/migration/report/score.py:50`. Flipping it from `False` to `True` removes the uncalibrated disclaimer from every subsequent report and is a one-way claim about the trustworthiness of the score. **Don't flip it speculatively** — the flip should land in the same commit as the calibrated weights and should be backed by the regression evidence described in [§When to Recalibrate](#when-to-recalibrate).
+- **`SCORE_CALIBRATED` is tunable only by flipping the flag in code.** It lives at `src/wxcli/migration/report/score.py:50`. Flipping it from `False` to `True` removes the uncalibrated disclaimer from every subsequent report and is a one-way claim about the trustworthiness of the score. **Don't flip it speculatively** — the flip should land in the same commit as the calibrated weights and should be backed by the calibration evidence described in [§When to Recalibrate](#when-to-recalibrate).
 - **`DecisionType` options are NOT tunable.** The set of choices presented for a decision (e.g. `provide_data` / `skip` / `manual` for `MISSING_DATA`) is hardcoded in the producing module's option-generation logic — for `MISSING_DATA`, see `analyzers/missing_data.py:149-165`. There is no config to add, remove, or rename options. If a new option is needed, it's a code change to the producer (and almost always needs a matching `recommend_*` rule and an advisory pattern, so it's not a small change).
 
 The dividing line: **per-project knobs go in `config.json`**, **per-migration overrides go through `wxcli cucm decide`**, and **everything that affects how decisions are graded or what choices exist requires a code change**. That separation is why the tuning surface stays small enough to reason about across hundreds of migrations.
@@ -438,16 +438,238 @@ Note that `missing_fields` is a list in the context — the auto-rule engine's p
 ## Tuning Recipes
 
 ### Recipe 1: Small SMB, single location, 10–50 users
-_TBD — Wave 3 Phase D Task D6_
+
+This is the *baseline* recipe — it documents what the defaults assume. If your customer matches the characteristics below, you do not need to touch `config.json`; the 7 default auto-rules (see §[Auto-Rules](#auto-rules-how-they-work-the-7-defaults-how-to-add-your-own)) cover everything that can be resolved automatically, and the review queue will be short enough to walk through in a single sitting.
+
+**Source environment characteristics:**
+- Single CUCM device pool (or 1 real + 1 stray "Default" pool).
+- 10–50 end users, 10–50 phones (classic 7800/8800 MPP or convertible SKUs — no SCCP-only units).
+- Minimal CSS complexity: 1–3 CSSes, no partition ordering dependencies, blocking patterns limited to the standard 900/976/international prefixes.
+- No hunt lists, or 1–2 small hunt lists (< 10 agents each, Top Down or Circular algorithm, no queuing features).
+- No multi-site routing, no intercluster trunks, no analog fax gateway farms.
+- One SIP trunk to PSTN (CCPP or a single LGW).
+
+**Config knobs to set:** none beyond `country_code` / `default_language` / `default_country` for non-NANP customers (see §[config.json](#configjson-every-key-explained)).
+```json
+{
+  "country_code": "+1",
+  "default_language": "en_us",
+  "default_country": "US"
+}
+```
+
+**Auto-rules to add or remove:** the 7 defaults — no additions, no removals. All of them are relevant at SMB scale and none of them hide signal the operator needs to see at this size.
+
+**Decisions to expect:**
+- `DEVICE_FIRMWARE_CONVERTIBLE`: auto-resolved to `convert` for every convertible-SKU phone (typically the full device fleet).
+- `DEVICE_INCOMPATIBLE`: 0–2 stragglers if any — auto-resolved to `skip`.
+- `BUTTON_UNMAPPABLE`: 0–10 per phone if button templates use service URLs — auto-resolved to `accept_loss`.
+- `SNR_LOSSY`: 0–3 for users with CUCM Single Number Reach — auto-resolved to `accept_loss`.
+- `LOCATION_AMBIGUOUS`: 1–2 decisions if CUCM has a stray device pool for infrastructure (CTI manager, CUBE) — needs manual resolution.
+- `FEATURE_APPROXIMATION`: 0–1 if the customer has a small hunt list — usually auto-recommended but still reaches review for operator sign-off.
+
+**Advisory patterns likely to fire:**
+- `location_consolidation`: almost always fires — the single-device-pool source collapses into a single Webex location. Accept the advisory and move on.
+- `restriction_css_consolidation`: fires when the customer has CUCM-style block CSSes (a `Block_900` partition pinned to every non-exec user). Accept → the blocks become a Webex calling permission policy.
+
+**Manual verification post-migration:**
+- Place a test call from one migrated user to another (internal dial plan + E.164).
+- Place an outbound call to the PSTN through the trunk and verify CPN.
+- Leave a voicemail for a migrated user and confirm delivery + email notification.
+- Confirm the hunt list (if present) rings the expected agents in the expected order.
+
+**See also:** [`dt-dev-001`](decision-guide.md#device-incompatible) · [`dt-dev-002`](decision-guide.md#device-firmware-convertible) · [`dt-dev-003`](decision-guide.md#button-unmappable) · [`dt-user-002`](decision-guide.md#snr-lossy) · [`dt-loc-001`](decision-guide.md#location-ambiguous) · [`location-consolidation`](decision-guide.md#location-consolidation) · [`restriction-css-consolidation`](decision-guide.md#restriction-css-consolidation)
 
 ### Recipe 2: Hunt-list / call-queue heavy migration
-_TBD — Wave 3 Phase D Task D6 (the highest-frequency live decision type — see spec D5)_
+
+This is the recipe for the highest-frequency live decision type. `FEATURE_APPROXIMATION` for hunt pilots is what most real customer migrations spend the most operator time on, because the CUCM-to-Webex mapping is judgment-laden (`hunt_group` vs `call_queue`), the routing-type cap (`SIMULTANEOUS` ≤ 50 agents) is enforced post-migration not pre-migration, and the 5–8 agent ambiguous band is genuinely a coin-flip on the static recommendation. Recipe 2 tunes that pipeline to autoresolve the obvious cases and leave the genuinely-ambiguous ones for the human.
+
+**Source environment characteristics:**
+- 30+ hunt lists (CUCM HuntPilot → HuntList → LineGroup chains).
+- Mixed distribution algorithms — some `Top Down` / `Circular`, some `Broadcast` (which maps to Webex `SIMULTANEOUS`), occasionally `Longest Idle Time`.
+- Agent counts ranging 4–100 per group; at least one queue near or above the 50-agent simultaneous cap.
+- A subset of the hunt lists have queueing features enabled (`queueCalls.enabled=true`, `maxCallersInQueue > 0`, overflow destinations set, voicemail-on-no-answer) — these classify as Webex Call Queues, not Hunt Groups.
+- A subset are reception-style (small, no queue features, single forwarding fallback) — these classify as Hunt Groups.
+- Often paired with one or two CTI Route Points used as IVR-style auto-attendants.
+
+**Config knobs to set:** `country_code` / `default_language` / `default_country` as appropriate for the customer. `category_rules` only if the customer has a non-standard blocking-pattern dial plan that the default heuristic miscategorizes.
+```json
+{
+  "country_code": "+1",
+  "default_language": "en_us",
+  "default_country": "US",
+  "category_rules": [
+    {"cucm_pattern": "9.1900[2-9]XXXXXX", "webex_category": "premium"}
+  ]
+}
+```
+
+**Auto-rules to add or remove:** add type-only or `reason`-discriminated rules for the obvious cases. **Read the drift note below before copying this.**
+```json
+[
+  {"type": "FEATURE_APPROXIMATION",
+   "match": {"reason": "agent_limit_exceeded", "policy": "SIMULTANEOUS"},
+   "choice": "manual"},
+  {"type": "FEATURE_APPROXIMATION",
+   "match": {"reason": "cti_rp_to_auto_attendant"},
+   "choice": "accept"}
+]
+```
+
+**Drift note — verify match fields against the producer.** The plan that committed this recipe suggested matching on `algorithm`, `agent_count_lte`, and `has_queue_features`, but **none of those fields are placed on the `FEATURE_APPROXIMATION` decision context by `feature_mapper.py`**. `has_queue_features` is a local variable in `_classify_hunt_pilot()` that drives the `HUNT_GROUP` vs `CALL_QUEUE` classification *before* the decision is even created. `algorithm` is the CUCM string ("Top Down", "Broadcast") but only `policy` (the mapped Webex form: `SIMULTANEOUS`, `REGULAR`, `CIRCULAR`, `UNIFORM`, `WEIGHTED`) is stored in context. The fields that *are* on the hunt-pilot agent-limit-exceeded decision context are `hunt_pilot_id`, `name`, `policy`, `agent_count`, `agent_limit`, and `reason="agent_limit_exceeded"`. For the CTI RP → AA decision, the fields are `cti_rp_id`, `name`, `has_script`, and `reason="cti_rp_to_auto_attendant"`. Match against those, not against the spec fields. The example above uses `reason` + `policy` because those are the discriminators that actually exist on the decision context. <!-- Verified against feature_mapper.py:289-296 (hunt) and :531-536 (CTI RP) on 2026-04-07 -->
+
+**Decisions to expect:**
+- `FEATURE_APPROXIMATION`: 20–40 total. The two rules above auto-resolve the agent-limit-on-Simultaneous cases (to manual-review) and the CTI-RP-to-AA cases (to accept). Roughly 5–10 are left for manual resolution — usually the 5–8 agent hunt lists that sit in the genuinely-ambiguous `hunt_group` vs `call_queue` band where `recommend_feature_approximation` returns `None`.
+- `MISSING_DATA`: a handful — most often hunt list agents whose DN cannot be resolved to a user (the line was never assigned).
+- `LOCATION_AMBIGUOUS`: 1–3 if hunt pilot agents span device pools.
+- `EXTENSION_CONFLICT`: 0–2 if hunt pilot DNs collide with user DNs across CUCM partitions.
+
+**Advisory patterns likely to fire:**
+- `hunt_pilot_reclassification`: fires loudly. The cross-cutting advisor groups all hunt pilots with queue-like behavior and recommends the `call_queue` rebuild path. Accept this advisory before walking the per-decision queue.
+- `partition_time_routing`: fires when hunt lists use time-of-day CSS swaps to switch agent groups during business hours. Accept and rebuild as Webex AA business-hours schedules.
+- `cumulative_virtual_line_consumption`: may fire if hunt list members include shared lines treated as monitoring-only — those become virtual extensions and add up against the org-wide cap.
+
+**`DT-LIMITS-001` will likely fire** for any queue with `agent_count > 50` whose CUCM algorithm maps to Simultaneous routing. The migration advisor flags it as a routing-type constraint rather than a hard reject — the operator must either split the queue into ≤50-agent shards with overflow chains, or switch the routing type to `WEIGHTED` (≤100 agents) / `CIRCULAR` / `REGULAR` / `UNIFORM` (≤1,000 agents). See [`docs/knowledge-base/migration/kb-webex-limits.md#dt-limits-001-cq-agent-count-exceeds-simultaneous-limit`](../../knowledge-base/migration/kb-webex-limits.md#dt-limits-001-cq-agent-count-exceeds-simultaneous-limit).
+
+**Manual verification post-migration:**
+- For each migrated hunt group: confirm the routing algorithm was preserved (Top Down → REGULAR, Broadcast → SIMULTANEOUS, etc.) and that first-ring lands on the expected agent.
+- For each migrated call queue: confirm the overflow chain (queue-full destination, max-wait-time destination, no-agent destination) routes correctly.
+- For any queue split because of `DT-LIMITS-001`: confirm each shard's agent set is disjoint and that the overflow chain ties them together as intended.
+- Confirm CTI RP → AA migrations have working business-hours and after-hours menus, and that the operator transfer key (`0`) reaches the expected destination.
+
+**See also:** [`dt-feat-001`](decision-guide.md#feature-approximation) · [`dt-data-001`](decision-guide.md#missing-data) · [`dt-loc-001`](decision-guide.md#location-ambiguous) · [`hunt-pilot-reclassification`](decision-guide.md#hunt-pilot-reclassification) · [`partition-time-routing`](decision-guide.md#partition-time-routing) · [`cumulative-virtual-line-consumption`](decision-guide.md#cumulative-virtual-line-consumption)
 
 ### Recipe 3: CSS-heavy customer with strict partition ordering
-_TBD — Wave 3 Phase D Task D6_
+
+CSS routing is the archetypal "context too variable" decision class. CUCM CSSes resolve overlapping route patterns by *partition order*; Webex Calling does not have partition-order semantics — it uses longest-match routing across the entire dial plan. When the customer's CUCM dial plan depends on partition ordering (e.g., a more-specific allow-pattern in an early partition is intentionally shadowing a broader block-pattern in a later partition), the migration cannot preserve that behavior automatically. Recipe 3 keeps the auto-rules off this surface entirely and steers the operator into the manual partition-decomposition workflow.
+
+**Source environment characteristics:**
+- 10+ CSSes, often dozens, with overlapping membership across user populations.
+- Partitions whose ordering inside a CSS is load-bearing — removing or reordering one would change which route pattern wins for at least one DN.
+- At least one `CSS_ROUTING_MISMATCH` decision expected from `CSSMapper` or `CSSRoutingAnalyzer`.
+- Often paired with restriction-style CSSes (block-only) and per-user CSS overrides for executive/operator profiles.
+- CUCM-style "allow then block" patterns where the same prefix appears in two partitions with different translation rules.
+
+**Config knobs to set:** defaults. CSS handling is downstream of the standard `country_code` / `default_country` keys; the CSS-heavy structure does not have its own config knob.
+```json
+{
+  "country_code": "+1",
+  "default_country": "US"
+}
+```
+
+**Auto-rules to add or remove:** **none**. Do not add auto-rules for `CSS_ROUTING_MISMATCH`, `CALLING_PERMISSION_MISMATCH`, or any CSS-related type. The §[14 Non-Auto-Ruled DecisionTypes](#the-14-non-auto-ruled-decisiontypes-and-why) table classifies CSS_ROUTING_MISMATCH as "context too variable" precisely for this case — partition ordering dependencies differ by CSS, and a single rule cannot capture the difference between a benign overlap and a load-bearing one. Leave the populated case of `CALLING_PERMISSION_MISMATCH` alone too; the default rule narrowly handles only `assigned_users_count == 0`.
+
+**Decisions to expect:**
+- `CSS_ROUTING_MISMATCH`: several — one per CSS with branching logic. Each one names the competing patterns and the CSS's intended ordering.
+- `CALLING_PERMISSION_MISMATCH`: 0–N depending on how many CSSes have populated assignments. Each one needs the operator to classify the underlying block patterns into Webex categories.
+- `MISSING_DATA`: occasionally — if a CSS references a partition that no longer exists or a route pattern with a stale destination.
+
+**Advisory patterns likely to fire:**
+- `partition_ordering_loss` (CRITICAL): fires when at least one CSS depends on partition ordering to resolve overlapping patterns. This is the headline finding for a CSS-heavy migration. Accept the advisory and treat the resulting decision queue as a manual partition decomposition.
+- `restriction_css_consolidation`: fires when block-only CSSes are detected. These can become Webex calling permission policies instead of dial plans — the rebuild path is straightforward.
+- `overengineered_dial_plan`: fires when CUCM patterns match what Webex's built-in extension routing would do anyway — those patterns can be eliminated outright.
+- `mixed_css_routing_restriction`: fires when a single CSS contains both routing patterns and restriction patterns — the operator should split the CSS into two Webex constructs (a dial plan + a calling permission policy).
+
+**Manual verification post-migration:**
+- For each `CSS_ROUTING_MISMATCH` decision the operator resolved manually: place test calls that exercise both sides of the overlap (the more-specific pattern and the broader pattern) and confirm each call routes to the intended destination.
+- For each block-only CSS that became a calling permission policy: place outbound test calls to the blocked categories from a member user and confirm the block.
+- Audit the final Webex dial plan against the source CUCM partition list — every CUCM pattern that survived should have a clear Webex equivalent, and every pattern that was eliminated should be documented as either redundant-with-extension-routing or intentionally-dropped.
+- Verify per-user CSS overrides for executive/operator profiles came through as the right Webex calling permission tier, not silently flattened to the org default.
+
+**See also:** [`dt-css-001`](decision-guide.md#css-routing-mismatch) · [`dt-css-002`](decision-guide.md#calling-permission-mismatch) · [`partition-ordering-loss`](decision-guide.md#partition-ordering-loss) · [`restriction-css-consolidation`](decision-guide.md#restriction-css-consolidation) · [`overengineered-dial-plan`](decision-guide.md#overengineered-dial-plan) · [`mixed-css`](decision-guide.md#mixed-css)
 
 ### Recipe 4: Cert-based trunk customer
-_TBD — Wave 3 Phase D Task D6_
+
+Trunk type is immutable after creation in Webex Calling — you cannot convert a Cloud Connected PSTN trunk into a Local Gateway trunk after the fact, and the cert-based authentication chain has to be planned before the trunk is provisioned. Recipe 4 keeps every trunk-related decision in the manual review queue and leans on the cross-cutting advisory patterns to surface the architecture conversation early.
+
+**Source environment characteristics:**
+- At least one CUCM SIP trunk configured with TLS + X.509 cert authentication.
+- Cert chain terminates either at an upstream carrier (cert-based SIP trunking — Verizon, BT, Telia), at another CUCM cluster (intercluster trunk / ICT), or at a partner-managed CUBE deployment fronting the carrier.
+- Often paired with secure SRTP, secure profiles on phone configurations, and a CTL/ITL trust chain that the customer is responsible for migrating to whatever Webex requires post-cut.
+- May involve `CallManager-trust` certs that have to be re-issued under a Webex-compatible CA.
+
+**Config knobs to set:** defaults. Trunk authentication does not have a config-knob — every trunk must be reviewed manually because the cert chain, upstream peer, and routing intent are customer-specific.
+```json
+{
+  "country_code": "+1",
+  "default_country": "US"
+}
+```
+
+**Auto-rules to add or remove:** **none**. Trunk creation cannot be auto-resolved. The §[14 Non-Auto-Ruled DecisionTypes](#the-14-non-auto-ruled-decisiontypes-and-why) framing — "no safe single answer" — applies in spirit even though the formal decision type is `ARCHITECTURE_ADVISORY` rather than a per-decision producer. Adding an auto-rule for any trunk-adjacent type would suppress the architectural conversation that has to happen before the migration can ship.
+
+**Decisions to expect:**
+- Trunk creation decisions emitted by `RoutingMapper`: each SIP trunk is mapped to either a Local Gateway trunk (`LGW`) or a Cloud Connected PSTN trunk (`CCPP`) based on the customer's chosen architecture. The mapper raises a decision when the source CUCM trunk does not give an unambiguous signal.
+- `MISSING_DATA`: at minimum the trunk password — `recommend_missing_data` returns `generate` for trunk passwords, but the operator must accept the generated value before execution.
+- `ARCHITECTURE_ADVISORY` decisions from the trunk-related advisory patterns (see below). These are bulk-acceptable through the Phase A advisory review.
+- `FEATURE_APPROXIMATION` from `routing_mapper.py:471` if any source route pattern uses the `@` macro (national numbering plan) — the cert-trunk customer is more likely than average to have one.
+
+**Advisory patterns likely to fire:**
+- `pstn_connection_type` (CRITICAL): classifies the trunk topology into Local Gateway, Cloud Connected PSTN, or Premises-based PSTN. **This pattern drives the entire Webex routing architecture for the customer** — accept it before walking any individual trunk decision.
+- `trunk_type_selection`: per-trunk Layer 1 advisory that flags each cert-bearing SIP trunk and surfaces the LGW vs CCPP question per trunk.
+- `intercluster_trunk_detection`: fires when at least one trunk terminates at another CUCM cluster (ICT). Webex has no direct ICT analog — the migration design has to either keep the second cluster on CUCM, migrate it together, or replace ICT with a SIP trunk-of-trunks topology.
+- `trunk_destination_consolidation`: fires when multiple CUCM trunks point to the same upstream destination. Webex usually wants a single trunk per destination; the rebuild path collapses them.
+
+**Manual verification post-migration:**
+- TLS handshake: confirm the new Webex trunk completes a TLS handshake against the upstream peer using the migrated/re-issued cert chain.
+- Cert chain validation: walk the chain end-to-end and confirm each intermediate cert is loaded into the appropriate trust store on both sides.
+- Outbound call routing: place a call from a migrated user out through the trunk and confirm the call reaches the destination with the expected CPN.
+- Inbound call routing: have someone outside the customer's network call a migrated DID and confirm the call lands on the correct migrated user.
+- ICT verification (if applicable): place a call from the migrated org to a remaining CUCM cluster and confirm bidirectional reachability.
+
+**See also:** [`dt-data-001`](decision-guide.md#missing-data) · [`dt-feat-001`](decision-guide.md#feature-approximation) · [`pstn-connection-type`](decision-guide.md#pstn-connection-type) · [`trunk-type-selection`](decision-guide.md#trunk-type-selection) · [`intercluster-trunks`](decision-guide.md#intercluster-trunks) · [`trunk-destination-consolidation`](decision-guide.md#trunk-destination-consolidation)
 
 ### Recipe 5: Analog-gateway-heavy customer
-_TBD — Wave 3 Phase D Task D6_
+
+Analog endpoints — fax lines, paging amps, modems, alarm panels, lobby phones, elevator phones, emergency POTS — never migrate to Webex Calling natively. They require either an ATA (ATA 192/194) on the Webex side or a residual on-prem analog gateway that fronts the migrated environment. Recipe 5 calibrates expectations: most of the analog inventory will get auto-skipped by the default `DEVICE_INCOMPATIBLE → skip` rule, the cross-cutting advisor will surface a bulk-upgrade plan, and the operator's job is to make sure none of the silently-skipped endpoints are load-bearing for life-safety, compliance, or daily operations.
+
+**Source environment characteristics:**
+- VG204 / VG310 / VG350 / VG450 analog gateway chassis at one or more sites.
+- ATA 190 / 192 / 194 endpoints on individual desks or in fax rooms.
+- At least one Cisco IOS gateway with FXS/FXO ports (often a 2900-series or ISR with voice modules) running MGCP, SCCP, or H.323.
+- Analog fax lines with carrier-side fax routing.
+- POTS lines for emergency response (elevators, hood vents in restaurants, refrigerated medical storage), often regulated.
+- Possibly a CER (Cisco Emergency Responder) deployment that has to migrate to a separate workstream.
+
+**Config knobs to set:** defaults. The analog inventory is handled entirely through `DeviceCompatibilityAnalyzer` and the device-bulk-upgrade advisory; there is no analog-specific config knob.
+```json
+{
+  "country_code": "+1",
+  "default_country": "US"
+}
+```
+
+**Auto-rules to add or remove:** the default `DEVICE_INCOMPATIBLE → skip` rule (see [§default-rule-device-incompatible](#default-rule-device-incompatible)) handles the analog gateway inventory automatically. **Decide deliberately whether to keep it or remove it for this customer.**
+- **Keep it (default):** every VG/ATA/FXS-port endpoint resolves to `skip`, the assessment lands on a clean migration plan, and the analog inventory is treated as a separate replacement track. This is the right call when the customer is consciously decommissioning analog infrastructure on a different timeline from the Webex cutover.
+- **Remove it:** every analog endpoint reaches the decision-review queue. The operator can attach a per-endpoint replacement (e.g., ATA 192) or explicitly mark each one as "out of scope, retain on legacy gateway." This is the right call when the customer wants every analog endpoint accounted for in the migration record (compliance audits, life-safety inventories, partner-handoff documentation).
+```json
+{
+  "auto_rules": [
+    // remove the default DEVICE_INCOMPATIBLE rule for this customer
+    // by NOT including it; the other 6 defaults still apply.
+  ]
+}
+```
+
+**Decisions to expect:**
+- `DEVICE_INCOMPATIBLE`: many — typically every FXS port and every analog gateway chassis. Auto-resolved to `skip` by default; reaches review if you removed the default rule.
+- `LOCATION_AMBIGUOUS`: a handful — analog gateways often live in network closets without a clean device pool, and the auto-resolution falls through to the operator.
+- `VOICEMAIL_INCOMPATIBLE`: 0–N depending on whether the analog gateway hosts voicemail pilots (Unity Connection IP-to-analog hops, fax-to-email bridges).
+- `MISSING_DATA`: occasionally for analog endpoints whose CUCM device record is partially populated (no `description`, no `devicePoolName`).
+- `BUTTON_UNMAPPABLE`: not relevant — analog endpoints don't have line keys.
+
+**Advisory patterns likely to fire:**
+- `device_bulk_upgrade`: groups all incompatible devices by model and produces a refresh plan with replacement options. For analog-heavy customers, this is the headline finding — accept the advisory and use the produced model breakdown as the procurement input for the customer's hardware refresh.
+- `legacy_gateway_protocols` (Layer 1): fires if the source CUCM has gateways running MGCP, SCCP, or H.323. Webex Calling does not support those protocols at all — the customer must replace the chassis or terminate the protocols at a CUBE before reaching Webex.
+- `e911_migration_flag`: often fires for analog-heavy customers because analog POTS is the most common emergency-line topology. E911 is always a separate workstream — accept the advisory and route the work to whoever owns RedSky / Intrado integration for the customer.
+- `media_resource_scope_removal`: may fire if the analog gateway also serves as a transcoder or conference media resource — those scopes do not migrate; Webex handles media in the cloud.
+
+**Manual verification post-migration:**
+- Place a fax test call from each migrated fax line and confirm the fax handshake completes through whatever the new endpoint is (ATA 192, residual analog gateway, fax-to-email service).
+- Place an emergency POTS line test (with the customer's safety officer / building management present) on at least one elevator and one hood-vent / freezer / alarm circuit.
+- Place an analog phone test from each surviving analog endpoint and confirm dial tone, two-way audio, and DTMF.
+- Sign-off on the analog gateway replacement plan from the customer — what hardware is being procured, on what timeline, who owns the cutover, and what remains in service after Webex go-live.
+- E911 verification: confirm with whoever owns the E911 workstream that the analog endpoints are accounted for in the post-migration emergency-routing plan.
+
+**See also:** [`dt-dev-001`](decision-guide.md#device-incompatible) · [`dt-loc-001`](decision-guide.md#location-ambiguous) · [`dt-user-003`](decision-guide.md#voicemail-incompatible) · [`device-bulk-upgrade`](decision-guide.md#device-bulk-upgrade) · [`legacy-gateway-protocols`](decision-guide.md#legacy-gateway-protocols) · [`e911-migration-flag`](decision-guide.md#e911-migration-flag) · [`media-resource-scope-removal`](decision-guide.md#media-resource-scope-removal)
