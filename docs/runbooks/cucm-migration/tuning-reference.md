@@ -423,17 +423,27 @@ So `object_type` is a real, matchable context key. Add this rule to `config.json
 
 Then re-run analyze (or `wxcli cucm decide --apply-auto -p mig-acme` to replay the rules without a full re-analyze) and all 30 decisions resolve in one pass. The rule travels with the project: a follow-up run after a CUCM re-discovery still resolves the same class automatically, and the operator's review queue stays focused on decisions that actually need a human.
 
-A more conservative variant matches a specific subset of missing fields by adding a second match key — useful when only certain missing fields are safe to skip:
+The example above matches **all** phone-typed `MISSING_DATA` decisions regardless of which fields are missing. That is usually what you want when the operator intent is "skip every phone with an incomplete CUCM record" — but it's a blunt instrument. A user-scoped variant works the same way:
 
 ```json
 {
   "type": "MISSING_DATA",
-  "match": { "object_type": "phone", "missing_fields": ["model"] },
+  "match": { "object_type": "user" },
   "choice": "skip"
 }
 ```
 
-Note that `missing_fields` is a list in the context — the auto-rule engine's plain-key matcher does an exact equality check, so this matches only decisions where `model` is the **only** missing field. For partial-list matches you'd need a code change to add a `_contains_any` operator. The rule engine's full operator vocabulary lives in `transform/rules.py:21-91`.
+**Why you can't filter on `missing_fields` today.** The `MissingDataAnalyzer` writes `missing_fields` into the context as a list of field names (e.g., `["model"]` or `["model", "description"]`). The plain-key branch of the auto-rule matcher at `src/wxcli/migration/transform/rules.py:79-89` is designed for the inverse case — a *scalar* context value matched against a *list of acceptable values*:
+
+```python
+if isinstance(expected, list):
+    if actual not in expected:   # actual is a single value, expected is a list
+        return False
+```
+
+This works for rules like `{"cucm_model": ["7841", "7861"]}` where `actual` is the string `"7841"` and `expected` is the list of acceptable strings. It does **not** work for matching a list-valued context field. Concretely, `["model"] in ["model"]` evaluates to `False` in Python because the only element of `["model"]` is the string `"model"`, not the list `["model"]`. There is currently **no operator** that can express "decisions where `model` is among the missing fields"; implementing that would require a new `_contains_any` (or similar) operator in `transform/rules.py`. Until then, the only supported MISSING_DATA auto-rules are the scalar-keyed ones above.
+
+**Workaround for surgical list-value matching.** If you genuinely need to bulk-skip only the subset of phones missing a *specific* field, use the `/cucm-migrate` skill's bulk-accept prompts on the filtered review queue rather than an auto-rule — the skill walks through the decisions interactively and lets you accept a slice without touching `config.json`. The rule engine's full operator vocabulary lives in `transform/rules.py:21-91`.
 
 ## Tuning Recipes
 
