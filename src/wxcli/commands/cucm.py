@@ -1120,14 +1120,17 @@ def decisions(
             )
             project_id = project_dir.name if hasattr(project_dir, "name") else str(project_dir).split("/")[-1]
 
+            # Load config so custom auto_rules in config.json are honored.
+            config = load_config(project_dir)
+
             # Always write the markdown file for admin offline review
-            content = generate_decision_review(store, project_id)
+            content = generate_decision_review(store, project_id, config)
             exports_dir = project_dir / "exports"
             exports_dir.mkdir(parents=True, exist_ok=True)
             review_path = exports_dir / "decision-review.md"
             review_path.write_text(content)
 
-            auto, needs = classify_decisions(store)
+            auto, needs = classify_decisions(store, config)
 
             if output == "json":
                 # JSON output for agent consumption — structured data
