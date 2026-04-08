@@ -128,6 +128,77 @@ class TestExportReview:
         assert result.exit_code == 0
         assert "Auto-apply: 0 decisions" in result.output
 
+    def test_export_review_runs_enrichment(self, tmp_migrations_dir):
+        """--export-review must run enrich_cross_decision_context before
+        classification so MISSING_DATA-on-incompatible decisions get the
+        is_on_incompatible_device field, matching --apply-auto's behavior.
+        Without enrichment, the preview counts would undercount relative
+        to what --apply-auto actually resolves (the Phase C asymmetry fix).
+        """
+        _init_project()
+
+        project_dir = tmp_migrations_dir / "test-project"
+        db_path = project_dir / "migration.db"
+        store = MigrationStore(str(db_path))
+
+        # Seed a DEVICE_INCOMPATIBLE + MISSING_DATA pair on the same device.
+        # The MISSING_DATA context deliberately omits is_on_incompatible_device
+        # to simulate a project whose analyze ran without enrichment.
+        fp_di = hashlib.sha256(b"DEVICE_INCOMPATIBLE:EXR_DI_01").hexdigest()[:16]
+        store.save_decision({
+            "decision_id": "EXR_DI_01",
+            "type": "DEVICE_INCOMPATIBLE",
+            "severity": "HIGH",
+            "summary": "Legacy device",
+            "context": {"device_id": "phone:old", "_affected_objects": ["phone:old"]},
+            "options": [
+                {"id": "skip", "label": "Skip", "impact": "Not migrated"},
+                {"id": "manual", "label": "Manual", "impact": "Replace"},
+            ],
+            "chosen_option": None,
+            "fingerprint": fp_di,
+            "run_id": "test",
+        })
+        fp_md = hashlib.sha256(b"MISSING_DATA:EXR_MD_01").hexdigest()[:16]
+        store.save_decision({
+            "decision_id": "EXR_MD_01",
+            "type": "MISSING_DATA",
+            "severity": "MEDIUM",
+            "summary": "phone:old missing mac",
+            "context": {
+                "object_type": "device",
+                "canonical_id": "phone:old",
+                "missing_fields": ["mac"],
+                # Deliberately no is_on_incompatible_device field.
+            },
+            "options": [
+                {"id": "skip", "label": "Skip", "impact": "Excluded"},
+                {"id": "provide_data", "label": "Provide", "impact": "Supply"},
+            ],
+            "chosen_option": None,
+            "fingerprint": fp_md,
+            "run_id": "test",
+        })
+        store.close()
+
+        result = runner.invoke(
+            app,
+            ["decisions", "--export-review", "-o", "json", "-p", "test-project"],
+        )
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+
+        # Both decisions must appear in auto_apply. If enrichment did not
+        # run, EXR_MD_01 would land in needs_input because the MISSING_DATA
+        # default rule requires is_on_incompatible_device == true.
+        auto_ids = {d["decision_id"] for d in data["auto_apply"]}
+        assert "EXR_DI_01" in auto_ids
+        assert "EXR_MD_01" in auto_ids, (
+            "MISSING_DATA on incompatible device was not auto-classified — "
+            "enrich_cross_decision_context may not be running in the "
+            f"--export-review path. auto_apply: {data['auto_apply']}"
+        )
+
 
 class TestApplyAuto:
     def test_resolves_only_auto_decisions(self, tmp_migrations_dir):
