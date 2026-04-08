@@ -223,10 +223,13 @@ Accept all advisory recommendations? [Y/n] Or review individually? [r]
 
 Present remaining (non-advisory) decisions in three groups:
 
-**Group 1: Auto-apply (clear-cut decisions)** — applied via `--apply-auto`:
-- `DEVICE_INCOMPATIBLE` with no migration path → skip
-- `MISSING_DATA` on devices that are already incompatible → skip
-- `CALLING_PERMISSION_MISMATCH` with 0 affected users → skip (orphaned profile)
+**Group 1: Auto-apply (matched by `auto_rules` config)** — applied via `--apply-auto`.
+By default this covers 8 rule types: incompatible devices, convertible devices,
+hotdesk DN conflicts, lossy forwarding, lossy SNR, unmappable buttons, orphaned
+permission profiles (`assigned_users_count == 0`), and missing data on devices
+that are already incompatible. Custom rules in `<project>/config.json` extend
+this set. Edits to `config.json` are picked up the next time `--apply-auto`
+runs — no need to re-run `analyze` first.
 
 **Group 2: Recommended** — decisions where `recommendation` is set.
 Present with bulk accept option:
@@ -280,17 +283,24 @@ Do NOT silently skip decisions that cascade into blocked downstream operations.
 
 3. **Apply auto-resolvable decisions:**
    After the admin has resolved all needs-input decisions, show what will be
-   auto-applied (read from the Auto-Apply section of the review file):
+   auto-applied (read from the Auto-Apply section of the review file —
+   the section reflects the project's current `auto_rules` config, including
+   any custom rules):
    ```
-   AUTO-APPLYING (N decisions — clear-cut):
-     - N incompatible devices → skip (no MPP migration path)
-     - N missing data on incompatible devices → skip
-     - N orphaned permission profiles → skip
+   AUTO-APPLYING (N decisions — matched by current auto-rules):
+     <count> <type> → <choice>
+     ...
    ```
    Then apply:
    ```bash
    wxcli cucm decide --apply-auto -y -p <project>
    ```
+   This re-runs the rules in `<project>/config.json` against any pending
+   decisions and resolves matches. Safe to re-run.
+
+   If the admin has hand-edited `config.json` and wants to restore the
+   default rule set, run: `wxcli cucm config reset auto_rules -p <project>`.
+   This restores defaults but clobbers any custom rules in `auto_rules`.
 
 4. **Re-plan and re-export:**
    ```bash
