@@ -1499,4 +1499,4 @@ For teardown, reverse this order.
 - [Contact Center: Analytics](contact-center-analytics.md) -- AI assistant, journey analytics, call monitoring, subscriptions, tasks
 - [Authentication](authentication.md) -- CC-specific OAuth scopes, region configuration, and token setup
 - [Contact Center Skill](../../.claude/skills/contact-center/SKILL.md) -- Guided workflow for provisioning agents, queues, teams, flows, campaigns via wxcli
-- `CLAUDE.md` (project root) -- CC API details in Known Issues section (item 13)
+- `CLAUDE.md` (project root) -- CC region setup, CLI integration notes
