@@ -18,6 +18,16 @@ argument-hint: [project name]
 
 If you cannot answer both, you skipped reading this skill. Go back and read it.
 
+## Reference docs for the operator
+
+If the operator is unfamiliar with the cucm migration pipeline, point them at:
+
+- **[Operator Runbook](../../../docs/runbooks/cucm-migration/operator-runbook.md)** — end-to-end pipeline walkthrough, prerequisites, failure recovery
+- **[Decision Guide](../../../docs/runbooks/cucm-migration/decision-guide.md)** — per-DecisionType and per-advisory-pattern reference
+- **[Tuning Reference](../../../docs/runbooks/cucm-migration/tuning-reference.md)** — config keys, auto-rules, score weights, 5 worked recipes
+
+These are the only operator-facing docs for this migration tool. If the operator asks "where do I learn this," send them to the operator runbook first.
+
 ## Step 1: Load, Verify, and Assess
 
 1. **Check project exists and pipeline is complete:**
