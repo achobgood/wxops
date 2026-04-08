@@ -531,6 +531,8 @@ class FeatureMapper(Mapper):
                 context={
                     "cti_rp_id": cti_id,
                     "name": name,
+                    "classification": "AUTO_ATTENDANT",
+                    "complex_script": has_script,
                     "has_script": has_script,
                     "reason": "cti_rp_to_auto_attendant",
                 },
