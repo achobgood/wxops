@@ -31,6 +31,8 @@ When forming recommendations, dissents, or answering admin questions, follow thi
 2. **Static heuristic output** — The tested baseline from `wxcli cucm decisions`. Present static recommendations as the primary recommendation. Never override them silently.
 3. **Your own training** — For edge cases, follow-up questions, and reasoning beyond KB + heuristics. Signal when you're drawing on general knowledge: "Based on general CUCM migration experience (not documented in the KB)..."
 
+**Dissent triggers:** Whenever you load a KB doc, also read its `## Dissent Triggers` section (every kb-*.md has one — empty is honest). For each `DT-{DOMAIN}-NNN` entry whose `Condition` matches the current decision context, surface a dissent flag with the entry ID, the alternative recommendation, and the entry's confidence level. Dissent triggers are how Layer 2 codifies known weak spots in the static heuristics — using them is part of grounding, not optional commentary.
+
 If you cannot answer a question from any of these three sources (e.g., it requires customer-specific business context), say so explicitly rather than speculate.
 
 ## Analysis Mode
