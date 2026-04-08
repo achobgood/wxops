@@ -58,6 +58,63 @@ ALL_ANALYZERS: list[type[Analyzer]] = [
 ]
 
 
+def enrich_cross_decision_context(store: MigrationStore) -> int:
+    """Enrich pending MISSING_DATA decisions with cross-decision context.
+
+    For each non-stale MISSING_DATA decision, set::
+
+        context["is_on_incompatible_device"] = bool
+
+    based on whether the MD decision's ``canonical_id`` or any of its
+    ``_affected_objects`` appears in the set of canonical_ids that have a
+    non-stale DEVICE_INCOMPATIBLE decision.
+
+    Returns the count of MISSING_DATA decisions that were written.
+    (DEVICE_INCOMPATIBLE decisions are read but not modified.)
+
+    Idempotent: re-running with the same store state produces the same
+    field values. Fingerprint-safe: the enriched field is NOT part of
+    MissingDataAnalyzer.fingerprint() (which hashes only type +
+    canonical_id + sorted(missing_fields)), so subsequent merge_decisions()
+    runs cannot stale-mark enriched decisions.
+    """
+    all_decisions = store.get_all_decisions()
+
+    # Collect canonical_ids of non-stale DEVICE_INCOMPATIBLE decisions.
+    incompatible_ids: set[str] = set()
+    for d in all_decisions:
+        if d.get("type") != "DEVICE_INCOMPATIBLE":
+            continue
+        if d.get("chosen_option") == "__stale__":
+            continue
+        ctx = d.get("context", {})
+        for obj_id in ctx.get("_affected_objects", []):
+            incompatible_ids.add(obj_id)
+        if ctx.get("device_id"):
+            incompatible_ids.add(ctx["device_id"])
+        if ctx.get("canonical_id"):
+            incompatible_ids.add(ctx["canonical_id"])
+
+    updated = 0
+    for d in all_decisions:
+        if d.get("type") != "MISSING_DATA":
+            continue
+        if d.get("chosen_option") == "__stale__":
+            continue
+        ctx = dict(d.get("context", {}))
+        canonical_id = ctx.get("canonical_id")
+        affected = ctx.get("_affected_objects", [])
+        hit = bool(
+            (canonical_id and canonical_id in incompatible_ids)
+            or any(aid in incompatible_ids for aid in affected)
+        )
+        ctx["is_on_incompatible_device"] = hit
+        store.update_decision_context(d["decision_id"], ctx)
+        updated += 1
+
+    return updated
+
+
 class AnalysisPipeline:
     """Runs all analyzers in dependency order, collects decisions.
 
