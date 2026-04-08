@@ -1,6 +1,10 @@
 # Person & Workspace Settings: Migration Knowledge Base
 <!-- Last verified: 2026-03-28 -->
 
+> **Audience:** Migration advisor agent (Opus) and cold-context Claude sessions looking up dissent triggers, decision context, and Webex constraints for call forwarding, voicemail, calling permissions, and workspace licensing decisions.
+> **Reading mode:** Reference. Grep by `DT-USER-NNN` ID for dissent triggers, OR read `## Decision Framework` end-to-end when the migration-advisor agent loads this doc during analysis.
+> **See also:** [Operator Runbook](../../runbooks/cucm-migration/operator-runbook.md) · [Decision Guide](../../runbooks/cucm-migration/decision-guide.md) · [Tuning Reference](../../runbooks/cucm-migration/tuning-reference.md)
+
 ## Decision Framework
 
 ### VOICEMAIL_INCOMPATIBLE

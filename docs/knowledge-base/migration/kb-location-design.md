@@ -1,6 +1,10 @@
 # Location Architecture: Migration Knowledge Base
 <!-- Last verified: 2026-03-28 -->
 
+> **Audience:** Migration advisor agent (Opus) and cold-context Claude sessions looking up dissent triggers, decision context, and Webex constraints for device pool consolidation, location architecture, and E911 decisions.
+> **Reading mode:** Reference. Grep by `DT-LOC-NNN` ID for dissent triggers, OR read `## Decision Framework` end-to-end when the migration-advisor agent loads this doc during analysis.
+> **See also:** [Operator Runbook](../../runbooks/cucm-migration/operator-runbook.md) · [Decision Guide](../../runbooks/cucm-migration/decision-guide.md) · [Tuning Reference](../../runbooks/cucm-migration/tuning-reference.md)
+
 ## Decision Framework
 
 ### LOCATION_AMBIGUOUS

@@ -2,6 +2,10 @@
 
 <!-- Last verified: 2026-03-28 -->
 
+> **Audience:** Migration advisor agent (Opus) and cold-context Claude sessions looking up dissent triggers, decision context, and Webex constraints for platform hard limits, feature gaps, and scope requirements.
+> **Reading mode:** Reference. Grep by `DT-LIMITS-NNN` ID for dissent triggers, OR read `## Decision Framework` end-to-end when the migration-advisor agent loads this doc during analysis.
+> **See also:** [Operator Runbook](../../runbooks/cucm-migration/operator-runbook.md) · [Decision Guide](../../runbooks/cucm-migration/decision-guide.md) · [Tuning Reference](../../runbooks/cucm-migration/tuning-reference.md)
+
 This document is loaded for EVERY migration. It contains hard limits, feature gaps,
 scope requirements, and license implications that the advisor must consider regardless
 of which specific decision types are present.
