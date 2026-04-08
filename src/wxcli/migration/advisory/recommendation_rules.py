@@ -172,7 +172,15 @@ def recommend_feature_approximation(
 
     if is_simultaneous and agent_count > simultaneous_cap:
         routing_note = ""
-        if target_routing is None and algorithm in ("undefined", None):
+        # Only mark as "assumed" when we actually fell through the legacy
+        # algorithm fallback — i.e., neither `target_routing_type` nor `policy`
+        # was set. With `policy` populated by FeatureMapper, the SIMULTANEOUS
+        # detection is explicit, not assumed.
+        if (
+            target_routing is None
+            and policy is None
+            and algorithm in ("undefined", None)
+        ):
             routing_note = " (assumed simultaneous — no algorithm detected in CUCM data)"
         return (
             "split",
