@@ -310,9 +310,11 @@ _GATE_MARKERS = ("**[MANDATORY, NOT SKIPPABLE]**", "**Do NOT proceed**", "BLOCKI
 FENCED_BLOCK_RE = re.compile(r"^```.*?^```", re.MULTILINE | re.DOTALL)
 
 
-def test_blocking_gate_not_in_code_blocks():
-    """BLOCKING GATE / MANDATORY markers in SKILL.md must not appear exclusively
-    inside fenced code blocks where a text reader would miss them."""
+def test_blocking_gate_has_visible_instance():
+    """BLOCKING GATE / MANDATORY markers in SKILL.md must appear at least once
+    OUTSIDE a fenced code block. Markers may also appear inside code blocks as
+    documentation of expected admin output — that is fine, as long as at least
+    one prose-level instance exists so a prose reader cannot miss the gate."""
     text = SKILL_PATH.read_text(encoding="utf-8")
 
     # Collect line ranges covered by fenced code blocks
@@ -323,16 +325,23 @@ def test_blocking_gate_not_in_code_blocks():
         code_block_line_ranges.update(range(start_line, end_line + 1))
 
     lines = text.splitlines()
-    failures: list[str] = []
-    for line_idx, line in enumerate(lines):
-        for marker in _GATE_MARKERS:
-            if marker in line and line_idx in code_block_line_ranges:
-                failures.append(
-                    f"SKILL.md line {line_idx + 1}: blocking marker {marker!r} is inside a "
-                    f"fenced code block and will not be visible to a prose reader"
-                )
+    # For each marker, count how many instances appear OUTSIDE code blocks.
+    missing: list[str] = []
+    for marker in _GATE_MARKERS:
+        visible_count = sum(
+            1 for line_idx, line in enumerate(lines)
+            if marker in line and line_idx not in code_block_line_ranges
+        )
+        total_count = sum(1 for line in lines if marker in line)
+        if total_count > 0 and visible_count == 0:
+            missing.append(
+                f"SKILL.md: marker {marker!r} appears {total_count} time(s) but all "
+                f"instances are inside fenced code blocks. Add at least one prose-level "
+                f"instance (outside a code fence) so a reader scanning headings and "
+                f"paragraphs can see the gate."
+            )
 
-    assert not failures, "Blocking markers buried in code blocks:\n  " + "\n  ".join(failures)
+    assert not missing, "Blocking markers not visible in prose:\n  " + "\n  ".join(missing)
 ```
 
 - [ ] **Step 2: Run it to verify it fails (or passes cleanly)**
@@ -605,24 +614,27 @@ Confirm the Finding 5 section no longer says "Deferred".
 
 ### 5c: Add AXL credential clarification to operator-runbook.md §Assumed environment
 
-- [ ] **Step 1: Find the target location**
+- [ ] **Step 1: Capture the exact anchor text**
 
 ```bash
 grep -n "Assumed environment\|AXL\|wxcli configure" /Users/ahobgood/Documents/webexCalling/docs/runbooks/cucm-migration/operator-runbook.md | head -20
 ```
 
-Identify the §Assumed environment block in §Quick Start.
+Then use the Read tool to read the 6 lines immediately following the §Assumed environment heading. Copy the last full paragraph or bullet in that block — this is the `old_string` anchor for the Edit call. Record it verbatim before proceeding.
 
 - [ ] **Step 2: Apply the edit**
 
-In `docs/runbooks/cucm-migration/operator-runbook.md`, find the §Assumed environment block. After the existing `wxcli configure` mention (or the last bullet in the block), add:
+Use the Edit tool with:
+- `old_string` = the exact last paragraph/bullet you recorded in Step 1 (unchanged)
+- `new_string` = the same text followed by a blank line and the new Note blockquote:
 
-New line to append (after the last item in the assumed environment block, as its own paragraph or bullet):
 ```
+<<<the exact last paragraph or bullet from Step 1, unchanged>>>
+
 > **Note:** AXL credentials are separate from the Webex OAuth token — they are passed inline to `wxcli cucm discover` (or via the `WXCLI_CUCM_*` env vars). `wxcli configure` only handles the Webex OAuth flow.
 ```
 
-Use the Edit tool to apply this. Find the exact surrounding lines first by reading the file at that location.
+This anchors the append to a known unique location. If the anchor text is not unique in the file (Edit rejects ambiguous matches), extend the anchor backwards by one more paragraph until it becomes unique.
 
 - [ ] **Step 3: Verify**
 
@@ -636,29 +648,23 @@ Expected: line found
 
 ### 5d: Add slash-command marker to operator-runbook.md §Quick Start Step 11
 
-- [ ] **Step 1: Find the target line**
+- [ ] **Step 1: Capture the exact anchor — the /cucm-migrate reference is NOT unique**
 
-```bash
-grep -n "cucm-migrate" /Users/ahobgood/Documents/webexCalling/docs/runbooks/cucm-migration/operator-runbook.md | head -10
-```
+`grep -n "cucm-migrate" docs/runbooks/cucm-migration/operator-runbook.md` will return multiple hits. Only the §Quick Start Step 11 hit should be edited. Use the Read tool to read 6 lines of context around each hit. The Quick Start Step 11 hit is the one inside a numbered list in §Quick Start (typically near the top of the file) — not inside §Execution & Recovery or §Pipeline Walkthrough.
 
-Find the Quick Start Step 11 line with `/cucm-migrate <project>`.
+Capture the 3 lines of context (line above, the `/cucm-migrate` line itself, line below) as your Edit `old_string`. This makes the anchor unique in the file.
 
 - [ ] **Step 2: Apply the edit**
 
-In `docs/runbooks/cucm-migration/operator-runbook.md`, find the Step 11 line. It will look like:
+Use the Edit tool with:
+- `old_string` = the exact 3-line context block from Step 1 (numbered list item with `/cucm-migrate <project>`)
+- `new_string` = the same 3-line block with the marker appended inline after the command, e.g.:
 
-Old text (inline in a numbered list):
 ```
-`/cucm-migrate <project>`
-```
-
-New text (same location, marker added inline after the command):
-```
-`/cucm-migrate <project>` _(Claude Code skill invocation — invoke in the session, not in bash)_
+11. Execute via the cucm-migrate skill — `/cucm-migrate <project>` _(Claude Code skill invocation — invoke in the session, not in bash)_
 ```
 
-Use the Edit tool. Be careful to match the exact surrounding context so the edit is unambiguous.
+Preserve the lines above and below the edit line exactly. If Edit rejects the match as ambiguous, extend the context by one more line until the anchor is unique.
 
 - [ ] **Step 3: Verify**
 
