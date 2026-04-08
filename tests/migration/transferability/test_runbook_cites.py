@@ -14,8 +14,13 @@ from .conftest import RUNBOOK_DIR, REPO_ROOT
 #   src/wxcli/migration/models.py:66
 #   `transform/mappers/feature_mapper.py:136`
 #   models.py:66
+#   .claude/skills/cucm-migrate/SKILL.md:152
+#   migration-advisor.md:97-103   (range — only the start line is checked)
+# Captures:
+#   group(1) — file part (relative path or basename)
+#   group(2) — start line number (the `-N` end of a range, if present, is dropped)
 FILE_LINE_RE = re.compile(
-    r"`?([a-zA-Z_./]+\.py):(\d+)`?",
+    r"`?([a-zA-Z_./-]+\.(?:py|md)):(\d+)(?:-\d+)?`?",
 )
 
 # Match function citations like recommend_feature_approximation, detect_mixed_css
