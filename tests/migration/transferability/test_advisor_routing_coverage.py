@@ -79,3 +79,20 @@ def test_advisor_routing_table_lists_all_patterns(advisor_agent_path):
         f"migration-advisor.md routing table is missing entries for: {sorted(missing)}. "
         f"Add a row to the 'By advisory pattern_name' table for each."
     )
+
+
+def test_advisor_always_load_kb_webex_limits(advisor_agent_path):
+    """migration-advisor.md must contain the 'Always load: kb-webex-limits.md'
+    instruction. This file is loaded on every advisory run regardless of pattern
+    matches. If it were deleted, the routing coverage test would still pass
+    (since it only checks the pattern table), but the always-load guarantee
+    would be silently lost.
+
+    Spec: transferability-phase-3.md §9 Finding L3-6.
+    """
+    text = advisor_agent_path.read_text(encoding="utf-8")
+    assert "Always load" in text and "kb-webex-limits.md" in text, (
+        "migration-advisor.md is missing the 'Always load: kb-webex-limits.md' "
+        "instruction. This instruction ensures the platform limits KB doc is loaded "
+        "on every advisory run. Re-add it after the advisory pattern routing table."
+    )

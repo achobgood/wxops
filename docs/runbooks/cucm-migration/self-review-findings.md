@@ -219,7 +219,7 @@ add only the entries Wave 3 actually references.
 **Quoted line:** `FILE_LINE_RE = re.compile(r"\`?([a-zA-Z_./]+\.py):(\d+)\`?",)` — only matches `.py` extensions.
 **Issue:** The cite-and-grep verification test (added in Phase G2) catches drift between runbook citations and Python source line numbers, but its regex only matches `.py` files. It does NOT catch drift in references to `.md` files (like `SKILL.md:142` or `migration-advisor.md:91-100`). Findings 3 and 4 — eight broken `.md:line` references caused by Phase F edits — were not caught by the test suite. The test silently passed when it should have flagged 8+ broken references.
 **Proposed fix:** Extend `FILE_LINE_RE` to also match `.md` files: `r"\`?([a-zA-Z_./]+\.(?:py|md)):(\d+)\`?"`. Implementation needs care because the resolver should also handle `.md` files via `rglob`, and false positives are likely (e.g., the runbook references `kb-*.md` files at section anchors, not line numbers, but the regex would not match those because anchors don't end in `:NNN`).
-**Disposition:** **Deferred — drift outside Phase 2 scope.** Phase 2 self-walkthrough caught the drift manually; the test enhancement is a Layer 3 improvement. Recorded in §Drift Outside Phase 2 Scope below.
+**Disposition:** **Fixed in post-G8 cleanup commit.** The `FILE_LINE_RE` pattern in `tests/migration/transferability/test_runbook_cites.py` was extended to match both `.py` and `.md` citations (`r"\`?([a-zA-Z_./-]+\.(?:py|md)):(\d+)(?:-\d+)?\`?"`). The cite-and-grep test now catches drift in `.md:line` references alongside `.py:line` references. No further action needed.
 
 ### Finding 6: Quick Start dual-credential model unexplained
 

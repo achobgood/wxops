@@ -37,7 +37,7 @@ Advisory decisions are merged separately using `decision_types=[ARCHITECTURE_ADV
 |------|---------|
 | `__init__.py` | Exports `populate_recommendations()` and `ArchitectureAdvisor` |
 | `recommendation_rules.py` | 19 recommendation functions (one per DecisionType) + `RECOMMENDATION_DISPATCH` dict |
-| `advisory_patterns.py` | 20 cross-cutting pattern detectors + `AdvisoryFinding` dataclass + `ALL_ADVISORY_PATTERNS` list |
+| `advisory_patterns.py` | 26 cross-cutting pattern detectors + `AdvisoryFinding` dataclass + `ALL_ADVISORY_PATTERNS` list |
 | `advisor.py` | `ArchitectureAdvisor` class (extends Analyzer ABC) |
 
 ## Decision Model Fields
