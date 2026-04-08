@@ -86,8 +86,12 @@ class TestExportReview:
         _init_project()
         _seed_decisions(tmp_migrations_dir)
         result = runner.invoke(app, ["decisions", "--export-review", "-p", "test-project"])
-        assert "Auto-apply: 2 decisions" in result.output
-        assert "Needs input: 2 decisions" in result.output
+        # --export-review now runs enrich_cross_decision_context before
+        # classification, matching --apply-auto. D002 (MISSING_DATA on the
+        # same incompatible device as D001) is auto-classified via the
+        # is_on_incompatible_device field → 3 auto, 1 needs-input.
+        assert "Auto-apply: 3 decisions" in result.output
+        assert "Needs input: 1 decisions" in result.output
 
     def test_json_output_has_structured_data(self, tmp_migrations_dir):
         _init_project()
@@ -96,8 +100,10 @@ class TestExportReview:
         assert result.exit_code == 0
         data = json.loads(result.output)
         assert "review_file" in data
-        assert len(data["auto_apply"]) == 2
-        assert len(data["needs_input"]) == 2
+        # D002 now auto-classifies via enriched is_on_incompatible_device
+        # field → 3 auto, 1 needs-input (unified with --apply-auto).
+        assert len(data["auto_apply"]) == 3
+        assert len(data["needs_input"]) == 1
 
     def test_json_includes_review_file_path(self, tmp_migrations_dir):
         _init_project()
