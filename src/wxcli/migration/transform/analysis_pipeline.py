@@ -136,13 +136,17 @@ class AnalysisPipeline:
         self.config = config or {}
 
     def run(self, store: MigrationStore) -> AnalysisResult:
-        """Run all analyzers, apply auto-rules, merge decisions.
+        """Run all analyzers, merge decisions, enrich, apply rules, run advisor.
 
         Steps:
         1. Sort analyzers by depends_on (topological)
         2. Run each analyzer, collect decisions
-        3. Apply auto-resolution rules from config
-        4. Merge new decisions with existing (fingerprint-based)
+        3. Merge new decisions with existing (fingerprint-based)
+        3.5. Enrich cross-decision context (is_on_incompatible_device)
+        4. Apply auto-resolution rules from config
+        5. Run ArchitectureAdvisor (Phase 2)
+        6. Populate recommendations on all decisions
+        7. Transition shared_line objects from normalized → analyzed
 
         Returns AnalysisResult with all decisions and per-analyzer stats.
         """
@@ -195,6 +199,22 @@ class AnalysisPipeline:
             merge_result["stale"],
             merge_result["invalidated"],
         )
+
+        # Step 3.5: Enrich cross-decision context.
+        # Writes is_on_incompatible_device into every non-stale MISSING_DATA
+        # decision based on the current set of DEVICE_INCOMPATIBLE decisions.
+        # Runs between merge and auto-rules so config rules can match the
+        # enriched field. Fingerprint-safe (MissingDataAnalyzer.fingerprint()
+        # does not hash the full context).
+        try:
+            enriched = enrich_cross_decision_context(store)
+            if enriched:
+                logger.info(
+                    "Cross-decision enrichment: %d MISSING_DATA decisions updated",
+                    enriched,
+                )
+        except Exception as exc:
+            logger.warning("Cross-decision enrichment failed: %s", exc)
 
         # Step 4: Apply auto-resolution rules
         try:
@@ -361,6 +381,14 @@ class AnalysisPipeline:
             else:
                 new_count += 1
             store.save_decision(d)
+
+        # Enrich cross-decision context for cascade-produced MD decisions.
+        # A LOCATION_AMBIGUOUS → MISSING_DATA cascade would otherwise leave
+        # newly-produced MD decisions without is_on_incompatible_device.
+        try:
+            enrich_cross_decision_context(store)
+        except Exception as exc:
+            logger.warning("Cross-decision enrichment (cascade) failed: %s", exc)
 
         # Step 5: Build warnings
         # (from 06-decision-workflow.md lines 173-183)
