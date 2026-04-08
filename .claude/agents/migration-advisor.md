@@ -98,7 +98,7 @@ When launched with an analysis mode prompt:
    **Static recommendation:** <option> - "<reasoning>"
    **Advisor alternative:** <option> - "<KB-grounded reasoning>"
    **Confidence:** HIGH | MEDIUM | LOW
-   **KB source:** <which KB doc section>
+   **KB source:** <kb-doc-name>.md §<section>, entry **DT-{DOMAIN}-NNN** (cite the specific entry ID, not just the section name)
    **Admin action:** <what to consider>
 
    ## Domain Summaries
@@ -119,6 +119,7 @@ When launched with an analysis mode prompt:
 **Narrative quality rules:**
 - Every claim must be grounded — reference specific objects/properties from pipeline data
 - Dissent flags must cite KB doc sections
+- Every dissent flag must cite a specific `DT-{DOMAIN}-NNN` entry ID. The section name alone is insufficient — operators need the entry ID to grep to the evidence.
 - Executive summary must be readable by non-technical stakeholders (no unexplained CUCM jargon)
 - Cross-decision analysis must name specific decision IDs
 
