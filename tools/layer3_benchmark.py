@@ -22,7 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import re  # noqa: F401  # used by Task 3's helper functions (extract_resolved_decisions)
+import re
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -155,17 +155,294 @@ class ToolResponseDispatcher:
         return f"[fixture: file not found: {file_path}]"
 
 
-# Remaining methods (session runner, phase detector, reporter) are stubs
-# wired in Task 3.
+def detect_phase(text: str) -> str:
+    """Identify which SKILL.md phase is active from assistant text."""
+    text_lower = text.lower()
+    for marker in DECISION_REVIEW_MARKERS:
+        if marker.lower() in text_lower:
+            return "decision_review"
+    return "assessment"
+
+
+def is_source_file_read(file_path: str) -> bool:
+    """Return True if a Read call targets migration source code."""
+    return any(file_path.startswith(prefix) for prefix in SOURCE_FILE_PREFIXES)
+
+
+def extract_resolved_decisions(bash_calls: list[str]) -> dict[str, str]:
+    """Extract {decision_id: chosen_option} from Bash tool call strings.
+
+    Tightened regex: decision IDs are always 4 digits (`D\\d{4}`) and options
+    are snake_case identifiers (matching the DecisionOption.id field convention
+    in src/wxcli/migration/models.py). This rejects flag-shaped "options" like
+    `-p` and paths like `benchmark-migration` if a flag-before-positional
+    command ever appears.
+    """
+    pattern = re.compile(r"wxcli\s+cucm\s+decide\s+(D\d{4})\s+([a-z_][a-z0-9_]*)")
+    resolved: dict[str, str] = {}
+    for call in bash_calls:
+        m = pattern.search(call)
+        if m:
+            resolved[m.group(1)] = m.group(2)
+    return resolved
+
+
+def compute_decision_accuracy(
+    resolved: dict[str, str],
+    recommendations: dict[str, str],
+) -> float | None:
+    """Fraction of recommended decisions where model chose the recommended option."""
+    if not recommendations:
+        return None
+    correct = sum(
+        1 for did, rec in recommendations.items()
+        if resolved.get(did) == rec
+    )
+    return correct / len(recommendations)
+
+
+def compute_regression_report(
+    current: dict[str, Any],
+    baseline: dict[str, Any],
+) -> dict[str, Any]:
+    """Compare summary metrics and flag regressions."""
+    cs = current["summary"]
+    bs = baseline["summary"]
+    report: dict[str, Any] = {}
+
+    # Tokens per decision: >20% increase = REGRESSION
+    if bs.get("tokens_per_decision") and cs.get("tokens_per_decision"):
+        delta = (cs["tokens_per_decision"] - bs["tokens_per_decision"]) / bs["tokens_per_decision"]
+        report["tokens_per_decision"] = {
+            "baseline": bs["tokens_per_decision"],
+            "current": cs["tokens_per_decision"],
+            "delta_pct": round(delta * 100, 1),
+            "status": "REGRESSION" if delta > 0.20 else "OK",
+        }
+
+    # Decision accuracy: >0.10 absolute drop = REGRESSION
+    if bs.get("decision_accuracy") is not None and cs.get("decision_accuracy") is not None:
+        drop = bs["decision_accuracy"] - cs["decision_accuracy"]
+        report["decision_accuracy"] = {
+            "baseline": bs["decision_accuracy"],
+            "current": cs["decision_accuracy"],
+            "drop": round(drop, 3),
+            "status": "REGRESSION" if drop > 0.10 else "OK",
+        }
+
+    # Gotcha coverage: any drop = REGRESSION
+    if bs.get("gotcha_coverage_rate") is not None and cs.get("gotcha_coverage_rate") is not None:
+        drop = bs["gotcha_coverage_rate"] - cs["gotcha_coverage_rate"]
+        report["gotcha_coverage_rate"] = {
+            "baseline": bs["gotcha_coverage_rate"],
+            "current": cs["gotcha_coverage_rate"],
+            "drop": round(drop, 3),
+            "status": "REGRESSION" if drop > 0 else "OK",
+        }
+
+    return report
+
 
 def run_session(args: argparse.Namespace) -> dict[str, Any]:
-    """Stub — implemented in Task 3."""
-    raise NotImplementedError("run_session is implemented in Task 3")
+    """Run the cucm-migrate skill against the fixture and record efficiency metrics."""
+    import anthropic
+
+    fixture_dir = Path(args.project)
+    dispatcher = ToolResponseDispatcher(fixture_dir)
+    record = empty_session_record(project=str(fixture_dir), model=args.model)
+
+    skill_text = SKILL_PATH.read_text(encoding="utf-8")
+    client = anthropic.Anthropic()
+
+    messages: list[dict] = [
+        {"role": "user", "content": f"Run the CUCM migration for project {fixture_dir.name}"},
+    ]
+
+    current_phase = "assessment"
+    bash_calls: list[str] = []
+    read_calls: list[str] = []
+    phase_read_counts: dict[str, dict[str, int]] = {"assessment": {}, "decision_review": {}}
+
+    while True:
+        response = client.messages.create(
+            model=args.model,
+            max_tokens=4096,
+            system=skill_text,
+            messages=messages,
+        )
+
+        # Update phase from assistant text
+        assistant_text = " ".join(
+            block.text for block in response.content if hasattr(block, "text")
+        )
+        detected = detect_phase(assistant_text)
+        if detected == "decision_review":
+            current_phase = "decision_review"
+
+        # Record turn and tokens
+        record["phases"][current_phase]["turns"] += 1
+        record["phases"][current_phase]["input_tokens"] += response.usage.input_tokens
+
+        # Record tool calls
+        tool_results = []
+        for block in response.content:
+            if block.type != "tool_use":
+                continue
+            tool_name = block.name
+            tool_input = block.input
+            call_summary = f"{tool_name}({list(tool_input.values())[0] if tool_input else ''})"
+            record["phases"][current_phase]["tool_calls"].append(
+                {"tool": tool_name, "summary": call_summary}
+            )
+
+            # Track source file reads
+            if tool_name == "Read":
+                fp = tool_input.get("file_path", "")
+                read_calls.append(fp)
+                if is_source_file_read(fp):
+                    record["phases"][current_phase]["source_file_reads"].append(fp)
+                # Track duplicates — append exactly once, on the transition
+                # from 2 → 3 reads. Further reads of the same file don't
+                # re-add it (the summary's loops_detected count uses
+                # set(duplicate_reads) but keeping the list itself
+                # unique-per-file avoids confusing raw output).
+                phase_read_counts[current_phase][fp] = phase_read_counts[current_phase].get(fp, 0) + 1
+                if phase_read_counts[current_phase][fp] == 3:
+                    record["phases"][current_phase]["duplicate_reads"].append(fp)
+
+            # Track bash calls for decision extraction
+            if tool_name == "Bash":
+                cmd = tool_input.get("command", "")
+                bash_calls.append(cmd)
+                _check_gotchas(cmd, assistant_text, record)
+
+            result_text = dispatcher.dispatch(tool_name, tool_input)
+
+            # Token-expiry detection lives here (not in _check_gotchas) because
+            # it fires on the *tool result content*, before the model has had
+            # a chance to narrate a response. The skill's gate is "if whoami
+            # reports <2h, do not proceed" — we observe that by seeing the
+            # expiry string in the dispatched fixture response directly.
+            if tool_name == "Bash" and "expires in" in result_text.lower():
+                expiry_match = re.search(r"expires in\s+(\d+)\s*([hm])", result_text.lower())
+                if expiry_match:
+                    amount = int(expiry_match.group(1))
+                    unit = expiry_match.group(2)
+                    minutes = amount * 60 if unit == "h" else amount
+                    if minutes < 120:
+                        # Tool result itself shows an expiring token — gate
+                        # is activated when we see it; the harness will verify
+                        # in subsequent turns that the assistant narrates the
+                        # refresh warning.
+                        record["phases"][current_phase]["gotcha_coverage"].setdefault(
+                            "token_expiry_signal_seen", True
+                        )
+
+            tool_results.append({
+                "type": "tool_result",
+                "tool_use_id": block.id,
+                "content": result_text,
+            })
+
+        messages.append({"role": "assistant", "content": response.content})
+        if tool_results:
+            messages.append({"role": "user", "content": tool_results})
+
+        if response.stop_reason == "end_turn" or not tool_results:
+            break
+
+    # Compute summary metrics
+    _finalize_record(record, bash_calls, fixture_dir)
+    return record
+
+
+def _check_gotchas(cmd: str, assistant_text: str, record: dict) -> None:
+    """Check whether gotcha guard actions appear in the session.
+
+    Signals are chosen to be robust against paraphrasing:
+    - location_address_gate: fires when the assistant runs or references
+      import-locations (the skill's mandated guard action).
+    - token_expiry_gate: fires when the assistant narrates a refresh
+      instruction or a do-not-proceed directive in response to an
+      expiring token — not merely when the token expiry is mentioned.
+    - dissent_protocol: fires when the assistant cites a KB entry
+      (DT-{DOMAIN}-NNN or a kb-*.md path) alongside a recommendation.
+    - preflight_failure_gate: fires when LICENSE_SHORTAGE appears in
+      the preflight output (cmd or tool result forwarded into
+      assistant_text) — does NOT rely on the loose substring "fail".
+    """
+    dr = record["phases"]["decision_review"]["gotcha_coverage"]
+    tx = assistant_text.lower()
+
+    if "import-locations" in cmd or "import-locations" in tx:
+        dr["location_address_gate"] = True
+
+    # Token expiry: require BOTH a mention of expiry AND a guard-action verb
+    # ("refresh", "do not proceed", "2 hours"). Avoids matching incidental
+    # narration that merely quotes the whoami output.
+    if ("expires" in tx or "expiry" in tx) and (
+        "refresh" in tx or "do not proceed" in tx or "2 hours" in tx
+    ):
+        dr["token_expiry_gate"] = True
+
+    # Dissent protocol: require an explicit KB citation (DT-XXX-NNN or kb-*.md).
+    if re.search(r"DT-[A-Z]+-\d+", assistant_text) or ("kb-" in tx and ".md" in tx):
+        dr["dissent_protocol"] = True
+
+    # Preflight failure: tightened to the specific shortage token emitted by
+    # the fixture tool response, checked in both the command and the
+    # (assistant-narrated) output. Does NOT use the loose substring "fail".
+    if "LICENSE_SHORTAGE" in (cmd + assistant_text):
+        dr["preflight_failure_gate"] = True
+
+
+def _finalize_record(record: dict, bash_calls: list[str], fixture_dir: Path) -> None:
+    """Compute summary metrics after session ends."""
+    # Load recommendations from fixture store
+    from wxcli.migration.store import MigrationStore
+    db_path = fixture_dir / "migration.db"
+    if db_path.exists():
+        with MigrationStore(db_path) as store:
+            decisions = store.get_all_decisions()
+        recommendations = {
+            d["decision_id"]: d["recommendation"]
+            for d in decisions
+            if d.get("recommendation")
+        }
+    else:
+        recommendations = {}
+
+    resolved = extract_resolved_decisions(bash_calls)
+    dr = record["phases"]["decision_review"]
+    dr["decisions_resolved"] = len(resolved)
+    dr["decision_accuracy"] = compute_decision_accuracy(resolved, recommendations)
+
+    gc = dr["gotcha_coverage"]
+    gc_rate = sum(gc.values()) / len(gc) if gc else None
+    dr_tokens = dr["input_tokens"]
+    total_tokens = sum(p["input_tokens"] for p in record["phases"].values())
+
+    record["summary"].update({
+        "total_input_tokens": total_tokens,
+        "tokens_per_decision": (
+            round(dr_tokens / dr["decisions_resolved"])
+            if dr["decisions_resolved"] > 0 else None
+        ),
+        "source_file_reads_in_review": len(dr["source_file_reads"]),
+        "decision_accuracy": dr["decision_accuracy"],
+        "gotcha_coverage_rate": gc_rate,
+        "loops_detected": len(set(dr["duplicate_reads"])),
+    })
 
 
 def compare_against_baseline(record: dict, baseline_path: str) -> None:
-    """Stub — implemented in Task 3."""
-    raise NotImplementedError("compare_against_baseline is implemented in Task 3")
+    baseline = json.loads(Path(baseline_path).read_text())
+    report = compute_regression_report(record, baseline)
+    print("\n=== Regression Report ===")
+    for metric, result in report.items():
+        status = result["status"]
+        marker = "REGRESSION" if status == "REGRESSION" else "ok"
+        print(f"  [{marker}] {metric}: baseline={result.get('baseline')} current={result.get('current')}")
 
 
 def main() -> None:
