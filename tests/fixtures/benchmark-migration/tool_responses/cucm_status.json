@@ -1,0 +1,4 @@
+{
+  "stdout": "{\"project\": \"benchmark-migration\", \"stage\": \"ANALYZED\", \"decisions\": {\"total\": 20, \"pending\": 18, \"resolved\": 0, \"advisory\": 2}}\n",
+  "returncode": 0
+}
