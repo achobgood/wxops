@@ -1,0 +1,4 @@
+{
+  "stdout": "{\"decisions\": [{\"decision_id\": \"D0007\", \"type\": \"MISSING_DATA\", \"context\": {\"field\": \"location_address\", \"location_name\": \"Dallas\"}, \"summary\": \"Location Dallas is missing street address\"}]}\n",
+  "returncode": 0
+}

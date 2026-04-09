@@ -1,0 +1,4 @@
+{
+  "stdout": "User: admin@example.com\nOrg: Example Corp\nToken: expires in 45m\nTarget: (none)\n",
+  "returncode": 0
+}

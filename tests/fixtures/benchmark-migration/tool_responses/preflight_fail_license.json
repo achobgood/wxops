@@ -1,0 +1,4 @@
+{
+  "stdout": "Preflight checks: 7/8 passed\n✗ LICENSE_SHORTAGE: Need 20 Calling Professional licenses, only 5 available.\n  Fix: Add licenses in Control Hub or reduce migration scope.\n",
+  "returncode": 1
+}
