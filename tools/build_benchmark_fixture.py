@@ -1,8 +1,9 @@
 #!/usr/bin/env python3.11
 """Build the Layer 3 benchmark fixture store.
 
-Creates tests/fixtures/benchmark-migration/migration.db with 20 decisions
-covering all four fixture categories: recommended, dissent-trigger, gotcha-path,
+Creates tests/fixtures/benchmark-migration/migration.db with 18 decisions
+(20 logical — D0008/D0009 are mocked via tool_responses/, not stored).
+Covers all four fixture categories: recommended, dissent-trigger, gotcha-path,
 and normal. Run this script whenever the MigrationStore schema changes.
 
 Usage: python3.11 tools/build_benchmark_fixture.py
