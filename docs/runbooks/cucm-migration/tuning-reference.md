@@ -321,6 +321,32 @@ What calibration would look like: a statistical comparison between the eight fac
 
 The operational instructions for logging calibration data live in [operator-runbook.md §Calibration Data Capture](operator-runbook.md#calibration-data-capture), not here. That section tells the operator what to record during a live migration so the data exists when the calibration workstream opens.
 
+### Calibration Handoff Procedure
+
+Calibration data comes from the Layer 3 benchmark harness
+(`tools/layer3_benchmark.py`). When running against a **real** migration
+project (not the fixture), pass `--baseline` to compare against prior runs
+and add a `calibration_data` block to the report:
+
+```bash
+python3.11 tools/layer3_benchmark.py \
+    --project ~/.wxcli/migrations/<real-project> \
+    --baseline docs/reports/layer3-baseline-YYYY-MM-DD.json
+```
+
+Commit the report JSON to `docs/reports/layer3-<date>-<project>.json`.
+
+**To flip `SCORE_CALIBRATED` to `True`:**
+
+1. Accumulate 3+ real-migration runs where the admin has confirmed the
+   migration outcome (success/failure/partial).
+2. Verify that the score's tier label (Straightforward/Moderate/Complex)
+   matched the actual migration effort in at least 2 of 3 runs.
+3. Set `SCORE_CALIBRATED = True` in `src/wxcli/migration/report/score.py:50`.
+4. Remove the `UNCALIBRATED` disclaimer from `src/wxcli/migration/report/executive.py`
+   (search for `calibrated` in that file to find the disclaimer block).
+5. Update the `<!-- Last verified: ... -->` header on this file.
+
 ## What Is and Isn't Tunable
 
 The pipeline exposes a deliberate, narrow tuning surface. Anything not listed under "tunable" below is intentionally locked and should not be changed without a code-review conversation.
