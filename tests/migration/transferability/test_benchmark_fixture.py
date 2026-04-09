@@ -27,6 +27,9 @@ EXPECTED_TYPES = {
     "BUTTON_UNMAPPABLE": 1,
 }
 
+assert sum(EXPECTED_TYPES.values()) == 18, \
+    "EXPECTED_TYPES drifted from 18-decision fixture"
+
 RECOMMENDED_IDS = {"D0001", "D0002", "D0003", "D0004", "D0005", "D0007"}
 
 
