@@ -323,29 +323,54 @@ The operational instructions for logging calibration data live in [operator-runb
 
 ### Calibration Handoff Procedure
 
-Calibration data comes from the Layer 3 benchmark harness
-(`tools/layer3_benchmark.py`). When running against a **real** migration
-project (not the fixture), pass `--baseline` to compare against prior runs
-and add a `calibration_data` block to the report:
+This subsection ties together two workstreams that share the word "calibration"
+but measure different things:
 
-```bash
-python3.11 tools/layer3_benchmark.py \
-    --project ~/.wxcli/migrations/<real-project> \
-    --baseline docs/reports/layer3-baseline-YYYY-MM-DD.json
-```
-
-Commit the report JSON to `docs/reports/layer3-<date>-<project>.json`.
+- **Score calibration** — the migration-complexity score's factor weights
+  (`src/wxcli/migration/report/score.py:17`) fit against real operator effort.
+  This is what `SCORE_CALIBRATED` is about. The data source is the manual
+  `calibration-log.md` described in
+  [operator-runbook.md §Calibration Data Capture](operator-runbook.md#calibration-data-capture).
+- **Agent-efficiency regression guard** — `tools/layer3_benchmark.py` runs
+  the `cucm-migrate` skill against a fixture via the Anthropic API and
+  measures token usage, tool-call patterns, and gotcha coverage. This is
+  a CI-style regression guard for the skill and runbooks, not a source of
+  score-calibration data.
 
 **To flip `SCORE_CALIBRATED` to `True`:**
 
-1. Accumulate 3+ real-migration runs where the admin has confirmed the
-   migration outcome (success/failure/partial).
-2. Verify that the score's tier label (Straightforward/Moderate/Complex)
-   matched the actual migration effort in at least 2 of 3 runs.
-3. Set `SCORE_CALIBRATED = True` in `src/wxcli/migration/report/score.py:50`.
-4. Remove the `UNCALIBRATED` disclaimer from `src/wxcli/migration/report/executive.py`
-   (search for `calibrated` in that file to find the disclaimer block).
-5. Update the `<!-- Last verified: ... -->` header on this file.
+1. Accumulate 3+ real-migration entries in `calibration-log.md` following the
+   protocol at
+   [operator-runbook.md §Calibration Data Capture](operator-runbook.md#calibration-data-capture).
+   Each entry needs the headline score, actual hours, and environment
+   characteristics.
+2. Confirm that a statistical fit of the eight factor inputs against logged
+   effort hours produces weight adjustments the team accepts. See
+   [§When to Recalibrate](#when-to-recalibrate) above for the shape of the fit;
+   the methodology is deliberately out of scope for this runbook.
+3. Update `WEIGHTS` in `src/wxcli/migration/report/score.py:17` with the fitted
+   weights (the fit and the flag flip should land in the same commit).
+4. Set `SCORE_CALIBRATED = True` in `src/wxcli/migration/report/score.py:50`.
+5. Remove the uncalibrated-disclaimer callout from
+   `src/wxcli/migration/report/executive.py` (search for `calibrated` in that
+   file — the conditional block at approximately lines 127-135 guards on
+   `not result.calibrated`).
+6. Update the `<!-- Last verified: ... -->` header on this file.
+
+**After flipping `SCORE_CALIBRATED`:** regenerate the Layer 3 agent-efficiency
+baseline so the regression guard measures post-calibration skill/runbook
+behavior instead of pre-calibration. From the repo root:
+
+```bash
+python3.11 tools/layer3_benchmark.py \
+    --project tests/fixtures/benchmark-migration \
+    --compare --baseline docs/reports/layer3-baseline-YYYY-MM-DD.json
+```
+
+Commit the new baseline report to `docs/reports/layer3-baseline-YYYY-MM-DD.json`
+(replacing the date). The two workstreams remain independent — this step just
+ensures the baseline reflects the current skill content after any calibration
+rewrite.
 
 ## What Is and Isn't Tunable
 
