@@ -1393,3 +1393,112 @@ git commit -m "feat(layer3): commit first benchmark baseline — $(date +%Y-%m-%
 - §4.5 calibration loop back to Layer 1: covered by Task 4 tuning-reference update
 - §8 Deliverable 9 (tuning-reference update): Task 4
 - §8 Deliverable 8 (baseline run): Task 5 [HUMAN]
+
+---
+
+## Retrospective: Why the Measurement Architecture Was Wrong
+
+> Added 2026-04-09 after Task 5 baseline run failed to produce meaningful data.
+
+### What happened
+
+Tasks 1–4 were implemented, reviewed, and committed successfully (12 tests for
+the harness, 50 total in the transferability suite). Task 5 ran the harness
+against the fixture for the first time and revealed two structural failures:
+
+1. **Missing tool declarations.** `run_session` called `client.messages.create()`
+   without a `tools=[]` parameter, so the Anthropic API could not emit
+   `tool_use` blocks. The model produced text-only output and the loop exited
+   on turn 1 with zero tool calls. Fixed in `7052de1`.
+
+2. **Inadequate fixture + silent dispatcher fall-through.** After adding tool
+   declarations, the model issued 15 Bash calls across 13 turns but never
+   entered the decision-review phase. It tried `wxcli cucm inventory`, `which
+   wxcli`, `ls ~/.wxcli/`, and other diagnostic commands — all returned empty
+   strings because `ToolResponseDispatcher` only mocks 4 command patterns. The
+   model correctly interpreted 11 consecutive empty responses as "broken
+   environment" and gave up.
+
+### Root cause: wrong execution model
+
+The harness calls the Anthropic API directly via `anthropic.Anthropic()`. In
+production, the `cucm-migrate` skill runs inside **Claude Code** via the
+`wxc-calling-builder` agent. The two environments share almost nothing:
+
+| Dimension | Harness | Production (Claude Code) |
+|---|---|---|
+| Tool registration | Manual `tools=[...]` in API call | Claude Code registers its full tool catalog |
+| Tool execution | `ToolResponseDispatcher` returning stub JSON | Real Bash/Read/Grep against real filesystem |
+| Agent instructions | None — SKILL.md loaded as raw `system=` prompt | `.claude/agents/wxc-calling-builder.md` preamble |
+| Skill loading | Manual `read_text()` into system prompt | Claude Code's skill loader with context management |
+| CLI availability | Not installed in harness context | Real `wxcli` binary on PATH |
+
+The harness measures "base-model behavior when given skill content as a system
+prompt with ad-hoc tools." That is not the same thing as "how the
+wxc-calling-builder agent uses the cucm-migrate skill in Claude Code."
+
+### Root cause: non-deterministic outputs defeat regression baselines
+
+Even if the execution model were fixed (e.g., by capturing real Claude Code
+transcripts), LLM outputs are non-deterministic. The same prompt, model, and
+skill produce different tool-call sequences, decision orderings, and token
+counts on each run. A baseline captured today cannot be meaningfully compared
+to tomorrow's run — variance is signal, not noise, and flagging it as
+"REGRESSION" produces flaky tests that erode trust in the suite.
+
+### What survives
+
+**Plan A's deliverables are the correct automated regression guard:**
+
+| Commit | Deliverable | Why it works |
+|---|---|---|
+| `91cc354` | CI gate: path-filtered workflow runs tests on PRs | Deterministic — tests content, not model behavior |
+| `6db6554` | Score factor display-name parity test | Deterministic — checks data structures |
+| `ec56522` | Runbook structural parsability probes | Deterministic — checks markdown structure |
+| `a4aa93c` | Recommendation output coverage | Deterministic — checks code paths |
+| `b9373b6` | Spec §9 findings fixes | Deterministic — fixes content |
+
+These 38 tests check that the skill content is correct, complete, and
+internally consistent. They catch the things that would *cause* the agent to
+misbehave (broken links, missing decision types, stale citations) without
+trying to measure the non-deterministic behavior itself.
+
+**Plan B artifacts that remain useful:**
+
+- `tools/build_benchmark_fixture.py` + `tests/fixtures/benchmark-migration/` —
+  valid CUCM test-bed project with 18 decisions across 4 categories. Useful for
+  manual QA runs via `wxc-calling-builder`.
+- `tools/layer3_benchmark.py` scoring helpers (`detect_phase`,
+  `extract_resolved_decisions`, `compute_decision_accuracy`,
+  `compute_regression_report`) — could analyze a real Claude Code transcript
+  if piped through a future transcript reader. The `run_session` API loop is
+  dead code.
+- Task 4 tuning-reference update (`2b56bd7`) — correctly separates "agent
+  efficiency regression guard" from "score calibration" in the runbook.
+
+### What Layer 3 dynamic validation actually is
+
+Not an automated test. A **periodic human QA exercise**:
+
+1. Invoke `wxc-calling-builder` with `/cucm-migrate` against a test project.
+2. Watch the agent work through decisions.
+3. Judge: did it consult the runbooks? Handle gotchas? Resolve decisions
+   correctly?
+4. If something looks wrong, fix the skill or runbook content. The Layer 1+2
+   tests guard that fix deterministically.
+
+### Lessons learned
+
+1. **Don't build a parallel simulation of your runtime.** If the tool runs in
+   Claude Code, measure it in Claude Code. A standalone Python script that
+   reimplements Claude Code's agent loop will always diverge from production.
+2. **Non-deterministic systems need non-deterministic measurement.** Statistical
+   analysis over N runs, not golden-run comparison. But N runs of an LLM are
+   expensive, so the ROI is usually negative compared to static content checks.
+3. **Static content tests are underrated.** The 38 Layer 1+2 tests catch real
+   bugs (broken citations, missing decision types, stale CLI commands) cheaply
+   and deterministically. They are the regression guard.
+4. **Task 5 was the real test.** The plan passed spec review, code review, and
+   unit tests — but failed on first contact with the API. Integration testing
+   earlier (even a single dry-run in the plan's design phase) would have caught
+   both the missing-tools bug and the execution-model mismatch.
