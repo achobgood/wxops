@@ -114,3 +114,24 @@ def test_regression_report_flags_token_increase():
     report = compute_regression_report(current, baseline)
     assert report["tokens_per_decision"]["status"] == "REGRESSION"
     assert report["decision_accuracy"]["status"] == "OK"
+
+
+def test_tools_schema_structure():
+    from tools.layer3_benchmark import TOOLS
+    assert isinstance(TOOLS, list)
+    assert len(TOOLS) == 4
+    tool_names = {t["name"] for t in TOOLS}
+    assert tool_names == {"Bash", "Read", "Grep", "Glob"}
+    for tool in TOOLS:
+        assert "name" in tool
+        assert "description" in tool
+        assert "input_schema" in tool
+        schema = tool["input_schema"]
+        assert schema["type"] == "object"
+        assert "properties" in schema
+        assert "required" in schema
+        # Required field must appear in properties
+        for req_field in schema["required"]:
+            assert req_field in schema["properties"], (
+                f"{tool['name']}: required field {req_field} missing from properties"
+            )

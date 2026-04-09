@@ -64,6 +64,75 @@ DECISION_REVIEW_MARKERS = [
 # Source files that should NOT be read during decision-review phase.
 SOURCE_FILE_PREFIXES = ["src/wxcli/migration/"]
 
+# Tool declarations for the Anthropic API. These must match the tools the
+# skill's runbooks reference. ToolResponseDispatcher only implements Bash
+# and Read; Grep/Glob will return empty strings via the dispatch fall-through
+# (the model will learn to avoid them after one or two tries, which is
+# realistic behavior for a baseline run).
+TOOLS = [
+    {
+        "name": "Bash",
+        "description": (
+            "Executes a bash command and returns its stdout. Use for running "
+            "wxcli commands, git, and shell utilities."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "command": {"type": "string", "description": "The shell command to execute."},
+                "description": {"type": "string", "description": "Short description of what the command does."},
+            },
+            "required": ["command"],
+        },
+    },
+    {
+        "name": "Read",
+        "description": (
+            "Reads a file from the local filesystem. Use to load runbooks, "
+            "skill content, or migration artifacts."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "file_path": {"type": "string", "description": "Absolute or repo-relative path."},
+                "limit": {"type": "integer", "description": "Max lines to read."},
+                "offset": {"type": "integer", "description": "Starting line number."},
+            },
+            "required": ["file_path"],
+        },
+    },
+    {
+        "name": "Grep",
+        "description": (
+            "Searches file contents for a pattern. Uses ripgrep semantics."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "pattern": {"type": "string", "description": "Regex pattern to search for."},
+                "path": {"type": "string", "description": "File or directory to search in."},
+                "glob": {"type": "string", "description": "Glob filter for file paths."},
+                "output_mode": {"type": "string", "description": "'content', 'files_with_matches', or 'count'."},
+            },
+            "required": ["pattern"],
+        },
+    },
+    {
+        "name": "Glob",
+        "description": (
+            "Finds files matching a glob pattern."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "pattern": {"type": "string", "description": "Glob pattern (e.g., '**/*.py')."},
+                "path": {"type": "string", "description": "Directory to search in."},
+            },
+            "required": ["pattern"],
+        },
+    },
+]
+
 
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Layer 3 benchmark harness")
@@ -280,6 +349,7 @@ def run_session(args: argparse.Namespace) -> dict[str, Any]:
             max_tokens=4096,
             system=skill_text,
             messages=messages,
+            tools=TOOLS,
         )
 
         # Update phase from assistant text
