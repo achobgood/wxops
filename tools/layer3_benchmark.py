@@ -34,6 +34,7 @@ SKILL_PATH = REPO_ROOT / ".claude" / "skills" / "cucm-migrate" / "SKILL.md"
 
 MAX_FIXTURE_READ_BYTES = 8000  # Cap on file content returned to the model via Read tool;
                                # directly shapes baseline token counts — treat as load-bearing.
+MAX_SESSION_TURNS = 50  # Hard stop for run_session; real sessions should be well under this
 
 # Maps Bash command patterns to fixture response files.
 # Key: substring that must appear in the command string.
@@ -102,6 +103,9 @@ def empty_session_record(project: str, model: str) -> dict[str, Any]:
                     "token_expiry_gate": False,
                     "dissent_protocol": False,
                     "preflight_failure_gate": False,
+                },
+                "signals": {
+                    "token_expiry_signal_seen": False,
                 },
             },
         },
@@ -181,8 +185,7 @@ def extract_resolved_decisions(bash_calls: list[str]) -> dict[str, str]:
     pattern = re.compile(r"wxcli\s+cucm\s+decide\s+(D\d{4})\s+([a-z_][a-z0-9_]*)")
     resolved: dict[str, str] = {}
     for call in bash_calls:
-        m = pattern.search(call)
-        if m:
+        for m in pattern.finditer(call):
             resolved[m.group(1)] = m.group(2)
     return resolved
 
@@ -211,7 +214,9 @@ def compute_regression_report(
     report: dict[str, Any] = {}
 
     # Tokens per decision: >20% increase = REGRESSION
-    if bs.get("tokens_per_decision") and cs.get("tokens_per_decision"):
+    if (bs.get("tokens_per_decision") is not None
+        and cs.get("tokens_per_decision") is not None
+        and bs["tokens_per_decision"] > 0):
         delta = (cs["tokens_per_decision"] - bs["tokens_per_decision"]) / bs["tokens_per_decision"]
         report["tokens_per_decision"] = {
             "baseline": bs["tokens_per_decision"],
@@ -262,8 +267,14 @@ def run_session(args: argparse.Namespace) -> dict[str, Any]:
     bash_calls: list[str] = []
     read_calls: list[str] = []
     phase_read_counts: dict[str, dict[str, int]] = {"assessment": {}, "decision_review": {}}
+    turn_count = 0
 
     while True:
+        turn_count += 1
+        if turn_count > MAX_SESSION_TURNS:
+            record["summary"]["terminated_early"] = "max_turns_exceeded"
+            break
+
         response = client.messages.create(
             model=args.model,
             max_tokens=4096,
@@ -281,7 +292,7 @@ def run_session(args: argparse.Namespace) -> dict[str, Any]:
 
         # Record turn and tokens
         record["phases"][current_phase]["turns"] += 1
-        record["phases"][current_phase]["input_tokens"] += response.usage.input_tokens
+        record["phases"][current_phase]["input_tokens"] += (response.usage.input_tokens or 0)
 
         # Record tool calls
         tool_results = []
@@ -290,7 +301,10 @@ def run_session(args: argparse.Namespace) -> dict[str, Any]:
                 continue
             tool_name = block.name
             tool_input = block.input
-            call_summary = f"{tool_name}({list(tool_input.values())[0] if tool_input else ''})"
+            first_value = ""
+            if isinstance(tool_input, dict) and tool_input:
+                first_value = next(iter(tool_input.values()), "")
+            call_summary = f"{tool_name}({first_value})"
             record["phases"][current_phase]["tool_calls"].append(
                 {"tool": tool_name, "summary": call_summary}
             )
@@ -333,10 +347,10 @@ def run_session(args: argparse.Namespace) -> dict[str, Any]:
                         # Tool result itself shows an expiring token — gate
                         # is activated when we see it; the harness will verify
                         # in subsequent turns that the assistant narrates the
-                        # refresh warning.
-                        record["phases"][current_phase]["gotcha_coverage"].setdefault(
-                            "token_expiry_signal_seen", True
-                        )
+                        # refresh warning. Written to `signals` (not
+                        # `gotcha_coverage`) so it doesn't shift the
+                        # gc_rate denominator.
+                        record["phases"][current_phase]["signals"]["token_expiry_signal_seen"] = True
 
             tool_results.append({
                 "type": "tool_result",

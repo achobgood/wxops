@@ -35,6 +35,8 @@ def test_session_record_schema():
     assert "decisions_resolved" in phase
     assert "decision_accuracy" in phase
     assert "gotcha_coverage" in phase
+    assert "signals" in phase
+    assert "token_expiry_signal_seen" in phase["signals"]
     assert "summary" in record
 
 
@@ -85,6 +87,16 @@ def test_decision_extractor_finds_decide_calls():
     ]
     resolved = extract_resolved_decisions(bash_calls)
     assert resolved == {"D0001": "skip", "D0002": "hunt_group"}
+
+
+def test_decision_extractor_handles_compound_bash_calls():
+    from tools.layer3_benchmark import extract_resolved_decisions
+    bash_calls = [
+        "wxcli cucm decide D0001 skip && wxcli cucm decide D0002 use_union",
+        "wxcli cucm decide D0003 manual ; wxcli cucm decide D0004 generate",
+    ]
+    resolved = extract_resolved_decisions(bash_calls)
+    assert resolved == {"D0001": "skip", "D0002": "use_union", "D0003": "manual", "D0004": "generate"}
 
 
 def test_decision_accuracy_computation():
