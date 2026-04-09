@@ -1,10 +1,6 @@
 """Unit tests for the Layer 3 benchmark harness — no API calls."""
 from __future__ import annotations
 import json
-from pathlib import Path
-import pytest
-
-FIXTURE_DB = Path(__file__).resolve().parents[3] / "tests" / "fixtures" / "benchmark-migration" / "migration.db"
 
 
 def test_arg_parser_project_flag(tmp_path):

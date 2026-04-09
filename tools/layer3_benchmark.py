@@ -7,7 +7,7 @@ counts) and produces a structured JSON efficiency report.
 
 Usage:
     python3.11 tools/layer3_benchmark.py --project tests/fixtures/benchmark-migration
-    python3.11 tools/layer3_benchmark.py --project tests/fixtures/benchmark-migration --compare docs/reports/layer3-baseline-2026-04-08.json
+    python3.11 tools/layer3_benchmark.py --project tests/fixtures/benchmark-migration --compare --baseline docs/reports/layer3-baseline-2026-04-08.json
 
 Requirements:
     - ANTHROPIC_API_KEY env var must be set
@@ -22,7 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import re
+import re  # noqa: F401  # used by Task 3's helper functions (extract_resolved_decisions)
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -31,6 +31,9 @@ from typing import Any
 PINNED_MODEL = "claude-sonnet-4-6"
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SKILL_PATH = REPO_ROOT / ".claude" / "skills" / "cucm-migrate" / "SKILL.md"
+
+MAX_FIXTURE_READ_BYTES = 8000  # Cap on file content returned to the model via Read tool;
+                               # directly shapes baseline token counts — treat as load-bearing.
 
 # Maps Bash command patterns to fixture response files.
 # Key: substring that must appear in the command string.
@@ -143,11 +146,12 @@ class ToolResponseDispatcher:
                     return data.get("stdout", "")
         return ""
 
+    # TODO(Task 3): harden against UnicodeDecodeError on binary files and absolute-path escapes
     def _dispatch_read(self, file_path: str) -> str:
         # For skill and runbook reads, return actual file content.
         resolved = REPO_ROOT / file_path.lstrip("/")
         if resolved.exists():
-            return resolved.read_text(encoding="utf-8")[:8000]  # cap at 8K
+            return resolved.read_text(encoding="utf-8")[:MAX_FIXTURE_READ_BYTES]
         return f"[fixture: file not found: {file_path}]"
 
 
