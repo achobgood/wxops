@@ -278,6 +278,7 @@ def _device_inventory(store: MigrationStore) -> str:
     webex_app = sum(1 for d in devices if d.get("compatibility_tier") == "webex_app")
     infrastructure = sum(1 for d in devices if d.get("compatibility_tier") == "infrastructure")
     incompatible = sum(1 for d in devices if d.get("compatibility_tier") == "incompatible")
+    dect = sum(1 for d in devices if d.get("compatibility_tier") == "dect")
 
     summary_parts = [f"{total} phones"]
     if native:
@@ -290,6 +291,8 @@ def _device_inventory(store: MigrationStore) -> str:
         summary_parts.append(f"{infrastructure} infrastructure")
     if incompatible:
         summary_parts.append(f"{incompatible} incompatible")
+    if dect:
+        summary_parts.append(f"{dect} DECT")
     summary = " — ".join(summary_parts[:1]) + " — " + ", ".join(summary_parts[1:])
 
     parts = [
@@ -312,8 +315,9 @@ def _device_inventory(store: MigrationStore) -> str:
             "webex_app": "Webex App",
             "infrastructure": "Infrastructure (not migrated)",
             "incompatible": "Incompatible",
+            "dect": "DECT (wireless)",
         }
-        for tier_name in ["native_mpp", "convertible", "webex_app", "infrastructure", "incompatible"]:
+        for tier_name in ["native_mpp", "convertible", "webex_app", "infrastructure", "incompatible", "dect"]:
             if tiers.get(tier_name, 0) > 0:
                 tier_list.append(f'{_TIER_DISPLAY.get(tier_name, tier_name)}: {tiers[tier_name]}')
         tier_str = ", ".join(tier_list) if tier_list else "Unknown"
@@ -332,6 +336,8 @@ def _device_inventory(store: MigrationStore) -> str:
         {"label": "Convertible", "value": convertible, "color": "#EF6C00"},
         {"label": "Incompatible", "value": incompatible, "color": "#C62828"},
     ]
+    if dect:
+        segments.append({"label": "DECT", "value": dect, "color": "#42A5F5"})
     bar_html = stacked_bar_chart(segments)
     if bar_html:
         parts.append(bar_html)
@@ -1581,9 +1587,9 @@ def _dect_networks_group(store: MigrationStore) -> str:
                  "<th>Extension</th><th>Device Pool</th>")
     parts.append("</tr></thead><tbody>")
 
-    for d in sorted(dect_devices, key=lambda x: x.get("cucm_device_name", "")):
+    for d in sorted(dect_devices, key=lambda x: x.get("cucm_device_name") or ""):
         state = d.get("pre_migration_state") or {}
-        device_name = d.get("cucm_device_name") or d.get("canonical_id", "")
+        device_name = d.get("cucm_device_name") or strip_canonical_id(d.get("canonical_id", ""))
         model = d.get("model", "Unknown")
         owner = state.get("ownerUserName") or "<em>unowned</em>"
         lines = state.get("line_appearances") or d.get("line_appearances") or []
