@@ -1,6 +1,6 @@
 """Device mapper: CUCM Phones -> Webex Calling Devices.
 
-Maps CUCM phone (SEP) devices to CanonicalDevice objects with three-tier
+Maps CUCM phone (SEP) devices to CanonicalDevice objects with four-tier
 model compatibility classification. Skips common-area phones (those go to
 workspace_mapper).
 
@@ -143,7 +143,39 @@ class DeviceMapper(Mapper):
             result.objects_created += 1
 
             # --- Generate decisions for non-native devices ---
-            if compatibility_tier == DeviceCompatibilityTier.INCOMPATIBLE:
+            if compatibility_tier == DeviceCompatibilityTier.WEBEX_APP:
+                # Software phones (Jabber, CSF, Dual Mode, IP Communicator) transition
+                # to Webex App. User keeps their number/extension, no device record needed
+                # in Webex — Webex App just works with a Calling license.
+                decision = self._create_decision(
+                    store=store,
+                    decision_type=DecisionType.DEVICE_INCOMPATIBLE,
+                    severity="INFO",
+                    summary=(
+                        f"Soft client '{device_name}' ({model}) transitions to Webex App — "
+                        f"no device migration needed"
+                    ),
+                    context={
+                        "device_id": device.canonical_id,
+                        "device_name": device_name,
+                        "model": model,
+                        "protocol": protocol,
+                        "compatibility_tier": compatibility_tier.value,
+                        "webex_app_transition": True,
+                    },
+                    options=[
+                        accept_option(
+                            "User gets Webex Calling license — Webex App replaces "
+                            f"{model}. Number/extension preserved for PSTN dialing."
+                        ),
+                        manual_option("User also needs a physical phone (provision separately)"),
+                    ],
+                    affected_objects=[device.canonical_id],
+                )
+                store.save_decision(decision_to_store_dict(decision))
+                result.decisions.append(decision)
+
+            elif compatibility_tier == DeviceCompatibilityTier.INCOMPATIBLE:
                 decision = self._create_decision(
                     store=store,
                     decision_type=DecisionType.DEVICE_INCOMPATIBLE,

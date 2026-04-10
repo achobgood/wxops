@@ -178,10 +178,12 @@ def _device_compatibility(store: MigrationStore) -> tuple[int, str]:
     total = len(devices)
     convertible = sum(1 for d in devices if d.get("compatibility_tier") == "convertible")
     incompatible = sum(1 for d in devices if d.get("compatibility_tier") == "incompatible")
+    webex_app = sum(1 for d in devices if d.get("compatibility_tier") == "webex_app")
 
-    # Incompatible devices weigh heavily, convertible less so
+    # Only convertible + incompatible drive complexity; webex_app is a clean transition
     raw = int((incompatible * 100 + convertible * 30) / total)
-    detail = f"{total} devices: {total - convertible - incompatible} native, {convertible} convertible, {incompatible} incompatible"
+    native = total - convertible - incompatible - webex_app
+    detail = f"{total} devices: {native} native, {webex_app} Webex App, {convertible} convertible, {incompatible} incompatible"
     return raw, detail
 
 

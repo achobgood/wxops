@@ -1178,18 +1178,20 @@ def detect_recording_enabled_users(store: MigrationStore) -> list[AdvisoryFindin
     detail = (
         f"{len(recording_users)} user{'s' if len(recording_users) != 1 else ''} have call recording "
         f"enabled in CUCM across {len(recording_phones)} phone{'s' if len(recording_phones) != 1 else ''}. "
-        f"Webex Calling requires a separate call recording license and location-level recording "
-        f"configuration (vendor selection, compliance announcements, storage). Person-level recording "
-        f"settings must also be enabled. Without this setup, recording will not function after migration."
+        f"The migration pipeline will set the org recording vendor to the value of the "
+        f"'recording_vendor' config key (default: Webex). Webex Calling includes built-in "
+        f"call recording at no extra cost. Per-user recording settings are enabled automatically "
+        f"during execution. To use a different vendor, set recording_vendor in config.json "
+        f"before running export (e.g., 'Dubber', 'Imagicle')."
     )
 
     return [AdvisoryFinding(
         pattern_name="recording_enabled_users",
-        severity="HIGH",
-        summary=f"{len(recording_users)} users have call recording enabled — configure Webex recording before migration",
+        severity="LOW",
+        summary=f"{len(recording_users)} users have call recording enabled — enable Webex recording per-user during migration",
         detail=detail,
         affected_objects=list(recording_phones),
-        category="out_of_scope",
+        category="migrate_as_is",
     )]
 
 

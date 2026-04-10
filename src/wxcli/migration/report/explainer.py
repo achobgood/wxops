@@ -76,6 +76,15 @@ def _explain_dn_ambiguous(
 def _explain_device_incompatible(
     summary: str, context: dict[str, Any], severity: str
 ) -> dict[str, str]:
+    if context.get("webex_app_transition"):
+        model = context.get("model", "software phone")
+        title = f"Transitioning to Webex App: {model}"
+        explanation = (
+            f"{model} users will transition to Webex App. No device replacement needed — "
+            f"users keep their number and extension for PSTN dialing. Webex App replaces "
+            f"the CUCM soft client automatically with a Webex Calling license."
+        )
+        return {"title": title, "explanation": explanation, "reassurance": _reassurance_for_severity(severity)}
     model = context.get("model", "")
     count = context.get("count", "")
     recommended = context.get("recommended_model", "a supported Webex Calling model")
@@ -530,16 +539,21 @@ def generate_key_findings(store: MigrationStore) -> list[dict[str, str]]:
         native = sum(1 for d in devices if d.get("compatibility_tier") == "native_mpp")
         convertible = sum(1 for d in devices if d.get("compatibility_tier") == "convertible")
         incompatible = sum(1 for d in devices if d.get("compatibility_tier") == "incompatible")
+        webex_app = sum(1 for d in devices if d.get("compatibility_tier") == "webex_app")
 
-        if incompatible > 0 or convertible > 0:
+        if incompatible > 0 or convertible > 0 or webex_app > 0:
             parts = []
             if convertible > 0:
                 parts.append(f"{convertible} need firmware conversion")
             if incompatible > 0:
                 parts.append(f"{incompatible} need replacement")
+            if webex_app > 0:
+                parts.append(f"{webex_app} transition to Webex App")
+            action_count = convertible + incompatible + webex_app
+            icon = "!" if incompatible > 0 else "✓"
             findings.append({
-                "icon": "!",
-                "text": f"<strong>{convertible + incompatible} of {total} phones</strong> {'; '.join(parts)}",
+                "icon": icon,
+                "text": f"<strong>{action_count} of {total} phones</strong> {'; '.join(parts)}",
             })
         elif native == total and total > 0:
             findings.append({
