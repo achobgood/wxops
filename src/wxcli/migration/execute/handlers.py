@@ -606,11 +606,12 @@ def handle_workspace_configure_settings(data: dict, deps: dict, ctx: dict) -> Ha
             break
     if not ws_wid:
         return []
-    # Workspace settings use the /workspaces/{id}/features/ path family
+    # Workspace settings use /telephony/config/workspaces/{id}/ path family
+    # (NOT /workspaces/{id}/features/ — that's a different API surface)
     settings = data.get("call_settings", {})
     calls = []
     for feature_name, feature_body in settings.items():
-        url = _url(f"/workspaces/{ws_wid}/features/{feature_name}", ctx)
+        url = _url(f"/telephony/config/workspaces/{ws_wid}/{feature_name}", ctx)
         calls.append(("PUT", url, feature_body))
     return calls
 
