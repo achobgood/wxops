@@ -265,6 +265,22 @@ class CanonicalRouteGroup(MigrationObject):
     local_gateways: list[TrunkGatewayRef] = Field(default_factory=list)
 
 
+class CanonicalRouteList(MigrationObject):
+    """CUCM Route List -> Webex Calling Route List.
+
+    Webex route lists bind to exactly ONE route group (unlike CUCM which allows
+    multiple). Dial plans point to route groups, not route lists, because Webex
+    RouteType enum = ROUTE_GROUP | TRUNK only.
+    """
+    name: str = ""
+    location_id: str | None = None
+    route_group_id: str | None = None
+    numbers: list[str] = Field(default_factory=list)
+    cucm_route_list_name: str = ""
+    cucm_route_groups: list[str] = Field(default_factory=list)
+
+
+
 class CanonicalDialPlan(MigrationObject):
     """CUCM Route Patterns / CSS routing scope -> Webex Calling Dial Plan.
     (from 03b-transform-mappers.md, routing_mapper dial plan lines 389-395
@@ -670,6 +686,22 @@ class CanonicalSoftkeyConfig(MigrationObject):
     device_canonical_id: str | None = None  # Per-device PSK config: links to device
 
 
+class CanonicalDeviceSettingsTemplate(MigrationObject):
+    """CUCM device settings -> Webex device settings template.
+
+    One template per (model_family, location) group. Settings are the
+    majority-vote values across all phones in the group. Per-device overrides
+    list phones that differ from the majority.
+    """
+    model_family: str | None = None  # "9800", "8875", "78xx", "68xx"
+    location_canonical_id: str | None = None
+    settings: dict[str, Any] = Field(default_factory=dict)
+    per_device_overrides: list[dict[str, Any]] = Field(default_factory=list)
+    unmappable_settings: list[str] = Field(default_factory=list)
+    phones_using: int = 0
+    custom_backgrounds: list[str] = Field(default_factory=list)
+
+
 # ---------------------------------------------------------------------------
 # Inventory — aggregates all canonical types
 # ---------------------------------------------------------------------------
@@ -724,6 +756,7 @@ CANONICAL_TYPE_REGISTRY: dict[str, type[MigrationObject]] = {
     "trunk": CanonicalTrunk,
     "dial_plan": CanonicalDialPlan,
     "route_group": CanonicalRouteGroup,
+    "route_list": CanonicalRouteList,
     "translation_pattern": CanonicalTranslationPattern,
     "operating_mode": CanonicalOperatingMode,
     "call_park": CanonicalCallPark,
@@ -746,6 +779,7 @@ CANONICAL_TYPE_REGISTRY: dict[str, type[MigrationObject]] = {
     "receptionist_config": CanonicalReceptionistConfig,
     "music_on_hold": CanonicalMusicOnHold,
     "announcement": CanonicalAnnouncement,
+    "device_settings_template": CanonicalDeviceSettingsTemplate,
 }
 
 # Reverse lookup: class -> type name string (O(1) for _object_type_for)
