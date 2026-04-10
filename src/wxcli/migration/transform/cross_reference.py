@@ -40,6 +40,13 @@ def _now() -> datetime:
 # (from cucm-wxc-migration.md lines 363-369)
 # ---------------------------------------------------------------------------
 
+# DECT handset models — wireless handsets that need DECT network provisioning,
+# NOT desk phones. Checked before _NATIVE_MPP_PATTERNS to prevent false classification.
+_DECT_PATTERNS = {
+    "Cisco 6823", "Cisco 6825", "Cisco 6825ip",
+    "Cisco IP Phone 6823", "Cisco IP Phone 6825", "Cisco IP Phone 6825ip",
+}
+
 # Native MPP: phones that ship with or run MPP/PhoneOS firmware natively
 # Phase 12c: expanded from original 68xx-only list after web search verification
 # Sources: help.webex.com/qkwt4j, Cisco 9800 data sheet, 8875 landing page
@@ -104,6 +111,10 @@ def classify_phone_model(model: str | None) -> DeviceCompatibilityTier:
     """
     if not model:
         return DeviceCompatibilityTier.INCOMPATIBLE
+
+    # Check DECT handsets first (6823/6825/6825ip are wireless, not desk phones)
+    if model in _DECT_PATTERNS:
+        return DeviceCompatibilityTier.DECT
 
     # Check native MPP first
     if model in _NATIVE_MPP_PATTERNS:
