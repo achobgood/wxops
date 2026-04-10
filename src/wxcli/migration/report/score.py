@@ -179,11 +179,32 @@ def _device_compatibility(store: MigrationStore) -> tuple[int, str]:
     convertible = sum(1 for d in devices if d.get("compatibility_tier") == "convertible")
     incompatible = sum(1 for d in devices if d.get("compatibility_tier") == "incompatible")
     webex_app = sum(1 for d in devices if d.get("compatibility_tier") == "webex_app")
+    dect = sum(1 for d in devices if d.get("compatibility_tier") == "dect")
 
-    # Only convertible + incompatible drive complexity; webex_app is a clean transition
-    raw = int((incompatible * 100 + convertible * 30) / total)
-    native = total - convertible - incompatible - webex_app
-    detail = f"{total} devices: {native} native, {webex_app} Webex App, {convertible} convertible, {incompatible} incompatible"
+    # DECT adds a small per-zone penalty (like convertible weight).
+    # Count distinct device pools containing DECT devices as coverage zones.
+    # Check both field names: cucm_device_pool (test fixtures) and devicePoolName (live AXL data).
+    dect_zones = set()
+    if dect:
+        for d in devices:
+            if d.get("compatibility_tier") == "dect":
+                state = d.get("pre_migration_state") or {}
+                dp = state.get("cucm_device_pool") or state.get("devicePoolName")
+                if dp:
+                    dect_zones.add(dp)
+        # Minimum 1 zone if DECT devices exist but no device pool info
+        if not dect_zones:
+            dect_zones = {"unknown"}
+
+    # incompatible * 100, convertible * 30, DECT zones * 3 (small fixed penalty)
+    raw = int((incompatible * 100 + convertible * 30 + len(dect_zones) * 3) / total)
+    native = total - convertible - incompatible - webex_app - dect
+    detail = (
+        f"{total} devices: {native} native, {webex_app} Webex App, "
+        f"{convertible} convertible, {incompatible} incompatible"
+    )
+    if dect:
+        detail += f", {dect} DECT ({len(dect_zones)} zone{'s' if len(dect_zones) != 1 else ''})"
     return raw, detail
 
 
