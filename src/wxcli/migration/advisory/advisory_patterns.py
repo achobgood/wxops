@@ -1861,3 +1861,43 @@ ALL_ADVISORY_PATTERNS: list[Callable[[MigrationStore], list[AdvisoryFinding]]] =
     detect_legacy_gateway_protocols,           # Pattern 26 (Gap: MGCP/H.323 undetected)
     detect_voicemail_greeting_rerecording,     # Pattern 27 (User action: VM greeting re-recording)
 ]
+
+
+# ===================================================================
+# Pattern 29: Receptionist / Attendant Console Workflow Impact
+# ===================================================================
+
+
+def detect_receptionist_workflow_impact(store: MigrationStore) -> list[AdvisoryFinding]:
+    """Flag environments with receptionist/attendant console users needing
+    special migration attention and training."""
+    receptionists = store.get_objects("receptionist_config")
+    if not receptionists:
+        return []
+    affected = [r["canonical_id"] for r in receptionists]
+    user_details = []
+    for r in receptionists:
+        state = r.get("pre_migration_state") or r
+        user_cid = state.get("user_canonical_id", r["canonical_id"])
+        blf = state.get("blf_count", 0)
+        score = state.get("detection_score", 0)
+        user_details.append(f"  - {user_cid} (BLF: {blf}, score: {score})")
+    n = len(receptionists)
+    detail = (
+        f"{n} receptionist/attendant console user(s) detected. "
+        "CUCM attendant console (CUAC) workflows do not have a direct Webex equivalent. "
+        "Webex offers: (1) Receptionist Client, (2) Receptionist Contact Directories, "
+        "(3) Webex Receptionist Console. Receptionists will need training.\n"
+        + "\n".join(user_details)
+    )
+    return [AdvisoryFinding(
+        pattern_name="receptionist_workflow_impact",
+        severity="MEDIUM",
+        summary=f"{n} receptionist/attendant console user(s) require workflow rebuild for Webex",
+        detail=detail,
+        affected_objects=affected,
+        category="rebuild",
+    )]
+
+
+ALL_ADVISORY_PATTERNS.append(detect_receptionist_workflow_impact)

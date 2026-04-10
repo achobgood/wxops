@@ -33,6 +33,7 @@ from wxcli.migration.transform.mappers.moh_mapper import MOHMapper
 from wxcli.migration.transform.mappers.snr_mapper import SNRMapper
 from wxcli.migration.transform.mappers.announcement_mapper import AnnouncementMapper
 from wxcli.migration.transform.mappers.workspace_mapper import WorkspaceMapper
+from wxcli.migration.transform.mappers.receptionist_mapper import ReceptionistMapper
 
 __all__ = [
     "Mapper",
@@ -55,6 +56,7 @@ __all__ = [
     "MOHMapper",
     "AnnouncementMapper",
     "DeviceProfileMapper",
+    "ReceptionistMapper",
     "skip_option",
     "manual_option",
     "accept_option",
