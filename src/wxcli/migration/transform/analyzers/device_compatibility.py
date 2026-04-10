@@ -49,9 +49,9 @@ class DeviceCompatibilityAnalyzer(Analyzer):
             canonical_id = device.get("canonical_id", "")
             tier = device.get("compatibility_tier")
 
-            if tier == "webex_app":
-                # Software phones transition to Webex App — mapper handles the
-                # INFO decision. No backfill needed from the analyzer.
+            if tier in ("webex_app", "infrastructure"):
+                # Software phones transition to Webex App; infrastructure devices
+                # (CTI, CER, gateways) are CUCM-only. Neither needs a decision.
                 continue
 
             elif tier == "incompatible":

@@ -275,6 +275,7 @@ def _device_inventory(store: MigrationStore) -> str:
     native = sum(1 for d in devices if d.get("compatibility_tier") == "native_mpp")
     convertible = sum(1 for d in devices if d.get("compatibility_tier") == "convertible")
     webex_app = sum(1 for d in devices if d.get("compatibility_tier") == "webex_app")
+    infrastructure = sum(1 for d in devices if d.get("compatibility_tier") == "infrastructure")
     incompatible = sum(1 for d in devices if d.get("compatibility_tier") == "incompatible")
 
     summary_parts = [f"{total} phones"]
@@ -284,6 +285,8 @@ def _device_inventory(store: MigrationStore) -> str:
         summary_parts.append(f"{convertible} convertible")
     if webex_app:
         summary_parts.append(f"{webex_app} Webex App")
+    if infrastructure:
+        summary_parts.append(f"{infrastructure} infrastructure")
     if incompatible:
         summary_parts.append(f"{incompatible} incompatible")
     summary = " — ".join(summary_parts[:1]) + " — " + ", ".join(summary_parts[1:])
@@ -306,9 +309,10 @@ def _device_inventory(store: MigrationStore) -> str:
             "native_mpp": "Native MPP",
             "convertible": "Convertible",
             "webex_app": "Webex App",
+            "infrastructure": "Infrastructure (not migrated)",
             "incompatible": "Incompatible",
         }
-        for tier_name in ["native_mpp", "convertible", "webex_app", "incompatible"]:
+        for tier_name in ["native_mpp", "convertible", "webex_app", "infrastructure", "incompatible"]:
             if tiers.get(tier_name, 0) > 0:
                 tier_list.append(f'{_TIER_DISPLAY.get(tier_name, tier_name)}: {tiers[tier_name]}')
         tier_str = ", ".join(tier_list) if tier_list else "Unknown"
