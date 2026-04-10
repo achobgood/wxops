@@ -2439,3 +2439,58 @@ def report(
                 )
     finally:
         store.close()
+
+
+# ===================================================================
+# PER-USER DIFF
+# ===================================================================
+
+
+@app.command()
+def user_diff(
+    format: str = typer.Option("html", "--format", "-f", help="Output format: html or csv"),
+    user: str = typer.Option(None, "--user", help="Single user canonical_id (e.g., user:jsmith)"),
+    output: str = typer.Option("user-diff", "--output", "-o", help="Output filename (without extension)"),
+    location: str = typer.Option(None, "--location", help="Filter to users in a specific location canonical_id"),
+    include_no_change: bool = typer.Option(False, "--include-no-change", help="Include users with no detected changes"),
+    project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
+):
+    """Generate a per-user CUCM-vs-Webex migration diff."""
+    project_dir = _resolve_project_dir(project)
+
+    completed = _completed_stages(project_dir)
+    if "analyze" not in completed:
+        console.print(
+            "[red]Cannot generate user diff — 'analyze' stage has not been completed.[/red]\n"
+            f"Completed stages: {', '.join(completed) if completed else '(none)'}",
+        )
+        raise typer.Exit(1)
+
+    store = _open_store(project_dir)
+    try:
+        from wxcli.migration.report.user_diff import build_user_diffs, render_csv, render_html
+
+        records = build_user_diffs(
+            store,
+            user_filter=user,
+            location_filter=location,
+        )
+
+        if not include_no_change:
+            records = [r for r in records if r.has_changes or r.decisions]
+
+        if format == "csv":
+            content = render_csv(records)
+            ext = "csv"
+        else:
+            cfg = load_config(project_dir)
+            brand = cfg.get("cluster_name", "")
+            content = render_html(records, brand=brand)
+            ext = "html"
+
+        out_path = project_dir / f"{output}.{ext}"
+        out_path.write_text(content, encoding="utf-8")
+        console.print(f"[green]User diff generated:[/green] {out_path}")
+        console.print(f"  {len(records)} user{'s' if len(records) != 1 else ''} included")
+    finally:
+        store.close()
