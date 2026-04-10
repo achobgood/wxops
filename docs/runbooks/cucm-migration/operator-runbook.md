@@ -462,6 +462,19 @@ These are operator heuristics grounded in the score weights above — not pipeli
 
 When three or more of these fire at once, stop and escalate to a solution-architect review before committing to a date. The score is there to surface the conversation, not to make the decision for you.
 
+### Per-User Diff (Pre-Execution Verification)
+
+Before executing the migration, generate a per-user diff to verify the planned changes:
+
+```bash
+wxcli cucm user-diff                              # HTML with all changed users
+wxcli cucm user-diff --format csv                 # CSV for Excel review
+wxcli cucm user-diff --user "user:jsmith"         # spot-check one user
+wxcli cucm user-diff --location "loc:dallas-hq"   # verify one site
+```
+
+The diff shows each user's CUCM state vs. planned Webex state side by side: device model/tier, call forwarding rules, voicemail, BLF keys, speed dials, shared lines, button layout, calling permissions, and any decisions that affect that user. Use this to spot-check a representative sample before pressing go.
+
 ## Decision Review
 
 Decision review is Step 1c of the `cucm-migrate` skill. It runs after the pipeline has produced static recommendations for every discovered entity. The operator works alongside Claude (acting as migration-advisor) to accept, reject, skip, or override each recommendation before anything is provisioned. Nothing is committed to Webex until review is complete and you approve the final plan.
