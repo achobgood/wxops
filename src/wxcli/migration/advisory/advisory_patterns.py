@@ -1767,21 +1767,23 @@ def detect_legacy_gateway_protocols(store: MigrationStore) -> list[AdvisoryFindi
 def detect_voicemail_greeting_rerecording(
     store: MigrationStore,
 ) -> list[AdvisoryFinding]:
-    """Detect users with custom VM greetings that must be re-recorded post-migration."""
+    """Detect users with custom VM greetings that must be re-recorded post-migration.
+
+    Reads MISSING_DATA decisions produced by voicemail_mapper.py (lines 278-308)
+    where context.reason == 'custom_greeting_not_extractable'.
+    """
     decisions = store.get_all_decisions()
     greeting_decisions = []
+    affected = []
     for d in decisions:
         if d.get("type") != "MISSING_DATA":
             continue
         ctx = d.get("context", {})
-        if isinstance(ctx, str):
-            import json as _json
-            try:
-                ctx = _json.loads(ctx)
-            except (ValueError, TypeError):
-                continue
         if ctx.get("reason") == "custom_greeting_not_extractable":
             greeting_decisions.append(d)
+            uid = ctx.get("user_id", "")
+            if uid:
+                affected.append(uid)
 
     custom_count = len(greeting_decisions)
     if custom_count == 0:
@@ -1793,19 +1795,6 @@ def detect_voicemail_greeting_rerecording(
         severity = "MEDIUM"
     else:
         severity = "HIGH"
-
-    affected = []
-    for d in greeting_decisions:
-        ctx = d.get("context", {})
-        if isinstance(ctx, str):
-            import json as _json
-            try:
-                ctx = _json.loads(ctx)
-            except (ValueError, TypeError):
-                ctx = {}
-        uid = ctx.get("user_id", "")
-        if uid:
-            affected.append(uid)
 
     total_vm_users = store.count_by_type("voicemail_profile")
     if total_vm_users == 0:
