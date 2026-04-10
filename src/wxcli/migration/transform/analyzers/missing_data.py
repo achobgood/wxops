@@ -130,7 +130,7 @@ class MissingDataAnalyzer(Analyzer):
                 # Webex App devices (Jabber, CSF, Dual Mode, IP Communicator)
                 # and infrastructure devices (CTI, CER, gateways) don't need
                 # a MAC address or owner — they aren't migrated as Webex devices.
-                if object_type == "device" and obj.get("compatibility_tier") in ("webex_app", "infrastructure"):
+                if object_type == "device" and obj.get("compatibility_tier") in ("webex_app", "infrastructure", "dect"):
                     continue  # Skip all missing-data checks for non-migratable devices
                 else:
                     active_fields = field_defs
