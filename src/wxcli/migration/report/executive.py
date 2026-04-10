@@ -196,6 +196,7 @@ def _page_environment(
         convertible = sum(1 for d in devices if d.get("compatibility_tier") == "convertible")
         incompatible = sum(1 for d in devices if d.get("compatibility_tier") == "incompatible")
         webex_app = sum(1 for d in devices if d.get("compatibility_tier") == "webex_app")
+        dect = sum(1 for d in devices if d.get("compatibility_tier") == "dect")
         donut_segments = [
             {"label": "Native MPP", "value": native, "color": "#2E7D32"},
             {"label": "Convertible", "value": convertible, "color": "#EF6C00"},
@@ -203,6 +204,8 @@ def _page_environment(
         ]
         if webex_app > 0:
             donut_segments.append({"label": "Webex App", "value": webex_app, "color": "#0277BD"})
+        if dect > 0:
+            donut_segments.append({"label": "DECT", "value": dect, "color": "#42A5F5"})
         donut_html = donut_chart(donut_segments)
 
     if donut_html:
@@ -233,6 +236,8 @@ def _page_environment(
             parts.append(_stat_card(str(convertible), "Convertible"))
         if incompatible:
             parts.append(_stat_card(str(incompatible), "Incompatible"))
+        if dect:
+            parts.append(_stat_card(str(dect), "DECT"))
         parts.append('</div>')
 
     if donut_html:

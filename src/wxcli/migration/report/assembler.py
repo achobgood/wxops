@@ -134,6 +134,7 @@ def _build_sidebar_nav(executive_only: bool) -> str:
         ("T", "#snr-inventory", "Single Number Reach"),
         ("U", "#caller-id-xforms", "Caller ID Transforms"),
         ("V", "#extension-mobility", "Extension Mobility"),
+        ("W", "#dect-networks", "DECT Networks"),
     ]
 
     parts = [

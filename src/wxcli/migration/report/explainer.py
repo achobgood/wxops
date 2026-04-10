@@ -489,6 +489,8 @@ DECISION_TYPE_DISPLAY_NAMES: dict[str, str] = {
     "SNR_LOSSY": "Single Number Reach Gaps",
     "AUDIO_ASSET_MANUAL": "Audio Asset Migration",
     "BUTTON_UNMAPPABLE": "Unmappable Phone Button",
+    "DECT_NETWORK_DESIGN": "DECT Network Design",
+    "DECT_HANDSET_ASSIGNMENT": "DECT Handset Assignment",
 }
 
 
@@ -540,6 +542,7 @@ def generate_key_findings(store: MigrationStore) -> list[dict[str, str]]:
         convertible = sum(1 for d in devices if d.get("compatibility_tier") == "convertible")
         incompatible = sum(1 for d in devices if d.get("compatibility_tier") == "incompatible")
         webex_app = sum(1 for d in devices if d.get("compatibility_tier") == "webex_app")
+        dect = sum(1 for d in devices if d.get("compatibility_tier") == "dect")
 
         if incompatible > 0 or convertible > 0 or webex_app > 0:
             parts = []
@@ -555,11 +558,20 @@ def generate_key_findings(store: MigrationStore) -> list[dict[str, str]]:
                 "icon": icon,
                 "text": f"<strong>{action_count} of {total} phones</strong> {'; '.join(parts)}",
             })
-        elif native == total and total > 0:
-            findings.append({
-                "icon": "✓",
-                "text": f"<strong>All {total} phones</strong> are native MPP — no firmware or hardware changes needed",
-            })
+        elif native + dect == total and total > 0:
+            if dect > 0:
+                findings.append({
+                    "icon": "✓",
+                    "text": (
+                        f"<strong>All {total} phones</strong> are compatible — "
+                        f"{native} native MPP, {dect} DECT (requires network provisioning)"
+                    ),
+                })
+            else:
+                findings.append({
+                    "icon": "✓",
+                    "text": f"<strong>All {total} phones</strong> are native MPP — no firmware or hardware changes needed",
+                })
 
     feature_types = ["hunt_group", "auto_attendant", "call_queue", "call_park", "pickup_group", "paging_group"]
     feature_count = sum(store.count_by_type(ft) for ft in feature_types)
