@@ -394,3 +394,74 @@ class TestAudienceFiltering:
         )
         assert "Your Phone Is Being Upgraded" not in html
         assert "Your Phone Is Being Replaced" not in html
+
+
+class TestCliIntegration:
+    """Tests for wxcli cucm user-notice CLI command."""
+
+    def test_cli_user_notice_exits_zero(self, populated_store, tmp_path):
+        from unittest.mock import patch
+        from typer.testing import CliRunner
+        from wxcli.commands.cucm import app
+
+        runner = CliRunner()
+        with (
+            patch("wxcli.commands.cucm._resolve_project_dir", return_value=tmp_path),
+            patch("wxcli.commands.cucm._completed_stages", return_value={"discover", "normalize", "map", "analyze"}),
+            patch("wxcli.commands.cucm._open_store", return_value=populated_store),
+        ):
+            result = runner.invoke(app, [
+                "user-notice",
+                "--brand", "TestCo",
+                "--migration-date", "Jan 2027",
+                "--helpdesk", "x5000",
+            ])
+        assert result.exit_code == 0, f"CLI failed: {result.output}"
+        output_file = tmp_path / "user-notice.html"
+        assert output_file.exists()
+        content = output_file.read_text()
+        assert "TestCo" in content
+        assert "<!DOCTYPE html>" in content
+
+    def test_cli_text_only_flag(self, populated_store, tmp_path):
+        from unittest.mock import patch
+        from typer.testing import CliRunner
+        from wxcli.commands.cucm import app
+
+        runner = CliRunner()
+        with (
+            patch("wxcli.commands.cucm._resolve_project_dir", return_value=tmp_path),
+            patch("wxcli.commands.cucm._completed_stages", return_value={"discover", "normalize", "map", "analyze"}),
+            patch("wxcli.commands.cucm._open_store", return_value=populated_store),
+        ):
+            result = runner.invoke(app, [
+                "user-notice",
+                "--brand", "TestCo",
+                "--migration-date", "Jan 2027",
+                "--helpdesk", "x5000",
+                "--text-only",
+            ])
+        assert result.exit_code == 0, f"CLI failed: {result.output}"
+        output_file = tmp_path / "user-notice.txt"
+        assert output_file.exists()
+        content = output_file.read_text()
+        assert "<!DOCTYPE" not in content
+        assert "TestCo" in content
+
+    def test_cli_rejects_without_analyze(self, tmp_path):
+        from unittest.mock import patch
+        from typer.testing import CliRunner
+        from wxcli.commands.cucm import app
+
+        runner = CliRunner()
+        with (
+            patch("wxcli.commands.cucm._resolve_project_dir", return_value=tmp_path),
+            patch("wxcli.commands.cucm._completed_stages", return_value={"discover", "normalize"}),
+        ):
+            result = runner.invoke(app, [
+                "user-notice",
+                "--brand", "TestCo",
+                "--migration-date", "Jan 2027",
+                "--helpdesk", "x5000",
+            ])
+        assert result.exit_code != 0
