@@ -211,6 +211,16 @@ Two layers of advisory output coexist on every decision: the **static recommenda
 **Cascade impact:** Depends on object type. Resolving missing data on a location or trunk cascades into every downstream consumer.
 **See also:** [`location-ambiguous`](#location-ambiguous), [`voicemail-incompatible`](#voicemail-incompatible), [Tuning Reference §Per-Decision Overrides](tuning-reference.md#per-decision-overrides) (how to override this without a global rule).
 
+#### `custom_greeting_not_extractable`
+
+Custom voicemail greetings stored in Unity Connection cannot be extracted for migration. Each user must re-record their greeting on the Webex side.
+
+**Recommended option:** "Use DEFAULT greetings" (accept). The user will re-record post-migration.
+
+**User communication:** See Appendix H of the assessment report for an email template. Send at least 1 week before cutover.
+
+**Why this matters:** Users notice immediately when their personalized greeting ("Hi, you've reached John in Sales...") is replaced by a generic system greeting. Proactive communication prevents day-one helpdesk ticket floods.
+
 ### number-conflict
 
 **Triggered by:** `src/wxcli/migration/preflight/checks.py:483-535` (`_build_number_conflict_decision`) — produced exclusively by the **preflight** phase, not by transform mappers or analyzers. The preflight runner at `src/wxcli/migration/preflight/runner.py:151` merges these into the store under `decision_types=["NUMBER_CONFLICT", "DUPLICATE_USER"]` with `stage="preflight"`. The check compares every planned E.164 number and extension+location pair against the current Webex org, skipping same-owner collisions (same email).
