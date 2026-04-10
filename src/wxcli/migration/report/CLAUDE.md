@@ -20,11 +20,11 @@ The report reads from the same SQLite store that the migration pipeline populate
 | `ingest.py` | Reads collector output files (.json.gz/.json) into discovery raw_data format. Maps AXL object names to extractor group keys. |
 | `score.py` | Migration Complexity Score (0-100). 7 weighted factors with `display_name` field (customer-friendly names). Returns `ScoreResult` dataclass. `DISPLAY_NAMES` maps internal factor names → display names. |
 | `charts.py` | SVG/HTML chart generators: `gauge_chart()` (compact 200x155 viewBox), `donut_chart()`, `horizontal_bar_chart()`, `stacked_bar_chart()` (HTML divs with legend). Pure functions, no store dependency. |
-| `explainer.py` | Translates `DecisionType` + context into plain-English dicts. Also: `generate_verdict()` (one-paragraph summary), `generate_key_findings()` (3-4 bullet findings), `DECISION_TYPE_DISPLAY_NAMES` (20 types mapped). |
+| `explainer.py` | Translates `DecisionType` + context into plain-English dicts. Also: `generate_verdict()` (one-paragraph summary), `generate_key_findings()` (3-4 bullet findings), `DECISION_TYPE_DISPLAY_NAMES` (22 types mapped). |
 | `styles.py` | `REPORT_CSS` + `GOOGLE_FONTS_LINKS` — v4 editorial CSS design system. Lora/Source Sans 3/IBM Plex Mono, teal primary (#00897B), warm neutrals, 320px sidebar, score-layout 2-column grid, effort-band/verdict/cta-box components, print optimization. Legacy CSS variable aliases for backward compat. |
 | `executive.py` | 4-page executive summary with direct h2 headings (no section kickers). Page 1 (Migration Complexity Assessment — tier-colored gauge+factor bars with "Complexity Impact" Low/High scale, key findings, stat grid), Page 2 (What You Have — People/Devices with floated donut chart/Features/Sites), Page 3 (What Needs Attention — decision stats + effort bands: auto/planning/manual), Page 4 (Next Steps — prerequisites, planning, CTA). Gauge uses tier-based color (green/amber/red). Factor bars sorted by score descending, highest in teal, rest gray, no bare numbers. |
-| `appendix.py` | Technical appendix: 22 lettered sections A-V as collapsed `<details>` elements (Object Inventory, Decision Detail, CSS/Partitions, Device Inventory, DN Analysis, User/Device Map, Routing, H. Voicemail Analysis (with custom greeting count + email template), Data Coverage, Gateways, Call Features, Button Templates, Device Layouts, Softkeys, O. Cloud-Managed Resources, P. Feature Gaps, Q. Manual Reconfiguration, R. Planning Inputs, S. Call Recording, T. Single Number Reach, U. Caller ID Transformations, V. Extension Mobility). All canonical IDs stripped via helpers. |
-| `assembler.py` | Full HTML document with 320px sidebar nav (step-icon circles, numbered 1-4 exec + lettered A-V tech), page-header (slate-900 bg), IntersectionObserver scroll tracking, no summary bar or dark interstitial, footer inside detail-panel. |
+| `appendix.py` | Technical appendix: 23 lettered sections A-W as collapsed `<details>` elements (Object Inventory, Decision Detail, CSS/Partitions, Device Inventory, DN Analysis, User/Device Map, Routing, H. Voicemail Analysis (with custom greeting count + email template), Data Coverage, Gateways, Call Features, Button Templates, Device Layouts, Softkeys, O. Cloud-Managed Resources, P. Feature Gaps, Q. Manual Reconfiguration, R. Planning Inputs, S. Call Recording, T. Single Number Reach, U. Caller ID Transformations, V. Extension Mobility, W. DECT Networks). All canonical IDs stripped via helpers. |
+| `assembler.py` | Full HTML document with 320px sidebar nav (step-icon circles, numbered 1-4 exec + lettered A-W tech), page-header (slate-900 bg), IntersectionObserver scroll tracking, no summary bar or dark interstitial, footer inside detail-panel. |
 
 ## Key Data Access Patterns
 
@@ -42,6 +42,7 @@ The report reads from the same SQLite store that the migration pipeline populate
 - `"convertible"` — needs firmware flash
 - `"webex_app"` — software phone transitioning to Webex App (no device needed)
 - `"incompatible"` — needs hardware replacement
+- `"dect"` — DECT handset, compatible hardware, needs DECT network provisioning
 
 ### CSS/Partition Types
 
@@ -96,7 +97,7 @@ verdict = generate_verdict(score_result, store)  # → HTML string with <strong>
 findings = generate_key_findings(store)  # → list of {"icon": "!"/"✓", "text": "..."}
 ```
 
-Handles all 20 `DecisionType` values. `DECISION_TYPE_DISPLAY_NAMES` maps all types to customer-friendly names.
+Handles all 22 `DecisionType` values. `DECISION_TYPE_DISPLAY_NAMES` maps all types to customer-friendly names.
 
 ## Helpers
 
@@ -167,6 +168,7 @@ Reads collector output files and writes `raw_data.json` in the same format as li
 - `tests/migration/report/test_appendix_tier3.py` — Tier 3 informational appendix sections O-R
 - `tests/migration/report/test_tier4_appendix.py` — Tier 4 appendix sections S-V (recording, SNR, transformations, extension mobility)
 - `tests/migration/report/test_cli_integration.py` — CLI command integration
+- `tests/migration/report/test_dect_appendix.py` — Section W DECT Networks appendix tests
 
 ## Design Spec
 
