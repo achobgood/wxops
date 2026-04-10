@@ -49,7 +49,7 @@ class DeviceCompatibilityAnalyzer(Analyzer):
             canonical_id = device.get("canonical_id", "")
             tier = device.get("compatibility_tier")
 
-            if tier in ("webex_app", "infrastructure"):
+            if tier in ("webex_app", "infrastructure", "dect"):
                 # Software phones transition to Webex App; infrastructure devices
                 # (CTI, CER, gateways) are CUCM-only. Neither needs a decision.
                 continue

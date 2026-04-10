@@ -149,6 +149,12 @@ class DeviceMapper(Mapper):
                 # No decision generated — these are silently excluded from the plan.
                 pass
 
+            elif compatibility_tier == DeviceCompatibilityTier.DECT:
+                # DECT handset — hardware is Webex-compatible but requires DECT
+                # network provisioning (Phase 2), not standard phone activation.
+                # No decision generated — the hardware itself is fine.
+                pass
+
             elif compatibility_tier == DeviceCompatibilityTier.WEBEX_APP:
                 # Software phones (Jabber, CSF, Dual Mode, IP Communicator) transition
                 # to Webex App. User keeps their number/extension, no device record needed
