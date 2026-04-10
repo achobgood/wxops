@@ -153,6 +153,27 @@ def _expand_route_group(obj: dict[str, Any]) -> list[MigrationOp]:
     return [_op(cid, "create", "route_group", f"Create route group {name}", depends_on=deps)]
 
 
+def _expand_route_list(obj: dict[str, Any]) -> list[MigrationOp]:
+    """Route list → 1-2 ops: create (tier 1) + optional configure_numbers.
+    Depends on its route group.
+    """
+    cid = obj["canonical_id"]
+    name = obj.get("name", cid)
+    deps = []
+    rg_cid = obj.get("route_group_id")
+    if rg_cid:
+        deps.append(_node_id(rg_cid, "create"))
+    ops = [_op(cid, "create", "route_list", f"Create route list {name}", depends_on=deps)]
+    numbers = obj.get("numbers", [])
+    if numbers:
+        ops.append(_op(
+            cid, "configure_numbers", "route_list",
+            f"Assign {len(numbers)} numbers to route list {name}",
+            depends_on=[_node_id(cid, "create")],
+        ))
+    return ops
+
+
 def _expand_operating_mode(obj: dict[str, Any]) -> list[MigrationOp]:
     """Operating mode (schedule) → 1 op: create (tier 1)."""
     cid = obj["canonical_id"]
@@ -553,6 +574,7 @@ _EXPANDERS: dict[str, Any] = {
     "location": lambda obj, _: _expand_location(obj),
     "trunk": lambda obj, _: _expand_trunk(obj),
     "route_group": lambda obj, _: _expand_route_group(obj),
+    "route_list": lambda obj, _: _expand_route_list(obj),
     "operating_mode": lambda obj, _: _expand_operating_mode(obj),
     "schedule": lambda obj, _: _expand_schedule(obj),
     "user": lambda obj, _: _expand_user(obj),
