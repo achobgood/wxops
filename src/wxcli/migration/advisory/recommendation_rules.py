@@ -57,6 +57,17 @@ def recommend_missing_data(
     if object_type in ("location", "trunk", "route_group"):
         return None
 
+    # Executive/assistant broken pair — force review unless permanently excluded
+    if context.get("missing_reason") == "executive_assistant_broken_pair":
+        if context.get("permanently_excluded"):
+            missing_side = context.get("missing_side", "user")
+            return (
+                "skip",
+                f"The missing {missing_side} is permanently excluded from migration. "
+                f"Executive/assistant pairing will need manual Webex configuration.",
+            )
+        return None  # Force human review — missing user might be added later
+
     # Leaf objects with no dependents can be safely skipped
     if fields_str:
         return (
@@ -137,6 +148,24 @@ def recommend_feature_approximation(
     context: dict[str, Any], options: list
 ) -> tuple[str, str] | None:
     """Spec §5.1: Feature approximation — CTI RP or Line Group → CQ/HG."""
+    # EM profile → hot desking: always recommend accept (no alternative exists)
+    if context.get("classification") == "EXTENSION_MOBILITY":
+        line_count = context.get("line_count", 0)
+        sd_count = context.get("speed_dial_count", 0)
+        blf_count = context.get("blf_count", 0)
+        has_feature_loss = line_count > 1 or sd_count > 0 or blf_count > 0
+        if has_feature_loss:
+            return (
+                "accept",
+                f"EM profile has {line_count} line(s) but Webex hot desking uses "
+                f"primary line only. Speed dials and BLF entries will not carry to "
+                f"hot desk sessions. Accept — no alternative to hot desking exists.",
+            )
+        return (
+            "accept",
+            "Simple EM profile — maps cleanly to Webex hot desking with primary line.",
+        )
+
     classification = context.get("classification")
     if classification == "AUTO_ATTENDANT":
         if context.get("complex_script"):
@@ -560,15 +589,34 @@ def recommend_snr_lossy(
 def recommend_audio_asset_manual(
     context: dict[str, Any], options: list,
 ) -> tuple[str, str] | None:
-    """Customer-facing audio is worth manual effort; low-usage defaults are not."""
+    """Custom audio was intentional — always recommend manual migration."""
+    source_name = (
+        context.get("moh_source_name")
+        or context.get("source_name")
+        or context.get("name", "unknown")
+    )
+
+    if context.get("moh_source_name") or context.get("source_type") == "moh":
+        return (
+            "accept",
+            f"Custom MoH source '{source_name}' should be downloaded from CUCM TFTP "
+            "(/usr/local/cm/tftp/) and uploaded to Webex announcement repository. "
+            "Set location MoH to CUSTOM after upload.",
+        )
+
     usage = context.get("usage", "")
-    location_count = context.get("location_count", 0)
-    if usage in ("AA_GREETING", "QUEUE_COMFORT", "QUEUE_WHISPER"):
-        return ("accept", f"Customer-facing {usage} audio should be migrated manually.")
-    if usage == "MOH" and location_count <= 2:
-        return ("use_default", f"Custom MOH at only {location_count} location(s) — "
-                "Webex default MOH is sufficient.")
-    return ("accept", "Custom audio should be migrated for brand consistency.")
+    if usage:
+        return (
+            "accept",
+            f"Customer-facing {usage} audio '{source_name}' should be downloaded from "
+            "CUCM and uploaded to Webex. Webex accepts WAV files up to 8 MB.",
+        )
+
+    return (
+        "accept",
+        f"Custom audio '{source_name}' should be downloaded from CUCM and uploaded "
+        "to Webex announcement repository for brand consistency.",
+    )
 
 
 def recommend_button_unmappable(
