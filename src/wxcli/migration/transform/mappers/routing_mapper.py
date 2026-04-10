@@ -516,7 +516,8 @@ class RoutingMapper(Mapper):
                 rl_refs = store.find_cross_refs(rp_id, "route_pattern_uses_route_list")
                 if rl_refs:
                     # Route list -> route group mapping
-                    # Webex doesn't have route lists; we point to the route group
+                    # TODO: Webex DOES have route lists (full CRUD at /premisePstn/routeLists).
+                    # For now, flatten to route group. See route-list-migration spec.
                     rl_id = rl_refs[0]
                     rl_name = rl_id.split(":", 1)[-1] if ":" in rl_id else rl_id
                     target_id = f"route_group:{rl_name}"
