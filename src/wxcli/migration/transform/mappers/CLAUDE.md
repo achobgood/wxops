@@ -35,7 +35,7 @@ Execution order determined by `depends_on` (topological sort):
 | Mapper | `name` | Produces | Source objects |
 |--------|--------|---------|----------------|
 | `LocationMapper` | `location_mapper` | `CanonicalLocation`, `CanonicalSchedule` (operating hours) | `device_pool`, `datetime_group`, `cucm_location` |
-| `RoutingMapper` | `routing_mapper` | `CanonicalTrunk`, `CanonicalRouteGroup`, `CanonicalTranslationPattern`, `CanonicalOperatingMode` | `gateway`, `sip_trunk`, `route_group`, `route_pattern`, `time_schedule`, `time_period` |
+| `RoutingMapper` | `routing_mapper` | `CanonicalTrunk`, `CanonicalRouteGroup`, `CanonicalRouteList`, `CanonicalTranslationPattern`, `CanonicalOperatingMode` | `gateway`, `sip_trunk`, `route_group`, `route_list`, `route_pattern`, `time_schedule`, `time_period` |
 
 ### Tier 2 — Depends on location/routing
 
