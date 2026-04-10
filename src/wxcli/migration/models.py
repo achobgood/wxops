@@ -501,6 +501,18 @@ class CanonicalVirtualLine(MigrationObject):
     dn_canonical_id: str | None = None
 
 
+class CanonicalExecutiveAssistant(MigrationObject):
+    """CUCM Executive/Assistant pairing -> Webex Executive/Assistant config.
+    (from executive-assistant-migration spec §4c)
+    """
+    executive_canonical_id: str | None = None
+    assistant_canonical_ids: list[str] = Field(default_factory=list)
+    alerting_mode: str = "SIMULTANEOUS"     # SEQUENTIAL or SIMULTANEOUS
+    filter_enabled: bool = False
+    filter_type: str = "ALL_CALLS"          # ALL_CALLS, ALL_INTERNAL_CALLS, ALL_EXTERNAL_CALLS
+    screening_enabled: bool = False
+
+
 class CallingPermissionEntry(BaseModel):
     """Single call type permission entry.
     (from 03b-transform-mappers.md, css_mapper field table lines 477-486)
@@ -613,6 +625,20 @@ class CanonicalDeviceProfile(MigrationObject):
     blf_count: int = 0
 
 
+class CanonicalReceptionistConfig(MigrationObject):
+    """Receptionist configuration detected from CUCM phone layout signals."""
+    user_canonical_id: str = ""
+    location_canonical_id: str = ""
+    blf_count: int = 0
+    has_kem: bool = False
+    kem_key_count: int = 0
+    template_name: str = ""
+    detection_score: int = 0
+    detection_reasons: list[str] = Field(default_factory=list)
+    monitored_members: list[str] = Field(default_factory=list)
+    is_main_number_holder: bool = False
+
+
 class CanonicalE911Config(MigrationObject):
     """CUCM ELIN/GeoLocation → Webex E911 advisory."""
     location_canonical_id: str | None = None
@@ -717,6 +743,7 @@ CANONICAL_TYPE_REGISTRY: dict[str, type[MigrationObject]] = {
     "single_number_reach": CanonicalSingleNumberReach,
     "e911_config": CanonicalE911Config,
     "device_profile": CanonicalDeviceProfile,
+    "receptionist_config": CanonicalReceptionistConfig,
     "music_on_hold": CanonicalMusicOnHold,
     "announcement": CanonicalAnnouncement,
 }
