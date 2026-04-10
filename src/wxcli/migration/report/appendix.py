@@ -506,13 +506,23 @@ def _routing_group(store: MigrationStore) -> str:
 # ---------------------------------------------------------------------------
 
 def _voicemail_analysis(store: MigrationStore) -> str:
-    """H. Voicemail Analysis — voicemail profiles."""
+    """H. Voicemail Analysis — voicemail profiles + custom greeting count."""
     profiles = store.get_objects("voicemail_profile")
     if not profiles:
         return ""
 
+    # Count custom greeting decisions
+    decisions = store.get_all_decisions()
+    greeting_count = 0
+    for d in decisions:
+        if d.get("type") != "MISSING_DATA":
+            continue
+        ctx = d.get("context", {})
+        if ctx.get("reason") == "custom_greeting_not_extractable":
+            greeting_count += 1
+
     parts = [
-        f'<details id="voicemail">',
+        '<details id="voicemail">',
         f'<summary>H. Voicemail Analysis <span class="summary-count">— {len(profiles)} profiles</span></summary>',
         '<div class="details-content">',
         '<table>',
@@ -524,6 +534,35 @@ def _voicemail_analysis(store: MigrationStore) -> str:
         desc = p.get("description", "—")
         parts.append(f'<tr><td>{html.escape(name)}</td><td>{html.escape(str(desc))}</td></tr>')
     parts.append('</tbody></table>')
+
+    if greeting_count > 0:
+        parts.append(
+            f'<div class="callout warning">'
+            f'<p><strong>Custom Greetings: {greeting_count} users</strong> have personalized '
+            f'voicemail greetings that will revert to the system default after migration. '
+            f'Each user must re-record their greeting.</p>'
+            f'</div>'
+        )
+        parts.append(
+            '<h4>User Action Required — Voicemail Greeting Re-Recording</h4>'
+            '<p>Send the following communication to affected users at least 1 week before migration:</p>'
+            '<blockquote>'
+            '<p><strong>Subject: Action Required — Re-record Your Voicemail Greeting After Migration</strong></p>'
+            '<p>As part of our phone system migration to Webex Calling, your voicemail '
+            'greeting will reset to the system default. After the migration is complete, '
+            'please re-record your personalized greeting:</p>'
+            '<ul>'
+            '<li>Open the Webex App</li>'
+            '<li>Go to Settings &gt; Calling &gt; Voicemail</li>'
+            '<li>Select &quot;Greeting&quot; and record your new greeting</li>'
+            '</ul>'
+            '<p>Alternatively, dial the voicemail access number from your desk phone and '
+            'follow the prompts to record a new greeting.</p>'
+            '<p>If you have a script for your greeting, please have it ready before '
+            're-recording. We recommend completing this within the first day after migration.</p>'
+            '</blockquote>'
+        )
+
     parts.append('</div></details>')
     return "\n".join(parts)
 
