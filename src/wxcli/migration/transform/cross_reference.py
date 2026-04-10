@@ -200,6 +200,8 @@ class CrossReferenceBuilder:
                 self._build_voicemail_refs,
                 self._build_template_refs,
                 self._build_remote_destination_refs,
+                self._build_intercept_refs,
+                self._build_audio_refs,
             ]:
                 try:
                     counts.update(method())
@@ -833,6 +835,57 @@ class CrossReferenceBuilder:
                 self.store.add_cross_ref(user_cid, rd["canonical_id"], "user_has_remote_destination")
                 count += 1
         return {"user_has_remote_destination": count}
+
+    def _build_intercept_refs(self) -> dict[str, int]:
+        """Build user -> intercept_candidate cross-refs."""
+        count = 0
+        for ic in self.store.get_objects("intercept_candidate"):
+            state = ic.get("pre_migration_state") or {}
+            userid = state.get("userid") or ""
+            if not userid:
+                continue
+            user_cid = f"user:{userid}"
+            if self.store.get_object(user_cid):
+                self.store.add_cross_ref(user_cid, ic["canonical_id"], "user_has_intercept_signal")
+                count += 1
+        return {"user_has_intercept_signal": count}
+
+    # ------------------------------------------------------------------
+    # Cross-ref #33: Feature → MoH audio source
+    # ------------------------------------------------------------------
+
+    def _build_audio_refs(self) -> dict[str, int]:
+        """Build feature → MoH source cross-refs.
+
+        Hunt pilots with networkHoldMohAudioSourceID reference a CUCM MoH
+        audio source by numeric ID. Resolve to the canonical_id of the
+        music_on_hold object so the report can show which features use
+        which custom MoH sources.
+        """
+        counts = {"feature_uses_moh_source": 0}
+
+        # Build lookup: cucm_source_id → canonical_id
+        moh_lookup: dict[str, str] = {}
+        for moh in self.store.get_objects("music_on_hold"):
+            source_id = moh.get("cucm_source_id")
+            if source_id:
+                moh_lookup[str(source_id)] = moh.get("canonical_id", "")
+
+        if not moh_lookup:
+            return counts
+
+        # Hunt pilots → MoH source
+        for hp_data in self.store.get_objects("hunt_pilot"):
+            hp_id = hp_data["canonical_id"]
+            state = hp_data.get("pre_migration_state") or {}
+            queue_calls = state.get("queueCalls") or {}
+            moh_source_id = queue_calls.get("networkHoldMohAudioSourceID")
+            if moh_source_id and str(moh_source_id) in moh_lookup:
+                moh_canonical = moh_lookup[str(moh_source_id)]
+                self.store.add_cross_ref(hp_id, moh_canonical, "feature_uses_moh_source")
+                counts["feature_uses_moh_source"] += 1
+
+        return counts
 
     @staticmethod
     def _ref_value(field: Any) -> str | None:
