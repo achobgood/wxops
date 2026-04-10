@@ -23,7 +23,7 @@ analysis_pipeline.py run()
 
 **Layer 1 — Per-Decision Recommendations.** Every decision the pipeline produces (from mappers and analyzers) gets an optional `recommendation` field: which option the system advises, and `recommendation_reasoning`: why. Populated by `populate_recommendations()` which calls into `recommendation_rules.py`. One function per DecisionType (16 total). Returns `(option_id, reasoning)` or `None` for genuinely ambiguous cases.
 
-**Layer 2 — Cross-Cutting Advisor.** The `ArchitectureAdvisor` runs after all 13 analyzers have merged their decisions. It reads the full canonical model plus all prior decisions and produces `ARCHITECTURE_ADVISORY` decisions for patterns spanning multiple objects — things like "6 of your 14 CSSes are restriction-only and should be calling permissions, not dial plans" or "your trunk topology indicates Local Gateway, not Cloud Connected PSTN."
+**Layer 2 — Cross-Cutting Advisor.** The `ArchitectureAdvisor` runs after all 13 analyzers have merged their decisions. It reads the full canonical model plus all prior decisions and produces `ARCHITECTURE_ADVISORY` decisions for patterns spanning multiple objects — things like "6 of your 14 CSSes are restriction-only and should be calling permissions, not dial plans" or "your trunk topology indicates Local Gateway, not Cloud Connected PSTN." 27 pattern detector functions total.
 
 ## Why Two Phases
 
@@ -37,7 +37,7 @@ Advisory decisions are merged separately using `decision_types=[ARCHITECTURE_ADV
 |------|---------|
 | `__init__.py` | Exports `populate_recommendations()` and `ArchitectureAdvisor` |
 | `recommendation_rules.py` | 19 recommendation functions (one per DecisionType) + `RECOMMENDATION_DISPATCH` dict |
-| `advisory_patterns.py` | 26 cross-cutting pattern detectors + `AdvisoryFinding` dataclass + `ALL_ADVISORY_PATTERNS` list |
+| `advisory_patterns.py` | 27 cross-cutting pattern detectors + `AdvisoryFinding` dataclass + `ALL_ADVISORY_PATTERNS` list |
 | `advisor.py` | `ArchitectureAdvisor` class (extends Analyzer ABC) |
 
 ## Decision Model Fields
@@ -70,7 +70,7 @@ Ambiguous cases return `None`. Honest uncertainty is a feature.
 
 ## Cross-Cutting Advisory Patterns (Layer 2)
 
-`advisory_patterns.py` has 26 pattern detector functions. Each takes a `MigrationStore` and returns `list[AdvisoryFinding]`.
+`advisory_patterns.py` has 27 pattern detector functions. Each takes a `MigrationStore` and returns `list[AdvisoryFinding]`.
 
 **Critical patterns (highest migration impact):**
 1. **Partition Ordering Loss** — CSSes that depend on partition ordering to resolve overlapping patterns. Webex uses longest-match routing — no ordering equivalent. Calls may route differently after migration.
@@ -102,6 +102,17 @@ Ambiguous cases return `None`. Honest uncertainty is a feature.
 19. Transformation Patterns — calling/called party transformations → manual caller ID review
 20. Extension Mobility Usage — device profiles → Webex hot desking configuration
 
+**Gap patterns (silent failures / platform limits):**
+21. Mixed CSS — CSSes mixing routing and restriction partitions (silent gap in Pattern 1)
+22. Cumulative Virtual Line Consumption — count VLs recommended across all decisions, warn if approaching limits
+23. User OAuth Required — features that require per-user OAuth (admin tokens can't set them)
+24. Trunk Type Selection — trunk type (REGISTERING vs CERTIFICATE_BASED) is immutable post-creation
+25. Intercluster Trunks — CUCM ICT disposition decision (no Webex equivalent)
+26. Legacy Gateway Protocols — MGCP and H.323 gateways need SIP conversion before migration
+
+**User communication:**
+27. Voicemail Greeting Re-Recording — counts users with custom greetings, produces user communication template
+
 ## AdvisoryFinding Dataclass
 
 ```python
@@ -129,7 +140,7 @@ The `category` field classifies advisories into the migration decision framework
 
 **Pattern 16 (E911) always fires**, even on empty stores. When no E911 signals are detected, it produces a warning that CER data may not be visible via AXL. This is by design per the spec's "if detection data is sparse" guidance.
 
-**Test count:** 81 tests (35 pattern + 7 advisor + 39 new-pattern/rule tests). The prompt estimated ~50; the actual count is lower because some patterns share positive/negative cases and the simpler patterns need fewer test scenarios.
+**Test count:** 87 tests (35 pattern + 7 advisor + 45 new-pattern/rule tests). The prompt estimated ~50; the actual count is lower because some patterns share positive/negative cases and the simpler patterns need fewer test scenarios. Pattern 27 (voicemail greeting re-recording) added 6 tests.
 
 ## Pipeline Integration (Phase 13d — COMPLETE)
 

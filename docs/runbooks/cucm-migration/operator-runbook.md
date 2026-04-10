@@ -146,6 +146,18 @@ If `wxcli whoami` shows a **"Target: \<org name\>"** line, the operator is worki
 
 → Multi-org detection logic: `docs/reference/authentication.md` §How wxcli handles partner tokens.
 
+### User Communication — Voicemail Greetings
+
+**Timing:** At least 1 week before migration cutover.
+
+Custom voicemail greetings stored in Unity Connection do not migrate to Webex Calling. The assessment report (Appendix H) includes the count of affected users and a ready-to-send email template.
+
+**Steps:**
+1. Check the assessment report Appendix H for the custom greeting count
+2. Copy the email template from Appendix H
+3. Fill in the voicemail access number for your site
+4. Send to all affected users at least 1 week before migration day
+
 ## Pipeline Walkthrough
 
 The pipeline has 10 operator-facing stages, run in the order below. Each stage is idempotent unless noted, and each writes its output to the project's SQLite store (`<project>/store.db`) so that subsequent stages can read it. Run `wxcli cucm status` at any point to see what has already landed in the store and which decisions are open.

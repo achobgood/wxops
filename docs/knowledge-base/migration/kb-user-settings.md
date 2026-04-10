@@ -239,6 +239,37 @@ present 3 remediation paths ranked by effort:
 
 ---
 
+## Voicemail Greeting Migration Gap
+
+Custom voicemail greetings (busy and no-answer) stored in Unity Connection do not transfer to Webex Calling. This is a platform limitation — Unity Connection's CUPI API exposes greeting metadata but not the audio binary in a bulk-extractable format.
+
+### What Migrates
+- Voicemail enabled/disabled state
+- Ring count / number of rings before voicemail
+- Voicemail-to-email settings (if supported)
+- Message waiting indicator (MWI) configuration
+
+### What Does Not Migrate
+- Custom busy greeting audio
+- Custom no-answer greeting audio
+- Extended absence greetings
+- Alternate greetings
+
+### User Self-Service Re-Recording
+After migration, users re-record greetings via:
+1. **Webex App:** Settings > Calling > Voicemail > Greeting > Record
+2. **Phone keypad:** Dial voicemail access number → follow prompts
+3. **User Hub:** hub.webex.com > My Call Settings > Voicemail
+
+### Admin-Path Greeting Upload API
+Webex does support admin-path greeting upload if WAV files are available:
+- `POST /people/{personId}/features/voicemail/actions/uploadBusyGreeting/invoke`
+- `POST /people/{personId}/features/voicemail/actions/uploadNoAnswerGreeting/invoke`
+- Scope: `spark-admin:people_write`
+- Format: WAV, max 5 MB, multipart/form-data
+
+This is useful if users can provide their greeting recordings (e.g., via email). The voicemail mapper creates `MISSING_DATA` decisions with `context.reason = "custom_greeting_not_extractable"` for each affected user. The advisory pattern aggregates these into a single user communication advisory.
+
 ## Verification Log
 
 | # | Claim | Verified | Source | Finding |
