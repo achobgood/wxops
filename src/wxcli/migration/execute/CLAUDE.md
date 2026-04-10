@@ -72,7 +72,7 @@ members = [{"id": deps[cid]} for cid in member_cids if cid in deps]
 
 ## Handler Inventory
 
-All 31 handlers in `HANDLER_REGISTRY`:
+All 33 handlers in `HANDLER_REGISTRY`:
 
 ### Tier 0 — Infrastructure
 | Key | URL | Notes |
@@ -85,6 +85,8 @@ All 31 handlers in `HANDLER_REGISTRY`:
 |-----|-----|-------|
 | `(trunk, create)` | POST `/telephony/config/premisePstn/trunks` | |
 | `(route_group, create)` | POST `/telephony/config/premisePstn/routeGroups` | Resolves trunk deps |
+| `(route_list, create)` | POST `/telephony/config/premisePstn/routeLists` | Resolves route group + location deps |
+| `(route_list, configure_numbers)` | PUT `/telephony/config/premisePstn/routeLists/{id}/numbers` | NumberAndAction array |
 | `(operating_mode, create)` | POST `/telephony/config/operatingModes` | |
 | `(schedule, create)` | POST `/telephony/config/locations/{loc}/schedules` | |
 | `(line_key_template, create)` | POST `/telephony/config/devices/lineKeyTemplates` | Filters UNMAPPED keys |
