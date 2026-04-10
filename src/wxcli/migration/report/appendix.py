@@ -1,13 +1,13 @@
 """Technical appendix HTML generator for CUCM assessment reports (v4).
 
-Generates 23 lettered sections (A-W), each as a collapsed <details> element:
+Generates 24 lettered sections (A-X), each as a collapsed <details> element:
 A. Object Inventory, B. Decision Detail, C. CSS/Partitions, D. Device Inventory,
 E. DN Analysis, F. User/Device Map, G. Routing Topology, H. Voicemail Analysis,
 I. Data Coverage, J. Gateways, K. Call Features, L. Button Templates,
 M. Device Layouts, N. Softkey Migration, O. Cloud-Managed Resources,
 P. Feature Gaps, Q. Manual Reconfiguration, R. Planning Inputs,
 S. Call Recording, T. Single Number Reach, U. Caller ID Transformations,
-V. Extension Mobility, W. DECT Networks.
+V. Extension Mobility, W. DECT Networks, X. Receptionist Users.
 
 One public function: generate_appendix().
 """
@@ -72,6 +72,7 @@ def generate_appendix(store: MigrationStore) -> str:
         ("U", _caller_id_xforms(store)),
         ("V", _extension_mobility_group(store)),
         ("W", _dect_networks_group(store)),
+        ("X", _receptionist_group(store)),
     ]
     # Filter out empty sections
     sections = [(letter, section_html) for letter, section_html in sections if section_html]
@@ -1664,4 +1665,108 @@ def _dect_networks_group(store: MigrationStore) -> str:
         parts.append("</div>")
 
     parts.append("</details>")
+    return "\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# X. Receptionist Users
+# ---------------------------------------------------------------------------
+
+def _receptionist_group(store: MigrationStore) -> str:
+    """X. Receptionist Users — detected users with receptionist-style BLF/KEM/template configs."""
+    receptionists = store.get_objects("receptionist_config")
+    if not receptionists:
+        return ""
+
+    total = len(receptionists)
+    sorted_recs = sorted(receptionists, key=lambda r: -(r.get("detection_score") or 0))
+
+    em_dash = "\u2014"
+
+    parts = [
+        '<details id="receptionist-users">',
+        f'<summary>X. Receptionist Users <span class="summary-count">'
+        f'\u2014 {total} detected</span></summary>',
+        '<div class="details-content">',
+        '<p>These users were detected as likely receptionists based on BLF monitoring lists, '
+        'KEM modules, and phone button templates. They may be using Cisco Unified Attendant '
+        'Console (CUAC) or CUCM receptionist console features. Each requires attention during '
+        'migration to preserve answering workflows and directory visibility.</p>',
+        '<table>',
+        '<thead><tr>'
+        '<th>User</th>'
+        '<th>Location</th>'
+        '<th class="num">BLF Count</th>'
+        '<th>KEM</th>'
+        '<th>Template</th>'
+        '<th class="num">Score</th>'
+        '<th>Main #</th>'
+        '</tr></thead>',
+        '<tbody>',
+    ]
+
+    for rec in sorted_recs:
+        user_raw = rec.get("user_canonical_id", "")
+        loc_raw = rec.get("location_canonical_id", "")
+        user_display = strip_canonical_id(user_raw) if user_raw else em_dash
+        loc_display = strip_canonical_id(loc_raw) if loc_raw else em_dash
+        blf_count = rec.get("blf_count") or 0
+        has_kem = rec.get("has_kem") or False
+        template = rec.get("template_name") or em_dash
+        score = rec.get("detection_score") or 0
+        is_main = rec.get("is_main_number_holder") or False
+
+        parts.append(
+            f'<tr>'
+            f'<td>{html.escape(user_display)}</td>'
+            f'<td>{html.escape(loc_display)}</td>'
+            f'<td class="num">{blf_count}</td>'
+            f'<td>{"Yes" if has_kem else em_dash}</td>'
+            f'<td>{html.escape(str(template))}</td>'
+            f'<td class="num">{score}</td>'
+            f'<td>{"Yes" if is_main else em_dash}</td>'
+            f'</tr>'
+        )
+
+    parts.append('</tbody></table>')
+
+    # Migration Impact sub-table
+    parts.extend([
+        '<h4>Migration Impact</h4>',
+        '<table>',
+        '<thead><tr>'
+        '<th>CUCM Feature</th>'
+        '<th>Webex Equivalent</th>'
+        '<th>Action</th>'
+        '</tr></thead>',
+        '<tbody>',
+        '<tr>'
+        '<td>BLF monitoring list</td>'
+        '<td>Receptionist Client monitored members</td>'
+        '<td>Automatic \u2014 migrated from BLF entries</td>'
+        '</tr>',
+        '<tr>'
+        '<td>Phone button template layout</td>'
+        '<td>Line key template</td>'
+        '<td>Automatic \u2014 migrated by DeviceLayoutMapper</td>'
+        '</tr>',
+        '<tr>'
+        '<td>CUAC desktop application</td>'
+        '<td>Webex Receptionist Console (web)</td>'
+        '<td>Manual \u2014 requires user training</td>'
+        '</tr>',
+        '<tr>'
+        '<td>CUAC directory search</td>'
+        '<td>Receptionist Contact Directories</td>'
+        '<td>Semi-automatic \u2014 directories created during execution</td>'
+        '</tr>',
+        '<tr>'
+        '<td>CTI application user routing</td>'
+        '<td>No direct equivalent</td>'
+        '<td>Rebuild \u2014 use Auto Attendant or Call Queue</td>'
+        '</tr>',
+        '</tbody></table>',
+        '</div></details>',
+    ])
+
     return "\n".join(parts)
