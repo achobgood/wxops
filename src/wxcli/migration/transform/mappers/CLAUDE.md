@@ -1,6 +1,6 @@
 # mappers/ — CUCM-to-Webex Transform Mappers (Phase 05)
 
-14 mapper classes that read normalized CUCM objects from the store, resolve cross-references, and produce Webex-ready canonical objects. Each mapper extends `Mapper` (base.py) and implements `map(store) -> MapperResult`.
+20 mapper classes that read normalized CUCM objects from the store, resolve cross-references, and produce Webex-ready canonical objects. Each mapper extends `Mapper` (base.py) and implements `map(store) -> MapperResult`.
 
 ## Mapper Contract
 
@@ -43,7 +43,7 @@ Execution order determined by `depends_on` (topological sort):
 |--------|--------|-----------|---------|----------------|
 | `LineMapper` | `line_mapper` | `location_mapper` | `CanonicalLine` (data-only, consumed by user:create / workspace:assign_number) | `dn` (directory number) |
 | `UserMapper` | `user_mapper` | `location_mapper` | `CanonicalUser` | `user` |
-| `DeviceMapper` | `device_mapper` | `location_mapper` | `CanonicalDevice` (3-tier: NATIVE_MPP / CONVERTIBLE / INCOMPATIBLE) | `phone` (raw) |
+| `DeviceMapper` | `device_mapper` | `location_mapper` | `CanonicalDevice` (4-tier: NATIVE_MPP / CONVERTIBLE / WEBEX_APP / INCOMPATIBLE) | `phone` (raw) |
 
 ### Tier 3 — Depends on users/lines/devices
 

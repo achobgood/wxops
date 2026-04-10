@@ -1,0 +1,41 @@
+name: Transferability Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/wxcli/migration/advisory/advisory_patterns.py'
+      - 'src/wxcli/migration/advisory/recommendation_rules.py'
+      - 'src/wxcli/commands/cucm_config.py'
+      - 'src/wxcli/migration/report/score.py'
+      - 'src/wxcli/migration/models.py'
+      - 'docs/runbooks/cucm-migration/**'
+      - 'docs/knowledge-base/migration/**'
+      - '.claude/skills/cucm-migrate/SKILL.md'
+      - '.claude/agents/migration-advisor.md'
+
+jobs:
+  transferability:
+    name: Transferability coverage gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install pytest
+
+      - name: Run transferability tests
+        run: |
+          pytest tests/migration/transferability/ -v --tb=short
+        # Failure message: "This PR touches drift-sensitive files.
+        # tests/migration/transferability/ gates the runbook <-> code
+        # invariants. Fix the broken test before merging."

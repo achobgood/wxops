@@ -149,14 +149,65 @@ def recommend_feature_approximation(
 
     has_queue = context.get("has_queue_features", False)
     agent_count = context.get("agent_count", 0)
+    algorithm = context.get("algorithm")  # legacy; still read below for small-group check
+    policy = context.get("policy")        # preferred; Webex form from mapper
 
-    # Agent limit exceeded — recommend split
-    if agent_count > 50:
+    # Agent limit check — routing-type-aware (kb-webex-limits.md DT-LIMITS-001).
+    # SIMULTANEOUS caps at 50; REGULAR/CIRCULAR/UNIFORM/WEIGHTED cap at 1000.
+    # Prefer `policy` (Webex form set by FeatureMapper) over CUCM `algorithm` —
+    # the mapping is already done.
+    target_routing = context.get("target_routing_type")  # explicit override (future scaffold)
+    if target_routing is not None:
+        is_simultaneous = target_routing.upper() == "SIMULTANEOUS"
+    elif policy is not None:
+        is_simultaneous = policy == "SIMULTANEOUS"
+    else:
+        # Fallback: legacy contexts without `policy`. Only "Broadcast" maps to
+        # simultaneous; "Top Down" was incorrectly treated as simultaneous in the
+        # pre-fix code (it actually maps to REGULAR).
+        is_simultaneous = algorithm in ("Broadcast", None)
+
+    # Cap from context if mapper provided it (post-fix); otherwise fall back
+    # to defaults for legacy/hand-constructed contexts. The mapper writes
+    # `agent_limit` with the policy-correct value from `_AGENT_LIMITS` —
+    # SIMULTANEOUS=50, WEIGHTED=100, REGULAR/CIRCULAR/UNIFORM=1000. Reading the
+    # context value avoids the prior bug where WEIGHTED hunt pilots exceeded
+    # their 100-cap but the recommender's hard-coded 1000 missed them.
+    context_limit = context.get("agent_limit")
+    simultaneous_cap = 50      # legacy default
+    priority_cap = 1000        # legacy default
+    if context_limit is not None:
+        if is_simultaneous:
+            simultaneous_cap = context_limit
+        else:
+            priority_cap = context_limit
+
+    if is_simultaneous and agent_count > simultaneous_cap:
+        routing_note = ""
+        # Only mark as "assumed" when we actually fell through the legacy
+        # algorithm fallback — i.e., neither `target_routing_type` nor `policy`
+        # was set. With `policy` populated by FeatureMapper, the SIMULTANEOUS
+        # detection is explicit, not assumed.
+        if (
+            target_routing is None
+            and policy is None
+            and algorithm in ("undefined", None)
+        ):
+            routing_note = " (assumed simultaneous — no algorithm detected in CUCM data)"
         return (
             "split",
-            f"Agent count ({agent_count}) exceeds Call Queue limit of 50 for "
-            f"simultaneous distribution. Split into multiple queues with "
-            f"overflow chain.",
+            f"Agent count ({agent_count}) exceeds Simultaneous routing cap of "
+            f"{simultaneous_cap}{routing_note}. Split into multiple queues with "
+            f"overflow chain, or switch to priority-based routing (REGULAR/"
+            f"CIRCULAR/UNIFORM support up to 1000).",
+        )
+    if not is_simultaneous and agent_count > priority_cap:
+        policy_label = policy or "priority-based"
+        return (
+            "split",
+            f"Agent count ({agent_count}) exceeds Call Queue limit of "
+            f"{priority_cap} for {policy_label} routing. Split into multiple "
+            f"queues with overflow chain.",
         )
 
     if has_queue:
@@ -175,7 +226,6 @@ def recommend_feature_approximation(
             f"and wait-time handling at this scale.",
         )
 
-    algorithm = context.get("algorithm")
     if agent_count <= 4 and algorithm in ("Top Down", "undefined", None):
         return (
             "hunt_group",

@@ -31,6 +31,8 @@ When forming recommendations, dissents, or answering admin questions, follow thi
 2. **Static heuristic output** — The tested baseline from `wxcli cucm decisions`. Present static recommendations as the primary recommendation. Never override them silently.
 3. **Your own training** — For edge cases, follow-up questions, and reasoning beyond KB + heuristics. Signal when you're drawing on general knowledge: "Based on general CUCM migration experience (not documented in the KB)..."
 
+**Dissent triggers:** Whenever you load a KB doc, also read its `## Dissent Triggers` section (every kb-*.md has one — empty is honest). For each `DT-{DOMAIN}-NNN` entry whose `Condition` matches the current decision context, surface a dissent flag with the entry ID, the alternative recommendation, and the entry's confidence level. Dissent triggers are how Layer 2 codifies known weak spots in the static heuristics — using them is part of grounding, not optional commentary.
+
 If you cannot answer a question from any of these three sources (e.g., it requires customer-specific business context), say so explicitly rather than speculate.
 
 ## Analysis Mode
@@ -56,13 +58,13 @@ When launched with an analysis mode prompt:
    **By advisory pattern_name:**
    | Pattern Name | KB Doc |
    |---|---|
-   | restriction_css_consolidation, translation_pattern_elimination, partition_time_routing, partition_ordering_loss, overengineered_dial_plan, globalized_vs_localized | kb-css-routing.md |
-   | pstn_connection_type, trunk_destination_consolidation, cpn_transformation_chain, transformation_patterns | kb-trunk-pstn.md |
+   | restriction_css_consolidation, translation_pattern_elimination, partition_time_routing, partition_ordering_loss, overengineered_dial_plan, globalized_vs_localized, mixed_css | kb-css-routing.md |
+   | pstn_connection_type, trunk_destination_consolidation, cpn_transformation_chain, transformation_patterns, trunk_type_selection, intercluster_trunks, legacy_gateway_protocols | kb-trunk-pstn.md |
    | device_bulk_upgrade, extension_mobility_usage | kb-device-migration.md |
    | hunt_pilot_reclassification | kb-feature-mapping.md |
-   | voicemail_pilot_simplification, shared_line_simplification, recording_enabled_users, snr_configured_users | kb-user-settings.md |
+   | voicemail_pilot_simplification, shared_line_simplification, recording_enabled_users, snr_configured_users, user_oauth_required | kb-user-settings.md |
    | location_consolidation, e911_migration_flag | kb-location-design.md |
-   | media_resource_scope_removal | kb-webex-limits.md |
+   | media_resource_scope_removal, cumulative_virtual_line_consumption | kb-webex-limits.md |
 
    **Always load:** `kb-webex-limits.md`
 
@@ -96,7 +98,7 @@ When launched with an analysis mode prompt:
    **Static recommendation:** <option> - "<reasoning>"
    **Advisor alternative:** <option> - "<KB-grounded reasoning>"
    **Confidence:** HIGH | MEDIUM | LOW
-   **KB source:** <which KB doc section>
+   **KB source:** <kb-doc-name>.md §<section>, entry **DT-{DOMAIN}-NNN** (cite the specific entry ID, not just the section name)
    **Admin action:** <what to consider>
 
    ## Domain Summaries
@@ -117,6 +119,7 @@ When launched with an analysis mode prompt:
 **Narrative quality rules:**
 - Every claim must be grounded — reference specific objects/properties from pipeline data
 - Dissent flags must cite KB doc sections
+- Every dissent flag must cite a specific `DT-{DOMAIN}-NNN` entry ID. The section name alone is insufficient — operators need the entry ID to grep to the evidence.
 - Executive summary must be readable by non-technical stakeholders (no unexplained CUCM jargon)
 - Cross-decision analysis must name specific decision IDs
 

@@ -344,7 +344,7 @@ All prompts live in `docs/prompts/`:
 | `phase-12a-upstream-bugfixes.md` | 9 upstream data-quality bugs (feature mapper, missing data, normalizer, DAG) | **Complete** (2026-03-24) |
 | `phase-12b-execution-layer.md` | Skill-delegated execution: delete command_builder, domain skill dispatch, summary plan, CLI execution commands | **Complete** (2026-03-24) — informed by post-mortem |
 | `postmortem-cucm-pipeline.md` | Post-mortem: design-to-execution gap analysis, architectural recommendation | **Complete** (2026-03-24) — drives 12b rewrite |
-| `phase-12c-model-table-update.md` | Phone model table: 8851 → CONVERTIBLE, 9800 → NATIVE_MPP | **READY** (independent) |
+| `phase-12c-model-table-update.md` | Phone model table: 8851 → CONVERTIBLE, 9800 → NATIVE_MPP | **Complete** (2026-03-25) — 64 tests passing |
 | **Fix / Patch Prompts** | | |
 | `fix-phase05-field-names.md` | AXL field name corrections for Phase 05 mappers | **Executed** (2026-03-23) — 6 fixes + test fixture updates |
 | `fix-mapper-wave1.md` | Earlier mapper fix wave | Executed |
@@ -355,21 +355,16 @@ All prompts live in `docs/prompts/`:
 
 ## What to Do Next
 
-### Phase 12a+12b: Complete
+### Remaining Work
 
-**Phase 12a** (upstream data-quality bugs) and **Phase 12b** (skill-delegated execution layer) are both complete as of 2026-03-24. The command_builder.py static generation approach has been replaced with runtime domain skill delegation, per the post-mortem recommendation.
-
-**Remaining:**
-1. **Phase 12c** (`docs/prompts/phase-12c-model-table-update.md`) — Update phone model table: 8851 → CONVERTIBLE, 9800 series → NATIVE_MPP. Independent — can run anytime.
-2. **Continue live testing** against CUCM test bed (10.201.123.107) — multiple runs since 12a/12b have found and fixed additional bugs. Target: clean end-to-end run within one week.
-3. **Optional: Phase 06b expansion** — cascade re-evaluation, auto-rule `match` field, multi-analyzer coexistence test.
+1. **Continue live testing** against CUCM test bed (10.201.123.107) — multiple runs since 12a/12b have found and fixed additional bugs.
 
 ### Phase 13: Migration Advisory System — COMPLETE
 
 Advisory system adds practitioner-level recommendations to the pipeline. Two layers:
 
-- **Layer 1 (recommendation_rules.py):** 19 per-decision recommendation functions (16 original + 3 Tier 2). Each DecisionType gets an optional `recommendation` + `recommendation_reasoning`. Ambiguous cases return `None`.
-- **Layer 2 (advisory_patterns.py + advisor.py):** 16 cross-cutting pattern detectors. `ArchitectureAdvisor` runs after all 12 analyzers, reads merged decisions + full inventory, produces `ARCHITECTURE_ADVISORY` decisions. Categories: eliminate, rebuild, out_of_scope, migrate_as_is.
+- **Layer 1 (recommendation_rules.py):** 20 per-decision recommendation functions. Each DecisionType gets an optional `recommendation` + `recommendation_reasoning`. Ambiguous cases return `None`.
+- **Layer 2 (advisory_patterns.py + advisor.py):** 20 cross-cutting pattern detectors. `ArchitectureAdvisor` runs after all 12 analyzers, reads merged decisions + full inventory, produces `ARCHITECTURE_ADVISORY` decisions. Categories: eliminate, rebuild, out_of_scope, migrate_as_is.
 
 **Pipeline integration:** Two-phase execution in `analysis_pipeline.py` — Phase 1 (12 analyzers → merge), Phase 2 (ArchitectureAdvisor → merge advisory), Phase 3 (populate_recommendations on all decisions).
 
@@ -380,8 +375,8 @@ Advisory system adds practitioner-level recommendations to the pipeline. Two lay
 | Prompt | Status | Tests |
 |--------|--------|-------|
 | Phase 13a: Foundation (models, store, tests) | COMPLETE | ~20 |
-| Phase 13b: Recommendation rules (16 functions) | COMPLETE | ~25 |
-| Phase 13c: Advisory patterns (16 patterns + advisor) | COMPLETE | ~42 |
+| Phase 13b: Recommendation rules (20 functions) | COMPLETE | ~25 |
+| Phase 13c: Advisory patterns (20 patterns + advisor) | COMPLETE | ~42 |
 | Phase 13d: Pipeline + CLI + skill integration | COMPLETE | 9 integration |
 
 Design spec: `docs/superpowers/specs/2026-03-24-migration-advisory-design.md`
@@ -427,7 +422,7 @@ Second round of live testing found 8 data validation bugs. All produce broken de
 | **Location addresses not validated** | Missing data analyzer only checks location `name` — no check for address fields (address1, city, state, postal_code). Locations with all-null addresses pass through to deployment plan. Command builder outputs empty strings. Webex API will reject or create E911-noncompliant location | Added address fields to `_REQUIRED_FIELDS["location"]` in `missing_data.py` with dot-notation support: `address.country`, `address.address1`, `address.city`, `address.state` (HIGH), `address.postal_code` (MEDIUM). | **DONE** (Phase 12a) |
 | **Empty translation patterns not caught** | Mapper creates `CanonicalTranslationPattern` with empty `name` and `matching_pattern` when CUCM pattern field is empty string. Analyzer has no `translation_pattern` entry in `_REQUIRED_FIELDS`. Empty pattern reaches deployment plan | Skip empty patterns in routing mapper (`if not cucm_pattern: continue`). Added `translation_pattern` to `_REQUIRED_FIELDS` in `missing_data.py`. | **DONE** (Phase 12a) |
 | **`{LOCATION_ID}` placeholder not resolved to step reference** | Command builder emits generic `{LOCATION_ID}` for location-scoped features (hunt groups, pickup groups, schedules, auto attendants) instead of `{STEP_N_ID}` referencing the location creation step. Skill can't resolve which location the feature belongs to | Phase 12b removed command_builder.py. Skill-delegated execution resolves location IDs from the DB at runtime. | **DONE** (Phase 12b) |
-| **Pickup group agents contain raw CUCM UUIDs** | Pickup group member UUIDs from AXL are line-level UUIDs that don't match any DN object's provenance `source_id`. The cross-ref builder doesn't create a UUID→DN mapping for pickup group members. Feature mapper resolves `user:` and `dn:` prefixed members but CUCM UUIDs fall through to raw ID. | Feature mapper now resolves `user:` passthrough and `dn:` via device chain. **Remaining gap:** CUCM line-level UUIDs need a new cross-ref from the normalizer that maps `{CUCM_UUID}` → `dn:pattern:partition` using data already in the line group members dict (which contains both UUID and `directoryNumber.pattern`). | **PARTIAL** (Phase 12a fixed resolution chain; UUID→DN mapping still needed) |
+| **Pickup group agents contain raw CUCM UUIDs** | Pickup group member UUIDs from AXL are line-level UUIDs that don't match any DN object's provenance `source_id`. | Fixed: `_build_line_uuid_to_dn()` builds UUID→DN lookup from raw phone line data (`phone:{name}` objects in store). `_resolve_pickup_members_to_owners()` uses this to resolve UUID→DN→user. | **DONE** (2026-03-30) |
 | **Resources table includes CUCM source objects** | Section 4 (Resources to Create/Modify) lists CUCM-only objects (partitions, CSSes, device_pools, cucm_locations, etc.) as "Create" items. These are source objects, not Webex resources | Phase 12b rewrote deployment_plan.py as summary-only (no CLI commands). Resource summary now filters to Webex types only. | **DONE** (Phase 12b) |
 | **User creation steps missing location dependencies** | Steps 1-4 (user create) reference `{STEP_13_ID}` and `{STEP_14_ID}` (locations) but show "Dependencies: None". Location must exist before users can be assigned to it | Fixed: user_mapper writes `user_in_location` cross-ref. dependency.py `_CROSS_OBJECT_RULES` targets `enable_calling` (not just `create`). DAG now has user→location edges. | **DONE** (Phase 12a) |
 | **Deployment plan hand-edited instead of re-exported** | Other session directly edited the deployment plan markdown to add addresses instead of updating the store and running `wxcli cucm export`. Store data is now out of sync with the plan file | Add critical rule to cucm-migrate skill: never hand-edit the deployment plan, always update via pipeline and re-export | **DONE** (rule 13 added to skill) |
@@ -454,18 +449,18 @@ Attempted full execution of the revised deployment plan against live Webex org. 
 - 3 trunks: sip-trunk-to-lab-cucm, cisco.com, SKIGW0011223344
 - 2 route groups: Standard Local Route Group, RG-PSTN-Primary
 - Steps 16-32 NOT executed (hunt groups, AA, pickup, schedules, translation patterns, user settings)
-| **License assignment generates no-op comment steps** | Planner creates `user:assign_license` operations that produce `# License assigned at user creation time` comments. These are noise — 4 extra steps that do nothing, cluttering the plan | Planner should not generate `assign_license` ops when the license is handled by the `create` op's `--license` flag. Or command builder should suppress comment-only steps from the plan table | **OPEN** |
-| **User count inflated — users without emails/locations included** | Plan says "10 users" but only 4 have emails and location assignments. 6 users (test1, u1071, u1072, msmith, legacyuser01, adminonly) have no emails or no location_id — they can't be provisioned. They should be flagged as MISSING_DATA or excluded from the plan count | Missing data analyzer should check users for required fields (emails, location_id). Users without these should get MISSING_DATA decisions. Planner should only count provisionable users in the summary | **OPEN** |
-| **Schedules not stored as `schedule` object type** | Querying the store for `object_type='schedule'` returns 0 results, but the deployment plan has 2 schedules. They may be embedded in another object or stored under a different type name. The planner/command builder creates schedule steps from somewhere, but the store doesn't have standalone schedule objects | Investigate where schedule data lives in the store. If embedded in AA/operating mode objects, the planner needs to extract them. If stored under a different type, the queries need to match | **OPEN** |
-| **Location creation doesn't include calling enablement step** | Creating a location via `POST /v1/locations` does NOT enable Webex Calling on it. A separate `POST /telephony/config/locations` (via `wxcli location-settings create`) is required, including the location ID, name, timezone, and address. Without this step, user creation fails because the location doesn't have calling enabled. The command builder only generates a `locations create` step, not the follow-up `location-settings create` | Planner needs to generate a `location:enable_calling` operation after `location:create`. Command builder maps it to `wxcli location-settings create --json-body` with all required fields. This is a hard dependency: enable_calling must succeed before any user can be assigned to the location | **OPEN** |
-| **`wxcli users create` doesn't pass `calling_data=True`** | The `users create` command in `src/wxcli/commands/users.py` calls `api.people.create(settings=settings)` without `calling_data=True`. The wxc_sdk defaults to `calling_data=False`, which means even with a license and location, the user isn't set up for calling. Fixed in live testing by adding `calling_data=bool(location_id or license_id)` | Already fixed in `users.py` by other session. Needs regression test | **FIXED** (live fix, needs test) |
-| **`wxcli users create` has no `--extension` flag** | The Webex API requires an extension or phone number when creating a calling-enabled user. The `users create` command has no `--extension` option, so calling user creation always fails. The other session had to fall back to raw HTTP to create users with extensions | Add `--extension` option to `wxcli users create` in `src/wxcli/commands/users.py`. Pass it via `phoneNumbers` in the People API body | **OPEN** |
-| **Extension assignment should be combined with user creation** | The deployment plan has separate steps: create user (steps 3-6) then assign extension (steps 12-15). But the API requires extension at creation time for calling users — you can't create a calling user without one. The two-step approach always fails on the create step | Planner should combine `user:create` and `user:assign_number` into a single operation. Command builder produces one command with `--extension`. Eliminates the separate extension assignment steps entirely | **OPEN** |
-| **Failed user create leaves orphaned non-calling users** | When `users create` fails on the calling setup but succeeds on the People API create, it leaves a non-calling user in Webex. Retry gets 409 conflict. Recovery requires finding the existing user and updating them with location/license/extension via PUT — which itself requires `displayName` even for partial updates | `wxcli users create` should be atomic: if calling setup fails, delete the just-created user. Or the skill needs a recovery pattern: check if user exists → update instead of create. The People API PUT requiring `displayName` for partial updates is a gotcha to document | **OPEN** |
-| **`--json-body` doesn't bypass required CLI flags** | Auto-generated create commands require mandatory flags (e.g., `--name` for trunks/locations) even when `--json-body` contains all fields. Click validates required options before the command body runs, so `--json-body '{"name": "foo"}'` fails with "Missing option '--name'". Users must pass dummy values for required flags alongside `--json-body` | Generator needs to make flags optional when `--json-body` is present. Either: (a) make all flags optional and validate at runtime, or (b) use mutually exclusive groups. Systemic generator fix affecting all create commands | **OPEN** (systemic) |
-| **Trunk creation requires `locationId` not in plan** | Deployment plan trunk create commands don't include `locationId`, but the Webex API requires it. Command builder doesn't include location for trunks | Command builder needs to include `locationId` in trunk JSON. Trunk mapper should populate `location_id` on `CanonicalTrunk` | **OPEN** |
-| **Route group requires at least one gateway** | "Standard Local Route Group" created with no `localGateways` array. API requires at least one gateway member | Route group mapper needs to resolve trunk dependencies and include them as gateway members | **OPEN** |
-| **Skill falls back to raw HTTP repeatedly** | During live execution, the skill abandoned wxcli CLI for raw `requests` calls on users, trunks, and features. Root causes: missing flags, `--json-body` broken, missing `calling_data`, missing `--extension`. The CLI is not usable as the execution layer for migration | All individual CLI bugs need fixing. If DB-driven execution is adopted, the runtime command builder must produce working CLI commands or use the SDK directly | **OPEN** (systemic) |
+| **License assignment generates no-op comment steps** | Planner creates `user:assign_license` operations that produce `# License assigned at user creation time` comments. These are noise — 4 extra steps that do nothing, cluttering the plan | Planner no longer generates `assign_license` ops — licensing bundled into `user:create` | **DONE** (Phase 12a) |
+| **User count inflated — users without emails/locations included** | Plan says "10 users" but only 4 have emails and location assignments. 6 users have no emails or no location_id — they can't be provisioned | Missing data analyzer now checks users for required fields | **DONE** (Phase 12a) |
+| **Schedules not stored as `schedule` object type** | Querying the store for `object_type='schedule'` returns 0 results | `CanonicalLocationSchedule` model + planner expansion implemented | **DONE** (Phase 12a) |
+| **Location creation doesn't include calling enablement step** | Creating a location via `POST /v1/locations` does NOT enable Webex Calling on it | Planner generates `location:enable_calling` after `location:create`. Skill-delegated execution handles two-step provisioning | **DONE** (Phase 12b) |
+| **`wxcli users create` doesn't pass `calling_data=True`** | wxc_sdk defaults to `calling_data=False` | Fixed: `calling_data=bool(location_id or license_id)` | **DONE** |
+| **`wxcli users create` has no `--extension` flag** | The Webex API requires an extension at calling user creation time | Generated `people.py` already has `--extension` flag (line 89). Old hand-written `users.py` was replaced | **DONE** — `people.py` regenerated with `--extension` and `--calling-data` |
+| **Extension assignment should be combined with user creation** | API requires extension at creation time — can't create then assign separately | Planner combines via `--json-body` with all fields including extension | **DONE** — skill dispatch passes extension in create body |
+| **Failed user create leaves orphaned non-calling users** | Create fails on calling setup but People API already created the user. Retry gets 409 | Skill section 4c now has user-specific recovery: find orphaned user → update with calling data → mark complete | **DONE** (2026-03-30) |
+| **`--json-body` doesn't bypass required CLI flags** | Click validates required options before command body runs | Generator already makes all body fields optional (`typer.Option(None, ...)`), validates required fields at runtime only when `--json-body` is not used | **DONE** — `_render_create_command()` lines 434-473 |
+| **Trunk creation requires `locationId` not in plan** | Trunk mapper populates `location_id` on `CanonicalTrunk` via `trunk_at_location` cross-ref chain | Trunk `location_id` now resolved at runtime | **DONE** (Phase 12a) |
+| **Route group requires at least one gateway** | "Standard Local Route Group" created with no `localGateways` array | `MISSING_DATA` analyzer now checks `local_gateways` on route groups | **DONE** (Phase 12a) |
+| **Skill falls back to raw HTTP repeatedly** | Root causes: missing flags, broken `--json-body`, missing `calling_data` | All root causes addressed: `--extension` exists, `--json-body` bypass works, `calling_data` handled, user recovery pattern added | **DONE** (2026-03-30) |
 
 ### Known Limitations
 
@@ -480,7 +475,7 @@ Attempted full execution of the revised deployment plan against live Webex org. 
 | **Cisco wireless phones (840/860) not classified** | Cisco 840 and 860 ruggedized wireless phones are supported on Webex Calling but not in any pattern set | Falls through to INCOMPATIBLE | Add to NATIVE_MPP if they appear in CUCM discovery |
 | **Deployment plan missing firmware conversion reminder** | Devices with `DEVICE_FIRMWARE_CONVERTIBLE` resolved as "convert" are pre-staged in Webex (correct behavior), but the deployment plan doesn't remind the admin that firmware conversion is needed at cutover | Admin must remember independently | Add informational prerequisite in `deployment_plan.py`: list devices needing firmware conversion and note this is a cutover-time step, not a blocker for pre-staging |
 | **Voice gateways (VG) treated as incompatible phones** | VG310/VG350/VG450 are analog infrastructure (FXS/FXO ports for fax, elevator phones, paging, intercoms), not phones. Pipeline classifies them as `INCOMPATIBLE` and stops — doesn't track the analog endpoints behind them or plan their migration path | `skip` decision, handle VG migration manually outside pipeline | New device tier `ANALOG_GATEWAY` + dedicated mapper: discover analog ports/assignments from CUCM, map to analog gateway devices in Control Hub. See detail below |
-| **Preflight workspace license match string is wrong** | `check_workspace_licenses()` matches on "Common Area" but the actual API license name is `"Webex Calling - Workspaces"`. The check will always report 0 workspace licenses available even when the org has them. Additionally, doesn't distinguish Workspace vs Professional Workspace tiers | Admin must manually verify workspace license availability | Fix match string to `"Webex Calling - Workspaces"`. Then split preflight check: count workspaces by `license_tier` field, check Workspace and Professional Workspace license pools separately |
+| **~~Preflight workspace license match string is wrong~~** | ~~`check_workspace_licenses()` matches on "Common Area"~~ | N/A | **FIXED** — Now matches `"calling" + "workspace"` substring, correctly matching `"Webex Calling - Workspaces"` and `"Webex Calling - Professional Workspaces"` |
 | **Pipeline assumes all users get Webex Calling Professional licenses** | Webex Calling has a Standard license tier (`BASIC_USER` in the API spec). The pipeline maps all users as Professional — `check_licenses()` only counts "Calling Professional" licenses in preflight. Users who only need Standard are over-licensed, and the license count may incorrectly fail preflight if the org has a mix of Standard and Professional | Admin must manually reassign Standard licenses after migration, or manually adjust the preflight license count | Add user license tier inference (similar to workspace `license_tier` classification): analyze each user's CUCM feature profile to determine whether they need Standard or Professional, tag users with `license_tier`, and split `check_licenses()` to count Standard and Professional pools separately |
 | **Pipeline doesn't handle Virtual Line/Profile licenses** | The `UserLicenseType` enum includes `VIRTUAL_PROFILE` ("webex calling virtual profile"). The pipeline has no concept of virtual lines — they are not extracted from CUCM and have no mapper or license counting | Virtual lines must be provisioned manually outside the pipeline | If CUCM virtual lines or shared-line appearances need to migrate as Webex virtual lines, add extraction, mapping, and a `check_virtual_line_licenses()` preflight check |
 | **Pipeline doesn't track "Hot desk only" workspace licenses** | The API returns a separate `"Webex Calling - Hot desk only"` license distinct from `"Webex Calling - Workspaces"`. The pipeline doesn't distinguish hot-desk-only workspaces from regular workspaces during license counting | Admin must manually verify hot-desk license allocation | Add hot-desk detection during workspace mapping (workspaces flagged as `hotdesk_only` in CUCM), count separately in preflight |
@@ -569,43 +564,15 @@ The markdown plan becomes a summary-only artifact for admin approval.
 
 **Design spec:** `docs/plans/cucm-pipeline/08-execution-architecture.md`
 
-**Implementation prompts (run in order):**
+**Implementation prompts (all complete):**
 
-| Prompt | Scope | Depends On | Status |
-|--------|-------|-----------|--------|
-| `docs/prompts/phase-12a-upstream-bugfixes.md` | 9 upstream data-quality bugs (feature mapper, missing data analyzer, normalizer, dependency graph) | Nothing | **READY** |
-| `docs/prompts/phase-12b-execution-layer.md` | Runtime command builder, CLI execution commands, summary plan, skill rewrite | Phase 12a | **READY** |
-| `docs/prompts/phase-12c-model-table-update.md` | Phone model table: full 78xx/88xx/9800/8875 lineup, 9821 removed, 7811 reclassified | Nothing (independent) | **COMPLETE** (2026-03-24) — 64 tests passing. Web-verified against Cisco E2M converter + 9800 data sheet + Webex supported devices page |
+| Prompt | Scope | Status |
+|--------|-------|--------|
+| `docs/prompts/phase-12a-upstream-bugfixes.md` | 9 upstream data-quality bugs | **COMPLETE** (2026-03-24) |
+| `docs/prompts/phase-12b-execution-layer.md` | Skill-delegated execution, command_builder deleted | **COMPLETE** (2026-03-24) |
+| `docs/prompts/phase-12c-model-table-update.md` | Phone model table: full 78xx/88xx/9800/8875 lineup | **COMPLETE** (2026-03-25) — 64 tests |
 
-**Bug disposition (22 bugs across Rounds 2 + 3):**
-
-| Bug | Fixed By | Status |
-|-----|----------|--------|
-| **Upstream data quality (Phase 12a — 13 fixes)** | | |
-| Hunt group agents are raw CUCM DNs | 12a Fix 1 | **OPEN → 12a** |
-| Pickup group agents are raw CUCM UUIDs | 12a Fix 2 | **OPEN → 12a** |
-| Feature mapper doesn't populate location_id | 12a Fix 3 | **OPEN → 12a** |
-| Location addresses not validated | 12a Fix 4 | **OPEN → 12a** |
-| User count inflated (missing emails/locations) | 12a Fix 5 | **OPEN → 12a** |
-| Empty translation patterns not caught | 12a Fix 6 | **OPEN → 12a** |
-| Duplicate/junk pickup groups | 12a Fix 7 | **OPEN → 12a** |
-| User→location cross-refs missing (DAG edges) | 12a Fix 8 | **OPEN → 12a** |
-| Schedule object type storage | 12a Fix 9 | **OPEN → 12a** |
-| Trunk mapper doesn't populate location_id | 12a Fix 10 | **OPEN → 12a** |
-| Route group requires at least one gateway | 12a Fix 11 | **OPEN → 12a** |
-| Extension assignment must combine with user create | 12a Fix 12 (+ users.py --extension flag) | **OPEN → 12a** |
-| Location needs enable_calling step after create | 12a Fix 13 | **OPEN → 12a** |
-| **Execution layer (Phase 12b — 8 tasks)** | | |
-| `{LOCATION_ID}` placeholder not resolved | 12b (irrelevant — no placeholders at runtime) | **OPEN → 12b** |
-| Call settings `{...}` stubs | 12b Task 3 (settings read from DB at runtime) | **OPEN → 12b** |
-| No-op license steps | 12a Fix 12 (assign_license ops removed from plan) | **OPEN → 12a** |
-| Resources table includes CUCM objects | 12b Task 4 (summary plan filters to Webex types) | **OPEN → 12b** |
-| `--json-body` doesn't bypass required CLI flags | 12b Task 6 (generator fix — systemic) | **OPEN → 12b** |
-| Failed creates leave orphaned resources | 12b Task 7 (check-and-recover pattern) | **OPEN → 12b** |
-| Skill falls back to raw HTTP | 12b Tasks 6+7+8 (fix CLI + recovery + skill rewrite) | **OPEN → 12b** |
-| **Already fixed** | | |
-| Deployment plan hand-edited | Rule 13 + 12b summary-only plan | **DONE** |
-| `wxcli users create` missing calling_data | Fixed live, regression test in 12a Fix 12 | **FIXED** |
+**All Round 2+3 bugs are fixed** (12a/12b/12c, generator fix, skill recovery pattern, UUID resolution).
 
 ### Platform Corner Cases — Execution-Time Failures (2026-03-26)
 
@@ -638,8 +605,7 @@ Discovered during phase10-verify and phase10-clean live execution. These are org
 
 ### Optional future work
 - **BLOCKING: Replace hand-written command files with generated versions** — 4 files (`users.py`, `locations.py`, `numbers.py`, `licenses.py`) were hand-coded before the generator existed. **These files do NOT receive generator fixes** — any improvement to `command_renderer.py` (--json-body bypass, orgId auto-injection, output format, error handling, new features) only applies to the 96 generated files, not these 4. This is a drift risk that grows with every generator change. Replace with generated commands + `field_overrides.yaml` customizations. The only non-trivial blocker is `users create` which needs `--extension` + `calling_data=True` + wxc_sdk `Person` model logic — handle via a generator post-processing hook, `field_overrides.yaml` custom code block, or a thin wrapper that calls the generated command. **Do not add more hand-written command files.** If a generated command needs custom behavior, use `field_overrides.yaml` to customize it.
-- **Phase 06b expansion** — `docs/prompts/phase-06b-expansion.md`: cascade re-evaluation test, auto-rule `match` field, multi-analyzer coexistence test
-- **Scope expansion** — `docs/plans/cucm-pipeline/future/expansion-scope.md`: 8 Tier 2 + 18 Tier 3 object types
+- ~~**Scope expansion**~~ — **MOSTLY COMPLETE.** Tier 2 (8/8), Tier 3 (20/20), Tier 4 (6/11). See `docs/plans/cucm-pipeline/future/CLAUDE.md` for remaining Tier 4 items
 - **End-to-end test against live CUCM test bed** — 80 objects at 10.201.123.107
 
 ### All phases completed
@@ -659,16 +625,20 @@ Discovered during phase10-verify and phase10-clean live execution. These are org
 - ~~Phase 12a: Upstream Bugfixes~~ — **COMPLETE** (2026-03-24) — 9 data-quality bugfixes
 - ~~Phase 12b: Execution Layer~~ — **COMPLETE** (2026-03-24) — skill-delegated execution rewrite, command_builder deleted
 - ~~Phase 12c: Model Table Update~~ — **COMPLETE** (2026-03-25) — 8851 → CONVERTIBLE, 9800 → NATIVE_MPP
-- ~~Phase 13: Migration Advisory System~~ — **COMPLETE** (2026-03-25) — 16 recommendation rules + 16 cross-cutting patterns + ArchitectureAdvisor + two-phase pipeline + CLI + skill integration
+- ~~Phase 06b: Expansion~~ — **COMPLETE** (2026-03-25) — cascade re-evaluation, auto-rule match field (4 operators), multi-analyzer coexistence. 14 tests.
+- ~~Phase 13: Migration Advisory System~~ — **COMPLETE** (2026-03-25) — 20 recommendation rules + 20 cross-cutting patterns + ArchitectureAdvisor + two-phase pipeline + CLI + skill integration
 - ~~Tier 2 Wave 1: Shared Infrastructure~~ — **COMPLETE** (2026-03-25) — 3 new DecisionTypes, 2 new canonical types (CanonicalCallForwarding, CanonicalMonitoringList), 3 recommendation rules, 2 new mappers (CallForwardingMapper, MonitoringMapper), SIP/security profile detail in routing extractor, 2 new report sections. 1350 tests.
 - ~~Fix Missing Migration Operations~~ — **COMPLETE** (2026-03-30) — 6 data-flow fixes: cross-ref phone mirror, shared_line status transition, is_common_area flag injection, voicemail enrichment, new CallSettingsMapper, diagnostic logging. Pipeline went from 383 → 984 operations on dCloud data. 1640 tests.
+- ~~Tier 3: Informational Extraction~~ — **COMPLETE** — InformationalExtractor (20 types, 4 categories), normalizers, 4-section report appendix
+- ~~Tier 2: Enterprise Expansion (all 3 waves)~~ — **COMPLETE** — 8 items: Call Forwarding, Speed Dials/BLF/Monitoring, Extension Mobility, MOH, Announcements, E911, SNR, SIP Profiles. 4 new DecisionTypes, 10 canonical types, 9 mappers, 5 extractors
+- ~~Tier 4 Wave 1: Feature Gap Extraction~~ — **MOSTLY COMPLETE** — 6/11 items built (Recording, SNR, Button Templates, Transformation Patterns, Extension Mobility, partial User Locale). Tier4Extractor, 4 advisory patterns (P17-P20), 4 report appendix sections (S/T/U/V). 5 items remaining: Intercom enhancement, shared line behavior, Jabber inventory, firmware versions, voicemail PIN management
 
-### Upstream Data Gaps (discovered 2026-03-30 via diagnostic logging)
+### Upstream Data Gaps (discovered 2026-03-30 via diagnostic logging — all code-fixed)
 
-Three operation types remain absent from the dCloud execution plan. All three are upstream data issues, not mapper/planner bugs — confirmed via Task 6 diagnostic logging.
+Three operation types were absent from the dCloud execution plan. All three have code fixes applied. Voicemail and SNR gaps are dCloud-specific data quality issues (code works when CUCM data has the assignments). Route pattern extraction and normalization were genuine code bugs, now fixed.
 
-| Missing Type | Diagnostic Output | Root Cause | Fix |
+| Missing Type | Diagnostic Output | Root Cause | Status |
 |---|---|---|---|
-| `user:configure_voicemail` | VoicemailMapper: 0 created, 0 updated. All 52 users have `voicemail_profile_id=None` | `CrossReferenceBuilder` builds `user_has_voicemail_profile` cross-refs, but on dCloud data no user→voicemail_profile links are found. The 5 `voicemail_profile` objects and 2 `voicemail_pilot` objects in the store have no connecting cross-refs to users. Likely cause: the AXL extraction doesn't pull per-user `VoiceMailProfile` assignments, or the CUCM usernames don't match the voicemail profile owner fields | Investigate `_build_voicemail_refs()` in `cross_reference.py` — check what fields it reads from user objects and whether dCloud users actually have voicemail profile assignments in CUCM. May need to extract `VoiceMailProfile` from the `endUser` AXL response |
-| `dial_plan:create` | "29 route patterns processed=0, skipped (@macro)=0, skipped (no target)=29, dial plans created=0" | Route pattern objects are shell objects — `pre_migration_state` only contains base `MigrationObject` fields with no `pattern`, `route_list`, `gateway`, or `target` keys. The normalizer creates the objects but never populates their routing payload | Fix `normalize_route_pattern()` in `normalizers.py` — ensure it copies the raw AXL route pattern fields (`pattern`, `routePartitionName`, `destination` / `gatewayName` / `routeListName`) into `pre_migration_state`. The 7 translation patterns DO have `matching_pattern` / `replacement_pattern`, so translation pattern normalization works; route patterns use a different AXL structure |
-| `single_number_reach:configure` | "25 remote_destination objects, 0 unique owners" | `remote_destination` objects exist in the store but `CrossReferenceBuilder` has no method to build `remote_destination_owned_by_user` relationships. The SNR mapper correctly groups by owner but finds zero cross-refs | Add `_build_remote_destination_refs()` to `CrossReferenceBuilder` — read each `remote_destination` object's `ownerUserId` (or equivalent AXL field) and create `remote_destination_owned_by_user` cross-ref to `user:{ownerUserId}` |
+| `user:configure_voicemail` | VoicemailMapper: 0 created, 0 updated. All 52 users have `voicemail_profile_id=None` | Code is correct: `_build_voicemail_refs()` builds cross-refs, `VoicemailMapper` enriches users via `enrich_user()`. dCloud users simply don't have `voiceMailProfile` assignments in CUCM AXL data | **CODE FIXED** — works when CUCM data has voicemail profile assignments. dCloud data gap, not a code bug |
+| `dial_plan:create` | "29 route patterns processed=0, skipped (@macro)=0, skipped (no target)=29, dial plans created=0" | Two bugs: (1) Extractor used list-only, missing destination data. (2) Normalizer omitted `target_type`/`target_name`. | **FIXED** (2026-03-30) — Extractor now does list+get (`getRoutePattern` per pattern). Normalizer extracts `gatewayName`/`routeListName` into `target_type`/`target_name`. 3 new tests. dCloud may still show 0 if route patterns have no destinations in CUCM |
+| `single_number_reach:configure` | "25 remote_destination objects, 0 unique owners" | Code is correct: `_build_remote_destination_refs()` exists and runs in CrossReferenceBuilder. dCloud remote_destination objects don't have populated `ownerUserId` fields in AXL data | **CODE FIXED** — works when CUCM data has owner assignments. dCloud data gap, not a code bug |

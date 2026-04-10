@@ -18,6 +18,16 @@ argument-hint: [project name]
 
 If you cannot answer both, you skipped reading this skill. Go back and read it.
 
+## Reference docs for the operator
+
+If the operator is unfamiliar with the cucm migration pipeline, point them at:
+
+- **[Operator Runbook](../../../docs/runbooks/cucm-migration/operator-runbook.md)** — end-to-end pipeline walkthrough, prerequisites, failure recovery
+- **[Decision Guide](../../../docs/runbooks/cucm-migration/decision-guide.md)** — per-DecisionType and per-advisory-pattern reference
+- **[Tuning Reference](../../../docs/runbooks/cucm-migration/tuning-reference.md)** — config keys, auto-rules, score weights, 5 worked recipes
+
+These are the only operator-facing docs for this migration tool. If the operator asks "where do I learn this," send them to the operator runbook first.
+
 ## Step 1: Load, Verify, and Assess
 
 1. **Check project exists and pipeline is complete:**
@@ -168,6 +178,8 @@ wxcli cucm decisions --status pending -p <project>
 If pending decisions remain, inform the admin and ask whether to continue
 with unresolved decisions or re-enter review.
 
+> **Operator help:** If the operator asks what a specific decision means, point them at the corresponding entry in [decision-guide.md §Decision Types A–Z](../../../docs/runbooks/cucm-migration/decision-guide.md#decision-types-az). The guide has one entry per non-advisory DecisionType plus one entry per advisory pattern.
+
 ### Step 1c-fallback: Static Decision Review
 
 **Only used if Step 1b's advisor agent failed.** This is the original Phase A/B
@@ -211,10 +223,13 @@ Accept all advisory recommendations? [Y/n] Or review individually? [r]
 
 Present remaining (non-advisory) decisions in three groups:
 
-**Group 1: Auto-apply (clear-cut decisions)** — applied via `--apply-auto`:
-- `DEVICE_INCOMPATIBLE` with no migration path → skip
-- `MISSING_DATA` on devices that are already incompatible → skip
-- `CALLING_PERMISSION_MISMATCH` with 0 affected users → skip (orphaned profile)
+**Group 1: Auto-apply (matched by `auto_rules` config)** — applied via `--apply-auto`.
+By default this covers 8 rule types: incompatible devices, convertible devices,
+hotdesk DN conflicts, lossy forwarding, lossy SNR, unmappable buttons, orphaned
+permission profiles (`assigned_users_count == 0`), and missing data on devices
+that are already incompatible. Custom rules in `<project>/config.json` extend
+this set. Edits to `config.json` are picked up the next time `--apply-auto`
+runs — no need to re-run `analyze` first.
 
 **Group 2: Recommended** — decisions where `recommendation` is set.
 Present with bulk accept option:
@@ -268,17 +283,24 @@ Do NOT silently skip decisions that cascade into blocked downstream operations.
 
 3. **Apply auto-resolvable decisions:**
    After the admin has resolved all needs-input decisions, show what will be
-   auto-applied (read from the Auto-Apply section of the review file):
+   auto-applied (read from the Auto-Apply section of the review file —
+   the section reflects the project's current `auto_rules` config, including
+   any custom rules):
    ```
-   AUTO-APPLYING (N decisions — clear-cut):
-     - N incompatible devices → skip (no MPP migration path)
-     - N missing data on incompatible devices → skip
-     - N orphaned permission profiles → skip
+   AUTO-APPLYING (N decisions — matched by current auto-rules):
+     <count> <type> → <choice>
+     ...
    ```
    Then apply:
    ```bash
    wxcli cucm decide --apply-auto -y -p <project>
    ```
+   This re-runs the rules in `<project>/config.json` against any pending
+   decisions and resolves matches. Safe to re-run.
+
+   If the admin has hand-edited `config.json` and wants to restore the
+   default rule set, run: `wxcli cucm config reset auto_rules -p <project>`.
+   This restores defaults but clobbers any custom rules in `auto_rules`.
 
 4. **Re-plan and re-export:**
    ```bash
@@ -324,6 +346,8 @@ wxcli cucm preflight
 2. User resolves blockers
 3. Re-run: `wxcli cucm preflight` (or `--check <check-name>` for single check)
 4. Repeat until all pass
+
+> **Operator help:** If a preflight check fails, point the operator at the relevant tuning recipe in [tuning-reference.md §Tuning Recipes](../../../docs/runbooks/cucm-migration/tuning-reference.md#tuning-recipes). License shortage → Recipe 1 (baseline assumptions); routing/CSS issues → Recipe 3; trunk issues → Recipe 4.
 
 ## Step 3: Present Summary and Get Approval
 
@@ -551,6 +575,8 @@ Delete in the order returned (reverse tier: features → devices → users → r
 
 ### 4c. Error handling
 
+> **Operator help:** For runbook coverage of this failure mode, see [operator-runbook.md §Failure Patterns](../../../docs/runbooks/cucm-migration/operator-runbook.md#failure-patterns).
+
 On any failure:
 
 **IF 409 Conflict (resource already exists):**
@@ -558,7 +584,19 @@ On any failure:
 → If found and matches: `wxcli cucm mark-complete [node_id] --webex-id [existing_id]` — continue
 → If found but different: present to admin for decision
 
-**IF 400/500 (may have partially created):**
+**IF 400/500 on user:create (partial creation — most common failure):**
+The People API may create the user record before failing on calling setup, leaving an
+orphaned non-calling user. 409 on retry confirms this. Recovery flow:
+1. Search: `wxcli people list --email "<email>" --calling-data true -o json`
+2. If user exists WITHOUT calling (no `phoneNumbers`/`extension` in response):
+   → Update to add calling: `wxcli people update <person_id> --calling-data true --json-body '{"extension":"<ext>","locationId":"<loc_id>"}'`
+   → If update succeeds: `wxcli cucm mark-complete [node_id] --webex-id <person_id>`
+   → If update fails: present error to admin with fix options
+3. If user exists WITH calling already configured:
+   → `wxcli cucm mark-complete [node_id] --webex-id <person_id>` — continue
+4. If user does NOT exist: genuine failure, present options
+
+**IF 400/500 on other create operations (may have partially created):**
 → Search for existing resource (same as 409 flow)
 → If found: resource was created despite error, mark-complete
 → If not found: genuine failure, present options

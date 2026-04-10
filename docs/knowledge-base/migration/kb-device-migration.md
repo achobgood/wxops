@@ -1,6 +1,10 @@
 # Device Migration: Migration Knowledge Base
 <!-- Last verified: 2026-03-28 -->
 
+> **Audience:** Migration advisor agent (Opus) and cold-context Claude sessions looking up dissent triggers, decision context, and Webex constraints for device replacement, firmware conversion, and MPP-vs-RoomOS decisions.
+> **Reading mode:** Reference. Grep by `DT-DEV-NNN` ID for dissent triggers, OR read `## Decision Framework` end-to-end when the migration-advisor agent loads this doc during analysis.
+> **See also:** [Operator Runbook](../../runbooks/cucm-migration/operator-runbook.md) · [Decision Guide](../../runbooks/cucm-migration/decision-guide.md) · [Tuning Reference](../../runbooks/cucm-migration/tuning-reference.md)
+
 ## Decision Framework
 
 ### DEVICE_INCOMPATIBLE
@@ -201,6 +205,21 @@ Fires when `info_device_profile` objects exist in the store. CUCM Extension Mobi
   2. Verify the Webex DECT model supports the required base station count
   3. Plan physical base station deployment to match coverage zones
 - **Confidence:** MEDIUM -- DECT topology is site-specific and the pipeline does not extract base station placement data
+
+### DT-DEV-004: Legacy gateway conversion recommended but hardware lifecycle not validated
+
+- **Condition:** `detect_legacy_gateway_protocols()` fires (`advisory_patterns.py:1687`) AND the advisory recommends "reconfigure as SIP CUBE" for IOS-XE capable hardware OR "replace with ATA 192" for analog FXS endpoints
+- **Why the static advisory is insufficient:** `detect_legacy_gateway_protocols()` (lines 1738-1748) emits a uniform conversion recommendation: IOS-XE hardware → reconfigure as CUBE, analog endpoints → replace with ATA 192. It does not validate:
+  1. **IOS-XE hardware lifecycle** — A Cisco 2911 or 2901 router running H.323 may be end-of-sale or running an IOS train that predates SIP CUBE support. IOS-XE CUBE requires a minimum software version (typically 15.3(3)M or later for basic SIP), and the physical platform must support the required feature set license. Converting an EoL 2900-series router to CUBE may not be operationally viable.
+  2. **ATA 192 SKU economics** — The advisory recommends ATA 192 at 1-per-analog-endpoint. At scale (a VG224 with 24 FXS ports = 24 ATA 192 units), this is a hardware procurement decision, not a configuration step. The ATA 192 itself is approaching EoL (introduced ~2015); customers may prefer a VG400-series gateway (supports up to 24 FXS ports as a single unit running SIP) for large analog port counts.
+  3. **Third-party gateway dependencies** — MGCP-connected door phones, paging adapters, legacy intercoms, and fax machines are often tied to specific signaling protocols. These are not generic endpoints: a Cyberdata VoIP Intercom registering via MGCP cannot simply be swapped for an ATA 192 without vendor support confirmation.
+- **What the advisor should do:**
+  1. For each MGCP object, ask the operator to confirm the IOS platform and software train before recommending CUBE conversion
+  2. Count FXS ports on VG-series gateways; if count > 6, present VG400-series as an alternative to per-port ATA 192 replacement
+  3. Flag any non-standard device types (door controllers, paging units, fax adapters) attached to the gateway for manual vendor verification before recommending replacement
+  4. For H.323 gateways, confirm the IOS-XE version supports the required SIP feature set before recommending conversion
+- **Confidence:** HIGH -- the static advisory's conversion recommendation is architecturally correct but omits hardware lifecycle gating that determines whether the conversion is executable. The three operator confirmation requirements above are non-optional; proceeding without them risks a conversion workstream that cannot be completed.
+- **Grounded in:** `advisory_patterns.py:1687-1758` (`detect_legacy_gateway_protocols`), `decision-guide.md` lines 593-605 (`legacy-gateway-protocols` entry), `docs/reference/devices-core.md` (ATA 191/192 device settings, line 1322)
 
 ---
 

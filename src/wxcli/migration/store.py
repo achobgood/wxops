@@ -502,6 +502,27 @@ class MigrationStore:
         )
         self.conn.commit()
 
+    def update_decision_context(
+        self,
+        decision_id: str,
+        context: dict[str, Any],
+    ) -> None:
+        """Patch only the ``context`` column of an existing decision row.
+
+        Used by ``enrich_cross_decision_context()`` to write cross-decision
+        fields (e.g., ``is_on_incompatible_device``) into a MISSING_DATA
+        decision without re-fingerprinting or touching other columns.
+
+        Raises ``KeyError`` if the decision_id does not exist.
+        """
+        cursor = self.conn.execute(
+            "UPDATE decisions SET context = ? WHERE decision_id = ?",
+            (json.dumps(context), decision_id),
+        )
+        if cursor.rowcount == 0:
+            raise KeyError(f"decision_id not found: {decision_id}")
+        self.conn.commit()
+
     def get_decision(self, decision_id: str) -> dict[str, Any] | None:
         row = self.conn.execute(
             "SELECT * FROM decisions WHERE decision_id = ?", (decision_id,)

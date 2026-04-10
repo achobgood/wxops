@@ -1,6 +1,10 @@
 # Person & Workspace Settings: Migration Knowledge Base
 <!-- Last verified: 2026-03-28 -->
 
+> **Audience:** Migration advisor agent (Opus) and cold-context Claude sessions looking up dissent triggers, decision context, and Webex constraints for call forwarding, voicemail, calling permissions, and workspace licensing decisions.
+> **Reading mode:** Reference. Grep by `DT-USER-NNN` ID for dissent triggers, OR read `## Decision Framework` end-to-end when the migration-advisor agent loads this doc during analysis.
+> **See also:** [Operator Runbook](../../runbooks/cucm-migration/operator-runbook.md) · [Decision Guide](../../runbooks/cucm-migration/decision-guide.md) · [Tuning Reference](../../runbooks/cucm-migration/tuning-reference.md)
+
 ## Decision Framework
 
 ### VOICEMAIL_INCOMPATIBLE
@@ -131,6 +135,107 @@ CUCM forwarding → Webex mapping:
 - **Advisor should:** Flag users with these CUCM features as requiring post-migration manual configuration or user-assisted setup. Bulk migration of these settings is not possible via admin API.
 - **Confidence:** HIGH
 <!-- Source: self-service-call-settings.md sec 2; person-call-settings-handling.md admin vs user-only table -->
+
+### DT-USER-004: Workspace recording-enabled lines silently miss Professional tier upgrade
+
+**Condition:** WORKSPACE_LICENSE_TIER decision recommends `basic` AND the CUCM source
+device has one or more lines with `recordingFlag` set to `Automatic` or `AppInvoked`
+(i.e., call recording was active on this workspace phone).
+
+**Why static rule fails:** `WorkspaceLicenseAnalyzer._detect_features()` in
+`transform/analyzers/workspace_license.py` builds `features_detected` from two
+sources: (1) `_PROFESSIONAL_INDICATORS` (hotdesking, DID) and (2) `_XREF_INDICATORS`
+(voicemail, call forwarding, shared lines). Neither source checks CUCM `recordingFlag`
+at the line level. As a result, recording-enabled workspace lines never populate
+`features_detected` with `"callRecording"`. When `recommend_workspace_license_tier()`
+in `advisory/recommendation_rules.py:103` checks `features_detected` against
+`_PROFESSIONAL_FEATURES` (which includes `"callRecording"` at line 17), it never
+finds a match and returns `"basic"`. The 405 response from
+`/telephony/config/workspaces/{id}/callRecording` on a Basic workspace will fail
+silently at execution time.
+<!-- Source: workspace_license.py lines 43-53 + recommendation_rules.py lines 16-19 + 103-118; devices-workspaces.md gotcha #10 -->
+
+**Advisor should:** When the recording advisory pattern (`recording_enabled_users` in
+`advisory_patterns.py`) fires AND the affected objects include workspaces with a
+`WORKSPACE_LICENSE_TIER: basic` decision, recommend overriding the tier to
+`professional`. Do not defer to "accept the Basic recommendation" — the recording
+endpoint will 405 at execution time, and the migrator will not see the failure until
+post-execution validation.
+
+**Confidence:** HIGH
+
+**Signals to look for:** `recording_enabled_users` advisory finding present in the
+store AND any of its `affected_objects` canonical IDs match a workspace with a
+`WORKSPACE_LICENSE_TIER` decision recommending `basic`.
+
+### DT-USER-005: Workspace type inference fails for conference models in private offices and unowned desk phones
+
+**Condition:** WORKSPACE_TYPE_UNCERTAIN decision is present AND CUCM model is one of
+`{7832, 8832, CP-7832, CP-8832}` (conference models) OR is in `_DESK_PHONE_MODELS`
+with `has_owner = False`.
+
+**Why static rule fails:** `recommend_workspace_type_uncertain()` in
+`advisory/recommendation_rules.py:523` uses two hard-coded lookups:
+(1) if `cucm_model in _CONFERENCE_MODELS` (line 528) → returns `conference_room`
+unconditionally; (2) if `cucm_model in _DESK_PHONE_MODELS and has_owner is False`
+(line 534) → returns `common_area`. Neither check looks at physical placement data,
+device pool name patterns, or the DN's calling behavior. A 7832 in an executive's
+private office (labeling CUCM description "John Smith's Conf Speakerphone") will be
+typed as `conference_room`. An 8851 with no CUCM owner but placed in a break room
+will be typed as `common_area` — but a model not in `_DESK_PHONE_MODELS` (e.g.,
+a legacy 7942) with no owner returns `None`, which leaves the decision unresolved.
+<!-- Source: recommendation_rules.py lines 508-539; devices-workspaces.md workspace types section -->
+
+**Advisor should:** For conference model hits, check CUCM device description and
+device pool name for signals like personal names, office numbers, or executive
+identifiers. If found, recommend `other` (or `desk` if a user can be inferred) rather
+than `conference_room`. For unowned desk phones where the model is NOT in
+`_DESK_PHONE_MODELS`, the rule returns `None` and the decision remains unresolved —
+flag these explicitly for human review rather than accepting the unresolved state.
+
+**Confidence:** MEDIUM
+
+**Signals to look for:** CUCM device description containing a personal name or office
+identifier; device pool name that is location-specific rather than room-type-specific;
+model not present in `_CONFERENCE_MODELS` or `_DESK_PHONE_MODELS` combined with
+`has_owner = False` (these are the unresolved cases the rule drops).
+
+### DT-USER-006: Simultaneous ring, sequential ring, and SNR cannot be migrated via admin pipeline — migration loss is unannounced
+
+**Condition:** CUCM user has Remote Destination Profile (SNR), or simultaneousRing or
+sequentialRing is configured on the CUCM line, AND the migration pipeline uses an
+admin-level token.
+
+**Why static rule fails:** The pipeline has no `SIMULTANEOUS_RING_MIGRATION` or
+`SNR_MIGRATION` decision type. `recommend_snr_lossy()` in
+`advisory/recommendation_rules.py:551` fires for SNR timer controls and returns
+`accept_loss` with reasoning that timer controls are rarely customized — but this
+reasoning does NOT address the underlying issue that the entire SNR/simultaneous ring
+configuration cannot be written via admin token at all. The 6 user-only settings
+listed in `self-service-call-settings.md` section 2 (simultaneousRing, sequentialRing,
+priorityAlert, callNotify, anonymousCallReject, callPolicies) are exclusively at
+`/telephony/config/people/me/settings/{feature}` — admin tokens get 404 on every one
+of these paths. The pipeline's existing DT-USER-003 covers the general case, but the
+`SNR_CONFIGURED_USERS` advisory pattern (advisory_patterns.py) fires separately and
+may not be connected by the operator to the user-only token constraint. The static
+"accept loss / manual" posture is insufficient when these settings existed on many
+users and represent a real business continuity risk (e.g., executives relying on SNR
+to reach mobile during travel).
+<!-- Source: recommendation_rules.py lines 551-557; self-service-call-settings.md lines 53-64; advisory_patterns.py SNR pattern -->
+
+**Advisor should:** When the `snr_configured_users` advisory pattern fires, do NOT
+frame the recommendation as "accept loss, configure manually." Instead, explicitly
+present 3 remediation paths ranked by effort:
+1. **User-level OAuth integration** — Build a lightweight OAuth flow that requests
+   `spark:calls_write` on behalf of each affected user and writes their SNR/simRing
+   settings during the migration window. Highest effort, complete migration.
+2. **Post-migration self-service** — Direct affected users to Webex User Hub to
+   configure simultaneousRing/sequentialRing themselves. Low engineering effort, but
+   requires user communication and follow-up.
+3. **Accept loss with documented scope** — If neither option is viable, document which
+   users lose which settings so post-migration support tickets can be triaged.
+
+**Confidence:** HIGH
 
 ---
 

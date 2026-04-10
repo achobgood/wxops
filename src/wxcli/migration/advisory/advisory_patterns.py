@@ -1178,18 +1178,20 @@ def detect_recording_enabled_users(store: MigrationStore) -> list[AdvisoryFindin
     detail = (
         f"{len(recording_users)} user{'s' if len(recording_users) != 1 else ''} have call recording "
         f"enabled in CUCM across {len(recording_phones)} phone{'s' if len(recording_phones) != 1 else ''}. "
-        f"Webex Calling requires a separate call recording license and location-level recording "
-        f"configuration (vendor selection, compliance announcements, storage). Person-level recording "
-        f"settings must also be enabled. Without this setup, recording will not function after migration."
+        f"The migration pipeline will set the org recording vendor to the value of the "
+        f"'recording_vendor' config key (default: Webex). Webex Calling includes built-in "
+        f"call recording at no extra cost. Per-user recording settings are enabled automatically "
+        f"during execution. To use a different vendor, set recording_vendor in config.json "
+        f"before running export (e.g., 'Dubber', 'Imagicle')."
     )
 
     return [AdvisoryFinding(
         pattern_name="recording_enabled_users",
-        severity="HIGH",
-        summary=f"{len(recording_users)} users have call recording enabled — configure Webex recording before migration",
+        severity="LOW",
+        summary=f"{len(recording_users)} users have call recording enabled — enable Webex recording per-user during migration",
         detail=detail,
         affected_objects=list(recording_phones),
-        category="out_of_scope",
+        category="migrate_as_is",
     )]
 
 
@@ -1295,6 +1297,470 @@ def detect_extension_mobility_usage(store: MigrationStore) -> list[AdvisoryFindi
 
 
 # ===================================================================
+# Pattern 21: Mixed CSS Detection (routing + restriction)
+# ===================================================================
+
+def detect_mixed_css(store: MigrationStore) -> list[AdvisoryFinding]:
+    """CSSes mixing routing and restriction partitions — silent gap in Pattern 1.
+
+    Pattern 1 (restriction_css_consolidation) only fires when ALL partitions
+    are blocking. The most common real-world case is a CSS that mixes routing
+    partitions with restriction partitions (e.g., allow internal + local but
+    block international by omitting a partition). These get no advisory at all.
+
+    (from kb-css-routing.md line 48, DT-CSS-002)
+    """
+    csses = store.get_objects("calling_search_space")
+    if not csses:
+        return []
+
+    mixed_csses: list[dict[str, Any]] = []
+
+    for css in csses:
+        css_id = css.get("canonical_id", "")
+        partitions = store.find_cross_refs(css_id, "css_contains_partition")
+        if not partitions:
+            continue
+
+        has_blocking = False
+        has_routing = False
+
+        for part_id in partitions:
+            patterns = store.find_cross_refs(part_id, "partition_has_pattern")
+            for pat_id in patterns:
+                pat_obj = store.get_object(pat_id)
+                if pat_obj is None:
+                    continue
+                pre = pat_obj.get("pre_migration_state", {}) or {}
+                if pre.get("blockEnable", False):
+                    has_blocking = True
+                else:
+                    has_routing = True
+            if has_blocking and has_routing:
+                break
+
+        if has_blocking and has_routing:
+            mixed_csses.append(css)
+
+    if not mixed_csses:
+        return []
+
+    names = [c.get("name", c.get("canonical_id", "?")) for c in mixed_csses]
+    css_ids = [c.get("canonical_id", "") for c in mixed_csses]
+
+    names_str = ", ".join(names[:5])
+    if len(names) > 5:
+        names_str += f" +{len(names) - 5} more"
+
+    detail = (
+        f"{len(mixed_csses)} CSS(es) ({names_str}) mix routing partitions with "
+        f"blocking partitions. "
+        f"This is the most common CUCM pattern — users can dial internal and local "
+        f"but are restricted from international by partition omission or blocking rules. "
+        f"In Webex, the routing partitions become dial plan entries while the blocking "
+        f"partitions become calling permission policies. These must be decomposed into "
+        f"two separate Webex constructs. Without this decomposition, either the routing "
+        f"patterns are missed or the restrictions are lost."
+    )
+
+    return [AdvisoryFinding(
+        pattern_name="mixed_css_routing_restriction",
+        severity="HIGH",
+        summary=f"{len(mixed_csses)} CSSes mix routing and restriction — decompose into dial plans + calling permissions",
+        detail=detail,
+        affected_objects=css_ids,
+        category="rebuild",
+    )]
+
+
+# ===================================================================
+# Pattern 22: Cumulative Virtual Line Counter
+# ===================================================================
+
+def detect_cumulative_virtual_line_consumption(store: MigrationStore) -> list[AdvisoryFinding]:
+    """Count virtual lines recommended across all decisions — warn if approaching limits.
+
+    DN_AMBIGUOUS and SHARED_LINE_COMPLEX decisions independently recommend
+    virtual extensions without tracking cumulative consumption. The org-level
+    limit is undocumented but finite.
+
+    (from kb-webex-limits.md DT-LIMITS-003)
+    """
+    decisions = store.get_all_decisions()
+
+    vl_count = 0
+    vl_decision_ids: list[str] = []
+
+    for dec in decisions:
+        recommendation = dec.get("recommendation", "")
+        dec_type = dec.get("type", "")
+
+        # Count decisions recommending virtual extensions/lines
+        if recommendation in ("virtual_extension", "virtual_line"):
+            vl_count += 1
+            vl_decision_ids.append(dec.get("decision_id", ""))
+
+    # Also count existing virtual_line objects already in the store
+    existing_vl = store.count_by_type("virtual_line")
+    total_vl = vl_count + existing_vl
+
+    if total_vl < 5:
+        return []
+
+    severity = "HIGH" if total_vl > 100 else "MEDIUM" if total_vl > 25 else "LOW"
+
+    detail = (
+        f"This migration will create approximately {total_vl} virtual lines "
+        f"({existing_vl} already mapped + {vl_count} recommended by pending decisions). "
+        f"Webex has an org-level virtual line limit that is not published in API documentation. "
+        f"Large virtual line counts may hit provisioning failures during execution. "
+        f"Recommendation: verify the org's virtual line capacity with Cisco TAC before "
+        f"migration, and consider shared lines instead of virtual extensions where "
+        f"users genuinely need to answer calls (not just monitor)."
+    )
+
+    return [AdvisoryFinding(
+        pattern_name="cumulative_virtual_line_consumption",
+        severity=severity,
+        summary=f"{total_vl} virtual lines projected — verify org capacity before migration",
+        detail=detail,
+        affected_objects=vl_decision_ids,
+        category="rebuild",
+    )]
+
+
+# ===================================================================
+# Pattern 23: User-OAuth-Required Settings
+# ===================================================================
+
+# The 6 settings that only exist at /people/me/ and return 404 on admin tokens
+_USER_ONLY_SETTINGS = {
+    "simultaneousRing", "sequentialRing", "priorityAlert",
+    "callNotify", "anonymousCallReject", "callPolicies",
+}
+
+
+def _resolve_user_canonical_id(store: MigrationStore, cucm_username: str) -> str | None:
+    """Resolve a CUCM username to a canonical user ID, or return None."""
+    # Try direct lookup first (canonical_id = "user:{username}")
+    obj = store.get_object(f"user:{cucm_username}")
+    if obj:
+        return obj.get("canonical_id")
+    # Fall back to scanning user objects for cucm_userid match
+    users = store.get_objects("user")
+    for user in users:
+        if user.get("cucm_userid") == cucm_username:
+            return user.get("canonical_id")
+    return None
+
+
+def detect_user_oauth_required(store: MigrationStore) -> list[AdvisoryFinding]:
+    """Flag features that require per-user OAuth — admin tokens can't set them.
+
+    These 6 CUCM settings map to Webex endpoints that only exist at
+    /telephony/config/people/me/settings/{feature}. Admin tokens get 404.
+    The pipeline migrates everything else via admin token — these will
+    silently not be set unless the operator configures user-level OAuth.
+
+    (from kb-webex-limits.md lines 151-163, kb-user-settings.md DT-SETTINGS-001)
+    """
+    affected_user_ids: set[str] = set()
+
+    # Check call settings on users
+    users = store.get_objects("user")
+    for user in users:
+        call_settings = user.get("call_settings", {}) or {}
+        for setting_name in _USER_ONLY_SETTINGS:
+            if call_settings.get(setting_name):
+                affected_user_ids.add(user.get("canonical_id", ""))
+
+    # Check raw phone data for line-level indicators of simRing/seqRing
+    phones = store.get_objects("phone")
+    for phone in phones:
+        pre = phone.get("pre_migration_state", {}) or {}
+        lines = pre.get("lines", []) or []
+        owner_raw = pre.get("ownerUserName", "")
+        if isinstance(owner_raw, dict):
+            owner = owner_raw.get("_value_1", "")
+        else:
+            owner = owner_raw or ""
+
+        if not owner:
+            continue
+
+        for line in lines:
+            if not isinstance(line, dict):
+                continue
+            # simultaneousRingNumRingCycles indicates simRing was configured
+            if line.get("simultaneousRingNumRingCycles"):
+                # Resolve to canonical_id via cross-ref if possible
+                owner_id = _resolve_user_canonical_id(store, owner)
+                if owner_id:
+                    affected_user_ids.add(owner_id)
+                break
+            # ringSettingIdleBelowRingDuration → seqRing
+            if line.get("ringSettingIdleBelowRingDuration"):
+                owner_id = _resolve_user_canonical_id(store, owner)
+                if owner_id:
+                    affected_user_ids.add(owner_id)
+                break
+
+    # Also check single_number_reach objects — these map to simultaneousRing
+    snr_objects = store.get_objects("single_number_reach")
+    for snr in snr_objects:
+        user_id = snr.get("user_canonical_id", "")
+        if user_id:
+            affected_user_ids.add(user_id)
+
+    if not affected_user_ids:
+        return []
+
+    detail = (
+        f"{len(affected_user_ids)} user(s) have CUCM settings that map to Webex features "
+        f"requiring per-user OAuth tokens. The 6 affected settings "
+        f"({', '.join(sorted(_USER_ONLY_SETTINGS))}) only exist at "
+        f"/telephony/config/people/me/settings/ endpoints — admin tokens get 404. "
+        f"These settings will NOT be migrated by the standard admin-token pipeline. "
+        f"Options: (a) configure a user-level OAuth integration for batch setting, "
+        f"(b) have each user configure these via Webex User Hub post-migration, or "
+        f"(c) accept the loss if these features are not business-critical."
+    )
+
+    return [AdvisoryFinding(
+        pattern_name="user_oauth_required",
+        severity="HIGH",
+        summary=f"{len(affected_user_ids)} users need per-user OAuth for simRing/seqRing/callPolicies settings",
+        detail=detail,
+        affected_objects=sorted(affected_user_ids),
+        category="out_of_scope",
+    )]
+
+
+# ===================================================================
+# Pattern 24: Trunk Type Selection Required
+# ===================================================================
+
+_CISCO_CUBE_PATTERNS = re.compile(
+    r"(?i)(cube|ios[- ]?xe|\bisr\b|\bcsr\b|c8[0-9]{3}|vedge|catalyst.*voice)",
+)
+_THIRD_PARTY_SBC_PATTERNS = re.compile(
+    r"(?i)(audiocodes|ribbon|oracle|acme.?packet|mediant|sonus|swe.?lite|"
+    r"teams.?sbc|microsoft|avaya|genband|net[- ]?border)",
+)
+
+
+def detect_trunk_type_selection(store: MigrationStore) -> list[AdvisoryFinding]:
+    """Trunk type (REGISTERING vs CERTIFICATE_BASED) must be chosen pre-creation.
+
+    Trunk type is IMMUTABLE after creation. Choosing wrong means delete and
+    recreate, which disrupts routing mid-migration. REGISTERING = Cisco IOS-XE
+    CUBE. CERTIFICATE_BASED = third-party SBC (AudioCodes, Ribbon, Oracle).
+
+    (from kb-trunk-pstn.md, kb-webex-limits.md line 54)
+    """
+    trunks = store.get_objects("trunk")
+    if not trunks:
+        return []
+
+    needs_type_decision: list[dict[str, Any]] = []
+    auto_classified: dict[str, list[str]] = {"REGISTERING": [], "CERTIFICATE_BASED": []}
+
+    for trunk in trunks:
+        trunk_type = trunk.get("trunk_type")
+        name = trunk.get("name", "") or ""
+        addr = trunk.get("address", "") or ""
+        pre = trunk.get("pre_migration_state", {}) or {}
+        sip_type = pre.get("sipTrunkType", "") or ""
+        search_text = f"{name} {addr} {sip_type}"
+
+        # Already explicitly set
+        if trunk_type in ("REGISTERING", "CERTIFICATE_BASED"):
+            auto_classified[trunk_type].append(trunk.get("canonical_id", ""))
+            continue
+
+        # Try to infer from name/address patterns
+        if _CISCO_CUBE_PATTERNS.search(search_text):
+            auto_classified["REGISTERING"].append(trunk.get("canonical_id", ""))
+        elif _THIRD_PARTY_SBC_PATTERNS.search(search_text):
+            auto_classified["CERTIFICATE_BASED"].append(trunk.get("canonical_id", ""))
+        else:
+            needs_type_decision.append(trunk)
+
+    if not needs_type_decision:
+        return []
+
+    names = [t.get("name", t.get("canonical_id", "?")) for t in needs_type_decision]
+    ids = [t.get("canonical_id", "") for t in needs_type_decision]
+
+    detail = (
+        f"{len(needs_type_decision)} trunk(s) ({', '.join(names)}) need an explicit trunk "
+        f"type selection before provisioning. Webex trunk type is IMMUTABLE after creation — "
+        f"choosing wrong means deleting the trunk and recreating it, which disrupts live "
+        f"call routing.\n\n"
+        f"- REGISTERING: for Cisco IOS-XE CUBE (ISR, CSR, Catalyst) — uses SIP registration "
+        f"with username/password.\n"
+        f"- CERTIFICATE_BASED: for third-party SBCs (AudioCodes, Ribbon, Oracle) — uses "
+        f"mutual TLS with certificates.\n\n"
+        f"Verify which SBC model handles each trunk before migration execution."
+    )
+
+    return [AdvisoryFinding(
+        pattern_name="trunk_type_selection",
+        severity="CRITICAL",
+        summary=f"CRITICAL: {len(needs_type_decision)} trunks need immutable type selection (REGISTERING vs CERTIFICATE_BASED)",
+        detail=detail,
+        affected_objects=ids,
+        category="rebuild",
+    )]
+
+
+# ===================================================================
+# Pattern 25: Inter-Cluster Trunk (ICT) Detection
+# ===================================================================
+
+_ICT_PATTERNS = re.compile(
+    r"(?i)(inter[- ]?cluster|ict[- ]|ict$|intercluster|"
+    r"cluster[- ]?to[- ]?cluster|emcc|extension.?mobility.?cross)",
+)
+
+
+def detect_intercluster_trunks(store: MigrationStore) -> list[AdvisoryFinding]:
+    """Detect CUCM inter-cluster trunks — need disposition decision.
+
+    ICTs connect CUCM clusters to each other. During migration they either
+    become Local Gateway trunks (if one cluster stays on CUCM) or are
+    eliminated entirely (if both clusters migrate to Webex).
+
+    (from kb-trunk-pstn.md lines 65-67)
+    """
+    trunks = store.get_objects("trunk")
+    if not trunks:
+        return []
+
+    ict_trunks: list[dict[str, Any]] = []
+
+    for trunk in trunks:
+        name = trunk.get("name", "") or ""
+        pre = trunk.get("pre_migration_state", {}) or {}
+        sip_type = pre.get("sipTrunkType", "") or ""
+        description = pre.get("description", "") or ""
+
+        search_text = f"{name} {sip_type} {description}"
+        if _ICT_PATTERNS.search(search_text):
+            ict_trunks.append(trunk)
+
+    if not ict_trunks:
+        return []
+
+    names = [t.get("name", t.get("canonical_id", "?")) for t in ict_trunks]
+    ids = [t.get("canonical_id", "") for t in ict_trunks]
+
+    detail = (
+        f"{len(ict_trunks)} inter-cluster trunk(s) detected ({', '.join(names)}). "
+        f"ICTs connect CUCM clusters to each other for intercluster call routing and "
+        f"extension mobility. After migration, these need one of:\n\n"
+        f"- **Eliminate:** If both clusters migrate to Webex, ICTs are unnecessary — "
+        f"all users are in the same Webex org.\n"
+        f"- **Convert to Local Gateway:** If one cluster stays on CUCM during "
+        f"coexistence, the ICT becomes a Webex trunk pointing at the remaining CUCM.\n"
+        f"- **Replace with Webex-to-Webex routing:** If clusters become separate Webex "
+        f"orgs (rare), use Webex inter-org dialing.\n\n"
+        f"Decide the disposition before migration planning."
+    )
+
+    return [AdvisoryFinding(
+        pattern_name="intercluster_trunk_detection",
+        severity="HIGH",
+        summary=f"{len(ict_trunks)} inter-cluster trunks need disposition decision (eliminate/convert/replace)",
+        detail=detail,
+        affected_objects=ids,
+        category="rebuild",
+    )]
+
+
+# ===================================================================
+# Pattern 26: MGCP/H.323 Gateway Protocol Detection
+# ===================================================================
+
+_MGCP_PATTERNS = re.compile(r"(?i)(mgcp|vg[0-9]{2,3}|fxs|fxo|analog[- ]?gateway)")
+_H323_PATTERNS = re.compile(r"(?i)(h\.?323|gatekeeper|ras[- ]?registration)")
+
+
+def detect_legacy_gateway_protocols(store: MigrationStore) -> list[AdvisoryFinding]:
+    """Detect MGCP and H.323 gateways — need SIP conversion before migration.
+
+    Webex Calling only supports SIP trunks. MGCP and H.323 gateways must be
+    converted to SIP (IOS-XE CUBE) or replaced with ATA devices before
+    migration.
+
+    (from kb-trunk-pstn.md lines 73-79)
+    """
+    # Check trunks and gateways
+    trunks = store.get_objects("trunk")
+    gateways = store.get_objects("gateway")
+    devices = store.get_objects("device")
+
+    mgcp_objects: list[dict[str, Any]] = []
+    h323_objects: list[dict[str, Any]] = []
+
+    for obj_list in [trunks, gateways]:
+        for obj in obj_list:
+            name = obj.get("name", "") or ""
+            pre = obj.get("pre_migration_state", {}) or {}
+            protocol = pre.get("protocol", "") or ""
+            obj_type = pre.get("product", "") or pre.get("type", "") or ""
+            description = pre.get("description", "") or ""
+            search_text = f"{name} {protocol} {obj_type} {description}"
+
+            if _MGCP_PATTERNS.search(search_text):
+                mgcp_objects.append(obj)
+            elif _H323_PATTERNS.search(search_text):
+                h323_objects.append(obj)
+
+    # Also check devices for analog gateway models
+    for device in devices:
+        model = device.get("model", "") or ""
+        pre = device.get("pre_migration_state", {}) or {}
+        cucm_protocol = device.get("cucm_protocol", "") or ""
+        if _MGCP_PATTERNS.search(f"{model} {cucm_protocol}"):
+            mgcp_objects.append(device)
+
+    total = len(mgcp_objects) + len(h323_objects)
+    if total == 0:
+        return []
+
+    all_ids = [o.get("canonical_id", "") for o in mgcp_objects + h323_objects]
+
+    parts: list[str] = []
+    if mgcp_objects:
+        parts.append(f"{len(mgcp_objects)} MGCP gateway(s)")
+    if h323_objects:
+        parts.append(f"{len(h323_objects)} H.323 gateway(s)")
+
+    detail = (
+        f"Detected {' and '.join(parts)}. Webex Calling only supports SIP trunks — "
+        f"MGCP and H.323 protocols have no migration path.\n\n"
+        f"For MGCP gateways (VG series, analog FXS/FXO):\n"
+        f"- If the IOS version supports SIP, reconfigure as SIP CUBE trunk\n"
+        f"- If not, replace with Cisco ATA 192 for analog endpoints\n"
+        f"- VG400-series can run as Local Gateway with SIP\n\n"
+        f"For H.323 gateways:\n"
+        f"- Convert to SIP trunk registration or certificate-based\n"
+        f"- H.323 gatekeepers are eliminated — Webex uses SIP registration\n\n"
+        f"This conversion must happen BEFORE the Webex trunk provisioning step."
+    )
+
+    return [AdvisoryFinding(
+        pattern_name="legacy_gateway_protocols",
+        severity="HIGH",
+        summary=f"{total} legacy protocol gateway(s) need SIP conversion before migration",
+        detail=detail,
+        affected_objects=all_ids,
+        category="out_of_scope",
+    )]
+
+
+# ===================================================================
 # Registry — ALL_ADVISORY_PATTERNS
 # ===================================================================
 
@@ -1319,4 +1785,10 @@ ALL_ADVISORY_PATTERNS: list[Callable[[MigrationStore], list[AdvisoryFinding]]] =
     detect_snr_configured_users,               # Pattern 18 (Tier 4)
     detect_transformation_patterns,            # Pattern 19 (Tier 4)
     detect_extension_mobility_usage,           # Pattern 20 (Tier 4)
+    detect_mixed_css,                          # Pattern 21 (Gap: silent on hybrid CSSes)
+    detect_cumulative_virtual_line_consumption, # Pattern 22 (Gap: no VL limit tracking)
+    detect_user_oauth_required,                # Pattern 23 (Gap: user-only settings undetected)
+    detect_trunk_type_selection,               # Pattern 24 (Gap: immutable trunk type)
+    detect_intercluster_trunks,                # Pattern 25 (Gap: ICT disposition)
+    detect_legacy_gateway_protocols,           # Pattern 26 (Gap: MGCP/H.323 undetected)
 ]
