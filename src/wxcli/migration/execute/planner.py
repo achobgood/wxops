@@ -499,6 +499,45 @@ def _expand_softkey_config(obj: dict[str, Any]) -> list[MigrationOp]:
                 depends_on=[_node_id(device_cid, "create")])]
 
 
+def _expand_device_profile(obj: dict[str, Any]) -> list[MigrationOp]:
+    """Device profile → 1-2 ops: enable_hoteling_guest (tier 5), enable_hoteling_host (tier 5).
+    Guest op requires user_canonical_id. Host op requires host_device_canonical_ids.
+    """
+    cid = obj["canonical_id"]
+    name = obj.get("profile_name") or cid
+    user_cid = obj.get("user_canonical_id")
+    ops: list[MigrationOp] = []
+
+    if obj.get("hoteling_guest_enabled") and user_cid:
+        ops.append(_op(cid, "enable_hoteling_guest", "device_profile",
+                        f"Enable hoteling guest for {name}",
+                        depends_on=[_node_id(user_cid, "create")]))
+
+    host_cids = obj.get("host_device_canonical_ids") or []
+    if host_cids and user_cid:
+        deps = [_node_id(user_cid, "create")]
+        for hcid in host_cids:
+            deps.append(_node_id(hcid, "create"))
+        ops.append(_op(cid, "enable_hoteling_host", "device_profile",
+                        f"Configure hoteling host for {name}",
+                        depends_on=deps))
+
+    return ops
+
+
+def _expand_hoteling_location(obj: dict[str, Any]) -> list[MigrationOp]:
+    """Hoteling location → 1 op: enable_hotdesking (tier 0).
+    Enables voice portal hot desk sign-in at a location with EM phones.
+    """
+    cid = obj["canonical_id"]
+    state = obj.get("pre_migration_state") or {}
+    loc_cid = state.get("location_canonical_id", "")
+    deps = [_node_id(loc_cid, "enable_calling")] if loc_cid else []
+    return [_op(cid, "enable_hotdesking", "hoteling_location",
+                f"Enable hot desking at {loc_cid}",
+                depends_on=deps)]
+
+
 # ---------------------------------------------------------------------------
 # Types that don't produce standalone operations
 # ---------------------------------------------------------------------------
@@ -522,6 +561,23 @@ def _location_from_provenance(obj: dict[str, Any]) -> str | None:
 # Expansion dispatch
 # All expanders take (obj_data, decisions) for uniformity.
 # ---------------------------------------------------------------------------
+
+
+
+def _expand_receptionist_config(obj: dict) -> list:
+    """Receptionist config -> 0-1 ops: configure (tier 6)."""
+    cid = obj["canonical_id"]
+    user_cid = obj.get("user_canonical_id")
+    deps = [_node_id(user_cid, "create")] if user_cid else []
+    for member_cid in obj.get("monitored_members", []):
+        if member_cid:
+            deps.append(_node_id(member_cid, "create"))
+    loc_cid = obj.get("location_canonical_id")
+    if loc_cid:
+        deps.append(_node_id(loc_cid, "create"))
+    return [_op(cid, "configure", "receptionist_config",
+                f"Configure receptionist client for {cid}",
+                depends_on=deps)]
 
 _EXPANDERS: dict[str, Any] = {
     "location": lambda obj, _: _expand_location(obj),
@@ -547,8 +603,11 @@ _EXPANDERS: dict[str, Any] = {
     "call_forwarding": lambda obj, _: _expand_call_forwarding(obj),
     "single_number_reach": lambda obj, _: _expand_single_number_reach(obj),
     "monitoring_list": lambda obj, _: _expand_monitoring_list(obj),
+    "receptionist_config": lambda obj, _: _expand_receptionist_config(obj),
     "device_layout": lambda obj, _: _expand_device_layout(obj),
     "softkey_config": lambda obj, _: _expand_softkey_config(obj),
+    "device_profile": lambda obj, _: _expand_device_profile(obj),
+    "hoteling_location": lambda obj, _: _expand_hoteling_location(obj),
 }
 
 

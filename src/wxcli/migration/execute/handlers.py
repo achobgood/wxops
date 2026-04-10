@@ -753,6 +753,44 @@ def handle_monitoring_list_configure(data: dict, deps: dict, ctx: dict) -> Handl
 
 
 # ---------------------------------------------------------------------------
+# Tier 6: Receptionist configuration
+# ---------------------------------------------------------------------------
+
+
+def handle_receptionist_config_configure(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    """Enable receptionist client + create location contact directory."""
+    person_wid = deps.get(data.get("user_canonical_id", ""))
+    if not person_wid:
+        return []
+    members = []
+    for cid in data.get("monitored_members", []):
+        wid = deps.get(cid)
+        if wid:
+            members.append(wid)
+    reception_body: dict[str, Any] = {
+        "receptionEnabled": True,
+        "monitoredMembers": members,
+    }
+    calls: HandlerResult = [
+        ("PUT", _url(f"/people/{person_wid}/features/reception", ctx), reception_body),
+    ]
+    loc_cid = data.get("location_canonical_id", "")
+    loc_wid = deps.get(loc_cid) if loc_cid else None
+    if loc_wid and members:
+        contacts = [{"personId": wid} for wid in members]
+        dir_body: dict[str, Any] = {
+            "name": "Reception Directory",
+            "contacts": contacts,
+        }
+        calls.append((
+            "POST",
+            _url(f"/telephony/config/locations/{loc_wid}/receptionistContacts/directories", ctx),
+            dir_body,
+        ))
+    return calls
+
+
+# ---------------------------------------------------------------------------
 # Tier 7: Device finalization (after monitoring, shared lines)
 # ---------------------------------------------------------------------------
 
@@ -982,6 +1020,7 @@ HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("single_number_reach", "configure"): handle_snr_configure,
     # Tier 6
     ("monitoring_list", "configure"): handle_monitoring_list_configure,
+    ("receptionist_config", "configure"): handle_receptionist_config_configure,
     ("shared_line", "configure"): handle_shared_line_configure,
     ("virtual_line", "create"): handle_virtual_line_create,
     ("virtual_line", "configure"): handle_virtual_line_configure,
