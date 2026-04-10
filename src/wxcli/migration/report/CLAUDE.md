@@ -25,6 +25,8 @@ The report reads from the same SQLite store that the migration pipeline populate
 | `executive.py` | 4-page executive summary with direct h2 headings (no section kickers). Page 1 (Migration Complexity Assessment — tier-colored gauge+factor bars with "Complexity Impact" Low/High scale, key findings, stat grid), Page 2 (What You Have — People/Devices with floated donut chart/Features/Sites), Page 3 (What Needs Attention — decision stats + effort bands: auto/planning/manual), Page 4 (Next Steps — prerequisites, planning, CTA). Gauge uses tier-based color (green/amber/red). Factor bars sorted by score descending, highest in teal, rest gray, no bare numbers. |
 | `appendix.py` | Technical appendix: 23 lettered sections A-W as collapsed `<details>` elements (Object Inventory, Decision Detail, CSS/Partitions, Device Inventory, DN Analysis, User/Device Map, Routing, H. Voicemail Analysis (with custom greeting count + email template), Data Coverage, Gateways, Call Features, Button Templates, Device Layouts, Softkeys, O. Cloud-Managed Resources, P. Feature Gaps, Q. Manual Reconfiguration, R. Planning Inputs, S. Call Recording, T. Single Number Reach, U. Caller ID Transformations, V. Extension Mobility, W. DECT Networks). All canonical IDs stripped via helpers. |
 | `assembler.py` | Full HTML document with 320px sidebar nav (step-icon circles, numbered 1-4 exec + lettered A-W tech), page-header (slate-900 bg), IntersectionObserver scroll tracking, no summary bar or dark interstitial, footer inside detail-panel. |
+| `notice_templates.py` | Scenario metadata (7 scenarios) + paragraph templates + generic section templates (intro, timeline, footer). Audience filter definitions. |
+| `user_notice.py` | User communication notice generator: `_build_scenario_matrix()` classifies users into scenarios from store data, `generate_user_notice()` assembles HTML or plain text. Email-safe single-column layout (640px max-width, inline CSS, system fonts). |
 
 ## Key Data Access Patterns
 
@@ -145,6 +147,18 @@ wxcli cucm report --brand "..." --prepared-by "..." --executive-only  # skip app
 
 Prerequisite: `analyze` stage must be complete. Does NOT require `plan` or `preflight`.
 
+## User Communication
+
+```bash
+wxcli cucm user-notice --brand "Customer Name" --migration-date "January 15, 2027" --helpdesk "x5000"
+wxcli cucm user-notice --brand "..." --migration-date "..." --helpdesk "..." --text-only
+wxcli cucm user-notice --brand "..." --migration-date "..." --helpdesk "..." --audience phone-upgrade
+```
+
+Generates a branded user-facing notice covering only the scenarios detected in the store. 7 scenarios: phone upgrade (convertible), Webex App transition, device replacement (incompatible), forwarding simplified, voicemail re-record, layout changes, exec/assistant. Audience filter narrows output to a user segment.
+
+Prerequisite: `analyze` stage must be complete. Same as the assessment report.
+
 ## File Ingestion (--from-file)
 
 ```bash
@@ -169,6 +183,7 @@ Reads collector output files and writes `raw_data.json` in the same format as li
 - `tests/migration/report/test_tier4_appendix.py` — Tier 4 appendix sections S-V (recording, SNR, transformations, extension mobility)
 - `tests/migration/report/test_cli_integration.py` — CLI command integration
 - `tests/migration/report/test_dect_appendix.py` — Section W DECT Networks appendix tests
+- `tests/migration/report/test_user_notice.py` — scenario detection, HTML/text generation, audience filtering, CLI integration
 
 ## Design Spec
 
