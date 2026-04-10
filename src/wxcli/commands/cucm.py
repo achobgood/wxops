@@ -2439,3 +2439,58 @@ def report(
                 )
     finally:
         store.close()
+
+
+# ===================================================================
+# USER COMMUNICATION NOTICE
+# ===================================================================
+
+
+@app.command()
+def user_notice(
+    brand: str = typer.Option(..., "--brand", help="Company/organization name"),
+    migration_date: str = typer.Option(..., "--migration-date", help="Planned migration date (free text)"),
+    helpdesk: str = typer.Option(..., "--helpdesk", help="Helpdesk contact info"),
+    prepared_by: str = typer.Option("", "--prepared-by", help="SE name for footer attribution"),
+    output: str = typer.Option(
+        "user-notice", "--output", "-o",
+        help="Output filename (without extension)",
+    ),
+    text_only: bool = typer.Option(False, "--text-only", help="Generate plain text instead of HTML"),
+    audience: str = typer.Option(
+        "all", "--audience",
+        help="Target audience: all, phone-upgrade, webex-app, general",
+    ),
+    project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
+):
+    """Generate user-facing migration communication notice (HTML or text)."""
+    project_dir = _resolve_project_dir(project)
+
+    completed = _completed_stages(project_dir)
+    if "analyze" not in completed:
+        console.print(
+            "[red]Cannot generate notice — 'analyze' stage has not been completed.[/red]\n"
+            f"Completed stages: {', '.join(completed) if completed else '(none)'}",
+        )
+        raise typer.Exit(1)
+
+    store = _open_store(project_dir)
+    try:
+        from wxcli.migration.report.user_notice import generate_user_notice
+
+        content = generate_user_notice(
+            store,
+            brand=brand,
+            migration_date=migration_date,
+            helpdesk=helpdesk,
+            prepared_by=prepared_by,
+            audience=audience,
+            text_only=text_only,
+        )
+
+        ext = "txt" if text_only else "html"
+        output_path = project_dir / f"{output}.{ext}"
+        output_path.write_text(content, encoding="utf-8")
+        console.print(f"[green]User notice generated:[/green] {output_path}")
+    finally:
+        store.close()
