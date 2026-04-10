@@ -55,12 +55,13 @@ class LineClassification(str, Enum):
 
 
 class DeviceCompatibilityTier(str, Enum):
-    """Four-tier device model compatibility classification.
+    """Five-tier device model compatibility classification.
     (from 03b-transform-mappers.md, device_mapper compatibility table lines 270-274)
     """
     NATIVE_MPP = "native_mpp"
     CONVERTIBLE = "convertible"
     WEBEX_APP = "webex_app"
+    INFRASTRUCTURE = "infrastructure"
     INCOMPATIBLE = "incompatible"
 
 

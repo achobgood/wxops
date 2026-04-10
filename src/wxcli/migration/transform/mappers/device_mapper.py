@@ -143,7 +143,13 @@ class DeviceMapper(Mapper):
             result.objects_created += 1
 
             # --- Generate decisions for non-native devices ---
-            if compatibility_tier == DeviceCompatibilityTier.WEBEX_APP:
+            if compatibility_tier == DeviceCompatibilityTier.INFRASTRUCTURE:
+                # CTI Ports, CER, gateways, media resources — CUCM infrastructure,
+                # not user devices. Noted in inventory but no migration action needed.
+                # No decision generated — these are silently excluded from the plan.
+                pass
+
+            elif compatibility_tier == DeviceCompatibilityTier.WEBEX_APP:
                 # Software phones (Jabber, CSF, Dual Mode, IP Communicator) transition
                 # to Webex App. User keeps their number/extension, no device record needed
                 # in Webex — Webex App just works with a Calling license.
