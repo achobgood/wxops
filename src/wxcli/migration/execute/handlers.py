@@ -173,6 +173,34 @@ def handle_route_group_create(data: dict, deps: dict, ctx: dict) -> HandlerResul
     return [("POST", _url("/telephony/config/premisePstn/routeGroups", ctx), body)]
 
 
+def handle_route_list_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    loc_wid = _resolve_location(data, deps) or _resolve_location_from_deps(deps)
+    rg_cid = data.get("route_group_id", "")
+    rg_wid = deps.get(rg_cid)
+    if not rg_wid:
+        return []  # Route group not yet created
+    body: dict[str, Any] = {
+        "name": data.get("name"),
+        "locationId": loc_wid,
+        "routeGroupId": rg_wid,
+    }
+    return [("POST", _url("/telephony/config/premisePstn/routeLists", ctx), body)]
+
+
+def handle_route_list_configure_numbers(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    rl_cid = data.get("canonical_id", "")
+    rl_wid = deps.get(rl_cid)
+    if not rl_wid:
+        return []
+    numbers = data.get("numbers", [])
+    if not numbers:
+        return []
+    body: dict[str, Any] = {
+        "numbers": [{"number": n, "action": "ADD"} for n in numbers],
+    }
+    return [("PUT", _url(f"/telephony/config/premisePstn/routeLists/{rl_wid}/numbers", ctx), body)]
+
+
 def handle_operating_mode_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
     body: dict[str, Any] = {
         "name": data.get("name"),
@@ -1052,6 +1080,8 @@ HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("line_key_template", "create"): handle_line_key_template_create,
     ("trunk", "create"): handle_trunk_create,
     ("route_group", "create"): handle_route_group_create,
+    ("route_list", "create"): handle_route_list_create,
+    ("route_list", "configure_numbers"): handle_route_list_configure_numbers,
     ("operating_mode", "create"): handle_operating_mode_create,
     ("schedule", "create"): handle_schedule_create,
     ("user", "create"): handle_user_create,
