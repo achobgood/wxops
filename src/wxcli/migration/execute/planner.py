@@ -499,6 +499,32 @@ def _expand_softkey_config(obj: dict[str, Any]) -> list[MigrationOp]:
                 depends_on=[_node_id(device_cid, "create")])]
 
 
+def _expand_device_settings_template(obj: dict[str, Any], decisions: list) -> list[MigrationOp]:
+    """device_settings_template → location settings + per-device overrides."""
+    cid = obj["canonical_id"]
+    settings = obj.get("settings") or {}
+    phones_using = obj.get("phones_using", 0)
+    if not settings or phones_using == 0:
+        return []
+
+    family = obj.get("model_family", "unknown")
+    loc_id = obj.get("location_canonical_id", "unknown")
+    ops = [
+        _op(cid, "apply_location_settings", "device_settings_template",
+            f"Apply {family} device settings at {loc_id}"),
+    ]
+
+    for override in obj.get("per_device_overrides", []):
+        dev_cid = override.get("device_canonical_id", "")
+        ops.append(_op(
+            cid, "apply_device_override", "device_settings_template",
+            f"Override device settings for {dev_cid}",
+            depends_on=[_node_id(cid, "apply_location_settings")],
+        ))
+
+    return ops
+
+
 # ---------------------------------------------------------------------------
 # Types that don't produce standalone operations
 # ---------------------------------------------------------------------------
@@ -549,6 +575,7 @@ _EXPANDERS: dict[str, Any] = {
     "monitoring_list": lambda obj, _: _expand_monitoring_list(obj),
     "device_layout": lambda obj, _: _expand_device_layout(obj),
     "softkey_config": lambda obj, _: _expand_softkey_config(obj),
+    "device_settings_template": lambda obj, d: _expand_device_settings_template(obj, d),
 }
 
 

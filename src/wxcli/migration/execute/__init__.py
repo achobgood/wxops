@@ -116,6 +116,9 @@ TIER_ASSIGNMENTS: dict[tuple[str, str], int] = {
     # Fixups use batch="fixups"; device ops use location-derived batches — no conflict.
     ("device_layout", "configure"): 7,
     ("softkey_config", "configure"): 7,
+    # Device settings templates — location-level config at tier 1, per-device overrides at tier 5
+    ("device_settings_template", "apply_location_settings"): 1,
+    ("device_settings_template", "apply_device_override"): 5,
 }
 
 # ---------------------------------------------------------------------------
@@ -172,6 +175,9 @@ API_CALL_ESTIMATES: dict[str, int] = {
     # Tier 7: Device finalization
     "device_layout:configure": 3,   # PUT members + PUT layout + POST applyChanges
     "softkey_config:configure": 2,  # PUT dynamicSettings + POST applyChanges
+    # Device settings templates
+    "device_settings_template:apply_location_settings": 1,  # PUT /telephony/config/locations/{id}/devices/settings
+    "device_settings_template:apply_device_override": 1,    # PUT /telephony/config/devices/{id}/settings
 }
 
 # ---------------------------------------------------------------------------
