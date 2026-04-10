@@ -1270,25 +1270,46 @@ def detect_transformation_patterns(store: MigrationStore) -> list[AdvisoryFindin
 # ===================================================================
 
 def detect_extension_mobility_usage(store: MigrationStore) -> list[AdvisoryFinding]:
-    """Extension Mobility device profiles indicate hot desking needs."""
+    """Extension Mobility device profiles indicate hot desking needs.
+
+    Severity escalation: MEDIUM when profiles have multi-line or BLF configs
+    (feature loss during hot desk sessions). LOW for simple single-line profiles.
+    """
     profiles = store.get_objects("info_device_profile")
     if not profiles:
         return []
 
     ids = [p.get("canonical_id", "") for p in profiles]
 
+    # Count feature loss categories from pre_migration_state
+    multi_line_count = 0
+    sd_count = 0
+    blf_count = 0
+    for p in profiles:
+        pms = p.get("pre_migration_state") or {}
+        if pms.get("line_count", 0) > 1:
+            multi_line_count += 1
+        if pms.get("speed_dial_count", 0) > 0:
+            sd_count += 1
+        if pms.get("blf_count", 0) > 0:
+            blf_count += 1
+
+    # Escalate to MEDIUM when profiles will lose meaningful features
+    severity = "MEDIUM" if (multi_line_count > 0 or blf_count > 0) else "LOW"
+
     detail = (
-        f"{len(profiles)} Extension Mobility device profile{'s' if len(profiles) != 1 else ''} "
-        f"found. CUCM Extension Mobility allows users to log into any EM-enabled phone and "
-        f"load their personal line/speed-dial/services configuration. Webex maps this to "
-        f"hot desking — users can sign into shared workspaces with their Webex identity. "
-        f"However, Webex hot desking is simpler: no device-profile switching, just user "
-        f"login/logout with primary line. Manual workspace + hot desking configuration required."
+        f"{len(profiles)} Extension Mobility device profile(s) found. "
+        f"{multi_line_count} have multiple lines (will lose secondary lines). "
+        f"{sd_count} have speed dials (will lose speed dials during hot desk). "
+        f"{blf_count} have BLF entries (will lose BLF during hot desk). "
+        f"Migration will enable Webex hoteling for these users and configure "
+        f"workspace hot desking on their host devices. Users with multi-line "
+        f"profiles will only get their primary line during hot desk sessions."
     )
 
     return [AdvisoryFinding(
         pattern_name="extension_mobility_usage",
-        severity="LOW",
+        severity=severity,
         summary=f"{len(profiles)} Extension Mobility profiles — map to Webex hot desking",
         detail=detail,
         affected_objects=ids,
@@ -1829,6 +1850,66 @@ def detect_voicemail_greeting_rerecording(
 
 
 # ===================================================================
+# Pattern 28: Custom Audio Assets
+# ===================================================================
+
+def detect_custom_audio_assets(store: MigrationStore) -> list[AdvisoryFinding]:
+    """Custom MoH sources and announcements requiring manual migration.
+
+    (Pattern 28)
+    """
+    moh_sources = store.get_objects("music_on_hold")
+    announcements = store.get_objects("announcement")
+
+    custom_moh = [m for m in moh_sources if not m.get("is_default", False)]
+    moh_count = len(custom_moh)
+    ann_count = len(announcements)
+    total = moh_count + ann_count
+
+    if total == 0:
+        return []
+
+    if total >= 21:
+        severity = "CRITICAL"
+    elif total >= 6:
+        severity = "HIGH"
+    else:
+        severity = "MEDIUM"
+
+    affected = (
+        [m.get("canonical_id", "") for m in custom_moh]
+        + [a.get("canonical_id", "") for a in announcements]
+    )
+
+    detail = (
+        f"This environment has {total} custom audio assets requiring manual migration:\n"
+        f"- {moh_count} custom Music on Hold source(s)\n"
+        f"- {ann_count} announcement file(s)\n\n"
+        "CUCM audio files cannot be automatically transferred to Webex. Each must be:\n"
+        "1. Downloaded from CUCM server filesystem (SFTP to /usr/local/cm/tftp/)\n"
+        "2. Converted to WAV format if needed (Webex requires WAV, max 8 MB)\n"
+        "3. Uploaded to Webex announcement repository via API or Control Hub\n"
+        "4. Assigned to the appropriate location (MoH) or feature (AA/CQ greeting)\n\n"
+        "Action required BEFORE migration day: Download all custom audio files from "
+        "CUCM and have them ready for upload. MoH and AA greetings are customer-facing "
+        "-- losing them on cutover day is a P1 experience issue."
+    )
+
+    return [AdvisoryFinding(
+        pattern_name="custom_audio_assets",
+        severity=severity,
+        summary=f"{total} custom audio assets require manual migration ({moh_count} MoH, {ann_count} announcements)",
+        detail=detail,
+        affected_objects=affected,
+        recommendation="accept",
+        recommendation_reasoning=(
+            "Custom audio assets must be manually downloaded from CUCM and uploaded to Webex."
+        ),
+        category="migrate_as_is",
+    )]
+
+
+# ===================================================================
 # Registry — ALL_ADVISORY_PATTERNS
 # ===================================================================
 
@@ -1860,4 +1941,5 @@ ALL_ADVISORY_PATTERNS: list[Callable[[MigrationStore], list[AdvisoryFinding]]] =
     detect_intercluster_trunks,                # Pattern 25 (Gap: ICT disposition)
     detect_legacy_gateway_protocols,           # Pattern 26 (Gap: MGCP/H.323 undetected)
     detect_voicemail_greeting_rerecording,     # Pattern 27 (User action: VM greeting re-recording)
+    detect_custom_audio_assets,                # Pattern 28 (Audio: MoH + announcements)
 ]
