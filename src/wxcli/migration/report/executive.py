@@ -508,6 +508,19 @@ def _page_next_steps(
     )
     parts.append('</tbody></table>')
 
+    # Voicemail greeting re-recording callout
+    greeting_count = _count_custom_greetings(store)
+    if greeting_count > 0:
+        parts.append(
+            f'<div class="callout warning">'
+            f'<p><strong>Voicemail Greeting Re-Recording:</strong> '
+            f'{greeting_count} user{"s" if greeting_count != 1 else ""} '
+            f'must re-record their voicemail greeting{"s" if greeting_count != 1 else ""} after migration. '
+            f'Send user communication at least 1 week before cutover. '
+            f'See Appendix H for email template.</p>'
+            f'</div>'
+        )
+
     # Planning Phase
     if unresolved:
         parts.append('<h3>Planning Phase</h3>')
@@ -587,6 +600,18 @@ def _build_site_breakdown(
         ))
 
     return rows
+
+
+def _count_custom_greetings(store: MigrationStore) -> int:
+    """Count MISSING_DATA decisions for custom voicemail greetings."""
+    count = 0
+    for d in store.get_all_decisions():
+        if d.get("type") != "MISSING_DATA":
+            continue
+        ctx = d.get("context", {})
+        if ctx.get("reason") == "custom_greeting_not_extractable":
+            count += 1
+    return count
 
 
 def _count_decisions_for_location(
