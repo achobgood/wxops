@@ -409,6 +409,32 @@ def _explain_architecture_advisory(
     return {"title": title, "explanation": explanation, "reassurance": _reassurance_for_severity(severity)}
 
 
+def _explain_audio_asset_manual(
+    summary: str, context: dict[str, Any], severity: str
+) -> dict[str, str]:
+    source_name = context.get("source_name") or context.get("name", "")
+    source_type = context.get("source_type", "audio")
+    title = f"Audio asset migration: {source_name}" if source_name else "Audio asset migration required"
+    if source_name:
+        explanation = (
+            f"Your CUCM environment uses custom audio file '{source_name}' for "
+            f"{source_type}. This file must be manually downloaded from CUCM "
+            "and uploaded to Webex. The Webex announcement repository accepts "
+            "WAV files up to 8 MB. Upload via Control Hub (Calling > Service "
+            "Settings > Announcements) or via API."
+        )
+    else:
+        explanation = _with_summary(
+            summary,
+            "Your CUCM environment uses custom audio files for Music on Hold "
+            "and/or feature announcements. These files must be manually "
+            "downloaded from CUCM and uploaded to Webex. The Webex announcement "
+            "repository accepts WAV files up to 8 MB. Upload via Control Hub "
+            "(Calling > Service Settings > Announcements) or via API.",
+        )
+    return {"title": title, "explanation": explanation, "reassurance": _reassurance_for_severity(severity)}
+
+
 # Template dispatch table
 _TEMPLATES: dict[str, Any] = {
     "EXTENSION_CONFLICT": _explain_extension_conflict,
@@ -428,6 +454,7 @@ _TEMPLATES: dict[str, Any] = {
     "MISSING_DATA": _explain_missing_data,
     "NUMBER_CONFLICT": _explain_number_conflict,
     "ARCHITECTURE_ADVISORY": _explain_architecture_advisory,
+    "AUDIO_ASSET_MANUAL": _explain_audio_asset_manual,
 }
 
 
