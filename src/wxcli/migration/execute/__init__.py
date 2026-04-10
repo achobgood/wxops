@@ -79,6 +79,8 @@ TIER_ASSIGNMENTS: dict[tuple[str, str], int] = {
     # Tier 1: Routing backbone — trunks, schedules, route groups, line key templates
     ("trunk", "create"): 1,
     ("route_group", "create"): 1,
+    ("route_list", "create"): 1,
+    ("route_list", "configure_numbers"): 1,
     ("operating_mode", "create"): 1,
     ("schedule", "create"): 1,
     ("line_key_template", "create"): 1,
@@ -133,6 +135,8 @@ API_CALL_ESTIMATES: dict[str, int] = {
     # Tier 1: Routing backbone + org-wide infrastructure
     "trunk:create": 1,              # POST /telephony/config/premisePstn/trunks (from call-routing.md)
     "route_group:create": 1,        # POST /telephony/config/premisePstn/routeGroups (from call-routing.md)
+    "route_list:create": 1,              # POST /telephony/config/premisePstn/routeLists
+    "route_list:configure_numbers": 1,   # PUT /telephony/config/premisePstn/routeLists/{id}/numbers
     "operating_mode:create": 1,     # POST /telephony/config/operatingModes (from location-call-settings-media.md)
     "schedule:create": 1,           # POST /telephony/config/locations/{id}/schedules (from location-call-settings-media.md)
     "line_key_template:create": 1,  # POST /telephony/config/devices/lineKeyTemplates
@@ -189,6 +193,7 @@ ORG_WIDE_TYPES: set[str] = {
     "location",
     "trunk",
     "route_group",
+    "route_list",
     "operating_mode",
     "dial_plan",
     "translation_pattern",
