@@ -122,6 +122,13 @@ See §[Auto-Rule Reference](#auto-rule-reference) below for the full treatment �
 ```
 **Consumed by:** `src/wxcli/migration/transform/engine.py:202` — passed into `CSSMapper`, which applies the rules at `src/wxcli/migration/transform/mappers/css_mapper.py:612` and `:671` during calling-permission classification.
 
+### recording-vendor
+
+**Default:** `"Webex"` (from `src/wxcli/commands/cucm_config.py:73`)
+**What it controls:** The call recording vendor name written into the deployment plan during export. Webex Calling includes built-in call recording at no extra cost; per-user recording settings are enabled automatically during execution.
+**When to change:** Set to a third-party vendor name (e.g., `"Dubber"`, `"Imagicle"`) if the customer uses an external recording platform instead of Webex's built-in recording. Leave as `"Webex"` for most migrations.
+**Consumed by:** `src/wxcli/migration/advisory/advisory_patterns.py:1182` — referenced in the call-recording advisory pattern narrative. The export pipeline reads it from config when generating per-user recording settings.
+
 ## Auto-Rule Reference
 
 > Anchor convention for the 7 default rules: `default-rule-` plus the slug-form of the rule's `type` field, with `-<match-key>-<match-value>` appended when a `match` filter is present (e.g., `default-rule-calling-permission-mismatch-assigned-users-count-0`). Validated by `test_default_auto_rules_coverage.py`.
@@ -331,11 +338,11 @@ but measure different things:
   This is what `SCORE_CALIBRATED` is about. The data source is the manual
   `calibration-log.md` described in
   [operator-runbook.md §Calibration Data Capture](operator-runbook.md#calibration-data-capture).
-- **Agent-efficiency regression guard** — `tools/layer3_benchmark.py` runs
-  the `cucm-migrate` skill against a fixture via the Anthropic API and
-  measures token usage, tool-call patterns, and gotcha coverage. This is
-  a CI-style regression guard for the skill and runbooks, not a source of
-  score-calibration data.
+- **Agent-efficiency validation** — periodic manual QA. Invoke
+  `wxc-calling-builder` with `/cucm-migrate` against a test project and
+  review the agent's decision-review behavior. This is a human judgment
+  exercise, not an automated regression guard — LLM non-determinism makes
+  automated baselines unreliable.
 
 **To flip `SCORE_CALIBRATED` to `True`:**
 
@@ -356,21 +363,6 @@ but measure different things:
    file — the conditional block at approximately lines 127-135 guards on
    `not result.calibrated`).
 6. Update the `<!-- Last verified: ... -->` header on this file.
-
-**After flipping `SCORE_CALIBRATED`:** regenerate the Layer 3 agent-efficiency
-baseline so the regression guard measures post-calibration skill/runbook
-behavior instead of pre-calibration. From the repo root:
-
-```bash
-python3.11 tools/layer3_benchmark.py \
-    --project tests/fixtures/benchmark-migration \
-    --compare --baseline docs/reports/layer3-baseline-YYYY-MM-DD.json
-```
-
-Commit the new baseline report to `docs/reports/layer3-baseline-YYYY-MM-DD.json`
-(replacing the date). The two workstreams remain independent — this step just
-ensures the baseline reflects the current skill content after any calibration
-rewrite.
 
 ## What Is and Isn't Tunable
 

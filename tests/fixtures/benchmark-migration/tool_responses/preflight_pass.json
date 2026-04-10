@@ -1,4 +1,0 @@
-{
-  "stdout": "Preflight checks: 8/8 passed\n✓ Number conflicts: none\n✓ Duplicate users: none\n✓ License capacity: ok\n✓ Location conflicts: none\n✓ Extension conflicts: none\n✓ Missing prerequisites: none\n✓ Trunk reachability: ok\n✓ E911 addresses: ok\n",
-  "returncode": 0
-}
