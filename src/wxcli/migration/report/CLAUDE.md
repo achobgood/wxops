@@ -40,6 +40,7 @@ The report reads from the same SQLite store that the migration pipeline populate
 `compatibility_tier` is a **lowercase string** in store dicts, not the enum:
 - `"native_mpp"` — direct migration
 - `"convertible"` — needs firmware flash
+- `"webex_app"` — software phone transitioning to Webex App (no device needed)
 - `"incompatible"` — needs hardware replacement
 
 ### CSS/Partition Types

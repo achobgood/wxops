@@ -9,6 +9,7 @@ One public function: generate_executive_summary().
 from __future__ import annotations
 
 import html
+import json
 from typing import Any
 
 from wxcli.migration.report.charts import donut_chart, gauge_chart, stacked_bar_chart
@@ -194,11 +195,14 @@ def _page_environment(
         native = sum(1 for d in devices if d.get("compatibility_tier") == "native_mpp")
         convertible = sum(1 for d in devices if d.get("compatibility_tier") == "convertible")
         incompatible = sum(1 for d in devices if d.get("compatibility_tier") == "incompatible")
+        webex_app = sum(1 for d in devices if d.get("compatibility_tier") == "webex_app")
         donut_segments = [
             {"label": "Native MPP", "value": native, "color": "#2E7D32"},
             {"label": "Convertible", "value": convertible, "color": "#EF6C00"},
             {"label": "Incompatible", "value": incompatible, "color": "#C62828"},
         ]
+        if webex_app > 0:
+            donut_segments.append({"label": "Webex App", "value": webex_app, "color": "#0277BD"})
         donut_html = donut_chart(donut_segments)
 
     if donut_html:
@@ -440,6 +444,17 @@ def _classify_decisions(
         if d.get("chosen_option"):
             auto.append(d)
         elif d.get("type") in manual_types:
+            # Webex App transitions are INFO severity and go to planning, not manual
+            if d.get("type") == "DEVICE_INCOMPATIBLE":
+                ctx = d.get("context", {})
+                if isinstance(ctx, str):
+                    try:
+                        ctx = json.loads(ctx)
+                    except (json.JSONDecodeError, TypeError):
+                        ctx = {}
+                if ctx.get("webex_app_transition") is True:
+                    planning.append(d)
+                    continue
             manual.append(d)
         elif d.get("type") in planning_types:
             planning.append(d)

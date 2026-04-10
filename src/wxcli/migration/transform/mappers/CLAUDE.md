@@ -43,7 +43,7 @@ Execution order determined by `depends_on` (topological sort):
 |--------|--------|-----------|---------|----------------|
 | `LineMapper` | `line_mapper` | `location_mapper` | `CanonicalLine` (data-only, consumed by user:create / workspace:assign_number) | `dn` (directory number) |
 | `UserMapper` | `user_mapper` | `location_mapper` | `CanonicalUser` | `user` |
-| `DeviceMapper` | `device_mapper` | `location_mapper` | `CanonicalDevice` (3-tier: NATIVE_MPP / CONVERTIBLE / INCOMPATIBLE) | `phone` (raw) |
+| `DeviceMapper` | `device_mapper` | `location_mapper` | `CanonicalDevice` (4-tier: NATIVE_MPP / CONVERTIBLE / WEBEX_APP / INCOMPATIBLE) | `phone` (raw) |
 
 ### Tier 3 — Depends on users/lines/devices
 

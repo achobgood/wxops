@@ -70,6 +70,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "create_method": "people_api",
     "include_phoneless_users": False,
     "auto_rules": DEFAULT_AUTO_RULES,
+    "recording_vendor": "Webex",
     "site_prefix_rules": [],
     "category_rules": None,
 }

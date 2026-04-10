@@ -18,6 +18,20 @@ import html
 from collections import defaultdict
 from typing import Any
 
+
+def _axl_str(value: Any) -> str:
+    """Coerce an AXL field value to a plain string.
+
+    AXL returns some reference fields (e.g. routePartitionName) as a dict
+    with a ``_value_1`` key and a ``uuid`` key rather than a bare string.
+    Extract the human-readable value; fall back to empty string for None/missing.
+    """
+    if value is None:
+        return ""
+    if isinstance(value, dict):
+        return str(value.get("_value_1", ""))
+    return str(value)
+
 from wxcli.migration.report.charts import stacked_bar_chart
 from wxcli.migration.report.explainer import (
     DECISION_TYPE_DISPLAY_NAMES,
@@ -260,9 +274,19 @@ def _device_inventory(store: MigrationStore) -> str:
 
     native = sum(1 for d in devices if d.get("compatibility_tier") == "native_mpp")
     convertible = sum(1 for d in devices if d.get("compatibility_tier") == "convertible")
+    webex_app = sum(1 for d in devices if d.get("compatibility_tier") == "webex_app")
     incompatible = sum(1 for d in devices if d.get("compatibility_tier") == "incompatible")
 
-    summary = f"{total} phones — {native} native, {convertible} convertible, {incompatible} incompatible"
+    summary_parts = [f"{total} phones"]
+    if native:
+        summary_parts.append(f"{native} native")
+    if convertible:
+        summary_parts.append(f"{convertible} convertible")
+    if webex_app:
+        summary_parts.append(f"{webex_app} Webex App")
+    if incompatible:
+        summary_parts.append(f"{incompatible} incompatible")
+    summary = " — ".join(summary_parts[:1]) + " — " + ", ".join(summary_parts[1:])
 
     parts = [
         f'<details id="device-detail">',
@@ -278,9 +302,15 @@ def _device_inventory(store: MigrationStore) -> str:
         tiers = model_counts[model]
         total_model = sum(tiers.values())
         tier_list = []
-        for tier_name in ["native_mpp", "convertible", "incompatible"]:
+        _TIER_DISPLAY = {
+            "native_mpp": "Native MPP",
+            "convertible": "Convertible",
+            "webex_app": "Webex App",
+            "incompatible": "Incompatible",
+        }
+        for tier_name in ["native_mpp", "convertible", "webex_app", "incompatible"]:
             if tiers.get(tier_name, 0) > 0:
-                tier_list.append(f'{tier_name.replace("_", " ").title()}: {tiers[tier_name]}')
+                tier_list.append(f'{_TIER_DISPLAY.get(tier_name, tier_name)}: {tiers[tier_name]}')
         tier_str = ", ".join(tier_list) if tier_list else "Unknown"
 
         parts.append(
@@ -1420,10 +1450,10 @@ def _caller_id_xforms(store: MigrationStore) -> str:
         for obj in calling:
             pre = obj.get("pre_migration_state", {}) or {}
             parts.append(
-                f'<tr><td>{html.escape(pre.get("pattern", ""))}</td>'
-                f'<td>{html.escape(pre.get("routePartitionName", ""))}</td>'
-                f'<td>{html.escape(pre.get("callingPartyTransformationMask", ""))}</td>'
-                f'<td>{html.escape(pre.get("description", ""))}</td></tr>'
+                f'<tr><td>{html.escape(_axl_str(pre.get("pattern", "")))}</td>'
+                f'<td>{html.escape(_axl_str(pre.get("routePartitionName", "")))}</td>'
+                f'<td>{html.escape(_axl_str(pre.get("callingPartyTransformationMask", "")))}</td>'
+                f'<td>{html.escape(_axl_str(pre.get("description", "")))}</td></tr>'
             )
         parts.append('</tbody></table>')
 
@@ -1435,10 +1465,10 @@ def _caller_id_xforms(store: MigrationStore) -> str:
         for obj in called:
             pre = obj.get("pre_migration_state", {}) or {}
             parts.append(
-                f'<tr><td>{html.escape(pre.get("pattern", ""))}</td>'
-                f'<td>{html.escape(pre.get("routePartitionName", ""))}</td>'
-                f'<td>{html.escape(pre.get("calledPartyTransformationMask", ""))}</td>'
-                f'<td>{html.escape(pre.get("description", ""))}</td></tr>'
+                f'<tr><td>{html.escape(_axl_str(pre.get("pattern", "")))}</td>'
+                f'<td>{html.escape(_axl_str(pre.get("routePartitionName", "")))}</td>'
+                f'<td>{html.escape(_axl_str(pre.get("calledPartyTransformationMask", "")))}</td>'
+                f'<td>{html.escape(_axl_str(pre.get("description", "")))}</td></tr>'
             )
         parts.append('</tbody></table>')
 

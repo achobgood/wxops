@@ -30,11 +30,19 @@ wxcli cleanup run --scope "DP-HQ-Phones,DP-Branch-Phones" --include-users --forc
 # Delete everything in the org
 wxcli cleanup run --all --include-users --include-locations --force
 
+# Delete users but keep admin accounts by domain
+wxcli cleanup run --all --include-users --exclude-user-domains "wbx.ai,corp.com" --force
+
 # Control parallelism
 wxcli cleanup run --scope "GlobalTech*" --max-concurrent 10 --force
 ```
 
-`wxcli cleanup` handles the full dependency DAG automatically: inventories all resources, deletes in the correct 12-layer order, parallelizes within each layer, and waits for async operations like disable-calling propagation.
+`wxcli cleanup` handles the full dependency DAG automatically: inventories all resources, deletes in the correct 13-layer order (including phone number removal before location deletion), parallelizes within each layer, and waits for async operations like disable-calling propagation.
+
+**Key behaviors:**
+- **Phone numbers** are removed automatically before location deletion (batched in groups of 5, main numbers skipped). Numbers assigned to a location block location deletion with 409.
+- **Disable-calling is best-effort** — if calling is already off (or was never enabled), deletion still proceeds. Ghost/stale locations are also attempted.
+- **`--exclude-user-domains`** filters users by email domain — useful for keeping admin accounts while deleting migration-created users.
 
 **Always dry-run first** for any scope larger than a single location.
 
@@ -124,13 +132,24 @@ wxcli users delete --force <USER_ID>
 wxcli workspaces delete --force <WORKSPACE_ID>
 ```
 
-#### Layer 6: Locations
+#### Layer 6: Phone Numbers
 ```bash
-# Disable calling first — this is ASYNC
+# Remove phone numbers BEFORE location deletion — numbers block location delete with 409
+# List numbers for the location
+wxcli numbers list --location-id $LOC -o json
+# Delete numbers (API accepts max 5 per request, main number cannot be removed)
+# Use wxcli numbers delete $LOC or raw API:
+#   DELETE /telephony/config/locations/{LOC}/numbers  body: {"phoneNumbers": ["+1..."]}
+```
+
+#### Layer 7: Locations
+```bash
+# Disable calling first — this is ASYNC and best-effort
+# If calling is already off, this will fail — that's OK, proceed to delete
 wxcli location-call-settings update-location-calling $LOC --calling-enabled false
-# Wait 90+ seconds for backend propagation
+# Wait 90+ seconds for backend propagation (skip if disable failed = already off)
 sleep 90
-# Then delete
+# Then delete — attempt regardless of disable result
 wxcli locations delete --force $LOC
 ```
 
@@ -138,12 +157,14 @@ wxcli locations delete --force $LOC
 
 If `locations delete` returns 409 "being referenced", check these in order:
 
-1. **CX Essentials queues** hidden from default `call-queue list` — need `--has-cx-essentials true`
-2. **Call parks / pickups** not found — `call-park list` and `call-pickup list` without `$LOC` as first positional arg return empty
-3. **Virtual lines** — discoverable via `wxcli numbers list -o json` (owner.type == VIRTUAL_LINE), not always via `virtual-extensions list`
-4. **Workspaces** still assigned — workspaces API has no location filter, must filter client-side by `locationId` field
-5. **Operating modes** referencing deleted schedules
-6. **Calling still propagating** — even after `--calling-enabled false`, 409 may persist for minutes. Wait and retry.
+1. **Phone numbers still assigned** — `wxcli numbers list --location-id $LOC -o json`. Remove non-main numbers before location delete. `wxcli cleanup` handles this automatically (Layer 12).
+2. **CX Essentials queues** hidden from default `call-queue list` — need `--has-cx-essentials true`
+3. **Call parks / pickups** not found — `call-park list` and `call-pickup list` without `$LOC` as first positional arg return empty
+4. **Virtual lines** — discoverable via `wxcli numbers list -o json` (owner.type == VIRTUAL_LINE), not always via `virtual-extensions list`
+5. **Workspaces** still assigned — workspaces API has no location filter, must filter client-side by `locationId` field
+6. **Operating modes** referencing deleted schedules
+7. **Calling still propagating** — even after `--calling-enabled false`, 409 may persist for minutes. Wait and retry.
+8. **Ghost/stale locations** — locations returning 404 on sub-resource queries may still be deletable. Attempt deletion regardless.
 
 ---
 

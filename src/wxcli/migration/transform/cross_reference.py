@@ -36,7 +36,7 @@ def _now() -> datetime:
 
 
 # ---------------------------------------------------------------------------
-# Phone model compatibility table (three-tier classification)
+# Phone model compatibility table (four-tier classification)
 # (from cucm-wxc-migration.md lines 363-369)
 # ---------------------------------------------------------------------------
 
@@ -75,12 +75,20 @@ _CONVERTIBLE_PATTERNS = {
     "Cisco IP Phone 8845", "Cisco IP Phone 8865",
 }
 
+# Software phones / soft clients — these transition to Webex App, not incompatible.
+# Users keep their number/extension and use Webex App for calling.
+_WEBEX_APP_KEYWORDS = [
+    "jabber", "dual mode", "client services framework",
+    "ip communicator", "uccx", "cti", "webex",
+    "softphone", "soft phone",
+]
+
 # Everything else is incompatible
 # (79xx, 99xx, 69xx, 39xx series, legacy TelePresence, third-party phones)
 
 
 def classify_phone_model(model: str | None) -> DeviceCompatibilityTier:
-    """Classify a CUCM phone model into the three-tier compatibility system.
+    """Classify a CUCM phone model into the four-tier compatibility system.
 
     (from cucm-wxc-migration.md lines 363-369, Phone Model Compatibility table)
     """
@@ -94,6 +102,11 @@ def classify_phone_model(model: str | None) -> DeviceCompatibilityTier:
     # Check convertible
     if model in _CONVERTIBLE_PATTERNS:
         return DeviceCompatibilityTier.CONVERTIBLE
+
+    # Check for software phones / soft clients → Webex App transition
+    model_lower = model.lower()
+    if any(kw in model_lower for kw in _WEBEX_APP_KEYWORDS):
+        return DeviceCompatibilityTier.WEBEX_APP
 
     # Check for MPP suffix pattern (some models include "MPP" in the name).
     # Exclude known-incompatible models that might have MPP firmware loaded.
@@ -880,7 +893,7 @@ class CrossReferenceBuilder:
     def _classify_phone_models(self) -> int:
         """Classify all devices by model compatibility tier.
 
-        (from 02-normalization-architecture.md: "apply the three-tier firmware
+        (from 02-normalization-architecture.md: "apply the four-tier firmware
          compatibility table")
         (from cucm-wxc-migration.md lines 363-369)
         """

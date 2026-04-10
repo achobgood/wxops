@@ -256,6 +256,16 @@ class AnalysisPipeline:
             )
             stats["architecture_advisor"] = -1
 
+        # Step 6b: Re-run auto-rules to catch ARCHITECTURE_ADVISORY decisions
+        # (created in step 6, after the initial auto-rules pass in step 5)
+        try:
+            advisory_auto = apply_auto_rules(store, self.config)
+            if advisory_auto:
+                logger.info("Auto-rules (post-advisory) resolved %d decisions", advisory_auto)
+                auto_resolved += advisory_auto
+        except Exception as exc:
+            logger.warning("Auto-rules (post-advisory) failed: %s", exc)
+
         # Step 7: Populate recommendations on ALL decisions (Phase 1 + Phase 2)
         from wxcli.migration.advisory import populate_recommendations
         rec_count = populate_recommendations(store)

@@ -127,7 +127,17 @@ class MissingDataAnalyzer(Analyzer):
                 if canonical_id in existing:
                     continue
 
-                missing = self._check_object(object_type, obj, field_defs)
+                # Webex App devices (Jabber, CSF, Dual Mode, IP Communicator)
+                # don't need a MAC address — they transition to Webex App,
+                # not a physical device in Webex.
+                if object_type == "device" and obj.get("compatibility_tier") == "webex_app":
+                    active_fields = [
+                        f for f in field_defs if f[0] != "mac"
+                    ]
+                else:
+                    active_fields = field_defs
+
+                missing = self._check_object(object_type, obj, active_fields)
                 if not missing:
                     continue
 

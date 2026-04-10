@@ -77,7 +77,7 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 |----------|---------------|
 | `ExtensionConflictAnalyzer` | `EXTENSION_CONFLICT` |
 | `DNAmbiguityAnalyzer` | `DN_AMBIGUITY` |
-| `DeviceCompatibilityAnalyzer` | `DEVICE_INCOMPATIBLE`, `DEVICE_FIRMWARE_CONVERTIBLE` |
+| `DeviceCompatibilityAnalyzer` | `DEVICE_INCOMPATIBLE`, `DEVICE_FIRMWARE_CONVERTIBLE`, `DEVICE_WEBEX_APP` (INFO — transitions to Webex App, no device migration) |
 | `SharedLineAnalyzer` | `SHARED_LINE_COMPLEX` |
 | `CSSRoutingAnalyzer` | `CSS_ROUTING_COMPLEX` |
 | `CSSPermissionAnalyzer` | `CALLING_PERMISSION` |
