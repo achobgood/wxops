@@ -111,11 +111,16 @@ TIER_ASSIGNMENTS: dict[tuple[str, str], int] = {
     ("virtual_line", "create"): 6,
     ("virtual_line", "configure"): 6,
     ("monitoring_list", "configure"): 6,
+    ("receptionist_config", "configure"): 6,
     # Tier 7: Device finalization + cycle fixups
     # NOTE: tier 7 is shared between device finalization and cycle-break fixups.
     # Fixups use batch="fixups"; device ops use location-derived batches — no conflict.
     ("device_layout", "configure"): 7,
     ("softkey_config", "configure"): 7,
+    # Hoteling / Hot Desking (depends on users + devices)
+    ("device_profile", "enable_hoteling_guest"): 5,
+    ("device_profile", "enable_hoteling_host"): 5,
+    ("hoteling_location", "enable_hotdesking"): 0,  # Same tier as location:enable_calling
 }
 
 # ---------------------------------------------------------------------------
@@ -168,10 +173,15 @@ API_CALL_ESTIMATES: dict[str, int] = {
                                     # (from person-call-settings-behavior.md §4)
     "virtual_line:create": 1,       # POST /telephony/config/virtualLines (from virtual-lines.md lines 93-104)
     "virtual_line:configure": 1,    # PUT /telephony/config/virtualLines/{id} (from virtual-lines.md lines 132-147)
-    "monitoring_list:configure": 1, # PUT /people/{id}/features/monitoring
+    "monitoring_list:configure": 1,
+    "receptionist_config:configure": 2,  # PUT reception + POST directory # PUT /people/{id}/features/monitoring
     # Tier 7: Device finalization
     "device_layout:configure": 3,   # PUT members + PUT layout + POST applyChanges
     "softkey_config:configure": 2,  # PUT dynamicSettings + POST applyChanges
+    # Hoteling / Hot Desking
+    "device_profile:enable_hoteling_guest": 1,  # PUT /people/{id}/features/hoteling
+    "device_profile:enable_hoteling_host": 1,   # PUT /telephony/config/people/{id}/devices/settings/hoteling
+    "hoteling_location:enable_hotdesking": 1,   # PUT /telephony/config/locations/{id}/features/hotDesking
 }
 
 # ---------------------------------------------------------------------------
