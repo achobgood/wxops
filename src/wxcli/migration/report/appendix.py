@@ -1,13 +1,13 @@
 """Technical appendix HTML generator for CUCM assessment reports (v4).
 
-Generates 22 lettered sections (A-V), each as a collapsed <details> element:
+Generates 23 lettered sections (A-W), each as a collapsed <details> element:
 A. Object Inventory, B. Decision Detail, C. CSS/Partitions, D. Device Inventory,
 E. DN Analysis, F. User/Device Map, G. Routing Topology, H. Voicemail Analysis,
 I. Data Coverage, J. Gateways, K. Call Features, L. Button Templates,
 M. Device Layouts, N. Softkey Migration, O. Cloud-Managed Resources,
 P. Feature Gaps, Q. Manual Reconfiguration, R. Planning Inputs,
 S. Call Recording, T. Single Number Reach, U. Caller ID Transformations,
-V. Extension Mobility.
+V. Extension Mobility, W. DECT Networks.
 
 One public function: generate_appendix().
 """
@@ -71,6 +71,7 @@ def generate_appendix(store: MigrationStore) -> str:
         ("T", _snr_inventory(store)),
         ("U", _caller_id_xforms(store)),
         ("V", _extension_mobility_group(store)),
+        ("W", _dect_networks_group(store)),
     ]
     # Filter out empty sections
     sections = [(letter, section_html) for letter, section_html in sections if section_html]
@@ -1559,4 +1560,102 @@ def _extension_mobility_group(store: MigrationStore) -> str:
 
     parts.append('</tbody></table>')
     parts.append('</div></details>')
+    return "\n".join(parts)
+
+
+def _dect_networks_group(store: MigrationStore) -> str:
+    """W. DECT Networks — inventory, coverage zones, and design inputs."""
+    devices = store.get_objects("device")
+    dect_devices = [d for d in devices if d.get("compatibility_tier") == "dect"]
+    if not dect_devices:
+        return ""
+
+    parts: list[str] = []
+    parts.append('<details id="dect-networks">')
+    parts.append('<summary><span class="section-indicator">W</span> DECT Networks</summary>')
+
+    # --- Subsection 1: Inventory table ---
+    parts.append("<h4>DECT Handset Inventory</h4>")
+    parts.append("<table><thead><tr>")
+    parts.append("<th>Device Name</th><th>Model</th><th>Owner</th>"
+                 "<th>Extension</th><th>Device Pool</th>")
+    parts.append("</tr></thead><tbody>")
+
+    for d in sorted(dect_devices, key=lambda x: x.get("cucm_device_name", "")):
+        state = d.get("pre_migration_state") or {}
+        device_name = d.get("cucm_device_name") or d.get("canonical_id", "")
+        model = d.get("model", "Unknown")
+        owner = state.get("ownerUserName") or "<em>unowned</em>"
+        lines = state.get("line_appearances") or d.get("line_appearances") or []
+        ext = ""
+        if lines:
+            dirn = lines[0].get("dirn", {}) if isinstance(lines[0], dict) else {}
+            ext = dirn.get("pattern", "")
+        dp = state.get("cucm_device_pool", "\u2014")
+
+        parts.append(f"<tr><td>{device_name}</td><td>{model}</td>"
+                     f"<td>{owner}</td><td>{ext}</td><td>{dp}</td></tr>")
+
+    parts.append("</tbody></table>")
+
+    # --- Subsection 2: Coverage zone analysis ---
+    zones: dict[str, list[dict]] = {}
+    for d in dect_devices:
+        dp = (d.get("pre_migration_state") or {}).get("cucm_device_pool", "Unknown")
+        zones.setdefault(dp, []).append(d)
+
+    parts.append("<h4>Coverage Zone Analysis</h4>")
+    parts.append("<table><thead><tr>")
+    parts.append("<th>Coverage Zone (Device Pool)</th><th>Handset Count</th>"
+                 "<th>Owned</th><th>Unowned</th>")
+    parts.append("</tr></thead><tbody>")
+
+    for zone_name in sorted(zones):
+        handsets = zones[zone_name]
+        total = len(handsets)
+        owned = sum(1 for h in handsets if (h.get("pre_migration_state") or {}).get("ownerUserName"))
+        unowned = total - owned
+        parts.append(f"<tr><td>{zone_name}</td><td>{total}</td>"
+                     f"<td>{owned}</td><td>{unowned}</td></tr>")
+
+    parts.append("</tbody></table>")
+
+    # --- Subsection 3: Design inputs ---
+    total_handsets = len(dect_devices)
+    zone_count = len(zones)
+    parts.append("<h4>DECT Network Design Inputs</h4>")
+    parts.append('<div class="callout">')
+    parts.append(f"<p><strong>Total DECT handsets:</strong> {total_handsets}</p>")
+    parts.append(f"<p><strong>Implied coverage zones:</strong> {zone_count} "
+                 f"(from device pool grouping)</p>")
+    parts.append("<p><strong>Recommended:</strong> Provide base station inventory "
+                 "(MAC addresses and model) for each coverage zone.</p>")
+
+    for zone_name in sorted(zones):
+        count = len(zones[zone_name])
+        if count > 30:
+            parts.append(f"<p><strong>{zone_name}:</strong> {count} handsets \u2014 "
+                         f"multi-cell DBS-210 network recommended</p>")
+        else:
+            parts.append(f"<p><strong>{zone_name}:</strong> {count} handsets \u2014 "
+                         f"single-cell DBS-110 or multi-cell DBS-210</p>")
+
+    parts.append("</div>")
+
+    # --- Subsection 4: Shared handset warning (conditional) ---
+    unowned_total = sum(
+        1 for d in dect_devices
+        if not (d.get("pre_migration_state") or {}).get("ownerUserName")
+    )
+    if unowned_total:
+        parts.append("<h4>Shared Handset Warnings</h4>")
+        parts.append('<div class="callout">')
+        parts.append(
+            f"<p><strong>{unowned_total} DECT handset{'s' if unowned_total != 1 else ''} "
+            f"with no owner.</strong> These may be shared or roaming handsets that need "
+            f"workspace assignment in Webex.</p>"
+        )
+        parts.append("</div>")
+
+    parts.append("</details>")
     return "\n".join(parts)
