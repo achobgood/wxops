@@ -56,7 +56,9 @@ fresh agent invocation — do not resume agents via `SendMessage` for multi-phas
 | `.claude/skills/manage-devices/` | Skill: manage devices (phones, DECT, workspaces) |
 | `.claude/skills/device-platform/` | Skill: manage RoomOS device configs, workspace personalization, xAPI; also 9800-series phones (9811/9821/9841/9851/9861/9871) |
 | `.claude/skills/call-control/` | Skill: real-time call control, webhooks, XSI |
-| `.claude/skills/reporting/` | Skill: CDR, queue stats, call quality, reports |
+| `.claude/skills/reporting/` | Skill: CDR query engine (75 recipes + composition guide), report templates, recordings |
+| `.claude/skills/reporting-cc/` | Skill: Contact Center analytics (queue stats, agent stats, EWT, summaries) |
+| `.claude/skills/reporting-meetings/` | Skill: meetings quality, workspace metrics, historical analytics, live monitoring |
 | `.claude/skills/wxc-calling-debug/` | Skill: debug failing configurations |
 | `.claude/skills/manage-identity/` | Skill: SCIM sync, directory, groups, contacts, domains |
 | `.claude/skills/audit-compliance/` | Skill: audit events, security, compliance, authorizations |
