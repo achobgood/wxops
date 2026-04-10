@@ -607,6 +607,18 @@ Custom voicemail greetings stored in Unity Connection cannot be extracted for mi
 **Recommended action:** Convert MGCP to SIP (IOS-XE CUBE) or replace with ATA 192 devices. Convert H.323 to SIP trunk registration or certificate-based. This conversion must happen BEFORE the Webex trunk provisioning step (`severity=HIGH`).
 **See also:** [`pstn-connection-type`](#pstn-connection-type) (post-conversion the SIP trunk still needs LGW/CCPP classification), [`trunk-type-selection`](#trunk-type-selection) (post-conversion the trunk still needs REGISTERING vs CERTIFICATE_BASED), [`kb-trunk-pstn.md#dt-trunk-006`](../../knowledge-base/migration/kb-trunk-pstn.md#dt-trunk-006), [`kb-device-migration.md#dt-dev-004`](../../knowledge-base/migration/kb-device-migration.md#dt-dev-004), [Tuning Reference §Recipe 5](tuning-reference.md#recipe-5-analog-gateway-heavy-customer).
 
+#### voicemail-greeting-rerecording
+
+**Category:** out_of_scope
+**Triggered by:** `advisory_patterns.py` (`detect_voicemail_greeting_rerecording`) — fires when any `MISSING_DATA` decisions exist with `context.reason == "custom_greeting_not_extractable"`.
+**Detection signals:**
+- Counts `MISSING_DATA` decisions created by `voicemail_mapper.py` for users with custom busy or no-answer greetings in Unity Connection.
+- Severity: LOW (1-10 users), MEDIUM (11-50), HIGH (51+).
+**Why/impact:** Custom voicemail greetings are personal audio recordings stored in Unity Connection. They cannot be extracted or migrated to Webex Calling. Every affected user's greeting reverts to the system default on migration day. Without proactive communication, migration teams get flooded with helpdesk tickets ("My greeting is gone!").
+**Example:** 147 of 230 voicemail-enabled users have custom greetings. The advisory fires with severity HIGH and includes a count, user communication template, and re-recording instructions.
+**Recommended action:** Send user communication at least 1 week before migration. See Appendix H of the assessment report for a ready-to-send email template. Users re-record via Webex App > Settings > Calling > Voicemail > Greeting, or by dialing the voicemail access number.
+**See also:** [`missing-data`](#missing-data) (`custom_greeting_not_extractable` reason), [`kb-user-settings.md`](../../knowledge-base/migration/kb-user-settings.md) (Voicemail Greeting Migration Gap section).
+
 ### migrate-as-is
 
 #### device-bulk-upgrade
