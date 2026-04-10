@@ -1,6 +1,10 @@
 # Location Architecture: Migration Knowledge Base
 <!-- Last verified: 2026-03-28 -->
 
+> **Audience:** Migration advisor agent (Opus) and cold-context Claude sessions looking up dissent triggers, decision context, and Webex constraints for device pool consolidation, location architecture, and E911 decisions.
+> **Reading mode:** Reference. Grep by `DT-LOC-NNN` ID for dissent triggers, OR read `## Decision Framework` end-to-end when the migration-advisor agent loads this doc during analysis.
+> **See also:** [Operator Runbook](../../runbooks/cucm-migration/operator-runbook.md) · [Decision Guide](../../runbooks/cucm-migration/decision-guide.md) · [Tuning Reference](../../runbooks/cucm-migration/tuning-reference.md)
+
 ## Decision Framework
 
 ### LOCATION_AMBIGUOUS
@@ -193,7 +197,9 @@ Even after waiting, delete may return 409 for minutes to hours. Re-run cleanup t
 
 **Condition:** `LOCATION_AMBIGUOUS` with `dependent_device_count` of 1-3 AND `has_address=False`.
 
-**Why this matters:** The static rule handles this correctly -- it always recommends `provide_address` regardless of device count. However, an advisor reviewing this might deprioritize it because "it's only 1-3 devices." The advisor should SUPPORT and ESCALATE the static rule's recommendation.
+**Why this matters:** The static rule handles this correctly -- it always recommends `provide_address` regardless of device count. However, an advisor reviewing this might deprioritize it because "it's only 1-3 devices."
+
+**Advisor should:** SUPPORT and ESCALATE the static rule's `provide_address` recommendation — do not override or deprioritize it. Device count is irrelevant for E911 compliance; even a single device without a validated dispatchable address is a Kari's Law / RAY BAUM's Act violation (see Reasoning below).
 
 **Reasoning:** Even 1 device without an E911 address is a compliance violation:
 - **Kari's Law** (U.S. Public Law 115-127): requires notification capability for ALL emergency calls, which requires the location to exist with proper configuration <!-- Source: emergency-services.md §1 -->
@@ -216,6 +222,54 @@ A single phone at a location without a validated emergency address means a 911 c
 **Test:** Construct a LOCATION_AMBIGUOUS decision with `dependent_device_count=4` and context indicating all devices are gateway models. Verify the advisor recommends `skip` rather than `provide_address`.
 
 **Confidence:** MEDIUM (depends on ability to classify device types from context)
+
+### DT-LOC-004: Media Infrastructure Scope Removal Has Residual Location MoH Impact
+
+**Condition:** `detect_media_resource_scope_removal` (`advisory_patterns.py:430`) fires because one or more device pools reference a Media Resource Group List — AND the migration includes more than one Webex location destination — AND custom MoH audio was in use on the CUCM MOH server(s) being decommissioned.
+
+**Why the static rule misses this:** The `detect_media_resource_scope_removal` pattern fires `INFO` and correctly tells the operator to drop MRGLs, conference bridges, and transcoders from scope. The advisory detail (`advisory_patterns.py:458-461`) mentions "verify that Webex's default MOH audio meets your requirements (custom MOH can be uploaded per location via `wxcli announcements`)." However, this is a single-sentence action item buried in an INFO finding about scope removal. It does not flag that Webex MoH is configured independently per location (`api.telephony.location.moh`, `location-call-settings-core.md` lines 386-444), and it does not flag the voicemail PSTN access dependency (Unity Connection routes voicemail-retrieval calls through the CUCM dial plan; after cutover, those calls route through Webex). When multiple locations each had distinct custom MoH audio on the CUCM server, each Webex location must be configured individually — the scope-removal finding gives no guidance on that scope of work.
+
+**Advisor should:** When `detect_media_resource_scope_removal` fires AND the migration has more than one location, escalate severity from INFO to MEDIUM and add two explicit action items:
+1. For each Webex location, check whether the source CUCM device pool had a custom MOH audio file on the MRGL's MOH server. If yes, upload the audio to that Webex location via `wxcli announcements upload` and configure it with `wxcli location-settings update-music-on-hold --greeting CUSTOM`. Do this before cutover — the default system greeting plays immediately after the location is created.
+2. Verify voicemail pilot DN routing. If Unity Connection is being decommissioned alongside the media infrastructure, the per-location voice portal number (`wxcli location-voicemail show-voice-portal`) must be validated before cutover. Voicemail-retrieval calls that previously routed through CUCM → Unity Connection must now resolve through the Webex dial plan.
+
+**Signals to look for:** More than one location in the migration plan AND any device pool's MRGL name contains "MOH" or "MusicOnHold". Also: any voicemail pilot object whose `pre_migration_state` references the same server as an MRGL component (indicates Unity Connection and MOH server are co-located).
+
+**Confidence:** MEDIUM — the MoH upload requirement is grounded in `location-call-settings-core.md` lines 386-444 (`LocationMoHApi`, `SYSTEM`/`CUSTOM` enum, `wxcli location-settings update-music-on-hold`). The voicemail cutover dependency is inferred from the architecture (Unity Connection PSTN routing through CUCM dial plan) but not explicitly documented in a reference doc.
+
+---
+
+### DT-LOC-005: Location Consolidation Forces ERL Remap as Hard Prerequisite
+
+**Condition:** `detect_location_consolidation` (`advisory_patterns.py:225`) recommends collapsing multiple CUCM device pools into fewer Webex locations — AND `detect_e911_migration_flag` (`advisory_patterns.py:1066`) has also fired (E911/CER signals detected or the always-fires warning is present).
+
+**Why the static rule misses this:** `detect_e911_migration_flag` fires independently of `detect_location_consolidation`. Its recommendation is to "initiate a separate E911 workstream in parallel" (`advisory_patterns.py:1104-1110`). This is correct in isolation, but it treats E911 as a parallel track that can proceed independently. The cross-pattern interaction it misses: when location consolidation reduces N device pools to M Webex locations (M < N), every CER Emergency Response Location (ERL) that was mapped to one of the consolidated device pools must be remapped to the consolidated Webex location. In Webex, emergency addresses are location-scoped (`EmergencyAddressApi.add_to_location`, `emergency-services.md` lines 138-163); per-number overrides exist (`update_for_phone_number`, `emergency-services.md` lines 221-222) but require explicit assignment per phone number. The ERL-to-location mapping in CER cannot be assumed to survive consolidation — it must be explicitly re-verified and re-configured.
+
+**Advisor should:** When both patterns fire in the same migration run, add a cross-pattern finding that blocks the consolidation recommendation from being auto-accepted until the E911 workstream has explicitly mapped each consolidated location's emergency address. Specifically:
+1. For each proposed consolidation (N pools → 1 Webex location), enumerate the distinct CER ERL names that were assigned to the source device pools.
+2. If those ERLs had different civic addresses or different ELIN ranges, the consolidation creates a single Webex location that can only carry one validated emergency address as its default. Any phones that need a different dispatchable address must be assigned per-number overrides.
+3. The E911 workstream must complete the `lookup_for_location` → `add_to_location` sequence for the consolidated location BEFORE the location is used for cutover. This is a hard prerequisite, not a follow-up task.
+
+**Signals to look for:** Both `location_consolidation` and `e911_migration_flag` present in the same advisory run. MRGL names or partition names containing "ERL", "ELIN", or "CER". More than one distinct address value in the source device pools that are being consolidated.
+
+**Confidence:** HIGH — grounded in `emergency-services.md` lines 119-122 (location-level vs. phone-number-level emergency addresses), lines 595-596 (multi-building/multi-floor per-number override requirement), and `advisory_patterns.py:1066` (`detect_e911_migration_flag` always-fires design). The cross-pattern interaction is a structural consequence of two verified independent behaviors.
+
+---
+
+### DT-LOC-006: Location Architecture for Workspace Tier Affects Location-Level Call Recording
+
+**Condition:** `recommend_workspace_license_tier` (`recommendation_rules.py:103`) recommends `"basic"` for one or more workspaces at a given location — AND the location has a call recording setting enabled (`/telephony/config/locations/{locationId}/callRecording`) — OR — the `detect_recording_enabled_users` pattern (`advisory_patterns.py:1143`) fires for users at the same location.
+
+**Why the static rule misses this:** `recommend_workspace_license_tier` (`recommendation_rules.py:103-118`) checks `features_detected` against `_PROFESSIONAL_FEATURES`. The set `_PROFESSIONAL_FEATURES` includes `"callRecording"` (`recommendation_rules.py:18`), so a workspace with explicit call recording configured WILL be recommended as Professional. However, the rule operates per-workspace from the CUCM phone's feature inventory — it cannot see the location-level call recording configuration that would be applied to ALL workspaces at that location once the Webex location is provisioned. A workspace that had no individual CUCM recording setting may still inherit location-level Webex call recording after migration, requiring a Professional license. Additionally, Basic workspaces return 405 on the `/telephony/config/workspaces/{id}/callRecording` endpoint (`devices-workspaces.md` lines 1374, 1352). A location with a mix of Professional and Basic workspaces cannot apply a blanket location-level call recording policy — the Basic workspaces silently fail to record.
+
+**Advisor should:** When any workspaces at a location are recommended as `"basic"` AND the location's recording pattern (from `detect_recording_enabled_users`) or location-level recording config indicates recording is required, flag this as a location-architecture concern:
+1. Basic workspaces cannot participate in `/telephony/config/workspaces/{id}/callRecording` (returns 405 "Invalid Professional Place"). Source: `devices-workspaces.md` lines 1352, 1374.
+2. If compliance recording (FINRA, MiFID II, HIPAA) applies to this location, ALL workspaces at that location should be provisioned as Professional — not only those that had individual CUCM recording flags.
+3. Upgrade the recommendation from `"basic"` to `"professional"` for workspaces at recording-required locations, and document the reason as location-level compliance recording rather than per-workspace feature detection.
+
+**Signals to look for:** `recommend_workspace_license_tier` returning `"basic"` for workspaces at a location where `detect_recording_enabled_users` also fired. Any location where a subset of phones had `recordingFlag != "Call Recording Disabled"` and another subset had `recordingFlag == "Call Recording Disabled"` — the mixed state indicates the `basic` recommendation may apply to the non-recording phones, which is correct per-device but wrong in the location context.
+
+**Confidence:** MEDIUM — the 405 behavior for Basic workspace call recording is grounded in `devices-workspaces.md` lines 1352, 1374 (endpoint access by license tier table). The location-level recording inheritance logic is inferred from the location-architecture design, not from an explicit reference doc statement.
 
 ---
 

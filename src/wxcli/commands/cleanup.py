@@ -152,6 +152,12 @@ RESOURCE_TYPES: dict[str, ResourceType] = {
         delete_url="/people/{id}",
         name_field="displayName",
     ),
+    "numbers": ResourceType(
+        name="Numbers",
+        list_url="/telephony/config/numbers",
+        item_key="phoneNumbers",
+        delete_url="/telephony/config/locations/{location_id}/numbers",
+    ),
     "locations": ResourceType(
         name="Locations",
         list_url="/locations",
@@ -174,7 +180,8 @@ DELETION_LAYERS: list[list[str]] = [
     ["devices"],                         # Layer 9
     ["workspaces"],                      # Layer 10: must delete before disable-calling
     ["users"],                           # Layer 11: opt-in via --include-users
-    ["locations"],                       # Layer 12: disable calling first, then delete
+    ["numbers"],                         # Layer 12: remove numbers before location deletion
+    ["locations"],                       # Layer 13: disable calling first, then delete
 ]
 
 
@@ -254,6 +261,8 @@ def build_inventory(
                 continue
             if key == "locations" and not include_locations:
                 continue
+            if key == "numbers":
+                continue  # numbers populated separately by build_number_inventory
 
             rt = RESOURCE_TYPES[key]
             items = list_resources(api, rt, org_id, location_ids, scope_filter=scope_filter)
@@ -412,6 +421,88 @@ def delete_location(
 
 
 # ---------------------------------------------------------------------------
+# Number removal
+# ---------------------------------------------------------------------------
+
+def list_location_numbers(
+    api,
+    location_id: str,
+    org_id: str | None,
+) -> list[dict]:
+    """List phone numbers assigned to a location."""
+    url = f"{BASE}/telephony/config/numbers"
+    params = {"locationId": location_id}
+    if org_id:
+        params["orgId"] = org_id
+    try:
+        result = api.session.rest_get(url, params=params)
+        if isinstance(result, dict):
+            return result.get("phoneNumbers", [])
+        return result if isinstance(result, list) else []
+    except RestError as e:
+        logger.warning("Failed to list numbers for location %s: %s", location_id, e)
+        return []
+
+
+def delete_location_numbers(
+    api,
+    location_id: str,
+    phone_numbers: list[str],
+    org_id: str | None,
+) -> list[DeleteResult]:
+    """Delete phone numbers from a location in batches of 5 (API limit)."""
+    results: list[DeleteResult] = []
+    url = f"{BASE}/telephony/config/locations/{location_id}/numbers"
+    params = {}
+    if org_id:
+        params["orgId"] = org_id
+
+    # API allows max 5 numbers per request
+    for i in range(0, len(phone_numbers), 5):
+        batch = phone_numbers[i:i + 5]
+        try:
+            api.session.rest_delete(url, params=params, json={"phoneNumbers": batch})
+            for num in batch:
+                results.append(DeleteResult(
+                    resource_type="Numbers",
+                    resource_id=num,
+                    resource_name=num,
+                    success=True,
+                ))
+        except RestError as e:
+            for num in batch:
+                results.append(DeleteResult(
+                    resource_type="Numbers",
+                    resource_id=num,
+                    resource_name=num,
+                    success=False,
+                    error=str(e),
+                ))
+    return results
+
+
+def build_number_inventory(
+    api,
+    location_ids: list[str],
+    org_id: str | None,
+) -> dict[str, list[str]]:
+    """Build a map of location_id -> [phone_numbers] for cleanup.
+
+    Returns only locations that have numbers to remove.
+    """
+    inventory: dict[str, list[str]] = {}
+    for loc_id in location_ids:
+        numbers = list_location_numbers(api, loc_id, org_id)
+        phone_nums = [
+            n["phoneNumber"] for n in numbers
+            if n.get("phoneNumber") and n.get("mainNumber") is not True
+        ]
+        if phone_nums:
+            inventory[loc_id] = phone_nums
+    return inventory
+
+
+# ---------------------------------------------------------------------------
 # Formatters
 # ---------------------------------------------------------------------------
 
@@ -498,6 +589,10 @@ def cleanup_run(
         False, "--include-locations",
         help="Also delete locations (destructive — disabled by default).",
     ),
+    exclude_user_domains: str = typer.Option(
+        None, "--exclude-user-domains",
+        help="Comma-separated email domains to exclude from user deletion (e.g. 'wbx.ai,corp.com').",
+    ),
     dry_run: bool = typer.Option(
         False, "--dry-run",
         help="Show what would be deleted without actually deleting.",
@@ -517,7 +612,8 @@ def cleanup_run(
     Examples:
       wxcli cleanup run --scope "HQ,Branch" --dry-run
       wxcli cleanup run --scope "HQ" --include-users --force
-      wxcli cleanup run --all --force
+      wxcli cleanup run --all --include-locations --force
+      wxcli cleanup run --all --include-users --exclude-user-domains "wbx.ai,corp.com"
     """
     if not scope and not all_resources:
         console.print(
@@ -561,6 +657,42 @@ def cleanup_run(
         scope_filter=is_scoped,
     )
 
+    # Filter users by excluded domains
+    if exclude_user_domains and "users" in inventory:
+        excluded = {d.strip().lower() for d in exclude_user_domains.split(",")}
+        before = len(inventory["users"])
+
+        def _user_matches_excluded(user: dict) -> bool:
+            # People API returns emails as a list
+            emails = user.get("emails", [])
+            if not emails:
+                return False
+            primary = emails[0].lower() if isinstance(emails, list) else str(emails).lower()
+            domain = primary.split("@")[-1]
+            return any(domain == d or domain.endswith(f".{d}") for d in excluded)
+
+        inventory["users"] = [u for u in inventory["users"] if not _user_matches_excluded(u)]
+        filtered = before - len(inventory["users"])
+        if filtered:
+            console.print(f"  Excluded {filtered} users matching domains: {', '.join(sorted(excluded))}")
+        if not inventory["users"]:
+            del inventory["users"]
+
+    # Build number inventory for locations (needed for Layer 12)
+    number_inventory: dict[str, list[str]] = {}
+    if include_locations:
+        console.print("[bold]Checking for phone numbers on locations...[/bold]")
+        number_inventory = build_number_inventory(api, all_location_ids, org_id)
+        total_nums = sum(len(v) for v in number_inventory.values())
+        if total_nums:
+            console.print(f"  Found {total_nums} number(s) across {len(number_inventory)} location(s)")
+            # Add to inventory for dry-run display
+            inventory["numbers"] = [
+                {"id": num, "name": num, "locationId": loc_id}
+                for loc_id, nums in number_inventory.items()
+                for num in nums
+            ]
+
     if not inventory:
         console.print("[green]Nothing to delete — org is clean.[/green]")
         return
@@ -588,19 +720,32 @@ def cleanup_run(
         if not has_work:
             continue
 
-        # Skip users/locations layers if not included
+        # Skip users/locations/numbers layers if not included
         if "users" in layer_keys and not include_users:
             continue
         if "locations" in layer_keys and not include_locations:
+            continue
+        if "numbers" in layer_keys and not include_locations:
             continue
 
         layer_names = [RESOURCE_TYPES[k].name for k in layer_keys if k in inventory]
         console.print(f"\n[bold]Layer {i + 1}:[/bold] {', '.join(layer_names)}")
 
+        # Special handling for numbers: delete per-location with batched body
+        if "numbers" in layer_keys and number_inventory:
+            for loc_id, phone_nums in number_inventory.items():
+                console.print(f"  Removing {len(phone_nums)} number(s) from location {loc_id[:12]}...")
+                num_results = delete_location_numbers(api, loc_id, phone_nums, org_id)
+                all_results.extend(num_results)
+                ok = sum(1 for r in num_results if r.success)
+                fail = sum(1 for r in num_results if not r.success)
+                console.print(f"    {ok} removed, {fail} failed")
+            continue
+
         # Special handling for locations: disable calling first, then wait, then delete
         if "locations" in layer_keys and "locations" in inventory:
             loc_items = inventory["locations"]
-            # Phase 1: disable calling
+            # Phase 1: disable calling (best-effort — may already be off)
             console.print("  Disabling calling on locations...")
             disable_results = []
             with ThreadPoolExecutor(max_workers=max_concurrent) as executor:
@@ -616,24 +761,26 @@ def cleanup_run(
             disabled_ok = [r for r in disable_results if r.success]
             console.print(f"  Disabled calling on {len(disabled_ok)}/{len(loc_items)} locations")
 
+            # Phase 2: wait only if any disables actually succeeded
             if disabled_ok:
                 console.print("  Waiting 90s for backend propagation...")
                 time.sleep(90)
 
-            # Phase 2: delete locations
+            # Phase 3: attempt to delete ALL locations regardless of disable result
             console.print("  Deleting locations...")
             with ThreadPoolExecutor(max_workers=max_concurrent) as executor:
                 futures = {
                     executor.submit(delete_location, api, item, org_id): item
                     for item in loc_items
-                    if any(r.resource_id == item["id"] and r.success for r in disable_results)
                 }
                 for future in as_completed(futures):
                     all_results.append(future.result())
+            loc_ok = sum(1 for r in all_results if r.resource_type == "Locations" and r.success)
+            loc_fail = sum(1 for r in all_results if r.resource_type == "Locations" and not r.success)
+            console.print(f"  Done: {loc_ok} deleted, {loc_fail} failed")
             continue
 
         results = execute_layer(api, layer_keys, inventory, org_id, max_concurrent)
-        all_results.extend(results)
 
         successes = sum(1 for r in results if r.success)
         failures = sum(1 for r in results if not r.success)

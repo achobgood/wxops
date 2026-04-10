@@ -23,11 +23,11 @@ analysis_pipeline.py run()
 
 **Layer 1 — Per-Decision Recommendations.** Every decision the pipeline produces (from mappers and analyzers) gets an optional `recommendation` field: which option the system advises, and `recommendation_reasoning`: why. Populated by `populate_recommendations()` which calls into `recommendation_rules.py`. One function per DecisionType (16 total). Returns `(option_id, reasoning)` or `None` for genuinely ambiguous cases.
 
-**Layer 2 — Cross-Cutting Advisor.** The `ArchitectureAdvisor` runs after all 12 analyzers have merged their decisions. It reads the full canonical model plus all prior decisions and produces `ARCHITECTURE_ADVISORY` decisions for patterns spanning multiple objects — things like "6 of your 14 CSSes are restriction-only and should be calling permissions, not dial plans" or "your trunk topology indicates Local Gateway, not Cloud Connected PSTN."
+**Layer 2 — Cross-Cutting Advisor.** The `ArchitectureAdvisor` runs after all 13 analyzers have merged their decisions. It reads the full canonical model plus all prior decisions and produces `ARCHITECTURE_ADVISORY` decisions for patterns spanning multiple objects — things like "6 of your 14 CSSes are restriction-only and should be calling permissions, not dial plans" or "your trunk topology indicates Local Gateway, not Cloud Connected PSTN."
 
 ## Why Two Phases
 
-The ArchitectureAdvisor needs to read decisions from the first 12 analyzers (e.g., Pattern 4 groups DEVICE_INCOMPATIBLE decisions by model for bulk upgrade planning). In a single-phase design, analyzer decisions aren't in the store until after ALL analyzers run — so the ArchitectureAdvisor would see nothing. The two-phase approach merges Phase 1 decisions first, then runs Phase 2 against the populated store.
+The ArchitectureAdvisor needs to read decisions from the first 13 analyzers (e.g., Pattern 4 groups DEVICE_INCOMPATIBLE decisions by model for bulk upgrade planning). In a single-phase design, analyzer decisions aren't in the store until after ALL analyzers run — so the ArchitectureAdvisor would see nothing. The two-phase approach merges Phase 1 decisions first, then runs Phase 2 against the populated store.
 
 Advisory decisions are merged separately using `decision_types=[ARCHITECTURE_ADVISORY]` and `stage="advisory"` so they don't stale-mark the Phase 1 decisions.
 
@@ -37,7 +37,7 @@ Advisory decisions are merged separately using `decision_types=[ARCHITECTURE_ADV
 |------|---------|
 | `__init__.py` | Exports `populate_recommendations()` and `ArchitectureAdvisor` |
 | `recommendation_rules.py` | 19 recommendation functions (one per DecisionType) + `RECOMMENDATION_DISPATCH` dict |
-| `advisory_patterns.py` | 20 cross-cutting pattern detectors + `AdvisoryFinding` dataclass + `ALL_ADVISORY_PATTERNS` list |
+| `advisory_patterns.py` | 26 cross-cutting pattern detectors + `AdvisoryFinding` dataclass + `ALL_ADVISORY_PATTERNS` list |
 | `advisor.py` | `ArchitectureAdvisor` class (extends Analyzer ABC) |
 
 ## Decision Model Fields
@@ -70,7 +70,7 @@ Ambiguous cases return `None`. Honest uncertainty is a feature.
 
 ## Cross-Cutting Advisory Patterns (Layer 2)
 
-`advisory_patterns.py` has 20 pattern detector functions. Each takes a `MigrationStore` and returns `list[AdvisoryFinding]`.
+`advisory_patterns.py` has 26 pattern detector functions. Each takes a `MigrationStore` and returns `list[AdvisoryFinding]`.
 
 **Critical patterns (highest migration impact):**
 1. **Partition Ordering Loss** — CSSes that depend on partition ordering to resolve overlapping patterns. Webex uses longest-match routing — no ordering equivalent. Calls may route differently after migration.
@@ -129,7 +129,7 @@ The `category` field classifies advisories into the migration decision framework
 
 **Pattern 16 (E911) always fires**, even on empty stores. When no E911 signals are detected, it produces a warning that CER data may not be visible via AXL. This is by design per the spec's "if detection data is sparse" guidance.
 
-**Test count:** 42 tests (35 pattern + 7 advisor). The prompt estimated ~50; the actual count is lower because some patterns share positive/negative cases and the simpler patterns need fewer test scenarios.
+**Test count:** 81 tests (35 pattern + 7 advisor + 39 new-pattern/rule tests). The prompt estimated ~50; the actual count is lower because some patterns share positive/negative cases and the simpler patterns need fewer test scenarios.
 
 ## Pipeline Integration (Phase 13d — COMPLETE)
 

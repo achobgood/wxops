@@ -55,11 +55,13 @@ class LineClassification(str, Enum):
 
 
 class DeviceCompatibilityTier(str, Enum):
-    """Three-tier device model compatibility classification.
+    """Five-tier device model compatibility classification.
     (from 03b-transform-mappers.md, device_mapper compatibility table lines 270-274)
     """
     NATIVE_MPP = "native_mpp"
     CONVERTIBLE = "convertible"
+    WEBEX_APP = "webex_app"
+    INFRASTRUCTURE = "infrastructure"
     INCOMPATIBLE = "incompatible"
 
 
@@ -151,7 +153,13 @@ class Decision(BaseModel):
     options: list[DecisionOption]       # Available resolution options
     chosen_option: str | None = None    # Set when resolved
     resolved_at: str | None = None
-    resolved_by: str | None = None      # "user" or "auto_rule"
+    # Production writers set one of: "user" (interactive CLI resolve),
+    # "auto_rule" (unified auto-matcher), "batch" (batch --choice resolve),
+    # "stale" (superseded by a fingerprint re-run). Historical stored rows
+    # from projects predating the Bug F unification may still carry the
+    # legacy "auto_apply" marker — new filter/report code should treat it
+    # as equivalent to "auto_rule" for backwards compatibility.
+    resolved_by: str | None = None
     fingerprint: str                    # Hash of causal data
     run_id: str                         # Analysis run identifier
     affected_objects: list[str] = Field(default_factory=list)  # canonical_ids affected

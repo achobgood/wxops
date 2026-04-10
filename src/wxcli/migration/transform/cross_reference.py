@@ -36,7 +36,7 @@ def _now() -> datetime:
 
 
 # ---------------------------------------------------------------------------
-# Phone model compatibility table (three-tier classification)
+# Phone model compatibility table (four-tier classification)
 # (from cucm-wxc-migration.md lines 363-369)
 # ---------------------------------------------------------------------------
 
@@ -75,12 +75,30 @@ _CONVERTIBLE_PATTERNS = {
     "Cisco IP Phone 8845", "Cisco IP Phone 8865",
 }
 
+# Software phones / soft clients — these transition to Webex App, not incompatible.
+# Users keep their number/extension and use Webex App for calling.
+_WEBEX_APP_KEYWORDS = [
+    "jabber", "dual mode", "client services framework",
+    "ip communicator", "softphone", "soft phone",
+    # Video endpoints that transition to Webex Desk / RoomOS
+    "telepresence", "dx70", "dx80", "dx650",
+]
+
+# Infrastructure devices — CUCM-only, not user phones, not migrated.
+# Noted in reports but don't generate decisions or migration operations.
+_INFRASTRUCTURE_KEYWORDS = [
+    "cti port", "cti route point", "cti remote device",
+    "cer ", "analog phone", "media termination point",
+    "conference bridge", "music on hold", "mtp",
+    "route point", "gateway",
+]
+
 # Everything else is incompatible
-# (79xx, 99xx, 69xx, 39xx series, legacy TelePresence, third-party phones)
+# (79xx, 99xx, 69xx, 39xx series, third-party phones)
 
 
 def classify_phone_model(model: str | None) -> DeviceCompatibilityTier:
-    """Classify a CUCM phone model into the three-tier compatibility system.
+    """Classify a CUCM phone model into the five-tier compatibility system.
 
     (from cucm-wxc-migration.md lines 363-369, Phone Model Compatibility table)
     """
@@ -94,6 +112,16 @@ def classify_phone_model(model: str | None) -> DeviceCompatibilityTier:
     # Check convertible
     if model in _CONVERTIBLE_PATTERNS:
         return DeviceCompatibilityTier.CONVERTIBLE
+
+    model_lower = model.lower()
+
+    # Check for infrastructure devices (CTI ports, gateways, media resources)
+    if any(kw in model_lower for kw in _INFRASTRUCTURE_KEYWORDS):
+        return DeviceCompatibilityTier.INFRASTRUCTURE
+
+    # Check for software phones / soft clients → Webex App transition
+    if any(kw in model_lower for kw in _WEBEX_APP_KEYWORDS):
+        return DeviceCompatibilityTier.WEBEX_APP
 
     # Check for MPP suffix pattern (some models include "MPP" in the name).
     # Exclude known-incompatible models that might have MPP firmware loaded.
@@ -880,7 +908,7 @@ class CrossReferenceBuilder:
     def _classify_phone_models(self) -> int:
         """Classify all devices by model compatibility tier.
 
-        (from 02-normalization-architecture.md: "apply the three-tier firmware
+        (from 02-normalization-architecture.md: "apply the four-tier firmware
          compatibility table")
         (from cucm-wxc-migration.md lines 363-369)
         """

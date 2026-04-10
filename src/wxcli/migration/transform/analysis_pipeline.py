@@ -1,4 +1,4 @@
-"""Analysis pipeline — runs all 12 analyzers, then auto-rules, then merge.
+"""Analysis pipeline — runs all 13 analyzers, then auto-rules, then merge.
 
 Orchestrates the conflict detection engine. Each analyzer sweeps the
 mapped inventory independently and produces Decision objects. After all
@@ -58,6 +58,67 @@ ALL_ANALYZERS: list[type[Analyzer]] = [
 ]
 
 
+def enrich_cross_decision_context(store: MigrationStore) -> int:
+    """Enrich pending MISSING_DATA decisions with cross-decision context.
+
+    For each non-stale MISSING_DATA decision, set::
+
+        context["is_on_incompatible_device"] = bool
+
+    based on whether the MD decision's ``canonical_id`` or any of its
+    ``_affected_objects`` appears in the set of canonical_ids that have a
+    non-stale DEVICE_INCOMPATIBLE decision.
+
+    Returns the count of MISSING_DATA decisions that were written.
+    (DEVICE_INCOMPATIBLE decisions are read but not modified.)
+
+    Idempotent: re-running with the same store state produces the same
+    field values. Fingerprint-safe: the enriched field is NOT part of
+    MissingDataAnalyzer.fingerprint() (which hashes only type +
+    canonical_id + sorted(missing_fields)), so subsequent merge_decisions()
+    runs cannot stale-mark enriched decisions.
+    """
+    all_decisions = store.get_all_decisions()
+
+    # Collect canonical_ids of non-stale DEVICE_INCOMPATIBLE decisions.
+    incompatible_ids: set[str] = set()
+    for d in all_decisions:
+        if d.get("type") != "DEVICE_INCOMPATIBLE":
+            continue
+        if d.get("chosen_option") == "__stale__":
+            continue
+        ctx = d.get("context", {})
+        # Collect from all three places an analyzer might write a device
+        # identifier: _affected_objects (DeviceCompatibilityAnalyzer),
+        # device_id (legacy mapper-produced context), canonical_id (direct).
+        # We take the union; overlap is harmless because incompatible_ids is a set.
+        for obj_id in ctx.get("_affected_objects", []):
+            incompatible_ids.add(obj_id)
+        if ctx.get("device_id"):
+            incompatible_ids.add(ctx["device_id"])
+        if ctx.get("canonical_id"):
+            incompatible_ids.add(ctx["canonical_id"])
+
+    updated = 0
+    for d in all_decisions:
+        if d.get("type") != "MISSING_DATA":
+            continue
+        if d.get("chosen_option") == "__stale__":
+            continue
+        ctx = dict(d.get("context", {}))
+        canonical_id = ctx.get("canonical_id")
+        affected = ctx.get("_affected_objects", [])
+        hit = bool(
+            (canonical_id and canonical_id in incompatible_ids)
+            or any(aid in incompatible_ids for aid in affected)
+        )
+        ctx["is_on_incompatible_device"] = hit
+        store.update_decision_context(d["decision_id"], ctx)
+        updated += 1
+
+    return updated
+
+
 class AnalysisPipeline:
     """Runs all analyzers in dependency order, collects decisions.
 
@@ -79,24 +140,28 @@ class AnalysisPipeline:
         self.config = config or {}
 
     def run(self, store: MigrationStore) -> AnalysisResult:
-        """Run all analyzers, apply auto-rules, merge decisions.
+        """Run all analyzers, merge decisions, enrich, apply rules, run advisor.
 
         Steps:
         1. Sort analyzers by depends_on (topological)
         2. Run each analyzer, collect decisions
-        3. Apply auto-resolution rules from config
-        4. Merge new decisions with existing (fingerprint-based)
+        3. Merge new decisions with existing (fingerprint-based)
+        4. Enrich cross-decision context (is_on_incompatible_device)
+        5. Apply auto-resolution rules from config
+        6. Run ArchitectureAdvisor (Phase 2)
+        7. Populate recommendations on all decisions
+        8. Transition shared_line objects from normalized → analyzed
 
         Returns AnalysisResult with all decisions and per-analyzer stats.
         """
-        # Instantiate and sort by dependencies
+        # Step 1: Instantiate and sort analyzers by dependencies
         instances = [cls() for cls in self.analyzer_classes]
         sorted_analyzers = self._sort_by_dependencies(instances)
 
         all_decisions: list[Decision] = []
         stats: dict[str, int] = {}
 
-        # Step 1: Run each analyzer
+        # Step 2: Run each analyzer
         for analyzer in sorted_analyzers:
             analyzer_name = analyzer.name or type(analyzer).__name__
             logger.info("Running analyzer: %s", analyzer_name)
@@ -118,7 +183,7 @@ class AnalysisPipeline:
                 )
                 stats[analyzer_name] = -1  # -1 signals failure
 
-        # Step 2: Convert to store dicts for merge
+        # Convert to store dicts for merge
         new_decision_dicts = [decision_to_store_dict(d) for d in all_decisions]
 
         # Step 3: Merge with existing decisions (fingerprint-based)
@@ -139,7 +204,22 @@ class AnalysisPipeline:
             merge_result["invalidated"],
         )
 
-        # Step 4: Apply auto-resolution rules
+        # Step 4: Enrich cross-decision context.
+        # Writes is_on_incompatible_device into every non-stale MISSING_DATA
+        # decision based on the current set of DEVICE_INCOMPATIBLE decisions.
+        # Runs between merge and auto-rules so config rules can match the
+        # enriched field. Fingerprint-safe (MissingDataAnalyzer.fingerprint()
+        # does not hash the full context). Exceptions propagate intentionally:
+        # a failure here would silently skip every MISSING_DATA auto-rule,
+        # which is the exact shape of the Bug F silent-skip bug we're fixing.
+        enriched = enrich_cross_decision_context(store)
+        if enriched:
+            logger.info(
+                "Cross-decision enrichment: %d MISSING_DATA decisions updated",
+                enriched,
+            )
+
+        # Step 5: Apply auto-resolution rules
         try:
             auto_resolved = apply_auto_rules(store, self.config)
             if auto_resolved:
@@ -147,7 +227,7 @@ class AnalysisPipeline:
         except Exception as exc:
             logger.warning("Auto-rules failed: %s", exc)
 
-        # Step 5: Phase 2 — Run ArchitectureAdvisor (reads merged decisions from store)
+        # Step 6: Phase 2 — Run ArchitectureAdvisor (reads merged decisions from store)
         from wxcli.migration.advisory.advisor import ArchitectureAdvisor
         advisor = ArchitectureAdvisor()
         logger.info("Running advisor: architecture_advisor")
@@ -176,13 +256,23 @@ class AnalysisPipeline:
             )
             stats["architecture_advisor"] = -1
 
-        # Step 6: Populate recommendations on ALL decisions (Phase 1 + Phase 2)
+        # Step 6b: Re-run auto-rules to catch ARCHITECTURE_ADVISORY decisions
+        # (created in step 6, after the initial auto-rules pass in step 5)
+        try:
+            advisory_auto = apply_auto_rules(store, self.config)
+            if advisory_auto:
+                logger.info("Auto-rules (post-advisory) resolved %d decisions", advisory_auto)
+                auto_resolved += advisory_auto
+        except Exception as exc:
+            logger.warning("Auto-rules (post-advisory) failed: %s", exc)
+
+        # Step 7: Populate recommendations on ALL decisions (Phase 1 + Phase 2)
         from wxcli.migration.advisory import populate_recommendations
         rec_count = populate_recommendations(store)
         if rec_count:
             logger.info("Advisory: %d recommendations populated", rec_count)
 
-        # Step 7: Transition shared_line objects from normalized → analyzed
+        # Step 8: Transition shared_line objects from normalized → analyzed
         # Shared lines are created by the cross-reference builder at normalized
         # status. No mapper processes them. Transition to analyzed so the
         # planner can expand them into configure operations.
@@ -304,6 +394,14 @@ class AnalysisPipeline:
             else:
                 new_count += 1
             store.save_decision(d)
+
+        # Enrich cross-decision context for cascade-produced MD decisions.
+        # A LOCATION_AMBIGUOUS → MISSING_DATA cascade would otherwise leave
+        # newly-produced MD decisions without is_on_incompatible_device.
+        try:
+            enrich_cross_decision_context(store)
+        except Exception as exc:
+            logger.warning("Cross-decision enrichment (cascade) failed: %s", exc)
 
         # Step 5: Build warnings
         # (from 06-decision-workflow.md lines 173-183)

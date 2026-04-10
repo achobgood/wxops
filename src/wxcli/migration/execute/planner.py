@@ -235,7 +235,7 @@ def _expand_device(obj: dict[str, Any]) -> list[MigrationOp]:
     """
     cid = obj["canonical_id"]
     # Skip devices with non-Webex models (CSF soft phones, analog, ATA)
-    if obj.get("model") in _NON_WEBEX_DEVICE_MODELS:
+    if obj.get("compatibility_tier") in ("webex_app", "infrastructure") or obj.get("model") in _NON_WEBEX_DEVICE_MODELS:
         return []
     name = obj.get("display_name") or obj.get("mac") or cid
     owner_cid = obj.get("owner_canonical_id")

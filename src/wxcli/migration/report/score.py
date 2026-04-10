@@ -45,6 +45,11 @@ LABEL_THRESHOLDS = [
 ]
 
 
+# Score calibration status — set to True once validated against real environments.
+# When False, reports include an UNCALIBRATED disclaimer.
+SCORE_CALIBRATED: bool = False
+
+
 @dataclass
 class ScoreResult:
     """Result of complexity score computation."""
@@ -52,6 +57,7 @@ class ScoreResult:
     label: str = "Straightforward"
     color: str = "#2E7D32"
     factors: list[dict[str, Any]] = field(default_factory=list)
+    calibrated: bool = SCORE_CALIBRATED
 
 
 def compute_complexity_score(store: MigrationStore) -> ScoreResult:
@@ -172,10 +178,12 @@ def _device_compatibility(store: MigrationStore) -> tuple[int, str]:
     total = len(devices)
     convertible = sum(1 for d in devices if d.get("compatibility_tier") == "convertible")
     incompatible = sum(1 for d in devices if d.get("compatibility_tier") == "incompatible")
+    webex_app = sum(1 for d in devices if d.get("compatibility_tier") == "webex_app")
 
-    # Incompatible devices weigh heavily, convertible less so
+    # Only convertible + incompatible drive complexity; webex_app is a clean transition
     raw = int((incompatible * 100 + convertible * 30) / total)
-    detail = f"{total} devices: {total - convertible - incompatible} native, {convertible} convertible, {incompatible} incompatible"
+    native = total - convertible - incompatible - webex_app
+    detail = f"{total} devices: {native} native, {webex_app} Webex App, {convertible} convertible, {incompatible} incompatible"
     return raw, detail
 
 

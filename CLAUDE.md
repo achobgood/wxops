@@ -160,6 +160,18 @@ Structured knowledge base read by the `migration-advisor` agent (Opus) during CU
 | `docs/knowledge-base/migration/kb-identity-numbering.md` | DN ownership, extension conflicts, duplicate users, number porting |
 | `docs/knowledge-base/migration/kb-webex-limits.md` | Platform hard limits, feature gaps, scope requirements (always loaded) |
 
+### Migration Operator Runbooks (Phase 2 Transferability)
+
+Operator-facing reference docs for the CUCM-to-Webex migration tool. Written for a CUCM-literate SE running their first migration. The cucm-migrate skill points operators here for end-to-end pipeline help, per-decision lookups, and tuning recipes.
+
+| Path | Purpose |
+|------|---------|
+| `docs/runbooks/cucm-migration/operator-runbook.md` | Operator runbook — end-to-end pipeline walkthrough, prerequisites, failure recovery |
+| `docs/runbooks/cucm-migration/decision-guide.md` | Decision guide — one entry per DecisionType + advisory pattern, with override criteria |
+| `docs/runbooks/cucm-migration/tuning-reference.md` | Tuning reference — config keys, auto-rules, score weights, 5 worked recipes |
+
+**When handling CUCM migration questions:** Read `operator-runbook.md` first for the pipeline walkthrough and `decision-guide.md` for per-decision interpretation. Read `tuning-reference.md` when discussing customer environment shapes (the 5 worked recipes), config tuning, or recurring decision patterns. The `cucm-migrate` skill loads these references automatically when `/cucm-migrate` is invoked; this instruction covers ad-hoc CUCM questions sent to `wxc-calling-builder` or other agents outside the skill flow.
+
 ### CLI (wxcli) — Primary Execution Layer
 
 | Path | Purpose |
@@ -253,19 +265,17 @@ See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for fu
 1. **call-controls requires user-level OAuth.** Admin tokens get 400 "Target user not authorized". The CLI now detects this error and prints a tip about needing user-level OAuth.
 2. **Complex nested settings need `--json-body`.** The generator skips deeply nested object/array body fields. Commands with nested fields now show an example JSON snippet in `--help` output (e.g., `wxcli user-settings update-call-forwarding --help`).
 3. **my-call-settings and mode-management require calling-licensed user.** All `/people/me/*` endpoints return 404 (error 4008) if the authenticated user doesn't have a Webex Calling license. The `my-call-settings` group (120 commands) covers base + UserHub Phase 2/3/4 self-service endpoints. The CLI detects this error and prints a tip.
-4. **6 person settings are user-only (no admin path).** `simultaneousRing`, `sequentialRing`, `priorityAlert`, `callNotify`, `anonymousCallReject`, and `callPolicies` only exist at `/telephony/config/people/me/settings/{feature}`. Admin tokens get 404. Use `wxcli my-call-settings` with user-level OAuth for these. See `docs/reference/self-service-call-settings.md` for the full 151-endpoint /people/me/ surface.
-5. **Two path families for person settings.** Classic settings use `/people/{personId}/features/{feature}`. Newer settings use `/telephony/config/people/{personId}/{feature}`. Some names differ between families: `intercept` (not `callIntercept`), `reception` (not `receptionist`), `applications` (not `applicationServicesSettings`), `autoTransferNumbers` (not `transferNumbers`), `pushToTalk` (not `pushToTalkSettings`).
-6. **Workspace `/telephony/config/` settings require Professional license.** Most workspace call settings under `/telephony/config/workspaces/{id}/` return 405 "Invalid Professional Place" for Basic-licensed workspaces. Only `musicOnHold` and `doNotDisturb` work on Basic. The `/workspaces/{id}/features/` path family (callForwarding, callWaiting, callerId, intercept, monitoring) works on Basic. The CLI now detects this error and prints a tip.
+4. **6 person settings are user-only (no admin path).** Admin tokens get 404. Use `wxcli my-call-settings` with user-level OAuth. See `docs/reference/self-service-call-settings.md` gotchas.
+5. **Two path families for person settings.** Classic `/people/{id}/features/` vs newer `/telephony/config/people/{id}/`. Some names differ. See `docs/reference/person-call-settings-behavior.md` (lines 36-54) for the full mapping table.
+6. **Workspace `/telephony/config/` settings require Professional license.** Basic workspaces get 405. See `docs/reference/devices-workspaces.md` gotcha #10 for the endpoint-by-license matrix.
 7. **Settings endpoints now support table output.** Settings-get commands (show-*) now accept `-o table` and auto-detect columns from the response data. List commands with non-standard response shapes (no `id`/`name` fields) also auto-detect columns.
-8. **Customer Assist queues are hidden from default `call-queue list`.** Must pass `--has-cx-essentials true` to see them. CX queue creation requires `callPolicies` via `--json-body`. Error 28018 ("CX Essentials is not enabled for this Call center") means the queue isn't a Customer Assist queue. The CLI detects this and prints a tip.
-9. **Supervisor delete returns 204 but supervisor persists.** `delete-supervisors-config-1 --has-cx-essentials true` gets 204 from the API but the supervisor remains. Workaround: use `update-supervisors` with `action: DELETE` on each agent — removing the last agent auto-removes the supervisor.
-10. **CUCM CallPickupGroup creation with members fails on CUCM 15.0.** The AXL `addCallPickupGroup` operation with `<members>` containing `<directoryNumber>` fails with a null priority foreign key constraint. Workaround: create the pickup group empty, then use `updateLine` with `callPickupGroupName` to assign members at the line level. Affects both wxcadm and raw AXL calls.
+8. **Customer Assist queues are hidden from default `call-queue list`.** Must pass `--has-cx-essentials true`. See `docs/reference/call-features-additional.md` cross-cutting gotchas.
+9. **Supervisor delete returns 204 but supervisor persists.** Workaround: `update-supervisors` with `action: DELETE` on each agent. See `docs/reference/call-features-additional.md` gotchas.
+10. **CUCM CallPickupGroup creation with members fails on CUCM 15.0.** Create empty, then assign via `updateLine`. See `src/wxcli/migration/CLAUDE.md` known issues.
 11. **Create commands now support `-o json`.** All create commands accept `-o json` to output the full API response as JSON. Default behavior (`-o id`) prints just the created ID.
-12. **`virtual-extensions` commands use wrong ID type.** The generated `virtual-extensions` command group maps to the Virtual Extensions API which uses `VIRTUAL_EXTENSION`-encoded IDs. Virtual lines created via `/telephony/config/virtualLines` use `VIRTUAL_LINE` IDs. `virtual-extensions list` returns empty, and `virtual-extensions delete` returns 400. **Workaround:** Use raw REST calls (`DELETE /v1/telephony/config/virtualLines/{id}`). The `wxcli cleanup` command already uses raw REST for this reason. The `virtual-line-settings` group uses the correct path family but only has settings commands, not CRUD.
-
-13. **Device config schema is firmware-dependent; some Control Hub settings aren't in the API.** The Device Configurations API schema is device-reported — keys only appear after the device registers on firmware that includes them. Example: per-line ringtone (`Lines.Line[N].CallFeatureSettings.Ringtone`) is visible in Control Hub for 9800/8875 phones but absent from the API on PhoneOS 3.5.1/3.6.1. Offline/expired devices retain a stale schema. See `docs/reference/devices-platform.md` gotchas #10-11.
-
-14. **Contact Center (`cc-*`) commands require CC-scoped OAuth and region config.** The 48 `cc-*` command groups target the Webex Contact Center API at `api.wxcc-{region}.cisco.com`. They require CC-specific OAuth scopes (`cjp:config_read`, `cjp:config_write`). The `orgid` path parameter is auto-injected from saved config or resolved from the authenticated user's org. Set the CC region with `wxcli set-cc-region <region>` (defaults to `us1`). Valid regions: `us1`, `eu1`, `eu2`, `anz1`, `ca1`, `jp1`, `sg1`. The CLI detects CC 403 errors and prints a scope tip.
+12. **`virtual-extensions` commands use wrong ID type.** Uses `VIRTUAL_EXTENSION`-encoded IDs but virtual lines use `VIRTUAL_LINE` IDs. `wxcli cleanup` uses raw REST as a workaround. See `docs/reference/virtual-lines.md` Raw HTTP Gotchas #9.
+13. **Device config schema is firmware-dependent.** Per-line ringtone was absent on PhoneOS 3.5/3.6 but fixed in 4.1. Offline/expired devices retain a stale schema. See `docs/reference/devices-platform.md` gotchas #10-11.
+14. **Contact Center (`cc-*`) commands require CC-scoped OAuth and region config.** See `docs/reference/contact-center-core.md` gotchas #1-3.
 
 ### Cleanup Command
 
@@ -276,16 +286,19 @@ See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for fu
 - `--all` — clean up entire org (required if --scope not given)
 - `--include-users` — also delete users (off by default)
 - `--include-locations` — also delete locations (off by default, includes 90s wait for calling disable propagation)
+- `--exclude-user-domains "wbx.ai,corp.com"` — keep users matching these email domains (use with `--include-users`)
 - `--dry-run` — show what would be deleted without deleting
 - `--max-concurrent N` — parallel deletions per layer (default 5)
 - `--force` — skip confirmation prompt
 
-**Deletion order** (12 layers, reverse of creation): dial plans → route lists → route groups → translation patterns → trunks → call features → schedules/operating modes → virtual lines → devices → workspaces → users → locations.
+**Deletion order** (13 layers, reverse of creation): dial plans → route lists → route groups → translation patterns → trunks → call features → schedules/operating modes → virtual lines → devices → workspaces → users → numbers → locations.
 
 **Known behaviors:**
 - Virtual lines use raw API (not `wxcli virtual-extensions`) due to ID type mismatch bug
 - Location deletion requires disabling calling first + 90s propagation wait
 - Location delete may still 409 after wait — re-run cleanup to retry
+- Calling disable is best-effort — locations where calling is already off are still attempted for deletion
+- Phone numbers are removed before location deletion (max 5 per API request, main numbers skipped)
 - Call parks and call pickups are enumerated per-location (no org-wide list endpoint)
 - Workspaces must be deleted before disable-calling can succeed — API has no location filter, client-side filtering by locationId
 

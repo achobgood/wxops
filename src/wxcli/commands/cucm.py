@@ -574,6 +574,63 @@ def config_show(
         console.print(f"  {k:<30s} {json.dumps(v)}")
 
 
+@config_app.command("reset")
+def config_reset(
+    key: str = typer.Argument(..., help="Config key to reset (e.g. auto_rules)"),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation"),
+    project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
+):
+    """Reset a single config key to its DEFAULT_CONFIG value.
+
+    Reads the current config.json, replaces just the named key with its
+    default, and writes back. Other keys are preserved.
+
+    Example:
+
+        wxcli cucm config reset auto_rules -p my-project
+
+    WARNING: For ``auto_rules``, reset clobbers any custom rules the
+    operator added. Preserve custom rules by hand-editing config.json
+    to append the new default instead of running reset.
+
+    Refuses unknown keys with a list of valid keys.
+    """
+    import copy
+
+    project_dir = _resolve_project_dir(project)
+
+    if key not in DEFAULT_CONFIG:
+        console.print(f"[red]Unknown config key:[/red] {key}")
+        console.print("\nValid keys:")
+        for k in sorted(DEFAULT_CONFIG):
+            console.print(f"  {k}")
+        raise typer.Exit(code=1)
+
+    config = load_config(project_dir)
+    current = config.get(key)
+    default = DEFAULT_CONFIG[key]
+
+    console.print(f"[bold]Reset config key:[/bold] {key}")
+    console.print(f"  Current: {json.dumps(current)}")
+    console.print(f"  Default: {json.dumps(default)}")
+
+    if not yes:
+        if not typer.confirm(f"\nReset '{key}' to default?"):
+            console.print("Cancelled.")
+            return
+
+    config[key] = copy.deepcopy(default)
+    save_config(project_dir, config)
+
+    if isinstance(default, list):
+        console.print(
+            f"[green]Reset config key '{key}' to default "
+            f"({len(default)} entries restored).[/green]"
+        )
+    else:
+        console.print(f"[green]Reset config key '{key}' to default.[/green]")
+
+
 # ===================================================================
 # PIPELINE COMMANDS
 # ===================================================================
@@ -790,7 +847,7 @@ def map_cmd(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed logging"),
     project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
 ):
-    """Run 9 transform mappers to produce canonical Webex objects + decisions."""
+    """Run 20 transform mappers to produce canonical Webex objects + decisions."""
     if verbose:
         import logging as _logging
         _logging.basicConfig(level=_logging.INFO, format="%(name)s: %(message)s")
@@ -830,7 +887,7 @@ def analyze(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed logging"),
     project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
 ):
-    """Run 12 analyzers + auto-rules + merge decisions."""
+    """Run 13 analyzers + auto-rules + merge decisions."""
     if verbose:
         import logging as _logging
         _logging.basicConfig(level=_logging.INFO, format="%(name)s: %(message)s")
@@ -1115,22 +1172,43 @@ def decisions(
         # --export-review: generate markdown review file + optional JSON
         if export_review:
             import json as json_mod
+            from wxcli.migration.transform.analysis_pipeline import (
+                enrich_cross_decision_context,
+            )
             from wxcli.migration.transform.decisions import (
                 classify_decisions, generate_decision_review,
             )
             project_id = project_dir.name if hasattr(project_dir, "name") else str(project_dir).split("/")[-1]
 
+            # Load config so custom auto_rules in config.json are honored.
+            config = load_config(project_dir)
+
+            # Refresh cross-decision context so newly-pending decisions get
+            # the is_on_incompatible_device field before the preview runs.
+            # Matches --apply-auto's behavior so the preview counts and
+            # the actual auto-resolution counts line up. Exceptions
+            # propagate intentionally — swallowing them would silently
+            # drop MISSING_DATA auto-rules (the Bug F shape).
+            enrich_cross_decision_context(store)
+
             # Always write the markdown file for admin offline review
-            content = generate_decision_review(store, project_id)
+            content = generate_decision_review(store, project_id, config)
             exports_dir = project_dir / "exports"
             exports_dir.mkdir(parents=True, exist_ok=True)
             review_path = exports_dir / "decision-review.md"
             review_path.write_text(content)
 
-            auto, needs = classify_decisions(store)
+            auto, needs = classify_decisions(store, config)
 
             if output == "json":
-                # JSON output for agent consumption — structured data
+                # NOTE: The "auto_apply" key here is the JSON output-contract
+                # name for "decisions matched by auto_rules config." It is
+                # NOT the resolved_by column value — pre-Bug-F projects
+                # stored the literal string 'auto_apply' there, but the
+                # unified matcher now writes 'auto_rule' instead. See
+                # models.py::Decision.resolved_by for the full enum.
+                # Downstream JSON parsers rely on the "auto_apply" key
+                # name — do not rename.
                 data = {
                     "review_file": str(review_path),
                     "auto_apply": [_serialize_decision(d) for d in auto],
@@ -1242,33 +1320,49 @@ def decide(
     store = _open_store(project_dir)
 
     try:
-        # --apply-auto: resolve only the clear-cut decisions
+        # --apply-auto: re-run config auto-rules against pending decisions.
         if apply_auto:
-            from wxcli.migration.transform.decisions import classify_decisions
-            auto, _needs = classify_decisions(store)
-            if not auto:
-                console.print("No auto-resolvable decisions found.")
+            from wxcli.migration.transform.analysis_pipeline import (
+                enrich_cross_decision_context,
+            )
+            from wxcli.migration.transform.rules import (
+                apply_auto_rules,
+                preview_auto_rules,
+            )
+
+            config = load_config(project_dir)
+
+            # Refresh cross-decision context so newly-pending decisions
+            # get the is_on_incompatible_device field before rules fire.
+            # Exceptions propagate intentionally — swallowing them would
+            # silently drop MISSING_DATA auto-rules (the Bug F shape).
+            enrich_cross_decision_context(store)
+
+            # Preview what would resolve, for the confirmation prompt.
+            preview = preview_auto_rules(store, config)
+            if not preview:
+                console.print("No pending decisions match current auto-rules.")
                 return
 
-            # Show what will be applied
-            console.print(f"\n[bold]Auto-apply:[/bold] {len(auto)} clear-cut decisions\n")
+            console.print(
+                f"\n[bold]Auto-apply:[/bold] {len(preview)} decisions "
+                f"match current rules\n"
+            )
             by_type: dict[str, list[dict]] = {}
-            for d in auto:
-                t = d.get("type", "UNKNOWN")
-                by_type.setdefault(t, []).append(d)
+            for d in preview:
+                by_type.setdefault(d.get("type", "UNKNOWN"), []).append(d)
             for t, decs in sorted(by_type.items()):
-                choice = decs[0].get("auto_choice", "skip")
-                console.print(f"  {len(decs)} {t} → {choice}")
+                chosen = decs[0].get("auto_choice", "")
+                console.print(f"  {len(decs)} {t} → {chosen}")
 
-            if not yes and not typer.confirm(f"\nApply {len(auto)} auto-resolved decisions?"):
+            if not yes and not typer.confirm(
+                f"\nApply {len(preview)} auto-resolved decisions?"
+            ):
                 console.print("Cancelled.")
                 return
 
-            for d in auto:
-                store.resolve_decision(
-                    d["decision_id"], d["auto_choice"], resolved_by="auto_apply"
-                )
-            console.print(f"[green]Auto-applied {len(auto)} decisions.[/green]")
+            resolved = apply_auto_rules(store, config)
+            console.print(f"[green]Auto-applied {resolved} decisions.[/green]")
             return
 
         # Batch resolve mode
