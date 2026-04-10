@@ -1761,6 +1761,85 @@ def detect_legacy_gateway_protocols(store: MigrationStore) -> list[AdvisoryFindi
 
 
 # ===================================================================
+# Pattern 27: Voicemail Greeting Re-Recording
+# ===================================================================
+
+def detect_voicemail_greeting_rerecording(
+    store: MigrationStore,
+) -> list[AdvisoryFinding]:
+    """Detect users with custom VM greetings that must be re-recorded post-migration."""
+    decisions = store.get_all_decisions()
+    greeting_decisions = []
+    for d in decisions:
+        if d.get("type") != "MISSING_DATA":
+            continue
+        ctx = d.get("context", {})
+        if isinstance(ctx, str):
+            import json as _json
+            try:
+                ctx = _json.loads(ctx)
+            except (ValueError, TypeError):
+                continue
+        if ctx.get("reason") == "custom_greeting_not_extractable":
+            greeting_decisions.append(d)
+
+    custom_count = len(greeting_decisions)
+    if custom_count == 0:
+        return []
+
+    if custom_count <= 10:
+        severity = "LOW"
+    elif custom_count <= 50:
+        severity = "MEDIUM"
+    else:
+        severity = "HIGH"
+
+    affected = []
+    for d in greeting_decisions:
+        ctx = d.get("context", {})
+        if isinstance(ctx, str):
+            import json as _json
+            try:
+                ctx = _json.loads(ctx)
+            except (ValueError, TypeError):
+                ctx = {}
+        uid = ctx.get("user_id", "")
+        if uid:
+            affected.append(uid)
+
+    total_vm_users = store.count_by_type("voicemail_profile")
+    if total_vm_users == 0:
+        total_vm_users = custom_count
+
+    detail = (
+        f"{custom_count} of {total_vm_users} voicemail-enabled users have custom "
+        f"voicemail greetings that will revert to system defaults after migration.\n\n"
+        f"Voicemail greetings are personal recordings stored in Unity Connection. "
+        f"They cannot be automatically migrated to Webex Calling. Each user must "
+        f"re-record their greeting after migration.\n\n"
+        f"REQUIRED ACTION: Send a user communication at least 1 week before "
+        f"migration day informing affected users:\n"
+        f"1. Their voicemail greeting will reset to the system default\n"
+        f"2. After migration, re-record via: Webex App > Settings > Calling > "
+        f"Voicemail > Greeting, or dial the voicemail access number\n"
+        f"3. If they have a script for their greeting, have it ready\n\n"
+        f"This is a high-visibility issue — users notice immediately when their "
+        f"personalized greeting is replaced by a generic one."
+    )
+
+    return [AdvisoryFinding(
+        pattern_name="voicemail_greeting_rerecording",
+        severity=severity,
+        summary=(
+            f"{custom_count} users must re-record voicemail greetings after migration"
+        ),
+        detail=detail,
+        affected_objects=affected,
+        category="out_of_scope",
+    )]
+
+
+# ===================================================================
 # Registry — ALL_ADVISORY_PATTERNS
 # ===================================================================
 
@@ -1791,4 +1870,5 @@ ALL_ADVISORY_PATTERNS: list[Callable[[MigrationStore], list[AdvisoryFinding]]] =
     detect_trunk_type_selection,               # Pattern 24 (Gap: immutable trunk type)
     detect_intercluster_trunks,                # Pattern 25 (Gap: ICT disposition)
     detect_legacy_gateway_protocols,           # Pattern 26 (Gap: MGCP/H.323 undetected)
+    detect_voicemail_greeting_rerecording,     # Pattern 27 (User action: VM greeting re-recording)
 ]
