@@ -194,3 +194,70 @@ class TestVoicemailExtraction:
         assert vm["enabled"] is True
         assert vm["sendUnansweredCalls"]["enabled"] is True
         assert vm["sendUnansweredCalls"]["numberOfRings"] == 4  # 24s / 6s per ring
+
+
+class TestCallForwardingExtraction:
+    def test_cfna_to_reception_after_n_rings(self):
+        """Lobby phone: forward unanswered to reception after 4 rings."""
+        store = MigrationStore(":memory:")
+        phone = _common_area_phone_with_lines(
+            "lobby-main",
+            lines=[{
+                "index": 1,
+                "dirn": {"pattern": "5000"},
+                "callForwardNoAnswer": {
+                    "destination": "2000",
+                    "duration": "24",  # 24s / 6s = 4 rings
+                },
+            }],
+        )
+        # Force Professional tier so the gate keeps callForwarding
+        phone.pre_migration_state["outgoing_call_permissions"] = True
+        store.upsert_object(phone)
+
+        WorkspaceMapper().map(store)
+
+        ws = store.get_object("workspace:lobby-main")
+        cf = ws["call_settings"]["callForwarding"]
+        assert cf["noAnswer"]["enabled"] is True
+        assert cf["noAnswer"]["destination"] == "2000"
+        assert cf["noAnswer"]["numberOfRings"] == 4
+        # Always and busy must be explicitly disabled so Webex doesn't retain platform default
+        assert cf["always"]["enabled"] is False
+        assert cf["busy"]["enabled"] is False
+
+    def test_cfa_to_reception(self):
+        """Conference room with unconditional forward."""
+        store = MigrationStore(":memory:")
+        phone = _common_area_phone_with_lines(
+            "conf-forward",
+            lines=[{
+                "index": 1,
+                "dirn": {"pattern": "5300"},
+                "callForwardAll": {"destination": "1000"},
+            }],
+        )
+        phone.pre_migration_state["outgoing_call_permissions"] = True
+        store.upsert_object(phone)
+
+        WorkspaceMapper().map(store)
+
+        ws = store.get_object("workspace:conf-forward")
+        cf = ws["call_settings"]["callForwarding"]
+        assert cf["always"]["enabled"] is True
+        assert cf["always"]["destination"] == "1000"
+
+    def test_no_forwarding_omits_key(self):
+        """Phones without any forwarding destination don't emit callForwarding at all."""
+        store = MigrationStore(":memory:")
+        phone = _common_area_phone_with_lines(
+            "conf-plain",
+            lines=[{"index": 1, "dirn": {"pattern": "5400"}}],
+        )
+        phone.pre_migration_state["outgoing_call_permissions"] = True
+        store.upsert_object(phone)
+
+        WorkspaceMapper().map(store)
+
+        ws = store.get_object("workspace:conf-plain")
+        assert "callForwarding" not in (ws.get("call_settings") or {})
