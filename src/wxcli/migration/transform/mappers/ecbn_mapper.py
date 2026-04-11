@@ -141,7 +141,12 @@ class EcbnMapper(Mapper):
         if user_location and device_locations:
             distinct_device_locs = {loc for loc in device_locations if loc}
             if distinct_device_locs and user_location not in distinct_device_locs:
-                dev_loc = next(iter(distinct_device_locs))
+                # Sort the set before picking — iteration order over sets
+                # depends on PYTHONHASHSEED and would produce nondeterministic
+                # fingerprints when a user has 2+ devices at different
+                # locations.
+                sorted_dev_locs = sorted(distinct_device_locs)
+                dev_loc = sorted_dev_locs[0]
                 options = [
                     DecisionOption(
                         id="use_user_location",
@@ -168,6 +173,7 @@ class EcbnMapper(Mapper):
                         "user_canonical_id": user_cid,
                         "user_location": user_location,
                         "device_location": dev_loc,
+                        "device_locations": sorted_dev_locs,
                     },
                     options=options,
                     affected_objects=[cfg.canonical_id, user_cid],
@@ -209,6 +215,11 @@ class EcbnMapper(Mapper):
                     dids.append(e164)
                     seen.add(e164)
 
+        # Sort DIDs for deterministic ordering — fingerprint stability depends
+        # on this. store.find_cross_refs returns SQLite rows in insertion order,
+        # not by any semantic notion of "primary," so primary_did = dids[0] on
+        # the caller side must be derived from a stable sort.
+        dids.sort()
         return dids, device_locations
 
     # ------------------------------------------------------------------
