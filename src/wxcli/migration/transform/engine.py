@@ -47,6 +47,7 @@ from wxcli.migration.transform.mappers.workspace_mapper import WorkspaceMapper
 from wxcli.migration.transform.mappers.call_settings_mapper import CallSettingsMapper
 from wxcli.migration.transform.mappers.executive_assistant_mapper import ExecutiveAssistantMapper
 from wxcli.migration.transform.mappers.device_settings_mapper import DeviceSettingsMapper
+from wxcli.migration.transform.mappers.receptionist_mapper import ReceptionistMapper
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +82,7 @@ MAPPER_ORDER: list[type[Mapper]] = [
     CallSettingsMapper,   # Tier 6 (depends on users — call settings enrichment)
     ExecutiveAssistantMapper,  # Tier 6 (depends on users — executive/assistant pairings)
     DeviceLayoutMapper,   # Tier 7 (depends on button_template, monitoring, line, device mappers)
+    ReceptionistMapper,   # Tier 8 (depends on monitoring, device_layout, location, line, user)
 ]
 
 
