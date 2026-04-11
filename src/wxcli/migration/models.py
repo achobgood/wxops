@@ -96,6 +96,9 @@ class DecisionType(str, Enum):
     AUDIO_ASSET_MANUAL = "AUDIO_ASSET_MANUAL"
     BUTTON_UNMAPPABLE = "BUTTON_UNMAPPABLE"
     DEVICE_SETTINGS_LOSSY = "DEVICE_SETTINGS_LOSSY"
+    # E911/ECBN execution (from 2026-04-10-e911-ecbn-execution.md §4.3)
+    E911_ECBN_AMBIGUOUS = "E911_ECBN_AMBIGUOUS"
+    E911_LOCATION_MISMATCH = "E911_LOCATION_MISMATCH"
 
 
 # ---------------------------------------------------------------------------
@@ -677,6 +680,22 @@ class CanonicalE911Config(MigrationObject):
     has_emergency_route_pattern: bool = False
 
 
+class CanonicalEcbnConfig(MigrationObject):
+    """Per-entity ECBN configuration for Webex.
+
+    One object per user, workspace, or virtual line. Produced by EcbnMapper
+    from existing canonical data (no new AXL queries).
+    (from 2026-04-10-e911-ecbn-execution.md §4.2)
+    """
+    entity_type: str = ""            # "user" | "workspace" | "virtual_line"
+    entity_canonical_id: str = ""    # canonical_id of the user/workspace/VL
+    location_canonical_id: str | None = None
+    ecbn_selection: str = ""         # "DIRECT_LINE" | "LOCATION_ECBN" | "LOCATION_MEMBER_NUMBER"
+    did_numbers: list[str] = Field(default_factory=list)  # all DIDs on this entity
+    primary_did: str | None = None   # best candidate DID for ECBN
+    needs_location_ecbn: bool = False  # True if extension-only; location ECBN must exist
+
+
 class CanonicalSingleNumberReach(MigrationObject):
     """CUCM Remote Destination → Webex Single Number Reach."""
     user_canonical_id: str | None = None
@@ -787,6 +806,7 @@ CANONICAL_TYPE_REGISTRY: dict[str, type[MigrationObject]] = {
     "softkey_config": CanonicalSoftkeyConfig,
     "single_number_reach": CanonicalSingleNumberReach,
     "e911_config": CanonicalE911Config,
+    "ecbn_config": CanonicalEcbnConfig,
     "device_profile": CanonicalDeviceProfile,
     "receptionist_config": CanonicalReceptionistConfig,
     "music_on_hold": CanonicalMusicOnHold,
