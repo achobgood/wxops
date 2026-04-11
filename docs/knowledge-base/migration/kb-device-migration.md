@@ -223,6 +223,20 @@ Fires when `info_device_profile` objects exist in the store. CUCM Extension Mobi
 
 ---
 
+## Device Settings Migration
+
+The migration pipeline maps CUCM device-level settings (productSpecificConfiguration, Common Phone Config) to Webex device settings templates.
+
+**Template approach:** Rather than making N API calls for N devices, the mapper groups phones by (model_family, location) and applies settings at the location level. Per-device overrides are generated only for phones that differ from the group majority.
+
+**Field mapping:** Bluetooth, Wi-Fi, backlight, USB, network (CDP/LLDP/VLAN), volume, language, DND, and noise cancellation are mapped from CUCM to Webex. Some mappings are lossy (brightness level → timer enum, DND ringer-off vs reject distinction lost).
+
+**Unmappable settings:** idleUrl, Extension Mobility, gratuitousArp, 802.1x, spanToPCPort, custom ringtones, alwaysUsePrimeLine. These are documented in the assessment report.
+
+**Firmware considerations:** The static device settings API (`customizations.mpp`) is firmware-independent. Per-line ringtone (PhoneOS 4.1+) uses a different API (Device Configurations / JSON Patch) and is handled separately.
+
+---
+
 ## Verification Log
 
 | # | Claim | Verified | Source | Finding |

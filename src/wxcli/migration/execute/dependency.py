@@ -210,6 +210,22 @@ _CROSS_OBJECT_RULES: list[dict] = [
         "target_op": "create",
         "dep_type": DependencyType.REQUIRES,
     },
+    # Device settings template location settings depends on location having Calling enabled
+    {
+        "source_type": "device_settings_template",
+        "source_op": "apply_location_settings",
+        "relationship": "device_in_location",
+        "target_op": "enable_calling",
+        "dep_type": DependencyType.REQUIRES,
+    },
+    # Device settings template per-device override depends on the device being created
+    {
+        "source_type": "device_settings_template",
+        "source_op": "apply_device_override",
+        "relationship": "device_owner",
+        "target_op": "create",
+        "dep_type": DependencyType.REQUIRES,
+    },
 ]
 
 

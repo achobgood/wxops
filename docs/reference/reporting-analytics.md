@@ -426,7 +426,7 @@ wxcli reports create --template-id 25 \
 wxcli reports create --json-body '{"templateId": 130, "startDate": "2026-03-01", "endDate": "2026-03-15"}'
 ```
 
-**Note:** The CLI `reports` group currently has `create` only. To list, poll, or delete reports, use the Raw HTTP or SDK methods below. To download report CSVs, use the SDK `ReportsApi.download()` method.
+**Note:** The CLI `reports` group has `list`, `create`, `show` (poll status/get download URL), and `delete`. To download report CSVs after getting the `downloadURL` from `wxcli reports show`, use `curl` or the SDK `ReportsApi.download()` method. <!-- Verified via CLI regen 2026-04-10 -->
 
 ### Create a Report
 
@@ -567,8 +567,15 @@ wxcli reports create --template-id 130 \
   --start-date "2026-03-01" --end-date "2026-03-15"
 # Note the report ID from the response
 
-# Steps 3-5 (poll, download, delete): Use SDK or Raw HTTP methods below.
-# The CLI does not yet have list/show/download/delete commands for reports.
+# Step 3: Poll until status is "done"
+wxcli reports show REPORT_ID -o json
+# Look for "status": "done" and "downloadURL" in the response
+
+# Step 4: Download the CSV ZIP from the downloadURL
+# Use curl or the SDK ReportsApi.download() method
+
+# Step 5: Delete the report to free quota (max 50 reports)
+wxcli reports delete REPORT_ID --force
 ```
 
 ### SDK Workflow

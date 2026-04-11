@@ -36,6 +36,7 @@ _FEATURE_DISPLAY_NAMES = {
     "monitoring_list": "BLF / Monitoring",
     "line_key_template": "Phone Button Templates",
     "softkey_config": "Softkey Templates",
+    "executive_assistant": "Executive/Assistant",
 }
 
 # Webex equivalents for feature types
@@ -50,6 +51,7 @@ _WEBEX_EQUIVALENTS = {
     "monitoring_list": "Per-person monitoring list",
     "line_key_template": "Line Key Templates",
     "softkey_config": "Programmable Softkeys (PSK)",
+    "executive_assistant": "Executive/Assistant (native)",
 }
 
 # Object types for counts
@@ -196,6 +198,7 @@ def _page_environment(
         convertible = sum(1 for d in devices if d.get("compatibility_tier") == "convertible")
         incompatible = sum(1 for d in devices if d.get("compatibility_tier") == "incompatible")
         webex_app = sum(1 for d in devices if d.get("compatibility_tier") == "webex_app")
+        dect = sum(1 for d in devices if d.get("compatibility_tier") == "dect")
         donut_segments = [
             {"label": "Native MPP", "value": native, "color": "#2E7D32"},
             {"label": "Convertible", "value": convertible, "color": "#EF6C00"},
@@ -203,6 +206,8 @@ def _page_environment(
         ]
         if webex_app > 0:
             donut_segments.append({"label": "Webex App", "value": webex_app, "color": "#0277BD"})
+        if dect > 0:
+            donut_segments.append({"label": "DECT", "value": dect, "color": "#42A5F5"})
         donut_html = donut_chart(donut_segments)
 
     if donut_html:
@@ -219,6 +224,9 @@ def _page_environment(
         parts.append(_stat_card(str(shared_line_count), "Shared Lines"))
     if line_count:
         parts.append(_stat_card(str(line_count), "Extensions"))
+    intercept_count = store.count_by_type("intercept_candidate")
+    if intercept_count:
+        parts.append(_stat_card(str(intercept_count), "Intercept Candidates"))
     parts.append('</div>')
 
     # --- Devices ---
@@ -233,6 +241,8 @@ def _page_environment(
             parts.append(_stat_card(str(convertible), "Convertible"))
         if incompatible:
             parts.append(_stat_card(str(incompatible), "Incompatible"))
+        if dect:
+            parts.append(_stat_card(str(dect), "DECT"))
         parts.append('</div>')
 
     if donut_html:
@@ -270,10 +280,30 @@ def _page_environment(
                 f'</div>'
             )
 
+    # --- Custom Audio Assets (if present) ---
+    moh_sources = store.get_objects("music_on_hold")
+    announcements = store.get_objects("announcement")
+    custom_moh = [m for m in moh_sources if not m.get("is_default", False)]
+    if custom_moh or announcements:
+        parts.append('<h3>Custom Audio</h3>')
+        parts.append('<div class="stat-grid">')
+        if custom_moh:
+            parts.append(_stat_card(str(len(custom_moh)), "Custom MoH Sources"))
+        if announcements:
+            parts.append(_stat_card(str(len(announcements)), "Announcement Files"))
+        parts.append('</div>')
+        parts.append(
+            '<div class="callout warning">'
+            '<p>Custom audio files must be downloaded from CUCM and uploaded to '
+            'Webex before migration. See Audio Assets in the Technical Appendix.</p>'
+            '</div>'
+        )
+
     # --- Call Features ---
     feature_types = ["hunt_group", "call_queue", "auto_attendant",
                      "call_park", "pickup_group", "paging_group",
-                     "call_forwarding", "monitoring_list"]
+                     "call_forwarding", "monitoring_list",
+                     "executive_assistant"]
     feature_data = []
     for ft in feature_types:
         count = store.count_by_type(ft)
@@ -508,6 +538,19 @@ def _page_next_steps(
     )
     parts.append('</tbody></table>')
 
+    # Voicemail greeting re-recording callout
+    greeting_count = _count_custom_greetings(store)
+    if greeting_count > 0:
+        parts.append(
+            f'<div class="callout warning">'
+            f'<p><strong>Voicemail Greeting Re-Recording:</strong> '
+            f'{greeting_count} user{"s" if greeting_count != 1 else ""} '
+            f'must re-record their voicemail greeting{"s" if greeting_count != 1 else ""} after migration. '
+            f'Send user communication at least 1 week before cutover. '
+            f'See Appendix H for email template.</p>'
+            f'</div>'
+        )
+
     # Planning Phase
     if unresolved:
         parts.append('<h3>Planning Phase</h3>')
@@ -587,6 +630,18 @@ def _build_site_breakdown(
         ))
 
     return rows
+
+
+def _count_custom_greetings(store: MigrationStore) -> int:
+    """Count MISSING_DATA decisions for custom voicemail greetings."""
+    count = 0
+    for d in store.get_all_decisions():
+        if d.get("type") != "MISSING_DATA":
+            continue
+        ctx = d.get("context", {})
+        if ctx.get("reason") == "custom_greeting_not_extractable":
+            count += 1
+    return count
 
 
 def _count_decisions_for_location(

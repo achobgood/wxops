@@ -11,8 +11,8 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 | File | Purpose |
 |------|---------|
 | `pipeline.py` | `normalize_discovery(raw_data, store)` — Phase 04 entry point: runs Pass 1 normalizers + Pass 2 cross-refs |
-| `normalizers.py` | 37 Pass 1 normalizer functions + `NORMALIZER_REGISTRY` + `RAW_DATA_MAPPING` |
-| `cross_reference.py` | `CrossReferenceBuilder` — Pass 2: builds `cross_refs` table (30 relationships + 3 enrichments) |
+| `normalizers.py` | 40 Pass 1 normalizer functions + `NORMALIZER_REGISTRY` + `RAW_DATA_MAPPING` |
+| `cross_reference.py` | `CrossReferenceBuilder` — Pass 2: builds `cross_refs` table (34 relationships + 3 enrichments) |
 | `analysis_pipeline.py` | `AnalysisPipeline` — runs 13 analyzers, merges decisions, applies auto-rules, runs advisor |
 | `rules.py` | `apply_auto_rules(store, config)` — auto-resolution rules (simple cases resolved without user input) |
 | `decisions.py` | Decision-related helpers and constants |
@@ -20,12 +20,12 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 | `cucm_pattern.py` | CUCM dial pattern → Webex translation pattern conversion |
 | `pattern_converter.py` | Route pattern wildcard conversion |
 | `engine.py` | Mapper execution engine — runs mappers in dependency order |
-| `mappers/` | 20 mapper classes — see `mappers/CLAUDE.md` |
+| `mappers/` | 22 mapper classes — see `mappers/CLAUDE.md` |
 | `analyzers/` | 13 analyzer classes — see their docstrings |
 
 ## Pass 1: Normalizers
 
-`normalizers.py` contains 37 stateless pure functions. Each takes a raw CUCM dict and returns a canonical Pydantic model or `MigrationObject`. They are order-independent and parallel-safe — no cross-object lookups, foreign keys stay as CUCM name strings.
+`normalizers.py` contains 40 stateless pure functions. Each takes a raw CUCM dict and returns a canonical Pydantic model or `MigrationObject`. They are order-independent and parallel-safe — no cross-object lookups, foreign keys stay as CUCM name strings.
 
 `RAW_DATA_MAPPING` is the routing table: `list[tuple[extractor_key, sub_key, normalizer_key]]` consumed by `normalize_discovery()`.
 
@@ -34,13 +34,14 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 - `normalize_phone` → `CanonicalDevice` (also triggers raw phone preservation — see below)
 - `normalize_workspace` → `CanonicalWorkspace` (common-area phones classified post-normalization)
 - `normalize_button_template` / `normalize_softkey_template` → `MigrationObject` (raw, for mapper consumption)
+- `normalize_intercept_candidate` → `MigrationObject` (Tier 4 informational — intercept-like signals from CUCM)
 - Translation patterns, route patterns, CSSes, partitions, etc. → `MigrationObject`
 
 **Raw phone preservation (critical):** `normalize_phone()` creates a `CanonicalDevice` but discards the raw AXL dict. `pipeline.py` also stores each phone as `MigrationObject(canonical_id="phone:{name}", pre_migration_state=<full_raw_phone>)`. This is required because `MonitoringMapper`, `CallForwardingMapper`, `DeviceLayoutMapper`, `DeviceMapper`, and `WorkspaceMapper` all call `store.get_objects("phone")` to access `speeddials`, `busyLampFields`, and per-line call forwarding that isn't on `CanonicalDevice`.
 
 ## Pass 2: CrossReferenceBuilder
 
-`cross_reference.py:CrossReferenceBuilder.build()` sweeps the full normalized inventory to populate the `cross_refs` table. 32 relationships + 3 enrichments across 9 method groups:
+`cross_reference.py:CrossReferenceBuilder.build()` sweeps the full normalized inventory to populate the `cross_refs` table. 34 relationships + 3 enrichments across 10 method groups:
 
 | Method | Relationships |
 |--------|--------------|
@@ -53,13 +54,15 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 | `_build_routing_refs` | gateway_to_route_group, route_group_to_route_list, etc. |
 | `_build_feature_refs` | feature_has_agent, aa_has_schedule, pickup members |
 | `_build_voicemail_refs` | user_has_voicemail_profile, unity_user |
+| `_build_intercept_refs` | user_has_intercept_signal |
 | `_build_template_refs` | phone_uses_button_template, phone_uses_softkey_template |
+| `_build_audio_refs` | feature_uses_moh_source (hunt pilot networkHoldMohAudioSourceID → music_on_hold canonical ID) |
 
 **Note:** `device_pool_to_location` is NOT built here — it's written by `LocationMapper` during the map pass, because the mapping requires decisions about ambiguous device pool → location assignments.
 
 ## Mapper Execution Engine
 
-`engine.py` runs all 20 mapper classes in dependency order (topological sort on `depends_on`). Each mapper reads from the store, produces canonical objects via `store.upsert_object()`, and returns a `MapperResult` with counts and decisions. See `mappers/CLAUDE.md` for the full mapper inventory.
+`engine.py` runs all 22 mapper classes in dependency order (topological sort on `depends_on`). Each mapper reads from the store, produces canonical objects via `store.upsert_object()`, and returns a `MapperResult` with counts and decisions. See `mappers/CLAUDE.md` for the full mapper inventory.
 
 ## Analysis Pipeline
 
@@ -77,7 +80,7 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 |----------|---------------|
 | `ExtensionConflictAnalyzer` | `EXTENSION_CONFLICT` |
 | `DNAmbiguityAnalyzer` | `DN_AMBIGUITY` |
-| `DeviceCompatibilityAnalyzer` | `DEVICE_INCOMPATIBLE`, `DEVICE_FIRMWARE_CONVERTIBLE`, `DEVICE_WEBEX_APP` (INFO — transitions to Webex App, no device migration) |
+| `DeviceCompatibilityAnalyzer` | `DEVICE_INCOMPATIBLE`, `DEVICE_FIRMWARE_CONVERTIBLE`, `DEVICE_WEBEX_APP` (INFO — transitions to Webex App, no device migration) (DECT-tier devices skipped) |
 | `SharedLineAnalyzer` | `SHARED_LINE_COMPLEX` |
 | `CSSRoutingAnalyzer` | `CSS_ROUTING_COMPLEX` |
 | `CSSPermissionAnalyzer` | `CALLING_PERMISSION` |
@@ -98,3 +101,4 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 - **Decision fingerprints are idempotent.** Fingerprint = SHA256(type + context). Re-running the pipeline doesn't create duplicate decisions — `merge_decisions()` updates existing ones and stales missing ones.
 - **Multiple decisions per object are normal.** A device can be both `DEVICE_INCOMPATIBLE` and `MISSING_DATA`. Each has a unique fingerprint and is resolved independently.
 - **`analyze` status ≠ all decisions resolved.** Objects at `status='analyzed'` may still have unresolved decisions if they're non-blocking (e.g., `FEATURE_APPROXIMATION`). Only objects with blocking decisions stay at `needs_decision`.
+- **`productSpecificConfiguration` XML is model-specific and version-dependent.** Each phone model has different PSC fields. The DeviceSettingsMapper handles missing fields gracefully and only maps fields it recognizes.

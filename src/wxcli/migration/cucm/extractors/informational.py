@@ -129,6 +129,11 @@ class InformationalExtractor(BaseExtractor):
             items = self._extract_list_type(suffix, method, criteria, tags, category, result)
             self.results[suffix] = items
 
+        # Enrich common_phone_config with vendorConfig detail
+        cpcs = self.results.get("common_phone_config", [])
+        if cpcs:
+            self._fetch_common_phone_config_details(cpcs, result)
+
         # 2. Softkey templates via SQL (AXL list doesn't exist)
         self.results["softkey_template"] = self._extract_softkey_templates(result)
 
@@ -149,6 +154,37 @@ class InformationalExtractor(BaseExtractor):
             result.failed,
         )
         return result
+
+    def _fetch_common_phone_config_details(
+        self, items: list[dict[str, Any]], result: ExtractionResult,
+    ) -> None:
+        """Enrich common_phone_config items with vendorConfig from getCommonPhoneConfig."""
+        for item in items:
+            name = item.get("name")
+            if not name:
+                continue
+            try:
+                resp = self.conn.service.getCommonPhoneConfig(name=name)
+                detail = resp
+                if isinstance(resp, dict):
+                    detail = resp.get("return", resp)
+                    if isinstance(detail, dict):
+                        detail = detail.get("commonPhoneConfig", detail)
+                if isinstance(detail, dict):
+                    vendor_config = detail.get("vendorConfig")
+                    if vendor_config is not None:
+                        item["vendorConfig"] = (
+                            str(vendor_config) if not isinstance(vendor_config, str)
+                            else vendor_config
+                        )
+                    for field in ("dndOption", "dndAlertingType"):
+                        val = detail.get(field)
+                        if val is not None:
+                            item[field] = val
+            except Exception as exc:
+                logger.debug(
+                    "[%s] getCommonPhoneConfig(%s) failed: %s", self.name, name, exc
+                )
 
     def _extract_list_type(
         self,

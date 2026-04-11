@@ -96,6 +96,9 @@ CUCM forwarding → Webex mapping:
 - **"VM to email"**: Unity Connection VM-to-email maps to Webex `emailCopyOfMessage.enabled` with the user's email address. Webex sends the voicemail audio file as an email attachment.
 <!-- Source: person-call-settings-media.md sec 1 (VoicemailSettings model) -->
 
+- **"call intercept"**: CUCM has no native call-intercept feature (a BroadSoft-heritage Webex setting for gracefully taking a line out of service — terminated employees, office relocations, leaves of absence, number changes). The migration pipeline heuristically detects *intercept-like* CUCM configurations via two SQL queries in `cucm/extractors/tier4.py`: (1) directory numbers in partitions whose **name** matches `%intercept%`, `%block%`, `%out_of_service%`, or `%oos%` (`signal_type="blocked_partition"`); (2) directory numbers with `callforwarddynamic.cfadestination` set and `cfavoicemailenabled='t'` where `NOT EXISTS` a registered phone backing the line (`signal_type="cfa_voicemail"`). Detected DNs become `intercept_candidate` objects keyed `intercept_candidate:{dn}:{partition}` and are cross-referenced to their owning user via `user_has_intercept_signal`. `CallSettingsMapper` (Pass 2) enriches each matched user's `call_settings.intercept = {detected, signal_type, forward_destination, voicemail_enabled}`. **Nothing is auto-configured** — detection surfaces as advisory Pattern 30 (`call_intercept_candidates`, severity `MEDIUM`, category `out_of_scope`) and in the assessment report (Appendix Y plus a conditional Executive Page 2 stat card). The operator configures Webex intercept manually post-cutover via `/people/{id}/features/intercept`, `/workspaces/{id}/features/intercept`, `/telephony/config/virtualLines/{id}/intercept`, or the location-level `/telephony/config/locations/{id}/intercept`. The person and workspace `/features/intercept` paths are available on all license tiers; the `/telephony/config/` variants require Professional. Heuristic false positives are expected — partition naming is a soft signal, and many CUCM admins use "block" in unrelated partition names (e.g., `BlockInternational_PT`), while `cfa_voicemail` can be an ordinary "send to voicemail" preference rather than an out-of-service configuration.
+<!-- Source: cucm/extractors/tier4.py:_extract_intercept_candidates (lines 131-173); transform/normalizers.py:normalize_intercept_candidate; transform/cross_reference.py:_build_intercept_refs; transform/mappers/call_settings_mapper.py (Pass 2 intercept block); advisory/advisory_patterns.py:detect_call_intercept_candidates (Pattern 30); report/appendix.py:_intercept_candidates (Section Y); report/executive.py (intercept_count stat card); spec: docs/superpowers/specs/2026-04-10-call-intercept-migration.md -->
+
 ## Webex Constraints
 
 - **6 person settings are user-only (no admin API path):** `simultaneousRing`, `sequentialRing`, `priorityAlert`, `callNotify`, `anonymousCallReject`, `callPolicies`. These exist only at `/telephony/config/people/me/settings/{feature}` and require user-level OAuth. An admin cannot read or write these for another user. `callPolicies` is additionally marked beta.
@@ -238,6 +241,37 @@ present 3 remediation paths ranked by effort:
 **Confidence:** HIGH
 
 ---
+
+## Voicemail Greeting Migration Gap
+
+Custom voicemail greetings (busy and no-answer) stored in Unity Connection do not transfer to Webex Calling. This is a platform limitation — Unity Connection's CUPI API exposes greeting metadata but not the audio binary in a bulk-extractable format.
+
+### What Migrates
+- Voicemail enabled/disabled state
+- Ring count / number of rings before voicemail
+- Voicemail-to-email settings (if supported)
+- Message waiting indicator (MWI) configuration
+
+### What Does Not Migrate
+- Custom busy greeting audio
+- Custom no-answer greeting audio
+- Extended absence greetings
+- Alternate greetings
+
+### User Self-Service Re-Recording
+After migration, users re-record greetings via:
+1. **Webex App:** Settings > Calling > Voicemail > Greeting > Record
+2. **Phone keypad:** Dial voicemail access number → follow prompts
+3. **User Hub:** hub.webex.com > My Call Settings > Voicemail
+
+### Admin-Path Greeting Upload API
+Webex does support admin-path greeting upload if WAV files are available:
+- `POST /people/{personId}/features/voicemail/actions/uploadBusyGreeting/invoke`
+- `POST /people/{personId}/features/voicemail/actions/uploadNoAnswerGreeting/invoke`
+- Scope: `spark-admin:people_write`
+- Format: WAV, max 5 MB, multipart/form-data
+
+This is useful if users can provide their greeting recordings (e.g., via email). The voicemail mapper creates `MISSING_DATA` decisions with `context.reason = "custom_greeting_not_extractable"` for each affected user. The advisory pattern aggregates these into a single user communication advisory.
 
 ## Verification Log
 

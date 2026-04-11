@@ -1270,25 +1270,50 @@ def detect_transformation_patterns(store: MigrationStore) -> list[AdvisoryFindin
 # ===================================================================
 
 def detect_extension_mobility_usage(store: MigrationStore) -> list[AdvisoryFinding]:
-    """Extension Mobility device profiles indicate hot desking needs."""
+    """Extension Mobility device profiles indicate hot desking needs.
+
+    Severity escalation: MEDIUM when profiles have multi-line or BLF/speed dial
+    features (feature loss during hot desk sessions) that Webex hot desking
+    cannot replicate. LOW for simple single-line profiles.
+    """
     profiles = store.get_objects("info_device_profile")
     if not profiles:
         return []
 
     ids = [p.get("canonical_id", "") for p in profiles]
 
+    # Count feature loss categories from pre_migration_state
+    multi_line_count = 0
+    sd_count = 0
+    blf_count = 0
+    for p in profiles:
+        state = p.get("pre_migration_state") or {}
+        lines = state.get("lines") or []
+        line_count = len(lines) if lines else state.get("line_count", 0)
+        if line_count > 1:
+            multi_line_count += 1
+        if state.get("speed_dial_count", 0) > 0:
+            sd_count += 1
+        if state.get("blf_count", 0) > 0:
+            blf_count += 1
+
+    # Escalate to MEDIUM when profiles will lose meaningful features
+    severity = "MEDIUM" if (multi_line_count > 0 or blf_count > 0) else "LOW"
+
     detail = (
         f"{len(profiles)} Extension Mobility device profile{'s' if len(profiles) != 1 else ''} "
-        f"found. CUCM Extension Mobility allows users to log into any EM-enabled phone and "
-        f"load their personal line/speed-dial/services configuration. Webex maps this to "
-        f"hot desking — users can sign into shared workspaces with their Webex identity. "
-        f"However, Webex hot desking is simpler: no device-profile switching, just user "
-        f"login/logout with primary line. Manual workspace + hot desking configuration required."
+        f"found. "
+        f"{multi_line_count} have multiple lines (will lose secondary lines). "
+        f"{sd_count} have speed dials (will lose speed dials during hot desk). "
+        f"{blf_count} have BLF entries (will lose BLF during hot desk). "
+        f"Migration will enable Webex hoteling for these users and configure "
+        f"workspace hot desking on their host devices. Users with multi-line "
+        f"profiles will only get their primary line during hot desk sessions."
     )
 
     return [AdvisoryFinding(
         pattern_name="extension_mobility_usage",
-        severity="LOW",
+        severity=severity,
         summary=f"{len(profiles)} Extension Mobility profiles — map to Webex hot desking",
         detail=detail,
         affected_objects=ids,
@@ -1761,6 +1786,244 @@ def detect_legacy_gateway_protocols(store: MigrationStore) -> list[AdvisoryFindi
 
 
 # ===================================================================
+# Pattern 27: Voicemail Greeting Re-Recording
+# ===================================================================
+
+def detect_voicemail_greeting_rerecording(
+    store: MigrationStore,
+) -> list[AdvisoryFinding]:
+    """Detect users with custom VM greetings that must be re-recorded post-migration.
+
+    Reads MISSING_DATA decisions produced by voicemail_mapper.py (lines 278-308)
+    where context.reason == 'custom_greeting_not_extractable'.
+    """
+    decisions = store.get_all_decisions()
+    greeting_decisions = []
+    affected = []
+    for d in decisions:
+        if d.get("type") != "MISSING_DATA":
+            continue
+        ctx = d.get("context", {})
+        if ctx.get("reason") == "custom_greeting_not_extractable":
+            greeting_decisions.append(d)
+            uid = ctx.get("user_id", "")
+            if uid:
+                affected.append(uid)
+
+    custom_count = len(greeting_decisions)
+    if custom_count == 0:
+        return []
+
+    if custom_count <= 10:
+        severity = "LOW"
+    elif custom_count <= 50:
+        severity = "MEDIUM"
+    else:
+        severity = "HIGH"
+
+    total_vm_users = store.count_by_type("voicemail_profile")
+    if total_vm_users == 0:
+        total_vm_users = custom_count
+
+    detail = (
+        f"{custom_count} of {total_vm_users} voicemail-enabled users have custom "
+        f"voicemail greetings that will revert to system defaults after migration.\n\n"
+        f"Voicemail greetings are personal recordings stored in Unity Connection. "
+        f"They cannot be automatically migrated to Webex Calling. Each user must "
+        f"re-record their greeting after migration.\n\n"
+        f"REQUIRED ACTION: Send a user communication at least 1 week before "
+        f"migration day informing affected users:\n"
+        f"1. Their voicemail greeting will reset to the system default\n"
+        f"2. After migration, re-record via: Webex App > Settings > Calling > "
+        f"Voicemail > Greeting, or dial the voicemail access number\n"
+        f"3. If they have a script for their greeting, have it ready\n\n"
+        f"This is a high-visibility issue — users notice immediately when their "
+        f"personalized greeting is replaced by a generic one."
+    )
+
+    return [AdvisoryFinding(
+        pattern_name="voicemail_greeting_rerecording",
+        severity=severity,
+        summary=(
+            f"{custom_count} users must re-record voicemail greetings after migration"
+        ),
+        detail=detail,
+        affected_objects=affected,
+        category="out_of_scope",
+    )]
+
+
+# ===================================================================
+# Pattern 28: Custom Audio Assets
+# ===================================================================
+
+def detect_custom_audio_assets(store: MigrationStore) -> list[AdvisoryFinding]:
+    """Custom MoH sources and announcements requiring manual migration.
+
+    (Pattern 28)
+    """
+    moh_sources = store.get_objects("music_on_hold")
+    announcements = store.get_objects("announcement")
+
+    custom_moh = [m for m in moh_sources if not m.get("is_default", False)]
+    moh_count = len(custom_moh)
+    ann_count = len(announcements)
+    total = moh_count + ann_count
+
+    if total == 0:
+        return []
+
+    if total >= 21:
+        severity = "CRITICAL"
+    elif total >= 6:
+        severity = "HIGH"
+    else:
+        severity = "MEDIUM"
+
+    affected = (
+        [m.get("canonical_id", "") for m in custom_moh]
+        + [a.get("canonical_id", "") for a in announcements]
+    )
+
+    detail = (
+        f"This environment has {total} custom audio assets requiring manual migration:\n"
+        f"- {moh_count} custom Music on Hold source(s)\n"
+        f"- {ann_count} announcement file(s)\n\n"
+        "CUCM audio files cannot be automatically transferred to Webex. Each must be:\n"
+        "1. Downloaded from CUCM server filesystem (SFTP to /usr/local/cm/tftp/)\n"
+        "2. Converted to WAV format if needed (Webex requires WAV, max 8 MB)\n"
+        "3. Uploaded to Webex announcement repository via API or Control Hub\n"
+        "4. Assigned to the appropriate location (MoH) or feature (AA/CQ greeting)\n\n"
+        "Action required BEFORE migration day: Download all custom audio files from "
+        "CUCM and have them ready for upload. MoH and AA greetings are customer-facing "
+        "-- losing them on cutover day is a P1 experience issue."
+    )
+
+    return [AdvisoryFinding(
+        pattern_name="custom_audio_assets",
+        severity=severity,
+        summary=f"{total} custom audio assets require manual migration ({moh_count} MoH, {ann_count} announcements)",
+        detail=detail,
+        affected_objects=affected,
+        recommendation="accept",
+        recommendation_reasoning=(
+            "Custom audio assets must be manually downloaded from CUCM and uploaded to Webex."
+        ),
+        category="migrate_as_is",
+    )]
+
+
+# ===================================================================
+# Pattern 29: Executive/Assistant Migration
+# ===================================================================
+
+def detect_executive_assistant_migration(
+    store: MigrationStore,
+) -> list[AdvisoryFinding]:
+    """Executive/assistant pairings — verify both sides in scope.
+
+    (from executive-assistant-migration spec §6a)
+    """
+    pairs = store.get_objects("exec_asst_pair")
+    if not pairs:
+        return []
+
+    complete_pairs: list[tuple[str, str]] = []
+    broken_pairs: list[tuple[str, str, str]] = []  # (exec, asst, missing_side)
+
+    for pair_data in pairs:
+        state = pair_data.get("pre_migration_state") or {}
+        exec_userid = state.get("executive_userid", "")
+        asst_userid = state.get("assistant_userid", "")
+
+        exec_obj = store.get_object(f"user:{exec_userid}")
+        asst_obj = store.get_object(f"user:{asst_userid}")
+
+        if exec_obj and asst_obj:
+            complete_pairs.append((exec_userid, asst_userid))
+        elif not exec_obj:
+            broken_pairs.append((exec_userid, asst_userid, "executive"))
+        else:
+            broken_pairs.append((exec_userid, asst_userid, "assistant"))
+
+    affected = [p.get("canonical_id", "") for p in pairs]
+    total = len(complete_pairs) + len(broken_pairs)
+
+    if broken_pairs and not complete_pairs:
+        broken_detail = "; ".join(
+            f"{e} \u2192 {a} (missing {side})" for e, a, side in broken_pairs
+        )
+        return [AdvisoryFinding(
+            pattern_name="executive_assistant_migration",
+            severity="HIGH",
+            summary=f"{len(broken_pairs)} executive/assistant pairing(s) have missing users",
+            detail=(
+                f"All {len(broken_pairs)} executive/assistant pairing(s) are broken \u2014 "
+                f"one side is not in migration scope. Broken pairs: {broken_detail}. "
+                f"These pairings cannot be migrated automatically. Either expand the "
+                f"migration scope to include the missing users, or configure "
+                f"executive/assistant settings manually in Webex post-migration."
+            ),
+            affected_objects=affected,
+            category="out_of_scope",
+        )]
+
+    if broken_pairs:
+        broken_detail = "; ".join(
+            f"{e} \u2192 {a} (missing {side})" for e, a, side in broken_pairs
+        )
+        return [AdvisoryFinding(
+            pattern_name="executive_assistant_migration",
+            severity="HIGH",
+            summary=(
+                f"{total} executive/assistant pairing(s) detected \u2014 "
+                f"{len(broken_pairs)} have missing users"
+            ),
+            detail=(
+                f"{len(complete_pairs)} pairing(s) will migrate automatically. "
+                f"{len(broken_pairs)} pairing(s) are broken: {broken_detail}. "
+                f"Expand migration scope or configure broken pairings manually "
+                f"in Webex post-migration."
+            ),
+            affected_objects=affected,
+            category="migrate_as_is",
+        )]
+
+    exec_names = sorted({e for e, _ in complete_pairs})
+    return [AdvisoryFinding(
+        pattern_name="executive_assistant_migration",
+        severity="MEDIUM",
+        summary=f"{total} executive/assistant pairing(s) detected \u2014 will migrate automatically",
+        detail=(
+            f"{total} executive/assistant pairing(s) across {len(exec_names)} "
+            f"executive(s) detected. These will be migrated automatically using "
+            f"the Webex Executive/Assistant API. Verify alerting mode preferences "
+            f"(sequential vs. simultaneous) post-migration. Executives: "
+            f"{', '.join(exec_names)}."
+        ),
+        affected_objects=affected,
+        category="migrate_as_is",
+    )]
+
+
+
+# Pattern 30: Call Intercept Candidates
+def detect_call_intercept_candidates(store):
+    candidates = store.get_objects("intercept_candidate")
+    if not candidates:
+        return []
+    by_type = defaultdict(list)
+    ids = []
+    for ic in candidates:
+        pre = ic.get("pre_migration_state", {}) or {}
+        by_type[pre.get("signal_type", "unknown")].append(pre.get("userid", ""))
+        ids.append(ic.get("canonical_id", ""))
+    total = len(candidates)
+    parts = [f"{len(u)} via {s.replace(chr(95), chr(32))}" for s, u in sorted(by_type.items())]
+    detail = f"{total} users have intercept-like configurations in CUCM ({chr(44).join(parts)}). Configure Webex intercept manually post-migration."
+    return [AdvisoryFinding(pattern_name="call_intercept_candidates", severity="MEDIUM", summary=f"{total} users with intercept-like configurations", detail=detail, affected_objects=ids, category="out_of_scope")]
+
+# ===================================================================
 # Registry — ALL_ADVISORY_PATTERNS
 # ===================================================================
 
@@ -1791,4 +2054,48 @@ ALL_ADVISORY_PATTERNS: list[Callable[[MigrationStore], list[AdvisoryFinding]]] =
     detect_trunk_type_selection,               # Pattern 24 (Gap: immutable trunk type)
     detect_intercluster_trunks,                # Pattern 25 (Gap: ICT disposition)
     detect_legacy_gateway_protocols,           # Pattern 26 (Gap: MGCP/H.323 undetected)
+    detect_voicemail_greeting_rerecording,     # Pattern 27 (User action: VM greeting re-recording)
+    detect_custom_audio_assets,                # Pattern 28 (Audio: MoH + announcements)
+    detect_executive_assistant_migration,       # Pattern 29 (Executive/assistant pairs)
+    detect_call_intercept_candidates,          # Pattern 30 (intercept)
 ]
+
+
+# ===================================================================
+# Pattern 29: Receptionist / Attendant Console Workflow Impact
+# ===================================================================
+
+
+def detect_receptionist_workflow_impact(store: MigrationStore) -> list[AdvisoryFinding]:
+    """Flag environments with receptionist/attendant console users needing
+    special migration attention and training."""
+    receptionists = store.get_objects("receptionist_config")
+    if not receptionists:
+        return []
+    affected = [r["canonical_id"] for r in receptionists]
+    user_details = []
+    for r in receptionists:
+        state = r.get("pre_migration_state") or r
+        user_cid = state.get("user_canonical_id", r["canonical_id"])
+        blf = state.get("blf_count", 0)
+        score = state.get("detection_score", 0)
+        user_details.append(f"  - {user_cid} (BLF: {blf}, score: {score})")
+    n = len(receptionists)
+    detail = (
+        f"{n} receptionist/attendant console user(s) detected. "
+        "CUCM attendant console (CUAC) workflows do not have a direct Webex equivalent. "
+        "Webex offers: (1) Receptionist Client, (2) Receptionist Contact Directories, "
+        "(3) Webex Receptionist Console. Receptionists will need training.\n"
+        + "\n".join(user_details)
+    )
+    return [AdvisoryFinding(
+        pattern_name="receptionist_workflow_impact",
+        severity="MEDIUM",
+        summary=f"{n} receptionist/attendant console user(s) require workflow rebuild for Webex",
+        detail=detail,
+        affected_objects=affected,
+        category="rebuild",
+    )]
+
+
+ALL_ADVISORY_PATTERNS.append(detect_receptionist_workflow_impact)

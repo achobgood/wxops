@@ -11,6 +11,14 @@
 1. [Quick Index: Where to Start](#quick-index-where-to-start)
 2. [Quick Start](#quick-start)
 3. [Prerequisites](#prerequisites)
+   - [AXL Access](#axl-access)
+   - [Webex OAuth Credentials](#webex-oauth-credentials)
+   - [Webex Org Readiness](#webex-org-readiness)
+   - [Local Environment](#local-environment)
+   - [Partner Token Note](#partner-token-note)
+   - [User Communication — Voicemail Greetings](#user-communication--voicemail-greetings)
+   - [Audio Asset Preparation](#audio-asset-preparation)
+   - [Call Intercept Verification](#call-intercept-verification)
 4. [Pipeline Walkthrough](#pipeline-walkthrough)
    - [init](#init)
    - [discover](#discover)
@@ -145,6 +153,55 @@ Run `wxcli configure` to complete the interactive OAuth flow. The CLI prompts fo
 If `wxcli whoami` shows a **"Target: \<org name\>"** line, the operator is working against the saved customer org (partner/VAR/MSP scenario). This is the correct state for multi-org deployments. If no Target line appears and you are a partner admin, run `wxcli configure` again — it detects multi-org tokens automatically and prompts for org selection. See [`docs/reference/authentication.md` §Partner/Multi-Org Tokens](../../reference/authentication.md#partnermulti-org-tokens) for the full multi-org workflow.
 
 → Multi-org detection logic: `docs/reference/authentication.md` §How wxcli handles partner tokens.
+
+### User Communication — Voicemail Greetings
+
+**Timing:** At least 1 week before migration cutover.
+
+Custom voicemail greetings stored in Unity Connection do not migrate to Webex Calling. The assessment report (Appendix H) includes the count of affected users and a ready-to-send email template.
+
+**Steps:**
+1. Check the assessment report Appendix H for the custom greeting count
+2. Copy the email template from Appendix H
+3. Fill in the voicemail access number for your site
+4. Send to all affected users at least 1 week before migration day
+
+### Audio Asset Preparation
+
+**Timing:** At least 1 week before migration day.
+
+Before migration day, download all custom audio files from CUCM:
+
+1. **Identify custom assets.** Run `wxcli cucm report` and check the Audio Assets appendix section (Appendix I). This lists all custom MoH sources and announcement files.
+2. **Download from CUCM.** SFTP to the CUCM publisher at `/usr/local/cm/tftp/`. MoH files are typically `.wav` or `.au` format.
+3. **Convert if needed.** Webex requires WAV format, max 8 MB for announcements.
+4. **Upload to Webex.** Use Control Hub (Calling > Service Settings > Announcements) or the API (`POST /telephony/config/announcements`).
+5. **Assign to features.** After upload, set location MoH to CUSTOM and assign announcements to AA/CQ greetings.
+
+**Why this matters:** Custom MoH and AA greetings are customer-facing. The default Cisco hold music signals "cheap." Enterprise customers pay for professional hold music and will reject a migration that reverts to default.
+
+### Call Intercept Verification
+
+**Timing:** Review surfaces during Step 1c of `/cucm-migrate` (decision review) and again *post-cutover* when you hand intercept configuration back to operations. Nothing on this path blocks `preflight`, `plan`, `export`, or `execute`.
+
+**What the pipeline does for you.** Webex Calling has a native call-intercept feature (for terminated employees, office relocations, leaves of absence, and number changes) with no CUCM equivalent. During `discover`, the `Tier4Extractor` runs two SQL queries against CUCM looking for intercept-*like* configurations: (1) DNs whose **partition name** matches `%intercept%`, `%block%`, `%out_of_service%`, or `%oos%`; and (2) DNs with `Call Forward All → voicemail` where the line has no registered phone behind it. Each match becomes an `intercept_candidate` in the store, cross-referenced to its owning user. `CallSettingsMapper` tags the user's `call_settings.intercept` metadata during Phase 05. Advisory Pattern 30 (`call_intercept_candidates`, severity `MEDIUM`, category `out_of_scope`) emits a single finding that lists all matched candidates grouped by signal type. None of it is auto-configured.
+
+**Where you see it.** The report's Executive Summary Page 2 renders a conditional "Intercept Candidates" stat card (only when count > 0), and Appendix Y ("Call Intercept Candidates") lists each candidate with user, DN, partition, signal type, and forward destination. The advisory shows up in `wxcli cucm decisions --type advisory` and in the Phase A decision-review bundle under `/cucm-migrate`.
+
+1. **Review the advisory during decision review.** When `/cucm-migrate` Step 1c lists advisory findings, find `call_intercept_candidates` under the `out_of_scope` bundle. Accept it — acceptance only acknowledges that you will handle the work manually post-cutover. It does not enable anything in Webex.
+2. **Triage Appendix Y before cutover.** Export the report and open the Appendix Y table. For each candidate, classify the CUCM intent with the customer's directory / HR contact:
+   - **Genuine intercept** — terminated employee DN, relocated office number, on-leave user. Schedule Webex intercept configuration for post-cutover.
+   - **False positive — dial-plan restriction** — a "Block" partition used to enforce outbound calling rules (e.g., `BlockInternational_PT`). Those belong in Webex calling permissions, not intercept.
+   - **False positive — ordinary CFA-to-voicemail** — a user whose preference happens to be "send everything to voicemail" on a spare line. No action needed.
+3. **Configure Webex intercept post-cutover** for each confirmed case:
+   - **Person-level:** `wxcli user-settings update-intercept <personId> --json-body '{…}'` → `PUT /people/{personId}/features/intercept`.
+   - **Workspace-level:** `wxcli workspace-settings update-intercept <workspaceId> --json-body '{…}'` → `PUT /workspaces/{workspaceId}/features/intercept`. The `/features/intercept` path works on Basic and Professional workspace licenses.
+   - **Location-level (entire site closure):** `PUT /telephony/config/locations/{locationId}/intercept`. Requires Professional-tier admin scopes.
+   - **Virtual lines:** `PUT /telephony/config/virtualLines/{virtualLineId}/intercept`.
+   - Each endpoint takes the full Webex intercept payload (`enabled`, `incoming.type`, `incoming.announcements.*`, `outgoing.type`, `outgoing.transferEnabled`, optional `destination`). Custom greeting upload is a separate endpoint: `POST /people/{personId}/features/intercept/actions/announcementUpload/invoke` (multipart `audio/wav`). See [`docs/reference/person-call-settings-media.md` § Call Intercept](../../reference/person-call-settings-media.md) for full payload shapes.
+4. **Smoke-test interception.** Dial each intercepted DN from a user outside the tenant and confirm the announcement, press-0 transfer, and new-number redirect behave as designed. Re-enable Call Forward All to the voicemail pilot was a *CUCM* pattern — in Webex the correct control is `incoming.voicemailEnabled` inside the intercept payload.
+
+**Why this matters.** The CUCM heuristic is intentionally permissive — the tool errs on the side of surfacing too many candidates rather than silently missing a terminated-user DN. If you skip this triage, terminated employees' numbers will become reachable again the moment they cut over to Webex, and office-relocation number announcements will simply stop playing. The advisory's `MEDIUM` severity reflects the operational risk of that silent failure, not how many users are typically affected (usually < 5%).
 
 ## Pipeline Walkthrough
 
@@ -412,9 +469,9 @@ The assessment report is a self-contained HTML/PDF artifact generated by `wxcli 
 
 **22 appendix sections A–V** (→ `src/wxcli/migration/report/appendix.py:35`, `generate_appendix`). Each section renders as a collapsed `<details>` element so the customer can expand only what they care about. Appendices A–V cover: object inventory, decision detail, CSS/partitions, devices, DN analysis, user/device map, routing, voicemail, data coverage, gateways, call features, button templates, device layouts, softkeys, cloud-managed resources, feature gaps, manual reconfiguration, planning inputs, recording, SNR, caller-ID transformations, and extension mobility. Empty sections are filtered out before render, so a small customer may see fewer than 22. For detail on a specific section, expand the `<details>` element in the report.
 
-### The 8 Score Factors
+### The 9 Score Factors
 
-The complexity score is computed from 8 weighted factors that sum to 100 (→ `src/wxcli/migration/report/score.py:WEIGHTS` at line 17). Use these to understand *why* a score landed where it did — the factor bars on Page 1 are sorted descending, so the top bar is the dominant driver.
+The complexity score is computed from 9 weighted factors that sum to 100 (→ `src/wxcli/migration/report/score.py:WEIGHTS` at line 17). Use these to understand *why* a score landed where it did — the factor bars on Page 1 are sorted descending, so the top bar is the dominant driver.
 
 The factors carry two names: the **internal name** (used in code, logs, and operator tooling) and the **customer-facing display name** (rendered in the report). When explaining the report to a customer, use the display name; when grepping source or filing bugs, use the internal name.
 
@@ -424,10 +481,11 @@ The factors carry two names: the **internal name** (used in code, logs, and oper
 | Feature Parity | Feature Compatibility | 17 | CUCM features with no Webex equivalent (SNR, EM, intercom variants, custom softkeys). |
 | Device Compatibility | Device Readiness | 15 | Mix of native-MPP vs. convertible vs. incompatible endpoints; hardware refresh cost proxy. |
 | Decision Density | Outstanding Decisions | 15 | Pending `Decision` rows per 100 users — how much judgment is still unresolved post-analyze. |
-| Scale | Scale | 10 | Raw object counts (users, devices, lines, sites). |
 | Shared Line Complexity | Shared Lines | 10 | Shared DN appearances, cross-device shared lines, bridged-line group depth. |
 | Phone Config Complexity | Phone Configuration | 8 | Per-line services, speed dials, BLF pickups, non-default button/softkey templates. |
+| Scale | Scale | 5 | Raw object counts (users, devices, lines, sites). |
 | Routing Complexity | Routing | 5 | Translation patterns, route list depth, trunk fan-out. |
+| Device Settings Complexity | Device Settings | 5 | Location/device settings templates, per-device setting overrides, non-default phone configuration beyond button templates. |
 
 → Display names live at `src/wxcli/migration/report/score.py:DISPLAY_NAMES` (line 28). Update both `WEIGHTS` and `DISPLAY_NAMES` if you rename a factor.
 
@@ -449,6 +507,39 @@ These are operator heuristics grounded in the score weights above — not pipeli
 | 6 | **`SCORE_CALIBRATED = False`** | Treat the score as a direction, not a number. Favor reading appendices B (decisions), P (feature gaps), and Q (manual reconfiguration) over trusting the headline gauge. |
 
 When three or more of these fire at once, stop and escalate to a solution-architect review before committing to a date. The score is there to surface the conversation, not to make the decision for you.
+
+### Per-User Diff (Pre-Execution Verification)
+
+Before executing the migration, generate a per-user diff to verify the planned changes:
+
+```bash
+wxcli cucm user-diff                              # HTML with all changed users
+wxcli cucm user-diff --format csv                 # CSV for Excel review
+wxcli cucm user-diff --user "user:jsmith"         # spot-check one user
+wxcli cucm user-diff --location "loc:dallas-hq"   # verify one site
+```
+
+The diff shows each user's CUCM state vs. planned Webex state side by side: device model/tier, call forwarding rules, voicemail, BLF keys, speed dials, shared lines, button layout, calling permissions, and any decisions that affect that user. Use this to spot-check a representative sample before pressing go.
+
+### User Communication Notice
+
+After generating the assessment report, you can also generate a user-facing communication notice:
+
+```bash
+wxcli cucm user-notice \
+  --brand "Customer Name" \
+  --migration-date "January 15, 2027" \
+  --helpdesk "IT Help Desk at ext. 5000 or helpdesk@customer.com" \
+  --prepared-by "Your Name, Cisco Partner SE"
+```
+
+This produces an HTML document that can be sent directly to end users. It scans the migration analysis and includes only the sections relevant to the detected scenarios (e.g., phone upgrades, voicemail re-recording, call forwarding changes).
+
+**Options:**
+- `--text-only` — plain text output (for plain-text email)
+- `--audience phone-upgrade` — filter to users with device changes only
+- `--audience webex-app` — filter to Jabber-to-Webex App transitions only
+- `--audience general` — filter to users with no device changes (reassurance notice)
 
 ## Decision Review
 

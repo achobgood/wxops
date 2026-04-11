@@ -89,10 +89,19 @@ Two layers of advisory output coexist on every decision: the **static recommenda
 
 **Triggered by:** `src/wxcli/migration/transform/mappers/moh_mapper.py:77-101` (non-default MOH source) and `src/wxcli/migration/transform/mappers/announcement_mapper.py:92-116` (every announcement). Fires whenever CUCM holds custom audio (MOH track or announcement WAV) that cannot be pulled over AXL — the bytes have to be downloaded from the CUCM TFTP directory and uploaded into Webex by a human.
 **Options:** Accept the manual migration (admin downloads + re-uploads), use the Webex default audio, or skip the asset entirely.
-**Recommendation:** `recommend_audio_asset_manual` at `src/wxcli/migration/advisory/recommendation_rules.py:532-543` returns `accept` for customer-facing usage (`AA_GREETING`, `QUEUE_COMFORT`, `QUEUE_WHISPER`), `use_default` for MOH confined to 1-2 locations, and `accept` otherwise. Reasoning: customer-facing audio is worth the manual effort for brand consistency; low-usage MOH is not.
-**Dissent triggers:** none documented as of 2026-04-07.
+**Recommendation:** `recommend_audio_asset_manual` at `src/wxcli/migration/advisory/recommendation_rules.py` always returns `accept`. Custom audio is intentional — reverting to Webex default hold music signals "cheap" and enterprise customers will reject a migration that drops their branded audio. Never suggest `use_default` for any context.
+**Manual procedure:**
+1. Connect to the CUCM publisher via SFTP (port 22)
+2. Navigate to `/usr/local/cm/tftp/`
+3. Download the audio file(s) listed in the decision context
+4. Convert to WAV format if needed (Webex requires WAV, max 8 MB for announcements)
+5. Upload to Webex via Control Hub: Calling > Service Settings > Announcements
+6. For MoH: set the location MoH greeting to CUSTOM and select the uploaded file
+7. For AA/CQ: assign the uploaded announcement to the appropriate feature
+**Override criteria:** None. This decision should always be accepted.
+**Dissent triggers:** none — custom audio is always worth preserving; no dissent condition exists.
 **Cascade impact:** none — resolving an audio asset decision does not feed any other analyzer via `cascades_to`.
-**See also:** [Advisory Patterns §voicemail-pilot-simplification](#voicemail-pilot-simplification) (parallel "manual effort" decision for voicemail), [Tuning Reference §Recipe 1](tuning-reference.md#recipe-1-small-smb-single-location-1050-users) (small deployments where `use_default` is usually right).
+**See also:** [Advisory Patterns §voicemail-pilot-simplification](#voicemail-pilot-simplification) (parallel "manual effort" decision for voicemail), [`docs/knowledge-base/migration/kb-feature-mapping.md` §MoH Audio Source Mapping](../../knowledge-base/migration/kb-feature-mapping.md#moh-audio-source-mapping) (CUCM→Webex MoH architecture differences and migration path).
 
 ### button-unmappable
 
@@ -211,6 +220,16 @@ Two layers of advisory output coexist on every decision: the **static recommenda
 **Cascade impact:** Depends on object type. Resolving missing data on a location or trunk cascades into every downstream consumer.
 **See also:** [`location-ambiguous`](#location-ambiguous), [`voicemail-incompatible`](#voicemail-incompatible), [Tuning Reference §Per-Decision Overrides](tuning-reference.md#per-decision-overrides) (how to override this without a global rule).
 
+#### `custom_greeting_not_extractable`
+
+Custom voicemail greetings stored in Unity Connection cannot be extracted for migration. Each user must re-record their greeting on the Webex side.
+
+**Recommended option:** "Use DEFAULT greetings" (accept). The user will re-record post-migration.
+
+**User communication:** See Appendix H of the assessment report for an email template. Send at least 1 week before cutover.
+
+**Why this matters:** Users notice immediately when their personalized greeting ("Hi, you've reached John in Sales...") is replaced by a generic system greeting. Proactive communication prevents day-one helpdesk ticket floods.
+
 ### number-conflict
 
 **Triggered by:** `src/wxcli/migration/preflight/checks.py:483-535` (`_build_number_conflict_decision`) — produced exclusively by the **preflight** phase, not by transform mappers or analyzers. The preflight runner at `src/wxcli/migration/preflight/runner.py:151` merges these into the store under `decision_types=["NUMBER_CONFLICT", "DUPLICATE_USER"]` with `stage="preflight"`. The check compares every planned E.164 number and extension+location pair against the current Webex org, skipping same-owner collisions (same email).
@@ -264,6 +283,21 @@ Two layers of advisory output coexist on every decision: the **static recommenda
 **Dissent triggers:** [`kb-user-settings.md#dt-user-005`](../../knowledge-base/migration/kb-user-settings.md#dt-user-005) — workspace-type semantics and the edge cases where conference models are actually in private offices.
 **Cascade impact:** Resolving this can change the downstream license-tier recommendation (conference rooms frequently need Professional for MOH/DND APIs).
 **See also:** [`workspace-license-tier`](#workspace-license-tier), [`hotdesk-dn-conflict`](#hotdesk-dn-conflict), [Advisory Patterns §extension-mobility-usage](#extension-mobility-usage).
+
+### device-settings-lossy
+
+**DecisionType:** `DEVICE_SETTINGS_LOSSY`
+**Severity:** MEDIUM
+
+**Trigger:** CUCM device settings that map to Webex with value loss (brightness level → timer enum, DND mode distinction lost, custom wallpapers without TFTP extraction).
+
+**Options:**
+- **Accept fidelity loss** — Apply settings with noted limitations. Most users won't notice the difference.
+- **Manual** — Manually configure affected settings in Control Hub after migration.
+
+**Override criteria:** Accept if the lossy settings are minor (brightness, DND mode). Flag for manual review if custom wallpapers are business-critical or Extension Mobility is actively used.
+
+**Example:** 50 phones with screen brightness set to level 12. Webex only supports timer-based backlight (30s, 1m, 5m, 30m, always on). The brightness level is lost; backlight timer is set to a reasonable default.
 
 ## Advisory Patterns
 
@@ -597,6 +631,18 @@ Two layers of advisory output coexist on every decision: the **static recommenda
 **Recommended action:** Convert MGCP to SIP (IOS-XE CUBE) or replace with ATA 192 devices. Convert H.323 to SIP trunk registration or certificate-based. This conversion must happen BEFORE the Webex trunk provisioning step (`severity=HIGH`).
 **See also:** [`pstn-connection-type`](#pstn-connection-type) (post-conversion the SIP trunk still needs LGW/CCPP classification), [`trunk-type-selection`](#trunk-type-selection) (post-conversion the trunk still needs REGISTERING vs CERTIFICATE_BASED), [`kb-trunk-pstn.md#dt-trunk-006`](../../knowledge-base/migration/kb-trunk-pstn.md#dt-trunk-006), [`kb-device-migration.md#dt-dev-004`](../../knowledge-base/migration/kb-device-migration.md#dt-dev-004), [Tuning Reference §Recipe 5](tuning-reference.md#recipe-5-analog-gateway-heavy-customer).
 
+#### voicemail-greeting-rerecording
+
+**Category:** out_of_scope
+**Triggered by:** `advisory_patterns.py` (`detect_voicemail_greeting_rerecording`) — fires when any `MISSING_DATA` decisions exist with `context.reason == "custom_greeting_not_extractable"`.
+**Detection signals:**
+- Counts `MISSING_DATA` decisions created by `voicemail_mapper.py` for users with custom busy or no-answer greetings in Unity Connection.
+- Severity: LOW (1-10 users), MEDIUM (11-50), HIGH (51+).
+**Why/impact:** Custom voicemail greetings are personal audio recordings stored in Unity Connection. They cannot be extracted or migrated to Webex Calling. Every affected user's greeting reverts to the system default on migration day. Without proactive communication, migration teams get flooded with helpdesk tickets ("My greeting is gone!").
+**Example:** 147 of 230 voicemail-enabled users have custom greetings. The advisory fires with severity HIGH and includes a count, user communication template, and re-recording instructions.
+**Recommended action:** Send user communication at least 1 week before migration. See Appendix H of the assessment report for a ready-to-send email template. Users re-record via Webex App > Settings > Calling > Voicemail > Greeting, or by dialing the voicemail access number.
+**See also:** [`missing-data`](#missing-data) (`custom_greeting_not_extractable` reason), [`kb-user-settings.md`](../../knowledge-base/migration/kb-user-settings.md) (Voicemail Greeting Migration Gap section).
+
 ### migrate-as-is
 
 #### device-bulk-upgrade
@@ -625,6 +671,48 @@ Two layers of advisory output coexist on every decision: the **static recommenda
 **Example:** A tenant with 240 route patterns, 187 of which start with `+`. Ratio 78%. Style: globalized. The advisor notes that existing CUCM translation patterns converting local to E.164 are likely redundant.
 **Recommended action:** Use the classification to frame the routing migration approach. For globalized, look for redundant CUCM translations. For localized, configure Webex location settings to reproduce the local dialing. For hybrid, review manually and standardize (`severity=MEDIUM`).
 **See also:** [`translation-pattern-elimination`](#translation-pattern-elimination) (globalized plans often have lots of redundant normalization), [`overengineered-dial-plan`](#overengineered-dial-plan), [`transformation-patterns`](#transformation-patterns), [`kb-css-routing.md#dt-css-006`](../../knowledge-base/migration/kb-css-routing.md#dt-css-006), [`kb-identity-numbering.md#dt-id-001`](../../knowledge-base/migration/kb-identity-numbering.md#dt-id-001).
+
+#### call-intercept-candidates
+
+**Category:** `out_of_scope` (manual Webex configuration required — no CUCM feature to migrate, only intercept-like usage patterns to detect)
+**Severity:** `MEDIUM` when candidates are detected; the pattern does not fire on a clean store.
+**Triggered by:** `advisory/advisory_patterns.py:detect_call_intercept_candidates` (Pattern 30, registered as the last entry in `ALL_ADVISORY_PATTERNS`). The data it reads is produced upstream: `cucm/extractors/tier4.py:_extract_intercept_candidates` runs two SQL queries during discovery, `transform/normalizers.py:normalize_intercept_candidate` converts each row into an `intercept_candidate` `MigrationObject`, and `transform/cross_reference.py:_build_intercept_refs` wires each candidate back to its owning user via the `user_has_intercept_signal` relationship. The advisory itself only reads `store.get_objects("intercept_candidate")` and groups by `signal_type` — it does not re-scan route patterns or CSS assignments.
+**Detection signals (source SQL in `cucm/extractors/tier4.py`):**
+- `_BLOCKED_PARTITION_SQL` — joins `numplan → routepartition → devicenumplanmap → device → enduser` and selects DNs whose partition **name** matches `LOWER(rp.name) LIKE '%intercept%' OR '%block%' OR '%out_of_service%' OR '%oos%'`. Produces `signal_type="blocked_partition"`.
+- `_CFA_VOICEMAIL_SQL` — joins `numplan → callforwarddynamic` and selects DNs with `cfadestination != ''`, `cfavoicemailenabled='t'`, and `NOT EXISTS` a registered phone (`device.tkclass=1 AND device.tkstatus_registrationstate=2`) backing the DN. Produces `signal_type="cfa_voicemail"`.
+- The extractor de-duplicates by DN (a DN matched by both queries is stored once as `blocked_partition`).
+- The advisory counts the candidates, groups them by `signal_type`, formats a detail like "N users have intercept-like configurations in CUCM (M via blocked partition, P via cfa voicemail). Configure Webex intercept manually post-migration.", and emits **one** `AdvisoryFinding` whose `affected_objects` is the full list of `intercept_candidate` canonical IDs.
+**Why/impact:** CUCM has no native equivalent of Webex's call-intercept feature (a BroadSoft-heritage setting for gracefully taking a line out of service — terminated employees, office relocations, leaves of absence, number changes). Admins approximate the behavior by placing DNs in restrictive partitions or forwarding all calls to voicemail on unregistered lines. Webex's native intercept (`GET/PUT /people/{id}/features/intercept`, `/workspaces/{id}/features/intercept`, `/telephony/config/virtualLines/{id}/intercept`, `/telephony/config/locations/{id}/intercept`) offers structured incoming/outgoing intercept with announcements, new-number redirect, press-0 transfer, and optional custom greeting. The pipeline surfaces candidates so the operator can re-enable intercept post-cutover for users who need it; without this advisory, terminated-user DNs would quietly become reachable again after migration.
+**Example:** A tenant has 8 `intercept_candidate` rows: 5 DNs live in a partition named `PT_OOS_Terminated` (blocked_partition) and 3 DNs have `CallForwardAll → voicemail pilot` with no registered phone (cfa_voicemail). The pattern emits one MEDIUM finding summarizing "8 users with intercept-like configurations (5 via blocked partition, 3 via cfa voicemail)". The report's Executive Summary Page 2 shows an "Intercept Candidates: 8" stat card (conditional — absent when count is 0) and Appendix Y renders the full per-user table with user, DN, partition, signal type, and forward destination columns.
+**Recommended action:** `accept` the advisory and add the candidate list to the post-cutover punch list. The advisory is informational only — it produces no `DecisionType`, has no auto-rule, no recommendation-rules entry, and does not block `preflight` or `plan`. After users are active on Webex, review the Appendix Y table against HR / IT records to separate genuine intercept cases (terminated, relocated, on leave) from false positives (partition named "Block" for call restrictions, CFA-to-voicemail as an ordinary DND preference). For confirmed cases, configure intercept via `wxcli user-settings update-intercept` (person), `wxcli workspace-settings update-intercept` (workspace), or Control Hub; for location-wide scenarios use `PUT /telephony/config/locations/{locationId}/intercept`. The person and workspace `/features/intercept` paths work on all license tiers; the `/telephony/config/` variants require Professional.
+**See also:** [`kb-user-settings.md` § "call intercept" (Real-World Patterns)](../../knowledge-base/migration/kb-user-settings.md), [`kb-webex-limits.md` (intercept on workspace license matrix)](../../knowledge-base/migration/kb-webex-limits.md), [`docs/reference/person-call-settings-media.md` § Call Intercept](../../reference/person-call-settings-media.md), [`docs/reference/devices-workspaces.md` § workspace intercept](../../reference/devices-workspaces.md), [Operator Runbook § Call Intercept Verification](operator-runbook.md#call-intercept-verification), [Tuning Reference § Advisory Pattern Heuristics: Call Intercept Candidates](tuning-reference.md#advisory-pattern-heuristics-call-intercept-candidates), [spec: `docs/superpowers/specs/2026-04-10-call-intercept-migration.md`](../../superpowers/specs/2026-04-10-call-intercept-migration.md).
+
+#### custom-audio-assets
+
+**Category:** `migrate-as-is` (requires manual download from CUCM and upload to Webex — no API equivalent for CUCM audio file access)
+**Severity:** `MEDIUM` when custom audio assets are detected; pattern does not fire on a clean store.
+**Triggered by:** `advisory/advisory_patterns.py:detect_custom_audio_assets` — counts `music_on_hold` canonical objects with custom sources and `announcement` canonical objects produced by the AnnouncementMapper. Fires when either count is > 0.
+**Why/impact:** CUCM stores custom music-on-hold audio and announcement greeting files in the database and filesystem. Webex Calling accepts audio files via Control Hub or the `/telephony/config/announcements` API, but there is no programmatic way to extract the CUCM source files — they must be exported manually. The pipeline surfaces the count and file names so the operator knows to collect these assets before cutover. Without this advisory, custom hold music and AA greetings would silently be replaced with Webex defaults, which customers notice immediately.
+**Recommended action:** `accept` the advisory and add the audio assets to the pre-cutover checklist. Retrieve the files from CUCM (System → Music On Hold → Audio Source, System → Announcements → Announcement Wizard, or `/usr/local/cm/mohprep/` and `/usr/local/cm/tftpdata/` on the CUCM filesystem), then upload via Webex Control Hub → Calling → Features → Music on Hold / Announcements. The report's Appendix I lists every detected custom asset with filename, description, and site association.
+**See also:** [`kb-feature-mapping.md` § Audio Assets Migration](../../knowledge-base/migration/kb-feature-mapping.md), [`docs/reference/location-call-settings-media.md` § Announcements / MOH](../../reference/location-call-settings-media.md).
+
+#### executive-assistant-migration
+
+**Category:** `rebuild` (CUCM Assistant Console / Manager Assistant doesn't map 1:1 to Webex — use delegated call management or shared lines)
+**Severity:** `MEDIUM` when exec/assistant pairings are detected; higher when filtering rules or screening are configured (feature loss).
+**Triggered by:** `advisory/advisory_patterns.py:detect_executive_assistant_migration` — reads `CanonicalExecutiveAssistant` objects produced by `ExecutiveAssistantMapper`. Fires when any pairing is detected.
+**Why/impact:** CUCM's Assistant Console and Manager Assistant features provide: (1) shared-line call screening where the assistant sees manager's calls before they ring the manager, (2) filter lists that route certain callers directly and others to the assistant first, (3) intercom and call-park integration, (4) per-manager alert modes (simultaneous/sequential). Webex Calling has no integrated assistant console — equivalents are shared lines (`/telephony/config/people/{id}/applications/members` for SCA appearance), Call Queue routing (manager calls route to an assistant queue first), or executive/executive-assistant call forwarding. None match CUCM's feature set exactly. The advisory surfaces the pairings so the operator plans the Webex-native replacement architecture before users notice loss of filtering or screening behavior.
+**Recommended action:** For each pairing, review the filter/screening/alerting configuration in the report's Appendix Z (Executive/Assistant Pairings) and choose a Webex replacement: (a) simple shared line — assistant gets SCA appearance on manager's line, (b) Call Queue front-ending — all manager calls route to a queue containing the assistant, (c) Call Forwarding with conditional rules — manager calls forward to assistant during business hours. Coach the manager and assistant on the new workflow before cutover. Features like filter lists and per-caller routing may need to be approximated with Caller ID-based selective forwarding.
+**See also:** [`kb-user-settings.md` § Executive/Assistant](../../knowledge-base/migration/kb-user-settings.md), [`docs/reference/person-call-settings-permissions.md` § Executive / Executive Assistant](../../reference/person-call-settings-permissions.md).
+
+#### receptionist-workflow-impact
+
+**Category:** `rebuild` (CUCM receptionist console features map partially to Webex Receptionist Client; BLF/KEM/templates migrate automatically but CUAC desktop must be replaced with browser-based workflow)
+**Severity:** `MEDIUM` when receptionist users are detected; `LOW` for single-receptionist deployments without KEM.
+**Triggered by:** `advisory/advisory_patterns.py:detect_receptionist_workflow_impact` — reads `CanonicalReceptionistConfig` objects produced by `ReceptionistMapper` which heuristically identifies users with BLF monitoring lists, KEM modules, and receptionist-style phone button templates. Fires when any receptionist user is detected.
+**Why/impact:** CUCM receptionists use a combination of: (1) Cisco Unified Attendant Console (CUAC) desktop application for call handling, (2) phone BLF keys and expansion modules (KEMs) for monitoring internal DNs, (3) phone button templates with call park, intercom, and directory shortcuts, (4) CTI application user routing for directed calls. Webex Calling has Receptionist Client (browser-based) with monitored members, contact directories, and call queue agent capabilities — but it is visually and operationally different from CUAC. The BLF monitoring list and button layout migrate automatically via `MonitoringMapper` and `DeviceLayoutMapper`; the CUAC workflow change requires user training. The advisory surfaces detected receptionists so the operator plans the training and UI transition.
+**Recommended action:** Review the detected receptionists in the report's Appendix AA (Receptionist Users) — each row shows user, location, BLF count, KEM presence, template name, and detection score. For high-score users (multi-signal confidence), plan dedicated training on the Webex Receptionist Client and verify that their BLF / KEM / button template migrated correctly post-cutover. For location main-number holders, double-check that call routing to the receptionist survives the migration (Auto Attendant / Call Queue in front of the main number still targets the right user). CUAC-specific features like directory search operators and CTI-routed calls must be rebuilt with Webex Receptionist Client directories and Call Queue routing.
+**See also:** [`kb-user-settings.md` § Receptionist](../../knowledge-base/migration/kb-user-settings.md), [`docs/reference/call-features-additional.md` § Receptionist Client](../../reference/call-features-additional.md).
 
 ## Dissent Handling
 
