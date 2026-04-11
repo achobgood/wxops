@@ -1111,6 +1111,23 @@ def handle_location_hotdesking_enable(data: dict, deps: dict, ctx: dict) -> Hand
     )]
 
 
+def handle_music_on_hold_configure(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    """Phase A no-op. The op appears in the deployment plan so operators
+    see music_on_hold tracked, but no API call is made. Real per-location
+    MOH configuration + custom audio upload is deferred to Phase B.
+    """
+    return []
+
+
+def handle_announcement_upload(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    """Phase A no-op. The AnnouncementMapper creates AUDIO_ASSET_MANUAL
+    decisions for every announcement, so operators already know to manually
+    download/upload. The op exists in the plan for visibility. Real multipart
+    upload is deferred to Phase B alongside engine multipart support.
+    """
+    return []
+
+
 # HANDLER_REGISTRY — complete with all operation types
 HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("location", "create"): handle_location_create,
@@ -1157,4 +1174,7 @@ HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("device_profile", "enable_hoteling_guest"): handle_hoteling_guest_enable,
     ("device_profile", "enable_hoteling_host"): handle_hoteling_host_configure,
     ("hoteling_location", "enable_hotdesking"): handle_location_hotdesking_enable,
+    # Advisory-to-execution bridge (Phase A: no-op placeholders)
+    ("music_on_hold", "configure"): handle_music_on_hold_configure,
+    ("announcement", "upload"): handle_announcement_upload,
 }
