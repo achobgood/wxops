@@ -205,3 +205,118 @@ class TestMultiPartitionDN:
             if d.context.get("selective_call_handling_pattern") == "multi_partition_dn"
         ]
         assert sch_decisions == []
+
+
+def _seed_partition_with_dns(
+    store: MigrationStore,
+    partition_name: str,
+    dn_count: int,
+    in_csses: list[str],
+    all_css_names: list[str],
+) -> None:
+    """Seed a partition with N DNs and place it in a subset of CSSes.
+
+    Notes on FK constraints: every cross-ref target must be a real object
+    in `objects`, so we upsert the partition and each DN as MigrationObjects
+    before adding the cross-refs.
+    """
+    pt_id = f"partition:{partition_name}"
+    store.upsert_object(
+        MigrationObject(
+            canonical_id=pt_id,
+            provenance=_prov(partition_name),
+            status=MigrationStatus.NORMALIZED,
+            pre_migration_state={"partition_name": partition_name},
+        )
+    )
+    for i in range(dn_count):
+        dn_cid = f"dn:9{i:03d}:{partition_name}"
+        store.upsert_object(
+            MigrationObject(
+                canonical_id=dn_cid,
+                provenance=_prov(dn_cid),
+                status=MigrationStatus.NORMALIZED,
+                pre_migration_state={"dn": f"9{i:03d}", "partition": partition_name},
+            )
+        )
+        store.add_cross_ref(pt_id, dn_cid, "partition_has_pattern")
+    # Make sure all CSSes exist; place this partition only in `in_csses`
+    for css_name in all_css_names:
+        css_id = f"css:{css_name}"
+        if store.get_object(css_id) is None:
+            store.upsert_object(
+                MigrationObject(
+                    canonical_id=css_id,
+                    provenance=_prov(css_name),
+                    status=MigrationStatus.NORMALIZED,
+                    pre_migration_state={"css_name": css_name, "partitions": []},
+                )
+            )
+    for css_name in in_csses:
+        store.add_cross_ref(f"css:{css_name}", pt_id, "css_contains_partition")
+
+
+class TestLowMembershipPartition:
+    def test_low_membership_partition_in_subset_fires(self, tmp_path):
+        """Partition with 3 DNs in 1 of 4 CSSes → MEDIUM severity decision."""
+        store = _store(tmp_path)
+        _seed_partition_with_dns(
+            store,
+            partition_name="PT_VIP_Bypass",
+            dn_count=3,
+            in_csses=["CSS_VIP"],
+            all_css_names=["CSS_All", "CSS_Internal", "CSS_External", "CSS_VIP"],
+        )
+
+        analyzer = SelectiveCallHandlingAnalyzer()
+        decisions = analyzer.analyze(store)
+
+        sch = [
+            d for d in decisions
+            if d.context.get("selective_call_handling_pattern") == "low_membership_partition"
+        ]
+        assert len(sch) == 1
+        d = sch[0]
+        assert d.severity == "MEDIUM"
+        assert "PT_VIP_Bypass" in d.context["partitions"]
+        assert d.context["dn_count"] == 3
+        assert d.context["css_count"] == 1
+        assert d.context["total_css_count"] == 4
+
+    def test_high_membership_partition_silent(self, tmp_path):
+        """Partition with 50 DNs → not VIP/priority pattern, no decision."""
+        store = _store(tmp_path)
+        _seed_partition_with_dns(
+            store,
+            partition_name="PT_Standard",
+            dn_count=50,
+            in_csses=["CSS_All"],
+            all_css_names=["CSS_All", "CSS_Other"],
+        )
+
+        analyzer = SelectiveCallHandlingAnalyzer()
+        decisions = analyzer.analyze(store)
+        sch = [
+            d for d in decisions
+            if d.context.get("selective_call_handling_pattern") == "low_membership_partition"
+        ]
+        assert sch == []
+
+    def test_low_membership_in_all_csses_silent(self, tmp_path):
+        """Partition with few DNs but in ALL CSSes is universal, not VIP."""
+        store = _store(tmp_path)
+        _seed_partition_with_dns(
+            store,
+            partition_name="PT_Few_All",
+            dn_count=2,
+            in_csses=["CSS_A", "CSS_B"],
+            all_css_names=["CSS_A", "CSS_B"],
+        )
+
+        analyzer = SelectiveCallHandlingAnalyzer()
+        decisions = analyzer.analyze(store)
+        sch = [
+            d for d in decisions
+            if d.context.get("selective_call_handling_pattern") == "low_membership_partition"
+        ]
+        assert sch == []

@@ -255,7 +255,72 @@ class SelectiveCallHandlingAnalyzer(Analyzer):
     def _heuristic_low_membership_partition(
         self, store: MigrationStore
     ) -> list[Decision]:
-        return []
+        """Find partitions with few DNs that appear in only a subset of CSSes."""
+        partitions = store.get_objects("partition")
+        if not partitions:
+            return []
+        css_partitions = self._build_css_partition_index(store)
+        # total_css_count must reflect all CSSes in the store (not just those
+        # that appear as keys in the cross_ref index — a CSS with no partitions
+        # assigned still counts toward the "universe" of CSSes).
+        total_css_count = len(store.get_objects("css"))
+        if total_css_count == 0:
+            return []
+
+        # Build reverse: partition_id → set of CSS canonical_ids that contain it
+        partition_in_css: dict[str, set[str]] = defaultdict(set)
+        for css_id, pt_ids in css_partitions.items():
+            for pt_id in pt_ids:
+                partition_in_css[pt_id].add(css_id)
+
+        decisions: list[Decision] = []
+        for pt in partitions:
+            pt_id = pt.get("canonical_id", "")
+            if not pt_id:
+                continue
+            dn_refs = store.find_cross_refs(pt_id, "partition_has_pattern")
+            dn_count = len(dn_refs)
+            if dn_count == 0 or dn_count > 10:
+                continue
+
+            css_count = len(partition_in_css.get(pt_id, set()))
+            # Universal partition or not in a strict minority of CSSes → not selective.
+            if css_count == 0 or css_count >= total_css_count * 0.5:
+                continue
+
+            partition_name = (
+                pt.get("pre_migration_state", {}).get("partition_name")
+                or pt_id.split(":", 1)[-1]
+            )
+
+            context = {
+                "selective_call_handling_pattern": "low_membership_partition",
+                "primary_key": partition_name,
+                "partitions": [partition_name],
+                "dn_count": dn_count,
+                "css_count": css_count,
+                "total_css_count": total_css_count,
+                "recommended_webex_feature": "Selective Accept",
+                "confidence": "HIGH",
+            }
+            options = self._build_options("Selective Accept")
+            summary = (
+                f"Partition '{partition_name}' has {dn_count} DN(s) and is "
+                f"reachable via only {css_count}/{total_css_count} CSSes "
+                f"(VIP/priority bypass pattern)"
+            )
+            decisions.append(
+                self._create_decision(
+                    store=store,
+                    decision_type=DecisionType.FEATURE_APPROXIMATION,
+                    severity="MEDIUM",
+                    summary=summary,
+                    context=context,
+                    options=options,
+                    affected_objects=[pt_id],
+                )
+            )
+        return decisions
 
     def _heuristic_naming_convention(
         self,
