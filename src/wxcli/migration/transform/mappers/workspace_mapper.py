@@ -223,6 +223,9 @@ class WorkspaceMapper(Mapper):
             store.save_decision(decision_to_store_dict(decision))
             result.decisions.append(decision)
 
+            # --- Call settings extraction ---
+            call_settings = _extract_workspace_call_settings(state, license_tier)
+
             # --- Build CanonicalWorkspace ---
             workspace = CanonicalWorkspace(
                 canonical_id=f"workspace:{device_name}",
@@ -238,6 +241,7 @@ class WorkspaceMapper(Mapper):
                 hotdesking_status=hotdesking_status,
                 is_common_area=True,
                 license_tier=license_tier,
+                call_settings=call_settings,
             )
 
             store.upsert_object(workspace)
@@ -300,5 +304,38 @@ def _infer_license_tier(state: dict[str, Any]) -> str:
     if state.get("outgoing_call_permissions"):
         return "Professional Workspace"
     return "Workspace"
+
+
+def _extract_workspace_call_settings(
+    state: dict[str, Any],
+    license_tier: str,
+) -> dict[str, Any] | None:
+    """Translate common-area phone state into a Webex workspace call_settings dict.
+
+    Returns a dict keyed by /telephony/config/workspaces/{id}/{key} path suffix.
+    Keys emitted depend on ``license_tier``:
+      - Workspace (basic): only ``doNotDisturb`` (Webex returns 405 on others for Basic).
+      - Professional Workspace: all detected settings.
+    Returns None if nothing worth writing.
+    """
+    settings: dict[str, Any] = {}
+
+    # --- doNotDisturb (both tiers) ---
+    dnd_status = state.get("dndStatus")
+    if dnd_status is not None:
+        enabled = dnd_status in ("true", True, "1", 1)
+        ring_splash = enabled and state.get("dndOption") == "Ringer Off"
+        settings["doNotDisturb"] = {
+            "enabled": enabled,
+            "ringSplashEnabled": ring_splash,
+        }
+
+    # License tier gating: Workspace-tier only supports DND + MOH at /telephony/config/
+    # (from docs/reference/devices-workspaces.md license tier access matrix)
+    if license_tier == "Workspace":
+        allowed = {"doNotDisturb", "musicOnHold"}
+        settings = {k: v for k, v in settings.items() if k in allowed}
+
+    return settings or None
 
 
