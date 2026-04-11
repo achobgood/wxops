@@ -169,6 +169,13 @@ class DeviceLayoutMapper(Mapper):
                     "number": sd.get("dirn") or sd.get("speedDialNumber", ""),
                 })
 
+            # Skip CONVERTIBLE devices — they use activation-code registration
+            # and configure themselves post-registration. Layout application for
+            # these phones is deferred to a post-registration bulk job.
+            _skip_device_obj = store.get_object(device_id)
+            if _skip_device_obj and _skip_device_obj.get("compatibility_tier") == "convertible":
+                continue
+
             # Copy device_id_surface from the associated CanonicalDevice
             device_obj = store.get_object(device_id)
             device_id_surface = device_obj.get("device_id_surface", "telephony") if device_obj else "telephony"
