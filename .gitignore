@@ -32,13 +32,14 @@ build/
 assessment-report*.html
 assessment-report*.pdf
 
-# Dev-only docs (design prompts, plans, parked items, reports, team templates)
+# Dev-only docs (design prompts, plans, parked items, reports, team templates, branch archives)
 docs/prompts/
 docs/superpowers/
 docs/later/
 docs/plans/
 docs/reports/
 docs/team-prompts/
+docs/archive/
 
 # Tests (dev-only)
 tests/
