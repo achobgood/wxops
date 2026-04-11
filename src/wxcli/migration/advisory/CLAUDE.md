@@ -23,7 +23,7 @@ analysis_pipeline.py run()
 
 **Layer 1 — Per-Decision Recommendations.** Every decision the pipeline produces (from mappers and analyzers) gets an optional `recommendation` field: which option the system advises, and `recommendation_reasoning`: why. Populated by `populate_recommendations()` which calls into `recommendation_rules.py`. One function per DecisionType (16 total). Returns `(option_id, reasoning)` or `None` for genuinely ambiguous cases.
 
-**Layer 2 — Cross-Cutting Advisor.** The `ArchitectureAdvisor` runs after all 13 analyzers have merged their decisions. It reads the full canonical model plus all prior decisions and produces `ARCHITECTURE_ADVISORY` decisions for patterns spanning multiple objects — things like "6 of your 14 CSSes are restriction-only and should be calling permissions, not dial plans" or "your trunk topology indicates Local Gateway, not Cloud Connected PSTN." 27 pattern detector functions total.
+**Layer 2 — Cross-Cutting Advisor.** The `ArchitectureAdvisor` runs after all 13 analyzers have merged their decisions. It reads the full canonical model plus all prior decisions and produces `ARCHITECTURE_ADVISORY` decisions for patterns spanning multiple objects — things like "6 of your 14 CSSes are restriction-only and should be calling permissions, not dial plans" or "your trunk topology indicates Local Gateway, not Cloud Connected PSTN." 29 pattern detector functions total.
 
 ## Why Two Phases
 
@@ -37,7 +37,7 @@ Advisory decisions are merged separately using `decision_types=[ARCHITECTURE_ADV
 |------|---------|
 | `__init__.py` | Exports `populate_recommendations()` and `ArchitectureAdvisor` |
 | `recommendation_rules.py` | 19 recommendation functions (one per DecisionType) + `RECOMMENDATION_DISPATCH` dict |
-| `advisory_patterns.py` | 27 cross-cutting pattern detectors + `AdvisoryFinding` dataclass + `ALL_ADVISORY_PATTERNS` list |
+| `advisory_patterns.py` | 29 cross-cutting pattern detectors + `AdvisoryFinding` dataclass + `ALL_ADVISORY_PATTERNS` list |
 | `advisor.py` | `ArchitectureAdvisor` class (extends Analyzer ABC) |
 
 ## Decision Model Fields
@@ -70,7 +70,7 @@ Ambiguous cases return `None`. Honest uncertainty is a feature.
 
 ## Cross-Cutting Advisory Patterns (Layer 2)
 
-`advisory_patterns.py` has 27 pattern detector functions. Each takes a `MigrationStore` and returns `list[AdvisoryFinding]`.
+`advisory_patterns.py` has 29 pattern detector functions. Each takes a `MigrationStore` and returns `list[AdvisoryFinding]`.
 
 **Critical patterns (highest migration impact):**
 1. **Partition Ordering Loss** — CSSes that depend on partition ordering to resolve overlapping patterns. Webex uses longest-match routing — no ordering equivalent. Calls may route differently after migration.
@@ -112,6 +112,9 @@ Ambiguous cases return `None`. Honest uncertainty is a feature.
 
 **User communication:**
 27. Voicemail Greeting Re-Recording — counts users with custom greetings, produces user communication template
+
+**Audio migration:**
+28. Custom Audio Assets — custom MoH sources + announcements requiring manual download/upload
 
 ## AdvisoryFinding Dataclass
 
