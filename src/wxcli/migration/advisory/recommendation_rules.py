@@ -137,6 +137,24 @@ def recommend_feature_approximation(
     context: dict[str, Any], options: list
 ) -> tuple[str, str] | None:
     """Spec §5.1: Feature approximation — CTI RP or Line Group → CQ/HG."""
+    # EM profile → hot desking: always recommend accept (no alternative exists)
+    if context.get("classification") == "EXTENSION_MOBILITY":
+        line_count = context.get("line_count", 0)
+        sd_count = context.get("speed_dial_count", 0)
+        blf_count = context.get("blf_count", 0)
+        has_feature_loss = line_count > 1 or sd_count > 0 or blf_count > 0
+        if has_feature_loss:
+            return (
+                "accept",
+                f"EM profile has {line_count} line(s) but Webex hot desking uses "
+                f"primary line only. Speed dials and BLF entries will not carry to "
+                f"hot desk sessions. Accept — no alternative to hot desking exists.",
+            )
+        return (
+            "accept",
+            "Simple EM profile — maps cleanly to Webex hot desking with primary line.",
+        )
+
     classification = context.get("classification")
     if classification == "AUTO_ATTENDANT":
         if context.get("complex_script"):
