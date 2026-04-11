@@ -1111,6 +1111,31 @@ def handle_location_hotdesking_enable(data: dict, deps: dict, ctx: dict) -> Hand
     )]
 
 
+# ---------------------------------------------------------------------------
+# Bulk job handlers (Phase: bulk-operations)
+# Submit jobs that replace per-device operations when device count exceeds
+# the configured threshold. Polling is handled by the engine, not the handler.
+# (from docs/superpowers/specs/2026-04-10-bulk-operations.md §2, §3d)
+# ---------------------------------------------------------------------------
+
+def handle_bulk_device_settings_submit(
+    data: dict, deps: dict, ctx: dict,
+) -> HandlerResult:
+    """Submit a bulk Change Device Settings job for a location.
+
+    POST /v1/telephony/config/jobs/devices/callDeviceSettings
+    (spec §2b)
+    """
+    loc_cid = data.get("location_canonical_id", "")
+    loc_wid = deps.get(loc_cid) or _resolve_location_from_deps(deps)
+    body: dict[str, Any] = {
+        "locationId": loc_wid,
+        "locationCustomizationsEnabled": True,
+        "customizations": data.get("customizations", {}),
+    }
+    return [("POST", _url("/telephony/config/jobs/devices/callDeviceSettings", ctx), body)]
+
+
 # HANDLER_REGISTRY — complete with all operation types
 HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("location", "create"): handle_location_create,
@@ -1157,4 +1182,6 @@ HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("device_profile", "enable_hoteling_guest"): handle_hoteling_guest_enable,
     ("device_profile", "enable_hoteling_host"): handle_hoteling_host_configure,
     ("hoteling_location", "enable_hotdesking"): handle_location_hotdesking_enable,
+    # Bulk job handlers
+    ("bulk_device_settings", "submit"): handle_bulk_device_settings_submit,
 }
