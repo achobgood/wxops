@@ -189,3 +189,61 @@ class TestMusicOnHoldRegistry:
         TestHandlerRegistry.test_all_operation_types_have_handlers
         skips the handler requirement if that check ever matters."""
         assert API_CALL_ESTIMATES["music_on_hold:configure"] == 0
+
+
+class TestAnnouncementExpander:
+    """announcement was a planner dead end. Wire it as a visible Phase-A
+    op with a no-op handler. Real multipart upload deferred to Phase B."""
+
+    def test_announcement_expander_registered(self):
+        assert "announcement" in _EXPANDERS
+
+    def test_announcement_produces_one_upload_op(self):
+        store = MigrationStore(":memory:")
+        ann = CanonicalAnnouncement(
+            canonical_id="announcement:Welcome",
+            provenance=_prov(),
+            status=MigrationStatus.ANALYZED,
+            name="Welcome",
+            file_name="welcome.wav",
+            media_type="WAV",
+            source_system="cucm",
+        )
+        store.upsert_object(ann)
+
+        ops = expand_to_operations(store)
+
+        assert len(ops) == 1
+        op = ops[0]
+        assert op.resource_type == "announcement"
+        assert op.op_type == "upload"
+        assert op.canonical_id == "announcement:Welcome"
+
+
+class TestAnnouncementHandler:
+    def test_handler_registered(self):
+        assert ("announcement", "upload") in HANDLER_REGISTRY
+
+    def test_handler_returns_empty_list_phase_a(self):
+        from wxcli.migration.execute.handlers import handle_announcement_upload
+
+        data = {
+            "canonical_id": "announcement:Welcome",
+            "name": "Welcome",
+            "file_name": "welcome.wav",
+        }
+        result = handle_announcement_upload(data, deps={}, ctx={"orgId": "org1"})
+
+        assert result == []
+
+
+class TestAnnouncementRegistry:
+    def test_tier_assignment_exists(self):
+        assert ("announcement", "upload") in TIER_ASSIGNMENTS
+
+    def test_tier_is_one(self):
+        """Announcements are routing backbone — tier 1."""
+        assert TIER_ASSIGNMENTS[("announcement", "upload")] == 1
+
+    def test_api_call_estimate_is_zero_phase_a(self):
+        assert API_CALL_ESTIMATES["announcement:upload"] == 0
