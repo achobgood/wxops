@@ -362,6 +362,36 @@ def _extract_workspace_call_settings(
         # Webex defaults VM to enabled; common-area phones almost always want it OFF
         settings["voicemail"] = {"enabled": False}
 
+    # --- callForwarding (Professional-only) ---
+    lines_data = state.get("lines") or []
+    line1: dict | None = None
+    if isinstance(lines_data, dict):
+        line1 = lines_data.get(1) or lines_data.get("1")
+    elif isinstance(lines_data, list) and lines_data:
+        cand = lines_data[0]
+        if isinstance(cand, dict):
+            line1 = cand
+    if line1:
+        cfa = (line1.get("callForwardAll") or {}).get("destination")
+        cfb = (line1.get("callForwardBusy") or {}).get("destination")
+        cfna_raw = line1.get("callForwardNoAnswer") or {}
+        cfna_dest = cfna_raw.get("destination")
+        if cfa or cfb or cfna_dest:
+            cf_body: dict[str, Any] = {
+                "always": {"enabled": bool(cfa)},
+                "busy": {"enabled": bool(cfb)},
+                "noAnswer": {"enabled": bool(cfna_dest)},
+            }
+            if cfa:
+                cf_body["always"]["destination"] = cfa
+            if cfb:
+                cf_body["busy"]["destination"] = cfb
+            if cfna_dest:
+                cf_body["noAnswer"]["destination"] = cfna_dest
+                duration = cfna_raw.get("duration")
+                cf_body["noAnswer"]["numberOfRings"] = _duration_to_rings(duration) or 3
+            settings["callForwarding"] = cf_body
+
     # License tier gating: Workspace-tier only supports DND + MOH at /telephony/config/
     # (from docs/reference/devices-workspaces.md license tier access matrix)
     if license_tier == "Workspace":
