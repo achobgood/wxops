@@ -250,3 +250,61 @@ class TestAnnouncementRegistry:
 
     def test_api_call_estimate_is_zero_phase_a(self):
         assert API_CALL_ESTIMATES["announcement:upload"] == 0
+
+
+class TestBridgeCoverage:
+    """End-to-end: every canonical object type called out in the bridge
+    spec is now either in _EXPANDERS or in _DATA_ONLY_TYPES. No more
+    'No expansion pattern' warnings for these types."""
+
+    _BRIDGE_TYPES = [
+        "music_on_hold",
+        "announcement",
+        "e911_config",
+        "device_profile",
+        # location_schedule uses canonical_id prefix "schedule:" — obj_type
+        # resolves to "schedule", which is in _EXPANDERS.
+    ]
+
+    def test_all_bridge_types_are_known(self):
+        unknown = []
+        for t in self._BRIDGE_TYPES:
+            if t in _EXPANDERS:
+                continue
+            if t in _DATA_ONLY_TYPES:
+                continue
+            unknown.append(t)
+        assert unknown == [], f"Bridge types still dead-ending: {unknown}"
+
+    def test_planner_no_warnings_for_bridge_types(self, caplog):
+        """Plant one object of each bridge type in the store and confirm
+        the planner does not log 'No expansion pattern' for any of them."""
+        import logging
+
+        store = MigrationStore(":memory:")
+        store.upsert_object(CanonicalMusicOnHold(
+            canonical_id="music_on_hold:X", provenance=_prov(),
+            status=MigrationStatus.ANALYZED, source_name="X", is_default=True,
+        ))
+        store.upsert_object(CanonicalAnnouncement(
+            canonical_id="announcement:Y", provenance=_prov(),
+            status=MigrationStatus.ANALYZED, name="Y", source_system="cucm",
+        ))
+        store.upsert_object(CanonicalE911Config(
+            canonical_id="e911_config:Z", provenance=_prov(),
+            status=MigrationStatus.ANALYZED, elin_group_name="Z",
+        ))
+        store.upsert_object(CanonicalLocationSchedule(
+            canonical_id="schedule:abc", provenance=_prov(),
+            status=MigrationStatus.ANALYZED, name="abc",
+            schedule_type="businessHours", location_id="location:dallas",
+        ))
+
+        with caplog.at_level(logging.WARNING, logger="wxcli.migration.execute.planner"):
+            expand_to_operations(store)
+
+        for record in caplog.records:
+            msg = record.getMessage()
+            assert "No expansion pattern" not in msg, (
+                f"Planner still warns about a bridge type: {msg}"
+            )
