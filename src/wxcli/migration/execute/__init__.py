@@ -121,6 +121,10 @@ TIER_ASSIGNMENTS: dict[tuple[str, str], int] = {
     # Device settings templates — location-level config at tier 1, per-device overrides at tier 5
     ("device_settings_template", "apply_location_settings"): 1,
     ("device_settings_template", "apply_device_override"): 5,
+    # Hoteling / Hot Desking (depends on users + devices)
+    ("device_profile", "enable_hoteling_guest"): 5,
+    ("device_profile", "enable_hoteling_host"): 5,
+    ("hoteling_location", "enable_hotdesking"): 0,
 }
 
 # ---------------------------------------------------------------------------
@@ -182,6 +186,10 @@ API_CALL_ESTIMATES: dict[str, int] = {
     # Device settings templates
     "device_settings_template:apply_location_settings": 1,  # PUT /telephony/config/locations/{id}/devices/settings
     "device_settings_template:apply_device_override": 1,    # PUT /telephony/config/devices/{id}/settings
+    # Hoteling / Hot Desking
+    "device_profile:enable_hoteling_guest": 1,  # PUT /people/{id}/features/hoteling
+    "device_profile:enable_hoteling_host": 1,   # PUT /telephony/config/people/{id}/devices/settings/hoteling
+    "hoteling_location:enable_hotdesking": 1,   # PUT /telephony/config/locations/{id}/features/hotDesking
 }
 
 # ---------------------------------------------------------------------------

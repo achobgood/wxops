@@ -135,6 +135,7 @@ Use this guide to construct CDR queries for ANY natural-language question. The r
 - Maximum 12-hour window per request — for longer ranges, issue multiple requests
 - Data available for the last 30 days only, with a minimum 5-minute delay
 - Add `--locations "Name1,Name2"` to filter by location (up to 10)
+- `--limit` is not supported for CDR: `wxcli cdr list` auto-paginates and always returns all records in the window regardless of `--limit`. To get a small sample, use a short time window (30 minutes) instead of relying on `--limit`.
 
 ### Field Taxonomy
 
@@ -159,8 +160,8 @@ CDR returns 55+ fields with space-separated JSON keys. Use this taxonomy to find
 | User Says | Python Translation |
 |-----------|-------------------|
 | "How many [calls that X]" | `filtered = [r for r in data if COND]; len(filtered)` |
-| "Average / mean [metric]" | `vals = [int(r.get(F,0)) for r in data if COND]; sum(vals)/len(vals)` |
-| "Longest / max / worst" | `max(vals)` |
+| "Average / mean [metric]" | `vals = [int(r.get(F,0)) for r in data if COND]; sum(vals)/len(vals) if vals else 0` |
+| "Longest / max / worst" | `max(vals) if vals else 0` |
 | "By [field]" / "per [field]" | `Counter(r.get(F) for r in data)` |
 | "[X] that then [Y]" | Chain: `[r for r in data if COND_A and COND_B]` |
 | "Over the last N hours" | Compute start/end from `datetime.now(timezone.utc) - timedelta(hours=N)` |
@@ -187,7 +188,7 @@ CDR returns 55+ fields with space-separated JSON keys. Use this taxonomy to find
 
 **G — Chained filter:** `[r for r in data if COND_A and COND_B and COND_C]`
 
-**H — Aggregation:** `sum(vals)/len(vals)` / `max(vals)` / `min(vals)`
+**H — Aggregation:** `sum(vals)/len(vals) if vals else 0` / `max(vals) if vals else 0` / `min(vals) if vals else 0`
 
 ### Category 1: Call Volume & Traffic
 
@@ -197,10 +198,14 @@ Question: "How many calls did we get?"
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
-print(f'Total calls: {len(data)}')
 orig = len([r for r in data if r.get('Direction') == 'ORIGINATING'])
 term = len([r for r in data if r.get('Direction') == 'TERMINATING'])
-print(f'Outbound: {orig}  Inbound: {term}')
+unique = len(set(r.get('Correlation ID') for r in data if r.get('Correlation ID')))
+# Note: CDR generates one record per call leg (ORIGINATING + TERMINATING).
+# Total count below includes both legs. For unique call count, use Correlation ID dedup
+# or filter by Direction == 'ORIGINATING' only.
+print(f'Total CDR legs: {len(data)} (ORIGINATING: {orig}, TERMINATING: {term})')
+print(f'Unique calls (by Correlation ID): {unique}')
 "
 ```
 
@@ -323,8 +328,11 @@ import json, sys
 data = json.load(sys.stdin)
 missed = [r for r in data if r.get('Answer indicator') == 'No']
 print(f'Missed calls: {len(missed)} of {len(data)} ({len(missed)/len(data)*100:.1f}%)' if data else 'No data')
-for c in missed[:10]:
-    print(f\"  {c.get('Start time')} | {c.get('Calling number')} -> {c.get('Called number')} | {c.get('Call outcome reason')}\")
+if not missed:
+    print('No matching records found in this time window.')
+else:
+    for c in missed[:10]:
+        print(f\"  {c.get('Start time')} | {c.get('Calling number')} -> {c.get('Called number')} | {c.get('Call outcome reason')}\")
 "
 ```
 
@@ -336,8 +344,11 @@ import json, sys
 data = json.load(sys.stdin)
 failed = [r for r in data if r.get('Call outcome') in ('Failure', 'Refusal')]
 print(f'Failed/refused: {len(failed)} of {len(data)}')
-for c in failed[:10]:
-    print(f\"  {c.get('Start time')} | {c.get('User')} | {c.get('Call outcome')}: {c.get('Call outcome reason')}\")
+if not failed:
+    print('No matching records found in this time window.')
+else:
+    for c in failed[:10]:
+        print(f\"  {c.get('Start time')} | {c.get('User')} | {c.get('Call outcome')}: {c.get('Call outcome reason')}\")
 "
 ```
 
@@ -349,8 +360,11 @@ import json, sys
 data = json.load(sys.stdin)
 abandoned = [r for r in data if r.get('Answer indicator') == 'No' and r.get('Releasing party') == 'Local']
 print(f'Abandoned (caller hung up before answer): {len(abandoned)}')
-for c in abandoned[:10]:
-    print(f\"  {c.get('Start time')} | {c.get('Calling number')} | rang {c.get('Ring duration', '?')}s\")
+if not abandoned:
+    print('No matching records found in this time window.')
+else:
+    for c in abandoned[:10]:
+        print(f\"  {c.get('Start time')} | {c.get('Calling number')} | rang {c.get('Ring duration', '?')}s\")
 "
 ```
 
@@ -387,8 +401,11 @@ import json, sys
 data = json.load(sys.stdin)
 short = [r for r in data if r.get('Answer indicator') == 'Yes' and int(r.get('Duration', 0)) < 10]
 print(f'Short calls (<10s, answered): {len(short)} of {len(data)}')
-for c in short[:10]:
-    print(f\"  {c.get('Start time')} | {c.get('User')} | {c.get('Duration')}s | {c.get('Called number')}\")
+if not short:
+    print('No matching records found in this time window.')
+else:
+    for c in short[:10]:
+        print(f\"  {c.get('Start time')} | {c.get('User')} | {c.get('Duration')}s | {c.get('Called number')}\")
 "
 ```
 
@@ -400,8 +417,11 @@ import json, sys
 data = json.load(sys.stdin)
 long_ring = [r for r in data if r.get('Answer indicator') == 'No' and int(r.get('Ring duration', 0)) > 30]
 print(f'Long-ring no-answer (>30s ring): {len(long_ring)}')
-for c in long_ring[:10]:
-    print(f\"  {c.get('Start time')} | {c.get('User')} | rang {c.get('Ring duration')}s | from {c.get('Calling number')}\")
+if not long_ring:
+    print('No matching records found in this time window.')
+else:
+    for c in long_ring[:10]:
+        print(f\"  {c.get('Start time')} | {c.get('User')} | rang {c.get('Ring duration')}s | from {c.get('Calling number')}\")
 "
 ```
 
@@ -450,8 +470,11 @@ import json, sys
 data = json.load(sys.stdin)
 over30 = [r for r in data if int(r.get('Hold duration', 0)) > 30]
 print(f'Calls with >30s hold: {len(over30)}')
-for c in over30[:10]:
-    print(f\"  {c.get('Start time')} | {c.get('User')} | hold {c.get('Hold duration')}s | {c.get('Calling number')}\")
+if not over30:
+    print('No matching records found in this time window.')
+else:
+    for c in over30[:10]:
+        print(f\"  {c.get('Start time')} | {c.get('User')} | hold {c.get('Hold duration')}s | {c.get('Calling number')}\")
 "
 ```
 
@@ -463,8 +486,11 @@ import json, sys
 data = json.load(sys.stdin)
 over60 = [r for r in data if int(r.get('Hold duration', 0)) > 60]
 print(f'Calls with >60s hold: {len(over60)}')
-for c in over60[:10]:
-    print(f\"  {c.get('Start time')} | {c.get('User')} | hold {c.get('Hold duration')}s | {c.get('Calling number')}\")
+if not over60:
+    print('No matching records found in this time window.')
+else:
+    for c in over60[:10]:
+        print(f\"  {c.get('Start time')} | {c.get('User')} | hold {c.get('Hold duration')}s | {c.get('Calling number')}\")
 "
 ```
 
@@ -479,8 +505,11 @@ hold_abandoned = [r for r in data
     and int(r.get('Hold duration', 0)) > 30
     and r.get('Releasing party') == 'Remote']
 print(f'Answered -> held >30s -> caller hung up: {len(hold_abandoned)}')
-for c in hold_abandoned[:10]:
-    print(f\"  {c.get('Start time')} | {c.get('User')} | hold {c.get('Hold duration')}s | {c.get('Duration')}s total\")
+if not hold_abandoned:
+    print('No matching records found in this time window.')
+else:
+    for c in hold_abandoned[:10]:
+        print(f\"  {c.get('Start time')} | {c.get('User')} | hold {c.get('Hold duration')}s | {c.get('Duration')}s total\")
 "
 ```
 
@@ -495,8 +524,11 @@ hold_abandoned = [r for r in data
     and int(r.get('Hold duration', 0)) > 60
     and r.get('Releasing party') == 'Remote']
 print(f'Answered -> held >60s -> caller hung up: {len(hold_abandoned)}')
-for c in hold_abandoned[:10]:
-    print(f\"  {c.get('Start time')} | {c.get('User')} | hold {c.get('Hold duration')}s | {c.get('Duration')}s total\")
+if not hold_abandoned:
+    print('No matching records found in this time window.')
+else:
+    for c in hold_abandoned[:10]:
+        print(f\"  {c.get('Start time')} | {c.get('User')} | hold {c.get('Hold duration')}s | {c.get('Duration')}s total\")
 "
 ```
 
@@ -988,8 +1020,11 @@ import json, sys
 data = json.load(sys.stdin)
 mobile = [r for r in data if r.get('Sub client type') == 'MOBILE_NETWORK']
 print(f'Webex Go (mobile network) calls: {len(mobile)} of {len(data)}')
-for c in mobile[:10]:
-    print(f\"  {c.get('Start time')} | {c.get('User')} | {c.get('Direction')} | {c.get('Duration')}s\")
+if not mobile:
+    print('No matching records found in this time window.')
+else:
+    for c in mobile[:10]:
+        print(f\"  {c.get('Start time')} | {c.get('User')} | {c.get('Direction')} | {c.get('Duration')}s\")
 "
 ```
 
@@ -1150,8 +1185,11 @@ import json, sys
 data = json.load(sys.stdin)
 failed = [r for r in data if r.get('Call recording result') == 'failed']
 print(f'Failed recordings: {len(failed)}')
-for c in failed[:15]:
-    print(f\"  {c.get('Start time')} | {c.get('User')} | {c.get('Call recording platform name')} | {c.get('Calling number')} -> {c.get('Called number')}\")
+if not failed:
+    print('No matching records found in this time window.')
+else:
+    for c in failed[:15]:
+        print(f\"  {c.get('Start time')} | {c.get('User')} | {c.get('Call recording platform name')} | {c.get('Calling number')} -> {c.get('Called number')}\")
 "
 ```
 
@@ -1210,8 +1248,11 @@ data = json.load(sys.stdin)
 cid = 'CORRELATION_ID'
 legs = [r for r in data if r.get('Correlation ID') == cid]
 print(f'Found {len(legs)} legs for correlation ID {cid}:')
-for i, c in enumerate(sorted(legs, key=lambda x: x.get('Start time', '')), 1):
-    print(f'  Leg {i}: {c.get(\"Start time\")} | {c.get(\"Direction\")} | {c.get(\"Calling number\")} -> {c.get(\"Called number\")} | {c.get(\"Duration\")}s | {c.get(\"Related reason\", \"\")}')
+if not legs:
+    print('No matching records found in this time window.')
+else:
+    for i, c in enumerate(sorted(legs, key=lambda x: x.get('Start time', '')), 1):
+        print(f'  Leg {i}: {c.get(\"Start time\")} | {c.get(\"Direction\")} | {c.get(\"Calling number\")} -> {c.get(\"Called number\")} | {c.get(\"Duration\")}s | {c.get(\"Related reason\", \"\")}')
 "
 ```
 
@@ -1225,8 +1266,11 @@ data = json.load(sys.stdin)
 target = 'CALL_ID'
 chain = [r for r in data if r.get('Call ID') == target or r.get('Transfer related call ID') == target or r.get('Related call ID') == target]
 print(f'Transfer chain ({len(chain)} records):')
-for c in sorted(chain, key=lambda x: x.get('Start time', '')):
-    print(f\"  {c.get('Start time')} | {c.get('User')} | {c.get('Direction')} | {c.get('Related reason', '')} | {c.get('Calling number')} -> {c.get('Called number')}\")
+if not chain:
+    print('No matching records found in this time window.')
+else:
+    for c in sorted(chain, key=lambda x: x.get('Start time', '')):
+        print(f\"  {c.get('Start time')} | {c.get('User')} | {c.get('Direction')} | {c.get('Related reason', '')} | {c.get('Calling number')} -> {c.get('Called number')}\")
 "
 ```
 
@@ -1240,8 +1284,11 @@ parked = [r for r in data if r.get('Related reason') and 'CallPark' in r.get('Re
 retrieved = [r for r in data if r.get('Related reason') and 'CallParkRetrieve' in r.get('Related reason', '')]
 print(f'Call Park events: {len(parked)}')
 print(f'Call Park Retrieve events: {len(retrieved)}')
-for c in parked[:10]:
-    print(f\"  {c.get('Start time')} | {c.get('User')} | {c.get('Calling number')} -> {c.get('Called number')}\")
+if not parked:
+    print('No matching records found in this time window.')
+else:
+    for c in parked[:10]:
+        print(f\"  {c.get('Start time')} | {c.get('User')} | {c.get('Calling number')} -> {c.get('Called number')}\")
 "
 ```
 
@@ -1255,11 +1302,14 @@ data = json.load(sys.stdin)
 cid = 'CORRELATION_ID'
 legs = sorted([r for r in data if r.get('Correlation ID') == cid], key=lambda x: x.get('Start time', ''))
 print(f'Forwarding path ({len(legs)} hops):')
-for i, c in enumerate(legs, 1):
-    orig = c.get('Original reason', '-')
-    redir = c.get('Redirect reason', '-')
-    related = c.get('Related reason', '-')
-    print(f'  Hop {i}: {c.get(\"User\", \"?\")} | orig={orig} | redirect={redir} | related={related}')
+if not legs:
+    print('No matching records found in this time window.')
+else:
+    for i, c in enumerate(legs, 1):
+        orig = c.get('Original reason', '-')
+        redir = c.get('Redirect reason', '-')
+        related = c.get('Related reason', '-')
+        print(f'  Hop {i}: {c.get(\"User\", \"?\")} | orig={orig} | redirect={redir} | related={related}')
 "
 ```
 
@@ -1309,12 +1359,15 @@ import json, sys
 data = json.load(sys.stdin)
 spam_queue_abandoned = [r for r in data
     if r.get('Caller reputation service result') in ('captcha-allow', 'allow')
-    and float(r.get('Caller reputation score', '5')) < 2.0
+    and float(r.get('Caller reputation score') or '5') < 2.0
     and r.get('Queue type')
     and r.get('Answer indicator') == 'No']
 print(f'Low-reputation calls that reached a queue and were abandoned: {len(spam_queue_abandoned)}')
-for c in spam_queue_abandoned[:10]:
-    print(f\"  {c.get('Start time')} | score={c.get('Caller reputation score')} | {c.get('Calling number')} | queue={c.get('Queue type')}\")
+if not spam_queue_abandoned:
+    print('No matching records found in this time window.')
+else:
+    for c in spam_queue_abandoned[:10]:
+        print(f\"  {c.get('Start time')} | score={c.get('Caller reputation score')} | {c.get('Calling number')} | queue={c.get('Queue type')}\")
 "
 ```
 
@@ -1333,8 +1386,11 @@ results = [r for r in data
 print(f'International calls on {trunk_name} during business hours: {len(results)}')
 total_dur = sum(int(r.get('Duration', 0)) for r in results)
 print(f'Total duration: {total_dur/60:.1f} min')
-for c in results[:10]:
-    print(f\"  {c.get('Start time')} | {c.get('User')} | {c.get('Called number')} | {c.get('Duration')}s\")
+if not results:
+    print('No matching records found in this time window.')
+else:
+    for c in results[:10]:
+        print(f\"  {c.get('Start time')} | {c.get('User')} | {c.get('Called number')} | {c.get('Duration')}s\")
 "
 ```
 
@@ -1357,9 +1413,12 @@ for cid, legs in corr_legs.items():
     if len(redirected) >= 2 and vm:
         multi_fwd_vm.append((cid, legs))
 print(f'Calls forwarded 2+ times ending in voicemail: {len(multi_fwd_vm)}')
-for cid, legs in multi_fwd_vm[:5]:
-    first = sorted(legs, key=lambda x: x.get('Start time', ''))[0]
-    print(f\"  {first.get('Start time')} | {first.get('Calling number')} | {len(legs)} legs\")
+if not multi_fwd_vm:
+    print('No matching records found in this time window.')
+else:
+    for cid, legs in multi_fwd_vm[:5]:
+        first = sorted(legs, key=lambda x: x.get('Start time', ''))[0]
+        print(f\"  {first.get('Start time')} | {first.get('Calling number')} | {len(legs)} legs\")
 "
 ```
 
@@ -1389,8 +1448,11 @@ hold_transfer = [r for r in data
     if int(r.get('Hold duration', 0)) > 60
     and r.get('Related reason') and 'Transfer' in r.get('Related reason', '')]
 print(f'Calls with >60s hold then transferred: {len(hold_transfer)}')
-for c in hold_transfer[:10]:
-    print(f\"  {c.get('Start time')} | {c.get('User')} | hold {c.get('Hold duration')}s | {c.get('Related reason')}\")
+if not hold_transfer:
+    print('No matching records found in this time window.')
+else:
+    for c in hold_transfer[:10]:
+        print(f\"  {c.get('Start time')} | {c.get('User')} | hold {c.get('Hold duration')}s | {c.get('Related reason')}\")
 "
 ```
 
@@ -1404,8 +1466,11 @@ after_hours_emergency = [r for r in data
     if r.get('Call type') == 'SIP_EMERGENCY'
     and (int(r.get('Start time', '')[11:13] or '0') < 8 or int(r.get('Start time', '')[11:13] or '0') >= 18)]
 print(f'After-hours emergency calls: {len(after_hours_emergency)}')
-for c in after_hours_emergency[:10]:
-    print(f\"  {c.get('Start time')} | {c.get('User')} | {c.get('Location')} | {c.get('Calling number')} -> {c.get('Called number')}\")
+if not after_hours_emergency:
+    print('No matching records found in this time window.')
+else:
+    for c in after_hours_emergency[:10]:
+        print(f\"  {c.get('Start time')} | {c.get('User')} | {c.get('Location')} | {c.get('Calling number')} -> {c.get('Called number')}\")
 "
 ```
 
