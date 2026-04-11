@@ -1270,25 +1270,47 @@ def detect_transformation_patterns(store: MigrationStore) -> list[AdvisoryFindin
 # ===================================================================
 
 def detect_extension_mobility_usage(store: MigrationStore) -> list[AdvisoryFinding]:
-    """Extension Mobility device profiles indicate hot desking needs."""
+    """Extension Mobility device profiles indicate hot desking needs.
+
+    Enhanced: escalates severity when profiles have multi-line or BLF/speed dial
+    features that Webex hot desking cannot replicate.
+    """
     profiles = store.get_objects("info_device_profile")
     if not profiles:
         return []
 
     ids = [p.get("canonical_id", "") for p in profiles]
 
+    multi_line_count = 0
+    sd_count = 0
+    blf_count = 0
+    for p in profiles:
+        state = p.get("pre_migration_state") or {}
+        lines = state.get("lines") or []
+        line_count = len(lines) if lines else state.get("line_count", 0)
+        if line_count > 1:
+            multi_line_count += 1
+        if state.get("speed_dial_count", 0) > 0:
+            sd_count += 1
+        if state.get("blf_count", 0) > 0:
+            blf_count += 1
+
+    severity = "MEDIUM" if (multi_line_count > 0 or blf_count > 0) else "LOW"
+
     detail = (
         f"{len(profiles)} Extension Mobility device profile{'s' if len(profiles) != 1 else ''} "
-        f"found. CUCM Extension Mobility allows users to log into any EM-enabled phone and "
-        f"load their personal line/speed-dial/services configuration. Webex maps this to "
-        f"hot desking — users can sign into shared workspaces with their Webex identity. "
-        f"However, Webex hot desking is simpler: no device-profile switching, just user "
-        f"login/logout with primary line. Manual workspace + hot desking configuration required."
+        f"found. "
+        f"{multi_line_count} have multiple lines (will lose secondary lines). "
+        f"{sd_count} have speed dials (will lose speed dials during hot desk). "
+        f"{blf_count} have BLF entries (will lose BLF during hot desk). "
+        f"Migration will enable Webex hoteling for these users and configure "
+        f"workspace hot desking on their host devices. Users with multi-line "
+        f"profiles will only get their primary line during hot desk sessions."
     )
 
     return [AdvisoryFinding(
         pattern_name="extension_mobility_usage",
-        severity="LOW",
+        severity=severity,
         summary=f"{len(profiles)} Extension Mobility profiles — map to Webex hot desking",
         detail=detail,
         affected_objects=ids,
