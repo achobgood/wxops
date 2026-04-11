@@ -20,7 +20,7 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 | `cucm_pattern.py` | CUCM dial pattern → Webex translation pattern conversion |
 | `pattern_converter.py` | Route pattern wildcard conversion |
 | `engine.py` | Mapper execution engine — runs mappers in dependency order |
-| `mappers/` | 20 mapper classes — see `mappers/CLAUDE.md` |
+| `mappers/` | 22 mapper classes — see `mappers/CLAUDE.md` |
 | `analyzers/` | 13 analyzer classes — see their docstrings |
 
 ## Pass 1: Normalizers
@@ -59,7 +59,7 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 
 ## Mapper Execution Engine
 
-`engine.py` runs all 20 mapper classes in dependency order (topological sort on `depends_on`). Each mapper reads from the store, produces canonical objects via `store.upsert_object()`, and returns a `MapperResult` with counts and decisions. See `mappers/CLAUDE.md` for the full mapper inventory.
+`engine.py` runs all 22 mapper classes in dependency order (topological sort on `depends_on`). Each mapper reads from the store, produces canonical objects via `store.upsert_object()`, and returns a `MapperResult` with counts and decisions. See `mappers/CLAUDE.md` for the full mapper inventory.
 
 ## Analysis Pipeline
 
@@ -98,3 +98,4 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 - **Decision fingerprints are idempotent.** Fingerprint = SHA256(type + context). Re-running the pipeline doesn't create duplicate decisions — `merge_decisions()` updates existing ones and stales missing ones.
 - **Multiple decisions per object are normal.** A device can be both `DEVICE_INCOMPATIBLE` and `MISSING_DATA`. Each has a unique fingerprint and is resolved independently.
 - **`analyze` status ≠ all decisions resolved.** Objects at `status='analyzed'` may still have unresolved decisions if they're non-blocking (e.g., `FEATURE_APPROXIMATION`). Only objects with blocking decisions stay at `needs_decision`.
+- **`productSpecificConfiguration` XML is model-specific and version-dependent.** Each phone model has different PSC fields. The DeviceSettingsMapper handles missing fields gracefully and only maps fields it recognizes.

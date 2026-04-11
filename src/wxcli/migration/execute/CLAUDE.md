@@ -72,7 +72,7 @@ members = [{"id": deps[cid]} for cid in member_cids if cid in deps]
 
 ## Handler Inventory
 
-All 33 handlers in `HANDLER_REGISTRY`:
+All 35 handlers in `HANDLER_REGISTRY`:
 
 ### Tier 0 — Infrastructure
 | Key | URL | Notes |
@@ -90,6 +90,7 @@ All 33 handlers in `HANDLER_REGISTRY`:
 | `(operating_mode, create)` | POST `/telephony/config/operatingModes` | |
 | `(schedule, create)` | POST `/telephony/config/locations/{loc}/schedules` | |
 | `(line_key_template, create)` | POST `/telephony/config/devices/lineKeyTemplates` | Filters UNMAPPED keys |
+| `(device_settings_template, apply_location_settings)` | PUT `/telephony/config/locations/{id}/devices/settings` | Apply device settings at location level |
 
 ### Tier 2-3 — People + Devices
 | Key | URL | Notes |
@@ -120,6 +121,14 @@ All 33 handlers in `HANDLER_REGISTRY`:
 | `(workspace, configure_settings)` | PUT `/workspaces/{id}/features/{feature}` | Uses /workspaces/ not /telephony/config/ |
 | `(calling_permission, assign)` | PUT `/people/{id}/features/outgoingPermission` | One call per user in assigned_users |
 | `(call_forwarding, configure)` | PUT `/people/{id}/features/callForwarding` | Returns `[]` if all forwarding types disabled |
+| `(device_settings_template, apply_device_override)` | PUT `/telephony/config/devices/{id}/settings` | Apply per-device settings override |
+| `(device_profile, enable_hoteling_guest)` | PUT `/people/{id}/features/hoteling` | Enables EM-subscribed user as hoteling guest |
+| `(device_profile, enable_hoteling_host)` | PUT `/telephony/config/people/{id}/devices/settings/hoteling` | Configures EM-enabled device as hoteling host (no-op when host data unavailable) |
+
+### Tier 0 — Hoteling location (voice portal sign-in)
+| Key | URL | Notes |
+|-----|-----|-------|
+| `(hoteling_location, enable_hotdesking)` | PUT `/telephony/config/locations/{id}/features/hotDesking` | Enables voice portal hot desk sign-in at locations with EM phones |
 
 ### Tier 6 — Shared/Virtual Lines + Monitoring
 | Key | URL | Notes |

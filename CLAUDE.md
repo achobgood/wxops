@@ -284,6 +284,7 @@ See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for fu
 12. **`virtual-extensions` commands use wrong ID type.** Uses `VIRTUAL_EXTENSION`-encoded IDs but virtual lines use `VIRTUAL_LINE` IDs. `wxcli cleanup` uses raw REST as a workaround. See `docs/reference/virtual-lines.md` Raw HTTP Gotchas #9.
 13. **Device config schema is firmware-dependent.** Per-line ringtone was absent on PhoneOS 3.5/3.6 but fixed in 4.1. Offline/expired devices retain a stale schema. See `docs/reference/devices-platform.md` gotchas #10-11.
 14. **Contact Center (`cc-*`) commands require CC-scoped OAuth and region config.** See `docs/reference/contact-center-core.md` gotchas #1-3.
+15. **Device settings templates are pipeline-only, not named Webex objects.** The migration pipeline generates "templates" for device settings, but Webex has no named template API object for device settings. Settings are applied directly at org, location, or device level via PUT.
 
 ### Cleanup Command
 

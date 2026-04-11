@@ -11,7 +11,7 @@ All 11 phases complete. **1642 tests passing.** Wired into the CLI as `wxcli cuc
 | `docs/plans/cucm-pipeline/01-07 + 03b` | 8 detailed architecture docs |
 | `src/wxcli/commands/cucm.py` | Phases 08+10 — CLI: 14 commands (init, discover, normalize, map, analyze, plan, preflight, decisions, decide, export, inventory, status, config, user-diff) |
 | `src/wxcli/commands/cucm_config.py` | Phase 08 — Config management helpers |
-| `models.py` | Canonical data models — 27 types, DecisionType (21 values), Decision, MapperResult, TransformResult |
+| `models.py` | Canonical data models — 28 types, DecisionType (22 values), Decision, MapperResult, TransformResult |
 | `store.py` | SQLite-backed store — objects, cross_refs, decisions, journal, merge_log, merge_decisions() |
 | `cucm/` | Phase 03 — AXL connection, 9 extractors, discovery pipeline |
 | `transform/normalizers.py` | Phase 04 — 40 Pass 1 normalizers |
@@ -37,6 +37,22 @@ See `docs/plans/cucm-migration-roadmap.md` for the master project status.
 1. **CUCM CallPickupGroup creation with members fails on CUCM 15.0.** The AXL `addCallPickupGroup` operation with `<members>` containing `<directoryNumber>` fails with a null priority foreign key constraint (`pickupgroupmember.priority`). Workaround: create the pickup group empty, then use `updateLine` with `callPickupGroupName` to assign members at the line level. Affects both wxcadm and raw AXL calls. <!-- Verified on CUCM 15.0.1.13901(2), 2026-03-24 -->
 
 ## Pipeline Commands
+
+## Hoteling / Hot Desking Migration
+
+The `DeviceProfileMapper` produces execution-ready hoteling data alongside the
+existing `FEATURE_APPROXIMATION` decisions. For each CUCM Extension Mobility
+device profile it sets `hoteling_guest_enabled=True` (when the user is resolved),
+populates `location_canonical_id` (from device_pool → location cross-ref), and
+creates a `hoteling_location:{loc_cid}` MigrationObject for each unique location
+with EM phones. Three new execution handlers (`enable_hoteling_guest`,
+`enable_hoteling_host`, `enable_hotdesking`) configure Webex hoteling guest,
+device host, and location-level voice portal sign-in respectively. Advisory
+pattern 20 (`detect_extension_mobility_usage`) escalates severity to MEDIUM when
+profiles contain multi-line or BLF features that Webex hot desking cannot
+replicate, and `recommend_feature_approximation` always recommends "accept" for
+EM decisions (no alternative architecture exists). Spec at
+`docs/superpowers/specs/2026-04-10-hoteling-migration.md`.
 
 **To run a migration:** `wxcli cucm init` → `discover` → `normalize` → `map` → `analyze` → `decisions` → `plan` → `preflight` → `export` → then invoke `/cucm-migrate`.
 
