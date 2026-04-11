@@ -1532,7 +1532,7 @@ def _caller_id_xforms(store: MigrationStore) -> str:
 # ---------------------------------------------------------------------------
 
 def _extension_mobility_group(store: MigrationStore) -> str:
-    """V. Extension Mobility device profiles -- hot desking."""
+    """V. Extension Mobility device profiles -- hot desking with feature loss detail."""
     profiles = store.get_objects("info_device_profile")
     if not profiles:
         return ""
@@ -1547,10 +1547,15 @@ def _extension_mobility_group(store: MigrationStore) -> str:
         '<div class="callout">',
         '<p><strong>Extension Mobility &rarr; Webex hot desking.</strong> '
         'CUCM device profile switching does not carry over. Webex hot desking provides '
-        'user login/logout with primary line on shared workspaces.</p>',
+        'user login/logout with primary line on shared workspaces. '
+        'Multi-line profiles, speed dials, and BLF entries are not available during '
+        'hot desk sessions.</p>',
         '</div>',
         '<table>',
-        '<thead><tr><th>Profile Name</th><th>Product</th><th>Description</th></tr></thead>',
+        '<thead><tr>'
+        '<th>Profile Name</th><th>Product</th><th>Lines</th>'
+        '<th>Speed Dials</th><th>BLF</th><th>Feature Loss</th>'
+        '</tr></thead>',
         '<tbody>',
     ]
 
@@ -1558,11 +1563,28 @@ def _extension_mobility_group(store: MigrationStore) -> str:
         pre = p.get("pre_migration_state", {}) or {}
         name = pre.get("name", strip_canonical_id(p.get("canonical_id", "")))
         product = pre.get("product", "\u2014")
-        desc = pre.get("description", "\u2014")
+        lines = pre.get("lines") or []
+        line_count = len(lines) if lines else pre.get("line_count", 0)
+        sd_count = pre.get("speed_dial_count", 0)
+        blf_count_val = pre.get("blf_count", 0)
+
+        if line_count > 1 or blf_count_val > 0:
+            loss = "Medium"
+            loss_class = "badge-warning"
+        elif sd_count > 0:
+            loss = "Low"
+            loss_class = "badge-info"
+        else:
+            loss = "None"
+            loss_class = "badge-success"
+
         parts.append(
             f'<tr><td>{html.escape(name)}</td>'
             f'<td>{html.escape(product)}</td>'
-            f'<td>{html.escape(desc)}</td></tr>'
+            f'<td>{line_count}</td>'
+            f'<td>{sd_count}</td>'
+            f'<td>{blf_count_val}</td>'
+            f'<td><span class="{loss_class}">{loss}</span></td></tr>'
         )
 
     parts.append('</tbody></table>')
