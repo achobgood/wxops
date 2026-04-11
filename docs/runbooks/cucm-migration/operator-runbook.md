@@ -158,6 +158,20 @@ Custom voicemail greetings stored in Unity Connection do not migrate to Webex Ca
 3. Fill in the voicemail access number for your site
 4. Send to all affected users at least 1 week before migration day
 
+### Audio Asset Preparation
+
+**Timing:** At least 1 week before migration day.
+
+Before migration day, download all custom audio files from CUCM:
+
+1. **Identify custom assets.** Run `wxcli cucm report` and check the Audio Assets appendix section (Appendix I). This lists all custom MoH sources and announcement files.
+2. **Download from CUCM.** SFTP to the CUCM publisher at `/usr/local/cm/tftp/`. MoH files are typically `.wav` or `.au` format.
+3. **Convert if needed.** Webex requires WAV format, max 8 MB for announcements.
+4. **Upload to Webex.** Use Control Hub (Calling > Service Settings > Announcements) or the API (`POST /telephony/config/announcements`).
+5. **Assign to features.** After upload, set location MoH to CUSTOM and assign announcements to AA/CQ greetings.
+
+**Why this matters:** Custom MoH and AA greetings are customer-facing. The default Cisco hold music signals "cheap." Enterprise customers pay for professional hold music and will reject a migration that reverts to default.
+
 ## Pipeline Walkthrough
 
 The pipeline has 10 operator-facing stages, run in the order below. Each stage is idempotent unless noted, and each writes its output to the project's SQLite store (`<project>/store.db`) so that subsequent stages can read it. Run `wxcli cucm status` at any point to see what has already landed in the store and which decisions are open.

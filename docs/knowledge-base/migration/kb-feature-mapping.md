@@ -201,3 +201,24 @@ AA with 4-8 key options, each transferring to a department Hunt Group or Call Qu
 | 1 | HG max 20 agents | **Corrected** | `call-features-major.md` lines 1282-1284 | HG max is 50 (SIMULTANEOUS), 100 (WEIGHTED), 1,000 (CIRCULAR/REGULAR/UNIFORM). Plan's "max 20" was wrong. Doc uses correct per-policy limits. |
 | 2 | CQ max 50 simultaneous / 525 non-simultaneous | **Partially corrected** | `call-features-major.md` line 344, lines 1282-1284 | CQ SIMULTANEOUS limit of 50 confirmed. "525 non-simultaneous" not found — actual limits are 100 (WEIGHTED) and 1,000 (CIRCULAR/REGULAR/UNIFORM). HG and CQ share the same Policy enum with identical per-policy agent caps. |
 | 3 | CQ requires call_policies in create | Yes | `call-features-major.md` line 329 (verified comment); `customer-assist/SKILL.md` line 442 | Both regular CQ and CX queues require `callPolicies` with `routingType` at create time. |
+
+---
+
+## MoH Audio Source Mapping
+
+**CUCM:** Music on Hold audio sources are configured per-cluster with per-device-pool assignments via MoH Audio Source Profile → Device Pool → Phone. Custom sources store WAV/AU files in `/usr/local/cm/tftp/` on the publisher. Hunt pilots can override the MoH source via `networkHoldMohAudioSourceID` in `queueCalls`.
+
+**Webex:** MoH is configured per-location via `PUT /telephony/config/locations/{id}/musicOnHold`. Options are `SYSTEM` (Cisco default) or `CUSTOM` (references an uploaded announcement file or playlist). Per-person MoH override is available but rarely needed.
+
+**Migration path:**
+1. Download custom MoH files from CUCM TFTP
+2. Upload to Webex announcement repository (org-level or location-level)
+3. Optionally create a playlist from multiple announcements
+4. Set each location's MoH to CUSTOM, referencing the announcement/playlist ID
+
+**Key differences:**
+- CUCM: per-device-pool MoH assignment. Webex: per-location.
+- CUCM: hunt pilots can have per-queue MoH. Webex: MoH is location-level only — no per-queue MoH. This is a feature gap if different queues in the same location use different MoH sources.
+- Webex max file size: 8 MB per announcement, 500 MB org total.
+
+**Cross-reference:** The `_build_audio_refs` method in `cross_reference.py` builds `feature_uses_moh_source` cross-refs from hunt pilot `networkHoldMohAudioSourceID` to music_on_hold canonical IDs. These refs feed the `detect_custom_audio_assets` advisory pattern (Pattern 28) and populate the Audio Assets appendix section (Appendix I) in the assessment report.

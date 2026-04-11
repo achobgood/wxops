@@ -11,8 +11,8 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 | File | Purpose |
 |------|---------|
 | `pipeline.py` | `normalize_discovery(raw_data, store)` — Phase 04 entry point: runs Pass 1 normalizers + Pass 2 cross-refs |
-| `normalizers.py` | 37 Pass 1 normalizer functions + `NORMALIZER_REGISTRY` + `RAW_DATA_MAPPING` |
-| `cross_reference.py` | `CrossReferenceBuilder` — Pass 2: builds `cross_refs` table (30 relationships + 3 enrichments) |
+| `normalizers.py` | 40 Pass 1 normalizer functions + `NORMALIZER_REGISTRY` + `RAW_DATA_MAPPING` |
+| `cross_reference.py` | `CrossReferenceBuilder` — Pass 2: builds `cross_refs` table (34 relationships + 3 enrichments) |
 | `analysis_pipeline.py` | `AnalysisPipeline` — runs 13 analyzers, merges decisions, applies auto-rules, runs advisor |
 | `rules.py` | `apply_auto_rules(store, config)` — auto-resolution rules (simple cases resolved without user input) |
 | `decisions.py` | Decision-related helpers and constants |
@@ -25,7 +25,7 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 
 ## Pass 1: Normalizers
 
-`normalizers.py` contains 37 stateless pure functions. Each takes a raw CUCM dict and returns a canonical Pydantic model or `MigrationObject`. They are order-independent and parallel-safe — no cross-object lookups, foreign keys stay as CUCM name strings.
+`normalizers.py` contains 40 stateless pure functions. Each takes a raw CUCM dict and returns a canonical Pydantic model or `MigrationObject`. They are order-independent and parallel-safe — no cross-object lookups, foreign keys stay as CUCM name strings.
 
 `RAW_DATA_MAPPING` is the routing table: `list[tuple[extractor_key, sub_key, normalizer_key]]` consumed by `normalize_discovery()`.
 
@@ -40,7 +40,7 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 
 ## Pass 2: CrossReferenceBuilder
 
-`cross_reference.py:CrossReferenceBuilder.build()` sweeps the full normalized inventory to populate the `cross_refs` table. 32 relationships + 3 enrichments across 9 method groups:
+`cross_reference.py:CrossReferenceBuilder.build()` sweeps the full normalized inventory to populate the `cross_refs` table. 34 relationships + 3 enrichments across 10 method groups:
 
 | Method | Relationships |
 |--------|--------------|
@@ -54,6 +54,7 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 | `_build_feature_refs` | feature_has_agent, aa_has_schedule, pickup members |
 | `_build_voicemail_refs` | user_has_voicemail_profile, unity_user |
 | `_build_template_refs` | phone_uses_button_template, phone_uses_softkey_template |
+| `_build_audio_refs` | feature_uses_moh_source (hunt pilot networkHoldMohAudioSourceID → music_on_hold canonical ID) |
 
 **Note:** `device_pool_to_location` is NOT built here — it's written by `LocationMapper` during the map pass, because the mapping requires decisions about ambiguous device pool → location assignments.
 

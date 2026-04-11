@@ -89,10 +89,19 @@ Two layers of advisory output coexist on every decision: the **static recommenda
 
 **Triggered by:** `src/wxcli/migration/transform/mappers/moh_mapper.py:77-101` (non-default MOH source) and `src/wxcli/migration/transform/mappers/announcement_mapper.py:92-116` (every announcement). Fires whenever CUCM holds custom audio (MOH track or announcement WAV) that cannot be pulled over AXL — the bytes have to be downloaded from the CUCM TFTP directory and uploaded into Webex by a human.
 **Options:** Accept the manual migration (admin downloads + re-uploads), use the Webex default audio, or skip the asset entirely.
-**Recommendation:** `recommend_audio_asset_manual` at `src/wxcli/migration/advisory/recommendation_rules.py:532-543` returns `accept` for customer-facing usage (`AA_GREETING`, `QUEUE_COMFORT`, `QUEUE_WHISPER`), `use_default` for MOH confined to 1-2 locations, and `accept` otherwise. Reasoning: customer-facing audio is worth the manual effort for brand consistency; low-usage MOH is not.
-**Dissent triggers:** none documented as of 2026-04-07.
+**Recommendation:** `recommend_audio_asset_manual` at `src/wxcli/migration/advisory/recommendation_rules.py` always returns `accept`. Custom audio is intentional — reverting to Webex default hold music signals "cheap" and enterprise customers will reject a migration that drops their branded audio. Never suggest `use_default` for any context.
+**Manual procedure:**
+1. Connect to the CUCM publisher via SFTP (port 22)
+2. Navigate to `/usr/local/cm/tftp/`
+3. Download the audio file(s) listed in the decision context
+4. Convert to WAV format if needed (Webex requires WAV, max 8 MB for announcements)
+5. Upload to Webex via Control Hub: Calling > Service Settings > Announcements
+6. For MoH: set the location MoH greeting to CUSTOM and select the uploaded file
+7. For AA/CQ: assign the uploaded announcement to the appropriate feature
+**Override criteria:** None. This decision should always be accepted.
+**Dissent triggers:** none — custom audio is always worth preserving; no dissent condition exists.
 **Cascade impact:** none — resolving an audio asset decision does not feed any other analyzer via `cascades_to`.
-**See also:** [Advisory Patterns §voicemail-pilot-simplification](#voicemail-pilot-simplification) (parallel "manual effort" decision for voicemail), [Tuning Reference §Recipe 1](tuning-reference.md#recipe-1-small-smb-single-location-1050-users) (small deployments where `use_default` is usually right).
+**See also:** [Advisory Patterns §voicemail-pilot-simplification](#voicemail-pilot-simplification) (parallel "manual effort" decision for voicemail), [`docs/knowledge-base/migration/kb-feature-mapping.md` §MoH Audio Source Mapping](../../knowledge-base/migration/kb-feature-mapping.md#moh-audio-source-mapping) (CUCM→Webex MoH architecture differences and migration path).
 
 ### button-unmappable
 
