@@ -323,7 +323,7 @@ def _extract_workspace_call_settings(
     # --- doNotDisturb (both tiers) ---
     dnd_status = state.get("dndStatus")
     if dnd_status is not None:
-        enabled = dnd_status in ("true", True, "1", 1)
+        enabled = dnd_status in ("true", True, "1")
         ring_splash = enabled and state.get("dndOption") == "Ringer Off"
         settings["doNotDisturb"] = {
             "enabled": enabled,
