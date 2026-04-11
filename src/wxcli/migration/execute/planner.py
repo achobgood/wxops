@@ -592,6 +592,7 @@ def _expand_hoteling_location(obj: dict[str, Any]) -> list[MigrationOp]:
 _DATA_ONLY_TYPES = {
     "line": "Data consumed by user:create (extension) / workspace:assign_number",
     "voicemail_profile": "Data consumed by user:configure_voicemail",
+    "e911_config": "Advisory only — ECBN handled by user:configure_settings, RedSky civic addresses are a separate workstream",
 }
 
 

@@ -85,3 +85,28 @@ class TestDeviceProfileAlreadyWired:
         assert API_CALL_ESTIMATES["device_profile:enable_hoteling_guest"] == 1
         assert API_CALL_ESTIMATES["device_profile:enable_hoteling_host"] == 1
         assert API_CALL_ESTIMATES["hoteling_location:enable_hotdesking"] == 1
+
+
+class TestE911ConfigIsDataOnly:
+    """CUCM E911 (ELIN) and Webex E911 (civic address + RedSky) are
+    architecturally different. e911_config objects exist for the report
+    and for ARCHITECTURE_ADVISORY decisions — they never produce
+    execution ops. ECBN per-user config belongs in user:configure_settings."""
+
+    def test_e911_config_in_data_only_types(self):
+        assert "e911_config" in _DATA_ONLY_TYPES
+
+    def test_e911_config_object_produces_zero_ops(self):
+        store = MigrationStore(":memory:")
+        cfg = CanonicalE911Config(
+            canonical_id="e911_config:Main-ELIN",
+            provenance=_prov(),
+            status=MigrationStatus.ANALYZED,
+            elin_group_name="Main-ELIN",
+            elin_numbers=["+1-555-0100"],
+        )
+        store.upsert_object(cfg)
+
+        ops = expand_to_operations(store)
+
+        assert ops == []
