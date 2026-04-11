@@ -142,3 +142,25 @@ class TestBulkDynamicSettingsSubmit:
         calls = handle_bulk_dynamic_settings_submit(data, {}, {})
         _, _, body = calls[0]
         assert body["locationId"] == ""
+
+
+from wxcli.migration.execute.handlers import handle_bulk_rebuild_phones_submit
+
+
+class TestBulkRebuildPhonesSubmit:
+    def test_location_scoped_rebuild(self):
+        data = {"location_canonical_id": "location:loc-1"}
+        deps = {"location:loc-1": "LOC_WID"}
+        ctx = {"orgId": "org-123"}
+
+        calls = handle_bulk_rebuild_phones_submit(data, deps, ctx)
+
+        assert len(calls) == 1
+        method, url, body = calls[0]
+        assert method == "POST"
+        assert "/telephony/config/jobs/devices/rebuildPhones" in url
+        assert body == {"locationId": "LOC_WID"}
+
+    def test_registered_with_tier_8(self):
+        from wxcli.migration.execute import TIER_ASSIGNMENTS
+        assert TIER_ASSIGNMENTS[("bulk_rebuild_phones", "submit")] == 8

@@ -1177,6 +1177,20 @@ def handle_bulk_dynamic_settings_submit(
     return [("POST", _url("/telephony/config/jobs/devices/dynamicDeviceSettings", ctx), body)]
 
 
+def handle_bulk_rebuild_phones_submit(
+    data: dict, deps: dict, ctx: dict,
+) -> HandlerResult:
+    """Submit a bulk Rebuild Phones job for a location.
+
+    POST /v1/telephony/config/jobs/devices/rebuildPhones
+    (spec §2c). Not supported for Webex for Government.
+    """
+    loc_cid = data.get("location_canonical_id", "")
+    loc_wid = deps.get(loc_cid) or _resolve_location_from_deps(deps)
+    body: dict[str, Any] = {"locationId": loc_wid}
+    return [("POST", _url("/telephony/config/jobs/devices/rebuildPhones", ctx), body)]
+
+
 # HANDLER_REGISTRY — complete with all operation types
 HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("location", "create"): handle_location_create,
@@ -1227,4 +1241,5 @@ HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("bulk_device_settings", "submit"): handle_bulk_device_settings_submit,
     ("bulk_line_key_template", "submit"): handle_bulk_line_key_template_submit,
     ("bulk_dynamic_settings", "submit"): handle_bulk_dynamic_settings_submit,
+    ("bulk_rebuild_phones", "submit"): handle_bulk_rebuild_phones_submit,
 }
