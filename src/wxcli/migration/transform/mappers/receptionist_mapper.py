@@ -176,7 +176,11 @@ class ReceptionistMapper(Mapper):
                 reasons.append(f"KEM with {len(kem_keys)} keys")
 
         # Signal 3: Template name keywords
-        template_name = (state.get("phoneTemplateName") or "").lower()
+        # AXL returns reference fields as dicts with _value_1 + uuid keys
+        raw_template = state.get("phoneTemplateName")
+        if isinstance(raw_template, dict):
+            raw_template = raw_template.get("_value_1", "")
+        template_name = (raw_template or "").lower()
         for keyword in _TEMPLATE_KEYWORDS:
             if keyword in template_name:
                 score += 2
