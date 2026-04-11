@@ -107,3 +107,91 @@ class TestDNDExtraction:
             "enabled": False,
             "ringSplashEnabled": False,
         }
+
+
+def _common_area_phone_with_lines(
+    name: str,
+    *,
+    lines: list[dict],
+    license_tier: str = "Professional Workspace",
+    voicemail_profile: str | None = None,
+) -> MigrationObject:
+    """Common-area phone fixture with explicit line entries for forwarding/VM tests."""
+    state: dict = {
+        "name": name,
+        "description": f"{name}",
+        "is_common_area": True,
+        "model": "Cisco 7841",
+        "cucm_device_pool": "DP_ConfRooms",
+        "lines": lines,
+    }
+    if voicemail_profile:
+        state["voiceMailProfile"] = voicemail_profile
+        # Trigger Professional-tier inference even without outgoing permissions
+        state["voicemail_enabled"] = True
+        state["custom_greetings"] = True
+    return MigrationObject(
+        canonical_id=f"phone:{name}",
+        provenance=_prov(name),
+        status=MigrationStatus.NORMALIZED,
+        pre_migration_state=state,
+    )
+
+
+class TestVoicemailExtraction:
+    def test_no_voicemail_profile_emits_explicit_disabled(self):
+        """Most common-area phones have no VM profile — explicitly disable VM on Webex."""
+        store = MigrationStore(":memory:")
+        store.upsert_object(_common_area_phone_with_lines(
+            "lobby-north",
+            lines=[{"index": 1, "dirn": {"pattern": "5000"}, "display": "Lobby"}],
+        ))
+
+        WorkspaceMapper().map(store)
+
+        ws = store.get_object("workspace:lobby-north")
+        # This phone has no feature-requiring indicators, so it infers to Workspace tier
+        # → only DND + MOH survive the license gate. VM is stripped even though we
+        # generated it. Assert that by checking call_settings has no voicemail key.
+        assert "voicemail" not in (ws.get("call_settings") or {})
+
+    def test_professional_tier_no_vm_profile_emits_disabled(self):
+        """Professional-tier workspace with no VM profile still gets explicit disabled."""
+        store = MigrationStore(":memory:")
+        # Force Professional tier by setting outgoing_call_permissions (see _infer_license_tier)
+        phone = _common_area_phone_with_lines(
+            "conf-pro",
+            lines=[{"index": 1, "dirn": {"pattern": "5100"}}],
+        )
+        phone.pre_migration_state["outgoing_call_permissions"] = True
+        store.upsert_object(phone)
+
+        WorkspaceMapper().map(store)
+
+        ws = store.get_object("workspace:conf-pro")
+        assert ws["license_tier"] == "Professional Workspace"
+        assert ws["call_settings"]["voicemail"] == {"enabled": False}
+
+    def test_professional_tier_with_vm_profile_emits_enabled(self):
+        """Professional-tier workspace with a Unity VM profile gets enabled voicemail."""
+        store = MigrationStore(":memory:")
+        store.upsert_object(_common_area_phone_with_lines(
+            "conf-vm",
+            lines=[{
+                "index": 1,
+                "dirn": {"pattern": "5200"},
+                "callForwardNoAnswer": {
+                    "forwardToVoiceMail": "true",
+                    "duration": "24",
+                },
+            }],
+            voicemail_profile="Default VM",
+        ))
+
+        WorkspaceMapper().map(store)
+
+        ws = store.get_object("workspace:conf-vm")
+        vm = ws["call_settings"]["voicemail"]
+        assert vm["enabled"] is True
+        assert vm["sendUnansweredCalls"]["enabled"] is True
+        assert vm["sendUnansweredCalls"]["numberOfRings"] == 4  # 24s / 6s per ring
