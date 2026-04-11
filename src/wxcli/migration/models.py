@@ -624,6 +624,12 @@ class CanonicalDeviceProfile(MigrationObject):
     speed_dial_count: int = 0
     blf_count: int = 0
 
+    # Execution-ready hoteling fields (from hoteling-migration spec §6a)
+    hoteling_guest_enabled: bool = False
+    host_device_canonical_ids: list[str] = Field(default_factory=list)
+    auto_logout_minutes: int = 0
+    location_canonical_id: str | None = None
+
 
 class CanonicalReceptionistConfig(MigrationObject):
     """Receptionist configuration detected from CUCM phone layout signals."""
