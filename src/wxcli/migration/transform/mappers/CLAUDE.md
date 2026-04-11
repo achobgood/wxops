@@ -54,6 +54,7 @@ Execution order determined by `depends_on` (topological sort):
 | `WorkspaceMapper` | `workspace_mapper` | `location_mapper` | `CanonicalWorkspace` (common-area phones) | `phone` (raw, `ownerUserName=None`) |
 | `MonitoringMapper` | `monitoring_mapper` | `user_mapper`, `line_mapper` | `CanonicalMonitoringList` | `phone` (raw, `busyLampFields`) |
 | `CallForwardingMapper` | `call_forwarding_mapper` | `user_mapper`, `line_mapper` | `CanonicalCallForwarding` | `phone` (raw, per-line forwarding) |
+| `CallSettingsMapper` | `call_settings_mapper` | `user_mapper` | (call settings enrichment) | `user` | Also detects intercept candidates via `user_has_intercept_signal` cross-ref (Pass 2 — independent of phone iteration) |
 | `CSSMapper` | `css_mapper` | `routing_mapper`, `user_mapper`, `line_mapper`, `device_mapper` | `CanonicalCallingPermission`, `CanonicalDialPlan` | `css`, `partition`, `route_pattern` |
 | `ButtonTemplateMapper` | `button_template_mapper` | `device_mapper` | `CanonicalLineKeyTemplate` | `button_template` (raw) |
 | `ExecutiveAssistantMapper` | `executive_assistant_mapper` | `user_mapper` | `CanonicalExecutiveAssistant` | `exec_asst_pair`, `exec_setting` |

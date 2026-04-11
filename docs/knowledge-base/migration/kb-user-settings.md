@@ -96,6 +96,9 @@ CUCM forwarding → Webex mapping:
 - **"VM to email"**: Unity Connection VM-to-email maps to Webex `emailCopyOfMessage.enabled` with the user's email address. Webex sends the voicemail audio file as an email attachment.
 <!-- Source: person-call-settings-media.md sec 1 (VoicemailSettings model) -->
 
+- **"call intercept"**: Heuristically detected from CUCM blocked partition DNs or Call Forward No Answer loops that route to voicemail when the device is unregistered. Webex intercept (`person.callIntercept` or `workspace.intercept`) enables a secretary or system to intercept incoming calls before they reach the target. CUCM blocked partitions + CFA chains are a workaround for intercept-like behavior (blocking unknown callers). Maps to Webex `intercept` feature enabled + interception number(s) configured. All user and workspace license tiers support intercept via the `/features/intercept` endpoint.
+<!-- Source: advisory_patterns.py detect_call_intercept_candidates(); models.py CanonicalExecutiveAssistant; person-call-settings-permissions.md sec 5; devices-workspaces.md sec 1 (workspace intercept) -->
+
 ## Webex Constraints
 
 - **6 person settings are user-only (no admin API path):** `simultaneousRing`, `sequentialRing`, `priorityAlert`, `callNotify`, `anonymousCallReject`, `callPolicies`. These exist only at `/telephony/config/people/me/settings/{feature}` and require user-level OAuth. An admin cannot read or write these for another user. `callPolicies` is additionally marked beta.

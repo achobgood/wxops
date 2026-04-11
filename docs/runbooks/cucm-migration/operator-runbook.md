@@ -11,6 +11,14 @@
 1. [Quick Index: Where to Start](#quick-index-where-to-start)
 2. [Quick Start](#quick-start)
 3. [Prerequisites](#prerequisites)
+   - [AXL Access](#axl-access)
+   - [Webex OAuth Credentials](#webex-oauth-credentials)
+   - [Webex Org Readiness](#webex-org-readiness)
+   - [Local Environment](#local-environment)
+   - [Partner Token Note](#partner-token-note)
+   - [User Communication — Voicemail Greetings](#user-communication--voicemail-greetings)
+   - [Audio Asset Preparation](#audio-asset-preparation)
+   - [Call Intercept Verification](#call-intercept-verification)
 4. [Pipeline Walkthrough](#pipeline-walkthrough)
    - [init](#init)
    - [discover](#discover)
@@ -171,6 +179,19 @@ Before migration day, download all custom audio files from CUCM:
 5. **Assign to features.** After upload, set location MoH to CUSTOM and assign announcements to AA/CQ greetings.
 
 **Why this matters:** Custom MoH and AA greetings are customer-facing. The default Cisco hold music signals "cheap." Enterprise customers pay for professional hold music and will reject a migration that reverts to default.
+
+### Call Intercept Verification
+
+**Timing:** After the pipeline analysis phase, during decision review.
+
+The migration pipeline heuristically detects call intercept candidates from CUCM configurations that block incoming callers (blocked partition DNs or Call Forward No Answer loops to voicemail when unregistered). These are patterns that approximate intercept behavior in CUCM. During the decision review phase, the advisory pattern `call-intercept-candidates` flags affected users/workspaces.
+
+1. **Review the advisory pattern.** When the decision-review phase presents the `call-intercept-candidates` advisory pattern, read the affected objects list (users and workspaces). These are the targets that CUCM was using intercept-like logic for.
+2. **Verify the heuristic.** Not every blocked partition is intentional call intercept — some are security/privacy blocks or routing workarounds. The operator must verify with the customer whether the flagged configurations are intended call intercept or just CUCM workarounds.
+3. **Configure in Webex.** For users/workspaces that DO use call intercept, enable Webex intercept via `person.callIntercept` (person-level) or `workspace.intercept` (workspace-level). Both endpoints support specifying interception numbers (secretary/admin extensions).
+4. **Verify in post-live.** After cutover, test interception for a sample of flagged users to confirm the call routing behaves as expected.
+
+**Why this matters:** CUCM's blocked partitions are a workaround — Webex intercept is the native feature. If the customer was using blocked partitions for legitimate call intercept, they need the feature re-enabled post-migration or calls will behave differently.
 
 ## Pipeline Walkthrough
 
