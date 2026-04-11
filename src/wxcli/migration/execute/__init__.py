@@ -126,6 +126,9 @@ TIER_ASSIGNMENTS: dict[tuple[str, str], int] = {
     ("device_profile", "enable_hoteling_guest"): 5,
     ("device_profile", "enable_hoteling_host"): 5,
     ("hoteling_location", "enable_hotdesking"): 0,  # Same tier as location:enable_calling
+    # Advisory-to-execution bridge (Phase A: no-op placeholders)
+    ("music_on_hold", "configure"): 5,   # Settings tier — location must exist + calling enabled
+    ("announcement", "upload"): 1,       # Routing backbone — features reference announcements
 }
 
 # ---------------------------------------------------------------------------
@@ -192,6 +195,9 @@ API_CALL_ESTIMATES: dict[str, int] = {
     "device_profile:enable_hoteling_guest": 1,  # PUT /people/{id}/features/hoteling
     "device_profile:enable_hoteling_host": 1,   # PUT /telephony/config/people/{id}/devices/settings/hoteling
     "hoteling_location:enable_hotdesking": 1,   # PUT /telephony/config/locations/{id}/features/hotDesking
+    # Advisory-to-execution bridge (Phase A: no-op placeholders, 0 API calls)
+    "music_on_hold:configure": 0,
+    "announcement:upload": 0,
 }
 
 # ---------------------------------------------------------------------------
