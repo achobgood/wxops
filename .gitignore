@@ -24,6 +24,9 @@ build/
 # Superpowers brainstorm sessions (local dev artifacts)
 .superpowers/
 
+# Git worktrees (isolated feature workspaces)
+.worktrees/
+
 # Generated HTML visualizations
 *pipeline-visual*.html
 assessment-report*.html

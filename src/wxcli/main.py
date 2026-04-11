@@ -298,8 +298,6 @@ from wxcli.commands.partner_admins import app as partner_admins_app
 app.add_typer(partner_admins_app, name="partner-admins")
 from wxcli.commands.partner_tags import app as partner_tags_app
 app.add_typer(partner_tags_app, name="partner-tags")
-from wxcli.commands.admin_recordings import app as admin_recordings_app
-app.add_typer(admin_recordings_app, name="admin-recordings")
 from wxcli.commands.report_templates import app as report_templates_app
 app.add_typer(report_templates_app, name="report-templates")
 from wxcli.commands.resource_group_memberships import app as resource_group_memberships_app

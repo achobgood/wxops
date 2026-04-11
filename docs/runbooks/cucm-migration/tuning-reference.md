@@ -129,6 +129,12 @@ See §[Auto-Rule Reference](#auto-rule-reference) below for the full treatment �
 **When to change:** Set to a third-party vendor name (e.g., `"Dubber"`, `"Imagicle"`) if the customer uses an external recording platform instead of Webex's built-in recording. Leave as `"Webex"` for most migrations.
 **Consumed by:** `src/wxcli/migration/advisory/advisory_patterns.py:1182` — referenced in the call-recording advisory pattern narrative. The export pipeline reads it from config when generating per-user recording settings.
 
+### enable-device-settings-migration
+
+**Type:** boolean
+**Default:** `true`
+**Effect:** When `false`, DeviceSettingsMapper is skipped entirely. No device_settings_template objects are created and no device settings are applied during execution.
+
 ## Auto-Rule Reference
 
 > Anchor convention for the 7 default rules: `default-rule-` plus the slug-form of the rule's `type` field, with `-<match-key>-<match-value>` appended when a `match` filter is present (e.g., `default-rule-calling-permission-mismatch-assigned-users-count-0`). Validated by `test_default_auto_rules_coverage.py`.
@@ -290,6 +296,33 @@ The 8 default auto-rules above are the *only* `DecisionType` values that the pip
 | `EXTENSION_CONFLICT` | no safe single answer | Producer: `analyzers/extension_conflict.py:138`. Webex enforces per-location extension uniqueness; CUCM does not. `recommend_extension_conflict` uses an `appearances` count heuristic but returns `None` on a tie — and `keep_a` vs `keep_b` vs `renumber` vs `virtual_line` rewrite the line-to-owner binding that device layouts and shared-line analysis depend on. Shares the kb-* entry with DN ownership: [`dt-id-001`](../../knowledge-base/migration/kb-identity-numbering.md#dt-id-001). |
 | `DUPLICATE_USER` | no safe single answer | Two producers: `analyzers/duplicate_user.py:120` (CUCM-internal duplicates by email + name) and `preflight/checks.py` (planned CUCM users that already exist in the target Webex org). `recommend_duplicate_user` returns `merge` only on `email_match` or `userid_match` and `keep_both` for everything else; in practice the operator usually has to verify the merge target with the customer's identity team. See [`dt-id-002`](../../knowledge-base/migration/kb-identity-numbering.md#dt-id-002). |
 | `NUMBER_CONFLICT` | no safe single answer | Producer: preflight sibling of `DUPLICATE_USER`. Detects E.164/extension collisions between planned CUCM resources and what is already provisioned in the target Webex org. There is no automatic answer for "the customer already owns this DID" — porting strategy, CPN routing, and cutover sequencing all depend on which side is authoritative. Shares the kb-* entry with `DUPLICATE_USER`: [`dt-id-002`](../../knowledge-base/migration/kb-identity-numbering.md#dt-id-002). |
+
+## Advisory Pattern Heuristics: Call Intercept Candidates
+
+CUCM has no native call-intercept feature. The advisory `call_intercept_candidates` (Pattern 30 in `advisory/advisory_patterns.py`, severity `MEDIUM`, category `out_of_scope`, recommendation `accept`) surfaces CUCM configurations that *approximate* Webex intercept so the operator can re-configure them manually after cutover. The detection is entirely SQL-driven — it runs inside the Tier 4 extractor at `discover` time, not at `analyze` time — and the advisory itself is a read-over-the-store summary, not a detector.
+
+**Producers:**
+
+- `src/wxcli/migration/cucm/extractors/tier4.py:_extract_intercept_candidates` — runs two SQL queries and writes rows to `raw_data["tier4"]["intercept_candidates"]`.
+- `src/wxcli/migration/transform/normalizers.py:normalize_intercept_candidate` — converts each raw row into a `MigrationObject` with `canonical_id = "intercept_candidate:{dn}:{partition}"`.
+- `src/wxcli/migration/transform/cross_reference.py:_build_intercept_refs` — wires each candidate to its owning user via the `user_has_intercept_signal` relationship.
+- `src/wxcli/migration/transform/mappers/call_settings_mapper.py` (Pass 2 block) — enriches each matched user's `call_settings.intercept = {detected, signal_type, forward_destination, voicemail_enabled}`.
+- `src/wxcli/migration/advisory/advisory_patterns.py:detect_call_intercept_candidates` — reads `store.get_objects("intercept_candidate")`, groups by `signal_type`, emits one `AdvisoryFinding` per run.
+- `src/wxcli/migration/report/appendix.py:_intercept_candidates` (Section Y) + `report/executive.py` (conditional `Intercept Candidates` stat card on Page 2).
+
+**Detection SQL (`cucm/extractors/tier4.py`, not config-driven):**
+
+- `_BLOCKED_PARTITION_SQL` matches DNs whose partition **name** (not any boolean field) matches `LOWER(rp.name) LIKE '%intercept%' OR '%block%' OR '%out_of_service%' OR '%oos%'`. Joins `numplan → routepartition → devicenumplanmap → device → enduser` to resolve the owning user. Produces `signal_type="blocked_partition"`.
+- `_CFA_VOICEMAIL_SQL` matches DNs with `callforwarddynamic.cfadestination != ''` and `cfavoicemailenabled='t'` where `NOT EXISTS` a registered phone behind the line (the `NOT EXISTS` subquery filters on `device.tkclass=1 AND device.tkstatus_registrationstate=2`). Produces `signal_type="cfa_voicemail"`.
+- The extractor de-duplicates by DN (a DN hit by both queries is stored once, with the `blocked_partition` signal taking precedence because it runs first). Rows are stored as dicts with keys `userid`, `dn`, `partition`, `signal_type`, `forward_destination`, `voicemail_enabled`.
+
+**What the advisory function actually does:** Reads `store.get_objects("intercept_candidate")`. If empty, returns `[]` (pattern is silent on clean stores). Otherwise, it groups rows by `signal_type`, builds a summary like `"N users with intercept-like configurations"`, formats a detail sentence of the form `"N users have intercept-like configurations in CUCM (M via blocked partition, P via cfa voicemail). Configure Webex intercept manually post-migration."`, and returns exactly one `AdvisoryFinding(pattern_name="call_intercept_candidates", severity="MEDIUM", category="out_of_scope", affected_objects=[…all canonical_ids…])`. It does not re-scan route patterns, CSS assignments, or phone registration state — all of that work happened in the extractor.
+
+**Tuning guidance.** The pipeline does not expose a config key for this heuristic — the partition-name glob list and the CFA-to-voicemail predicate are hard-coded in `tier4.py` at SQL-literal level. If a customer's environment uses a partition naming convention outside the four defaults (`intercept`, `block`, `out_of_service`, `oos`), edit `_BLOCKED_PARTITION_SQL` directly and add additional `LOWER(rp.name) LIKE '%…%'` clauses. Similarly, if the `NOT EXISTS` predicate on `device.tkclass=1 AND tkstatus_registrationstate=2` is too strict (some tenants keep a placeholder CSF device registered on terminated-user lines), relax or remove the `NOT EXISTS` block in `_CFA_VOICEMAIL_SQL`. There is **no** per-decision recommendation rule for call intercept in `recommendation_rules.py` (confirmed: `_PROFESSIONAL_FEATURES` mentions `"intercept"` but the dispatch table has no call-intercept rule) — the advisory itself carries the only recommendation (`accept`), so there is no per-decision-type rule to tune.
+
+**False positives to expect.** The blocked-partition glob will catch dial-plan restriction partitions named `BlockInternational_PT`, `Block911_PT`, etc., even though those should migrate as Webex calling permissions rather than as intercept. The CFA-to-voicemail predicate will catch users who set Call Forward All to their voicemail pilot as an ordinary "do not disturb" preference on an unused spare line. The MEDIUM severity reflects the operational impact of a *true* miss (a terminated employee becoming reachable again), not per-candidate confidence; most individual candidates are benign. Triage belongs in the operator runbook's Call Intercept Verification step, not in the extractor.
+
+**What MEDIUM severity means.** MEDIUM is advisory-only. The pattern does not write a `DecisionType`, produces no blocking decisions, is not covered by any auto-rule, and does not affect the complexity score (the `feature_parity` factor counts `FEATURE_APPROXIMATION` decisions — intercept candidates do not become approximations). `preflight` and `plan` run to completion regardless of candidate count. The severity simply signals to the `cucm-migrate` skill's Phase A advisory bundle that this is worth a deliberate acceptance rather than a rubber-stamp.
 
 ## Score Weights
 

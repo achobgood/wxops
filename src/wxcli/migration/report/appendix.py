@@ -1,13 +1,14 @@
 """Technical appendix HTML generator for CUCM assessment reports (v4).
 
-Generates 22 lettered sections (A-V), each as a collapsed <details> element:
+Generates 27 lettered sections (A-AA), each as a collapsed <details> element:
 A. Object Inventory, B. Decision Detail, C. CSS/Partitions, D. Device Inventory,
 E. DN Analysis, F. User/Device Map, G. Routing Topology, H. Voicemail Analysis,
-I. Data Coverage, J. Gateways, K. Call Features, L. Button Templates,
-M. Device Layouts, N. Softkey Migration, O. Cloud-Managed Resources,
-P. Feature Gaps, Q. Manual Reconfiguration, R. Planning Inputs,
-S. Call Recording, T. Single Number Reach, U. Caller ID Transformations,
-V. Extension Mobility.
+I. Audio Assets, J. Data Coverage, K. Gateways, L. Call Features,
+M. Button Templates, N. Device Layouts, O. Softkey Migration,
+P. Cloud-Managed Resources, Q. Feature Gaps, R. Manual Reconfiguration,
+S. Planning Inputs, T. Call Recording, U. Single Number Reach,
+V. Caller ID Transformations, W. Extension Mobility, X. DECT Networks,
+Y. Intercept Candidates, Z. Executive/Assistant Pairings, AA. Receptionist Users.
 
 One public function: generate_appendix().
 """
@@ -47,7 +48,7 @@ from wxcli.migration.cucm.extractors.informational import (
 
 
 def generate_appendix(store: MigrationStore) -> str:
-    """Generate the technical appendix HTML with lettered A-V sections."""
+    """Generate the technical appendix HTML with lettered A-X sections."""
     sections = [
         ("A", _object_inventory(store)),
         ("B", _decisions_group(store)),
@@ -57,20 +58,25 @@ def generate_appendix(store: MigrationStore) -> str:
         ("F", _user_device_map(store)),
         ("G", _routing_group(store)),
         ("H", _voicemail_analysis(store)),
-        ("I", _data_quality_group(store)),
-        ("J", _gateways_group(store)),
-        ("K", _features_group(store)),
-        ("L", _button_template_group(store)),
-        ("M", _device_layout_group(store)),
-        ("N", _softkey_group(store)),
-        ("O", _cloud_managed_group(store)),
-        ("P", _feature_gaps_group(store)),
-        ("Q", _manual_reconfig_group(store)),
-        ("R", _planning_inputs_group(store)),
-        ("S", _recording_inventory(store)),
-        ("T", _snr_inventory(store)),
-        ("U", _caller_id_xforms(store)),
-        ("V", _extension_mobility_group(store)),
+        ("I", _audio_assets(store)),
+        ("J", _data_quality_group(store)),
+        ("K", _gateways_group(store)),
+        ("L", _features_group(store)),
+        ("M", _button_template_group(store)),
+        ("N", _device_layout_group(store)),
+        ("O", _softkey_group(store)),
+        ("P", _cloud_managed_group(store)),
+        ("Q", _feature_gaps_group(store)),
+        ("R", _manual_reconfig_group(store)),
+        ("S", _planning_inputs_group(store)),
+        ("T", _recording_inventory(store)),
+        ("U", _snr_inventory(store)),
+        ("V", _caller_id_xforms(store)),
+        ("W", _extension_mobility_group(store)),
+        ("X", _dect_networks_group(store)),
+        ("Y", _intercept_candidates(store)),
+        ("Z", _executive_assistant_group(store)),
+        ("AA", _receptionist_group(store)),
     ]
     # Filter out empty sections
     sections = [(letter, section_html) for letter, section_html in sections if section_html]
@@ -277,6 +283,7 @@ def _device_inventory(store: MigrationStore) -> str:
     webex_app = sum(1 for d in devices if d.get("compatibility_tier") == "webex_app")
     infrastructure = sum(1 for d in devices if d.get("compatibility_tier") == "infrastructure")
     incompatible = sum(1 for d in devices if d.get("compatibility_tier") == "incompatible")
+    dect = sum(1 for d in devices if d.get("compatibility_tier") == "dect")
 
     summary_parts = [f"{total} phones"]
     if native:
@@ -289,6 +296,8 @@ def _device_inventory(store: MigrationStore) -> str:
         summary_parts.append(f"{infrastructure} infrastructure")
     if incompatible:
         summary_parts.append(f"{incompatible} incompatible")
+    if dect:
+        summary_parts.append(f"{dect} DECT")
     summary = " — ".join(summary_parts[:1]) + " — " + ", ".join(summary_parts[1:])
 
     parts = [
@@ -311,8 +320,9 @@ def _device_inventory(store: MigrationStore) -> str:
             "webex_app": "Webex App",
             "infrastructure": "Infrastructure (not migrated)",
             "incompatible": "Incompatible",
+            "dect": "DECT (wireless)",
         }
-        for tier_name in ["native_mpp", "convertible", "webex_app", "infrastructure", "incompatible"]:
+        for tier_name in ["native_mpp", "convertible", "webex_app", "infrastructure", "incompatible", "dect"]:
             if tiers.get(tier_name, 0) > 0:
                 tier_list.append(f'{_TIER_DISPLAY.get(tier_name, tier_name)}: {tiers[tier_name]}')
         tier_str = ", ".join(tier_list) if tier_list else "Unknown"
@@ -331,6 +341,8 @@ def _device_inventory(store: MigrationStore) -> str:
         {"label": "Convertible", "value": convertible, "color": "#EF6C00"},
         {"label": "Incompatible", "value": incompatible, "color": "#C62828"},
     ]
+    if dect:
+        segments.append({"label": "DECT", "value": dect, "color": "#42A5F5"})
     bar_html = stacked_bar_chart(segments)
     if bar_html:
         parts.append(bar_html)
@@ -506,13 +518,23 @@ def _routing_group(store: MigrationStore) -> str:
 # ---------------------------------------------------------------------------
 
 def _voicemail_analysis(store: MigrationStore) -> str:
-    """H. Voicemail Analysis — voicemail profiles."""
+    """H. Voicemail Analysis — voicemail profiles + custom greeting count."""
     profiles = store.get_objects("voicemail_profile")
     if not profiles:
         return ""
 
+    # Count custom greeting decisions
+    decisions = store.get_all_decisions()
+    greeting_count = 0
+    for d in decisions:
+        if d.get("type") != "MISSING_DATA":
+            continue
+        ctx = d.get("context", {})
+        if ctx.get("reason") == "custom_greeting_not_extractable":
+            greeting_count += 1
+
     parts = [
-        f'<details id="voicemail">',
+        '<details id="voicemail">',
         f'<summary>H. Voicemail Analysis <span class="summary-count">— {len(profiles)} profiles</span></summary>',
         '<div class="details-content">',
         '<table>',
@@ -524,16 +546,114 @@ def _voicemail_analysis(store: MigrationStore) -> str:
         desc = p.get("description", "—")
         parts.append(f'<tr><td>{html.escape(name)}</td><td>{html.escape(str(desc))}</td></tr>')
     parts.append('</tbody></table>')
+
+    if greeting_count > 0:
+        parts.append(
+            f'<div class="callout warning">'
+            f'<p><strong>Custom Greetings: {greeting_count} users</strong> have personalized '
+            f'voicemail greetings that will revert to the system default after migration. '
+            f'Each user must re-record their greeting.</p>'
+            f'</div>'
+        )
+        parts.append(
+            '<h4>User Action Required — Voicemail Greeting Re-Recording</h4>'
+            '<p>Send the following communication to affected users at least 1 week before migration:</p>'
+            '<blockquote>'
+            '<p><strong>Subject: Action Required — Re-record Your Voicemail Greeting After Migration</strong></p>'
+            '<p>As part of our phone system migration to Webex Calling, your voicemail '
+            'greeting will reset to the system default. After the migration is complete, '
+            'please re-record your personalized greeting:</p>'
+            '<ul>'
+            '<li>Open the Webex App</li>'
+            '<li>Go to Settings &gt; Calling &gt; Voicemail</li>'
+            '<li>Select &quot;Greeting&quot; and record your new greeting</li>'
+            '</ul>'
+            '<p>Alternatively, dial the voicemail access number from your desk phone and '
+            'follow the prompts to record a new greeting.</p>'
+            '<p>If you have a script for your greeting, please have it ready before '
+            're-recording. We recommend completing this within the first day after migration.</p>'
+            '</blockquote>'
+        )
+
     parts.append('</div></details>')
     return "\n".join(parts)
 
 
 # ---------------------------------------------------------------------------
-# I. Data Coverage
+# I. Audio Assets (MoH + Announcements)
+# ---------------------------------------------------------------------------
+
+def _audio_assets(store: MigrationStore) -> str:
+    """I. Audio Assets — custom MoH sources and announcements."""
+    moh_sources = store.get_objects("music_on_hold")
+    announcements = store.get_objects("announcement")
+
+    custom_moh = [m for m in moh_sources if not m.get("is_default", False)]
+
+    if not custom_moh and not announcements:
+        return ""
+
+    total = len(custom_moh) + len(announcements)
+    parts = [
+        '<details id="audio-assets">',
+        f'<summary>I. Audio Assets <span class="summary-count">— {total} custom audio assets</span></summary>',
+        '<div class="details-content">',
+        '<div class="callout warning">'
+        '<p><strong>Action Required:</strong> Download these files from CUCM '
+        'before migration day. MoH and AA greetings are customer-facing — '
+        'losing them on cutover is a P1 experience issue.</p>'
+        '</div>',
+    ]
+
+    if custom_moh:
+        parts.append('<h4>Music on Hold Sources</h4>')
+        parts.append('<table>')
+        parts.append('<thead><tr><th>Source Name</th><th>File Name</th><th>Features Using</th></tr></thead>')
+        parts.append('<tbody>')
+        for m in custom_moh:
+            name = m.get("source_name") or strip_canonical_id(m.get("canonical_id", ""))
+            fname = m.get("source_file_name", "\u2014")
+            mid = m.get("canonical_id", "")
+            refs = store.get_cross_refs(to_id=mid, relationship="feature_uses_moh_source")
+            if refs:
+                feature_names = [strip_canonical_id(r["from_id"]) for r in refs]
+                loc_text = ", ".join(feature_names)
+            else:
+                loc_text = "\u2014"
+            parts.append(
+                f'<tr><td>{html.escape(str(name))}</td>'
+                f'<td>{html.escape(str(fname))}</td>'
+                f'<td>{html.escape(loc_text)}</td></tr>'
+            )
+        parts.append('</tbody></table>')
+
+    if announcements:
+        parts.append('<h4>Announcements</h4>')
+        parts.append('<table>')
+        parts.append('<thead><tr><th>Name</th><th>File Name</th><th>Type</th></tr></thead>')
+        parts.append('<tbody>')
+        for a in announcements:
+            name = a.get("name") or strip_canonical_id(a.get("canonical_id", ""))
+            fname = a.get("file_name", "\u2014")
+            media_type = a.get("media_type", "\u2014")
+            parts.append(
+                f'<tr><td>{html.escape(str(name))}</td>'
+                f'<td>{html.escape(str(fname))}</td>'
+                f'<td>{html.escape(str(media_type))}</td></tr>'
+            )
+        parts.append('</tbody></table>')
+
+    parts.append(f'<p><strong>{total} custom audio asset(s)</strong> requiring manual migration.</p>')
+    parts.append('</div></details>')
+    return "\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# J. Data Coverage
 # ---------------------------------------------------------------------------
 
 def _data_quality_group(store: MigrationStore) -> str:
-    """I. Data coverage and completeness."""
+    """J. Data coverage and completeness."""
     check_types = [
         "user", "device", "line", "location",
         "hunt_group", "call_queue", "auto_attendant",
@@ -549,7 +669,7 @@ def _data_quality_group(store: MigrationStore) -> str:
 
     parts = [
         f'<details id="coverage">',
-        f'<summary>I. Data Coverage <span class="summary-count">— {types_with_data}/{total_types_checked} object types populated</span></summary>',
+        f'<summary>J. Data Coverage <span class="summary-count">— {types_with_data}/{total_types_checked} object types populated</span></summary>',
         '<div class="details-content">',
         '<table>',
         '<thead><tr><th>Object Type</th><th class="num">Count</th><th>Status</th></tr></thead>',
@@ -572,7 +692,7 @@ def _data_quality_group(store: MigrationStore) -> str:
 
 
 # ---------------------------------------------------------------------------
-# J. Gateways & Analog Ports
+# K. Gateways & Analog Ports
 # ---------------------------------------------------------------------------
 
 # Product model → estimated FXS port count
@@ -617,7 +737,7 @@ def _estimate_ports(product: str) -> int | None:
 
 
 def _gateways_group(store: MigrationStore) -> str:
-    """J. Gateway & analog port review."""
+    """K. Gateway & analog port review."""
     gateways = store.get_objects("gateway")
     if not gateways:
         return ""
@@ -643,7 +763,7 @@ def _gateways_group(store: MigrationStore) -> str:
         summary = f"{len(gateways)} gateways — all SIP, no analog review needed"
         parts = [
             f'<details id="gateways">',
-            f'<summary>J. Gateways <span class="summary-count">— {summary}</span></summary>',
+            f'<summary>K. Gateways <span class="summary-count">— {summary}</span></summary>',
             '<div class="details-content">',
             f'<p>{len(sip_gws)} SIP gateways detected. No analog ports requiring manual review.</p>',
             '</div></details>',
@@ -655,7 +775,7 @@ def _gateways_group(store: MigrationStore) -> str:
 
     parts = [
         f'<details id="gateways">',
-        f'<summary>J. Gateways & Analog Ports <span class="summary-count">— {summary}</span></summary>',
+        f'<summary>K. Gateways & Analog Ports <span class="summary-count">— {summary}</span></summary>',
         '<div class="details-content">',
     ]
 
@@ -719,11 +839,11 @@ def _gateways_group(store: MigrationStore) -> str:
 
 
 # ---------------------------------------------------------------------------
-# K. Call Features
+# L. Call Features
 # ---------------------------------------------------------------------------
 
 def _features_group(store: MigrationStore) -> str:
-    """K. Feature inventory with counts."""
+    """L. Feature inventory with counts."""
     feature_types = [
         ("hunt_group", "Hunt Groups"),
         ("call_queue", "Call Queues"),
@@ -748,7 +868,7 @@ def _features_group(store: MigrationStore) -> str:
 
     parts = [
         f'<details id="call-features">',
-        f'<summary>K. Call Features <span class="summary-count">— {total} features across {len(feature_rows)} types</span></summary>',
+        f'<summary>L. Call Features <span class="summary-count">— {total} features across {len(feature_rows)} types</span></summary>',
         '<div class="details-content">',
         '<table>',
         '<thead><tr><th>Feature Type</th><th class="num">Count</th></tr></thead>',
@@ -788,11 +908,11 @@ def _features_group(store: MigrationStore) -> str:
 
 
 # ---------------------------------------------------------------------------
-# L. Button Templates
+# M. Button Templates
 # ---------------------------------------------------------------------------
 
 def _button_template_group(store: MigrationStore) -> str:
-    """L. Phone button template inventory — template names, button types, usage counts."""
+    """M. Phone button template inventory — template names, button types, usage counts."""
     templates = store.get_objects("line_key_template")
     if not templates:
         return ""
@@ -809,7 +929,7 @@ def _button_template_group(store: MigrationStore) -> str:
 
     parts = [
         f'<details id="button-templates">',
-        f'<summary>L. Button Templates <span class="summary-count">— {", ".join(summary_parts)}</span></summary>',
+        f'<summary>M. Button Templates <span class="summary-count">— {", ".join(summary_parts)}</span></summary>',
         '<div class="details-content">',
         '<table>',
         '<thead><tr><th>Template</th><th>Base</th><th class="num">Buttons</th>'
@@ -875,11 +995,11 @@ def _button_template_group(store: MigrationStore) -> str:
 
 
 # ---------------------------------------------------------------------------
-# M. Device Layouts
+# N. Device Layouts
 # ---------------------------------------------------------------------------
 
 def _device_layout_group(store: MigrationStore) -> str:
-    """M. Per-device layout summary — shared lines, speed dials, BLF, KEM stats."""
+    """N. Per-device layout summary — shared lines, speed dials, BLF, KEM stats."""
     layouts = store.get_objects("device_layout")
     if not layouts:
         return ""
@@ -919,7 +1039,7 @@ def _device_layout_group(store: MigrationStore) -> str:
 
     parts = [
         f'<details id="device-layouts">',
-        f'<summary>M. Device Layouts <span class="summary-count">— {", ".join(summary_parts)}</span></summary>',
+        f'<summary>N. Device Layouts <span class="summary-count">— {", ".join(summary_parts)}</span></summary>',
         '<div class="details-content">',
         '<table>',
         '<thead><tr><th>Metric</th><th class="num">Count</th></tr></thead>',
@@ -946,11 +1066,11 @@ def _device_layout_group(store: MigrationStore) -> str:
 
 
 # ---------------------------------------------------------------------------
-# N. Softkey Migration
+# O. Softkey Migration
 # ---------------------------------------------------------------------------
 
 def _softkey_group(store: MigrationStore) -> str:
-    """N. Softkey template migration status — PSK mapping, classic MPP flags."""
+    """O. Softkey template migration status — PSK mapping, classic MPP flags."""
     configs = store.get_objects("softkey_config")
     if not configs:
         return ""
@@ -967,7 +1087,7 @@ def _softkey_group(store: MigrationStore) -> str:
 
     parts = [
         f'<details id="softkeys">',
-        f'<summary>N. Softkey Migration <span class="summary-count">— {", ".join(summary_parts)}</span></summary>',
+        f'<summary>O. Softkey Migration <span class="summary-count">— {", ".join(summary_parts)}</span></summary>',
         '<div class="details-content">',
         '<table>',
         '<thead><tr><th>Template</th><th class="num">Phones</th>'
@@ -1034,7 +1154,7 @@ def _softkey_group(store: MigrationStore) -> str:
     return "\n".join(parts)
 
 # ---------------------------------------------------------------------------
-# O. Cloud-Managed Resources (Tier 3)
+# P. Cloud-Managed Resources (Tier 3)
 # ---------------------------------------------------------------------------
 
 _CLOUD_MANAGED_TYPES = [
@@ -1045,7 +1165,7 @@ _CLOUD_MANAGED_TYPES = [
 
 
 def _cloud_managed_group(store: MigrationStore) -> str:
-    """O. Cloud-Managed Resources — CUCM objects handled automatically by Webex."""
+    """P. Cloud-Managed Resources — CUCM objects handled automatically by Webex."""
     rows = []
     total = 0
     for ot in _CLOUD_MANAGED_TYPES:
@@ -1061,7 +1181,7 @@ def _cloud_managed_group(store: MigrationStore) -> str:
 
     parts = [
         '<details id="cloud-managed">',
-        f'<summary>O. Cloud-Managed Resources <span class="summary-count">'
+        f'<summary>P. Cloud-Managed Resources <span class="summary-count">'
         f'— {total} objects across {len(rows)} types</span></summary>',
         '<div class="details-content">',
         '<p>These CUCM resources are managed automatically by the Webex cloud. '
@@ -1082,7 +1202,7 @@ def _cloud_managed_group(store: MigrationStore) -> str:
 
 
 # ---------------------------------------------------------------------------
-# P. Feature Gaps (Tier 3)
+# Q. Feature Gaps (Tier 3)
 # ---------------------------------------------------------------------------
 
 _NOT_MIGRATABLE_TYPES = [
@@ -1091,7 +1211,7 @@ _NOT_MIGRATABLE_TYPES = [
 
 
 def _feature_gaps_group(store: MigrationStore) -> str:
-    """P. Feature Gaps — CUCM features with no Webex equivalent."""
+    """Q. Feature Gaps — CUCM features with no Webex equivalent."""
     rows = []
     total = 0
     for ot in _NOT_MIGRATABLE_TYPES:
@@ -1108,7 +1228,7 @@ def _feature_gaps_group(store: MigrationStore) -> str:
 
     parts = [
         '<details id="feature-gaps">',
-        f'<summary>P. Feature Gaps <span class="summary-count">'
+        f'<summary>Q. Feature Gaps <span class="summary-count">'
         f'— {total} objects across {len(rows)} types</span></summary>',
         '<div class="details-content">',
         '<div class="callout warning">'
@@ -1132,7 +1252,7 @@ def _feature_gaps_group(store: MigrationStore) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Q. Manual Reconfiguration (Tier 3)
+# R. Manual Reconfiguration (Tier 3)
 # ---------------------------------------------------------------------------
 
 _DIFFERENT_ARCH_TYPES = [
@@ -1143,7 +1263,7 @@ _DIFFERENT_ARCH_TYPES = [
 
 
 def _manual_reconfig_group(store: MigrationStore) -> str:
-    """Q. Manual Reconfiguration — features that must be reconfigured in Webex."""
+    """R. Manual Reconfiguration — features that must be reconfigured in Webex."""
     rows = []
     total = 0
     for ot in _DIFFERENT_ARCH_TYPES:
@@ -1160,7 +1280,7 @@ def _manual_reconfig_group(store: MigrationStore) -> str:
 
     parts = [
         '<details id="manual-reconfig">',
-        f'<summary>Q. Manual Reconfiguration <span class="summary-count">'
+        f'<summary>R. Manual Reconfiguration <span class="summary-count">'
         f'— {total} objects across {len(rows)} types</span></summary>',
         '<div class="details-content">',
         '<p>These CUCM features have Webex equivalents but are configured differently. '
@@ -1182,14 +1302,14 @@ def _manual_reconfig_group(store: MigrationStore) -> str:
 
 
 # ---------------------------------------------------------------------------
-# R. Planning Inputs (Tier 3)
+# S. Planning Inputs (Tier 3)
 # ---------------------------------------------------------------------------
 
 _INTEGRATION_KEYWORDS = ("jtapi", "tapi", "cer", "recording", "finesse", "uccx", "cuic")
 
 
 def _planning_inputs_group(store: MigrationStore) -> str:
-    """R. Planning Inputs — data for migration planning decisions."""
+    """S. Planning Inputs — data for migration planning decisions."""
     app_users = store.get_objects("info_app_user")
     h323_gws = store.get_objects("info_h323_gateway")
     enterprise = store.get_objects("info_enterprise_params")
@@ -1201,7 +1321,7 @@ def _planning_inputs_group(store: MigrationStore) -> str:
 
     parts = [
         '<details id="planning-inputs">',
-        f'<summary>R. Planning Inputs <span class="summary-count">'
+        f'<summary>S. Planning Inputs <span class="summary-count">'
         f'— {total} items</span></summary>',
         '<div class="details-content">',
     ]
@@ -1299,11 +1419,11 @@ def _planning_inputs_group(store: MigrationStore) -> str:
 
 
 # ---------------------------------------------------------------------------
-# S. Call Recording Inventory (Tier 4 Item 1)
+# T. Call Recording Inventory (Tier 4 Item 1)
 # ---------------------------------------------------------------------------
 
 def _recording_inventory(store: MigrationStore) -> str:
-    """S. Users with call recording enabled -- from phone line data."""
+    """T. Users with call recording enabled -- from phone line data."""
     phones = store.get_objects("phone")
     if not phones:
         return ""
@@ -1341,7 +1461,7 @@ def _recording_inventory(store: MigrationStore) -> str:
 
     parts = [
         '<details id="recording-inventory">',
-        f'<summary>S. Call Recording Inventory <span class="summary-count">'
+        f'<summary>T. Call Recording Inventory <span class="summary-count">'
         f'\u2014 {summary}</span></summary>',
         '<div class="details-content">',
         '<div class="callout warning">',
@@ -1373,11 +1493,11 @@ def _recording_inventory(store: MigrationStore) -> str:
 
 
 # ---------------------------------------------------------------------------
-# T. Single Number Reach Inventory (Tier 4 Item 2)
+# U. Single Number Reach Inventory (Tier 4 Item 2)
 # ---------------------------------------------------------------------------
 
 def _snr_inventory(store: MigrationStore) -> str:
-    """T. Remote destination profiles -- Single Number Reach."""
+    """U. Remote destination profiles -- Single Number Reach."""
     rdps = store.get_objects("remote_destination")
     if not rdps:
         return ""
@@ -1392,7 +1512,7 @@ def _snr_inventory(store: MigrationStore) -> str:
 
     parts = [
         '<details id="snr-inventory">',
-        f'<summary>T. Single Number Reach <span class="summary-count">'
+        f'<summary>U. Single Number Reach <span class="summary-count">'
         f'\u2014 {summary}</span></summary>',
         '<div class="details-content">',
         '<div class="callout">',
@@ -1421,11 +1541,11 @@ def _snr_inventory(store: MigrationStore) -> str:
 
 
 # ---------------------------------------------------------------------------
-# U. Caller ID Transformation Patterns (Tier 4 Item 4)
+# V. Caller ID Transformation Patterns (Tier 4 Item 4)
 # ---------------------------------------------------------------------------
 
 def _caller_id_xforms(store: MigrationStore) -> str:
-    """U. Calling/Called party transformation patterns."""
+    """V. Calling/Called party transformation patterns."""
     calling = store.get_objects("info_calling_xform")
     called = store.get_objects("info_called_xform")
     total = len(calling) + len(called)
@@ -1437,7 +1557,7 @@ def _caller_id_xforms(store: MigrationStore) -> str:
 
     parts = [
         '<details id="caller-id-xforms">',
-        f'<summary>U. Caller ID Transformations <span class="summary-count">'
+        f'<summary>V. Caller ID Transformations <span class="summary-count">'
         f'\u2014 {summary}</span></summary>',
         '<div class="details-content">',
         '<div class="callout">',
@@ -1481,11 +1601,11 @@ def _caller_id_xforms(store: MigrationStore) -> str:
 
 
 # ---------------------------------------------------------------------------
-# V. Extension Mobility Usage (Tier 4 Item 6)
+# W. Extension Mobility Usage (Tier 4 Item 6)
 # ---------------------------------------------------------------------------
 
 def _extension_mobility_group(store: MigrationStore) -> str:
-    """V. Extension Mobility device profiles -- hot desking."""
+    """W. Extension Mobility device profiles -- hot desking with feature loss detail."""
     profiles = store.get_objects("info_device_profile")
     if not profiles:
         return ""
@@ -1494,16 +1614,21 @@ def _extension_mobility_group(store: MigrationStore) -> str:
 
     parts = [
         '<details id="extension-mobility">',
-        f'<summary>V. Extension Mobility <span class="summary-count">'
+        f'<summary>W. Extension Mobility <span class="summary-count">'
         f'\u2014 {summary}</span></summary>',
         '<div class="details-content">',
         '<div class="callout">',
         '<p><strong>Extension Mobility &rarr; Webex hot desking.</strong> '
         'CUCM device profile switching does not carry over. Webex hot desking provides '
-        'user login/logout with primary line on shared workspaces.</p>',
+        'user login/logout with primary line on shared workspaces. '
+        'Multi-line profiles, speed dials, and BLF entries are not available during '
+        'hot desk sessions.</p>',
         '</div>',
         '<table>',
-        '<thead><tr><th>Profile Name</th><th>Product</th><th>Description</th></tr></thead>',
+        '<thead><tr>'
+        '<th>Profile Name</th><th>Product</th><th>Lines</th>'
+        '<th>Speed Dials</th><th>BLF</th><th>Feature Loss</th>'
+        '</tr></thead>',
         '<tbody>',
     ]
 
@@ -1511,13 +1636,320 @@ def _extension_mobility_group(store: MigrationStore) -> str:
         pre = p.get("pre_migration_state", {}) or {}
         name = pre.get("name", strip_canonical_id(p.get("canonical_id", "")))
         product = pre.get("product", "\u2014")
-        desc = pre.get("description", "\u2014")
+        lines = pre.get("lines") or []
+        line_count = len(lines) if lines else pre.get("line_count", 0)
+        sd_count = pre.get("speed_dial_count", 0)
+        blf_count_val = pre.get("blf_count", 0)
+
+        if line_count > 1 or blf_count_val > 0:
+            loss = "Medium"
+            loss_class = "badge-warning"
+        elif sd_count > 0:
+            loss = "Low"
+            loss_class = "badge-info"
+        else:
+            loss = "None"
+            loss_class = "badge-success"
+
         parts.append(
             f'<tr><td>{html.escape(name)}</td>'
             f'<td>{html.escape(product)}</td>'
-            f'<td>{html.escape(desc)}</td></tr>'
+            f'<td>{line_count}</td>'
+            f'<td>{sd_count}</td>'
+            f'<td>{blf_count_val}</td>'
+            f'<td><span class="{loss_class}">{loss}</span></td></tr>'
         )
 
     parts.append('</tbody></table>')
     parts.append('</div></details>')
+    return "\n".join(parts)
+
+
+def _dect_networks_group(store: MigrationStore) -> str:
+    """X. DECT Networks — inventory, coverage zones, and design inputs."""
+    devices = store.get_objects("device")
+    dect_devices = [d for d in devices if d.get("compatibility_tier") == "dect"]
+    if not dect_devices:
+        return ""
+
+    parts: list[str] = []
+    parts.append('<details id="dect-networks">')
+    parts.append('<summary><span class="section-indicator">X</span> DECT Networks</summary>')
+
+    # --- Subsection 1: Inventory table ---
+    parts.append("<h4>DECT Handset Inventory</h4>")
+    parts.append("<table><thead><tr>")
+    parts.append("<th>Device Name</th><th>Model</th><th>Owner</th>"
+                 "<th>Extension</th><th>Device Pool</th>")
+    parts.append("</tr></thead><tbody>")
+
+    for d in sorted(dect_devices, key=lambda x: x.get("cucm_device_name") or ""):
+        state = d.get("pre_migration_state") or {}
+        device_name = d.get("cucm_device_name") or strip_canonical_id(d.get("canonical_id", ""))
+        model = d.get("model", "Unknown")
+        owner = state.get("ownerUserName") or "<em>unowned</em>"
+        lines = state.get("line_appearances") or d.get("line_appearances") or []
+        ext = ""
+        if lines:
+            dirn = lines[0].get("dirn", {}) if isinstance(lines[0], dict) else {}
+            ext = dirn.get("pattern", "")
+        dp = state.get("cucm_device_pool", "\u2014")
+
+        parts.append(f"<tr><td>{device_name}</td><td>{model}</td>"
+                     f"<td>{owner}</td><td>{ext}</td><td>{dp}</td></tr>")
+
+    parts.append("</tbody></table>")
+
+    # --- Subsection 2: Coverage zone analysis ---
+    zones: dict[str, list[dict]] = {}
+    for d in dect_devices:
+        dp = (d.get("pre_migration_state") or {}).get("cucm_device_pool", "Unknown")
+        zones.setdefault(dp, []).append(d)
+
+    parts.append("<h4>Coverage Zone Analysis</h4>")
+    parts.append("<table><thead><tr>")
+    parts.append("<th>Coverage Zone (Device Pool)</th><th>Handset Count</th>"
+                 "<th>Owned</th><th>Unowned</th>")
+    parts.append("</tr></thead><tbody>")
+
+    for zone_name in sorted(zones):
+        handsets = zones[zone_name]
+        total = len(handsets)
+        owned = sum(1 for h in handsets if (h.get("pre_migration_state") or {}).get("ownerUserName"))
+        unowned = total - owned
+        parts.append(f"<tr><td>{zone_name}</td><td>{total}</td>"
+                     f"<td>{owned}</td><td>{unowned}</td></tr>")
+
+    parts.append("</tbody></table>")
+
+    # --- Subsection 3: Design inputs ---
+    total_handsets = len(dect_devices)
+    zone_count = len(zones)
+    parts.append("<h4>DECT Network Design Inputs</h4>")
+    parts.append('<div class="callout">')
+    parts.append(f"<p><strong>Total DECT handsets:</strong> {total_handsets}</p>")
+    parts.append(f"<p><strong>Implied coverage zones:</strong> {zone_count} "
+                 f"(from device pool grouping)</p>")
+    parts.append("<p><strong>Recommended:</strong> Provide base station inventory "
+                 "(MAC addresses and model) for each coverage zone.</p>")
+
+    for zone_name in sorted(zones):
+        count = len(zones[zone_name])
+        if count > 30:
+            parts.append(f"<p><strong>{zone_name}:</strong> {count} handsets \u2014 "
+                         f"multi-cell DBS-210 network recommended</p>")
+        else:
+            parts.append(f"<p><strong>{zone_name}:</strong> {count} handsets \u2014 "
+                         f"single-cell DBS-110 or multi-cell DBS-210</p>")
+
+    parts.append("</div>")
+
+    # --- Subsection 4: Shared handset warning (conditional) ---
+    unowned_total = sum(
+        1 for d in dect_devices
+        if not (d.get("pre_migration_state") or {}).get("ownerUserName")
+    )
+    if unowned_total:
+        parts.append("<h4>Shared Handset Warnings</h4>")
+        parts.append('<div class="callout">')
+        parts.append(
+            f"<p><strong>{unowned_total} DECT handset{'s' if unowned_total != 1 else ''} "
+            f"with no owner.</strong> These may be shared or roaming handsets that need "
+            f"workspace assignment in Webex.</p>"
+        )
+        parts.append("</div>")
+
+    parts.append("</details>")
+    return "\n".join(parts)
+
+
+def _intercept_candidates(store: MigrationStore) -> str:
+    """Y. Call Intercept Candidates."""
+    candidates = store.get_objects("intercept_candidate")
+    if not candidates:
+        return ""
+    parts = [
+        '<details id="intercept-candidates">',
+        f'<summary>Y. Call Intercept Candidates <span class="summary-count">'
+        f'\u2014 {len(candidates)} candidates</span></summary>',
+        '<div class="details-content">',
+        '<table>',
+        '<thead><tr><th>User</th><th>DN</th><th>Partition</th>'
+        '<th>Signal Type</th><th>Forward Destination</th></tr></thead>',
+        '<tbody>',
+    ]
+    em = "—"
+    for ic in sorted(candidates, key=lambda c: c.get("pre_migration_state", {}).get("userid", "")):
+        pre = ic.get("pre_migration_state", {}) or {}
+        userid = pre.get("userid") or em
+        dn = pre.get("dn") or em
+        partition = pre.get("partition") or em
+        signal = (pre.get("signal_type") or "unknown").replace("_", " ").title()
+        fwd = pre.get("forward_destination") or em
+        parts.append(
+            f'<tr><td>{html.escape(userid)}</td>'
+            f'<td>{html.escape(dn)}</td>'
+            f'<td>{html.escape(partition)}</td>'
+            f'<td>{html.escape(signal)}</td>'
+            f'<td>{html.escape(fwd)}</td></tr>'
+        )
+    parts.extend(['</tbody></table>', '</div></details>'])
+    return "\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# Z. Executive/Assistant Pairings
+# ---------------------------------------------------------------------------
+
+def _executive_assistant_group(store: MigrationStore) -> str:
+    """Z. Executive/Assistant Pairings — delegation relationships."""
+    ea_objs = store.get_objects("executive_assistant")
+    if not ea_objs:
+        return ""
+
+    parts = [
+        '<details id="section-exec-assistant">',
+        f'<summary>Z. Executive/Assistant Pairings '
+        f'<span class="summary-count">— {len(ea_objs)} executive(s)</span></summary>',
+        '<div class="details-content">',
+        "<p>Executive/assistant pairings configured in CUCM. Each executive has one or "
+        "more assistants who can answer, screen, and place calls on their behalf.</p>",
+        "<table>",
+        "<thead><tr>"
+        "<th>Executive</th>"
+        "<th>Assistants</th>"
+        "<th>Alerting</th>"
+        "<th>Filtering</th>"
+        "<th>Screening</th>"
+        "</tr></thead>",
+        "<tbody>",
+    ]
+
+    for ea in ea_objs:
+        exec_id = ea.get("executive_canonical_id", "")
+        exec_name = strip_canonical_id(exec_id)
+        assistants = ea.get("assistant_canonical_ids", [])
+        asst_names = ", ".join(strip_canonical_id(a) for a in assistants)
+        alerting = ea.get("alerting_mode", "SIMULTANEOUS")
+        filtering = "No"
+        if ea.get("filter_enabled"):
+            filter_type = ea.get("filter_type", "")
+            filtering = f"Yes ({html.escape(filter_type)})" if filter_type else "Yes"
+        screening = "Yes" if ea.get("screening_enabled") else "No"
+
+        parts.append(
+            f"<tr>"
+            f"<td>{html.escape(exec_name)}</td>"
+            f"<td>{html.escape(asst_names)}</td>"
+            f"<td>{html.escape(alerting)}</td>"
+            f"<td>{filtering}</td>"
+            f"<td>{screening}</td>"
+            f"</tr>"
+        )
+
+    parts.extend(["</tbody>", "</table>", "</div>", "</details>"])
+    return "\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# AA. Receptionist Users
+# ---------------------------------------------------------------------------
+
+def _receptionist_group(store: MigrationStore) -> str:
+    """AA. Receptionist Users — detected users with receptionist-style BLF/KEM/template configs."""
+    receptionists = store.get_objects("receptionist_config")
+    if not receptionists:
+        return ""
+
+    total = len(receptionists)
+    sorted_recs = sorted(receptionists, key=lambda r: -(r.get("detection_score") or 0))
+
+    em_dash = "\u2014"
+
+    parts = [
+        '<details id="receptionist-users">',
+        f'<summary>AA. Receptionist Users <span class="summary-count">'
+        f'\u2014 {total} detected</span></summary>',
+        '<div class="details-content">',
+        '<p>These users were detected as likely receptionists based on BLF monitoring lists, '
+        'KEM modules, and phone button templates. They may be using Cisco Unified Attendant '
+        'Console (CUAC) or CUCM receptionist console features. Each requires attention during '
+        'migration to preserve answering workflows and directory visibility.</p>',
+        '<table>',
+        '<thead><tr>'
+        '<th>User</th>'
+        '<th>Location</th>'
+        '<th class="num">BLF Count</th>'
+        '<th>KEM</th>'
+        '<th>Template</th>'
+        '<th class="num">Score</th>'
+        '<th>Main #</th>'
+        '</tr></thead>',
+        '<tbody>',
+    ]
+
+    for rec in sorted_recs:
+        user_raw = rec.get("user_canonical_id", "")
+        loc_raw = rec.get("location_canonical_id", "")
+        user_display = strip_canonical_id(user_raw) if user_raw else em_dash
+        loc_display = strip_canonical_id(loc_raw) if loc_raw else em_dash
+        blf_count = rec.get("blf_count") or 0
+        has_kem = rec.get("has_kem") or False
+        template = rec.get("template_name") or em_dash
+        score = rec.get("detection_score") or 0
+        is_main = rec.get("is_main_number_holder") or False
+
+        parts.append(
+            f'<tr>'
+            f'<td>{html.escape(user_display)}</td>'
+            f'<td>{html.escape(loc_display)}</td>'
+            f'<td class="num">{blf_count}</td>'
+            f'<td>{"Yes" if has_kem else em_dash}</td>'
+            f'<td>{html.escape(str(template))}</td>'
+            f'<td class="num">{score}</td>'
+            f'<td>{"Yes" if is_main else em_dash}</td>'
+            f'</tr>'
+        )
+
+    parts.append('</tbody></table>')
+
+    # Migration Impact sub-table
+    parts.extend([
+        '<h4>Migration Impact</h4>',
+        '<table>',
+        '<thead><tr>'
+        '<th>CUCM Feature</th>'
+        '<th>Webex Equivalent</th>'
+        '<th>Action</th>'
+        '</tr></thead>',
+        '<tbody>',
+        '<tr>'
+        '<td>BLF monitoring list</td>'
+        '<td>Receptionist Client monitored members</td>'
+        '<td>Automatic \u2014 migrated from BLF entries</td>'
+        '</tr>',
+        '<tr>'
+        '<td>Phone button template layout</td>'
+        '<td>Line key template</td>'
+        '<td>Automatic \u2014 migrated by DeviceLayoutMapper</td>'
+        '</tr>',
+        '<tr>'
+        '<td>CUAC desktop application</td>'
+        '<td>Webex Receptionist Console (web)</td>'
+        '<td>Manual \u2014 requires user training</td>'
+        '</tr>',
+        '<tr>'
+        '<td>CUAC directory search</td>'
+        '<td>Receptionist Contact Directories</td>'
+        '<td>Semi-automatic \u2014 directories created during execution</td>'
+        '</tr>',
+        '<tr>'
+        '<td>CTI application user routing</td>'
+        '<td>No direct equivalent</td>'
+        '<td>Rebuild \u2014 use Auto Attendant or Call Queue</td>'
+        '</tr>',
+        '</tbody></table>',
+        '</div></details>',
+    ])
+
     return "\n".join(parts)

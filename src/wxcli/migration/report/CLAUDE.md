@@ -20,11 +20,14 @@ The report reads from the same SQLite store that the migration pipeline populate
 | `ingest.py` | Reads collector output files (.json.gz/.json) into discovery raw_data format. Maps AXL object names to extractor group keys. |
 | `score.py` | Migration Complexity Score (0-100). 7 weighted factors with `display_name` field (customer-friendly names). Returns `ScoreResult` dataclass. `DISPLAY_NAMES` maps internal factor names → display names. |
 | `charts.py` | SVG/HTML chart generators: `gauge_chart()` (compact 200x155 viewBox), `donut_chart()`, `horizontal_bar_chart()`, `stacked_bar_chart()` (HTML divs with legend). Pure functions, no store dependency. |
-| `explainer.py` | Translates `DecisionType` + context into plain-English dicts. Also: `generate_verdict()` (one-paragraph summary), `generate_key_findings()` (3-4 bullet findings), `DECISION_TYPE_DISPLAY_NAMES` (20 types mapped). |
+| `explainer.py` | Translates `DecisionType` + context into plain-English dicts. Also: `generate_verdict()` (one-paragraph summary), `generate_key_findings()` (3-4 bullet findings), `DECISION_TYPE_DISPLAY_NAMES` (22 types mapped). |
 | `styles.py` | `REPORT_CSS` + `GOOGLE_FONTS_LINKS` — v4 editorial CSS design system. Lora/Source Sans 3/IBM Plex Mono, teal primary (#00897B), warm neutrals, 320px sidebar, score-layout 2-column grid, effort-band/verdict/cta-box components, print optimization. Legacy CSS variable aliases for backward compat. |
-| `executive.py` | 4-page executive summary with direct h2 headings (no section kickers). Page 1 (Migration Complexity Assessment — tier-colored gauge+factor bars with "Complexity Impact" Low/High scale, key findings, stat grid), Page 2 (What You Have — People/Devices with floated donut chart/Features/Sites), Page 3 (What Needs Attention — decision stats + effort bands: auto/planning/manual), Page 4 (Next Steps — prerequisites, planning, CTA). Gauge uses tier-based color (green/amber/red). Factor bars sorted by score descending, highest in teal, rest gray, no bare numbers. |
-| `appendix.py` | Technical appendix: 22 lettered sections A-V as collapsed `<details>` elements (Object Inventory, Decision Detail, CSS/Partitions, Device Inventory, DN Analysis, User/Device Map, Routing, Voicemail, Data Coverage, Gateways, Call Features, Button Templates, Device Layouts, Softkeys, O. Cloud-Managed Resources, P. Feature Gaps, Q. Manual Reconfiguration, R. Planning Inputs, S. Call Recording, T. Single Number Reach, U. Caller ID Transformations, V. Extension Mobility). All canonical IDs stripped via helpers. |
-| `assembler.py` | Full HTML document with 320px sidebar nav (step-icon circles, numbered 1-4 exec + lettered A-V tech), page-header (slate-900 bg), IntersectionObserver scroll tracking, no summary bar or dark interstitial, footer inside detail-panel. |
+| `executive.py` | 4-page executive summary with direct h2 headings (no section kickers). Page 1 (Migration Complexity Assessment — tier-colored gauge+factor bars with "Complexity Impact" Low/High scale, key findings, stat grid), Page 2 (What You Have — People/Devices with floated donut chart/Features/Sites; includes Custom MoH Sources and Announcement Files stat cards with callout pointing to Audio Assets appendix), Page 3 (What Needs Attention — decision stats + effort bands: auto/planning/manual), Page 4 (Next Steps — prerequisites, planning, CTA). Gauge uses tier-based color (green/amber/red). Factor bars sorted by score descending, highest in teal, rest gray, no bare numbers. |
+| `appendix.py` | Technical appendix: 27 lettered sections A-AA as collapsed `<details>` elements (Object Inventory, Decision Detail, CSS/Partitions, Device Inventory, DN Analysis, User/Device Map, Routing, H. Voicemail Analysis (with custom greeting count + email template), I. Audio Assets (custom MoH sources + announcement files requiring manual download/upload), J. Data Coverage, K. Gateways, L. Call Features, M. Button Templates, N. Device Layouts, O. Softkeys, P. Cloud-Managed Resources, Q. Feature Gaps, R. Manual Reconfiguration, S. Planning Inputs, T. Call Recording, U. Single Number Reach, V. Caller ID Transformations, W. Extension Mobility, X. DECT Networks, Y. Intercept Candidates, Z. Executive/Assistant Pairings, AA. Receptionist Users). All canonical IDs stripped via helpers. |
+| `assembler.py` | Full HTML document with 320px sidebar nav (step-icon circles, numbered 1-4 exec + lettered A-AA tech), page-header (slate-900 bg), IntersectionObserver scroll tracking, no summary bar or dark interstitial, footer inside detail-panel. |
+| `user_diff.py` | Per-user CUCM-vs-Webex migration diff: `build_user_diffs()` joins 10 object types into `UserDiffRecord` per user, `render_html()` (self-contained page with search/filter), `render_csv()` (UTF-8 BOM, one row per setting per user). |
+| `notice_templates.py` | Scenario metadata (7 scenarios) + paragraph templates + generic section templates (intro, timeline, footer). Audience filter definitions. |
+| `user_notice.py` | User communication notice generator: `_build_scenario_matrix()` classifies users into scenarios from store data, `generate_user_notice()` assembles HTML or plain text. Email-safe single-column layout (640px max-width, inline CSS, system fonts). |
 
 ## Key Data Access Patterns
 
@@ -42,6 +45,7 @@ The report reads from the same SQLite store that the migration pipeline populate
 - `"convertible"` — needs firmware flash
 - `"webex_app"` — software phone transitioning to Webex App (no device needed)
 - `"incompatible"` — needs hardware replacement
+- `"dect"` — DECT handset, compatible hardware, needs DECT network provisioning
 
 ### CSS/Partition Types
 
@@ -96,7 +100,7 @@ verdict = generate_verdict(score_result, store)  # → HTML string with <strong>
 findings = generate_key_findings(store)  # → list of {"icon": "!"/"✓", "text": "..."}
 ```
 
-Handles all 20 `DecisionType` values. `DECISION_TYPE_DISPLAY_NAMES` maps all types to customer-friendly names.
+Handles all 22 `DecisionType` values. `DECISION_TYPE_DISPLAY_NAMES` maps all types to customer-friendly names.
 
 ## Helpers
 
@@ -144,6 +148,44 @@ wxcli cucm report --brand "..." --prepared-by "..." --executive-only  # skip app
 
 Prerequisite: `analyze` stage must be complete. Does NOT require `plan` or `preflight`.
 
+## Per-User Diff
+
+```bash
+wxcli cucm user-diff                                     # HTML, all users with changes
+wxcli cucm user-diff --format csv                        # CSV for Excel review
+wxcli cucm user-diff --user "user:jsmith"                # single user
+wxcli cucm user-diff --location "loc:dallas-hq"          # one location
+wxcli cucm user-diff --include-no-change                 # include unchanged users
+```
+
+Prerequisite: `analyze` stage must be complete (same as `report`).
+
+### Data Join Pattern
+
+`build_user_diffs()` bulk-loads all relevant object types once, builds O(1) index maps, then iterates users:
+
+- `device` → user via `owner_canonical_id`
+- `call_forwarding` → user via `user_canonical_id`
+- `voicemail_profile` → user via `user_canonical_id`
+- `monitoring_list` → user via `user_canonical_id`
+- `device_layout` → user via `owner_canonical_id`
+- `shared_line` → user via `owner_canonical_ids` (list)
+- `calling_permission` → user via `assigned_users` (list)
+- `decisions` → user via `context` dict keys
+- `css` → user via `user_has_css` cross-ref
+
+## User Communication
+
+```bash
+wxcli cucm user-notice --brand "Customer Name" --migration-date "January 15, 2027" --helpdesk "x5000"
+wxcli cucm user-notice --brand "..." --migration-date "..." --helpdesk "..." --text-only
+wxcli cucm user-notice --brand "..." --migration-date "..." --helpdesk "..." --audience phone-upgrade
+```
+
+Generates a branded user-facing notice covering only the scenarios detected in the store. 7 scenarios: phone upgrade (convertible), Webex App transition, device replacement (incompatible), forwarding simplified, voicemail re-record, layout changes, exec/assistant. Audience filter narrows output to a user segment.
+
+Prerequisite: `analyze` stage must be complete. Same as the assessment report.
+
 ## File Ingestion (--from-file)
 
 ```bash
@@ -167,6 +209,9 @@ Reads collector output files and writes `raw_data.json` in the same format as li
 - `tests/migration/report/test_appendix_tier3.py` — Tier 3 informational appendix sections O-R
 - `tests/migration/report/test_tier4_appendix.py` — Tier 4 appendix sections S-V (recording, SNR, transformations, extension mobility)
 - `tests/migration/report/test_cli_integration.py` — CLI command integration
+- `tests/migration/report/test_dect_appendix.py` — Section W DECT Networks appendix tests
+- `tests/migration/report/test_user_diff.py` — dataclass construction, data join (18 tests), CSV rendering (5 tests), HTML rendering (10 tests), CLI integration (4 tests)
+- `tests/migration/report/test_user_notice.py` — scenario detection, HTML/text generation, audience filtering, CLI integration
 
 ## Design Spec
 

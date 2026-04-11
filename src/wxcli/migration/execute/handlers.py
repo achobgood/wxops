@@ -173,6 +173,34 @@ def handle_route_group_create(data: dict, deps: dict, ctx: dict) -> HandlerResul
     return [("POST", _url("/telephony/config/premisePstn/routeGroups", ctx), body)]
 
 
+def handle_route_list_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    loc_wid = _resolve_location(data, deps) or _resolve_location_from_deps(deps)
+    rg_cid = data.get("route_group_id", "")
+    rg_wid = deps.get(rg_cid)
+    if not rg_wid:
+        return []  # Route group not yet created
+    body: dict[str, Any] = {
+        "name": data.get("name"),
+        "locationId": loc_wid,
+        "routeGroupId": rg_wid,
+    }
+    return [("POST", _url("/telephony/config/premisePstn/routeLists", ctx), body)]
+
+
+def handle_route_list_configure_numbers(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    rl_cid = data.get("canonical_id", "")
+    rl_wid = deps.get(rl_cid)
+    if not rl_wid:
+        return []
+    numbers = data.get("numbers", [])
+    if not numbers:
+        return []
+    body: dict[str, Any] = {
+        "numbers": [{"number": n, "action": "ADD"} for n in numbers],
+    }
+    return [("PUT", _url(f"/telephony/config/premisePstn/routeLists/{rl_wid}/numbers", ctx), body)]
+
+
 def handle_operating_mode_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
     body: dict[str, Any] = {
         "name": data.get("name"),
@@ -606,11 +634,12 @@ def handle_workspace_configure_settings(data: dict, deps: dict, ctx: dict) -> Ha
             break
     if not ws_wid:
         return []
-    # Workspace settings use the /workspaces/{id}/features/ path family
+    # Workspace settings use /telephony/config/workspaces/{id}/ path family
+    # (NOT /workspaces/{id}/features/ — that's a different API surface)
     settings = data.get("call_settings", {})
     calls = []
     for feature_name, feature_body in settings.items():
-        url = _url(f"/workspaces/{ws_wid}/features/{feature_name}", ctx)
+        url = _url(f"/telephony/config/workspaces/{ws_wid}/{feature_name}", ctx)
         calls.append(("PUT", url, feature_body))
     return calls
 
@@ -749,6 +778,44 @@ def handle_monitoring_list_configure(data: dict, deps: dict, ctx: dict) -> Handl
         "monitoredMembers": members,
     }
     return [("PUT", _url(f"/people/{person_wid}/features/monitoring", ctx), body)]
+
+
+# ---------------------------------------------------------------------------
+# Tier 6: Receptionist configuration
+# ---------------------------------------------------------------------------
+
+
+def handle_receptionist_config_configure(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    """Enable receptionist client + create location contact directory."""
+    person_wid = deps.get(data.get("user_canonical_id", ""))
+    if not person_wid:
+        return []
+    members = []
+    for cid in data.get("monitored_members", []):
+        wid = deps.get(cid)
+        if wid:
+            members.append(wid)
+    reception_body: dict[str, Any] = {
+        "receptionEnabled": True,
+        "monitoredMembers": members,
+    }
+    calls: HandlerResult = [
+        ("PUT", _url(f"/people/{person_wid}/features/reception", ctx), reception_body),
+    ]
+    loc_cid = data.get("location_canonical_id", "")
+    loc_wid = deps.get(loc_cid) if loc_cid else None
+    if loc_wid and members:
+        contacts = [{"personId": wid} for wid in members]
+        dir_body: dict[str, Any] = {
+            "name": "Reception Directory",
+            "contacts": contacts,
+        }
+        calls.append((
+            "POST",
+            _url(f"/telephony/config/locations/{loc_wid}/receptionistContacts/directories", ctx),
+            dir_body,
+        ))
+    return calls
 
 
 # ---------------------------------------------------------------------------
@@ -951,6 +1018,99 @@ def handle_virtual_line_configure(data: dict, deps: dict, ctx: dict) -> HandlerR
     return [("PUT", _url(f"/telephony/config/virtualLines/{vl_wid}", ctx), settings)]
 
 
+# ---------------------------------------------------------------------------
+# Tier 1/5: Device settings templates
+# ---------------------------------------------------------------------------
+
+def handle_device_settings_template_apply_location_settings(
+    data: dict, deps: dict, ctx: dict,
+) -> HandlerResult:
+    """Apply device settings at location level."""
+    loc_cid = data.get("location_canonical_id")
+    if not loc_cid:
+        return []
+    loc_wid = deps.get(loc_cid)
+    if not loc_wid:
+        return []
+    settings = data.get("settings") or {}
+    if not settings:
+        return []
+    body = {"customizations": {"mpp": settings}, "customEnabled": True}
+    return [("PUT", _url(f"/telephony/config/locations/{loc_wid}/devices/settings", ctx), body)]
+
+
+def handle_device_settings_template_apply_device_override(
+    data: dict, deps: dict, ctx: dict,
+) -> HandlerResult:
+    """Apply per-device settings override."""
+    override = data.get("override") or {}
+    device_cid = override.get("device_canonical_id")
+    if not device_cid:
+        return []
+    device_wid = deps.get(device_cid)
+    if not device_wid:
+        return []
+    settings = override.get("settings") or {}
+    if not settings:
+        return []
+    body = {"customizations": {"mpp": settings}, "customEnabled": True}
+    return [("PUT", _url(f"/telephony/config/devices/{device_wid}/settings", ctx), body)]
+
+
+# ---------------------------------------------------------------------------
+# Hoteling / Hot Desking handlers (tier 5 / tier 0)
+# ---------------------------------------------------------------------------
+
+def handle_hoteling_guest_enable(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    """Enable hoteling guest for a user with an EM device profile."""
+    if not data.get("hoteling_guest_enabled"):
+        return []
+    user_cid = data.get("user_canonical_id")
+    person_wid = deps.get(user_cid) if user_cid else None
+    if not person_wid:
+        return []
+    return [("PUT", _url(f"/people/{person_wid}/features/hoteling", ctx), {"enabled": True})]
+
+
+def handle_hoteling_host_configure(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    """Configure hoteling host on devices that were EM-enabled."""
+    host_cids = data.get("host_device_canonical_ids") or []
+    if not host_cids:
+        return []
+    user_cid = data.get("user_canonical_id")
+    person_wid = deps.get(user_cid) if user_cid else None
+    if not person_wid:
+        return []
+    if not any(deps.get(cid) for cid in host_cids):
+        return []
+    auto_minutes = data.get("auto_logout_minutes", 0)
+    hoteling_body: dict[str, Any] = {"enabled": True}
+    if auto_minutes > 0:
+        hoteling_body["limitGuestUse"] = True
+        hoteling_body["guestHoursLimit"] = max(1, auto_minutes // 60)
+    else:
+        hoteling_body["limitGuestUse"] = False
+    return [(
+        "PUT",
+        _url(f"/telephony/config/people/{person_wid}/devices/settings/hoteling", ctx),
+        {"hoteling": hoteling_body},
+    )]
+
+
+def handle_location_hotdesking_enable(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    """Enable voice portal hot desk sign-in at a location."""
+    state = data.get("pre_migration_state") or {}
+    loc_cid = state.get("location_canonical_id")
+    loc_wid = deps.get(loc_cid) if loc_cid else None
+    if not loc_wid:
+        return []
+    return [(
+        "PUT",
+        _url(f"/telephony/config/locations/{loc_wid}/features/hotDesking", ctx),
+        {"voicePortalHotDeskSignInEnabled": True},
+    )]
+
+
 # HANDLER_REGISTRY — complete with all operation types
 HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("location", "create"): handle_location_create,
@@ -958,6 +1118,8 @@ HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("line_key_template", "create"): handle_line_key_template_create,
     ("trunk", "create"): handle_trunk_create,
     ("route_group", "create"): handle_route_group_create,
+    ("route_list", "create"): handle_route_list_create,
+    ("route_list", "configure_numbers"): handle_route_list_configure_numbers,
     ("operating_mode", "create"): handle_operating_mode_create,
     ("schedule", "create"): handle_schedule_create,
     ("user", "create"): handle_user_create,
@@ -981,10 +1143,18 @@ HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("single_number_reach", "configure"): handle_snr_configure,
     # Tier 6
     ("monitoring_list", "configure"): handle_monitoring_list_configure,
+    ("receptionist_config", "configure"): handle_receptionist_config_configure,
     ("shared_line", "configure"): handle_shared_line_configure,
     ("virtual_line", "create"): handle_virtual_line_create,
     ("virtual_line", "configure"): handle_virtual_line_configure,
     # Tier 7
     ("device_layout", "configure"): handle_device_layout_configure,
     ("softkey_config", "configure"): handle_softkey_config_configure,
+    # Device settings templates
+    ("device_settings_template", "apply_location_settings"): handle_device_settings_template_apply_location_settings,
+    ("device_settings_template", "apply_device_override"): handle_device_settings_template_apply_device_override,
+    # Hoteling / Hot Desking
+    ("device_profile", "enable_hoteling_guest"): handle_hoteling_guest_enable,
+    ("device_profile", "enable_hoteling_host"): handle_hoteling_host_configure,
+    ("hoteling_location", "enable_hotdesking"): handle_location_hotdesking_enable,
 }

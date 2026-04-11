@@ -56,7 +56,9 @@ fresh agent invocation — do not resume agents via `SendMessage` for multi-phas
 | `.claude/skills/manage-devices/` | Skill: manage devices (phones, DECT, workspaces) |
 | `.claude/skills/device-platform/` | Skill: manage RoomOS device configs, workspace personalization, xAPI; also 9800-series phones (9811/9821/9841/9851/9861/9871) |
 | `.claude/skills/call-control/` | Skill: real-time call control, webhooks, XSI |
-| `.claude/skills/reporting/` | Skill: CDR, queue stats, call quality, reports |
+| `.claude/skills/reporting/` | Skill: CDR query engine (75 recipes + composition guide), report templates, recordings |
+| `.claude/skills/reporting-cc/` | Skill: Contact Center analytics (queue stats, agent stats, EWT, summaries) |
+| `.claude/skills/reporting-meetings/` | Skill: meetings quality, workspace metrics, historical analytics, live monitoring |
 | `.claude/skills/wxc-calling-debug/` | Skill: debug failing configurations |
 | `.claude/skills/manage-identity/` | Skill: SCIM sync, directory, groups, contacts, domains |
 | `.claude/skills/audit-compliance/` | Skill: audit events, security, compliance, authorizations |
@@ -200,6 +202,14 @@ The migration tool is at `src/wxcli/migration/` and wired into the CLI as `wxcli
 
 **To generate an assessment report:** `wxcli cucm init` → `discover` (or `discover --from-file`) → `normalize` → `map` → `analyze` → `report --brand "..." --prepared-by "..."`. Does not require plan/preflight/export — the report reads directly from the post-analyze store.
 
+**To generate a per-user diff:** `wxcli cucm init` → `discover` → `normalize` → `map` → `analyze` → `user-diff`. Does not require plan/preflight/export.
+
+**To generate a user communication notice:** `wxcli cucm init` → `discover` → `normalize` → `map` → `analyze` → `user-notice --brand "..." --migration-date "..." --helpdesk "..."`. Does not require plan/preflight/export.
+
+### Migration Spec Template
+
+All migration pipeline spec documents must follow the template at `docs/references/migration-spec-template.md`. This applies whether the spec is written interactively via brainstorming, by an agent swarm, or manually. The template is rigid — all 9 sections are required. Sections can be brief for simple specs but cannot be omitted.
+
 ### Tools
 
 | Path | Purpose |
@@ -276,6 +286,7 @@ See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for fu
 12. **`virtual-extensions` commands use wrong ID type.** Uses `VIRTUAL_EXTENSION`-encoded IDs but virtual lines use `VIRTUAL_LINE` IDs. `wxcli cleanup` uses raw REST as a workaround. See `docs/reference/virtual-lines.md` Raw HTTP Gotchas #9.
 13. **Device config schema is firmware-dependent.** Per-line ringtone was absent on PhoneOS 3.5/3.6 but fixed in 4.1. Offline/expired devices retain a stale schema. See `docs/reference/devices-platform.md` gotchas #10-11.
 14. **Contact Center (`cc-*`) commands require CC-scoped OAuth and region config.** See `docs/reference/contact-center-core.md` gotchas #1-3.
+15. **Device settings templates are pipeline-only, not named Webex objects.** The migration pipeline generates "templates" for device settings, but Webex has no named template API object for device settings. Settings are applied directly at org, location, or device level via PUT.
 
 ### Cleanup Command
 

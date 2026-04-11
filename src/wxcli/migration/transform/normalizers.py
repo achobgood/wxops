@@ -356,6 +356,33 @@ def _normalize_line_appearance(raw_line: dict) -> dict:
     }
 
 
+def _normalize_psc(psc: Any) -> dict | None:
+    """Normalize productSpecificConfiguration to a flat dict."""
+    if psc is None:
+        return None
+    if isinstance(psc, dict):
+        return {k: v for k, v in psc.items() if v is not None} or None
+    if isinstance(psc, str):
+        return _parse_vendor_config_xml(psc)
+    return None
+
+
+def _parse_vendor_config_xml(xml_str: str) -> dict | None:
+    """Parse a vendorConfig or productSpecificConfiguration XML string to flat dict."""
+    import xml.etree.ElementTree as ET
+    try:
+        root = ET.fromstring(xml_str)
+    except ET.ParseError:
+        return None
+    result = {}
+    for child in root:
+        tag = child.tag
+        text = child.text
+        if text is not None:
+            result[tag] = text.strip()
+    return result or None
+
+
 def normalize_phone(raw: dict, cluster: str = "default") -> CanonicalDevice:
     """Normalize a CUCM Phone dict into a CanonicalDevice.
 
@@ -401,6 +428,14 @@ def normalize_phone(raw: dict, cluster: str = "default") -> CanonicalDevice:
             "cucm_softkey_template": _extract_ref(raw.get("softkeyTemplateName")),
             "cucm_product": raw.get("product"),
             "cucm_class": raw.get("class"),
+            # Device settings fields (for DeviceSettingsMapper)
+            "cucm_common_phone_config": _extract_ref(raw.get("commonPhoneConfigName")),
+            "product_specific_config": _normalize_psc(raw.get("productSpecificConfiguration")),
+            "cucm_user_locale": raw.get("userLocale"),
+            "cucm_network_locale": raw.get("networkLocale"),
+            "cucm_dnd_option": raw.get("dndOption"),
+            "cucm_dnd_status": raw.get("dndStatus"),
+            "cucm_extension_mobility": raw.get("enableExtensionMobility"),
         },
     )
 
@@ -1606,6 +1641,30 @@ def normalize_info_device_profile(
     )
 
 
+
+
+def normalize_intercept_candidate(
+    raw: dict[str, Any],
+    cluster: str = "unknown",
+) -> MigrationObject:
+    """Normalize a CUCM intercept candidate signal."""
+    dn = raw.get("dn") or ""
+    partition = raw.get("partition") or "<None>"
+    return MigrationObject(
+        canonical_id=f"intercept_candidate:{dn}:{partition}",
+        provenance=_make_provenance(raw, cluster),
+        status=MigrationStatus.NORMALIZED,
+        pre_migration_state={
+            "userid": raw.get("userid") or "",
+            "dn": dn,
+            "partition": partition if partition != "<None>" else "",
+            "signal_type": raw.get("signal_type") or "unknown",
+            "forward_destination": raw.get("forward_destination") or "",
+            "voicemail_enabled": raw.get("voicemail_enabled", False),
+        },
+    )
+
+
 # ---------------------------------------------------------------------------
 # Tier 3: Informational type normalizers (generic factory)
 # ---------------------------------------------------------------------------
@@ -1653,6 +1712,49 @@ _INFO_SUFFIXES = [
 
 
 # ---------------------------------------------------------------------------
+# Executive/Assistant normalizers
+# ---------------------------------------------------------------------------
+
+def normalize_executive_assistant_pair(
+    raw: dict, cluster: str = "default",
+) -> MigrationObject:
+    """Normalize an executive/assistant relationship pair from SQL query."""
+    exec_userid = raw.get("executive_userid", "")
+    asst_userid = raw.get("assistant_userid", "")
+    return MigrationObject(
+        canonical_id=f"exec_asst_pair:{exec_userid}:{asst_userid}",
+        provenance=_make_provenance(raw, cluster),
+        status=MigrationStatus.NORMALIZED,
+        pre_migration_state={
+            "executive_userid": exec_userid,
+            "assistant_userid": asst_userid,
+            "executive_pkid": raw.get("executive_pkid"),
+            "assistant_pkid": raw.get("assistant_pkid"),
+        },
+    )
+
+
+def normalize_executive_settings(
+    raw: dict, cluster: str = "default",
+) -> MigrationObject:
+    """Normalize executive/assistant user service subscription."""
+    userid = raw.get("userid", "")
+    service_name = raw.get("service_name", "")
+    role = "EXECUTIVE" if service_name == "Executive" else "EXECUTIVE_ASSISTANT"
+    return MigrationObject(
+        canonical_id=f"exec_setting:{userid}",
+        provenance=_make_provenance(raw, cluster),
+        status=MigrationStatus.NORMALIZED,
+        pre_migration_state={
+            "userid": userid,
+            "role": role,
+            "service_name": service_name,
+            "servicetype": raw.get("servicetype"),
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
 # Registry: maps extractor object types to normalizer functions
 # ---------------------------------------------------------------------------
 
@@ -1688,11 +1790,14 @@ NORMALIZER_REGISTRY: dict[str, callable] = {
     "calling_party_xform": normalize_calling_party_xform,
     "called_party_xform": normalize_called_party_xform,
     "info_device_profile": normalize_info_device_profile,
+    "intercept_candidate": normalize_intercept_candidate,
     "elin_group": normalize_elin_group,
     "geo_location": normalize_geo_location,
     "device_profile": normalize_device_profile,
     "moh_source": normalize_moh_source,
     "announcement": normalize_announcement,
+    "executive_assistant_pair": normalize_executive_assistant_pair,
+    "executive_settings": normalize_executive_settings,
     **{f"info_{s}": _make_info_normalizer(s) for s in _INFO_SUFFIXES},
 }
 
@@ -1737,11 +1842,14 @@ RAW_DATA_MAPPING: list[tuple[str, str, str]] = [
     ("tier4", "calling_party_transformations", "calling_party_xform"),
     ("tier4", "called_party_transformations", "called_party_xform"),
     ("tier4", "device_profiles", "info_device_profile"),
+    ("tier4", "intercept_candidates", "intercept_candidate"),
     ("e911", "elin_groups", "elin_group"),
     ("e911", "geo_locations", "geo_location"),
     ("device_profiles", "device_profiles", "device_profile"),
     ("moh", "moh_sources", "moh_source"),
     ("announcements", "announcements", "announcement"),
+    ("features", "executive_assistant_pairs", "executive_assistant_pair"),
+    ("features", "executive_settings", "executive_settings"),
     # Tier 3: Informational types (all under "informational" extractor key)
     *[("informational", suffix, f"info_{suffix}") for suffix in _INFO_SUFFIXES],
 ]

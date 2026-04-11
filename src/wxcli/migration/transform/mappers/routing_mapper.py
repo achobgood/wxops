@@ -29,6 +29,7 @@ from typing import Any
 from wxcli.migration.models import (
     CanonicalDialPlan,
     CanonicalRouteGroup,
+    CanonicalRouteList,
     CanonicalTranslationPattern,
     CanonicalTrunk,
     DecisionOption,
@@ -109,6 +110,7 @@ class RoutingMapper(Mapper):
 
         self._map_trunks(store, result)
         self._map_route_groups(store, result)
+        self._map_route_lists(store, result)
         self._map_dial_plans(store, result)
         self._map_translation_patterns(store, result)
 
@@ -429,6 +431,119 @@ class RoutingMapper(Mapper):
                     result.objects_created += 1
 
     # ------------------------------------------------------------------
+    # Route Lists: CUCM Route List -> CanonicalRouteList
+    # ------------------------------------------------------------------
+
+    def _map_route_lists(self, store: MigrationStore, result: MapperResult) -> None:
+        """Map CUCM route lists to CanonicalRouteList objects.
+
+        Webex route lists bind to exactly ONE route group. CUCM route lists with
+        multiple route group members produce a FEATURE_APPROXIMATION decision.
+        Route lists are standalone resources — dial plans point to route groups,
+        not route lists (RouteType enum = ROUTE_GROUP | TRUNK only).
+        """
+        for rl_data in store.get_objects("route_list"):
+            if rl_data.get("status") == "analyzed":
+                continue  # Already mapped (e.g., re-run)
+
+            rl_id = rl_data["canonical_id"]
+            state = rl_data.get("pre_migration_state") or {}
+            rl_name = state.get("route_list_name") or rl_id.split(":", 1)[-1]
+
+            # Skip disabled route lists
+            enabled = state.get("routeListEnabled", "true")
+            if str(enabled).lower() == "false":
+                continue
+
+            route_groups = state.get("route_groups") or []
+
+            # No route group members -> MISSING_DATA
+            if not route_groups:
+                decision = self._create_decision(
+                    store=store,
+                    decision_type=DecisionType.MISSING_DATA,
+                    severity="HIGH",
+                    summary=(
+                        f"Route list '{rl_name}' has no route group members — "
+                        f"at least one route group required"
+                    ),
+                    context={
+                        "route_list_id": rl_id,
+                        "route_list_name": rl_name,
+                        "reason": "route_list_no_members",
+                    },
+                    options=[
+                        manual_option("Admin assigns route group member"),
+                        skip_option("Route list not migrated"),
+                    ],
+                    affected_objects=[rl_id],
+                )
+                store.save_decision(decision_to_store_dict(decision))
+                result.decisions.append(decision)
+                continue
+
+            # Single route group -> direct mapping
+            if len(route_groups) == 1:
+                rg_name = route_groups[0]
+                rl = CanonicalRouteList(
+                    canonical_id=rl_id,
+                    provenance=extract_provenance(rl_data),
+                    status=MigrationStatus.ANALYZED,
+                    name=rl_name,
+                    route_group_id=f"route_group:{rg_name}",
+                    cucm_route_list_name=rl_name,
+                    cucm_route_groups=route_groups,
+                )
+                store.upsert_object(rl)
+                result.objects_created += 1
+            else:
+                # Multiple route groups -> FEATURE_APPROXIMATION decision
+                # Webex route lists bind to exactly ONE route group
+                decision = self._create_decision(
+                    store=store,
+                    decision_type=DecisionType.FEATURE_APPROXIMATION,
+                    severity="MEDIUM",
+                    summary=(
+                        f"Route list '{rl_name}' has {len(route_groups)} route group members "
+                        f"({', '.join(route_groups)}). Webex route lists bind to exactly one "
+                        f"route group — choose how to handle the extra members."
+                    ),
+                    context={
+                        "route_list_id": rl_id,
+                        "route_list_name": rl_name,
+                        "route_groups": route_groups,
+                        "reason": "multi_route_group_route_list",
+                    },
+                    options=[
+                        accept_option(
+                            f"Split into {len(route_groups)} route lists "
+                            f"(one per route group)"
+                        ),
+                        accept_option(
+                            f"Use first route group only ({route_groups[0]}) — "
+                            f"loses failover to other members"
+                        ),
+                        skip_option("Route list not migrated"),
+                    ],
+                    affected_objects=[rl_id],
+                )
+                store.save_decision(decision_to_store_dict(decision))
+                result.decisions.append(decision)
+
+                # Default: create with first route group (can be overridden by decision)
+                rl = CanonicalRouteList(
+                    canonical_id=rl_id,
+                    provenance=extract_provenance(rl_data),
+                    status=MigrationStatus.ANALYZED,
+                    name=rl_name,
+                    route_group_id=f"route_group:{route_groups[0]}",
+                    cucm_route_list_name=rl_name,
+                    cucm_route_groups=route_groups,
+                )
+                store.upsert_object(rl)
+                result.objects_created += 1
+
+    # ------------------------------------------------------------------
     # Dial Plans: CUCM Route Patterns -> CanonicalDialPlan
     # ------------------------------------------------------------------
 
@@ -515,12 +630,15 @@ class RoutingMapper(Mapper):
                 # Try route list cross-ref (#12)
                 rl_refs = store.find_cross_refs(rp_id, "route_pattern_uses_route_list")
                 if rl_refs:
-                    # Route list -> route group mapping
-                    # Webex doesn't have route lists; we point to the route group
+                    # Webex dial plans only support RouteType=ROUTE_GROUP|TRUNK,
+                    # so we resolve through the mapped CanonicalRouteList to get
+                    # its underlying route_group_id. The route list itself is
+                    # created as a parallel standalone resource.
                     rl_id = rl_refs[0]
-                    rl_name = rl_id.split(":", 1)[-1] if ":" in rl_id else rl_id
-                    target_id = f"route_group:{rl_name}"
-                    route_type = "ROUTE_GROUP"
+                    rl_obj = store.get_object(rl_id)
+                    if rl_obj and rl_obj.get("route_group_id"):
+                        target_id = rl_obj["route_group_id"]
+                        route_type = "ROUTE_GROUP"
 
             # Fall back to pre_migration_state if cross-refs were empty
             if not target_id:

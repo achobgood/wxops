@@ -1,6 +1,6 @@
 # mappers/ — CUCM-to-Webex Transform Mappers (Phase 05)
 
-20 mapper classes that read normalized CUCM objects from the store, resolve cross-references, and produce Webex-ready canonical objects. Each mapper extends `Mapper` (base.py) and implements `map(store) -> MapperResult`.
+22 mapper classes that read normalized CUCM objects from the store, resolve cross-references, and produce Webex-ready canonical objects. Each mapper extends `Mapper` (base.py) and implements `map(store) -> MapperResult`.
 
 ## Mapper Contract
 
@@ -35,7 +35,7 @@ Execution order determined by `depends_on` (topological sort):
 | Mapper | `name` | Produces | Source objects |
 |--------|--------|---------|----------------|
 | `LocationMapper` | `location_mapper` | `CanonicalLocation`, `CanonicalSchedule` (operating hours) | `device_pool`, `datetime_group`, `cucm_location` |
-| `RoutingMapper` | `routing_mapper` | `CanonicalTrunk`, `CanonicalRouteGroup`, `CanonicalTranslationPattern`, `CanonicalOperatingMode` | `gateway`, `sip_trunk`, `route_group`, `route_pattern`, `time_schedule`, `time_period` |
+| `RoutingMapper` | `routing_mapper` | `CanonicalTrunk`, `CanonicalRouteGroup`, `CanonicalRouteList`, `CanonicalTranslationPattern`, `CanonicalOperatingMode` | `gateway`, `sip_trunk`, `route_group`, `route_list`, `route_pattern`, `time_schedule`, `time_period` |
 
 ### Tier 2 — Depends on location/routing
 
@@ -43,18 +43,21 @@ Execution order determined by `depends_on` (topological sort):
 |--------|--------|-----------|---------|----------------|
 | `LineMapper` | `line_mapper` | `location_mapper` | `CanonicalLine` (data-only, consumed by user:create / workspace:assign_number) | `dn` (directory number) |
 | `UserMapper` | `user_mapper` | `location_mapper` | `CanonicalUser` | `user` |
-| `DeviceMapper` | `device_mapper` | `location_mapper` | `CanonicalDevice` (4-tier: NATIVE_MPP / CONVERTIBLE / WEBEX_APP / INCOMPATIBLE) | `phone` (raw) |
+| `DeviceMapper` | `device_mapper` | `location_mapper` | `CanonicalDevice` (5-tier: NATIVE_MPP / CONVERTIBLE / WEBEX_APP / INCOMPATIBLE / DECT) | `phone` (raw) |
 
 ### Tier 3 — Depends on users/lines/devices
 
 | Mapper | `name` | Depends on | Produces | Source objects |
 |--------|--------|-----------|---------|----------------|
+| `DeviceSettingsMapper` | `device_settings_mapper` | `device_mapper`, `location_mapper` | `device_settings_template` | `phone`, `device` | Groups phones by (model_family, location), maps CUCM device settings to Webex, generates templates with per-device overrides |
 | `FeatureMapper` | `feature_mapper` | `location_mapper`, `line_mapper`, `user_mapper` | `CanonicalHuntGroup`, `CanonicalCallQueue`, `CanonicalAutoAttendant`, `CanonicalCallPark`, `CanonicalPickupGroup`, `CanonicalPagingGroup`, `CanonicalLocationSchedule`, `CanonicalOperatingMode` | `hunt_pilot`, `hunt_list`, `line_group`, `call_park`, `pickup_group`, `time_schedule`, `time_period` |
 | `WorkspaceMapper` | `workspace_mapper` | `location_mapper` | `CanonicalWorkspace` (common-area phones) | `phone` (raw, `ownerUserName=None`) |
 | `MonitoringMapper` | `monitoring_mapper` | `user_mapper`, `line_mapper` | `CanonicalMonitoringList` | `phone` (raw, `busyLampFields`) |
 | `CallForwardingMapper` | `call_forwarding_mapper` | `user_mapper`, `line_mapper` | `CanonicalCallForwarding` | `phone` (raw, per-line forwarding) |
+| `CallSettingsMapper` | `call_settings_mapper` | `user_mapper` | (call settings enrichment) | `user` | Also detects intercept candidates via `user_has_intercept_signal` cross-ref (Pass 2 — independent of phone iteration) |
 | `CSSMapper` | `css_mapper` | `routing_mapper`, `user_mapper`, `line_mapper`, `device_mapper` | `CanonicalCallingPermission`, `CanonicalDialPlan` | `css`, `partition`, `route_pattern` |
 | `ButtonTemplateMapper` | `button_template_mapper` | `device_mapper` | `CanonicalLineKeyTemplate` | `button_template` (raw) |
+| `ExecutiveAssistantMapper` | `executive_assistant_mapper` | `user_mapper` | `CanonicalExecutiveAssistant` | `exec_asst_pair`, `exec_setting` |
 
 ### Tier 4 — Phase 3 mappers (depend on button templates + device layout inputs)
 
@@ -100,10 +103,12 @@ Key fields: `is_psk_target`, `device_canonical_id` (set only for per-device obje
 ## Key Gotchas
 
 - **Raw phones vs CanonicalDevice.** Mappers that need `speeddials`, `busyLampFields`, or per-line forwarding call `store.get_objects("phone")` to get raw phone dicts (object_type="phone", canonical_id="phone:{name}"). Do NOT call `store.get_objects("device")` for this — that returns `CanonicalDevice` objects which have already lost the raw AXL fields.
+- **DeviceSettingsMapper requires raw phone data.** Reads `product_specific_config`, `cucm_common_phone_config`, `cucm_user_locale`, etc. from `pre_migration_state` — these fields come from the normalized phone objects, not CanonicalDevice.
 - **`device_id_surface` field.** Added to `CanonicalDevice` and `CanonicalDeviceLayout` in Phase 3. Values: `"cloud"` (9800-series + 8875 PhoneOS phones using cloud `deviceId`) or `"telephony"` (classic MPP phones using `callingDeviceId`). The execute handler uses this to decide which API surface to call.
 - **`device_canonical_id` field on `CanonicalSoftkeyConfig`.** Only set on per-device objects (`is_psk_target=True`). The planner checks `device_canonical_id` presence before adding dependency edges.
 - **PSK slot lowercasing.** The mapper stores `psk_slot` as uppercase (e.g., `"PSK1"`). The execute handler lowercases it when building `softKeyLayout.psk.psk1` keys. The state key list state names in `state_key_lists` are already in Webex format (e.g., `"idle"`, `"progressing"` — NOT CUCM names).
 - **`ringOut` → `progressing`.** `CUCM_STATE_TO_PSK_STATE` maps CUCM's `ringOut` to Webex's `progressing`, producing key `softKeyLayout.softKeyMenu.progressingKeyList`. The incorrect value `"processing"` was fixed — see comment in `softkey_mapper.py`.
+- **DECT handsets (6823/6825/6825ip) are classified as `DECT` tier** — compatible hardware that needs DECT network provisioning, not standard phone activation. No decision is generated by the mapper or analyzer.
 - **CSSMapper produces both permissions AND dial plans.** It reads the full CSS→partition→route-pattern graph to classify calling permissions (international/national/local) and generate `CanonicalDialPlan` objects from blocking/non-blocking route patterns.
 - **FeatureMapper converts CUCM hunt pilots → hunt groups.** CUCM's hunt pilot → hunt list → line group chain collapses into a single `CanonicalHuntGroup`. Agent resolution goes via DN → user cross-refs.
 - **LocationMapper writes `device_pool_to_location` cross-refs.** This is the only cross-ref NOT written by `CrossReferenceBuilder` — it requires a decision when device pool → location mapping is ambiguous.

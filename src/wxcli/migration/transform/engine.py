@@ -1,4 +1,4 @@
-"""TransformEngine — orchestrates all 20 mappers in dependency order.
+"""TransformEngine — orchestrates all 21 mappers in dependency order.
 
 Runs each mapper sequentially in MAPPER_ORDER (tier-sorted), aggregates
 decisions and errors into a single TransformResult. If a mapper raises
@@ -45,6 +45,9 @@ from wxcli.migration.transform.mappers.snr_mapper import SNRMapper
 from wxcli.migration.transform.mappers.softkey_mapper import SoftkeyMapper
 from wxcli.migration.transform.mappers.workspace_mapper import WorkspaceMapper
 from wxcli.migration.transform.mappers.call_settings_mapper import CallSettingsMapper
+from wxcli.migration.transform.mappers.executive_assistant_mapper import ExecutiveAssistantMapper
+from wxcli.migration.transform.mappers.device_settings_mapper import DeviceSettingsMapper
+from wxcli.migration.transform.mappers.receptionist_mapper import ReceptionistMapper
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +66,7 @@ MAPPER_ORDER: list[type[Mapper]] = [
     LineMapper,           # Tier 2 (depends on locations for country code)
     WorkspaceMapper,      # Tier 2 (depends on locations)
     DeviceMapper,         # Tier 3 (depends on users, lines)
+    DeviceSettingsMapper, # Tier 3: after DeviceMapper, before other dependent mappers
     FeatureMapper,        # Tier 4 (depends on users, lines, locations)
     CSSMapper,            # Tier 5 (depends on routing_mapper output)
     VoicemailMapper,      # Tier 5 (depends on users)
@@ -76,7 +80,9 @@ MAPPER_ORDER: list[type[Mapper]] = [
     SoftkeyMapper,        # Tier 6 (depends on devices for phone model info)
     ButtonTemplateMapper, # Tier 6 (depends on devices for phone→template cross-refs)
     CallSettingsMapper,   # Tier 6 (depends on users — call settings enrichment)
+    ExecutiveAssistantMapper,  # Tier 6 (depends on users — executive/assistant pairings)
     DeviceLayoutMapper,   # Tier 7 (depends on button_template, monitoring, line, device mappers)
+    ReceptionistMapper,   # Tier 8 (depends on monitoring, device_layout, location, line, user)
 ]
 
 
@@ -103,7 +109,7 @@ class TransformEngine:
         self.config = config or {}
 
     def run(self, store: MigrationStore) -> TransformResult:
-        """Run all 20 mappers in dependency order.
+        """Run all 21 mappers in dependency order.
 
         Failure handling: if a mapper raises an exception, log the error,
         record a MapperError, and continue to the next mapper. Downstream
@@ -193,6 +199,9 @@ class TransformEngine:
 
         if mapper_cls is DeviceMapper:
             return DeviceMapper()
+
+        if mapper_cls is DeviceSettingsMapper:
+            return DeviceSettingsMapper()
 
         if mapper_cls is FeatureMapper:
             return FeatureMapper()

@@ -40,6 +40,13 @@ Extractors are independent at extraction time — the order is a documentation c
 
 `normalize_discovery()` in `transform/pipeline.py` consumes `raw_data` via `RAW_DATA_MAPPING`.
 
+**Executive/assistant data** is extracted via SQL (no AXL list/get operations exist):
+- `raw_data["features"]["executive_assistant_pairs"]` — pair dicts from `executiveassistant` table join
+- `raw_data["features"]["executive_settings"]` — user service subscription dicts from `endusersubscribedservice` join
+
+**Intercept candidates** are extracted via SQL heuristics:
+- `raw_data["tier4"]["intercept_candidates"]` — heuristically-detected intercept-like configurations (blocked partition DNs, CFA-to-voicemail with no registered device). Uses two SQL queries for partition name pattern matching and call forwarding state detection.
+
 ## Key Gotchas
 
 - **Softkey templates require SQL.** `addSoftkeyTemplate`/`listSoftkeyTemplate` don't exist in AXL v15.0. The `TemplateExtractor` uses direct SQL (`executeSQLQuery`) to fetch softkey template data. See `extractors/templates.py`.
@@ -50,3 +57,5 @@ Extractors are independent at extraction time — the order is a documentation c
 - **Base station MACs require Cisco Bifrost.** DECT base station MAC validation requires the Cisco manufacturing database — fake MACs fail provisioning. Not an extraction issue but affects test beds.
 - **CTI Route Points use protocol "CTI Route Point"** in AXL — different from standard phone protocols. Use that exact string in `addCTIRoutePoint`.
 - **Pickup group members via `updateLine`**, not `addCallPickupGroup`. Creating a pickup group with `<members>` fails on CUCM 15.0 (null priority FK constraint). The extractor reads the existing members; provisioning test bed uses `updateLine` pattern.
+- **`getPhone` now extracts device-settings fields.** `commonPhoneConfigName`, `productSpecificConfiguration`, `userLocale`, `networkLocale`, `dndOption`, `dndStatus`, and `enableExtensionMobility` are all in `PHONE_GET_RETURNED_TAGS` for the DeviceSettingsMapper.
+- **InformationalExtractor fetches CPC details.** After listing Common Phone Configs, the extractor calls `getCommonPhoneConfig` per item to retrieve `vendorConfig` (model-specific XML settings).

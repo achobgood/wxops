@@ -79,6 +79,8 @@ TIER_ASSIGNMENTS: dict[tuple[str, str], int] = {
     # Tier 1: Routing backbone — trunks, schedules, route groups, line key templates
     ("trunk", "create"): 1,
     ("route_group", "create"): 1,
+    ("route_list", "create"): 1,
+    ("route_list", "configure_numbers"): 1,
     ("operating_mode", "create"): 1,
     ("schedule", "create"): 1,
     ("line_key_template", "create"): 1,
@@ -111,11 +113,19 @@ TIER_ASSIGNMENTS: dict[tuple[str, str], int] = {
     ("virtual_line", "create"): 6,
     ("virtual_line", "configure"): 6,
     ("monitoring_list", "configure"): 6,
+    ("receptionist_config", "configure"): 6,
     # Tier 7: Device finalization + cycle fixups
     # NOTE: tier 7 is shared between device finalization and cycle-break fixups.
     # Fixups use batch="fixups"; device ops use location-derived batches — no conflict.
     ("device_layout", "configure"): 7,
     ("softkey_config", "configure"): 7,
+    # Device settings templates — location-level config at tier 1, per-device overrides at tier 5
+    ("device_settings_template", "apply_location_settings"): 1,
+    ("device_settings_template", "apply_device_override"): 5,
+    # Hoteling / Hot Desking (depends on users + devices)
+    ("device_profile", "enable_hoteling_guest"): 5,
+    ("device_profile", "enable_hoteling_host"): 5,
+    ("hoteling_location", "enable_hotdesking"): 0,  # Same tier as location:enable_calling
 }
 
 # ---------------------------------------------------------------------------
@@ -130,6 +140,8 @@ API_CALL_ESTIMATES: dict[str, int] = {
     # Tier 1: Routing backbone + org-wide infrastructure
     "trunk:create": 1,              # POST /telephony/config/premisePstn/trunks (from call-routing.md)
     "route_group:create": 1,        # POST /telephony/config/premisePstn/routeGroups (from call-routing.md)
+    "route_list:create": 1,              # POST /telephony/config/premisePstn/routeLists
+    "route_list:configure_numbers": 1,   # PUT /telephony/config/premisePstn/routeLists/{id}/numbers
     "operating_mode:create": 1,     # POST /telephony/config/operatingModes (from location-call-settings-media.md)
     "schedule:create": 1,           # POST /telephony/config/locations/{id}/schedules (from location-call-settings-media.md)
     "line_key_template:create": 1,  # POST /telephony/config/devices/lineKeyTemplates
@@ -168,10 +180,18 @@ API_CALL_ESTIMATES: dict[str, int] = {
                                     # (from person-call-settings-behavior.md §4)
     "virtual_line:create": 1,       # POST /telephony/config/virtualLines (from virtual-lines.md lines 93-104)
     "virtual_line:configure": 1,    # PUT /telephony/config/virtualLines/{id} (from virtual-lines.md lines 132-147)
-    "monitoring_list:configure": 1, # PUT /people/{id}/features/monitoring
+    "monitoring_list:configure": 1,
+    "receptionist_config:configure": 2,  # PUT reception + POST directory # PUT /people/{id}/features/monitoring
     # Tier 7: Device finalization
     "device_layout:configure": 3,   # PUT members + PUT layout + POST applyChanges
     "softkey_config:configure": 2,  # PUT dynamicSettings + POST applyChanges
+    # Device settings templates
+    "device_settings_template:apply_location_settings": 1,  # PUT /telephony/config/locations/{id}/devices/settings
+    "device_settings_template:apply_device_override": 1,    # PUT /telephony/config/devices/{id}/settings
+    # Hoteling / Hot Desking
+    "device_profile:enable_hoteling_guest": 1,  # PUT /people/{id}/features/hoteling
+    "device_profile:enable_hoteling_host": 1,   # PUT /telephony/config/people/{id}/devices/settings/hoteling
+    "hoteling_location:enable_hotdesking": 1,   # PUT /telephony/config/locations/{id}/features/hotDesking
 }
 
 # ---------------------------------------------------------------------------
@@ -183,6 +203,7 @@ ORG_WIDE_TYPES: set[str] = {
     "location",
     "trunk",
     "route_group",
+    "route_list",
     "operating_mode",
     "dial_plan",
     "translation_pattern",

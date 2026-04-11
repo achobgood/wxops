@@ -19,10 +19,11 @@ WEIGHTS = {
     "Feature Parity": 17,
     "Device Compatibility": 15,
     "Decision Density": 15,
-    "Scale": 10,
+    "Scale": 5,
     "Shared Line Complexity": 10,
     "Routing Complexity": 5,
     "Phone Config Complexity": 8,
+    "Device Settings Complexity": 5,
 }
 
 # Customer-friendly display names for score factors
@@ -35,6 +36,7 @@ DISPLAY_NAMES = {
     "Shared Line Complexity": "Shared Lines",
     "Routing Complexity": "Routing",
     "Phone Config Complexity": "Phone Configuration",
+    "Device Settings Complexity": "Device Settings",
 }
 
 # Label thresholds
@@ -67,7 +69,7 @@ def compute_complexity_score(store: MigrationStore) -> ScoreResult:
         store: Populated MigrationStore (post-analyze state).
 
     Returns:
-        ScoreResult with score (0-100), label, color, and 8 factor dicts.
+        ScoreResult with score (0-100), label, color, and 9 factor dicts.
     """
     factor_funcs = [
         ("CSS Complexity", _css_complexity),
@@ -78,6 +80,7 @@ def compute_complexity_score(store: MigrationStore) -> ScoreResult:
         ("Shared Line Complexity", _shared_line_complexity),
         ("Routing Complexity", _routing_complexity),
         ("Phone Config Complexity", _phone_config_complexity),
+        ("Device Settings Complexity", _device_settings_complexity),
     ]
 
     factors = []
@@ -179,11 +182,32 @@ def _device_compatibility(store: MigrationStore) -> tuple[int, str]:
     convertible = sum(1 for d in devices if d.get("compatibility_tier") == "convertible")
     incompatible = sum(1 for d in devices if d.get("compatibility_tier") == "incompatible")
     webex_app = sum(1 for d in devices if d.get("compatibility_tier") == "webex_app")
+    dect = sum(1 for d in devices if d.get("compatibility_tier") == "dect")
 
-    # Only convertible + incompatible drive complexity; webex_app is a clean transition
-    raw = int((incompatible * 100 + convertible * 30) / total)
-    native = total - convertible - incompatible - webex_app
-    detail = f"{total} devices: {native} native, {webex_app} Webex App, {convertible} convertible, {incompatible} incompatible"
+    # DECT adds a small per-zone penalty (like convertible weight).
+    # Count distinct device pools containing DECT devices as coverage zones.
+    # Check both field names: cucm_device_pool (test fixtures) and devicePoolName (live AXL data).
+    dect_zones = set()
+    if dect:
+        for d in devices:
+            if d.get("compatibility_tier") == "dect":
+                state = d.get("pre_migration_state") or {}
+                dp = state.get("cucm_device_pool") or state.get("devicePoolName")
+                if dp:
+                    dect_zones.add(dp)
+        # Minimum 1 zone if DECT devices exist but no device pool info
+        if not dect_zones:
+            dect_zones = {"unknown"}
+
+    # incompatible * 100, convertible * 30, DECT zones * 3 (small fixed penalty)
+    raw = int((incompatible * 100 + convertible * 30 + len(dect_zones) * 3) / total)
+    native = total - convertible - incompatible - webex_app - dect
+    detail = (
+        f"{total} devices: {native} native, {webex_app} Webex App, "
+        f"{convertible} convertible, {incompatible} incompatible"
+    )
+    if dect:
+        detail += f", {dect} DECT ({len(dect_zones)} zone{'s' if len(dect_zones) != 1 else ''})"
     return raw, detail
 
 
@@ -312,3 +336,40 @@ def _phone_config_complexity(store: MigrationStore) -> tuple[int, str]:
 
     detail = ", ".join(parts) if parts else "No phone config data"
     return raw, detail
+
+
+def _device_settings_complexity(store: MigrationStore) -> tuple[int, str]:
+    """Score based on device settings template count, overrides, and unmappable settings."""
+    templates = store.get_objects("device_settings_template")
+    if not templates:
+        return 0, "No device settings customization detected"
+
+    total_phones = sum(t.get("phones_using", 0) for t in templates)
+    total_overrides = sum(len(t.get("per_device_overrides", [])) for t in templates)
+    all_unmappable: set[str] = set()
+    for t in templates:
+        all_unmappable.update(t.get("unmappable_settings", []))
+
+    has_em = "enableExtensionMobility" in all_unmappable
+
+    # Score calculation
+    profile_score = min(len(templates) * 10, 30)
+    override_pct = (total_overrides / total_phones * 100) if total_phones > 0 else 0
+    override_score = min(override_pct * 0.6, 30)
+    unmappable_score = min(len(all_unmappable) * 5, 20)
+    em_score = 20 if has_em else 0
+
+    raw = int(profile_score + override_score + unmappable_score + em_score)
+
+    detail = (
+        f"{len(templates)} profile(s), {total_overrides} override(s) "
+        f"({override_pct:.0f}%), {len(all_unmappable)} unmappable setting(s)"
+    )
+    if has_em:
+        detail += ", Extension Mobility detected"
+
+    return raw, detail
+
+
+# Alias for backward compatibility and test convenience
+compute_score = compute_complexity_score

@@ -75,6 +75,8 @@ Platform constraints should override a static recommendation when:
 | Line key types | PRIMARY_LINE, SHARED_LINE, MONITOR, CALL_PARK_EXTENSION, SPEED_DIAL, OPEN, CLOSED, MODE_MANAGEMENT | Configurable via line key templates | devices-core.md (line 550) |
 
 **Note on device line counts:** The exact `max_line_count` varies by phone model and is returned dynamically by the `supported_devices()` API or the device `members()` response. Common Cisco MPP models: 6821 (2 lines), 6841 (4 lines), 6851 (6 lines + KEM), 6861 (4 lines), 7811 (1 line), 7821 (2 lines), 7841 (4 lines), 7861 (16 lines), 8811 (1 line), 8841 (10 lines), 8851 (10 lines + KEM), 8861 (10 lines + KEM), 8865 (10 lines + KEM), 9841 (4 lines), 9851 (6 lines + KEM), 9861 (10 lines + KEM), 9871 (touch, configurable). These are approximate -- use the live API catalog for authoritative values.
+- **Background image limit:** 100 images per org. Custom backgrounds require multipart upload before referencing in device settings.
+- **Dynamic settings job:** Only 1 concurrent dynamic device settings job per org. Cannot run in parallel with other device jobs (settings push, rebuild phones).
 
 ### Users and Provisioning
 
