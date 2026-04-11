@@ -34,6 +34,7 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 - `normalize_phone` → `CanonicalDevice` (also triggers raw phone preservation — see below)
 - `normalize_workspace` → `CanonicalWorkspace` (common-area phones classified post-normalization)
 - `normalize_button_template` / `normalize_softkey_template` → `MigrationObject` (raw, for mapper consumption)
+- `normalize_intercept_candidate` → `MigrationObject` (Tier 4 informational — intercept-like signals from CUCM)
 - Translation patterns, route patterns, CSSes, partitions, etc. → `MigrationObject`
 
 **Raw phone preservation (critical):** `normalize_phone()` creates a `CanonicalDevice` but discards the raw AXL dict. `pipeline.py` also stores each phone as `MigrationObject(canonical_id="phone:{name}", pre_migration_state=<full_raw_phone>)`. This is required because `MonitoringMapper`, `CallForwardingMapper`, `DeviceLayoutMapper`, `DeviceMapper`, and `WorkspaceMapper` all call `store.get_objects("phone")` to access `speeddials`, `busyLampFields`, and per-line call forwarding that isn't on `CanonicalDevice`.
@@ -53,6 +54,7 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 | `_build_routing_refs` | gateway_to_route_group, route_group_to_route_list, etc. |
 | `_build_feature_refs` | feature_has_agent, aa_has_schedule, pickup members |
 | `_build_voicemail_refs` | user_has_voicemail_profile, unity_user |
+| `_build_intercept_refs` | user_has_intercept_signal |
 | `_build_template_refs` | phone_uses_button_template, phone_uses_softkey_template |
 | `_build_audio_refs` | feature_uses_moh_source (hunt pilot networkHoldMohAudioSourceID → music_on_hold canonical ID) |
 

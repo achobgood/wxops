@@ -672,6 +672,20 @@ Custom voicemail greetings stored in Unity Connection cannot be extracted for mi
 **Recommended action:** Use the classification to frame the routing migration approach. For globalized, look for redundant CUCM translations. For localized, configure Webex location settings to reproduce the local dialing. For hybrid, review manually and standardize (`severity=MEDIUM`).
 **See also:** [`translation-pattern-elimination`](#translation-pattern-elimination) (globalized plans often have lots of redundant normalization), [`overengineered-dial-plan`](#overengineered-dial-plan), [`transformation-patterns`](#transformation-patterns), [`kb-css-routing.md#dt-css-006`](../../knowledge-base/migration/kb-css-routing.md#dt-css-006), [`kb-identity-numbering.md#dt-id-001`](../../knowledge-base/migration/kb-identity-numbering.md#dt-id-001).
 
+#### call-intercept-candidates
+
+**Category:** migrate_as_is
+**Triggered by:** `advisory_patterns.py:935-993` (`detect_call_intercept_candidates`) — fires when the org has users or workspaces configured with CUCM patterns that approximate call intercept behavior: blocked partition DNs restricting incoming calls, or Call Forward No Answer chains that loop to voicemail when the device is unregistered.
+**Detection signals:**
+- Scans all `route_pattern` objects looking for `blockEnable == True` in partitions assigned to active users or workspaces.
+- Scans all users with `callForwardNoAnswer` destinations pointing to a voicemail system where the user has no registered device (triggers the implicit "unregistered device falls through to VM" logic).
+- Groups results by user and workspace canonical IDs.
+- Produces one finding listing all affected objects.
+**Why/impact:** CUCM's blocked partitions don't have a Webex equivalent — the feature is a routing-layer workaround for "block unknown callers." Webex has a native call-intercept feature (`person.callIntercept` or `workspace.intercept`) where a secretary or system intercepts incoming calls before they reach the target. The migration heuristic detects CUCM patterns that do similar work and flags them for post-migration setup. Not all blocked partitions are intentional intercept — some are security blocks or old-email-address workarounds that should remain blocked.
+**Example:** A shared DN `5550100` assigned to a workspace, with a partition `PT_RESTRICTED` containing pattern `X.!` set to `blockEnable=True`. The workspace also has a CFA loop: no-answer → voicemail. Both signals suggest an intercept use case.
+**Recommended action:** After cutover, verify with the customer whether the flagged configurations are intended call intercept (configure Webex intercept + interception number) or just security blocks (apply call restrictions instead). Manually configure `intercept` via the person or workspace settings API / Control Hub (`severity=LOW`). The flag is informational — no blocking decision; interception is added post-live once the customer confirms which calls should be intercepted.
+**See also:** [`kb-user-settings.md` §call-intercept (Real-World Patterns)](../../knowledge-base/migration/kb-user-settings.md#call-intercept), [`person-call-settings-permissions.md` sec 5 (Intercept section)](../../reference/person-call-settings-permissions.md#5-call-intercept), [`devices-workspaces.md` (workspace intercept API)](../../reference/devices-workspaces.md), [Operator Runbook §Call Intercept Verification](operator-runbook.md#call-intercept-verification).
+
 ## Dissent Handling
 
 Dissent flags appear when the `migration-advisor` Opus agent disagrees with the static recommendation produced by `recommendation_rules.py`. The confidence-level semantics are covered in [§Recommendation Confidence and When to Override](#recommendation-confidence-and-when-to-override); this section is the operator field reference for the **two surfaces** the flag renders on — the mid-review terminal prompt and the written migration narrative — and how to act at each decision point.

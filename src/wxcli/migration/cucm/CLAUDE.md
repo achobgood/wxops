@@ -44,6 +44,9 @@ Extractors are independent at extraction time — the order is a documentation c
 - `raw_data["features"]["executive_assistant_pairs"]` — pair dicts from `executiveassistant` table join
 - `raw_data["features"]["executive_settings"]` — user service subscription dicts from `endusersubscribedservice` join
 
+**Intercept candidates** are extracted via SQL heuristics:
+- `raw_data["tier4"]["intercept_candidates"]` — heuristically-detected intercept-like configurations (blocked partition DNs, CFA-to-voicemail with no registered device). Uses two SQL queries for partition name pattern matching and call forwarding state detection.
+
 ## Key Gotchas
 
 - **Softkey templates require SQL.** `addSoftkeyTemplate`/`listSoftkeyTemplate` don't exist in AXL v15.0. The `TemplateExtractor` uses direct SQL (`executeSQLQuery`) to fetch softkey template data. See `extractors/templates.py`.

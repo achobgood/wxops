@@ -297,6 +297,18 @@ The 8 default auto-rules above are the *only* `DecisionType` values that the pip
 | `DUPLICATE_USER` | no safe single answer | Two producers: `analyzers/duplicate_user.py:120` (CUCM-internal duplicates by email + name) and `preflight/checks.py` (planned CUCM users that already exist in the target Webex org). `recommend_duplicate_user` returns `merge` only on `email_match` or `userid_match` and `keep_both` for everything else; in practice the operator usually has to verify the merge target with the customer's identity team. See [`dt-id-002`](../../knowledge-base/migration/kb-identity-numbering.md#dt-id-002). |
 | `NUMBER_CONFLICT` | no safe single answer | Producer: preflight sibling of `DUPLICATE_USER`. Detects E.164/extension collisions between planned CUCM resources and what is already provisioned in the target Webex org. There is no automatic answer for "the customer already owns this DID" — porting strategy, CPN routing, and cutover sequencing all depend on which side is authoritative. Shares the kb-* entry with `DUPLICATE_USER`: [`dt-id-002`](../../knowledge-base/migration/kb-identity-numbering.md#dt-id-002). |
 
+## Advisory Pattern Heuristics: Call Intercept Candidates
+
+**Detection signals:** The `call-intercept-candidates` advisory pattern detects when a user's CUCM configuration exhibits proxies for call interception behavior: (1) blocked partition DNs (with `blockEnable=True` in the device's CSS partition list) or (2) Call Forward No Answer routing to voicemail when the device is unregistered (device `registrationState=UNREGISTERED`).
+
+**Why this fires:** CUCM blocked partitions are a workaround to block callers the admin wants to intercept — allowing a secretary or receptionist to screen calls before forwarding them to the primary user. Webex has native call intercept (`person.callIntercept` and `workspace.intercept` via `/features/intercept`) which is a cleaner pattern. The heuristic flags users whose CUCM configuration patterns suggest they need call interception in Webex.
+
+**Important caveat:** Not all blocked partitions indicate intercept candidates. A blocked partition can also indicate a dial-plan restriction policy (e.g., blocking long-distance or international dialing). The heuristic is permissive by design — it surfaces candidates for operator review. The operator must examine the blocked partition rules and the user's role (secretary, receptionist, executive, admin) to determine if true call interception applies. This is why the advisory is categorized as LOW severity with recommendation `accept` — it's informational, not actionable without context.
+
+**Tuning guidance:** No configuration keys control this heuristic. It runs on every migration. Suppression is not supported — the advisory provides visibility into a migration pattern that Webex handles natively and deserves operator awareness post-cutover.
+
+**What LOW severity means:** The advisory does not block migration planning or preflight. It is purely post-live verification work — after users are active on Webex, the operator configures `person.callIntercept` and/or `workspace.intercept` features for users whose CUCM blocked partitions or CFA loops are confirmed to be call-intercept proxies.
+
 ## Score Weights
 
 The migration complexity score (`wxcli cucm report`) is a 0-100 number computed from eight weighted factors. Weights live in the `WEIGHTS` dict at `src/wxcli/migration/report/score.py:17` and must sum to 100. They were chosen at design time to reflect what the team believed would predict effort — none of them have been fit against real migrations yet.
