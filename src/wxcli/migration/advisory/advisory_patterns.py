@@ -1910,6 +1910,116 @@ def detect_custom_audio_assets(store: MigrationStore) -> list[AdvisoryFinding]:
 
 
 # ===================================================================
+# Pattern 29: Executive/Assistant Migration
+# ===================================================================
+
+def detect_executive_assistant_migration(
+    store: MigrationStore,
+) -> list[AdvisoryFinding]:
+    """Executive/assistant pairings — verify both sides in scope.
+
+    (from executive-assistant-migration spec §6a)
+    """
+    pairs = store.get_objects("exec_asst_pair")
+    if not pairs:
+        return []
+
+    complete_pairs: list[tuple[str, str]] = []
+    broken_pairs: list[tuple[str, str, str]] = []  # (exec, asst, missing_side)
+
+    for pair_data in pairs:
+        state = pair_data.get("pre_migration_state") or {}
+        exec_userid = state.get("executive_userid", "")
+        asst_userid = state.get("assistant_userid", "")
+
+        exec_obj = store.get_object(f"user:{exec_userid}")
+        asst_obj = store.get_object(f"user:{asst_userid}")
+
+        if exec_obj and asst_obj:
+            complete_pairs.append((exec_userid, asst_userid))
+        elif not exec_obj:
+            broken_pairs.append((exec_userid, asst_userid, "executive"))
+        else:
+            broken_pairs.append((exec_userid, asst_userid, "assistant"))
+
+    affected = [p.get("canonical_id", "") for p in pairs]
+    total = len(complete_pairs) + len(broken_pairs)
+
+    if broken_pairs and not complete_pairs:
+        broken_detail = "; ".join(
+            f"{e} \u2192 {a} (missing {side})" for e, a, side in broken_pairs
+        )
+        return [AdvisoryFinding(
+            pattern_name="executive_assistant_migration",
+            severity="HIGH",
+            summary=f"{len(broken_pairs)} executive/assistant pairing(s) have missing users",
+            detail=(
+                f"All {len(broken_pairs)} executive/assistant pairing(s) are broken \u2014 "
+                f"one side is not in migration scope. Broken pairs: {broken_detail}. "
+                f"These pairings cannot be migrated automatically. Either expand the "
+                f"migration scope to include the missing users, or configure "
+                f"executive/assistant settings manually in Webex post-migration."
+            ),
+            affected_objects=affected,
+            category="out_of_scope",
+        )]
+
+    if broken_pairs:
+        broken_detail = "; ".join(
+            f"{e} \u2192 {a} (missing {side})" for e, a, side in broken_pairs
+        )
+        return [AdvisoryFinding(
+            pattern_name="executive_assistant_migration",
+            severity="HIGH",
+            summary=(
+                f"{total} executive/assistant pairing(s) detected \u2014 "
+                f"{len(broken_pairs)} have missing users"
+            ),
+            detail=(
+                f"{len(complete_pairs)} pairing(s) will migrate automatically. "
+                f"{len(broken_pairs)} pairing(s) are broken: {broken_detail}. "
+                f"Expand migration scope or configure broken pairings manually "
+                f"in Webex post-migration."
+            ),
+            affected_objects=affected,
+            category="migrate_as_is",
+        )]
+
+    exec_names = sorted({e for e, _ in complete_pairs})
+    return [AdvisoryFinding(
+        pattern_name="executive_assistant_migration",
+        severity="MEDIUM",
+        summary=f"{total} executive/assistant pairing(s) detected \u2014 will migrate automatically",
+        detail=(
+            f"{total} executive/assistant pairing(s) across {len(exec_names)} "
+            f"executive(s) detected. These will be migrated automatically using "
+            f"the Webex Executive/Assistant API. Verify alerting mode preferences "
+            f"(sequential vs. simultaneous) post-migration. Executives: "
+            f"{', '.join(exec_names)}."
+        ),
+        affected_objects=affected,
+        category="migrate_as_is",
+    )]
+
+
+
+# Pattern 30: Call Intercept Candidates
+def detect_call_intercept_candidates(store):
+    candidates = store.get_objects("intercept_candidate")
+    if not candidates:
+        return []
+    by_type = defaultdict(list)
+    ids = []
+    for ic in candidates:
+        pre = ic.get("pre_migration_state", {}) or {}
+        by_type[pre.get("signal_type", "unknown")].append(pre.get("userid", ""))
+        ids.append(ic.get("canonical_id", ""))
+    total = len(candidates)
+    parts = [f"{len(u)} via {s.replace(chr(95), chr(32))}" for s, u in sorted(by_type.items())]
+    detail = f"{total} users have intercept-like configurations in CUCM ({chr(44).join(parts)}). Configure Webex intercept manually post-migration."
+    return [AdvisoryFinding(pattern_name="call_intercept_candidates", severity="MEDIUM", summary=f"{total} users with intercept-like configurations", detail=detail, affected_objects=ids, category="out_of_scope")]
+
+# ===================================================================
 # Registry — ALL_ADVISORY_PATTERNS
 # ===================================================================
 
@@ -1942,4 +2052,6 @@ ALL_ADVISORY_PATTERNS: list[Callable[[MigrationStore], list[AdvisoryFinding]]] =
     detect_legacy_gateway_protocols,           # Pattern 26 (Gap: MGCP/H.323 undetected)
     detect_voicemail_greeting_rerecording,     # Pattern 27 (User action: VM greeting re-recording)
     detect_custom_audio_assets,                # Pattern 28 (Audio: MoH + announcements)
+    detect_executive_assistant_migration,       # Pattern 29 (Executive/assistant pairs)
+    detect_call_intercept_candidates,          # Pattern 30 (intercept)
 ]

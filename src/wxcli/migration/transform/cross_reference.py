@@ -202,6 +202,7 @@ class CrossReferenceBuilder:
                 self._build_remote_destination_refs,
                 self._build_intercept_refs,
                 self._build_audio_refs,
+                self._build_executive_assistant_refs,
             ]:
                 try:
                     counts.update(method())
@@ -833,6 +834,48 @@ class CrossReferenceBuilder:
             "phone_uses_softkey_template": sk_count,
             "phone_uses_common_phone_config": cpc_count,
         }
+
+    def _build_executive_assistant_refs(self) -> dict[str, int]:
+        """Build executive/assistant relationship cross-refs.
+
+        (from executive-assistant-migration spec §4b)
+        """
+        counts = {
+            "executive_has_assistant": 0,
+            "assistant_serves_executive": 0,
+            "user_is_executive": 0,
+            "user_is_assistant": 0,
+        }
+        for pair_data in self.store.get_objects("exec_asst_pair"):
+            state = pair_data.get("pre_migration_state") or {}
+            exec_userid = state.get("executive_userid")
+            asst_userid = state.get("assistant_userid")
+            if not exec_userid or not asst_userid:
+                continue
+            self.store.add_cross_ref(
+                f"user:{exec_userid}", f"user:{asst_userid}", "executive_has_assistant"
+            )
+            counts["executive_has_assistant"] += 1
+            self.store.add_cross_ref(
+                f"user:{asst_userid}", f"user:{exec_userid}", "assistant_serves_executive"
+            )
+            counts["assistant_serves_executive"] += 1
+
+        for setting_data in self.store.get_objects("exec_setting"):
+            state = setting_data.get("pre_migration_state") or {}
+            userid = state.get("userid")
+            role = state.get("role")
+            if not userid:
+                continue
+            setting_id = setting_data["canonical_id"]
+            user_id = f"user:{userid}"
+            if role == "EXECUTIVE":
+                self.store.add_cross_ref(user_id, setting_id, "user_is_executive")
+                counts["user_is_executive"] += 1
+            elif role == "EXECUTIVE_ASSISTANT":
+                self.store.add_cross_ref(user_id, setting_id, "user_is_assistant")
+                counts["user_is_assistant"] += 1
+        return counts
 
     def _build_remote_destination_refs(self) -> dict[str, int]:
         """Build user → remote_destination cross-refs for SNR.
