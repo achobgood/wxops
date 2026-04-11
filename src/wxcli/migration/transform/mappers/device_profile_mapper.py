@@ -15,13 +15,16 @@ Webex hot desking is login/logout with the user's primary line only.
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timezone
 from typing import Any
 
 from wxcli.migration.models import (
     CanonicalDeviceProfile,
     DecisionType,
+    MigrationObject,
     MigrationStatus,
     MapperResult,
+    Provenance,
 )
 from wxcli.migration.store import MigrationStore
 from wxcli.migration.transform.mappers.base import (
@@ -43,13 +46,12 @@ class DeviceProfileMapper(Mapper):
     """
 
     name = "device_profile_mapper"
-    depends_on = ["user_mapper", "workspace_mapper"]
+    depends_on = ["user_mapper", "workspace_mapper", "location_mapper"]
 
     def map(self, store: MigrationStore) -> MapperResult:
         result = MapperResult()
+        hoteling_locations: dict[str, int] = {}
 
-        # Build user → device profile mapping
-        # Device profiles reference ownerUserId in their line entries
         for dp_data in store.get_objects("device_profile"):
             state = dp_data.get("pre_migration_state") or {}
             profile_name = state.get("profile_name") or ""
@@ -63,10 +65,15 @@ class DeviceProfileMapper(Mapper):
             sd_count = state.get("speed_dial_count", 0)
             blf_count = state.get("blf_count", 0)
 
-            # Try to find the owning user
-            # Device profiles are typically named "UDP-{userid}" or similar
-            # Check if any user references this profile
             user_cid = self._find_profile_owner(store, profile_name)
+
+            location_cid: str | None = None
+            if device_pool:
+                loc_refs = store.find_cross_refs(
+                    f"device_pool:{device_pool}", "device_pool_to_location"
+                )
+                if loc_refs:
+                    location_cid = loc_refs[0]
 
             prov = extract_provenance(dp_data)
             dp = CanonicalDeviceProfile(
@@ -81,11 +88,16 @@ class DeviceProfileMapper(Mapper):
                 device_pool_name=device_pool,
                 speed_dial_count=sd_count,
                 blf_count=blf_count,
+                hoteling_guest_enabled=user_cid is not None,
+                auto_logout_minutes=0,
+                location_canonical_id=location_cid,
             )
             store.upsert_object(dp)
             result.objects_created += 1
 
-            # Write cross-ref if user found
+            if location_cid:
+                hoteling_locations[location_cid] = hoteling_locations.get(location_cid, 0) + 1
+
             if user_cid:
                 store.add_cross_ref(user_cid, dp.canonical_id, "user_has_device_profile")
 
@@ -117,6 +129,7 @@ class DeviceProfileMapper(Mapper):
                         "line_count": len(lines),
                         "speed_dial_count": sd_count,
                         "blf_count": blf_count,
+                        "classification": "EXTENSION_MOBILITY",
                     },
                     options=[
                         accept_option("Enable hot desking — user gets primary line only, loses profile features"),
@@ -126,6 +139,24 @@ class DeviceProfileMapper(Mapper):
                     affected_objects=[dp.canonical_id] + ([user_cid] if user_cid else []),
                 )
                 result.decisions.append(decision)
+
+        for loc_cid, profile_count in hoteling_locations.items():
+            loc_obj = MigrationObject(
+                canonical_id=f"hoteling_location:{loc_cid}",
+                provenance=Provenance(
+                    source_system="cucm",
+                    source_id=loc_cid,
+                    source_name="hoteling_location",
+                    extracted_at=datetime.now(timezone.utc),
+                ),
+                status=MigrationStatus.ANALYZED,
+                pre_migration_state={
+                    "location_canonical_id": loc_cid,
+                    "em_profile_count": profile_count,
+                },
+            )
+            store.upsert_object(loc_obj)
+            result.objects_created += 1
 
         return result
 
