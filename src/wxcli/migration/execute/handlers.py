@@ -990,6 +990,60 @@ def handle_virtual_line_configure(data: dict, deps: dict, ctx: dict) -> HandlerR
     return [("PUT", _url(f"/telephony/config/virtualLines/{vl_wid}", ctx), settings)]
 
 
+# ---------------------------------------------------------------------------
+# Hoteling / Hot Desking handlers (tier 5 / tier 0)
+# ---------------------------------------------------------------------------
+
+def handle_hoteling_guest_enable(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    """Enable hoteling guest for a user with an EM device profile."""
+    if not data.get("hoteling_guest_enabled"):
+        return []
+    user_cid = data.get("user_canonical_id")
+    person_wid = deps.get(user_cid) if user_cid else None
+    if not person_wid:
+        return []
+    return [("PUT", _url(f"/people/{person_wid}/features/hoteling", ctx), {"enabled": True})]
+
+
+def handle_hoteling_host_configure(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    """Configure hoteling host on devices that were EM-enabled."""
+    host_cids = data.get("host_device_canonical_ids") or []
+    if not host_cids:
+        return []
+    user_cid = data.get("user_canonical_id")
+    person_wid = deps.get(user_cid) if user_cid else None
+    if not person_wid:
+        return []
+    if not any(deps.get(cid) for cid in host_cids):
+        return []
+    auto_minutes = data.get("auto_logout_minutes", 0)
+    hoteling_body: dict[str, Any] = {"enabled": True}
+    if auto_minutes > 0:
+        hoteling_body["limitGuestUse"] = True
+        hoteling_body["guestHoursLimit"] = max(1, auto_minutes // 60)
+    else:
+        hoteling_body["limitGuestUse"] = False
+    return [(
+        "PUT",
+        _url(f"/telephony/config/people/{person_wid}/devices/settings/hoteling", ctx),
+        {"hoteling": hoteling_body},
+    )]
+
+
+def handle_location_hotdesking_enable(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    """Enable voice portal hot desk sign-in at a location."""
+    state = data.get("pre_migration_state") or {}
+    loc_cid = state.get("location_canonical_id")
+    loc_wid = deps.get(loc_cid) if loc_cid else None
+    if not loc_wid:
+        return []
+    return [(
+        "PUT",
+        _url(f"/telephony/config/locations/{loc_wid}/features/hotDesking", ctx),
+        {"voicePortalHotDeskSignInEnabled": True},
+    )]
+
+
 # HANDLER_REGISTRY — complete with all operation types
 HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("location", "create"): handle_location_create,
@@ -1027,4 +1081,8 @@ HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     # Tier 7
     ("device_layout", "configure"): handle_device_layout_configure,
     ("softkey_config", "configure"): handle_softkey_config_configure,
+    # Hoteling / Hot Desking
+    ("device_profile", "enable_hoteling_guest"): handle_hoteling_guest_enable,
+    ("device_profile", "enable_hoteling_host"): handle_hoteling_host_configure,
+    ("hoteling_location", "enable_hotdesking"): handle_location_hotdesking_enable,
 }
