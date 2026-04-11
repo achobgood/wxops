@@ -56,6 +56,7 @@ Execution order determined by `depends_on` (topological sort):
 | `CallForwardingMapper` | `call_forwarding_mapper` | `user_mapper`, `line_mapper` | `CanonicalCallForwarding` | `phone` (raw, per-line forwarding) |
 | `CSSMapper` | `css_mapper` | `routing_mapper`, `user_mapper`, `line_mapper`, `device_mapper` | `CanonicalCallingPermission`, `CanonicalDialPlan` | `css`, `partition`, `route_pattern` |
 | `ButtonTemplateMapper` | `button_template_mapper` | `device_mapper` | `CanonicalLineKeyTemplate` | `button_template` (raw) |
+| `ExecutiveAssistantMapper` | `executive_assistant_mapper` | `user_mapper` | `CanonicalExecutiveAssistant` | `exec_asst_pair`, `exec_setting` |
 
 ### Tier 4 — Phase 3 mappers (depend on button templates + device layout inputs)
 

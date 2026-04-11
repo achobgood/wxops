@@ -99,6 +99,8 @@ class FeatureExtractor(BaseExtractor):
         self.results["pickup_groups"] = self._extract_pickup_groups(result)
         self.results["time_schedules"] = self._extract_time_schedules(result)
         self.results["time_periods"] = self._extract_time_periods(result)
+        self.results["executive_assistant_pairs"] = self._extract_executive_assistant_pairs(result)
+        self.results["executive_settings"] = self._extract_executive_settings(result)
 
         return result
 
@@ -254,3 +256,54 @@ class FeatureExtractor(BaseExtractor):
             result, "listTimePeriod", "getTimePeriod",
             {"name": "%"}, TIME_PERIOD_LIST_RETURNED_TAGS,
         )
+
+    # ------------------------------------------------------------------
+    # Executive/Assistant Pairs (SQL query)
+    # ------------------------------------------------------------------
+
+    def _extract_executive_assistant_pairs(
+        self, result: ExtractionResult,
+    ) -> list[dict[str, Any]]:
+        """Extract executive/assistant pairings via SQL query."""
+        try:
+            rows = self.conn.execute_sql(
+                "SELECT "
+                "exec_user.userid AS executive_userid, "
+                "asst_user.userid AS assistant_userid, "
+                "ea.fkexecutive AS executive_pkid, "
+                "ea.fkassistant AS assistant_pkid "
+                "FROM executiveassistant ea "
+                "JOIN enduser exec_user ON exec_user.pkid = ea.fkexecutive "
+                "JOIN enduser asst_user ON asst_user.pkid = ea.fkassistant"
+            )
+        except Exception as exc:
+            msg = f"executiveassistant SQL query failed: {exc}"
+            logger.warning("[%s] %s", self.name, msg)
+            result.errors.append(msg)
+            return []
+        result.total += len(rows)
+        return rows
+
+    # ------------------------------------------------------------------
+    # Executive/Assistant Settings (SQL query)
+    # ------------------------------------------------------------------
+
+    def _extract_executive_settings(
+        self, result: ExtractionResult,
+    ) -> list[dict[str, Any]]:
+        """Extract executive/assistant service subscriptions via SQL query."""
+        try:
+            rows = self.conn.execute_sql(
+                "SELECT eu.userid, s.name AS service_name, s.servicetype "
+                "FROM enduser eu "
+                "JOIN endusersubscribedservice euss ON euss.fkenduser = eu.pkid "
+                "JOIN subscribedservice s ON s.pkid = euss.fksubscribedservice "
+                "WHERE s.name IN ('Executive', 'Executive-Assistant')"
+            )
+        except Exception as exc:
+            msg = f"executive settings SQL query failed: {exc}"
+            logger.warning("[%s] %s", self.name, msg)
+            result.errors.append(msg)
+            return []
+        result.total += len(rows)
+        return rows
