@@ -36,6 +36,7 @@ _FEATURE_DISPLAY_NAMES = {
     "monitoring_list": "BLF / Monitoring",
     "line_key_template": "Phone Button Templates",
     "softkey_config": "Softkey Templates",
+    "executive_assistant": "Executive/Assistant",
 }
 
 # Webex equivalents for feature types
@@ -50,6 +51,7 @@ _WEBEX_EQUIVALENTS = {
     "monitoring_list": "Per-person monitoring list",
     "line_key_template": "Line Key Templates",
     "softkey_config": "Programmable Softkeys (PSK)",
+    "executive_assistant": "Executive/Assistant (native)",
 }
 
 # Object types for counts
@@ -222,6 +224,9 @@ def _page_environment(
         parts.append(_stat_card(str(shared_line_count), "Shared Lines"))
     if line_count:
         parts.append(_stat_card(str(line_count), "Extensions"))
+    intercept_count = store.count_by_type("intercept_candidate")
+    if intercept_count:
+        parts.append(_stat_card(str(intercept_count), "Intercept Candidates"))
     parts.append('</div>')
 
     # --- Devices ---
@@ -275,10 +280,30 @@ def _page_environment(
                 f'</div>'
             )
 
+    # --- Custom Audio Assets (if present) ---
+    moh_sources = store.get_objects("music_on_hold")
+    announcements = store.get_objects("announcement")
+    custom_moh = [m for m in moh_sources if not m.get("is_default", False)]
+    if custom_moh or announcements:
+        parts.append('<h3>Custom Audio</h3>')
+        parts.append('<div class="stat-grid">')
+        if custom_moh:
+            parts.append(_stat_card(str(len(custom_moh)), "Custom MoH Sources"))
+        if announcements:
+            parts.append(_stat_card(str(len(announcements)), "Announcement Files"))
+        parts.append('</div>')
+        parts.append(
+            '<div class="callout warning">'
+            '<p>Custom audio files must be downloaded from CUCM and uploaded to '
+            'Webex before migration. See Audio Assets in the Technical Appendix.</p>'
+            '</div>'
+        )
+
     # --- Call Features ---
     feature_types = ["hunt_group", "call_queue", "auto_attendant",
                      "call_park", "pickup_group", "paging_group",
-                     "call_forwarding", "monitoring_list"]
+                     "call_forwarding", "monitoring_list",
+                     "executive_assistant"]
     feature_data = []
     for ft in feature_types:
         count = store.count_by_type(ft)
