@@ -374,6 +374,7 @@ class CanonicalWorkspace(MigrationObject):
     hotdesking_status: str | None = None    # on or off
     is_common_area: bool = True
     license_tier: str | None = None         # Workspace or Professional Workspace
+    call_settings: dict[str, Any] | None = None
 
 
 # ---------------------------------------------------------------------------
