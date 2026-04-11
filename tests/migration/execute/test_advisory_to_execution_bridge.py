@@ -225,6 +225,9 @@ class TestAnnouncementHandler:
         assert ("announcement", "upload") in HANDLER_REGISTRY
 
     def test_handler_returns_empty_list_phase_a(self):
+        """Phase A handler is a no-op — multipart audio upload is deferred
+        to Phase B alongside engine multipart support. AnnouncementMapper
+        creates AUDIO_ASSET_MANUAL decisions to inform operators."""
         from wxcli.migration.execute.handlers import handle_announcement_upload
 
         data = {
