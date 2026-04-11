@@ -785,14 +785,18 @@ class CrossReferenceBuilder:
     # ------------------------------------------------------------------
 
     def _build_template_refs(self) -> dict[str, int]:
-        """Build phone_uses_button_template and phone_uses_softkey_template.
+        """Build phone_uses_button_template, phone_uses_softkey_template, and
+        phone_uses_common_phone_config cross-references.
 
         Raw phone objects store AXL zeep dicts in pre_migration_state.
         Template names are in phoneTemplateName/softkeyTemplateName as
         zeep ref dicts: {"_value_1": "Template Name", "uuid": "..."}.
+        Common phone config name may be a zeep ref dict or a plain string
+        (already normalized by normalize_phone).
         """
         bt_count = 0
         sk_count = 0
+        cpc_count = 0
 
         for phone in self.store.get_objects("phone"):
             phone_id = phone["canonical_id"]
@@ -814,9 +818,20 @@ class CrossReferenceBuilder:
                 self.store.add_cross_ref(phone_id, sk_id, "phone_uses_softkey_template")
                 sk_count += 1
 
+            # Common phone config: raw AXL field or normalized field
+            cpc_raw = state.get("commonPhoneConfigName")
+            cpc_name = self._ref_value(cpc_raw)
+            if not cpc_name:
+                cpc_name = state.get("cucm_common_phone_config")
+            if cpc_name:
+                cpc_id = f"info_common_phone_config:{cpc_name}"
+                self.store.add_cross_ref(phone_id, cpc_id, "phone_uses_common_phone_config")
+                cpc_count += 1
+
         return {
             "phone_uses_button_template": bt_count,
             "phone_uses_softkey_template": sk_count,
+            "phone_uses_common_phone_config": cpc_count,
         }
 
     def _build_remote_destination_refs(self) -> dict[str, int]:
