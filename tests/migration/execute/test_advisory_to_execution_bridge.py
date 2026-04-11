@@ -110,3 +110,82 @@ class TestE911ConfigIsDataOnly:
         ops = expand_to_operations(store)
 
         assert ops == []
+
+
+class TestMusicOnHoldExpander:
+    """music_on_hold was a planner dead end. Wire it as a visible Phase-A
+    op with a no-op handler. Real API calls deferred to Phase B."""
+
+    def test_music_on_hold_expander_registered(self):
+        assert "music_on_hold" in _EXPANDERS
+
+    def test_default_source_produces_one_configure_op(self):
+        store = MigrationStore(":memory:")
+        moh = CanonicalMusicOnHold(
+            canonical_id="music_on_hold:SampleAudioSource",
+            provenance=_prov(),
+            status=MigrationStatus.ANALYZED,
+            source_name="SampleAudioSource",
+            is_default=True,
+            cucm_source_id="1",
+        )
+        store.upsert_object(moh)
+
+        ops = expand_to_operations(store)
+
+        assert len(ops) == 1
+        op = ops[0]
+        assert op.resource_type == "music_on_hold"
+        assert op.op_type == "configure"
+        assert op.canonical_id == "music_on_hold:SampleAudioSource"
+
+    def test_custom_source_also_produces_one_op(self):
+        """Custom sources still produce an op so operators see them in the
+        plan. The AUDIO_ASSET_MANUAL decision from MOHMapper gates the
+        actual behavior — Phase A handler is still a no-op."""
+        store = MigrationStore(":memory:")
+        moh = CanonicalMusicOnHold(
+            canonical_id="music_on_hold:CustomHoldMusic",
+            provenance=_prov(),
+            status=MigrationStatus.ANALYZED,
+            source_name="CustomHoldMusic",
+            source_file_name="hold.wav",
+            is_default=False,
+            cucm_source_id="2",
+        )
+        store.upsert_object(moh)
+
+        ops = expand_to_operations(store)
+
+        assert len(ops) == 1
+        assert ops[0].resource_type == "music_on_hold"
+
+
+class TestMusicOnHoldHandler:
+    def test_handler_registered(self):
+        assert ("music_on_hold", "configure") in HANDLER_REGISTRY
+
+    def test_handler_returns_empty_list_phase_a(self):
+        """Phase A handler is a no-op — engine marks the op completed
+        without making any API call. Real API calls deferred to Phase B."""
+        from wxcli.migration.execute.handlers import handle_music_on_hold_configure
+
+        data = {
+            "canonical_id": "music_on_hold:SampleAudioSource",
+            "source_name": "SampleAudioSource",
+            "is_default": True,
+        }
+        result = handle_music_on_hold_configure(data, deps={}, ctx={"orgId": "org1"})
+
+        assert result == []
+
+
+class TestMusicOnHoldRegistry:
+    def test_tier_assignment_exists(self):
+        assert ("music_on_hold", "configure") in TIER_ASSIGNMENTS
+
+    def test_api_call_estimate_is_zero_phase_a(self):
+        """Phase A makes no API calls. Value must be 0 so
+        TestHandlerRegistry.test_all_operation_types_have_handlers
+        skips the handler requirement if that check ever matters."""
+        assert API_CALL_ESTIMATES["music_on_hold:configure"] == 0
