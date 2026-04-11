@@ -203,6 +203,11 @@ class FeatureMapper(Mapper):
 
         Traverses 3-object chain: hunt_pilot -> hunt_list -> line_group -> members
         """
+        # Hoist voicemail_group presence check out of the per-hunt-pilot loop —
+        # the answer can't change inside the loop (nothing writes voicemail_group
+        # here), so computing it once avoids O(N*M) store queries.
+        has_vm_group = any(True for _ in store.get_objects("voicemail_group"))
+
         for hp_data in store.get_objects("hunt_pilot"):
             hp_id = hp_data["canonical_id"]
             hp_state = hp_data.get("pre_migration_state") or {}
@@ -253,11 +258,10 @@ class FeatureMapper(Mapper):
             vm_usage = hunt_list_state.get("voice_mail_usage", "NONE")
             if vm_usage and vm_usage != "NONE":
                 hl_name = hunt_list_state.get("hunt_list_name") or ""
-                hl_id = f"hunt_list:{hl_name}" if hl_name else ""
-                # Check whether any voicemail_group is present — if not,
-                # the shared mailbox wasn't extracted (or Unity Connection
-                # wasn't reachable during discovery).
-                has_vm_group = any(True for _ in store.get_objects("voicemail_group"))
+                # Use the already-resolved cross-ref canonical_id instead of
+                # recomputing it from the hunt_list_name string — avoids silent
+                # breakage if the canonical_id format ever changes.
+                hl_id = hunt_list_refs[0] if hunt_list_refs else ""
                 if not has_vm_group:
                     gap_decision = self._create_decision(
                         store=store,
