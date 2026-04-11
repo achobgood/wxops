@@ -1160,6 +1160,23 @@ def handle_bulk_line_key_template_submit(
     return [("POST", _url("/telephony/config/jobs/devices/applyLineKeyTemplate", ctx), body)]
 
 
+def handle_bulk_dynamic_settings_submit(
+    data: dict, deps: dict, ctx: dict,
+) -> HandlerResult:
+    """Submit a bulk Update Dynamic Device Settings job.
+
+    POST /v1/telephony/config/jobs/devices/dynamicDeviceSettings
+    (spec §2d)
+    """
+    loc_cid = data.get("location_canonical_id", "")
+    loc_wid = deps.get(loc_cid, "") if loc_cid else ""
+    body: dict[str, Any] = {
+        "locationId": loc_wid,
+        "tags": data.get("tags", []),
+    }
+    return [("POST", _url("/telephony/config/jobs/devices/dynamicDeviceSettings", ctx), body)]
+
+
 # HANDLER_REGISTRY — complete with all operation types
 HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("location", "create"): handle_location_create,
@@ -1209,4 +1226,5 @@ HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     # Bulk job handlers
     ("bulk_device_settings", "submit"): handle_bulk_device_settings_submit,
     ("bulk_line_key_template", "submit"): handle_bulk_line_key_template_submit,
+    ("bulk_dynamic_settings", "submit"): handle_bulk_dynamic_settings_submit,
 }

@@ -96,3 +96,49 @@ class TestBulkLineKeyTemplateSubmit:
         calls = handle_bulk_line_key_template_submit(data, deps, {})
         _, _, body = calls[0]
         assert body["locationIds"] == ["Y2lzY29zcGFyazovL3VzL0xPQzE"]
+
+
+from wxcli.migration.execute.handlers import handle_bulk_dynamic_settings_submit
+
+
+class TestBulkDynamicSettingsSubmit:
+    def test_location_scoped_with_tags(self):
+        data = {
+            "location_canonical_id": "location:loc-1",
+            "tags": [
+                {
+                    "familyOrModelDisplayName": "Cisco 9861",
+                    "tag": "%SOFTKEY_LAYOUT_PSK1%",
+                    "action": "SET",
+                    "value": "fnc=sd;ext=1234",
+                },
+                {
+                    "familyOrModelDisplayName": "Cisco 9861",
+                    "tag": "%SOFTKEY_LAYOUT_PSK2%",
+                    "action": "CLEAR",
+                },
+            ],
+        }
+        deps = {"location:loc-1": "LOC_WID"}
+        ctx = {"orgId": "org-123"}
+
+        calls = handle_bulk_dynamic_settings_submit(data, deps, ctx)
+
+        assert len(calls) == 1
+        method, url, body = calls[0]
+        assert method == "POST"
+        assert "/telephony/config/jobs/devices/dynamicDeviceSettings" in url
+        assert body["locationId"] == "LOC_WID"
+        assert len(body["tags"]) == 2
+        assert body["tags"][0]["action"] == "SET"
+        assert body["tags"][1]["action"] == "CLEAR"
+
+    def test_org_wide_uses_empty_location_string(self):
+        data = {
+            "location_canonical_id": "",
+            "tags": [{"familyOrModelDisplayName": "Cisco 9861",
+                      "tag": "%FOO%", "action": "CLEAR"}],
+        }
+        calls = handle_bulk_dynamic_settings_submit(data, {}, {})
+        _, _, body = calls[0]
+        assert body["locationId"] == ""
