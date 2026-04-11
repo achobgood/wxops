@@ -182,16 +182,26 @@ Before migration day, download all custom audio files from CUCM:
 
 ### Call Intercept Verification
 
-**Timing:** After the pipeline analysis phase, during decision review.
+**Timing:** Review surfaces during Step 1c of `/cucm-migrate` (decision review) and again *post-cutover* when you hand intercept configuration back to operations. Nothing on this path blocks `preflight`, `plan`, `export`, or `execute`.
 
-The migration pipeline heuristically detects call intercept candidates from CUCM configurations that block incoming callers (blocked partition DNs or Call Forward No Answer loops to voicemail when unregistered). These are patterns that approximate intercept behavior in CUCM. During the decision review phase, the advisory pattern `call-intercept-candidates` flags affected users/workspaces.
+**What the pipeline does for you.** Webex Calling has a native call-intercept feature (for terminated employees, office relocations, leaves of absence, and number changes) with no CUCM equivalent. During `discover`, the `Tier4Extractor` runs two SQL queries against CUCM looking for intercept-*like* configurations: (1) DNs whose **partition name** matches `%intercept%`, `%block%`, `%out_of_service%`, or `%oos%`; and (2) DNs with `Call Forward All → voicemail` where the line has no registered phone behind it. Each match becomes an `intercept_candidate` in the store, cross-referenced to its owning user. `CallSettingsMapper` tags the user's `call_settings.intercept` metadata during Phase 05. Advisory Pattern 30 (`call_intercept_candidates`, severity `MEDIUM`, category `out_of_scope`) emits a single finding that lists all matched candidates grouped by signal type. None of it is auto-configured.
 
-1. **Review the advisory pattern.** When the decision-review phase presents the `call-intercept-candidates` advisory pattern, read the affected objects list (users and workspaces). These are the targets that CUCM was using intercept-like logic for.
-2. **Verify the heuristic.** Not every blocked partition is intentional call intercept — some are security/privacy blocks or routing workarounds. The operator must verify with the customer whether the flagged configurations are intended call intercept or just CUCM workarounds.
-3. **Configure in Webex.** For users/workspaces that DO use call intercept, enable Webex intercept via `person.callIntercept` (person-level) or `workspace.intercept` (workspace-level). Both endpoints support specifying interception numbers (secretary/admin extensions).
-4. **Verify in post-live.** After cutover, test interception for a sample of flagged users to confirm the call routing behaves as expected.
+**Where you see it.** The report's Executive Summary Page 2 renders a conditional "Intercept Candidates" stat card (only when count > 0), and Appendix Y ("Call Intercept Candidates") lists each candidate with user, DN, partition, signal type, and forward destination. The advisory shows up in `wxcli cucm decisions --type advisory` and in the Phase A decision-review bundle under `/cucm-migrate`.
 
-**Why this matters:** CUCM's blocked partitions are a workaround — Webex intercept is the native feature. If the customer was using blocked partitions for legitimate call intercept, they need the feature re-enabled post-migration or calls will behave differently.
+1. **Review the advisory during decision review.** When `/cucm-migrate` Step 1c lists advisory findings, find `call_intercept_candidates` under the `out_of_scope` bundle. Accept it — acceptance only acknowledges that you will handle the work manually post-cutover. It does not enable anything in Webex.
+2. **Triage Appendix Y before cutover.** Export the report and open the Appendix Y table. For each candidate, classify the CUCM intent with the customer's directory / HR contact:
+   - **Genuine intercept** — terminated employee DN, relocated office number, on-leave user. Schedule Webex intercept configuration for post-cutover.
+   - **False positive — dial-plan restriction** — a "Block" partition used to enforce outbound calling rules (e.g., `BlockInternational_PT`). Those belong in Webex calling permissions, not intercept.
+   - **False positive — ordinary CFA-to-voicemail** — a user whose preference happens to be "send everything to voicemail" on a spare line. No action needed.
+3. **Configure Webex intercept post-cutover** for each confirmed case:
+   - **Person-level:** `wxcli user-settings update-intercept <personId> --json-body '{…}'` → `PUT /people/{personId}/features/intercept`.
+   - **Workspace-level:** `wxcli workspace-settings update-intercept <workspaceId> --json-body '{…}'` → `PUT /workspaces/{workspaceId}/features/intercept`. The `/features/intercept` path works on Basic and Professional workspace licenses.
+   - **Location-level (entire site closure):** `PUT /telephony/config/locations/{locationId}/intercept`. Requires Professional-tier admin scopes.
+   - **Virtual lines:** `PUT /telephony/config/virtualLines/{virtualLineId}/intercept`.
+   - Each endpoint takes the full Webex intercept payload (`enabled`, `incoming.type`, `incoming.announcements.*`, `outgoing.type`, `outgoing.transferEnabled`, optional `destination`). Custom greeting upload is a separate endpoint: `POST /people/{personId}/features/intercept/actions/announcementUpload/invoke` (multipart `audio/wav`). See [`docs/reference/person-call-settings-media.md` § Call Intercept](../../reference/person-call-settings-media.md) for full payload shapes.
+4. **Smoke-test interception.** Dial each intercepted DN from a user outside the tenant and confirm the announcement, press-0 transfer, and new-number redirect behave as designed. Re-enable Call Forward All to the voicemail pilot was a *CUCM* pattern — in Webex the correct control is `incoming.voicemailEnabled` inside the intercept payload.
+
+**Why this matters.** The CUCM heuristic is intentionally permissive — the tool errs on the side of surfacing too many candidates rather than silently missing a terminated-user DN. If you skip this triage, terminated employees' numbers will become reachable again the moment they cut over to Webex, and office-relocation number announcements will simply stop playing. The advisory's `MEDIUM` severity reflects the operational risk of that silent failure, not how many users are typically affected (usually < 5%).
 
 ## Pipeline Walkthrough
 
