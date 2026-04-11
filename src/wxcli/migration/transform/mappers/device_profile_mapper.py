@@ -52,8 +52,6 @@ class DeviceProfileMapper(Mapper):
         result = MapperResult()
         hoteling_locations: dict[str, int] = {}  # loc_cid -> profile count
 
-        # Build user → device profile mapping
-        # Device profiles reference ownerUserId in their line entries
         for dp_data in store.get_objects("device_profile"):
             state = dp_data.get("pre_migration_state") or {}
             profile_name = state.get("profile_name") or ""
@@ -67,13 +65,10 @@ class DeviceProfileMapper(Mapper):
             sd_count = state.get("speed_dial_count", 0)
             blf_count = state.get("blf_count", 0)
 
-            # Try to find the owning user
-            # Device profiles are typically named "UDP-{userid}" or similar
-            # Check if any user references this profile
             user_cid = self._find_profile_owner(store, profile_name)
 
             # Resolve location from device pool cross-ref
-            location_cid = None
+            location_cid: str | None = None
             if device_pool:
                 dp_cid = f"device_pool:{device_pool}"
                 loc_refs = store.find_cross_refs(dp_cid, "device_pool_to_location")
@@ -100,7 +95,6 @@ class DeviceProfileMapper(Mapper):
             store.upsert_object(dp)
             result.objects_created += 1
 
-            # Write cross-ref if user found
             # Track locations for hoteling_location object creation
             if location_cid:
                 hoteling_locations[location_cid] = hoteling_locations.get(location_cid, 0) + 1
@@ -151,7 +145,12 @@ class DeviceProfileMapper(Mapper):
         for loc_cid, profile_count in hoteling_locations.items():
             loc_obj = MigrationObject(
                 canonical_id=f"hoteling_location:{loc_cid}",
-                provenance=Provenance(source_system="cucm", source_id=loc_cid, source_name="hoteling_location", extracted_at=datetime.now(timezone.utc)),
+                provenance=Provenance(
+                    source_system="cucm",
+                    source_id=loc_cid,
+                    source_name="hoteling_location",
+                    extracted_at=datetime.now(timezone.utc),
+                ),
                 status=MigrationStatus.ANALYZED,
                 pre_migration_state={
                     "location_canonical_id": loc_cid,

@@ -1272,8 +1272,9 @@ def detect_transformation_patterns(store: MigrationStore) -> list[AdvisoryFindin
 def detect_extension_mobility_usage(store: MigrationStore) -> list[AdvisoryFinding]:
     """Extension Mobility device profiles indicate hot desking needs.
 
-    Severity escalation: MEDIUM when profiles have multi-line or BLF configs
-    (feature loss during hot desk sessions). LOW for simple single-line profiles.
+    Severity escalation: MEDIUM when profiles have multi-line or BLF/speed dial
+    features (feature loss during hot desk sessions) that Webex hot desking
+    cannot replicate. LOW for simple single-line profiles.
     """
     profiles = store.get_objects("info_device_profile")
     if not profiles:
@@ -1286,19 +1287,22 @@ def detect_extension_mobility_usage(store: MigrationStore) -> list[AdvisoryFindi
     sd_count = 0
     blf_count = 0
     for p in profiles:
-        pms = p.get("pre_migration_state") or {}
-        if pms.get("line_count", 0) > 1:
+        state = p.get("pre_migration_state") or {}
+        lines = state.get("lines") or []
+        line_count = len(lines) if lines else state.get("line_count", 0)
+        if line_count > 1:
             multi_line_count += 1
-        if pms.get("speed_dial_count", 0) > 0:
+        if state.get("speed_dial_count", 0) > 0:
             sd_count += 1
-        if pms.get("blf_count", 0) > 0:
+        if state.get("blf_count", 0) > 0:
             blf_count += 1
 
     # Escalate to MEDIUM when profiles will lose meaningful features
     severity = "MEDIUM" if (multi_line_count > 0 or blf_count > 0) else "LOW"
 
     detail = (
-        f"{len(profiles)} Extension Mobility device profile(s) found. "
+        f"{len(profiles)} Extension Mobility device profile{'s' if len(profiles) != 1 else ''} "
+        f"found. "
         f"{multi_line_count} have multiple lines (will lose secondary lines). "
         f"{sd_count} have speed dials (will lose speed dials during hot desk). "
         f"{blf_count} have BLF entries (will lose BLF during hot desk). "
@@ -2055,3 +2059,43 @@ ALL_ADVISORY_PATTERNS: list[Callable[[MigrationStore], list[AdvisoryFinding]]] =
     detect_executive_assistant_migration,       # Pattern 29 (Executive/assistant pairs)
     detect_call_intercept_candidates,          # Pattern 30 (intercept)
 ]
+
+
+# ===================================================================
+# Pattern 29: Receptionist / Attendant Console Workflow Impact
+# ===================================================================
+
+
+def detect_receptionist_workflow_impact(store: MigrationStore) -> list[AdvisoryFinding]:
+    """Flag environments with receptionist/attendant console users needing
+    special migration attention and training."""
+    receptionists = store.get_objects("receptionist_config")
+    if not receptionists:
+        return []
+    affected = [r["canonical_id"] for r in receptionists]
+    user_details = []
+    for r in receptionists:
+        state = r.get("pre_migration_state") or r
+        user_cid = state.get("user_canonical_id", r["canonical_id"])
+        blf = state.get("blf_count", 0)
+        score = state.get("detection_score", 0)
+        user_details.append(f"  - {user_cid} (BLF: {blf}, score: {score})")
+    n = len(receptionists)
+    detail = (
+        f"{n} receptionist/attendant console user(s) detected. "
+        "CUCM attendant console (CUAC) workflows do not have a direct Webex equivalent. "
+        "Webex offers: (1) Receptionist Client, (2) Receptionist Contact Directories, "
+        "(3) Webex Receptionist Console. Receptionists will need training.\n"
+        + "\n".join(user_details)
+    )
+    return [AdvisoryFinding(
+        pattern_name="receptionist_workflow_impact",
+        severity="MEDIUM",
+        summary=f"{n} receptionist/attendant console user(s) require workflow rebuild for Webex",
+        detail=detail,
+        affected_objects=affected,
+        category="rebuild",
+    )]
+
+
+ALL_ADVISORY_PATTERNS.append(detect_receptionist_workflow_impact)
