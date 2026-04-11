@@ -67,6 +67,28 @@ class CallSettingsMapper(Mapper):
                 user_id, phone_id, list(settings.keys()),
             )
 
+
+        # --- Pass 2: Intercept candidate detection ---
+        for user_data in store.get_objects("user"):
+            user_id = user_data["canonical_id"]
+            intercept_refs = store.find_cross_refs(user_id, "user_has_intercept_signal")
+            if not intercept_refs:
+                continue
+            candidate = store.get_object(intercept_refs[0])
+            if not candidate:
+                continue
+            pre = candidate.get("pre_migration_state") or {}
+            intercept_settings = {
+                "detected": True,
+                "signal_type": pre.get("signal_type", "unknown"),
+                "forward_destination": pre.get("forward_destination"),
+                "voicemail_enabled": pre.get("voicemail_enabled", False),
+            }
+            existing_settings = user_data.get("call_settings") or {}
+            existing_settings["intercept"] = intercept_settings
+            enrich_user(store, user_id, call_settings=existing_settings)
+            result.objects_updated += 1
+
         return result
 
     def _extract_settings(self, state: dict[str, Any]) -> dict[str, Any] | None:

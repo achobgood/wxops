@@ -546,6 +546,45 @@ def _expand_device_settings_template(obj: dict[str, Any], decisions: list) -> li
     return ops
 
 
+def _expand_device_profile(obj: dict[str, Any]) -> list[MigrationOp]:
+    """Device profile → 1-2 ops: enable_hoteling_guest (tier 5), enable_hoteling_host (tier 5).
+    Guest op requires user_canonical_id. Host op requires host_device_canonical_ids.
+    """
+    cid = obj["canonical_id"]
+    name = obj.get("profile_name") or cid
+    user_cid = obj.get("user_canonical_id")
+    ops: list[MigrationOp] = []
+
+    if obj.get("hoteling_guest_enabled") and user_cid:
+        ops.append(_op(cid, "enable_hoteling_guest", "device_profile",
+                        f"Enable hoteling guest for {name}",
+                        depends_on=[_node_id(user_cid, "create")]))
+
+    host_cids = obj.get("host_device_canonical_ids") or []
+    if host_cids and user_cid:
+        deps = [_node_id(user_cid, "create")]
+        for hcid in host_cids:
+            deps.append(_node_id(hcid, "create"))
+        ops.append(_op(cid, "enable_hoteling_host", "device_profile",
+                        f"Configure hoteling host for {name}",
+                        depends_on=deps))
+
+    return ops
+
+
+def _expand_hoteling_location(obj: dict[str, Any]) -> list[MigrationOp]:
+    """Hoteling location → 1 op: enable_hotdesking (tier 0).
+    Enables voice portal hot desk sign-in at a location with EM phones.
+    """
+    cid = obj["canonical_id"]
+    state = obj.get("pre_migration_state") or {}
+    loc_cid = state.get("location_canonical_id", "")
+    deps = [_node_id(loc_cid, "enable_calling")] if loc_cid else []
+    return [_op(cid, "enable_hotdesking", "hoteling_location",
+                f"Enable hot desking at {loc_cid}",
+                depends_on=deps)]
+
+
 # ---------------------------------------------------------------------------
 # Types that don't produce standalone operations
 # ---------------------------------------------------------------------------
@@ -598,6 +637,8 @@ _EXPANDERS: dict[str, Any] = {
     "device_layout": lambda obj, _: _expand_device_layout(obj),
     "softkey_config": lambda obj, _: _expand_softkey_config(obj),
     "device_settings_template": lambda obj, d: _expand_device_settings_template(obj, d),
+    "device_profile": lambda obj, _: _expand_device_profile(obj),
+    "hoteling_location": lambda obj, _: _expand_hoteling_location(obj),
 }
 
 
