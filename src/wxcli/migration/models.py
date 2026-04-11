@@ -225,6 +225,7 @@ class CanonicalLocation(MigrationObject):
     routing_prefix: str | None = None
     outside_dial_digit: str | None = None
     calling_enabled: bool = True
+    main_number: str | None = None
     # CUCM metadata
     cucm_device_pool_names: list[str] = Field(default_factory=list)
     cucm_datetime_group_name: str | None = None
