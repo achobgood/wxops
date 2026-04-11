@@ -150,8 +150,8 @@ CDR returns 55+ fields with space-separated JSON keys. Use this taxonomy to find
 | **Infrastructure** | `Inbound trunk`, `Outbound trunk`, `Client type` (SIP/WXC_CLIENT/WXC_DEVICE/WXC_THIRD_PARTY/TEAMS_WXC_CLIENT/WXC_SIP_GW), `Client version`, `Model`, `Device MAC`, `OS type`, `Sub client type` | "which trunk", "what device" |
 | **Location** | `Location`, `Site main number`, `Site timezone`, `Site UUID` | "which office" |
 | **PSTN** | `PSTN vendor name`, `PSTN legal entity`, `PSTN provider ID`, `International country`, `Authorization code` | "which carrier", "cost" |
-| **Recording** | `Call recording platform name`, `Call recording result` (successful/failed/successful but not kept), `Call recording trigger` (always/always-pause-resume/on-demand/on-demand-user-start) | "was it recorded" |
-| **Reputation** | `Caller reputation score` (0.0-5.0), `Caller reputation service result` (allow/block/captcha-allow/captcha-block), `Caller reputation score reason` | "spam calls" |
+| **Recording** | `Call Recording Platform Name`, `Call Recording Result` (successful/failed/successful but not kept), `Call Recording Trigger` (always/always-pause-resume/on-demand/on-demand-user-start) | "was it recorded" |
+| **Reputation** | `Caller Reputation Score` (0.0-5.0), `Caller Reputation Service Result` (allow/block/captcha-allow/captcha-block), `Caller Reputation Score Reason` | "spam calls" |
 | **Queue/AA** | `Queue type` (Customer Assist/Call Queue), `Auto Attendant Key Pressed` | "queue CDR data", "AA menu" |
 | **Correlation** | `Correlation ID`, `Call ID`, `Interaction ID`, `Network call ID`, `Related call ID`, `Transfer related call ID` | "trace this call" |
 
@@ -1052,7 +1052,7 @@ from collections import Counter
 data = json.load(sys.stdin)
 buckets = Counter()
 for r in data:
-    score = r.get('Caller reputation score')
+    score = r.get('Caller Reputation Score')
     if score:
         s = float(score)
         if s <= 1.0: buckets['0-1 (likely spam)'] += 1
@@ -1074,7 +1074,7 @@ wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
 from collections import Counter
 data = json.load(sys.stdin)
-results = Counter(r.get('Caller reputation service result') for r in data if r.get('Caller reputation service result'))
+results = Counter(r.get('Caller Reputation Service Result') for r in data if r.get('Caller Reputation Service Result'))
 total = sum(results.values())
 for result, count in results.most_common():
     print(f'{result}: {count} ({count/total*100:.1f}%)')
@@ -1089,7 +1089,7 @@ import json, sys
 from collections import Counter
 data = json.load(sys.stdin)
 blocked = Counter(r.get('Calling number') for r in data
-    if r.get('Caller reputation service result') in ('block', 'captcha-block'))
+    if r.get('Caller Reputation Service Result') in ('block', 'captcha-block'))
 print(f'Top blocked callers:')
 for number, count in blocked.most_common(15):
     print(f'  {number}: {count} blocked calls')
@@ -1107,7 +1107,7 @@ stats = defaultdict(lambda: {'total': 0, 'spam': 0})
 for r in data:
     loc = r.get('Location', 'Unknown')
     stats[loc]['total'] += 1
-    result = r.get('Caller reputation service result', '')
+    result = r.get('Caller Reputation Service Result', '')
     if result in ('block', 'captcha-block', 'captcha-allow'):
         stats[loc]['spam'] += 1
 for loc, s in sorted(stats.items(), key=lambda x: x[1]['spam'], reverse=True):
@@ -1122,8 +1122,8 @@ Question: "How many captcha challenges succeed vs fail?"
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
-captcha_allow = len([r for r in data if r.get('Caller reputation service result') == 'captcha-allow'])
-captcha_block = len([r for r in data if r.get('Caller reputation service result') == 'captcha-block'])
+captcha_allow = len([r for r in data if r.get('Caller Reputation Service Result') == 'captcha-allow'])
+captcha_block = len([r for r in data if r.get('Caller Reputation Service Result') == 'captcha-block'])
 total_captcha = captcha_allow + captcha_block
 if total_captcha:
     print(f'Captcha challenges: {total_captcha}')
@@ -1143,7 +1143,7 @@ wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
 from collections import Counter
 data = json.load(sys.stdin)
-results = Counter(r.get('Call recording result') for r in data if r.get('Call recording result'))
+results = Counter(r.get('Call Recording Result') for r in data if r.get('Call Recording Result'))
 total = sum(results.values())
 print(f'Calls with recording data: {total}')
 for result, count in results.most_common():
@@ -1158,7 +1158,7 @@ wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
 from collections import Counter
 data = json.load(sys.stdin)
-platforms = Counter(r.get('Call recording platform name') for r in data if r.get('Call recording platform name'))
+platforms = Counter(r.get('Call Recording Platform Name') for r in data if r.get('Call Recording Platform Name'))
 for platform, count in platforms.most_common():
     print(f'{platform}: {count} calls')
 "
@@ -1171,7 +1171,7 @@ wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
 from collections import Counter
 data = json.load(sys.stdin)
-triggers = Counter(r.get('Call recording trigger') for r in data if r.get('Call recording trigger'))
+triggers = Counter(r.get('Call Recording Trigger') for r in data if r.get('Call Recording Trigger'))
 for trigger, count in triggers.most_common():
     print(f'{trigger}: {count} calls')
 "
@@ -1183,13 +1183,13 @@ Question: "Which calls failed to record?"
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
-failed = [r for r in data if r.get('Call recording result') == 'failed']
+failed = [r for r in data if r.get('Call Recording Result') == 'failed']
 print(f'Failed recordings: {len(failed)}')
 if not failed:
     print('No matching records found in this time window.')
 else:
     for c in failed[:15]:
-        print(f\"  {c.get('Start time')} | {c.get('User')} | {c.get('Call recording platform name')} | {c.get('Calling number')} -> {c.get('Called number')}\")
+        print(f\"  {c.get('Start time')} | {c.get('User')} | {c.get('Call Recording Platform Name')} | {c.get('Calling number')} -> {c.get('Called number')}\")
 "
 ```
 
@@ -1201,7 +1201,7 @@ import json, sys
 from collections import Counter
 data = json.load(sys.stdin)
 answered = [r for r in data if r.get('Answer indicator') == 'Yes']
-no_recording = [r for r in answered if not r.get('Call recording result')]
+no_recording = [r for r in answered if not r.get('Call Recording Result')]
 print(f'Answered calls: {len(answered)}')
 print(f'With recording data: {len(answered) - len(no_recording)}')
 print(f'Without recording data: {len(no_recording)}')
@@ -1225,7 +1225,7 @@ for r in data:
     if r.get('Answer indicator') == 'Yes':
         loc = r.get('Location', 'Unknown')
         stats[loc]['answered'] += 1
-        result = r.get('Call recording result', '')
+        result = r.get('Call Recording Result', '')
         if result == 'successful':
             stats[loc]['recorded'] += 1
         elif result == 'failed':
@@ -1358,8 +1358,8 @@ wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 spam_queue_abandoned = [r for r in data
-    if r.get('Caller reputation service result') in ('captcha-allow', 'allow')
-    and float(r.get('Caller reputation score') or '5') < 2.0
+    if r.get('Caller Reputation Service Result') in ('captcha-allow', 'allow')
+    and float(r.get('Caller Reputation Score') or '5') < 2.0
     and r.get('Queue type')
     and r.get('Answer indicator') == 'No']
 print(f'Low-reputation calls that reached a queue and were abandoned: {len(spam_queue_abandoned)}')
@@ -1367,7 +1367,7 @@ if not spam_queue_abandoned:
     print('No matching records found in this time window.')
 else:
     for c in spam_queue_abandoned[:10]:
-        print(f\"  {c.get('Start time')} | score={c.get('Caller reputation score')} | {c.get('Calling number')} | queue={c.get('Queue type')}\")
+        print(f\"  {c.get('Start time')} | score={c.get('Caller Reputation Score')} | {c.get('Calling number')} | queue={c.get('Queue type')}\")
 "
 ```
 
