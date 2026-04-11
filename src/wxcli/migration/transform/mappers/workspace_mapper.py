@@ -19,6 +19,7 @@ Decisions generated:
 from __future__ import annotations
 
 import logging
+import math
 from typing import Any
 
 from wxcli.migration.models import (
@@ -329,6 +330,40 @@ def _extract_workspace_call_settings(
             "enabled": enabled,
             "ringSplashEnabled": ring_splash,
         }
+
+    # --- voicemail (Professional-only; license gate drops it for Workspace tier) ---
+    vm_profile = state.get("voiceMailProfile")
+    has_vm_profile = bool(vm_profile) and str(vm_profile).lower() not in ("none", "")
+    if has_vm_profile:
+        vm_body: dict[str, Any] = {"enabled": True}
+        # Pull CFNA ring timing + VM flag from line 1
+        lines = state.get("lines") or []
+        first_line: dict | None = None
+        if isinstance(lines, dict):
+            first_line = lines.get(1) or lines.get("1")
+        elif isinstance(lines, list) and lines:
+            cand = lines[0]
+            if isinstance(cand, dict):
+                first_line = cand
+        if first_line:
+            cfna = first_line.get("callForwardNoAnswer") or {}
+            if cfna.get("forwardToVoiceMail") in ("true", True):
+                duration = cfna.get("duration")
+                try:
+                    rings = max(2, min(20, math.ceil(int(duration) / 6))) if duration else 3
+                except (ValueError, TypeError):
+                    rings = 3
+                vm_body["sendUnansweredCalls"] = {
+                    "enabled": True,
+                    "numberOfRings": rings,
+                }
+            cfb = first_line.get("callForwardBusy") or {}
+            if cfb.get("forwardToVoiceMail") in ("true", True):
+                vm_body["sendBusyCalls"] = {"enabled": True}
+        settings["voicemail"] = vm_body
+    else:
+        # Webex defaults VM to enabled; common-area phones almost always want it OFF
+        settings["voicemail"] = {"enabled": False}
 
     # License tier gating: Workspace-tier only supports DND + MOH at /telephony/config/
     # (from docs/reference/devices-workspaces.md license tier access matrix)
