@@ -520,6 +520,26 @@ wxcli cucm user-diff --location "loc:dallas-hq"   # verify one site
 
 The diff shows each user's CUCM state vs. planned Webex state side by side: device model/tier, call forwarding rules, voicemail, BLF keys, speed dials, shared lines, button layout, calling permissions, and any decisions that affect that user. Use this to spot-check a representative sample before pressing go.
 
+### User Communication Notice
+
+After generating the assessment report, you can also generate a user-facing communication notice:
+
+```bash
+wxcli cucm user-notice \
+  --brand "Customer Name" \
+  --migration-date "January 15, 2027" \
+  --helpdesk "IT Help Desk at ext. 5000 or helpdesk@customer.com" \
+  --prepared-by "Your Name, Cisco Partner SE"
+```
+
+This produces an HTML document that can be sent directly to end users. It scans the migration analysis and includes only the sections relevant to the detected scenarios (e.g., phone upgrades, voicemail re-recording, call forwarding changes).
+
+**Options:**
+- `--text-only` — plain text output (for plain-text email)
+- `--audience phone-upgrade` — filter to users with device changes only
+- `--audience webex-app` — filter to Jabber-to-Webex App transitions only
+- `--audience general` — filter to users with no device changes (reassurance notice)
+
 ## Decision Review
 
 Decision review is Step 1c of the `cucm-migrate` skill. It runs after the pipeline has produced static recommendations for every discovered entity. The operator works alongside Claude (acting as migration-advisor) to accept, reject, skip, or override each recommendation before anything is provisioned. Nothing is committed to Webex until review is complete and you approve the final plan.

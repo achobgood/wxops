@@ -9,7 +9,7 @@ All 11 phases complete. **1642 tests passing.** Wired into the CLI as `wxcli cuc
 | `docs/plans/cucm-migration-roadmap.md` | **Master roadmap** — what's done, what's ready, what's next. Start here. |
 | `docs/plans/cucm-pipeline-architecture.md` | Pipeline architecture summary — SQLite store, two-pass ELT, linter-pattern analyzers, NetworkX DAG |
 | `docs/plans/cucm-pipeline/01-07 + 03b` | 8 detailed architecture docs |
-| `src/wxcli/commands/cucm.py` | Phases 08+10 — CLI: 14 commands (init, discover, normalize, map, analyze, plan, preflight, decisions, decide, export, inventory, status, config, user-diff) |
+| `src/wxcli/commands/cucm.py` | Phases 08+10 — CLI: 16 commands (init, discover, normalize, map, analyze, plan, preflight, decisions, decide, export, inventory, status, config, user-diff, user-notice, report) |
 | `src/wxcli/commands/cucm_config.py` | Phase 08 — Config management helpers |
 | `models.py` | Canonical data models — 28 types, DecisionType (22 values), Decision, MapperResult, TransformResult |
 | `store.py` | SQLite-backed store — objects, cross_refs, decisions, journal, merge_log, merge_decisions() |
@@ -59,3 +59,5 @@ EM decisions (no alternative architecture exists). Spec at
 **To generate an assessment report:** `wxcli cucm init` → `discover` (or `discover --from-file`) → `normalize` → `map` → `analyze` → `report --brand "..." --prepared-by "..."`. Does not require plan/preflight/export — the report reads directly from the post-analyze store.
 
 **To generate a per-user diff:** `wxcli cucm init` → `discover` → `normalize` → `map` → `analyze` → `user-diff`. Does not require plan/preflight/export.
+
+**To generate a user communication notice:** `wxcli cucm init` → `discover` → `normalize` → `map` → `analyze` → `user-notice --brand "..." --migration-date "..." --helpdesk "..."`. Does not require plan/preflight/export. Generates an email-ready notice covering detected scenarios.

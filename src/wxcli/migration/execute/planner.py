@@ -609,6 +609,23 @@ def _location_from_provenance(obj: dict[str, Any]) -> str | None:
 # All expanders take (obj_data, decisions) for uniformity.
 # ---------------------------------------------------------------------------
 
+
+
+def _expand_receptionist_config(obj: dict) -> list:
+    """Receptionist config -> 0-1 ops: configure (tier 6)."""
+    cid = obj["canonical_id"]
+    user_cid = obj.get("user_canonical_id")
+    deps = [_node_id(user_cid, "create")] if user_cid else []
+    for member_cid in obj.get("monitored_members", []):
+        if member_cid:
+            deps.append(_node_id(member_cid, "create"))
+    loc_cid = obj.get("location_canonical_id")
+    if loc_cid:
+        deps.append(_node_id(loc_cid, "create"))
+    return [_op(cid, "configure", "receptionist_config",
+                f"Configure receptionist client for {cid}",
+                depends_on=deps)]
+
 _EXPANDERS: dict[str, Any] = {
     "location": lambda obj, _: _expand_location(obj),
     "trunk": lambda obj, _: _expand_trunk(obj),
@@ -634,6 +651,7 @@ _EXPANDERS: dict[str, Any] = {
     "call_forwarding": lambda obj, _: _expand_call_forwarding(obj),
     "single_number_reach": lambda obj, _: _expand_single_number_reach(obj),
     "monitoring_list": lambda obj, _: _expand_monitoring_list(obj),
+    "receptionist_config": lambda obj, _: _expand_receptionist_config(obj),
     "device_layout": lambda obj, _: _expand_device_layout(obj),
     "softkey_config": lambda obj, _: _expand_softkey_config(obj),
     "device_settings_template": lambda obj, d: _expand_device_settings_template(obj, d),
