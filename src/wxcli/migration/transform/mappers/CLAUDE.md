@@ -1,6 +1,6 @@
 # mappers/ — CUCM-to-Webex Transform Mappers (Phase 05)
 
-20 mapper classes that read normalized CUCM objects from the store, resolve cross-references, and produce Webex-ready canonical objects. Each mapper extends `Mapper` (base.py) and implements `map(store) -> MapperResult`.
+22 mapper classes that read normalized CUCM objects from the store, resolve cross-references, and produce Webex-ready canonical objects. Each mapper extends `Mapper` (base.py) and implements `map(store) -> MapperResult`.
 
 ## Mapper Contract
 
@@ -49,6 +49,7 @@ Execution order determined by `depends_on` (topological sort):
 
 | Mapper | `name` | Depends on | Produces | Source objects |
 |--------|--------|-----------|---------|----------------|
+| `DeviceSettingsMapper` | `device_settings_mapper` | `device_mapper`, `location_mapper` | `device_settings_template` | `phone`, `device` | Groups phones by (model_family, location), maps CUCM device settings to Webex, generates templates with per-device overrides |
 | `FeatureMapper` | `feature_mapper` | `location_mapper`, `line_mapper`, `user_mapper` | `CanonicalHuntGroup`, `CanonicalCallQueue`, `CanonicalAutoAttendant`, `CanonicalCallPark`, `CanonicalPickupGroup`, `CanonicalPagingGroup`, `CanonicalLocationSchedule`, `CanonicalOperatingMode` | `hunt_pilot`, `hunt_list`, `line_group`, `call_park`, `pickup_group`, `time_schedule`, `time_period` |
 | `WorkspaceMapper` | `workspace_mapper` | `location_mapper` | `CanonicalWorkspace` (common-area phones) | `phone` (raw, `ownerUserName=None`) |
 | `MonitoringMapper` | `monitoring_mapper` | `user_mapper`, `line_mapper` | `CanonicalMonitoringList` | `phone` (raw, `busyLampFields`) |
@@ -100,6 +101,7 @@ Key fields: `is_psk_target`, `device_canonical_id` (set only for per-device obje
 ## Key Gotchas
 
 - **Raw phones vs CanonicalDevice.** Mappers that need `speeddials`, `busyLampFields`, or per-line forwarding call `store.get_objects("phone")` to get raw phone dicts (object_type="phone", canonical_id="phone:{name}"). Do NOT call `store.get_objects("device")` for this — that returns `CanonicalDevice` objects which have already lost the raw AXL fields.
+- **DeviceSettingsMapper requires raw phone data.** Reads `product_specific_config`, `cucm_common_phone_config`, `cucm_user_locale`, etc. from `pre_migration_state` — these fields come from the normalized phone objects, not CanonicalDevice.
 - **`device_id_surface` field.** Added to `CanonicalDevice` and `CanonicalDeviceLayout` in Phase 3. Values: `"cloud"` (9800-series + 8875 PhoneOS phones using cloud `deviceId`) or `"telephony"` (classic MPP phones using `callingDeviceId`). The execute handler uses this to decide which API surface to call.
 - **`device_canonical_id` field on `CanonicalSoftkeyConfig`.** Only set on per-device objects (`is_psk_target=True`). The planner checks `device_canonical_id` presence before adding dependency edges.
 - **PSK slot lowercasing.** The mapper stores `psk_slot` as uppercase (e.g., `"PSK1"`). The execute handler lowercases it when building `softKeyLayout.psk.psk1` keys. The state key list state names in `state_key_lists` are already in Webex format (e.g., `"idle"`, `"progressing"` — NOT CUCM names).

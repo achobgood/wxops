@@ -129,6 +129,12 @@ See §[Auto-Rule Reference](#auto-rule-reference) below for the full treatment �
 **When to change:** Set to a third-party vendor name (e.g., `"Dubber"`, `"Imagicle"`) if the customer uses an external recording platform instead of Webex's built-in recording. Leave as `"Webex"` for most migrations.
 **Consumed by:** `src/wxcli/migration/advisory/advisory_patterns.py:1182` — referenced in the call-recording advisory pattern narrative. The export pipeline reads it from config when generating per-user recording settings.
 
+### enable-device-settings-migration
+
+**Type:** boolean
+**Default:** `true`
+**Effect:** When `false`, DeviceSettingsMapper is skipped entirely. No device_settings_template objects are created and no device settings are applied during execution.
+
 ## Auto-Rule Reference
 
 > Anchor convention for the 7 default rules: `default-rule-` plus the slug-form of the rule's `type` field, with `-<match-key>-<match-value>` appended when a `match` filter is present (e.g., `default-rule-calling-permission-mismatch-assigned-users-count-0`). Validated by `test_default_auto_rules_coverage.py`.

@@ -275,6 +275,21 @@ Custom voicemail greetings stored in Unity Connection cannot be extracted for mi
 **Cascade impact:** Resolving this can change the downstream license-tier recommendation (conference rooms frequently need Professional for MOH/DND APIs).
 **See also:** [`workspace-license-tier`](#workspace-license-tier), [`hotdesk-dn-conflict`](#hotdesk-dn-conflict), [Advisory Patterns §extension-mobility-usage](#extension-mobility-usage).
 
+### device-settings-lossy
+
+**DecisionType:** `DEVICE_SETTINGS_LOSSY`
+**Severity:** MEDIUM
+
+**Trigger:** CUCM device settings that map to Webex with value loss (brightness level → timer enum, DND mode distinction lost, custom wallpapers without TFTP extraction).
+
+**Options:**
+- **Accept fidelity loss** — Apply settings with noted limitations. Most users won't notice the difference.
+- **Manual** — Manually configure affected settings in Control Hub after migration.
+
+**Override criteria:** Accept if the lossy settings are minor (brightness, DND mode). Flag for manual review if custom wallpapers are business-critical or Extension Mobility is actively used.
+
+**Example:** 50 phones with screen brightness set to level 12. Webex only supports timer-based backlight (30s, 1m, 5m, 30m, always on). The brightness level is lost; backlight timer is set to a reasonable default.
+
 ## Advisory Patterns
 
 > One entry per advisory pattern in `ALL_ADVISORY_PATTERNS`, grouped by category (eliminate / rebuild / out-of-scope / migrate-as-is). Anchors match the detector function name with the `detect_` prefix stripped, validated by `test_advisory_pattern_coverage.py`. Two patterns have a `pattern_name` field that differs from their function name (`detect_mixed_css` → `mixed_css_routing_restriction`; `detect_intercluster_trunks` → `intercluster_trunk_detection`); the anchor uses the function name in both cases.

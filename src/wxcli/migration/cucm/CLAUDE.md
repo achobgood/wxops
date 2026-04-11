@@ -50,3 +50,5 @@ Extractors are independent at extraction time — the order is a documentation c
 - **Base station MACs require Cisco Bifrost.** DECT base station MAC validation requires the Cisco manufacturing database — fake MACs fail provisioning. Not an extraction issue but affects test beds.
 - **CTI Route Points use protocol "CTI Route Point"** in AXL — different from standard phone protocols. Use that exact string in `addCTIRoutePoint`.
 - **Pickup group members via `updateLine`**, not `addCallPickupGroup`. Creating a pickup group with `<members>` fails on CUCM 15.0 (null priority FK constraint). The extractor reads the existing members; provisioning test bed uses `updateLine` pattern.
+- **`getPhone` now extracts device-settings fields.** `commonPhoneConfigName`, `productSpecificConfiguration`, `userLocale`, `networkLocale`, `dndOption`, `dndStatus`, and `enableExtensionMobility` are all in `PHONE_GET_RETURNED_TAGS` for the DeviceSettingsMapper.
+- **InformationalExtractor fetches CPC details.** After listing Common Phone Configs, the extractor calls `getCommonPhoneConfig` per item to retrieve `vendorConfig` (model-specific XML settings).
