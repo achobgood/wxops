@@ -127,9 +127,6 @@ def _common_area_phone_with_lines(
     }
     if voicemail_profile:
         state["voiceMailProfile"] = voicemail_profile
-        # Trigger Professional-tier inference even without outgoing permissions
-        state["voicemail_enabled"] = True
-        state["custom_greetings"] = True
     return MigrationObject(
         canonical_id=f"phone:{name}",
         provenance=_prov(name),
@@ -175,7 +172,7 @@ class TestVoicemailExtraction:
     def test_professional_tier_with_vm_profile_emits_enabled(self):
         """Professional-tier workspace with a Unity VM profile gets enabled voicemail."""
         store = MigrationStore(":memory:")
-        store.upsert_object(_common_area_phone_with_lines(
+        phone = _common_area_phone_with_lines(
             "conf-vm",
             lines=[{
                 "index": 1,
@@ -186,7 +183,9 @@ class TestVoicemailExtraction:
                 },
             }],
             voicemail_profile="Default VM",
-        ))
+        )
+        phone.pre_migration_state["outgoing_call_permissions"] = True
+        store.upsert_object(phone)
 
         WorkspaceMapper().map(store)
 

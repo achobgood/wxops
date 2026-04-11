@@ -19,7 +19,6 @@ Decisions generated:
 from __future__ import annotations
 
 import logging
-import math
 from typing import Any
 
 from wxcli.migration.models import (
@@ -39,6 +38,7 @@ from wxcli.migration.transform.mappers.base import (
     manual_option,
     skip_option,
 )
+from wxcli.migration.transform.mappers.call_forwarding_mapper import _duration_to_rings
 
 logger = logging.getLogger(__name__)
 
@@ -349,10 +349,7 @@ def _extract_workspace_call_settings(
             cfna = first_line.get("callForwardNoAnswer") or {}
             if cfna.get("forwardToVoiceMail") in ("true", True):
                 duration = cfna.get("duration")
-                try:
-                    rings = max(2, min(20, math.ceil(int(duration) / 6))) if duration else 3
-                except (ValueError, TypeError):
-                    rings = 3
+                rings = _duration_to_rings(duration) or 3
                 vm_body["sendUnansweredCalls"] = {
                     "enabled": True,
                     "numberOfRings": rings,
