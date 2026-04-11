@@ -35,6 +35,10 @@ PHONE_GET_RETURNED_TAGS = {
     'phoneTemplateName': '', 'softkeyTemplateName': '', 'deviceMobilityMode': '',
     'product': '', 'class': '', 'lines': '',
     'speeddials': '', 'busyLampFields': '',
+    # Device settings fields (for DeviceSettingsMapper)
+    'commonPhoneConfigName': '', 'productSpecificConfiguration': '',
+    'userLocale': '', 'networkLocale': '',
+    'dndOption': '', 'dndStatus': '', 'enableExtensionMobility': '',
 }
 
 
