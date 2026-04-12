@@ -315,6 +315,24 @@ class FeatureMapper(Mapper):
                 store, unique_members, hp_data.get("provenance")
             )
 
+            # --- Extract forwarding destinations (top-level on hunt pilot) ---
+            fwd_no_answer = hp_state.get("forwardHuntNoAnswer") or {}
+            fwd_busy = hp_state.get("forwardHuntBusy") or {}
+            forward_no_answer_dest = fwd_no_answer.get("destination") or None
+            forward_busy_dest = fwd_busy.get("destination") or None
+
+            # --- Extract queue overflow destinations (nested in queueCalls) ---
+            queue_calls_for_overflow = hp_state.get("queueCalls") or {}
+            queue_full_dest = queue_calls_for_overflow.get("queueFullDestination") or None
+            max_wait_dest = queue_calls_for_overflow.get("maxWaitTimeDestination") or None
+            no_agent_dest = queue_calls_for_overflow.get("noAgentDestination") or None
+            max_wait_time_val = queue_calls_for_overflow.get("maxWaitTime")
+            if max_wait_time_val is not None:
+                try:
+                    max_wait_time_val = int(max_wait_time_val)
+                except (ValueError, TypeError):
+                    max_wait_time_val = None
+
             if classification == "CALL_QUEUE":
                 # --- Produce CanonicalCallQueue ---
                 # maxCallersInQueue is nested in queueCalls (XCallsQueue)
@@ -340,6 +358,12 @@ class FeatureMapper(Mapper):
                     queue_size=queue_size,
                     enabled=hp_state.get("enabled", True),
                     location_id=location_id,
+                    forward_always_enabled=False,
+                    forward_always_destination=None,
+                    queue_full_destination=queue_full_dest,
+                    max_wait_time_destination=max_wait_dest,
+                    max_wait_time=max_wait_time_val,
+                    no_agent_destination=no_agent_dest,
                 )
                 store.upsert_object(cq)
                 result.objects_created += 1
@@ -363,6 +387,10 @@ class FeatureMapper(Mapper):
                     no_answer_rings=no_answer_rings,
                     enabled=hp_state.get("enabled", True),
                     location_id=location_id,
+                    forward_no_answer_enabled=bool(forward_no_answer_dest),
+                    forward_no_answer_destination=forward_no_answer_dest,
+                    forward_busy_enabled=bool(forward_busy_dest),
+                    forward_busy_destination=forward_busy_dest,
                 )
                 store.upsert_object(hg)
                 result.objects_created += 1
@@ -504,6 +532,11 @@ class FeatureMapper(Mapper):
                 ],
             }
 
+            # Extract call-forward-all destination from CTI Route Point
+            # (CUCM CallForwardAll is the closest analogue to a Webex AA always-forward)
+            cfa = cti_state.get("callForwardAll") or {}
+            cfa_destination = cfa.get("destination") or None
+
             aa = CanonicalAutoAttendant(
                 canonical_id=f"auto_attendant:{hash_id(cti_id)}",
                 provenance=extract_provenance(cti_data),
@@ -513,6 +546,8 @@ class FeatureMapper(Mapper):
                 business_schedule=business_schedule,
                 business_hours_menu=business_hours_menu,
                 after_hours_menu=after_hours_menu,
+                forward_always_enabled=bool(cfa_destination),
+                forward_always_destination=cfa_destination,
             )
             store.upsert_object(aa)
             result.objects_created += 1
