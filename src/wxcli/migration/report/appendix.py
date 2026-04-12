@@ -77,6 +77,7 @@ def generate_appendix(store: MigrationStore) -> str:
         ("Y", _intercept_candidates(store)),
         ("Z", _executive_assistant_group(store)),
         ("AA", _receptionist_group(store)),
+        ("AB", _selective_call_handling(store)),
     ]
     # Filter out empty sections
     sections = [(letter, section_html) for letter, section_html in sections if section_html]
@@ -1952,4 +1953,78 @@ def _receptionist_group(store: MigrationStore) -> str:
         '</div></details>',
     ])
 
+    return "\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# AB. Selective Call Handling Opportunities
+# ---------------------------------------------------------------------------
+
+_SCH_PATTERN_DISPLAY = {
+    "multi_partition_dn": "Multi-Partition DN",
+    "low_membership_partition": "Low-Membership Partition",
+    "naming_convention": "Naming Convention",
+}
+
+
+def _selective_call_handling(store: MigrationStore) -> str:
+    """AB. Selective Call Handling Opportunities — CUCM CSS patterns."""
+    candidates: list[dict[str, Any]] = []
+    for d in store.get_all_decisions():
+        if d.get("type") != "FEATURE_APPROXIMATION":
+            continue
+        if d.get("chosen_option") == "__stale__":
+            continue
+        ctx = d.get("context", {}) or {}
+        pattern = ctx.get("selective_call_handling_pattern")
+        if not pattern:
+            continue
+        candidates.append(d)
+
+    if not candidates:
+        return ""
+
+    parts = [
+        '<details id="selective-call-handling">',
+        f'<summary>AB. Selective Call Handling '
+        f'<span class="summary-count">— {len(candidates)} candidate(s)</span>'
+        f'</summary>',
+        '<div class="details-content">',
+        '<p>CUCM CSS/partition patterns suggest caller-specific routing. '
+        'Webex Calling offers four explicit per-person features that can '
+        'replicate this behaviour: Selective Forward, Selective Accept, '
+        'Selective Reject, and Priority Alert. The first three are '
+        'admin-configurable; Priority Alert requires per-user OAuth.</p>',
+        '<table>',
+        '<thead><tr>'
+        '<th>Affected Object</th>'
+        '<th>Pattern Type</th>'
+        '<th>Partitions</th>'
+        '<th>Recommended Webex Feature</th>'
+        '</tr></thead>',
+        '<tbody>',
+    ]
+
+    for d in sorted(candidates, key=lambda x: x.get("decision_id", "")):
+        ctx = d.get("context", {}) or {}
+        pattern = ctx.get("selective_call_handling_pattern", "")
+        pattern_display = _SCH_PATTERN_DISPLAY.get(
+            pattern, pattern.replace("_", " ").title()
+        )
+        affected_ids = ctx.get("_affected_objects", []) or []
+        affected_display = ", ".join(
+            strip_canonical_id(obj_id) for obj_id in affected_ids
+        ) or "—"
+        partitions = ", ".join(ctx.get("partitions", [])) or "—"
+        feature = ctx.get("recommended_webex_feature", "—")
+        parts.append(
+            f'<tr>'
+            f'<td>{html.escape(affected_display)}</td>'
+            f'<td>{html.escape(pattern_display)}</td>'
+            f'<td>{html.escape(partitions)}</td>'
+            f'<td>{html.escape(feature)}</td>'
+            f'</tr>'
+        )
+
+    parts.extend(['</tbody></table>', '</div></details>'])
     return "\n".join(parts)
