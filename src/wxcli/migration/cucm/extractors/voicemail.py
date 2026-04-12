@@ -74,6 +74,9 @@ class VoicemailExtractor(BaseExtractor):
             result
         )
 
+        # Shared/group mailboxes (Unity Connection only — skipped without client)
+        self.results["shared_mailboxes"] = self._extract_shared_mailboxes(result)
+
         return result
 
     # ------------------------------------------------------------------
@@ -150,6 +153,35 @@ class VoicemailExtractor(BaseExtractor):
             result.errors.append(msg)
 
         return pilots
+
+    # ------------------------------------------------------------------
+    # Unity Connection shared mailboxes
+    # ------------------------------------------------------------------
+
+    def _extract_shared_mailboxes(
+        self, result: ExtractionResult
+    ) -> list[dict[str, Any]]:
+        """Fetch Unity Connection shared/group call handlers via CUPI.
+
+        Returns an empty list when no Unity Connection client was
+        configured. Errors are logged but do not fail discovery.
+        """
+        if self.unity_client is None:
+            logger.info(
+                "[%s] No Unity Connection client — "
+                "skipping shared mailbox extraction",
+                self.name,
+            )
+            return []
+        try:
+            mailboxes = self.unity_client.extract_shared_mailboxes()
+        except Exception as exc:
+            msg = f"Unity shared mailbox extraction failed: {exc}"
+            logger.error("[%s] %s", self.name, msg)
+            result.errors.append(msg)
+            return []
+        result.total += len(mailboxes)
+        return mailboxes
 
     # ------------------------------------------------------------------
     # Unity Connection per-user settings

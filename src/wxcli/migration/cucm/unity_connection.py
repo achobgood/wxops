@@ -216,6 +216,57 @@ class UnityConnectionClient:
         return result
 
     # ------------------------------------------------------------------
+    # Shared/group mailbox discovery
+    # ------------------------------------------------------------------
+
+    def extract_shared_mailboxes(self) -> list[dict[str, Any]]:
+        """Extract Unity Connection shared/group call handlers.
+
+        Queries /vmrest/handlers/callhandlers and filters to non-primary
+        handlers (IsPrimary=false). Primary handlers are per-user mailboxes
+        already covered by extract_user_vm_settings. Non-primary handlers
+        are shared/group mailboxes (sales@, support@, etc.).
+
+        Returns an empty list on error or when CUPI is unreachable —
+        callers should treat absence as "Unity Connection not available"
+        rather than "no shared mailboxes exist".
+        """
+        try:
+            resp = self.session.get(
+                f"{self.base_url}/handlers/callhandlers",
+            )
+        except Exception as exc:
+            logger.warning("CUPI shared-mailbox query failed: %s", exc)
+            return []
+
+        if resp.status_code != 200:
+            logger.warning(
+                "CUPI shared-mailbox query returned %s", resp.status_code
+            )
+            return []
+
+        data = resp.json() if callable(getattr(resp, "json", None)) else {}
+        handlers = data.get("Callhandler", [])
+        # CUPI returns a bare dict when exactly one handler exists.
+        if isinstance(handlers, dict):
+            handlers = [handlers]
+
+        # Filter out primary (per-user) handlers — we only want shared ones.
+        shared: list[dict[str, Any]] = []
+        for h in handlers:
+            if not isinstance(h, dict):
+                continue
+            is_primary = str(h.get("IsPrimary", "false")).lower() == "true"
+            if is_primary:
+                continue
+            shared.append(h)
+
+        logger.info(
+            "Extracted %d Unity Connection shared mailbox(es)", len(shared)
+        )
+        return shared
+
+    # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
 
