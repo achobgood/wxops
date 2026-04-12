@@ -194,6 +194,51 @@ def _optimize_for_bulk(
             depends_on=dep_node_ids,
         ))
 
+    # ---- Dynamic device settings (PSK) aggregation ----
+    psk_groups: dict[str, list[str]] = {}  # location_cid → device_cids
+    softkey_ops_to_remove: set[str] = set()
+
+    for op in ops:
+        if op.resource_type != "softkey_config" or op.op_type != "configure":
+            continue
+        sk_obj = store.get_object(op.canonical_id)
+        if not sk_obj:
+            continue
+        sk_data = sk_obj.model_dump() if hasattr(sk_obj, "model_dump") else sk_obj
+        if not sk_data.get("is_psk_target"):
+            continue
+        device_cid = sk_data.get("device_canonical_id") or ""
+        if not device_cid:
+            continue
+        device_obj = store.get_object(device_cid)
+        if not device_obj:
+            continue
+        dev_data = device_obj.model_dump() if hasattr(device_obj, "model_dump") else device_obj
+        loc_cid = dev_data.get("location_canonical_id") or "org-wide"
+        psk_groups.setdefault(loc_cid, []).append(device_cid)
+        softkey_ops_to_remove.add(op.canonical_id)
+
+    result = [
+        o for o in result
+        if not (o.resource_type == "softkey_config"
+                and o.op_type == "configure"
+                and o.canonical_id in softkey_ops_to_remove)
+    ]
+
+    for loc_cid, device_cids in sorted(psk_groups.items()):
+        bulk_cid = f"bulk_dynamic_settings:{loc_cid}"
+        dep_node_ids = [_node_id(dc, "create") for dc in device_cids]
+        result.append(MigrationOp(
+            canonical_id=bulk_cid,
+            op_type="submit",
+            resource_type="bulk_dynamic_settings",
+            tier=TIER_ASSIGNMENTS[("bulk_dynamic_settings", "submit")],
+            batch=loc_cid if loc_cid != "org-wide" else None,
+            api_calls=API_CALL_ESTIMATES["bulk_dynamic_settings:submit"],
+            description=f"Bulk apply PSK/dynamic settings at {loc_cid}",
+            depends_on=dep_node_ids,
+        ))
+
     return result
 
 

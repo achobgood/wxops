@@ -197,3 +197,43 @@ class TestLineKeyTemplateAggregation:
             "bulk_line_key_template:tpl-a:location:loc-2",
             "bulk_line_key_template:tpl-b:location:loc-2",
         }
+
+
+from wxcli.migration.models import CanonicalSoftkeyConfig
+
+
+class TestDynamicSettingsAggregation:
+    def test_groups_softkey_configs_by_location(self, store, device_factory):
+        for i in range(110):
+            dev = device_factory(f"device:d{i}", location_cid="location:loc-1")
+            store.upsert_object(dev)
+            store.upsert_object(CanonicalSoftkeyConfig(
+                canonical_id=f"softkey_config:d{i}",
+                device_canonical_id=f"device:d{i}",
+                is_psk_target=True,
+                psk_mappings=[{"psk": "PSK1", "fnc": "sd", "ext": "1000"}],
+                provenance=dev.provenance,
+            ))
+
+        ops = []
+        for i in range(110):
+            ops.append(_op(f"device:d{i}", "create", "device",
+                            tier=3, batch="location:loc-1"))
+            ops.append(_op(f"softkey_config:d{i}", "configure",
+                            "softkey_config", tier=7))
+
+        result = _optimize_for_bulk(ops, store, threshold=100)
+
+        softkey_ops = [
+            o for o in result
+            if o.resource_type == "softkey_config" and o.op_type == "configure"
+        ]
+        assert softkey_ops == []
+
+        bulk_dyn = [
+            o for o in result
+            if o.resource_type == "bulk_dynamic_settings" and o.op_type == "submit"
+        ]
+        assert len(bulk_dyn) == 1
+        assert bulk_dyn[0].tier == 7
+        assert bulk_dyn[0].batch == "location:loc-1"
