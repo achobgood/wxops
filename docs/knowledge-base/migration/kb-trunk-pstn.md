@@ -239,6 +239,30 @@ The split result preserves regional DID bindings. Dial plans that previously poi
 
 `detect_route_list_complexity` (Pattern 32, `advisory_patterns.py`) fires as a MEDIUM/HIGH cross-cutting advisory when any route list in the store has multiple route group members. HIGH fires when every route list is multi-member (entire routing layer needs decisions). MEDIUM fires when a mix of single-member and multi-member route lists exists. The advisory quantifies total Webex route list count under each option so the operator understands scope before reaching individual per-list FEATURE_APPROXIMATION decisions in the review queue.
 
+## Route Lists
+
+**Prior assumption was wrong:** The pipeline previously assumed Webex Calling had no route list support. Webex has full route list CRUD at `/telephony/config/premisePstn/routeLists`.
+
+CUCM route lists wrap multiple route groups in priority order for PSTN failover. Webex route lists bind to exactly ONE route group (no multi-member failover within a single route list).
+
+**Migration mapping:**
+- CUCM route list with 1 route group → direct 1:1 mapping to Webex route list
+- CUCM route list with 2+ route groups → FEATURE_APPROXIMATION decision. Options:
+  1. Split into N route lists (one per route group) — preserves all paths but loses priority ordering
+  2. Use first route group only — preserves primary path, loses failover
+  3. Skip route list — route patterns point to route groups directly
+
+**Dependency chain:** Trunk → Route Group → Route List → Dial Plan
+
+**Webex RouteType constraint:** Dial plans reference targets by RouteType enum which includes `ROUTE_GROUP` and `TRUNK`. Whether `ROUTE_LIST` is a valid RouteType needs live API verification. If not, route lists exist as standalone resources but cannot be dial plan targets — they serve only as an organizational wrapper.
+
+### Dissent Triggers
+
+| ID | Condition | Recommendation | Confidence |
+|----|-----------|---------------|------------|
+| DT-TRUNK-008 | Route list has 3+ route group members | Flag for manual review — static "use first route group" heuristic may select the wrong primary. Operator should verify which route group handles the majority of traffic before accepting. | 0.80 |
+| DT-TRUNK-009 | Route list referenced by 5+ dial plans | Route list is a critical shared resource. Splitting it affects all referencing dial plans. Recommend operator maps the full dial plan → route list → route group topology before deciding. | 0.85 |
+
 ## See Also
 
 - `docs/reference/call-routing.md` -- Full Webex call routing API reference (trunks, route groups, dial plans, translation patterns, PSTN config)

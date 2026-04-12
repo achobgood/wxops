@@ -303,3 +303,27 @@ The migration pipeline maps CUCM device-level settings (productSpecificConfigura
 | 1 | "42-model replacement map" in `recommend_device_incompatible()` | Partial | `recommendation_rules.py` lines 191-220 | Map has **28 keys** (26 unique models after normalizing ATA spacing variants: `ATA 190`/`ATA190`, `ATA 191`/`ATA191`). Not 42. The map covers 79xx (16 keys), 69xx (6 keys), 7832 (1 key), ATA (4 keys, 2 unique). |
 | 2 | Activation code provisioning flow | Verified | `devices-core.md` §1.3, §1.5, §6 | `activation_code()` method documented with workspace/person/model params, `ActivationCodeResponse` model, CLI `create-activation-code` command, and Raw HTTP `POST /devices/activationCode`. |
 | 3 | Hot desking requires Professional workspace license | Corrected | `devices-workspaces.md` gotcha #6, #10; `wxcadm-devices-workspaces.md` line 654 | Hot desking uses its own **`hotdesk` license type**, distinct from both Basic (`workspace`) and Professional. However, most `/telephony/config/workspaces/` settings DO require Professional. The claim as stated is imprecise -- hot desking requires a hot desk license, not specifically "Professional". |
+
+---
+
+## DECT Migration
+
+CUCM DECT phones (6823, 6825, 6825ip) register as regular SIP phones via AXL. Webex Calling DECT uses a hierarchical provisioning model:
+
+**CUCM** (flat): Phone → Device Pool → Location
+**Webex** (hierarchical): DECT Network → Base Station → Handset → User
+
+There is no 1:1 AXL-to-Webex mapping. The migration pipeline detects DECT handsets by model name during discovery and classifies them separately from desk phones. Base station topology and coverage zones are not discoverable from AXL — they require supplemental operator input via `--dect-inventory` CSV.
+
+**Phase 1 (Detection):** Advisory-only. Reports DECT handset count, model distribution, and estimated base station needs. Does NOT provision anything.
+
+**Phase 2 (Provisioning):** Creates DECT networks, registers base stations (requires physical MAC from supplemental inventory), and binds handsets to users. Handset registration requires the physical device to be powered on and in range of a registered base station.
+
+**Key constraint:** DECT base station MAC addresses are NOT in CUCM AXL. They must be provided separately. Without them, Phase 2 cannot execute.
+
+### Dissent Triggers
+
+| ID | Condition | Recommendation | Confidence |
+|----|-----------|---------------|------------|
+| DT-DEVICE-010 | DECT handsets > 20% of total phone inventory | Escalate to HIGH — operator may underestimate DECT migration effort. DECT requires physical site survey for base station placement that desk phone migration does not. | 0.85 |
+| DT-DEVICE-011 | DECT handsets detected but no supplemental inventory provided | Block execution — cannot provision DECT networks without base station MACs. Advisory should explicitly state this blocker. | 0.95 |
