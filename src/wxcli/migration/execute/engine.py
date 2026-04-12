@@ -401,37 +401,40 @@ async def run_batch_ops(
     sequentially; all others run concurrently via ``asyncio.gather``.
     Bulk ops dispatch to ``execute_bulk_op``; non-bulk ops use
     ``execute_single_op``.
+
+    Results are returned in the same order as the input tasks list so
+    that callers can zip(tasks, results) without misalignment.
     """
     from wxcli.migration.execute import SERIALIZED_RESOURCE_TYPES
 
-    parallel_tasks: list = []
-    serial_tasks: list = []
-    for t in tasks:
+    results: list[OpResult | None] = [None] * len(tasks)
+
+    parallel_indexed: list[tuple[int, dict]] = []
+    serial_indexed: list[tuple[int, dict]] = []
+    for idx, t in enumerate(tasks):
         op = t["op"]
         if op["resource_type"] in SERIALIZED_RESOURCE_TYPES:
-            serial_tasks.append(t)
+            serial_indexed.append((idx, t))
         else:
-            parallel_tasks.append(t)
-
-    results: list[OpResult] = []
+            parallel_indexed.append((idx, t))
 
     # Kick off parallel ops
-    parallel_coros = []
-    for t in parallel_tasks:
-        op = t["op"]
-        parallel_coros.append(
-            execute_single_op(session, op["node_id"], t["calls"], semaphore)
-        )
-    if parallel_coros:
+    if parallel_indexed:
+        parallel_coros = [
+            execute_single_op(session, t["op"]["node_id"], t["calls"], semaphore)
+            for _, t in parallel_indexed
+        ]
         parallel_results = await asyncio.gather(*parallel_coros, return_exceptions=True)
-        for res in parallel_results:
+        for (idx, t), res in zip(parallel_indexed, parallel_results):
             if isinstance(res, Exception):
-                results.append(OpResult(node_id="?", status=0, error=str(res), body={}))
+                results[idx] = OpResult(
+                    node_id=t["op"]["node_id"], status=0, error=str(res), body={},
+                )
             else:
-                results.append(res)
+                results[idx] = res
 
     # Then serial bulk ops, one at a time
-    for t in serial_tasks:
+    for idx, t in serial_indexed:
         op = t["op"]
         try:
             res = await execute_bulk_op(
@@ -446,9 +449,10 @@ async def run_batch_ops(
             )
         except Exception as e:
             res = OpResult(node_id=op["node_id"], status=0, error=str(e), body={})
-        results.append(res)
+        results[idx] = res
 
-    return results
+    # At this point every slot should be filled; cast for the return type
+    return [r for r in results if r is not None]  # type: ignore[misc]
 
 
 async def execute_all_batches(
