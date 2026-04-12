@@ -320,3 +320,78 @@ class TestLowMembershipPartition:
             if d.context.get("selective_call_handling_pattern") == "low_membership_partition"
         ]
         assert sch == []
+
+
+class TestNamingConvention:
+    def test_partition_named_vip_with_structural_signal_high(self, tmp_path):
+        """VIP-named partition that ALSO matches low-membership → MEDIUM severity."""
+        store = _store(tmp_path)
+        # Reuse the seeding helper that puts the partition in a strict subset
+        _seed_partition_with_dns(
+            store,
+            partition_name="VIP_PT",
+            dn_count=2,
+            in_csses=["CSS_VIP"],
+            all_css_names=["CSS_All", "CSS_Internal", "CSS_External", "CSS_VIP"],
+        )
+
+        analyzer = SelectiveCallHandlingAnalyzer()
+        decisions = analyzer.analyze(store)
+
+        # The naming convention heuristic should NOT add a duplicate decision
+        # when the same partition was already covered by low_membership.
+        sch = [
+            d for d in decisions
+            if d.context.get("selective_call_handling_pattern") == "naming_convention"
+        ]
+        # No duplicate naming decision when structural already fired
+        assert sch == []
+
+        # And the structural decision should still be present at MEDIUM severity
+        struct = [
+            d for d in decisions
+            if d.context.get("selective_call_handling_pattern") == "low_membership_partition"
+        ]
+        assert len(struct) == 1
+        assert struct[0].severity == "MEDIUM"
+
+    def test_partition_named_vip_only_low_severity(self, tmp_path):
+        """VIP-named partition with no structural signal → LOW severity name-only."""
+        store = _store(tmp_path)
+        # 50 DNs in this partition disqualifies the structural heuristic
+        _seed_partition_with_dns(
+            store,
+            partition_name="Executive_PT",
+            dn_count=50,
+            in_csses=["CSS_All"],
+            all_css_names=["CSS_All"],
+        )
+
+        analyzer = SelectiveCallHandlingAnalyzer()
+        decisions = analyzer.analyze(store)
+
+        sch = [
+            d for d in decisions
+            if d.context.get("selective_call_handling_pattern") == "naming_convention"
+        ]
+        assert len(sch) == 1
+        d = sch[0]
+        assert d.severity == "LOW"
+        assert "Executive_PT" in d.context["partitions"]
+        assert d.context["confidence"] == "LOW"
+        assert d.context["recommended_webex_feature"] == "Priority Alert"
+
+    def test_neutral_named_partition_silent(self, tmp_path):
+        """Partition with no VIP keyword and no structural signal → no decision."""
+        store = _store(tmp_path)
+        _seed_partition_with_dns(
+            store,
+            partition_name="PT_Standard",
+            dn_count=20,
+            in_csses=["CSS_All"],
+            all_css_names=["CSS_All"],
+        )
+
+        analyzer = SelectiveCallHandlingAnalyzer()
+        decisions = analyzer.analyze(store)
+        assert decisions == []
