@@ -1770,6 +1770,77 @@ result = api.session.rest_get(f"{BASE}/telephony/config/devices/dectNetworks/sup
 
 ---
 
+## Bulk Device Jobs
+
+Four bulk job endpoints replace hundreds of per-device API calls with a
+single job submission. Used by the CUCM migration engine when the device
+count meets `bulk_device_threshold` (see the tuning reference).
+
+### Apply Line Key Template
+
+```
+POST /v1/telephony/config/jobs/devices/applyLineKeyTemplate
+Scope: spark-admin:telephony_config_write
+```
+
+Body: `{"action": "APPLY_TEMPLATE", "templateId": "...", "locationIds": ["...", ...]}`
+Also accepts `excludeDevicesWithCustomLayout`, `includeDeviceTags`, `excludeDeviceTags`, and `advisoryTypes`.
+
+Response 202: `{"id": "JOB_ID", "latestExecutionStatus": "STARTING", ...}`
+
+### Change Device Settings
+
+```
+POST /v1/telephony/config/jobs/devices/callDeviceSettings
+```
+
+Body: `{"locationId": "...", "locationCustomizationsEnabled": true, "customizations": {"mpp": {...}, "ata": {...}, "dect": {...}}}`
+
+**Constraint:** one job per customer per org at a time — 409 if another is running.
+
+### Rebuild Phones
+
+```
+POST /v1/telephony/config/jobs/devices/rebuildPhones
+```
+
+Body: `{"locationId": "..."}`
+
+**Not supported for Webex for Government.**
+
+### Update Dynamic Device Settings
+
+```
+POST /v1/telephony/config/jobs/devices/dynamicDeviceSettings
+```
+
+Body: `{"locationId": "", "tags": [{"familyOrModelDisplayName": "Cisco 9861", "tag": "%SOFTKEY_LAYOUT_PSK1%", "action": "SET", "value": "fnc=sd;ext=1234"}]}`
+
+**Constraint:** cannot run in parallel with callDeviceSettings or rebuildPhones on the same org.
+
+### Job Status & Errors
+
+All four jobs share polling endpoints:
+
+```
+GET /v1/telephony/config/jobs/devices/{jobType}/{jobId}
+GET /v1/telephony/config/jobs/devices/{jobType}/{jobId}/errors
+GET /v1/telephony/config/jobs/devices/{jobType}
+```
+
+Where `{jobType}` is `applyLineKeyTemplate`, `callDeviceSettings`, `dynamicDeviceSettings`, or `rebuildPhones`.
+
+**Job status lifecycle:** STARTING → STARTED → COMPLETED (exitCode COMPLETED or FAILED).
+
+### Bulk Job Gotchas
+
+- **One-job-at-a-time.** `callDeviceSettings`, `dynamicDeviceSettings`, and `rebuildPhones` return 409 if another of the same family is already running in the org. The CUCM migration engine serializes all four in a single tier to avoid this.
+- **Partial failures are common at scale.** The errors endpoint returns per-device failures (`{itemId, trackingId, error: {key, message}}`). The migration engine auto-falls-back to per-device handlers for failed items — other consumers should implement similar logic.
+- **FedRAMP.** `rebuildPhones` is explicitly unsupported for Webex for Government.
+- **`locationId` semantics for `dynamicDeviceSettings`.** Empty string means org-wide; any non-empty value scopes to a single location. Omitting the key is an error.
+
+---
+
 ## See Also
 
 - **[devices-dect.md](devices-dect.md)** — DECT network, base station, and handset management. DECT devices are excluded from `device_settings` / `update_device_settings` in this doc; DECT-specific management lives there.
