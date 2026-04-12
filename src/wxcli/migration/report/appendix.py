@@ -240,6 +240,10 @@ def _e911_readiness(store: MigrationStore) -> str:
         elif t == "E911_LOCATION_MISMATCH":
             mismatch += 1
 
+    # Skip section entirely when there is nothing to report.
+    if not ecbn_configs and ambiguous == 0 and mismatch == 0:
+        return ""
+
     if not ecbn_configs:
         status_label = "SKIP"
         status_class = "badge-info"
