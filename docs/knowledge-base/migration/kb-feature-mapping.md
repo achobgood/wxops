@@ -221,4 +221,13 @@ AA with 4-8 key options, each transferring to a department Hunt Group or Call Qu
 - CUCM: hunt pilots can have per-queue MoH. Webex: MoH is location-level only — no per-queue MoH. This is a feature gap if different queues in the same location use different MoH sources.
 - Webex max file size: 8 MB per announcement, 500 MB org total.
 
-**Cross-reference:** The `_build_audio_refs` method in `cross_reference.py` builds `feature_uses_moh_source` cross-refs from hunt pilot `networkHoldMohAudioSourceID` to music_on_hold canonical IDs. These refs feed the `detect_custom_audio_assets` advisory pattern (Pattern 28) and populate the Audio Assets appendix section (Appendix I) in the assessment report.
+**Cross-reference:** The `_build_audio_refs` method in `cross_reference.py` builds `feature_uses_moh_source` cross-refs from hunt pilot `networkHoldMohAudioSourceID` to music_on_hold canonical IDs. These refs feed the `detect_custom_audio_assets` advisory pattern (Pattern 30) and populate the Audio Assets appendix section (Appendix I) in the assessment report.
+
+## Selective Call Handling Feature Mapping
+
+| CUCM Pattern | Detection Source | Webex Feature | Migration Path |
+|---|---|---|---|
+| Selective Forward | CSS/partition analysis heuristic | Selective Forward (admin) | Advisory only — operator configures post-migration |
+| Selective Accept | CSS/partition analysis heuristic | Selective Accept (admin) | Advisory only — operator configures post-migration |
+| Selective Reject | CSS/partition analysis heuristic | Selective Reject (admin) | Advisory only — operator configures post-migration |
+| Priority Alert | CSS/partition analysis heuristic | Priority Alert (user-only) | Cannot be configured via admin token |
