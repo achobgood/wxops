@@ -49,6 +49,7 @@ from wxcli.migration.transform.mappers.call_settings_mapper import CallSettingsM
 from wxcli.migration.transform.mappers.executive_assistant_mapper import ExecutiveAssistantMapper
 from wxcli.migration.transform.mappers.device_settings_mapper import DeviceSettingsMapper
 from wxcli.migration.transform.mappers.receptionist_mapper import ReceptionistMapper
+from wxcli.migration.transform.mappers.voicemail_group_mapper import VoicemailGroupMapper
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +70,7 @@ MAPPER_ORDER: list[type[Mapper]] = [
     DeviceMapper,         # Tier 3 (depends on users, lines)
     DeviceSettingsMapper, # Tier 3: after DeviceMapper, before other dependent mappers
     FeatureMapper,        # Tier 4 (depends on users, lines, locations)
+    VoicemailGroupMapper, # Tier 4 (depends on locations + features — runs after FeatureMapper)
     CSSMapper,            # Tier 5 (depends on routing_mapper output)
     VoicemailMapper,      # Tier 5 (depends on users)
     CallForwardingMapper, # Tier 6 (depends on users, phones/device cross-refs)
