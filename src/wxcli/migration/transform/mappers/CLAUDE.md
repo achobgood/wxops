@@ -51,7 +51,7 @@ Execution order determined by `depends_on` (topological sort):
 |--------|--------|-----------|---------|----------------|
 | `DeviceSettingsMapper` | `device_settings_mapper` | `device_mapper`, `location_mapper` | `device_settings_template` | `phone`, `device` | Groups phones by (model_family, location), maps CUCM device settings to Webex, generates templates with per-device overrides |
 | `FeatureMapper` | `feature_mapper` | `location_mapper`, `line_mapper`, `user_mapper` | `CanonicalHuntGroup`, `CanonicalCallQueue`, `CanonicalAutoAttendant`, `CanonicalCallPark`, `CanonicalPickupGroup`, `CanonicalPagingGroup`, `CanonicalLocationSchedule`, `CanonicalOperatingMode` | `hunt_pilot`, `hunt_list`, `line_group`, `call_park`, `pickup_group`, `time_schedule`, `time_period` |
-| `WorkspaceMapper` | `workspace_mapper` | `location_mapper` | `CanonicalWorkspace` (common-area phones) | `phone` (raw, `ownerUserName=None`) |
+| `WorkspaceMapper` | `workspace_mapper` | `location_mapper` | `CanonicalWorkspace` (common-area phones) with `call_settings` populated from raw phone state | `phone` (raw, `ownerUserName=None`) |
 | `MonitoringMapper` | `monitoring_mapper` | `user_mapper`, `line_mapper` | `CanonicalMonitoringList` | `phone` (raw, `busyLampFields`) |
 | `CallForwardingMapper` | `call_forwarding_mapper` | `user_mapper`, `line_mapper` | `CanonicalCallForwarding` | `phone` (raw, per-line forwarding) |
 | `CallSettingsMapper` | `call_settings_mapper` | `user_mapper` | (call settings enrichment) | `user` | Also detects intercept candidates via `user_has_intercept_signal` cross-ref (Pass 2 — independent of phone iteration) |
