@@ -11,18 +11,18 @@ All 11 phases complete. **1642 tests passing.** Wired into the CLI as `wxcli cuc
 | `docs/plans/cucm-pipeline/01-07 + 03b` | 8 detailed architecture docs |
 | `src/wxcli/commands/cucm.py` | Phases 08+10 — CLI: 16 commands (init, discover, normalize, map, analyze, plan, preflight, decisions, decide, export, inventory, status, config, user-diff, user-notice, report) |
 | `src/wxcli/commands/cucm_config.py` | Phase 08 — Config management helpers |
-| `models.py` | Canonical data models — 28 types, DecisionType (22 values), Decision, MapperResult, TransformResult |
+| `models.py` | Canonical data models — 28 types, DecisionType (24 values), Decision, MapperResult, TransformResult |
 | `store.py` | SQLite-backed store — objects, cross_refs, decisions, journal, merge_log, merge_decisions() |
 | `cucm/` | Phase 03 — AXL connection, 9 extractors, discovery pipeline |
 | `transform/normalizers.py` | Phase 04 — 40 Pass 1 normalizers |
 | `transform/cross_reference.py` | Phase 04 — CrossReferenceBuilder (30 relationships + 3 enrichments) |
 | `transform/pipeline.py` | Phase 04 — `normalize_discovery()` entry point |
-| `transform/mappers/` | Phase 05 — 22 mappers + base.py (announcement, button_template, call_forwarding, call_settings, css, device, device_layout, device_profile, e911, executive_assistant, feature, line, location, moh, monitoring, receptionist, routing, snr, softkey, user, voicemail, workspace) |
+| `transform/mappers/` | Phase 05 — 23 mappers + base.py (announcement, button_template, call_forwarding, call_settings, css, device, device_layout, device_profile, e911, ecbn, executive_assistant, feature, line, location, moh, monitoring, receptionist, routing, snr, softkey, user, voicemail, workspace) |
 | `transform/analyzers/` | Phase 06 — 13 analyzers (css_permission, css_routing, device_compatibility, dn_ambiguity, duplicate_user, extension_conflict, feature_approximation, layout_overflow, location_ambiguity, missing_data, shared_line, voicemail_compatibility, workspace_license) |
 | `transform/analysis_pipeline.py` | Phase 06 — Orchestrator: run analyzers → merge → auto-rules + resolve_and_cascade() |
 | `execute/` | Phase 07 — planner.py, dependency.py (NetworkX DAG), batch.py |
 | `export/` | Phase 09 — deployment_plan.py, json/csv exports (command_builder.py removed in Phase 12b) |
-| `preflight/` | Phase 10 — checks.py (8 preflight checks), runner.py (orchestrator), CLI `wxcli cucm preflight` |
+| `preflight/` | Phase 10 — checks.py (9 preflight checks), runner.py (orchestrator), CLI `wxcli cucm preflight` |
 | `advisory/` | Phase 13 — Advisory system: per-decision recommendations (19 rules) + cross-cutting advisor (30 patterns) |
 | `report/` | Assessment report generator — complexity score, SVG charts, executive summary + appendix → HTML/PDF. See its CLAUDE.md. |
 | `.claude/skills/cucm-migrate/SKILL.md` | Phase 11 — 6-step execution skill: preflight → plan summary → batch execute → delegate → report |
