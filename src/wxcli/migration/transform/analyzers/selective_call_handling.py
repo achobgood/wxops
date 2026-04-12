@@ -327,4 +327,68 @@ class SelectiveCallHandlingAnalyzer(Analyzer):
         store: MigrationStore,
         existing_decisions: list[Decision],
     ) -> list[Decision]:
-        return []
+        """Flag VIP/executive-named partitions not already covered structurally."""
+        partitions = store.get_objects("partition")
+        if not partitions:
+            return []
+
+        # Set of partition canonical_ids already covered by a structural heuristic
+        covered: set[str] = set()
+        for dec in existing_decisions:
+            for obj_id in dec.affected_objects:
+                if obj_id.startswith("partition:"):
+                    covered.add(obj_id)
+
+        decisions: list[Decision] = []
+        for pt in partitions:
+            pt_id = pt.get("canonical_id", "")
+            if pt_id in covered:
+                continue
+            partition_name = (
+                pt.get("pre_migration_state", {}).get("partition_name")
+                or pt_id.split(":", 1)[-1]
+            )
+            if not self._matches_vip_keyword(partition_name):
+                continue
+
+            context = {
+                "selective_call_handling_pattern": "naming_convention",
+                "primary_key": partition_name,
+                "partitions": [partition_name],
+                "matched_keyword": self._matched_keyword(partition_name),
+                "recommended_webex_feature": "Priority Alert",
+                "confidence": "LOW",
+            }
+            options = self._build_options("Priority Alert")
+            summary = (
+                f"Partition '{partition_name}' name suggests selective access "
+                f"(matched keyword '{context['matched_keyword']}'); CUCM "
+                f"caller-specific routing intent inferred from naming only"
+            )
+            decisions.append(
+                self._create_decision(
+                    store=store,
+                    decision_type=DecisionType.FEATURE_APPROXIMATION,
+                    severity="LOW",
+                    summary=summary,
+                    context=context,
+                    options=options,
+                    affected_objects=[pt_id],
+                )
+            )
+        return decisions
+
+    @staticmethod
+    def _matches_vip_keyword(name: str) -> bool:
+        if not name:
+            return False
+        lowered = name.lower()
+        return any(kw in lowered for kw in _VIP_KEYWORDS)
+
+    @staticmethod
+    def _matched_keyword(name: str) -> str:
+        lowered = (name or "").lower()
+        for kw in _VIP_KEYWORDS:
+            if kw in lowered:
+                return kw
+        return ""
