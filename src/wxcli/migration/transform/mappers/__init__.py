@@ -36,6 +36,9 @@ from wxcli.migration.transform.mappers.announcement_mapper import AnnouncementMa
 from wxcli.migration.transform.mappers.workspace_mapper import WorkspaceMapper
 from wxcli.migration.transform.mappers.executive_assistant_mapper import ExecutiveAssistantMapper
 from wxcli.migration.transform.mappers.receptionist_mapper import ReceptionistMapper
+from wxcli.migration.transform.mappers.device_settings_mapper import DeviceSettingsMapper
+from wxcli.migration.transform.mappers.call_settings_mapper import CallSettingsMapper
+from wxcli.migration.transform.mappers.ecbn_mapper import EcbnMapper
 
 __all__ = [
     "Mapper",
@@ -61,6 +64,9 @@ __all__ = [
     "DeviceProfileMapper",
     "ExecutiveAssistantMapper",
     "ReceptionistMapper",
+    "DeviceSettingsMapper",
+    "CallSettingsMapper",
+    "EcbnMapper",
     "skip_option",
     "manual_option",
     "accept_option",
