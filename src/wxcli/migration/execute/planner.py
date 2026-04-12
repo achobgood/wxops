@@ -318,32 +318,91 @@ def _expand_calling_permission(obj: dict[str, Any]) -> list[MigrationOp]:
 
 
 def _expand_hunt_group(obj: dict[str, Any]) -> list[MigrationOp]:
-    """Hunt group → 1 op: create (tier 4)."""
+    """Hunt group → 1-2 ops: create (tier 4) + optional configure_forwarding (tier 5)."""
     cid = obj["canonical_id"]
     name = obj.get("name", cid)
     loc_id = _location_from_provenance(obj)
     deps = [_node_id(uid, "create") for uid in obj.get("agents", [])]
-    return [_op(cid, "create", "hunt_group", f"Create hunt group {name}",
-                depends_on=deps, batch=loc_id)]
+    ops = [_op(cid, "create", "hunt_group", f"Create hunt group {name}",
+               depends_on=deps, batch=loc_id)]
+
+    has_forwarding = any([
+        obj.get("forward_always_enabled"),
+        obj.get("forward_busy_enabled"),
+        obj.get("forward_no_answer_enabled"),
+    ])
+    if has_forwarding:
+        ops.append(_op(
+            cid, "configure_forwarding", "hunt_group",
+            f"Configure forwarding for hunt group {name}",
+            depends_on=[_node_id(cid, "create")], batch=loc_id,
+        ))
+    return ops
 
 
 def _expand_call_queue(obj: dict[str, Any]) -> list[MigrationOp]:
-    """Call queue → 1 op: create (tier 4)."""
+    """Call queue → 1-5 ops: create (tier 4) + optional configure_* (tier 5)."""
     cid = obj["canonical_id"]
     name = obj.get("name", cid)
     loc_id = _location_from_provenance(obj)
     deps = [_node_id(uid, "create") for uid in obj.get("agents", [])]
-    return [_op(cid, "create", "call_queue", f"Create call queue {name}",
-                depends_on=deps, batch=loc_id)]
+    ops = [_op(cid, "create", "call_queue", f"Create call queue {name}",
+               depends_on=deps, batch=loc_id)]
+
+    create_dep = [_node_id(cid, "create")]
+
+    has_forwarding = any([
+        obj.get("forward_always_enabled"),
+        obj.get("queue_full_destination"),
+        obj.get("max_wait_time_destination"),
+    ])
+    if has_forwarding:
+        ops.append(_op(
+            cid, "configure_forwarding", "call_queue",
+            f"Configure forwarding for call queue {name}",
+            depends_on=create_dep, batch=loc_id,
+        ))
+
+    if obj.get("holiday_service_enabled"):
+        ops.append(_op(
+            cid, "configure_holiday_service", "call_queue",
+            f"Configure holiday service for call queue {name}",
+            depends_on=create_dep, batch=loc_id,
+        ))
+
+    if obj.get("night_service_enabled"):
+        ops.append(_op(
+            cid, "configure_night_service", "call_queue",
+            f"Configure night service for call queue {name}",
+            depends_on=create_dep, batch=loc_id,
+        ))
+
+    if obj.get("no_agent_destination"):
+        ops.append(_op(
+            cid, "configure_stranded_calls", "call_queue",
+            f"Configure stranded calls for call queue {name}",
+            depends_on=create_dep, batch=loc_id,
+        ))
+
+    return ops
 
 
 def _expand_auto_attendant(obj: dict[str, Any]) -> list[MigrationOp]:
-    """Auto attendant → 1 op: create (tier 4, api_calls=2)."""
+    """Auto attendant → 1-2 ops: create (tier 4) + optional configure_forwarding (tier 5)."""
     cid = obj["canonical_id"]
     name = obj.get("name", cid)
     loc_id = _location_from_provenance(obj)
-    return [_op(cid, "create", "auto_attendant", f"Create auto attendant {name}",
-                batch=loc_id)]
+    ops = [_op(cid, "create", "auto_attendant", f"Create auto attendant {name}",
+               batch=loc_id)]
+
+    if obj.get("forward_always_enabled"):
+        ops.append(_op(
+            cid, "configure_forwarding", "auto_attendant",
+            f"Configure forwarding for auto attendant {name}",
+            depends_on=[_node_id(cid, "create")], batch=loc_id,
+        ))
+
+    return ops
 
 
 def _expand_call_park(obj: dict[str, Any]) -> list[MigrationOp]:
