@@ -2301,8 +2301,10 @@ def detect_dect_deployment(store: MigrationStore) -> list[AdvisoryFinding]:
     if not networks:
         return []
 
-    handsets = store.get_objects("dect_handset")
-    total_handsets = len(handsets)
+    total_handsets = sum(
+        len(n.get("handset_assignments") or [])
+        for n in networks
+    )
     total_networks = len(networks)
 
     # Count networks missing base station inventory
@@ -2339,7 +2341,7 @@ def detect_dect_deployment(store: MigrationStore) -> list[AdvisoryFinding]:
             f"Base stations must then be added manually in Control Hub.\n\n"
             f"To enable automated provisioning: export base station MACs to a CSV and pass "
             f"--dect-inventory <file> on the next discover run. The inventory CSV requires "
-            f"columns: mac_address, network_name (or zone_name), base_station_type "
+            f"columns: coverage_zone, base_station_mac, base_station_model "
             f"(DBS-110 or DBS-210). Re-run discover → normalize → map → analyze after "
             f"providing inventory.\n\n"
             f"Review DECT_NETWORK_DESIGN decisions for each network to confirm location "
