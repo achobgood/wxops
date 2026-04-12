@@ -326,6 +326,32 @@ Custom voicemail greetings stored in Unity Connection cannot be extracted for mi
 
 **Example:** 50 phones with screen brightness set to level 12. Webex only supports timer-based backlight (30s, 1m, 5m, 30m, always on). The brightness level is lost; backlight timer is set to a reasonable default.
 
+### dect-network-design
+
+**DecisionType:** `DECT_NETWORK_DESIGN`
+**Severity:** HIGH (missing location) or MEDIUM (no base station inventory, multiple zones same location)
+**Triggered by:** `src/wxcli/migration/transform/mappers/dect_mapper.py`. Fires in three conditions: (1) a DECT coverage zone cannot be resolved to a Webex location, (2) no operator-provided base station inventory (MAC addresses) was supplied via `--dect-inventory`, or (3) multiple CUCM device pools with DECT handsets all map to the same Webex location, making it ambiguous whether they should be one combined DECT network or separate per-zone networks.
+**Options:**
+- **Accept fidelity loss** — Create one network (DBS-110 or DBS-210 depending on handset count) for the zone; base stations must be added manually in Control Hub post-migration.
+- **Manual** — Provide a base station inventory CSV (`--dect-inventory`) and re-run the mapper, or resolve the multi-zone ambiguity by specifying per-zone network design.
+- **Skip** — Operator will design DECT networks manually in Control Hub after migration.
+**Override criteria:** Accept when the operator confirms the auto-selected model (DBS-110 for ≤30 handsets, DBS-210 for >30) is correct and will add base station MACs via Control Hub post-migration. Escalate to manual when exact base station placement matters (multi-cell coverage, floor-plan constraints) or when the zone/location ambiguity requires site survey data.
+**Cascade impact:** None — DECT network design decisions are independent of user/device/location decisions.
+**See also:** [`dect-handset-assignment`](#dect-handset-assignment), spec §7a in `docs/superpowers/specs/2026-04-10-dect-migration.md`.
+
+### dect-handset-assignment
+
+**DecisionType:** `DECT_HANDSET_ASSIGNMENT`
+**Severity:** INFO
+**Triggered by:** `src/wxcli/migration/transform/mappers/dect_mapper.py`. Fires when a DECT handset has no `ownerUserName` in CUCM (unowned/shared handset). This indicates the handset may be a shared device (warehouse floor, nurse station, lobby) that should become a workspace assignment, or it may be a data quality issue in CUCM.
+**Options:**
+- **Accept fidelity loss** — Create a Webex workspace for this handset and assign it as a PLACE (workspace assignment). Appropriate for truly shared/roaming handsets.
+- **Manual** — Assign to a specific person (operator provides person ID or email after migration).
+- **Skip** — Do not migrate this handset.
+**Override criteria:** Accept (assign workspace) for handsets in shared-use areas (warehouses, hallways, nurse stations). Choose manual when the operator knows the intended user but the CUCM data was missing the owner. Skip when the handset is retired or no longer needed.
+**Cascade impact:** None — handset assignment decisions do not affect other objects in the pipeline.
+**See also:** [`dect-network-design`](#dect-network-design).
+
 ## Advisory Patterns
 
 > One entry per advisory pattern in `ALL_ADVISORY_PATTERNS`, grouped by category (eliminate / rebuild / out-of-scope / migrate-as-is). Anchors match the detector function name with the `detect_` prefix stripped, validated by `test_advisory_pattern_coverage.py`. Two patterns have a `pattern_name` field that differs from their function name (`detect_mixed_css` → `mixed_css_routing_restriction`; `detect_intercluster_trunks` → `intercluster_trunk_detection`); the anchor uses the function name in both cases.
@@ -855,6 +881,8 @@ The Disqualifying Signals column enumerates the specific environment characteris
 | BUTTON_UNMAPPABLE | Yes | n/a — `DEFAULT_AUTO_RULES` auto-resolves to `accept_loss` because no alternate action exists on the Webex side for Service URL / Intercom / Privacy button types. |
 | CALLING_PERMISSION_MISMATCH | Conditional | `assigned_users_count > 0`. The `DEFAULT_AUTO_RULES` entry for this type carries a `match: {assigned_users_count: 0}` condition — it auto-skips unused permission objects but deliberately leaves assigned ones for human review because block-pattern semantics (international vs premium vs `INTERNAL_CALL` footgun) require operator judgment. |
 | CSS_ROUTING_MISMATCH | No | n/a — every customer's CSS-to-partition topology is different. Partition ordering has no Webex equivalent, and `mismatch_type=pattern_conflict` rows name two competing routes the human must pick between. Bulk-accepting would silently collapse routing differences that are often load-bearing. |
+| DECT_HANDSET_ASSIGNMENT | Conditional | `owner_status != "unowned"`. Safe to bulk-accept (`assign_workspace`) when all unowned handsets are confirmed to be shared-use devices. Use `match: {owner_status: "unowned"}` and verify none are tied to real users before batch-accepting. |
+| DECT_NETWORK_DESIGN | No | n/a — each coverage zone's base station topology depends on site-specific floor plans and hardware inventory. Bulk-accepting without per-zone review risks creating networks with the wrong model or missing base station assignments. |
 | DEVICE_FIRMWARE_CONVERTIBLE | Yes | n/a — `DEFAULT_AUTO_RULES` auto-resolves to `convert` for the 88xx/78xx MPP-eligible families. Operators with heavy SRST dependencies should still scan the advisor narrative, but the per-decision action is uniform. |
 | DEVICE_INCOMPATIBLE | Yes | n/a — `DEFAULT_AUTO_RULES` auto-resolves to `skip`. Replacement SKU decisions surface via the `recommend_device_incompatible` reasoning string on the subsequent operator pass; the skip itself is always safe because it just removes the device from the plan. |
 | DN_AMBIGUOUS | No | n/a — Webex requires a single explicit owner per DN. Every ambiguous DN has to be resolved to one of the analyzer's option IDs (`extension_only`, `national`, `e164`, `skip`) with direct knowledge of how that number is actually used. |
