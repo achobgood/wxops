@@ -114,3 +114,38 @@ class TestWorkspacePipelineIntegration:
         assert store.get_object("workspace:lobby-a")["call_settings"] == {
             "doNotDisturb": {"enabled": True, "ringSplashEnabled": False}
         }
+
+    def test_phone_with_no_settings_still_gets_configure_op(self):
+        """A phone with no extractable settings still produces a configure_settings op.
+
+        Locks in the contract: the planner unconditionally emits the op, and the
+        handler is responsible for short-circuiting when call_settings is empty.
+        """
+        store = MigrationStore(":memory:")
+
+        # No DND, no privacy, no voicemail profile on line 1, no forwarding
+        store.upsert_object(_phone("bare-phone", {
+            "lines": [{"index": 1, "dirn": {"pattern": "5999"}}],
+        }))
+
+        result = WorkspaceMapper().map(store)
+        assert result.objects_created == 1
+
+        ws = store.get_object("workspace:bare-phone")
+        assert ws is not None
+
+        ops = expand_to_operations(store)
+        configure_cids = {
+            op.canonical_id
+            for op in ops
+            if op.resource_type == "workspace" and op.op_type == "configure_settings"
+        }
+        assert "workspace:bare-phone" in configure_cids, (
+            "Planner must emit configure_settings even for workspaces with no call_settings — "
+            "the handler is the layer that short-circuits to [] for no-op."
+        )
+
+        # call_settings should be falsy (None or empty dict)
+        assert not ws.get("call_settings"), (
+            f"Expected no call_settings on a bare phone, got: {ws.get('call_settings')}"
+        )

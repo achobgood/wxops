@@ -125,8 +125,10 @@ def _common_area_phone_with_lines(
         "cucm_device_pool": "DP_ConfRooms",
         "lines": lines,
     }
-    if voicemail_profile:
-        state["voiceMailProfile"] = voicemail_profile
+    if voicemail_profile and lines:
+        first = lines[0]
+        if isinstance(first, dict):
+            first["voiceMailProfileName"] = voicemail_profile
     return MigrationObject(
         canonical_id=f"phone:{name}",
         provenance=_prov(name),
@@ -350,3 +352,46 @@ class TestLicenseTierGating:
         assert "voicemail" in cs
         assert "callForwarding" in cs
         assert "privacy" in cs
+
+
+class TestLicenseTierGateStructural:
+    """Structural guard: any future setting added to the mapper must respect the gate.
+
+    This test asserts that when a phone is emitted under Workspace tier, the set of
+    call_settings keys is a subset of the documented allowed set. If someone later adds
+    a new setting and either forgets to update the gate or populates it after the gate
+    runs, this test fails regardless of the specific key name involved.
+    """
+    ALLOWED_ON_WORKSPACE = {"doNotDisturb", "musicOnHold"}
+
+    def test_workspace_tier_emits_only_allowed_keys(self):
+        store = MigrationStore(":memory:")
+        # Saturate every extraction path with real data so every current block fires
+        phone = _common_area_phone_with_lines(
+            "saturated",
+            lines=[{
+                "index": 1,
+                "dirn": {"pattern": "5900"},
+                "callForwardAll": {"destination": "1000"},
+                "callForwardBusy": {"destination": "1001"},
+                "callForwardNoAnswer": {"destination": "2000", "duration": "24"},
+                "voiceMailProfileName": "Default VM",
+            }],
+        )
+        phone.pre_migration_state["dndStatus"] = "true"
+        phone.pre_migration_state["dndOption"] = "Call Reject"
+        phone.pre_migration_state["privacy"] = "On"
+        # No outgoing_call_permissions → inferred as Workspace tier
+        store.upsert_object(phone)
+
+        WorkspaceMapper().map(store)
+
+        ws = store.get_object("workspace:saturated")
+        assert ws["license_tier"] == "Workspace"
+        cs = ws.get("call_settings") or {}
+        extra_keys = set(cs.keys()) - self.ALLOWED_ON_WORKSPACE
+        assert extra_keys == set(), (
+            f"Workspace tier emitted settings that should have been stripped: {extra_keys}. "
+            f"Either add them to TestLicenseTierGateStructural.ALLOWED_ON_WORKSPACE if they're "
+            f"genuinely supported on Basic workspaces, or fix the license gate."
+        )
