@@ -64,6 +64,21 @@ _REPORT_OBJECT_TYPES = [
 ]
 
 
+def _count_selective_call_handling_candidates(store: MigrationStore) -> int:
+    """Count non-stale FEATURE_APPROXIMATION decisions tagged with the
+    selective_call_handling_pattern context key."""
+    count = 0
+    for d in store.get_all_decisions():
+        if d.get("type") != "FEATURE_APPROXIMATION":
+            continue
+        if d.get("chosen_option") == "__stale__":
+            continue
+        ctx = d.get("context", {}) or {}
+        if ctx.get("selective_call_handling_pattern"):
+            count += 1
+    return count
+
+
 def generate_executive_summary(
     store: MigrationStore,
     brand: str,
@@ -442,6 +457,16 @@ def _page_scope(store: MigrationStore) -> str:
         parts.append(
             f'<p class="small muted">'
             f'Decision resolution: <strong>{resolved} of {total}</strong> auto-resolved ({pct}%)</p>'
+        )
+
+    sch_count = _count_selective_call_handling_candidates(store)
+    if sch_count:
+        parts.append(
+            f'<div class="callout">'
+            f'<p><strong>Selective Call Handling:</strong> {sch_count} '
+            f'candidate(s) for Webex Selective Forward / Accept / Reject. '
+            f'See appendix section AB for the per-user breakdown.</p>'
+            f'</div>'
         )
 
     parts.append('</section>')
