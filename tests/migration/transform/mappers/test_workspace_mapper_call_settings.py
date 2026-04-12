@@ -261,3 +261,36 @@ class TestCallForwardingExtraction:
 
         ws = store.get_object("workspace:conf-plain")
         assert "callForwarding" not in (ws.get("call_settings") or {})
+
+
+class TestPrivacyExtraction:
+    def test_privacy_on(self):
+        store = MigrationStore(":memory:")
+        phone = _common_area_phone_with_lines(
+            "conf-private",
+            lines=[{"index": 1, "dirn": {"pattern": "5500"}}],
+        )
+        phone.pre_migration_state["privacy"] = "On"
+        phone.pre_migration_state["outgoing_call_permissions"] = True
+        store.upsert_object(phone)
+
+        WorkspaceMapper().map(store)
+
+        ws = store.get_object("workspace:conf-private")
+        assert ws["call_settings"]["privacy"] == {"enabled": True}
+
+    def test_privacy_default_omits(self):
+        """Default/Off privacy is the Webex default — don't emit a payload."""
+        store = MigrationStore(":memory:")
+        phone = _common_area_phone_with_lines(
+            "conf-default",
+            lines=[{"index": 1, "dirn": {"pattern": "5600"}}],
+        )
+        phone.pre_migration_state["privacy"] = "Default"
+        phone.pre_migration_state["outgoing_call_permissions"] = True
+        store.upsert_object(phone)
+
+        WorkspaceMapper().map(store)
+
+        ws = store.get_object("workspace:conf-default")
+        assert "privacy" not in (ws.get("call_settings") or {})

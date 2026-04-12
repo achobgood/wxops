@@ -392,6 +392,11 @@ def _extract_workspace_call_settings(
                 cf_body["noAnswer"]["numberOfRings"] = _duration_to_rings(duration) or 3
             settings["callForwarding"] = cf_body
 
+    # --- privacy (Professional-only) ---
+    privacy = state.get("privacy")
+    if privacy in ("On", "on", True):
+        settings["privacy"] = {"enabled": True}
+
     # License tier gating: Workspace-tier only supports DND + MOH at /telephony/config/
     # (from docs/reference/devices-workspaces.md license tier access matrix)
     if license_tier == "Workspace":
