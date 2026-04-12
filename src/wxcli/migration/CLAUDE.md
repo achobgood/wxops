@@ -15,7 +15,7 @@ All 11 phases complete. **1642 tests passing.** Wired into the CLI as `wxcli cuc
 | `store.py` | SQLite-backed store — objects, cross_refs, decisions, journal, merge_log, merge_decisions() |
 | `cucm/` | Phase 03 — AXL connection, 9 extractors, discovery pipeline |
 | `transform/normalizers.py` | Phase 04 — 41 Pass 1 normalizers |
-| `transform/cross_reference.py` | Phase 04 — CrossReferenceBuilder (30 relationships + 3 enrichments) |
+| `transform/cross_reference.py` | Phase 04 — CrossReferenceBuilder (31 relationships + 3 enrichments) |
 | `transform/pipeline.py` | Phase 04 — `normalize_discovery()` entry point |
 | `transform/mappers/` | Phase 05 — 24 mappers + base.py (announcement, button_template, call_forwarding, call_settings, css, device, device_layout, device_profile, e911, ecbn, executive_assistant, feature, line, location, moh, monitoring, receptionist, routing, snr, softkey, user, voicemail, voicemail_group, workspace) |
 | `transform/analyzers/` | Phase 06 — 13 analyzers (css_permission, css_routing, device_compatibility, dn_ambiguity, duplicate_user, extension_conflict, feature_approximation, layout_overflow, location_ambiguity, missing_data, shared_line, voicemail_compatibility, workspace_license) |

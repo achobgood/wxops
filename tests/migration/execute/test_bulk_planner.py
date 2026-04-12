@@ -239,6 +239,113 @@ class TestDynamicSettingsAggregation:
         assert bulk_dyn[0].batch == "location:loc-1"
 
 
+class TestFallbackMetadata:
+    """Verify _optimize_for_bulk stores fallback info in bulk payloads."""
+
+    def test_device_settings_payload_includes_fallback_metadata(self, store):
+        ops = []
+        for i in range(120):
+            cid = f"device:d{i}"
+            ops.append(_op(cid, "create", "device", tier=3, batch="location:loc-1"))
+            ops.append(_op(cid, "configure_settings", "device",
+                            tier=5, batch="location:loc-1"))
+
+        result = _optimize_for_bulk(ops, store, threshold=100)
+        bulk_settings = [o for o in result if o.resource_type == "bulk_device_settings"]
+        assert len(bulk_settings) == 1
+        payload = bulk_settings[0].payload
+        assert "covered_canonical_ids" in payload
+        assert len(payload["covered_canonical_ids"]) == 120
+        assert payload["fallback_handler_key"] == ["device", "configure_settings"]
+
+    def test_line_key_template_payload_includes_fallback_metadata(self, store, device_factory):
+        for i in range(120):
+            dev = device_factory(f"device:d{i}", location_cid="location:loc-1")
+            store.upsert_object(dev)
+            store.upsert_object(CanonicalDeviceLayout(
+                canonical_id=f"device_layout:d{i}",
+                provenance=dev.provenance,
+                device_canonical_id=f"device:d{i}",
+                template_canonical_id="line_key_template:tpl-a",
+                resolved_line_keys=[{"lineKeyIndex": 1}],
+            ))
+
+        ops = []
+        for i in range(120):
+            ops.append(_op(f"device:d{i}", "create", "device",
+                            tier=3, batch="location:loc-1"))
+            ops.append(_op(f"device_layout:d{i}", "configure",
+                            "device_layout", tier=7))
+
+        result = _optimize_for_bulk(ops, store, threshold=100)
+        bulk_lkt = [o for o in result if o.resource_type == "bulk_line_key_template"]
+        assert len(bulk_lkt) == 1
+        payload = bulk_lkt[0].payload
+        assert "covered_canonical_ids" in payload
+        assert len(payload["covered_canonical_ids"]) == 120
+        assert payload["fallback_handler_key"] == ["device_layout", "configure"]
+
+    def test_dynamic_settings_payload_includes_fallback_metadata(self, store, device_factory):
+        for i in range(110):
+            dev = device_factory(f"device:d{i}", location_cid="location:loc-1")
+            store.upsert_object(dev)
+            store.upsert_object(CanonicalSoftkeyConfig(
+                canonical_id=f"softkey_config:d{i}",
+                device_canonical_id=f"device:d{i}",
+                is_psk_target=True,
+                psk_mappings=[{"psk": "PSK1", "fnc": "sd", "ext": "1000"}],
+                provenance=dev.provenance,
+            ))
+
+        ops = []
+        for i in range(110):
+            ops.append(_op(f"device:d{i}", "create", "device",
+                            tier=3, batch="location:loc-1"))
+            ops.append(_op(f"softkey_config:d{i}", "configure",
+                            "softkey_config", tier=7))
+
+        result = _optimize_for_bulk(ops, store, threshold=100)
+        bulk_dyn = [o for o in result if o.resource_type == "bulk_dynamic_settings"]
+        assert len(bulk_dyn) == 1
+        payload = bulk_dyn[0].payload
+        assert "covered_canonical_ids" in payload
+        assert len(payload["covered_canonical_ids"]) == 110
+        assert payload["fallback_handler_key"] == ["softkey_config", "configure"]
+
+
+class TestSkipRebuildPhones:
+    """Verify skip_rebuild_phones suppresses rebuild ops."""
+
+    def test_skip_rebuild_phones_omits_rebuild_ops(self, store):
+        ops = []
+        for i in range(120):
+            cid = f"device:d{i}"
+            ops.append(_op(cid, "create", "device", tier=3, batch="location:loc-1"))
+            ops.append(_op(cid, "configure_settings", "device",
+                            tier=5, batch="location:loc-1"))
+
+        result = _optimize_for_bulk(ops, store, threshold=100,
+                                      skip_rebuild_phones=True)
+        rebuild = [o for o in result if o.resource_type == "bulk_rebuild_phones"]
+        assert rebuild == []
+        # Other bulk ops should still be present
+        bulk_settings = [o for o in result if o.resource_type == "bulk_device_settings"]
+        assert len(bulk_settings) == 1
+
+    def test_skip_rebuild_phones_false_emits_rebuild(self, store):
+        ops = []
+        for i in range(120):
+            cid = f"device:d{i}"
+            ops.append(_op(cid, "create", "device", tier=3, batch="location:loc-1"))
+            ops.append(_op(cid, "configure_settings", "device",
+                            tier=5, batch="location:loc-1"))
+
+        result = _optimize_for_bulk(ops, store, threshold=100,
+                                      skip_rebuild_phones=False)
+        rebuild = [o for o in result if o.resource_type == "bulk_rebuild_phones"]
+        assert len(rebuild) == 1
+
+
 class TestRebuildPhones:
     def test_emits_one_rebuild_op_per_location_at_tier_8(self, store, device_factory):
         # 120 devices across 2 locations. Expect 2 rebuild ops at tier 8.

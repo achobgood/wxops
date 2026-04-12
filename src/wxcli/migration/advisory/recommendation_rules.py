@@ -712,6 +712,22 @@ def recommend_e911_location_mismatch(
     )
 
 
+def recommend_workspace_settings_professional_required(
+    context: dict[str, Any], options: list
+) -> tuple[str, str] | None:
+    """Workspace has settings that require Professional license but is on basic tier."""
+    dropped = context.get("dropped_settings", [])
+    if not dropped:
+        return None
+    settings_str = ", ".join(dropped)
+    return (
+        "accept_loss",
+        f"Settings requiring Professional Workspace license ({settings_str}) will be "
+        "lost with basic Workspace license. Most common-area phones don't need these — "
+        "upgrade only if the phone actively uses call forwarding or voicemail.",
+    )
+
+
 # ---------------------------------------------------------------------------
 # Dispatch table — ALL 19 DecisionType string values
 # ---------------------------------------------------------------------------
@@ -739,4 +755,5 @@ RECOMMENDATION_DISPATCH: dict[str, Any] = {
     "BUTTON_UNMAPPABLE": recommend_button_unmappable,
     "E911_ECBN_AMBIGUOUS": recommend_e911_ecbn_ambiguous,
     "E911_LOCATION_MISMATCH": recommend_e911_location_mismatch,
+    "WORKSPACE_SETTINGS_PROFESSIONAL_REQUIRED": recommend_workspace_settings_professional_required,
 }

@@ -198,6 +198,7 @@ class CrossReferenceBuilder:
                 self._build_routing_refs,
                 self._build_feature_refs,
                 self._build_voicemail_refs,
+                self._build_voicemail_group_refs,
                 self._build_template_refs,
                 self._build_remote_destination_refs,
                 self._build_intercept_refs,
@@ -777,6 +778,55 @@ class CrossReferenceBuilder:
             if state:
                 self.store.add_cross_ref(vm_id, vm_id, "voicemail_profile_settings")
                 counts["voicemail_profile_settings"] += 1
+
+        return counts
+
+    # ------------------------------------------------------------------
+    # Cross-ref: Hunt pilot/list → Voicemail Group
+    # (from docs/superpowers/specs/2026-04-10-voicemail-groups.md §Phase 3)
+    # ------------------------------------------------------------------
+
+    def _build_voicemail_group_refs(self) -> dict[str, int]:
+        """Build hunt_group_uses_voicemail_group cross-refs.
+
+        Links hunt pilots whose overflow/forward destinations match a
+        voicemail group extension. This allows the mapper and report to
+        understand which features depend on shared mailboxes.
+
+        voicemail_group_in_location is written by VoicemailGroupMapper
+        (not here) because location resolution requires mapper logic.
+        """
+        counts = {"hunt_group_uses_voicemail_group": 0}
+
+        # Index voicemail groups by extension for O(1) lookup.
+        vg_by_ext: dict[str, str] = {}
+        for vg in self.store.get_objects("voicemail_group"):
+            state = vg.get("pre_migration_state") or {}
+            ext = state.get("extension")
+            if ext:
+                vg_by_ext[str(ext)] = vg["canonical_id"]
+
+        if not vg_by_ext:
+            return counts
+
+        # Check hunt pilot forward/overflow destinations against VM group extensions.
+        for hp in self.store.get_objects("hunt_pilot"):
+            hp_id = hp["canonical_id"]
+            state = hp.get("pre_migration_state") or {}
+
+            destinations = [
+                state.get("forward_no_answer_destination"),
+                state.get("forward_busy_destination"),
+                state.get("overflow_destination"),
+            ]
+            for dest in destinations:
+                if dest and str(dest) in vg_by_ext:
+                    self.store.add_cross_ref(
+                        hp_id, vg_by_ext[str(dest)],
+                        "hunt_group_uses_voicemail_group",
+                    )
+                    counts["hunt_group_uses_voicemail_group"] += 1
+                    break  # one link per hunt pilot is sufficient
 
         return counts
 

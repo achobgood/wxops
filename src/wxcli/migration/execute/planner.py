@@ -84,6 +84,7 @@ def _optimize_for_bulk(
     ops: list[MigrationOp],
     store: MigrationStore,
     threshold: int,
+    skip_rebuild_phones: bool = False,
 ) -> list[MigrationOp]:
     """Replace per-device operations with bulk submissions.
 
@@ -116,11 +117,14 @@ def _optimize_for_bulk(
     result: list[MigrationOp] = []
     # Track which locations needed bulk ops (for tier 8 rebuild phones later).
     device_settings_locations: set[str] = set()
+    # Track covered device canonical_ids per location for fallback context.
+    device_settings_covered: dict[str, list[str]] = {}
 
     for op in ops:
         if op.resource_type == "device" and op.op_type == "configure_settings":
             loc = op.batch or "org-wide"
             device_settings_locations.add(loc)
+            device_settings_covered.setdefault(loc, []).append(op.canonical_id)
             continue  # drop the per-device op
         result.append(op)
 
@@ -147,12 +151,15 @@ def _optimize_for_bulk(
             payload={
                 "location_canonical_id": loc,
                 "customizations": {},
+                "covered_canonical_ids": device_settings_covered.get(loc, []),
+                "fallback_handler_key": ["device", "configure_settings"],
             },
         ))
 
     # ---- Line key template aggregation ----
     # Group device_layout:configure ops by (template_canonical_id, location_canonical_id).
-    lkt_groups: dict[tuple[str, str], list[str]] = {}
+    lkt_groups: dict[tuple[str, str], list[str]] = {}  # (template, loc) → device_cids
+    lkt_layout_cids: dict[tuple[str, str], list[str]] = {}  # (template, loc) → layout canonical_ids
     layout_ops_to_remove: set[str] = set()
 
     for op in ops:
@@ -173,6 +180,7 @@ def _optimize_for_bulk(
         loc_cid = dev_data.get("location_canonical_id") or "org-wide"
 
         lkt_groups.setdefault((template_cid, loc_cid), []).append(device_cid)
+        lkt_layout_cids.setdefault((template_cid, loc_cid), []).append(op.canonical_id)
         layout_ops_to_remove.add(op.canonical_id)
 
     # Filter out the replaced layout ops from result.
@@ -200,11 +208,14 @@ def _optimize_for_bulk(
             payload={
                 "template_canonical_id": template_cid,
                 "location_canonical_ids": [loc_cid],
+                "covered_canonical_ids": lkt_layout_cids.get((template_cid, loc_cid), []),
+                "fallback_handler_key": ["device_layout", "configure"],
             },
         ))
 
     # ---- Dynamic device settings (PSK) aggregation ----
     psk_groups: dict[str, list[str]] = {}  # location_cid → device_cids
+    psk_softkey_cids: dict[str, list[str]] = {}  # location_cid → softkey canonical_ids
     softkey_ops_to_remove: set[str] = set()
 
     for op in ops:
@@ -225,6 +236,7 @@ def _optimize_for_bulk(
         dev_data = device_obj.model_dump() if hasattr(device_obj, "model_dump") else device_obj
         loc_cid = dev_data.get("location_canonical_id") or "org-wide"
         psk_groups.setdefault(loc_cid, []).append(device_cid)
+        psk_softkey_cids.setdefault(loc_cid, []).append(op.canonical_id)
         softkey_ops_to_remove.add(op.canonical_id)
 
     result = [
@@ -249,12 +261,18 @@ def _optimize_for_bulk(
             payload={
                 "location_canonical_id": loc_cid,
                 "tags": [],
+                "covered_canonical_ids": psk_softkey_cids.get(loc_cid, []),
+                "fallback_handler_key": ["softkey_config", "configure"],
             },
         ))
 
     # ---- Rebuild phones (tier 8) ----
     # One rebuild per location touched by any bulk op. Depends on every
     # bulk op in that location so it runs strictly after them.
+    if skip_rebuild_phones:
+        logger.info("skip_rebuild_phones=True — omitting bulk_rebuild_phones ops")
+        return result
+
     rebuild_locations: dict[str, list[str]] = {}
 
     for op in result:
@@ -1046,6 +1064,7 @@ _EXPANDERS: dict[str, Any] = {
 def expand_to_operations(
     store: MigrationStore,
     bulk_device_threshold: int | None = None,
+    skip_rebuild_phones: bool = False,
 ) -> list[MigrationOp]:
     """Expand each analyzed canonical object into its constituent API operations.
 
@@ -1126,6 +1145,7 @@ def expand_to_operations(
     # Post-expansion bulk optimization pass.
     if bulk_device_threshold is None:
         bulk_device_threshold = BULK_DEVICE_THRESHOLD_DEFAULT
-    all_ops = _optimize_for_bulk(all_ops, store, bulk_device_threshold)
+    all_ops = _optimize_for_bulk(all_ops, store, bulk_device_threshold,
+                                 skip_rebuild_phones=skip_rebuild_phones)
 
     return all_ops
