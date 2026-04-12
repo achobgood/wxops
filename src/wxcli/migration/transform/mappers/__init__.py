@@ -39,6 +39,7 @@ from wxcli.migration.transform.mappers.receptionist_mapper import ReceptionistMa
 from wxcli.migration.transform.mappers.device_settings_mapper import DeviceSettingsMapper
 from wxcli.migration.transform.mappers.call_settings_mapper import CallSettingsMapper
 from wxcli.migration.transform.mappers.ecbn_mapper import EcbnMapper
+from wxcli.migration.transform.mappers.dect_mapper import DECTMapper
 
 __all__ = [
     "Mapper",
@@ -67,6 +68,7 @@ __all__ = [
     "DeviceSettingsMapper",
     "CallSettingsMapper",
     "EcbnMapper",
+    "DECTMapper",
     "skip_option",
     "manual_option",
     "accept_option",
