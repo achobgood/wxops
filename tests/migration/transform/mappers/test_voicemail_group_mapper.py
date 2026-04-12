@@ -229,3 +229,24 @@ class TestBasicMapping:
             assert result.decisions == []
         finally:
             store.close()
+
+
+class TestEngineRegistration:
+    def test_voicemail_group_mapper_exported(self):
+        """VoicemailGroupMapper is exported from the mappers package."""
+        from wxcli.migration.transform.mappers import VoicemailGroupMapper as Imported
+        from wxcli.migration.transform.mappers.voicemail_group_mapper import (
+            VoicemailGroupMapper,
+        )
+        assert Imported is VoicemailGroupMapper
+
+    def test_voicemail_group_mapper_in_order(self):
+        """VoicemailGroupMapper runs after FeatureMapper in MAPPER_ORDER."""
+        from wxcli.migration.transform.engine import MAPPER_ORDER
+        from wxcli.migration.transform.mappers.feature_mapper import FeatureMapper
+        from wxcli.migration.transform.mappers.voicemail_group_mapper import (
+            VoicemailGroupMapper,
+        )
+
+        assert VoicemailGroupMapper in MAPPER_ORDER
+        assert MAPPER_ORDER.index(VoicemailGroupMapper) > MAPPER_ORDER.index(FeatureMapper)
