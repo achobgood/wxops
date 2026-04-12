@@ -93,6 +93,7 @@ TIER_ASSIGNMENTS: dict[tuple[str, str], int] = {
     # Tier 3: Numbers, devices (Fix 12: license+number folded into create)
     ("workspace", "assign_number"): 3,
     ("device", "create"): 3,
+    ("device", "create_activation_code"): 3,
     # Tier 4: Call features (depend on users/workspaces existing)
     ("hunt_group", "create"): 4,
     ("call_queue", "create"): 4,
@@ -165,6 +166,7 @@ API_CALL_ESTIMATES: dict[str, int] = {
                                         # (from devices-workspaces.md Workspace Call Settings section)
     "device:create": 1,             # POST /devices by MAC or POST /devices/activationCode
                                     # (from devices-core.md lines 1312-1323, 1304-1308)
+    "device:create_activation_code": 1,  # POST /devices/activationCode (from devices-core.md)
     "device:configure_settings": 1, # PUT /telephony/config/devices/{id}/settings (from devices-core.md)
     "dial_plan:create": 1,          # POST /telephony/config/premisePstn/dialPlans (from call-routing.md)
     "translation_pattern:create": 1,  # POST /telephony/config/callRouting/translationPatterns (from call-routing.md)

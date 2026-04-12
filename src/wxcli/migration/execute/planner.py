@@ -249,8 +249,18 @@ _NON_WEBEX_DEVICE_MODELS = {
 }
 
 
-def _expand_device(obj: dict[str, Any]) -> list[MigrationOp]:
-    """Device → 2 ops: create, configure_settings.
+def _expand_device(
+    obj: dict[str, Any], decisions: list[dict[str, Any]],
+) -> list[MigrationOp]:
+    """Device → 1 op (CONVERTIBLE, convert) or 2 ops (NATIVE_MPP).
+
+    - NATIVE_MPP / default: create (MAC-based POST /devices) + configure_settings
+    - CONVERTIBLE + decision 'convert': single create_activation_code op,
+      no configure_settings (the phone auto-configures after registering)
+    - CONVERTIBLE + decision 'skip': caught by the generic skip path upstream
+    - CONVERTIBLE + unresolved / other: no ops (decision forces a no-op)
+    - webex_app / infrastructure / dect / non-Webex models: no ops
+
     Skip decisions handled generically in expand_to_operations.
     (from 05-dependency-graph.md — device:create at tier 3, api_calls=2)
     """
@@ -266,6 +276,19 @@ def _expand_device(obj: dict[str, Any]) -> list[MigrationOp]:
     deps_create: list[str] = []
     if owner_cid:
         deps_create.append(_node_id(owner_cid, "create"))
+
+    if obj.get("compatibility_tier") == "convertible":
+        choice = _decision_chosen(decisions, "DEVICE_FIRMWARE_CONVERTIBLE")
+        if choice != "convert":
+            # Only 'convert' resolves to an activation code op.
+            # 'skip' is caught by the generic skip path upstream; any
+            # other value (None / unresolved) produces no op.
+            return []
+        return [
+            _op(cid, "create_activation_code", "device",
+                f"Generate activation code for {name}",
+                depends_on=deps_create, batch=batch),
+        ]
 
     return [
         _op(cid, "create", "device", f"Create device {name}",
@@ -694,7 +717,7 @@ _EXPANDERS: dict[str, Any] = {
     "schedule": lambda obj, _: _expand_schedule(obj),
     "user": lambda obj, _: _expand_user(obj),
     "workspace": lambda obj, _: _expand_workspace(obj),
-    "device": lambda obj, _: _expand_device(obj),
+    "device": lambda obj, decs: _expand_device(obj, decs),
     "dial_plan": lambda obj, _: _expand_dial_plan(obj),
     "translation_pattern": lambda obj, _: _expand_translation_pattern(obj),
     "calling_permission": lambda obj, _: _expand_calling_permission(obj),
