@@ -828,6 +828,22 @@ Custom voicemail greetings stored in Unity Connection cannot be extracted for mi
 **Recommended action:** Provide a base station inventory CSV and re-run discovery. If base station data is unavailable, accept the advisory and plan for manual base station registration post-cutover. Review `DECT_NETWORK_DESIGN` and `DECT_HANDSET_ASSIGNMENT` decisions for per-network and per-handset details.
 **See also:** [`dect-network-design`](#dect-network-design) (DecisionType), [`dect-handset-assignment`](#dect-handset-assignment) (DecisionType), [`kb-device-migration.md § DECT Networks`](../../knowledge-base/migration/kb-device-migration.md), [`kb-webex-limits.md § DECT Networks`](../../knowledge-base/migration/kb-webex-limits.md).
 
+#### feature-forwarding-gaps
+
+**Category:** `rebuild` (CUCM forwarding destinations that need Webex-native forwarding configuration)
+**Severity:** `MEDIUM`
+**Triggered by:** `advisory/advisory_patterns.py:detect_feature_forwarding_gaps` — fires when hunt groups, call queues, or auto attendants have CUCM forwarding destinations (forwardHuntNoAnswer, queueFullDestination, callForwardAll, etc.) that aren't mapped to Webex forwarding fields.
+**Why/impact:** CUCM hunt pilots and queue overflow targets are extracted by the FeatureMapper but may not map cleanly to Webex forwarding endpoints. This advisory aggregates unmapped forwarding destinations so the operator can plan manual Webex forwarding configuration post-migration.
+**Recommended action:** Review the affected features and configure Webex forwarding (hunt group no-answer forward, call queue overflow, AA after-hours forward) manually after the features are created. The planner produces `configure_forwarding` ops for mapped destinations; unmapped ones need manual intervention.
+
+#### workspace-settings-gaps
+
+**Category:** `migrate_as_is` (workspaces with CUCM settings that didn't carry over to canonical model)
+**Severity:** `LOW`
+**Triggered by:** `advisory/advisory_patterns.py:detect_workspace_settings_gaps` — fires when workspaces have empty `call_settings` but the CUCM device had custom caller ID, forwarding, or DND configuration.
+**Why/impact:** Some CUCM device-level settings (caller ID, call forwarding, DND) are not extracted into the workspace's canonical `call_settings` during normalization. These settings silently revert to Webex defaults after migration unless configured manually.
+**Recommended action:** Review the affected workspaces and configure call settings via Control Hub or `wxcli workspace-settings` commands post-migration.
+
 ## Dissent Handling
 
 Dissent flags appear when the `migration-advisor` Opus agent disagrees with the static recommendation produced by `recommendation_rules.py`. The confidence-level semantics are covered in [§Recommendation Confidence and When to Override](#recommendation-confidence-and-when-to-override); this section is the operator field reference for the **two surfaces** the flag renders on — the mid-review terminal prompt and the written migration narrative — and how to act at each decision point.
