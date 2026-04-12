@@ -118,6 +118,7 @@ TIER_ASSIGNMENTS: dict[tuple[str, str], int] = {
     ("call_queue", "configure_night_service"): 5,
     ("call_queue", "configure_stranded_calls"): 5,
     ("auto_attendant", "configure_forwarding"): 5,
+    ("ecbn_config", "configure"): 5,
     # Tier 6: Shared/virtual lines + monitoring (depend on users + devices)
     ("shared_line", "configure"): 6,
     ("virtual_line", "create"): 6,
@@ -188,6 +189,7 @@ API_CALL_ESTIMATES: dict[str, int] = {
     "call_queue:configure_night_service": 1,      # PUT .../queues/{id}/nightService
     "call_queue:configure_stranded_calls": 1,     # PUT .../queues/{id}/strandedCalls
     "auto_attendant:configure_forwarding": 1,     # PUT .../autoAttendants/{id}/callForwarding
+    "ecbn_config:configure": 1,  # PUT /telephony/config/{kind}/{id}/emergencyCallbackNumber
     # Tier 4: Call features
     "hunt_group:create": 1,         # POST /telephony/config/locations/{id}/huntGroups
                                     # agents optional at create (from call-features-major.md line 894)

@@ -166,6 +166,24 @@ Two layers of advisory output coexist on every decision: the **static recommenda
 **Cascade impact:** Resolving a merge decision changes downstream user-count metrics used by license-tier and queue-membership decisions. Preflight-produced duplicates cascade into `NUMBER_CONFLICT` detection.
 **See also:** [`number-conflict`](#number-conflict) (preflight's other duplicate-surface decision type), [Advisory Patterns §extension-mobility-usage](#extension-mobility-usage) (EM user-profile cases that look like duplicates).
 
+### e911-ecbn-ambiguous
+
+**Triggered by:** `src/wxcli/migration/transform/mappers/ecbn_mapper.py:109-138`. Fires when a user (or workspace) has **two or more DIDs** resolvable through the device → DN → line chain, so the mapper cannot pick a single Emergency Callback Number (ECBN) without operator input. Kari's Law requires every 911 caller to ring back on a real number, not an extension, and Webex accepts exactly one ECBN per entity.
+**Options:** One `did_<E.164>` option per distinct DID discovered (label: `Use +14155551002`), plus a `location_ecbn` option that falls back to the location's main number (`LOCATION_ECBN` selection). No "skip" option — every user must have *some* ECBN resolution for the E911 preflight check to pass.
+**Recommendation:** `recommend_e911_ecbn_ambiguous` in `src/wxcli/migration/advisory/recommendation_rules.py` returns the lowest-sorted DID (`primary_did`, matching the mapper's deterministic ordering) when the DIDs share a common NXX prefix — typical of a user with a main line + a secondary DID on the same desk. Returns `None` for genuinely cross-NPA cases where two unrelated DIDs exist (e.g., a personal mobile number was imported onto the user), forcing operator review.
+**Dissent triggers:** [`kb-user-settings.md#dt-usr-e911`](../../knowledge-base/migration/kb-user-settings.md#dt-usr-e911) — ECBN vs outbound caller ID and why the "preferred" DID is not always the correct 911 return number (e.g., hoteling workers and shared-line primaries).
+**Cascade impact:** Resolving this decision writes the operator's choice into `CanonicalEcbnConfig.primary_did` and `ecbn_selection`, which feeds the tier 5 `(ecbn_config, configure)` operation at `src/wxcli/migration/execute/handlers.py`. Does not re-run any analyzers — the E911 preflight check re-reads the store after resolution.
+**See also:** [`e911-location-mismatch`](#e911-location-mismatch) (sibling E911 decision for physical-location drift), [Advisory Patterns §e911-readiness](#e911-readiness) (cross-cutting quantified ECBN posture — `DIRECT_LINE` / `LOCATION_ECBN` / ambiguous / mismatch counts).
+
+### e911-location-mismatch
+
+**Triggered by:** `src/wxcli/migration/transform/mappers/ecbn_mapper.py:140-181`. Fires when a user's assigned `location_id` differs from the `location_canonical_id` on at least one of their devices — the mapper walks `user_has_device` cross-refs, collects device locations, and compares them against the user's home location. Signals a potential E911 routing problem: if the user dials 911 from a phone physically located elsewhere, the ECBN resolution picks the wrong PSAP address.
+**Options:** `use_user_location` (ECBN resolves to the user's assigned location — correct for remote workers whose "home office" is the user's logical site), `use_device_location` (ECBN resolves to the device's physical site — correct for hoteling / travelling users), or `manual` (operator must verify the physical location and update Webex after cutover).
+**Recommendation:** `recommend_e911_location_mismatch` in `src/wxcli/migration/advisory/recommendation_rules.py` returns `use_device_location` when the context shows a single distinct device location (unambiguous physical site) and the device is a desk phone (not a Webex App soft client). Returns `manual` when the user has devices at 2+ distinct locations — the mapper's deterministic `sorted()` picks one for the decision context but the real answer requires human verification. Returns `None` when the device is a soft client (physical location is inherently unknowable).
+**Dissent triggers:** [`kb-location-design.md#dt-loc-e911`](../../knowledge-base/migration/kb-location-design.md#dt-loc-e911) — E911 dispatch address semantics and why "user's assigned location" is wrong for hoteling / hotdesk / remote-work topologies.
+**Cascade impact:** Resolving this decision updates `CanonicalEcbnConfig.location_canonical_id`, which changes which Webex location the tier 5 `(ecbn_config, configure)` operation binds the ECBN to. If the chosen location has no main number, the E911 preflight check escalates to FAIL on the next run — operators should chain this with a location main-number fix when `use_user_location` is chosen but the user's location lacks `main_number`.
+**See also:** [`e911-ecbn-ambiguous`](#e911-ecbn-ambiguous) (sibling E911 decision for multi-DID cases), [`location-ambiguous`](#location-ambiguous) (upstream device-pool → location ambiguity that can surface as an apparent mismatch), [Advisory Patterns §e911-readiness](#e911-readiness).
+
 ### extension-conflict
 
 **Triggered by:** `src/wxcli/migration/transform/analyzers/extension_conflict.py:36-152`. The analyzer resolves every line back to a location via its owning device (`device_has_dn` cross-ref → `device.location_canonical_id`), then groups lines by `(extension, location)` — any group with 2+ lines is a conflict. Webex enforces per-location extension uniqueness; CUCM does not.
@@ -589,6 +607,24 @@ Custom voicemail greetings stored in Unity Connection cannot be extracted for mi
 **Example:** A partition named `PT_E911_Emergency_Routing` with a route pattern `911` → `ELIN_ROUTE_GROUP`. The advisor fires with signals `route pattern in partition 'PT_E911_Emergency_Routing'`.
 **Recommended action:** Initiate a separate Webex E911 workstream in parallel with the calling migration. Map ERLs to Webex locations, configure ELIN ranges, set up nomadic-user floor/zone, run PSAP test calls, verify compliance (`severity=HIGH`). Do not attempt inside the calling cutover.
 **See also:** [`location-consolidation`](#location-consolidation) (consolidating locations mid-migration forces ERL remapping — coordinate with the E911 workstream), [`kb-location-design.md#dt-loc-003`](../../knowledge-base/migration/kb-location-design.md#dt-loc-003) and [`kb-location-design.md#dt-loc-005`](../../knowledge-base/migration/kb-location-design.md#dt-loc-005).
+
+#### e911-readiness
+
+**Category:** migrate_as_is (quantified posture)
+**Triggered by:** The quantified E911 readiness summary surfaced by `EcbnMapper` + `_e911_readiness` in `src/wxcli/migration/report/appendix.py`. Fires whenever the pipeline has produced at least one `CanonicalEcbnConfig` object or at least one `E911_ECBN_AMBIGUOUS` / `E911_LOCATION_MISMATCH` decision.
+**Detection signals:**
+- Count of `CanonicalEcbnConfig` objects with `ecbn_selection == "DIRECT_LINE"` (users with a DID auto-configured for ECBN).
+- Count of `CanonicalEcbnConfig` objects with `ecbn_selection == "LOCATION_ECBN"` (extension-only users falling back to their location's main number).
+- Count of unresolved, non-stale `E911_ECBN_AMBIGUOUS` decisions (users with multiple DIDs awaiting operator selection).
+- Count of unresolved, non-stale `E911_LOCATION_MISMATCH` decisions (users whose device and user-profile locations disagree).
+**Why/impact:** This pattern differs from [`e911-migration-flag`](#e911-migration-flag) — the latter is a categorical "E911 is out of scope, run it as a separate workstream" advisory, while `e911-readiness` is the quantified posture the operator needs when filing the calling cutover runbook. Kari's Law and RAY BAUM's Act require every user to have a valid ECBN before migration day. The status tiers are:
+- **PASS** — every user has a `DIRECT_LINE` ECBN, zero ambiguous, zero mismatch, zero fallback to `LOCATION_ECBN`.
+- **WARN** — at least one user falls back to `LOCATION_ECBN`, but there are zero ambiguous and zero mismatch decisions. Operator should confirm the location's main number is a staffed reception DID (not an auto attendant).
+- **REVIEW** — at least one `E911_ECBN_AMBIGUOUS` or `E911_LOCATION_MISMATCH` decision is unresolved. Operator must work through each one before sign-off.
+- **SKIP** — no ECBN objects were produced (E911 workstream has been descoped or this is an analysis-only dry run).
+**Example:** A 500-user migration produces 420 `DIRECT_LINE`, 60 `LOCATION_ECBN`, 18 `E911_ECBN_AMBIGUOUS` (multi-DID users), and 2 `E911_LOCATION_MISMATCH` (remote workers). Status: REVIEW. The operator resolves the 20 decisions via `wxcli cucm decide`, re-runs `wxcli cucm analyze` to pick up the cascade, and the status flips to WARN (60 users with `LOCATION_ECBN` still need main-number verification).
+**Recommended action:** Run through every unresolved `E911_ECBN_AMBIGUOUS` and `E911_LOCATION_MISMATCH` decision before cutover. For `LOCATION_ECBN` users, verify each location's main number is answered by a human who can relay a 911 callback. Set `config.e911.notification_email` to a monitored distribution list (see [Tuning Reference §e911](tuning-reference.md#e911)). If the customer runs RedSky Horizon or another dynamic-location provider, set `config.e911.redsky_enabled = true` so the report and advisory downgrade the ECBN-only concerns accordingly (`severity=HIGH` when REVIEW, `severity=MEDIUM` when WARN, `severity=INFO` when PASS).
+**See also:** [`e911-ecbn-ambiguous`](#e911-ecbn-ambiguous), [`e911-location-mismatch`](#e911-location-mismatch), [`e911-migration-flag`](#e911-migration-flag), [`kb-user-settings.md#dt-usr-e911`](../../knowledge-base/migration/kb-user-settings.md#dt-usr-e911), [`kb-location-design.md#dt-loc-e911`](../../knowledge-base/migration/kb-location-design.md#dt-loc-e911).
 
 #### recording-enabled-users
 

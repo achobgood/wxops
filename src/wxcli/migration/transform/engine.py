@@ -39,6 +39,7 @@ from wxcli.migration.transform.mappers.button_template_mapper import ButtonTempl
 from wxcli.migration.transform.mappers.device_layout_mapper import DeviceLayoutMapper
 from wxcli.migration.transform.mappers.device_profile_mapper import DeviceProfileMapper
 from wxcli.migration.transform.mappers.e911_mapper import E911Mapper
+from wxcli.migration.transform.mappers.ecbn_mapper import EcbnMapper
 from wxcli.migration.transform.mappers.announcement_mapper import AnnouncementMapper
 from wxcli.migration.transform.mappers.moh_mapper import MOHMapper
 from wxcli.migration.transform.mappers.snr_mapper import SNRMapper
@@ -75,6 +76,7 @@ MAPPER_ORDER: list[type[Mapper]] = [
     SNRMapper,            # Tier 6 (depends on users — remote destinations)
     DeviceProfileMapper,  # Tier 6 (depends on users, workspaces — EM/hot desking)
     E911Mapper,           # Tier 6 (depends on locations — E911 advisory)
+    EcbnMapper,          # Tier 6 (depends on users, workspaces, locations, lines, devices)
     MOHMapper,            # Tier 6 (depends on locations — MOH audio sources)
     AnnouncementMapper,   # Tier 6 (depends on locations, features — announcements)
     SoftkeyMapper,        # Tier 6 (depends on devices for phone model info)
@@ -239,6 +241,9 @@ class TransformEngine:
 
         if mapper_cls is CallSettingsMapper:
             return CallSettingsMapper()
+
+        if mapper_cls is EcbnMapper:
+            return EcbnMapper()
 
         # Fallback: attempt no-arg construction
         return mapper_cls()  # type: ignore[call-arg]

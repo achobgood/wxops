@@ -736,6 +736,31 @@ def _expand_call_forwarding(obj: dict[str, Any]) -> list[MigrationOp]:
                 depends_on=deps)]
 
 
+def _expand_ecbn_config(obj: dict[str, Any]) -> list[MigrationOp]:
+    """ECBN config → 1 op: configure (tier 5).
+
+    Depends on the underlying entity (user/workspace/virtual_line) being created.
+    (from 2026-04-10-e911-ecbn-execution.md §4.5)
+    """
+    cid = obj["canonical_id"]
+    entity_cid = obj.get("entity_canonical_id", "")
+    loc_cid = obj.get("location_canonical_id")
+    batch = loc_cid if loc_cid else None
+
+    deps: list[str] = []
+    if entity_cid:
+        deps.append(_node_id(entity_cid, "create"))
+
+    return [_op(
+        canonical_id=cid,
+        op_type="configure",
+        resource_type="ecbn_config",
+        description=f"Configure ECBN for {entity_cid}",
+        depends_on=deps,
+        batch=batch,
+    )]
+
+
 def _expand_single_number_reach(obj: dict[str, Any]) -> list[MigrationOp]:
     """Single Number Reach → 0-1 ops: configure (tier 5).
     Skip if no numbers.
@@ -944,6 +969,7 @@ _EXPANDERS: dict[str, Any] = {
     "line_key_template": lambda obj, _: _expand_line_key_template(obj),
     "call_forwarding": lambda obj, _: _expand_call_forwarding(obj),
     "single_number_reach": lambda obj, _: _expand_single_number_reach(obj),
+    "ecbn_config": lambda obj, _: _expand_ecbn_config(obj),
     "monitoring_list": lambda obj, _: _expand_monitoring_list(obj),
     "receptionist_config": lambda obj, _: _expand_receptionist_config(obj),
     "device_layout": lambda obj, _: _expand_device_layout(obj),

@@ -639,6 +639,45 @@ def recommend_button_unmappable(
     )
 
 
+def recommend_e911_ecbn_ambiguous(
+    context: dict[str, Any], options: list
+) -> tuple[str, str] | None:
+    """Recommend the primary line's DID as ECBN when user has multiple DIDs.
+
+    (from 2026-04-10-e911-ecbn-execution.md §6.4)
+    """
+    primary_did = context.get("primary_did")
+    if not primary_did:
+        return None
+    option_id = f"did_{primary_did}"
+    option_ids = {o.get("id") for o in options}
+    if option_id not in option_ids:
+        return None
+    return (
+        option_id,
+        f"Primary line DID {primary_did} is the most common ECBN choice. "
+        f"The PSAP will call back this number if the emergency call is disconnected.",
+    )
+
+
+def recommend_e911_location_mismatch(
+    context: dict[str, Any], options: list
+) -> tuple[str, str] | None:
+    """Recommend the user's assigned location for ECBN on mismatch."""
+    user_loc = context.get("user_location")
+    if not user_loc:
+        return None
+    option_ids = {o.get("id") for o in options}
+    if "use_user_location" not in option_ids:
+        return None
+    return (
+        "use_user_location",
+        f"The user's assigned location ({user_loc}) should determine PSAP routing "
+        "when user and device locations differ. If the user's phone is consistently "
+        "at a different physical site, update the user's assigned location first.",
+    )
+
+
 # ---------------------------------------------------------------------------
 # Dispatch table — ALL 19 DecisionType string values
 # ---------------------------------------------------------------------------
@@ -664,4 +703,6 @@ RECOMMENDATION_DISPATCH: dict[str, Any] = {
     "SNR_LOSSY": recommend_snr_lossy,
     "AUDIO_ASSET_MANUAL": recommend_audio_asset_manual,
     "BUTTON_UNMAPPABLE": recommend_button_unmappable,
+    "E911_ECBN_AMBIGUOUS": recommend_e911_ecbn_ambiguous,
+    "E911_LOCATION_MISMATCH": recommend_e911_location_mismatch,
 }

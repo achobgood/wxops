@@ -78,6 +78,12 @@ DEFAULT_CONFIG: dict[str, Any] = {
     # Webex bulk job submissions. Set to 0 to force bulk always; set to a
     # very large number (e.g., 999999) to disable bulk.
     "bulk_device_threshold": 100,
+    "e911": {
+        "auto_configure_ecbn": True,
+        "notification_email": None,
+        "redsky_enabled": False,
+        "primary_did_strategy": "first_line",
+    },
 }
 
 

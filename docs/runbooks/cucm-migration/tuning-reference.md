@@ -130,6 +130,22 @@ See §[Auto-Rule Reference](#auto-rule-reference) below for the full treatment �
 **When to change:** Set to a third-party vendor name (e.g., `"Dubber"`, `"Imagicle"`) if the customer uses an external recording platform instead of Webex's built-in recording. Leave as `"Webex"` for most migrations.
 **Consumed by:** `src/wxcli/migration/advisory/advisory_patterns.py:1182` — referenced in the call-recording advisory pattern narrative. The export pipeline reads it from config when generating per-user recording settings.
 
+### e911
+
+**Default:** nested dict with 4 sub-keys (from `src/wxcli/commands/cucm_config.py:76`)
+**What it controls:** Emergency Callback Number (ECBN) migration behavior. Kari's Law and RAY BAUM's Act require every user have a valid ECBN before 911 dialing. The `EcbnMapper` and `e911_readiness` analyzer use these keys to decide which users get `DIRECT_LINE` vs `LOCATION_ECBN`, whether a post-migration notification email is configured for 911 calls, and whether the customer has a third-party dynamic-location provider.
+
+**Sub-keys:**
+
+- `auto_configure_ecbn` (bool, default `true`) — when `true`, `EcbnMapper` automatically selects an ECBN for every user. When `false`, ECBN selection is deferred to manual review (every user produces an `E911_ECBN_AMBIGUOUS` decision).
+- `notification_email` (string or `null`, default `null`) — post-migration notification recipient for 911 calls placed from Webex Calling locations. Leave `null` to emit a MISSING_DATA prompt during preflight; set to a customer distribution list (e.g. `"security@example.com"`) to suppress the prompt and wire the email into the location-level emergency-call-notification config during execution.
+- `redsky_enabled` (bool, default `false`) — set `true` if the customer already uses RedSky Horizon or another dynamic-location provider. When `true`, the report and advisory downgrade E911 readiness concerns because the external provider handles dynamic-location discovery and ECBN injection for soft clients.
+- `primary_did_strategy` (string, default `"first_line"`) — tiebreaker for users with multiple DIDs. `"first_line"` picks the lowest-numbered line; other values are reserved for future DID-picking heuristics.
+
+**When to change:** Set `notification_email` for every real migration (it's a regulatory expectation for US customers). Flip `redsky_enabled` to `true` for customers with an existing dynamic-location platform. Leave `auto_configure_ecbn` and `primary_did_strategy` at their defaults unless the customer requires manual ECBN review.
+
+**Consumed by:** `src/wxcli/migration/transform/mappers/ecbn_mapper.py` (ECBN selection and MigrationObject generation) and the E911 readiness section in `src/wxcli/migration/report/appendix.py`.
+
 ### enable-device-settings-migration
 
 **Type:** boolean

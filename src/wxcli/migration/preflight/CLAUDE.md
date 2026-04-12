@@ -21,7 +21,7 @@ wxcli cucm preflight
     → return PreflightResult (overall PASS/WARN/FAIL/SKIP)
 ```
 
-## The 8 Checks
+## The 9 Checks
 
 1. **User licenses** — enough Calling Professional licenses
 2. **Workspace licenses** — enough Workspace licenses (matches API's `UserLicenseType.WORKSPACE`)
@@ -31,6 +31,7 @@ wxcli cucm preflight
 6. **Number conflicts** — E.164 and extension collisions (produces NUMBER_CONFLICT decisions, skips same-owner)
 7. **Duplicate users** — planned users already in Webex (produces DUPLICATE_USER decisions, 3 scenarios)
 8. **Rate limit budget** — estimated migration duration from plan_operations
+9. **E911 readiness** — Every user has a resolvable ECBN candidate (DIRECT_LINE or LOCATION_ECBN); no unresolved E911 decisions; extension-only users warn, missing candidates fail.
 
 ## Key Design Decisions
 

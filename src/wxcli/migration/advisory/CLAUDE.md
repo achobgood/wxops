@@ -36,7 +36,7 @@ Advisory decisions are merged separately using `decision_types=[ARCHITECTURE_ADV
 | File | Purpose |
 |------|---------|
 | `__init__.py` | Exports `populate_recommendations()` and `ArchitectureAdvisor` |
-| `recommendation_rules.py` | 19 recommendation functions (one per DecisionType) + `RECOMMENDATION_DISPATCH` dict |
+| `recommendation_rules.py` | 21 recommendation functions (one per DecisionType) + `RECOMMENDATION_DISPATCH` dict |
 | `advisory_patterns.py` | 30 cross-cutting pattern detectors + `AdvisoryFinding` dataclass + `ALL_ADVISORY_PATTERNS` list |
 | `advisor.py` | `ArchitectureAdvisor` class (extends Analyzer ABC) |
 
@@ -142,7 +142,7 @@ The `category` field classifies advisories into the migration decision framework
 
 **Pattern 11 `affected_objects` includes CSS + partition + route pattern IDs.** Not just CSS IDs — the partitions and route patterns involved in ordering conflicts are also tracked for traceability.
 
-**Pattern 16 (E911) always fires**, even on empty stores. When no E911 signals are detected, it produces a warning that CER data may not be visible via AXL. This is by design per the spec's "if detection data is sparse" guidance.
+**Pattern 16 (E911) always fires**, even on empty stores. When no E911 signals are detected, it produces a warning that CER data may not be visible via AXL. This is by design per the spec's "if detection data is sparse" guidance. Pattern 16 now includes quantified ECBN readiness counts (DIRECT_LINE / LOCATION_ECBN / ambiguous / mismatch).
 
 **Test count:** 87 tests (35 pattern + 7 advisor + 45 new-pattern/rule tests). The prompt estimated ~50; the actual count is lower because some patterns share positive/negative cases and the simpler patterns need fewer test scenarios. Pattern 27 (voicemail greeting re-recording) added 6 tests.
 

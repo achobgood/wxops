@@ -663,6 +663,42 @@ def handle_user_configure_voicemail(data: dict, deps: dict, ctx: dict) -> Handle
     return [("PUT", _url(f"/telephony/config/people/{person_wid}/voicemail", ctx), vm_data)]
 
 
+def handle_ecbn_config_configure(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    """Configure ECBN for a user, workspace, or virtual line.
+
+    (from 2026-04-10-e911-ecbn-execution.md §4.4)
+    """
+    entity_type = data.get("entity_type", "")
+    entity_cid = data.get("entity_canonical_id", "")
+    entity_wid = deps.get(entity_cid)
+    if not entity_wid:
+        return []
+
+    path_map = {
+        "user": "people",
+        "workspace": "workspaces",
+        "virtual_line": "virtualLines",
+    }
+    path_segment = path_map.get(entity_type)
+    if not path_segment:
+        return []
+
+    selection = data.get("ecbn_selection", "")
+    body: dict[str, Any] = {"selected": selection}
+    if selection == "LOCATION_MEMBER_NUMBER":
+        member_cid = data.get("location_member_canonical_id", "")
+        member_wid = deps.get(member_cid)
+        if not member_wid:
+            return []
+        body["locationMemberId"] = member_wid
+
+    url = _url(
+        f"/telephony/config/{path_segment}/{entity_wid}/emergencyCallbackNumber",
+        ctx,
+    )
+    return [("PUT", url, body)]
+
+
 def handle_device_configure_settings(data: dict, deps: dict, ctx: dict) -> HandlerResult:
     device_wid = None
     for cid, wid in deps.items():
@@ -1450,6 +1486,7 @@ HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("paging_group", "create"): handle_paging_group_create,
     ("user", "configure_settings"): handle_user_configure_settings,
     ("user", "configure_voicemail"): handle_user_configure_voicemail,
+    ("ecbn_config", "configure"): handle_ecbn_config_configure,
     ("device", "configure_settings"): handle_device_configure_settings,
     ("workspace", "configure_settings"): handle_workspace_configure_settings,
     ("calling_permission", "assign"): handle_calling_permission_assign,
