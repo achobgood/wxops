@@ -72,7 +72,7 @@ members = [{"id": deps[cid]} for cid in member_cids if cid in deps]
 
 ## Handler Inventory
 
-All 35 handlers in `HANDLER_REGISTRY`:
+All 41 handlers in `HANDLER_REGISTRY`:
 
 ### Tier 0 — Infrastructure
 | Key | URL | Notes |
@@ -238,4 +238,4 @@ All 35 handlers in `HANDLER_REGISTRY`:
 - **`operating_mode` — `sameHoursDaily` format** — Canonical stores `{startTime, endTime}`, but the API requires `{mondayToFriday: {enabled, allDayEnabled, startTime?, endTime?}, saturdayToSunday: ...}`. The handler converts automatically.
 - **`operating_mode` — `differentHoursDaily` format** — Canonical stores `{day_0: {startTime, endTime}, ...}` (numeric keys). API uses `{monday: {enabled, allDayEnabled, startTime?, endTime?}, ...}` (day names). The handler maps `day_N` → day name.
 - **`operating_mode` — 409 auto-recovery** — If an operating mode with the same name already exists, the engine searches by name and uses the existing ID.
-- **`device:create_activation_code` vs `device:create`** — firmware-convertible phones (8845/8851/8865/7821/7841/7861) take the activation-code path instead of MAC-based creation. The planner picks between the two based on `compatibility_tier == "convertible"` + `DEVICE_FIRMWARE_CONVERTIBLE` decision: `"accept"` → activation code op, `"manual"` → no op, `"skip"` → no op (generic upstream skip). The activation code string lands in `plan_operations.webex_id` because the engine falls back to `resp_body.get("code")` when no `id` is present. Expiry is not persisted (no `result_body` column); regenerating expired codes is future work.
+- **`device:create_activation_code` vs `device:create`** — firmware-convertible phones (7800/8800-series eligible for E2M conversion) take the activation-code path instead of MAC-based creation. The planner picks between the two based on `compatibility_tier == "convertible"` + the `DEVICE_FIRMWARE_CONVERTIBLE` decision produced by `DeviceCompatibilityAnalyzer`: `"convert"` → activation code op; `"skip"` → no op (caught by the generic skip path upstream); unresolved / anything else → no op. The activation code string lands in `plan_operations.webex_id` because the engine falls back to `resp_body.get("code")` when no `id` is present. Model strings arriving as `"Cisco IP Phone 8851"` are collapsed to `"DMS Cisco 8851"` in the handler (the verbose form is recognized by the convertibility classifier but rejected by the Webex activation code API). Expiry is not persisted (no `result_body` column); regenerating expired codes is future work.
