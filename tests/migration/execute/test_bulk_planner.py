@@ -199,7 +199,7 @@ class TestLineKeyTemplateAggregation:
         }
 
 
-from wxcli.migration.models import CanonicalSoftkeyConfig
+from wxcli.migration.models import CanonicalSoftkeyConfig, Provenance
 
 
 class TestDynamicSettingsAggregation:
@@ -286,3 +286,120 @@ class TestRebuildPhones:
         assert len(rebuild) == 1
         dep_ids = set(rebuild[0].depends_on)
         assert "bulk_device_settings:location:loc-1:submit" in dep_ids
+
+
+_TEST_PROVENANCE = Provenance(
+    source_system="cucm",
+    source_id="test-integration",
+    source_name="test",
+    extracted_at=__import__("datetime").datetime(2026, 1, 1,
+                                                  tzinfo=__import__("datetime").timezone.utc),
+)
+
+
+class TestExpandToOperationsIntegration:
+    def test_expand_above_threshold_produces_bulk_ops(self, store, device_factory):
+        from wxcli.migration.execute.planner import expand_to_operations
+        from wxcli.migration.models import (
+            CanonicalLocation,
+            CanonicalUser,
+            LocationAddress,
+            MigrationStatus,
+        )
+
+        loc = "location:loc-1"
+        store.upsert_object(CanonicalLocation(
+            canonical_id=loc, name="Loc 1",
+            provenance=_TEST_PROVENANCE,
+            address=LocationAddress(
+                address1="1 Main", city="SF", state="CA",
+                postal_code="94105", country="US",
+            ),
+            time_zone="America/Los_Angeles",
+            preferred_language="en_us",
+            announcement_language="en_us",
+            status=MigrationStatus.ANALYZED,
+        ))
+
+        # 105 users each with a device in the same location.
+        for i in range(105):
+            u = CanonicalUser(
+                canonical_id=f"user:u{i}",
+                provenance=_TEST_PROVENANCE,
+                emails=[f"u{i}@example.com"],
+                display_name=f"User {i}",
+                status=MigrationStatus.ANALYZED,
+            )
+            store.upsert_object(u)
+            dev = device_factory(
+                f"device:d{i}", location_cid=loc, owner_cid=f"user:u{i}",
+            )
+            dev.status = MigrationStatus.ANALYZED
+            store.upsert_object(dev)
+
+        ops = expand_to_operations(store, bulk_device_threshold=100)
+
+        # Per-device settings ops gone.
+        per_dev_settings = [
+            o for o in ops
+            if o.resource_type == "device" and o.op_type == "configure_settings"
+        ]
+        assert per_dev_settings == []
+
+        # One bulk_device_settings submission.
+        bulk_settings = [
+            o for o in ops
+            if o.resource_type == "bulk_device_settings"
+        ]
+        assert len(bulk_settings) == 1
+
+        # Device creates preserved.
+        creates = [
+            o for o in ops
+            if o.resource_type == "device" and o.op_type == "create"
+        ]
+        assert len(creates) == 105
+
+    def test_expand_below_threshold_is_per_device(self, store, device_factory):
+        from wxcli.migration.execute.planner import expand_to_operations
+        from wxcli.migration.models import (
+            CanonicalLocation,
+            CanonicalUser,
+            LocationAddress,
+            MigrationStatus,
+        )
+
+        loc = "location:loc-1"
+        store.upsert_object(CanonicalLocation(
+            canonical_id=loc, name="Loc 1",
+            provenance=_TEST_PROVENANCE,
+            address=LocationAddress(
+                address1="1 Main", city="SF", state="CA",
+                postal_code="94105", country="US",
+            ),
+            time_zone="America/Los_Angeles",
+            preferred_language="en_us",
+            announcement_language="en_us",
+            status=MigrationStatus.ANALYZED,
+        ))
+        for i in range(50):
+            u = CanonicalUser(
+                canonical_id=f"user:u{i}",
+                provenance=_TEST_PROVENANCE,
+                emails=[f"u{i}@example.com"],
+                display_name=f"User {i}",
+                status=MigrationStatus.ANALYZED,
+            )
+            store.upsert_object(u)
+            dev = device_factory(f"device:d{i}", location_cid=loc, owner_cid=f"user:u{i}")
+            dev.status = MigrationStatus.ANALYZED
+            store.upsert_object(dev)
+
+        ops = expand_to_operations(store, bulk_device_threshold=100)
+        per_dev_settings = [
+            o for o in ops
+            if o.resource_type == "device" and o.op_type == "configure_settings"
+        ]
+        assert len(per_dev_settings) == 50
+        bulk_settings = [o for o in ops if o.resource_type == "bulk_device_settings"]
+        assert bulk_settings == []
