@@ -2201,3 +2201,84 @@ def detect_selective_call_handling_opportunities(
 
 
 ALL_ADVISORY_PATTERNS.append(detect_selective_call_handling_opportunities)
+
+
+# ===================================================================
+# Pattern 32: Multi-Route-Group Route List Complexity
+# ===================================================================
+
+def detect_route_list_complexity(store: MigrationStore) -> list[AdvisoryFinding]:
+    """Route lists with multiple route group members require a split-vs-flatten decision.
+
+    CUCM route lists can contain multiple ordered route group members, providing PSTN
+    failover across geographic regions (e.g., US-West-RG primary, US-East-RG backup).
+    Webex route lists bind to exactly ONE route group. When the migration pipeline
+    encounters a multi-member route list it produces a FEATURE_APPROXIMATION decision
+    with three options: split into N Webex route lists (one per member), flatten to the
+    first route group only (losing failover), or skip.
+
+    This advisory fires to surface the split-vs-flatten trade-off and quantify the scope
+    before the operator reaches those per-route-list decisions in the review queue.
+    """
+    route_lists = store.get_objects("route_list")
+    if not route_lists:
+        return []
+
+    multi_rg: list[dict[str, Any]] = []
+    single_rg: list[dict[str, Any]] = []
+
+    for rl in route_lists:
+        pre = rl.get("pre_migration_state", {}) or {}
+        route_groups = pre.get("route_groups", []) or []
+        if len(route_groups) > 1:
+            multi_rg.append(rl)
+        else:
+            single_rg.append(rl)
+
+    if not multi_rg:
+        return []
+
+    # Quantify the total expansion if operator chooses to split all multi-RG lists
+    total_extra_rls = sum(
+        len((rl.get("pre_migration_state", {}) or {}).get("route_groups", [])) - 1
+        for rl in multi_rg
+    )
+
+    affected = [rl.get("canonical_id", "") for rl in multi_rg]
+    names = [rl.get("name", rl.get("canonical_id", "?")) for rl in multi_rg]
+
+    # Determine severity: HIGH when there's only multi-RG lists (all need decisions),
+    # MEDIUM when mixed (some trivial single-RG lists exist alongside complex ones)
+    severity = "HIGH" if not single_rg else "MEDIUM"
+
+    detail = (
+        f"{len(multi_rg)} CUCM route list(s) contain multiple route group members "
+        f"({', '.join(names[:5])}{'...' if len(names) > 5 else ''}). "
+        f"Webex route lists bind to exactly one route group — each multi-member "
+        f"route list requires a split-vs-flatten decision.\n\n"
+        f"Split: creates {len(multi_rg) + total_extra_rls} Webex route lists "
+        f"(one per route group member). Preserves failover ordering. "
+        f"Recommended when geographic PSTN redundancy is required.\n\n"
+        f"Flatten: creates {len(multi_rg)} Webex route list(s) using the first "
+        f"route group only. Loses cross-region failover. Acceptable when a single "
+        f"route group provides adequate PSTN capacity or the failover paths are "
+        f"being retired during migration.\n\n"
+        f"Check the FEATURE_APPROXIMATION decisions produced by the routing mapper "
+        f"for each route list — one decision per multi-member list with split/flatten/"
+        f"skip options. Resolve before plan to set the correct object count."
+    )
+
+    return [AdvisoryFinding(
+        pattern_name="route_list_complexity",
+        severity=severity,
+        summary=(
+            f"{len(multi_rg)} route list(s) have multiple route groups — "
+            f"split vs flatten decision required"
+        ),
+        detail=detail,
+        affected_objects=affected,
+        category="migrate_as_is",
+    )]
+
+
+ALL_ADVISORY_PATTERNS.append(detect_route_list_complexity)

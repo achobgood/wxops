@@ -771,6 +771,22 @@ Custom voicemail greetings stored in Unity Connection cannot be extracted for mi
 **Recommended action:** Operator manually configures the relevant Webex selective rule per flagged user post-migration. The pipeline cannot auto-create rules because the phone-number criteria require operator review (CUCM CSS semantics don't map 1:1 to "calls from these specific numbers").
 **See also:** [`feature-approximation`](#feature-approximation) (the underlying decision type), [`kb-css-routing.md#selective-call-handling-detection`](../../knowledge-base/migration/kb-css-routing.md#selective-call-handling-detection).
 
+#### route-list-complexity
+
+**Category:** `migrate_as_is` (the route lists exist and need to be created in Webex — the decision is how many to create and which route group each binds to)
+**Severity:** `HIGH` when every route list in the store is multi-member (entire routing layer requires per-list decisions); `MEDIUM` when a mix of single-member and multi-member route lists exists.
+**Triggered by:** `advisory/advisory_patterns.py:detect_route_list_complexity` (Pattern 32) — fires when any `route_list` object in the migration store has `pre_migration_state.route_groups` containing more than one entry. The underlying FEATURE_APPROXIMATION decisions are produced by `src/wxcli/migration/transform/mappers/routing_mapper.py:_map_route_lists()` — one decision per multi-member route list, each with split/flatten/skip options.
+**Detection signals:**
+- Reads all `route_list` objects from the store.
+- For each, checks `pre_migration_state.route_groups` length.
+- Groups into `multi_rg` (>1 members) and `single_rg` (≤1 member).
+- Fires one aggregate advisory finding when `multi_rg` is non-empty.
+- Computes the total Webex route list count under each option: split creates `len(multi_rg) + sum(len(rgs) - 1 for multi-RG lists)` total; flatten creates `len(multi_rg)` total.
+**Why/impact:** CUCM route lists can contain multiple ordered route group members, providing geographic PSTN failover. Webex route lists bind to exactly one route group (`routeGroupId` is a required singular field — see `docs/reference/call-routing.md` §Route Lists). The per-list FEATURE_APPROXIMATION decisions are individually visible in `wxcli cucm decisions --type FEATURE_APPROXIMATION`, but the aggregate advisory fires first so the operator understands total scope — how many route lists, how many extra Webex objects the split option would create — before diving into individual reviews. For Dedicated Instance deployments, route lists are not optional: they bind phone numbers to route groups for cloud PSTN connectivity, and flattening loses which DIDs are reachable via which trunk.
+**Example:** An org has three route lists: `US-West-RL` with members `[US-West-RG, US-East-RG]`, `EU-RL` with members `[EU-London-RG, EU-Frankfurt-RG]`, and `HQ-RL` with member `[HQ-RG]`. The advisory fires MEDIUM (mixed: 2 multi-member, 1 single-member). It reports that split would create 5 Webex route lists (3 original + 2 extra from the two-member lists), while flatten would create 3.
+**Recommended action:** Review each multi-member FEATURE_APPROXIMATION decision individually. Default to split when the deployment uses geographic PSTN redundancy or Dedicated Instance. Flatten only when the secondary route groups are being decommissioned during the migration cutover. Check `docs/knowledge-base/migration/kb-trunk-pstn.md § Route List Complexity` for the split-vs-flatten decision table and Dedicated Instance guidance.
+**See also:** [`feature-approximation`](#feature-approximation) (the per-list decisions this advisory aggregates), [`kb-trunk-pstn.md § Route List Complexity`](../../knowledge-base/migration/kb-trunk-pstn.md), [`docs/reference/call-routing.md` § Route Lists](../../reference/call-routing.md).
+
 ## Dissent Handling
 
 Dissent flags appear when the `migration-advisor` Opus agent disagrees with the static recommendation produced by `recommendation_rules.py`. The confidence-level semantics are covered in [§Recommendation Confidence and When to Override](#recommendation-confidence-and-when-to-override); this section is the operator field reference for the **two surfaces** the flag renders on — the mid-review terminal prompt and the written migration narrative — and how to act at each decision point.
