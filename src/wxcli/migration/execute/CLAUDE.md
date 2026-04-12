@@ -138,6 +138,33 @@ All 52 handlers in `HANDLER_REGISTRY`:
 |-----|-----|-------|
 | `(hoteling_location, enable_hotdesking)` | PUT `/telephony/config/locations/{id}/features/hotDesking` | Enables voice portal hot desk sign-in at locations with EM phones |
 
+### Advisory-to-execution bridge (Phase A: no-op placeholders)
+
+These handlers exist so the planner no longer logs `No expansion pattern` warnings
+for types that the transform/mappers layer emits. They are deliberate no-ops that
+return `[]` — the engine marks the op completed without making any API call.
+Phase B will add real per-location MOH configuration and multipart announcement
+upload once `execute/engine.py` gains `aiohttp.FormData` support.
+
+| Key | URL | Notes |
+|-----|-----|-------|
+| `(music_on_hold, configure)` | — | Returns `[]`. Phase A visibility placeholder — MOHMapper's `AUDIO_ASSET_MANUAL` decisions still gate custom audio. |
+| `(announcement, upload)` | — | Returns `[]`. Phase A visibility placeholder — AnnouncementMapper creates `AUDIO_ASSET_MANUAL` decisions for all announcements. |
+
+`e911_config` is NOT in this list — it is in `_DATA_ONLY_TYPES` in `planner.py`
+because ECBN per-user configuration belongs in `user:configure_settings` and
+RedSky civic addresses are a separate workstream. The `E911Mapper`'s
+`ARCHITECTURE_ADVISORY` decisions are the operator-facing surface for E911.
+
+`location_schedule` is NOT in this list — `CanonicalLocationSchedule` uses the
+canonical_id prefix `schedule:` (from `feature_mapper._map_location_schedules`),
+so `cid.split(":")[0]` resolves to `"schedule"` and the existing
+`_expand_schedule` + `handle_schedule_create` handle it with no new code.
+
+`device_profile` is NOT in this list — it was fully wired by the hoteling
+migration work (see "Tier 5 — Settings" above for `enable_hoteling_guest` and
+`enable_hoteling_host`, plus "Tier 0 — Hoteling location").
+
 ### Tier 6 — Shared/Virtual Lines + Monitoring
 | Key | URL | Notes |
 |-----|-----|-------|

@@ -226,6 +226,34 @@ _CROSS_OBJECT_RULES: list[dict] = [
         "target_op": "create",
         "dep_type": DependencyType.REQUIRES,
     },
+    # Advisory-to-execution bridge: Phase A no-ops, but rules are pre-wired for Phase B.
+    # These produce no edges in Phase A because the mappers don't set location_canonical_id
+    # (no moh_in_location / announcement_in_location cross-refs exist yet). When Phase B
+    # adds location resolution to MOHMapper and AnnouncementMapper, these rules will
+    # automatically enforce correct execution ordering.
+    {
+        "source_type": "music_on_hold",
+        "source_op": "configure",
+        "relationship": "moh_in_location",
+        "target_op": "enable_calling",
+        "dep_type": DependencyType.REQUIRES,
+    },
+    {
+        "source_type": "announcement",
+        "source_op": "upload",
+        "relationship": "announcement_in_location",
+        "target_op": "enable_calling",
+        "dep_type": DependencyType.REQUIRES,
+    },
+    # device_profile hoteling depends on the owner user being created.
+    # Cross-ref user_has_device_profile is already written by DeviceProfileMapper.
+    {
+        "source_type": "device_profile",
+        "source_op": "enable_hoteling_guest",
+        "relationship": "user_has_device_profile",
+        "target_op": "create",
+        "dep_type": DependencyType.REQUIRES,
+    },
 ]
 
 
