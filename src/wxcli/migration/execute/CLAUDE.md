@@ -237,3 +237,39 @@ All 35 handlers in `HANDLER_REGISTRY`:
 - **`operating_mode` — `sameHoursDaily` format** — Canonical stores `{startTime, endTime}`, but the API requires `{mondayToFriday: {enabled, allDayEnabled, startTime?, endTime?}, saturdayToSunday: ...}`. The handler converts automatically.
 - **`operating_mode` — `differentHoursDaily` format** — Canonical stores `{day_0: {startTime, endTime}, ...}` (numeric keys). API uses `{monday: {enabled, allDayEnabled, startTime?, endTime?}, ...}` (day names). The handler maps `day_N` → day name.
 - **`operating_mode` — 409 auto-recovery** — If an operating mode with the same name already exists, the engine searches by name and uses the existing ID.
+
+---
+
+## Bulk Job Operations (Phase: bulk-operations)
+
+At 100+ devices, the planner's post-expansion `_optimize_for_bulk()` pass
+replaces per-device ops with Webex bulk job submissions:
+
+| Per-device op | Replaced by | Tier |
+|---|---|---|
+| `device:configure_settings` | `bulk_device_settings:submit` | 5 |
+| `device_layout:configure` | `bulk_line_key_template:submit` | 7 |
+| `softkey_config:configure` | `bulk_dynamic_settings:submit` | 7 |
+| (post-all) | `bulk_rebuild_phones:submit` | 8 |
+
+`device:create` is never replaced — there is no bulk create API.
+
+**Threshold:** `bulk_device_threshold` in project `config.json`. Default 100.
+Set to 0 to force bulk always; set to 999999 to disable.
+
+**Engine polling:** `execute_bulk_op()` POSTs the submit URL, captures the
+job id, calls `poll_job_until_complete()`, and returns an `OpResult` only
+when the job reaches COMPLETED or FAILED. Per-device fallback runs
+in-line when `updatedCount < expected` — the engine fetches the errors
+endpoint, identifies failed device IDs, and re-runs the per-device
+handler for each via `_run_per_device_fallback`.
+
+**Serialization:** All four bulk resource types are in
+`SERIALIZED_RESOURCE_TYPES` — the batch loop runs them sequentially via
+`run_batch_ops` (never via `asyncio.gather`) to satisfy Webex's
+one-job-per-org constraint.
+
+**FedRAMP gotcha:** `rebuildPhones` is not supported for Webex for
+Government. If you're migrating a FedRAMP tenant, set
+`bulk_device_threshold` to 999999 or delete the `bulk_rebuild_phones`
+ops manually from the plan before execution.
