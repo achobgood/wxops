@@ -1201,6 +1201,61 @@ def normalize_unity_vm_settings(
 
 
 # ---------------------------------------------------------------------------
+# §2.6 — Unity Connection shared/group mailbox normalizer
+# (from docs/superpowers/specs/2026-04-10-voicemail-groups.md)
+# ---------------------------------------------------------------------------
+
+
+def normalize_voicemail_group(
+    raw: dict, cluster: str = "default"
+) -> MigrationObject | None:
+    """Normalize a Unity Connection shared mailbox (call handler) into a
+    MigrationObject for later consumption by VoicemailGroupMapper.
+
+    Returns None when DisplayName is missing — shared mailboxes without a
+    display name can't be mapped reliably and should be skipped.
+
+    (from Unity Connection CUPI /vmrest/handlers/callhandlers)
+    """
+    name = raw.get("DisplayName") or raw.get("display_name") or ""
+    if not name:
+        return None
+
+    extension = (
+        raw.get("DtmfAccessId")
+        or raw.get("Extension")
+        or raw.get("extension")
+    )
+    object_id = raw.get("ObjectId") or raw.get("pkid") or ""
+
+    return MigrationObject(
+        canonical_id=f"voicemail_group:{name}",
+        provenance=Provenance(
+            source_system="unity_connection",
+            source_id=object_id,
+            source_name=name,
+            cluster=cluster,
+            extracted_at=_now(),
+        ),
+        status=MigrationStatus.NORMALIZED,
+        pre_migration_state={
+            "name": name,
+            "extension": str(extension) if extension is not None else None,
+            "cucm_object_id": object_id,
+            "notification_destination": (
+                raw.get("SmtpAddress")
+                or raw.get("notification_destination")
+            ),
+            "language_code": raw.get("language_code", "en_us"),
+            "greeting_type": raw.get("greeting_type", "DEFAULT"),
+            "transfer_destination": raw.get("transfer_destination"),
+            "fax_enabled": bool(raw.get("fax_enabled")),
+            "fax_number": raw.get("fax_number"),
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
 # §2.6 — Voicemail Pilot normalizer (intermediate, for UUID→dirn resolution)
 # ---------------------------------------------------------------------------
 
@@ -1782,6 +1837,7 @@ NORMALIZER_REGISTRY: dict[str, callable] = {
     "route_list": normalize_route_list,
     "voicemail_profile": normalize_voicemail_profile,
     "voicemail_pilot": normalize_voicemail_pilot,
+    "voicemail_group": normalize_voicemail_group,
     "cucm_location": normalize_cucm_location,
     "button_template": normalize_button_template,
     "softkey_template": normalize_softkey_template,
@@ -1834,6 +1890,7 @@ RAW_DATA_MAPPING: list[tuple[str, str, str]] = [
     ("features", "time_periods", "time_period"),
     ("voicemail", "voicemail_profiles", "voicemail_profile"),
     ("voicemail", "voicemail_pilots", "voicemail_pilot"),
+    ("voicemail", "shared_mailboxes", "voicemail_group"),
     ("templates", "button_templates", "button_template"),
     ("templates", "softkey_templates", "softkey_template"),
     ("remote_destinations", "remote_destinations", "remote_destination"),

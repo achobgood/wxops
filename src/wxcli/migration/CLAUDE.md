@@ -14,10 +14,10 @@ All 11 phases complete. **1642 tests passing.** Wired into the CLI as `wxcli cuc
 | `models.py` | Canonical data models — 28 types, DecisionType (24 values), Decision, MapperResult, TransformResult |
 | `store.py` | SQLite-backed store — objects, cross_refs, decisions, journal, merge_log, merge_decisions() |
 | `cucm/` | Phase 03 — AXL connection, 9 extractors, discovery pipeline |
-| `transform/normalizers.py` | Phase 04 — 40 Pass 1 normalizers |
+| `transform/normalizers.py` | Phase 04 — 41 Pass 1 normalizers |
 | `transform/cross_reference.py` | Phase 04 — CrossReferenceBuilder (30 relationships + 3 enrichments) |
 | `transform/pipeline.py` | Phase 04 — `normalize_discovery()` entry point |
-| `transform/mappers/` | Phase 05 — 23 mappers + base.py (announcement, button_template, call_forwarding, call_settings, css, device, device_layout, device_profile, e911, ecbn, executive_assistant, feature, line, location, moh, monitoring, receptionist, routing, snr, softkey, user, voicemail, workspace) |
+| `transform/mappers/` | Phase 05 — 24 mappers + base.py (announcement, button_template, call_forwarding, call_settings, css, device, device_layout, device_profile, e911, ecbn, executive_assistant, feature, line, location, moh, monitoring, receptionist, routing, snr, softkey, user, voicemail, voicemail_group, workspace) |
 | `transform/analyzers/` | Phase 06 — 13 analyzers (css_permission, css_routing, device_compatibility, dn_ambiguity, duplicate_user, extension_conflict, feature_approximation, layout_overflow, location_ambiguity, missing_data, shared_line, voicemail_compatibility, workspace_license) |
 | `transform/analysis_pipeline.py` | Phase 06 — Orchestrator: run analyzers → merge → auto-rules + resolve_and_cascade() |
 | `execute/` | Phase 07 — planner.py, dependency.py (NetworkX DAG), batch.py |
@@ -71,6 +71,23 @@ profiles contain multi-line or BLF features that Webex hot desking cannot
 replicate, and `recommend_feature_approximation` always recommends "accept" for
 EM decisions (no alternative architecture exists). Spec at
 `docs/superpowers/specs/2026-04-10-hoteling-migration.md`.
+
+## Voicemail Groups Migration
+
+Unity Connection shared/group mailboxes (department voicemail — sales@, support@,
+billing@ — typically reachable via a hunt pilot) are extracted via a new
+`UnityConnectionClient.extract_shared_mailboxes()` method and normalized into
+`voicemail_group:{name}` MigrationObjects. `VoicemailGroupMapper` (tier 4,
+depends on `location_mapper` + `feature_mapper`) resolves each mailbox's
+location (user extension match first, then single-location fallback;
+multi-location without match → `LOCATION_AMBIGUOUS`),
+generates a placeholder passcode (`MISSING_DATA`), flags custom greetings
+(`AUDIO_ASSET_MANUAL`), and detects extension conflicts (`EXTENSION_CONFLICT`).
+The `handle_voicemail_group_create` handler POSTs to
+`/telephony/config/locations/{id}/voicemailGroups`. Overflow linkage from
+hunt groups / call queues back to the voicemail group (Phase C in the spec)
+is NOT implemented — configure overflow manually post-migration. Spec at
+`docs/superpowers/specs/2026-04-10-voicemail-groups.md`.
 
 **To run a migration:** `wxcli cucm init` → `discover` → `normalize` → `map` → `analyze` → `decisions` → `plan` → `preflight` → `export` → then invoke `/cucm-migrate`.
 

@@ -669,6 +669,29 @@ def _expand_paging_group(obj: dict[str, Any]) -> list[MigrationOp]:
                 depends_on=deps, batch=loc_id)]
 
 
+def _expand_voicemail_group(obj: dict[str, Any]) -> list[MigrationOp]:
+    """Voicemail group -> 1 op: create.
+
+    Depends on the location's calling having been enabled. The batch
+    partitioner groups this with other features in the same location.
+    (from docs/superpowers/specs/2026-04-10-voicemail-groups.md)
+    """
+    cid = obj["canonical_id"]
+    name = obj.get("name", cid)
+    loc_id = obj.get("location_id")
+    deps: list[str] = []
+    if loc_id:
+        deps.append(_node_id(loc_id, "enable_calling"))
+    return [_op(
+        cid,
+        "create",
+        "voicemail_group",
+        f"Create voicemail group {name}",
+        depends_on=deps,
+        batch=loc_id,
+    )]
+
+
 def _expand_shared_line(obj: dict[str, Any], decisions: list[dict[str, Any]]) -> list[MigrationOp]:
     """Shared line → 1 op: configure (tier 6).
     Decision SHARED_LINE_COMPLEX can change expansion:
@@ -964,6 +987,7 @@ _EXPANDERS: dict[str, Any] = {
     "call_park": lambda obj, _: _expand_call_park(obj),
     "pickup_group": lambda obj, _: _expand_pickup_group(obj),
     "paging_group": lambda obj, _: _expand_paging_group(obj),
+    "voicemail_group": lambda obj, _: _expand_voicemail_group(obj),
     "shared_line": lambda obj, decs: _expand_shared_line(obj, decs),
     "virtual_line": lambda obj, _: _expand_virtual_line(obj),
     "line_key_template": lambda obj, _: _expand_line_key_template(obj),

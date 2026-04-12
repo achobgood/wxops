@@ -203,6 +203,11 @@ class FeatureMapper(Mapper):
 
         Traverses 3-object chain: hunt_pilot -> hunt_list -> line_group -> members
         """
+        # Hoist voicemail_group presence check out of the per-hunt-pilot loop —
+        # the answer can't change inside the loop (nothing writes voicemail_group
+        # here), so computing it once avoids O(N*M) store queries.
+        has_vm_group = any(True for _ in store.get_objects("voicemail_group"))
+
         for hp_data in store.get_objects("hunt_pilot"):
             hp_id = hp_data["canonical_id"]
             hp_state = hp_data.get("pre_migration_state") or {}
@@ -243,6 +248,52 @@ class FeatureMapper(Mapper):
             classification, policy = self._classify_hunt_pilot(
                 hp_state, hunt_list_state, first_lg_state
             )
+
+            # --- Phase A: voicemail-on-overflow gap detection ---
+            # If the hunt list forwards to voicemail but we have no matching
+            # voicemail_group object in the store, the shared mailbox was
+            # not extracted from Unity Connection. Surface this as a
+            # MISSING_DATA decision so the assessment report flags it.
+            # (from docs/superpowers/specs/2026-04-10-voicemail-groups.md Phase A)
+            vm_usage = hunt_list_state.get("voice_mail_usage", "NONE")
+            if vm_usage and vm_usage != "NONE":
+                hl_name = hunt_list_state.get("hunt_list_name") or ""
+                # Use the already-resolved cross-ref canonical_id instead of
+                # recomputing it from the hunt_list_name string — avoids silent
+                # breakage if the canonical_id format ever changes.
+                hl_id = hunt_list_refs[0] if hunt_list_refs else ""
+                if not has_vm_group:
+                    gap_decision = self._create_decision(
+                        store=store,
+                        decision_type=DecisionType.MISSING_DATA,
+                        severity="MEDIUM",
+                        summary=(
+                            f"Hunt list '{hl_name}' forwards unanswered/overflow "
+                            f"calls to a shared voicemail mailbox "
+                            f"({vm_usage}) — the mailbox configuration was "
+                            f"not extracted from Unity Connection and will "
+                            f"not be migrated automatically"
+                        ),
+                        context={
+                            "hunt_list_id": hl_id,
+                            "hunt_pilot_id": hp_id,
+                            "voice_mail_usage": vm_usage,
+                            "reason": "shared_voicemail_not_extracted",
+                        },
+                        options=[
+                            accept_option(
+                                "Accept loss — rebuild voicemail group manually "
+                                "in Webex post-migration"
+                            ),
+                            manual_option(
+                                "Provide Unity Connection credentials and "
+                                "re-run discovery to extract shared mailboxes"
+                            ),
+                        ],
+                        affected_objects=[hp_id] + ([hl_id] if hl_id else []),
+                    )
+                    store.save_decision(decision_to_store_dict(gap_decision))
+                    result.decisions.append(gap_decision)
 
             # --- Extract common fields ---
             name = (
