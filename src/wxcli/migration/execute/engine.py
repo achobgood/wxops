@@ -386,6 +386,71 @@ async def _try_find_existing(
     return None
 
 
+async def run_batch_ops(
+    session: aiohttp.ClientSession,
+    tasks: list[dict],
+    semaphore: asyncio.Semaphore,
+    ctx: dict,
+    poll_interval: float = 5,
+    max_poll_time: float = 600,
+) -> list[OpResult]:
+    """Execute all tasks in one (batch, tier) group.
+
+    Each task is ``{"op": {...}, "calls": [(method, url, body), ...]}``.
+    Tasks whose op.resource_type is in ``SERIALIZED_RESOURCE_TYPES`` run
+    sequentially; all others run concurrently via ``asyncio.gather``.
+    Bulk ops dispatch to ``execute_bulk_op``; non-bulk ops use
+    ``execute_single_op``.
+    """
+    from wxcli.migration.execute import SERIALIZED_RESOURCE_TYPES
+
+    parallel_tasks: list = []
+    serial_tasks: list = []
+    for t in tasks:
+        op = t["op"]
+        if op["resource_type"] in SERIALIZED_RESOURCE_TYPES:
+            serial_tasks.append(t)
+        else:
+            parallel_tasks.append(t)
+
+    results: list[OpResult] = []
+
+    # Kick off parallel ops
+    parallel_coros = []
+    for t in parallel_tasks:
+        op = t["op"]
+        parallel_coros.append(
+            execute_single_op(session, op["node_id"], t["calls"], semaphore)
+        )
+    if parallel_coros:
+        parallel_results = await asyncio.gather(*parallel_coros, return_exceptions=True)
+        for res in parallel_results:
+            if isinstance(res, Exception):
+                results.append(OpResult(node_id="?", status=0, error=str(res), body={}))
+            else:
+                results.append(res)
+
+    # Then serial bulk ops, one at a time
+    for t in serial_tasks:
+        op = t["op"]
+        try:
+            res = await execute_bulk_op(
+                session,
+                node_id=op["node_id"],
+                resource_type=op["resource_type"],
+                calls=t["calls"],
+                semaphore=semaphore,
+                poll_interval=poll_interval,
+                max_poll_time=max_poll_time,
+                ctx=ctx,
+            )
+        except Exception as e:
+            res = OpResult(node_id=op["node_id"], status=0, error=str(e), body={})
+        results.append(res)
+
+    return results
+
+
 async def execute_all_batches(
     store: MigrationStore,
     token: str,
@@ -440,12 +505,11 @@ async def execute_all_batches(
 
                 tasks.append((op, calls))
 
-            # Execute all ops in this batch concurrently
+            # Execute all ops in this batch — serialized bulk types run sequentially.
             if tasks:
-                results = await asyncio.gather(
-                    *[execute_single_op(session, op["node_id"], calls, semaphore)
-                      for op, calls in tasks],
-                    return_exceptions=True,
+                results = await run_batch_ops(
+                    session, [{"op": op, "calls": calls} for op, calls in tasks],
+                    semaphore=semaphore, ctx=ctx,
                 )
 
                 for (op, _calls), result in zip(tasks, results):
