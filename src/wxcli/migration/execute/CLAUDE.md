@@ -119,7 +119,7 @@ All 52 handlers in `HANDLER_REGISTRY`:
 | `(user, configure_settings)` | PUT `/people/{id}/features/{feature}` | One call per feature in call_settings dict |
 | `(user, configure_voicemail)` | PUT `/telephony/config/people/{id}/voicemail` | |
 | `(device, configure_settings)` | PUT `/telephony/config/devices/{id}/settings` | Returns `[]` if no settings |
-| `(workspace, configure_settings)` | PUT `/workspaces/{id}/features/{feature}` | Uses /workspaces/ not /telephony/config/ |
+| `(workspace, configure_settings)` | PUT `/telephony/config/workspaces/{id}/{feature}` | One call per feature in call_settings dict (DND + MOH work on both tiers; others require Professional Workspace) |
 | `(calling_permission, assign)` | PUT `/people/{id}/features/outgoingPermission` | One call per user in assigned_users |
 | `(call_forwarding, configure)` | PUT `/people/{id}/features/callForwarding` | Returns `[]` if all forwarding types disabled |
 | `(hunt_group, configure_forwarding)` | PUT `/telephony/config/locations/{loc}/huntGroups/{id}/callForwarding` | Returns `[]` if no forwarding fields set or feature/location not yet created |

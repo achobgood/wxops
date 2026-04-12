@@ -38,6 +38,8 @@ from wxcli.migration.transform.mappers.base import (
     manual_option,
     skip_option,
 )
+from wxcli.migration.cucm.extractors.helpers import ref_value
+from wxcli.migration.transform.mappers.call_forwarding_mapper import _duration_to_rings
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +66,9 @@ class WorkspaceMapper(Mapper):
 
         for phone_data in store.get_objects("phone"):
             phone_id = phone_data["canonical_id"]
+            # pre_migration_state here is the raw AXL getPhone dict (preserved by pipeline.py
+            # alongside the CanonicalDevice). Field names use original CUCM casing, not the
+            # normalized CanonicalDevice field names.
             state = phone_data.get("pre_migration_state") or {}
 
             # Only process common-area phones
@@ -223,6 +228,9 @@ class WorkspaceMapper(Mapper):
             store.save_decision(decision_to_store_dict(decision))
             result.decisions.append(decision)
 
+            # --- Call settings extraction ---
+            call_settings = _extract_workspace_call_settings(state, license_tier)
+
             # --- Build CanonicalWorkspace ---
             workspace = CanonicalWorkspace(
                 canonical_id=f"workspace:{device_name}",
@@ -238,6 +246,7 @@ class WorkspaceMapper(Mapper):
                 hotdesking_status=hotdesking_status,
                 is_common_area=True,
                 license_tier=license_tier,
+                call_settings=call_settings,
             )
 
             store.upsert_object(workspace)
@@ -300,5 +309,111 @@ def _infer_license_tier(state: dict[str, Any]) -> str:
     if state.get("outgoing_call_permissions"):
         return "Professional Workspace"
     return "Workspace"
+
+
+def _extract_workspace_call_settings(
+    state: dict[str, Any],
+    license_tier: str,
+) -> dict[str, Any] | None:
+    """Translate common-area phone state into a Webex workspace call_settings dict.
+
+    Returns a dict keyed by /telephony/config/workspaces/{id}/{key} path suffix.
+    Keys emitted depend on ``license_tier``:
+      - Workspace (basic): only ``doNotDisturb`` (Webex returns 405 on others for Basic).
+      - Professional Workspace: all detected settings.
+    Returns None if nothing worth writing.
+    """
+    settings: dict[str, Any] = {}
+
+    # --- doNotDisturb (both tiers) ---
+    dnd_status = state.get("dndStatus")
+    if dnd_status is not None:
+        enabled = dnd_status in ("true", True, "1")
+        ring_splash = enabled and state.get("dndOption") == "Ringer Off"
+        settings["doNotDisturb"] = {
+            "enabled": enabled,
+            "ringSplashEnabled": ring_splash,
+        }
+
+    # --- voicemail (Professional-only; license gate drops it for Workspace tier) ---
+    # voiceMailProfileName is extracted per-line via getLine enrichment. Live AXL
+    # returns it as a zeep reference dict: {"_value_1": "name", "uuid": "..."},
+    # so unwrap with ref_value().
+    first_line = _get_first_line(state)
+    vm_profile = ref_value(first_line.get("voiceMailProfileName")) if first_line else None
+    has_vm_profile = bool(vm_profile) and vm_profile.lower() not in ("none", "")
+    if has_vm_profile:
+        vm_body: dict[str, Any] = {"enabled": True}
+        # Pull CFNA ring timing + VM flag from line 1
+        if first_line:
+            cfna = first_line.get("callForwardNoAnswer") or {}
+            if cfna.get("forwardToVoiceMail") in ("true", True):
+                duration = cfna.get("duration")
+                rings = _duration_to_rings(duration) or 3
+                vm_body["sendUnansweredCalls"] = {
+                    "enabled": True,
+                    "numberOfRings": rings,
+                }
+            cfb = first_line.get("callForwardBusy") or {}
+            if cfb.get("forwardToVoiceMail") in ("true", True):
+                vm_body["sendBusyCalls"] = {"enabled": True}
+        settings["voicemail"] = vm_body
+    else:
+        # Webex defaults VM to enabled; common-area phones almost always want it OFF
+        settings["voicemail"] = {"enabled": False}
+
+    # --- callForwarding (Professional-only) ---
+    line1 = _get_first_line(state)
+    if line1:
+        # Only emit callForwarding if there's an explicit destination. When CUCM
+        # has forwardToVoiceMail=true with destination=None (forward to the phone's
+        # voicemail), we intentionally skip callForwarding — the voicemail block
+        # above already captures the user intent. Webex /telephony/config/.../callForwarding
+        # doesn't accept a "forward to voicemail" sentinel; that requires the voicemail endpoint.
+        cfa = (line1.get("callForwardAll") or {}).get("destination")
+        cfb = (line1.get("callForwardBusy") or {}).get("destination")
+        cfna_raw = line1.get("callForwardNoAnswer") or {}
+        cfna_dest = cfna_raw.get("destination")
+        if cfa or cfb or cfna_dest:
+            cf_body: dict[str, Any] = {
+                "always": {"enabled": bool(cfa)},
+                "busy": {"enabled": bool(cfb)},
+                "noAnswer": {"enabled": bool(cfna_dest)},
+            }
+            if cfa:
+                cf_body["always"]["destination"] = cfa
+            if cfb:
+                cf_body["busy"]["destination"] = cfb
+            if cfna_dest:
+                cf_body["noAnswer"]["destination"] = cfna_dest
+                duration = cfna_raw.get("duration")
+                cf_body["noAnswer"]["numberOfRings"] = _duration_to_rings(duration) or 3
+            settings["callForwarding"] = cf_body
+
+    # --- privacy (Professional-only) ---
+    # Real CUCM AXL field name is callInfoPrivacyStatus. Values observed on live
+    # CUCM 14.0 dCloud: "On" (privacy enabled), "Default" (inherits from common
+    # phone profile), or None (no owner — unowned phones don't get this field).
+    privacy = state.get("callInfoPrivacyStatus")
+    if privacy == "On":
+        settings["privacy"] = {"enabled": True}
+
+    # License tier gating: Workspace-tier only supports DND + MOH at /telephony/config/
+    # (from docs/reference/devices-workspaces.md license tier access matrix)
+    if license_tier == "Workspace":
+        allowed = {"doNotDisturb", "musicOnHold"}
+        settings = {k: v for k, v in settings.items() if k in allowed}
+
+    return settings or None
+
+
+def _get_first_line(state: dict[str, Any]) -> dict | None:
+    """Return the first line entry from a raw phone state, or None if missing."""
+    lines = state.get("lines") or []
+    if isinstance(lines, dict):
+        return lines.get(1) or lines.get("1")
+    if isinstance(lines, list) and lines and isinstance(lines[0], dict):
+        return lines[0]
+    return None
 
 

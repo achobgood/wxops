@@ -302,3 +302,20 @@ This is useful if users can provide their greeting recordings (e.g., via email).
 | 1 | 6 user-only settings list | Yes | `self-service-call-settings.md` lines 53-64; `person-call-settings-handling.md` lines 30-36 | simultaneousRing, sequentialRing, priorityAlert, callNotify, anonymousCallReject, callPolicies — exact match across both docs. |
 | 2 | Workspace Basic limited to musicOnHold + DND | Yes | `devices-workspaces.md` gotcha #10 (verified 2026-03-27); CLAUDE.md known issue #6 | Under `/telephony/config/workspaces/{id}/`, only musicOnHold and doNotDisturb work on Basic. Full endpoint matrix confirms. |
 | 3 | rings = cfna_timeout // 6 | Yes | `recommendation_rules.py` lines 434-441 | `rings = cfna_timeout // 6` (integer division) confirmed in source code. |
+
+## Common-Area Phone Call Settings
+
+Common-area phones migrate to Webex workspaces, and their settings follow a different license-gating rule than per-user settings. `WorkspaceMapper` populates `CanonicalWorkspace.call_settings` with these keys:
+
+| Key | Source CUCM field | Webex license required |
+|-----|-------------------|------------------------|
+| `doNotDisturb` | `dndStatus`, `dndOption` | Both Workspace and Professional |
+| `voicemail` | `voiceMailProfile`, per-line `forwardToVoiceMail` | Professional only |
+| `callForwarding` | Line 1 `callForwardAll`/`Busy`/`NoAnswer` | Professional only |
+| `privacy` | `privacy` field | Professional only |
+
+**Default flip:** Webex defaults voicemail to **enabled**, but most CUCM common-area phones have voicemail disabled. The mapper emits an explicit `{"enabled": False}` for Professional-tier workspaces with no Unity profile so lobby phones don't suddenly start recording greetings after migration.
+
+**License gate:** Workspace-tier (basic) workspaces strip everything except `doNotDisturb` and `musicOnHold` because the Webex API returns 405 "Invalid Professional Place" on the other endpoints. See `docs/reference/devices-workspaces.md` for the full endpoint-by-license matrix.
+
+**Current production behavior (2026-04-11):** `_infer_license_tier()` reads `call_recording_enabled`, `voicemail_enabled`/`custom_greetings`, and `outgoing_call_permissions` from the phone state, but none of those fields are populated by the current normalizers — so **every inferred workspace defaults to Workspace (basic) tier** under default inference. The license gate then strips everything except `doNotDisturb`. Voicemail, callForwarding, and privacy settings only reach the Webex API when an operator overrides the `WORKSPACE_LICENSE_TIER` decision to "Professional Workspace" during decision review (`{"type": "WORKSPACE_LICENSE_TIER", "choice": "professional"}` in auto-rules or manual resolution). Field mappings to real CUCM AXL fields have been verified against live CUCM 14.0: `dndStatus`/`dndOption` on phone root, `callInfoPrivacyStatus` on phone root, `voiceMailProfileName` per-line (as a zeep reference dict), and `callForward{All,Busy,NoAnswer}` per-line.
