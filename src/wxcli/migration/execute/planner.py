@@ -144,6 +144,10 @@ def _optimize_for_bulk(
             api_calls=API_CALL_ESTIMATES["bulk_device_settings:submit"],
             description=f"Bulk apply device settings at {loc}",
             depends_on=dep_node_ids,
+            payload={
+                "location_canonical_id": loc,
+                "customizations": {},
+            },
         ))
 
     # ---- Line key template aggregation ----
@@ -193,6 +197,10 @@ def _optimize_for_bulk(
             api_calls=API_CALL_ESTIMATES["bulk_line_key_template:submit"],
             description=f"Bulk apply line key template {template_cid} at {loc_cid}",
             depends_on=dep_node_ids,
+            payload={
+                "template_canonical_id": template_cid,
+                "location_canonical_ids": [loc_cid],
+            },
         ))
 
     # ---- Dynamic device settings (PSK) aggregation ----
@@ -238,6 +246,10 @@ def _optimize_for_bulk(
             api_calls=API_CALL_ESTIMATES["bulk_dynamic_settings:submit"],
             description=f"Bulk apply PSK/dynamic settings at {loc_cid}",
             depends_on=dep_node_ids,
+            payload={
+                "location_canonical_id": loc_cid,
+                "tags": [],
+            },
         ))
 
     # ---- Rebuild phones (tier 8) ----
@@ -266,6 +278,9 @@ def _optimize_for_bulk(
             api_calls=API_CALL_ESTIMATES["bulk_rebuild_phones:submit"],
             description=f"Bulk rebuild phones at {loc}",
             depends_on=bulk_node_ids,
+            payload={
+                "location_canonical_id": loc,
+            },
         ))
 
     return result

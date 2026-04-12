@@ -15,6 +15,7 @@ Batch ordering:
 
 from __future__ import annotations
 
+import json
 import logging
 import math
 from collections import defaultdict
@@ -177,11 +178,24 @@ def save_plan_to_store(
     # Write operations
     for node_id in G.nodes():
         node = G.nodes[node_id]
+        payload = node.get("payload")
+        data_json = json.dumps(payload) if payload else None
+        cid = node.get("canonical_id", "")
+        # Bulk ops have synthetic canonical_ids not in the objects table.
+        # Insert a placeholder row so the FK constraint is satisfied.
+        if payload and cid:
+            conn.execute(
+                """INSERT OR IGNORE INTO objects
+                   (canonical_id, object_type, status, data, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))""",
+                (cid, node.get("resource_type", "bulk_job"), "analyzed",
+                 data_json),
+            )
         conn.execute(
             """INSERT INTO plan_operations
                (node_id, canonical_id, op_type, resource_type, tier, batch,
-                api_calls, description, status)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                api_calls, description, status, data_json)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 node_id,
                 node.get("canonical_id", ""),
@@ -192,6 +206,7 @@ def save_plan_to_store(
                 node.get("api_calls", 1),
                 node.get("description", ""),
                 "pending",
+                data_json,
             ),
         )
 
