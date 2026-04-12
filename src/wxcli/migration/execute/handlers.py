@@ -79,6 +79,18 @@ def _resolve_agent_ids(data: dict, deps: dict, field: str = "agents") -> list[st
     return ids
 
 
+def _find_webex_id(data: dict, deps: dict) -> str | None:
+    """Resolve the Webex ID for the canonical object referenced by `data`.
+
+    Looks up `data['canonical_id']` in `deps`. Returns None if the feature
+    has not been created yet (handler should return [] in that case).
+    """
+    cid = data.get("canonical_id")
+    if not cid:
+        return None
+    return deps.get(cid)
+
+
 # ---------------------------------------------------------------------------
 # Tier 0: Infrastructure
 # ---------------------------------------------------------------------------
@@ -1111,6 +1123,181 @@ def handle_location_hotdesking_enable(data: dict, deps: dict, ctx: dict) -> Hand
     )]
 
 
+# ---------------------------------------------------------------------------
+# Tier 5: Feature forwarding / holiday / night service
+# (from 2026-04-10-feature-forwarding-night-service.md)
+# ---------------------------------------------------------------------------
+
+def handle_hunt_group_configure_forwarding(
+    data: dict, deps: dict, ctx: dict,
+) -> HandlerResult:
+    hg_wid = _find_webex_id(data, deps)
+    loc_wid = _resolve_location(data, deps)
+    if not hg_wid or not loc_wid:
+        return []
+    cf: dict[str, Any] = {}
+    if data.get("forward_always_enabled") and data.get("forward_always_destination"):
+        cf["always"] = {
+            "enabled": True,
+            "destination": data["forward_always_destination"],
+            "ringReminderEnabled": False,
+            "destinationVoicemailEnabled": False,
+        }
+    if data.get("forward_no_answer_enabled") and data.get("forward_no_answer_destination"):
+        cf["selective"] = {
+            "enabled": True,
+            "destination": data["forward_no_answer_destination"],
+            "ringReminderEnabled": False,
+            "destinationVoicemailEnabled": False,
+        }
+    if data.get("forward_busy_enabled") and data.get("forward_busy_destination") and "always" not in cf:
+        # Map CUCM forward-on-busy onto Webex always-forward when always is unused
+        cf["always"] = {
+            "enabled": True,
+            "destination": data["forward_busy_destination"],
+            "ringReminderEnabled": False,
+            "destinationVoicemailEnabled": False,
+        }
+    if not cf:
+        return []
+    body = {"callForwarding": cf}
+    url = _url(
+        f"/telephony/config/locations/{loc_wid}/huntGroups/{hg_wid}/callForwarding",
+        ctx,
+    )
+    return [("PUT", url, body)]
+
+
+def handle_call_queue_configure_forwarding(
+    data: dict, deps: dict, ctx: dict,
+) -> HandlerResult:
+    cq_wid = _find_webex_id(data, deps)
+    loc_wid = _resolve_location(data, deps)
+    if not cq_wid or not loc_wid:
+        return []
+    cf: dict[str, Any] = {}
+    always_dest = (
+        data.get("forward_always_destination")
+        or data.get("queue_full_destination")
+    )
+    if always_dest:
+        cf["always"] = {
+            "enabled": True,
+            "destination": always_dest,
+            "ringReminderEnabled": False,
+            "destinationVoicemailEnabled": False,
+        }
+    if not cf:
+        return []
+    body = {"callForwarding": cf}
+    url = _url(
+        f"/telephony/config/locations/{loc_wid}/queues/{cq_wid}/callForwarding",
+        ctx,
+    )
+    return [("PUT", url, body)]
+
+
+def handle_call_queue_configure_holiday_service(
+    data: dict, deps: dict, ctx: dict,
+) -> HandlerResult:
+    cq_wid = _find_webex_id(data, deps)
+    loc_wid = _resolve_location(data, deps)
+    if not cq_wid or not loc_wid:
+        return []
+    if not data.get("holiday_service_enabled"):
+        return []
+    body: dict[str, Any] = {
+        "holidayServiceEnabled": True,
+        "action": data.get("holiday_action", "BUSY"),
+        "holidayScheduleLevel": data.get("holiday_schedule_level", "LOCATION"),
+        "holidayScheduleName": data.get("holiday_schedule_name"),
+        "playAnnouncementBeforeEnabled": True,
+        "audioMessageSelection": "DEFAULT",
+    }
+    if data.get("holiday_action") == "TRANSFER" and data.get("holiday_transfer_number"):
+        body["transferPhoneNumber"] = data["holiday_transfer_number"]
+    url = _url(
+        f"/telephony/config/locations/{loc_wid}/queues/{cq_wid}/holidayService",
+        ctx,
+    )
+    return [("PUT", url, body)]
+
+
+def handle_call_queue_configure_night_service(
+    data: dict, deps: dict, ctx: dict,
+) -> HandlerResult:
+    cq_wid = _find_webex_id(data, deps)
+    loc_wid = _resolve_location(data, deps)
+    if not cq_wid or not loc_wid:
+        return []
+    if not data.get("night_service_enabled"):
+        return []
+    body: dict[str, Any] = {
+        "nightServiceEnabled": True,
+        "action": data.get("night_action", "TRANSFER"),
+        "businessHoursLevel": data.get("night_business_hours_level", "LOCATION"),
+        "businessHoursName": data.get("night_business_hours_name"),
+        "playAnnouncementBeforeEnabled": True,
+        "announcementMode": "NORMAL",
+        "audioMessageSelection": "DEFAULT",
+        "forceNightServiceEnabled": False,
+        "manualAudioMessageSelection": "DEFAULT",
+    }
+    if data.get("night_transfer_number"):
+        body["transferPhoneNumber"] = data["night_transfer_number"]
+    url = _url(
+        f"/telephony/config/locations/{loc_wid}/queues/{cq_wid}/nightService",
+        ctx,
+    )
+    return [("PUT", url, body)]
+
+
+def handle_call_queue_configure_stranded_calls(
+    data: dict, deps: dict, ctx: dict,
+) -> HandlerResult:
+    cq_wid = _find_webex_id(data, deps)
+    loc_wid = _resolve_location(data, deps)
+    if not cq_wid or not loc_wid:
+        return []
+    if not data.get("no_agent_destination"):
+        return []
+    body: dict[str, Any] = {
+        "action": "TRANSFER",
+        "transferPhoneNumber": data["no_agent_destination"],
+    }
+    url = _url(
+        f"/telephony/config/locations/{loc_wid}/queues/{cq_wid}/strandedCalls",
+        ctx,
+    )
+    return [("PUT", url, body)]
+
+
+def handle_auto_attendant_configure_forwarding(
+    data: dict, deps: dict, ctx: dict,
+) -> HandlerResult:
+    aa_wid = _find_webex_id(data, deps)
+    loc_wid = _resolve_location(data, deps) or _resolve_location_from_deps(deps)
+    if not aa_wid or not loc_wid:
+        return []
+    if not (data.get("forward_always_enabled") and data.get("forward_always_destination")):
+        return []
+    body = {
+        "callForwarding": {
+            "always": {
+                "enabled": True,
+                "destination": data["forward_always_destination"],
+                "ringReminderEnabled": False,
+                "destinationVoicemailEnabled": False,
+            },
+        },
+    }
+    url = _url(
+        f"/telephony/config/locations/{loc_wid}/autoAttendants/{aa_wid}/callForwarding",
+        ctx,
+    )
+    return [("PUT", url, body)]
+
+
 # HANDLER_REGISTRY — complete with all operation types
 HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("location", "create"): handle_location_create,
@@ -1131,6 +1318,13 @@ HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("hunt_group", "create"): handle_hunt_group_create,
     ("call_queue", "create"): handle_call_queue_create,
     ("auto_attendant", "create"): handle_auto_attendant_create,
+    # Feature forwarding / holiday / night service (tier 5)
+    ("hunt_group", "configure_forwarding"): handle_hunt_group_configure_forwarding,
+    ("call_queue", "configure_forwarding"): handle_call_queue_configure_forwarding,
+    ("call_queue", "configure_holiday_service"): handle_call_queue_configure_holiday_service,
+    ("call_queue", "configure_night_service"): handle_call_queue_configure_night_service,
+    ("call_queue", "configure_stranded_calls"): handle_call_queue_configure_stranded_calls,
+    ("auto_attendant", "configure_forwarding"): handle_auto_attendant_configure_forwarding,
     ("call_park", "create"): handle_call_park_create,
     ("pickup_group", "create"): handle_pickup_group_create,
     ("paging_group", "create"): handle_paging_group_create,
