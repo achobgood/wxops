@@ -245,3 +245,45 @@ All 41 handlers in `HANDLER_REGISTRY`:
 - **`operating_mode` — `differentHoursDaily` format** — Canonical stores `{day_0: {startTime, endTime}, ...}` (numeric keys). API uses `{monday: {enabled, allDayEnabled, startTime?, endTime?}, ...}` (day names). The handler maps `day_N` → day name.
 - **`operating_mode` — 409 auto-recovery** — If an operating mode with the same name already exists, the engine searches by name and uses the existing ID.
 - **`device:create_activation_code` vs `device:create`** — firmware-convertible phones (7800/8800-series eligible for E2M conversion) take the activation-code path instead of MAC-based creation. The planner picks between the two based on `compatibility_tier == "convertible"` + the `DEVICE_FIRMWARE_CONVERTIBLE` decision produced by `DeviceCompatibilityAnalyzer`: `"convert"` → activation code op; `"skip"` → no op (caught by the generic skip path upstream); unresolved / anything else → no op. The activation code string lands in `plan_operations.webex_id` because the engine falls back to `resp_body.get("code")` when no `id` is present. Model strings arriving as `"Cisco IP Phone 8851"` are collapsed to `"DMS Cisco 8851"` in the handler (the verbose form is recognized by the convertibility classifier but rejected by the Webex activation code API). Expiry is not persisted (no `result_body` column); regenerating expired codes is future work.
+
+---
+
+## Bulk Job Operations (Phase: bulk-operations)
+
+At 100+ devices, the planner's post-expansion `_optimize_for_bulk()` pass
+replaces per-device ops with Webex bulk job submissions:
+
+| Per-device op | Replaced by | Tier |
+|---|---|---|
+| `device:configure_settings` | `bulk_device_settings:submit` | 5 |
+| `device_layout:configure` | `bulk_line_key_template:submit` | 7 |
+| `softkey_config:configure` | `bulk_dynamic_settings:submit` | 7 |
+| (post-all) | `bulk_rebuild_phones:submit` | 8 |
+
+`device:create` is never replaced — there is no bulk create API.
+
+**Threshold:** `bulk_device_threshold` in project `config.json`. Default 100.
+Set to 0 to force bulk always; set to 999999 to disable.
+
+**Engine polling:** `execute_bulk_op()` POSTs the submit URL, captures the
+job id, calls `poll_job_until_complete()`, and returns an `OpResult` only
+when the job reaches COMPLETED or FAILED. If a bulk job fails or times
+out, the op is marked `failed` and cascade-skip applies to its dependents.
+On the next `execute_all_batches` run, the failed op can be retried.
+
+**Partial-failure fallback (not yet wired):** `execute_bulk_op` accepts a
+`fallback_context` parameter with `_run_per_device_fallback` logic for
+re-running per-device handlers on failed items. The primitives exist and
+are unit-tested, but `run_batch_ops` does not yet populate `fallback_context`
+from the plan. Until this is wired, partial bulk job failures are treated as
+full failures. Follow-up task needed.
+
+**Serialization:** All four bulk resource types are in
+`SERIALIZED_RESOURCE_TYPES` — the batch loop runs them sequentially via
+`run_batch_ops` (never via `asyncio.gather`) to satisfy Webex's
+one-job-per-org constraint.
+
+**FedRAMP gotcha:** `rebuildPhones` is not supported for Webex for
+Government. If you're migrating a FedRAMP tenant, set
+`bulk_device_threshold` to 999999 or delete the `bulk_rebuild_phones`
+ops manually from the plan before execution.

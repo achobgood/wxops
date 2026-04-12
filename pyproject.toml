@@ -23,6 +23,7 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+asyncio_mode = "auto"
 markers = [
     "live: requires live Webex API access (deselect with '-m not live')",
 ]
