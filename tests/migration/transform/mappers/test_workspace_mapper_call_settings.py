@@ -294,3 +294,59 @@ class TestPrivacyExtraction:
 
         ws = store.get_object("workspace:conf-default")
         assert "privacy" not in (ws.get("call_settings") or {})
+
+
+class TestLicenseTierGating:
+    def test_workspace_tier_drops_voicemail_and_forwarding(self):
+        """Workspace tier keeps only DND + musicOnHold; everything else is stripped."""
+        store = MigrationStore(":memory:")
+        # No feature indicators → inferred as Workspace tier
+        phone = _common_area_phone_with_lines(
+            "basic-lobby",
+            lines=[{
+                "index": 1,
+                "dirn": {"pattern": "5700"},
+                "callForwardNoAnswer": {"destination": "2000", "duration": "24"},
+                "callForwardAll": {"destination": "1000"},
+            }],
+        )
+        phone.pre_migration_state["dndStatus"] = "true"
+        phone.pre_migration_state["privacy"] = "On"
+        store.upsert_object(phone)
+
+        WorkspaceMapper().map(store)
+
+        ws = store.get_object("workspace:basic-lobby")
+        assert ws["license_tier"] == "Workspace"
+        cs = ws["call_settings"]
+        assert "doNotDisturb" in cs
+        # Everything else must be stripped by the gate
+        assert "voicemail" not in cs
+        assert "callForwarding" not in cs
+        assert "privacy" not in cs
+
+    def test_professional_tier_keeps_everything(self):
+        """Professional tier keeps every extracted setting."""
+        store = MigrationStore(":memory:")
+        phone = _common_area_phone_with_lines(
+            "pro-lobby",
+            lines=[{
+                "index": 1,
+                "dirn": {"pattern": "5800"},
+                "callForwardNoAnswer": {"destination": "2000", "duration": "24"},
+            }],
+        )
+        phone.pre_migration_state["dndStatus"] = "true"
+        phone.pre_migration_state["privacy"] = "On"
+        phone.pre_migration_state["outgoing_call_permissions"] = True  # forces Professional
+        store.upsert_object(phone)
+
+        WorkspaceMapper().map(store)
+
+        ws = store.get_object("workspace:pro-lobby")
+        assert ws["license_tier"] == "Professional Workspace"
+        cs = ws["call_settings"]
+        assert "doNotDisturb" in cs
+        assert "voicemail" in cs
+        assert "callForwarding" in cs
+        assert "privacy" in cs
