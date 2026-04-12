@@ -945,6 +945,71 @@ def _expand_hoteling_location(obj: dict[str, Any]) -> list[MigrationOp]:
                 depends_on=deps)]
 
 
+def _expand_dect_network(obj: dict[str, Any]) -> list[MigrationOp]:
+    """DECT network → 3 ops: create_dect_network, create_base_stations, assign_handsets.
+
+    Dependency chain:
+      create_dect_network  → depends on location:create
+      create_base_stations → depends on create_dect_network
+      assign_handsets      → depends on create_base_stations + each owner user:create/workspace:create
+
+    Handset assignments are stored as-is in the op data; the handler is
+    responsible for batching API calls if the DECT API imposes per-request limits.
+    (from spec §5d — _expand_dect_network requirements)
+    """
+    cid = obj["canonical_id"]
+    name = obj.get("display_name") or obj.get("network_name") or cid
+    loc_cid = obj.get("location_canonical_id")
+    batch = loc_cid if loc_cid else None
+
+    # Op 1: create the DECT network
+    create_deps: list[str] = []
+    if loc_cid:
+        create_deps.append(_node_id(loc_cid, "create"))
+
+    op_create = _op(
+        cid, "create", "dect_network",
+        f"Create DECT network {name}",
+        depends_on=create_deps,
+        batch=batch,
+    )
+
+    # Op 2: register base stations (depends on network existing)
+    op_base_stations = _op(
+        cid, "create_base_stations", "dect_network",
+        f"Register base stations for DECT network {name}",
+        depends_on=[_node_id(cid, "create")],
+        batch=batch,
+    )
+
+    # Op 3: assign handsets (depends on base stations + all owner entities)
+    handset_deps: list[str] = [_node_id(cid, "create_base_stations")]
+    handset_assignments = obj.get("handset_assignments") or []
+    for handset in handset_assignments:
+        owner_cid = handset.get("user_canonical_id")
+        if owner_cid:
+            if owner_cid.startswith("user:"):
+                handset_deps.append(_node_id(owner_cid, "create"))
+            elif owner_cid.startswith("workspace:"):
+                handset_deps.append(_node_id(owner_cid, "create"))
+    # Deduplicate while preserving order
+    seen: set[str] = set()
+    unique_handset_deps: list[str] = []
+    for dep in handset_deps:
+        if dep not in seen:
+            seen.add(dep)
+            unique_handset_deps.append(dep)
+
+    op_assign_handsets = _op(
+        cid, "assign_handsets", "dect_network",
+        f"Assign handsets to DECT network {name}",
+        depends_on=unique_handset_deps,
+        batch=batch,
+    )
+
+    return [op_create, op_base_stations, op_assign_handsets]
+
+
 def _expand_music_on_hold(obj: dict[str, Any]) -> list[MigrationOp]:
     """Music on hold → 1 op: configure (tier 5).
 
@@ -1122,6 +1187,7 @@ _EXPANDERS: dict[str, Any] = {
     "device_settings_template": lambda obj, d: _expand_device_settings_template(obj, d),
     "device_profile": lambda obj, _: _expand_device_profile(obj),
     "hoteling_location": lambda obj, _: _expand_hoteling_location(obj),
+    "dect_network": lambda obj, _: _expand_dect_network(obj),
     "music_on_hold": lambda obj, _: _expand_music_on_hold(obj),
     "announcement": lambda obj, _: _expand_announcement(obj),
     "executive_assistant": lambda obj, _: _expand_executive_assistant(obj),
