@@ -1222,8 +1222,8 @@ def normalize_voicemail_group(
         return None
 
     extension = (
-        raw.get("Extension")
-        or raw.get("DtmfAccessId")
+        raw.get("DtmfAccessId")
+        or raw.get("Extension")
         or raw.get("extension")
     )
     object_id = raw.get("ObjectId") or raw.get("pkid") or ""

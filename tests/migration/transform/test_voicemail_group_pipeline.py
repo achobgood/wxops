@@ -39,7 +39,9 @@ class TestVoicemailGroupNormalizationPipeline:
             },
         }
 
-        normalize_discovery(raw_data, store, cluster="lab")
+        summary = normalize_discovery(raw_data, store, cluster="lab")
+
+        assert summary["pass1"].get("voicemail/shared_mailboxes") == 2
 
         sales = store.get_object("voicemail_group:Sales Voicemail")
         support = store.get_object("voicemail_group:Support Voicemail")
