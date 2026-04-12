@@ -239,6 +239,34 @@ def _optimize_for_bulk(
             depends_on=dep_node_ids,
         ))
 
+    # ---- Rebuild phones (tier 8) ----
+    # One rebuild per location touched by any bulk op. Depends on every
+    # bulk op in that location so it runs strictly after them.
+    rebuild_locations: dict[str, list[str]] = {}
+
+    for op in result:
+        if op.resource_type not in {"bulk_device_settings",
+                                      "bulk_line_key_template",
+                                      "bulk_dynamic_settings"}:
+            continue
+        loc = op.batch or "org-wide"
+        rebuild_locations.setdefault(loc, []).append(
+            _node_id(op.canonical_id, op.op_type)
+        )
+
+    for loc, bulk_node_ids in sorted(rebuild_locations.items()):
+        bulk_cid = f"bulk_rebuild_phones:{loc}"
+        result.append(MigrationOp(
+            canonical_id=bulk_cid,
+            op_type="submit",
+            resource_type="bulk_rebuild_phones",
+            tier=TIER_ASSIGNMENTS[("bulk_rebuild_phones", "submit")],
+            batch=loc if loc != "org-wide" else None,
+            api_calls=API_CALL_ESTIMATES["bulk_rebuild_phones:submit"],
+            description=f"Bulk rebuild phones at {loc}",
+            depends_on=bulk_node_ids,
+        ))
+
     return result
 
 
