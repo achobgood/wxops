@@ -22,7 +22,7 @@ class TestHandleVoicemailGroupCreate:
             "extension": "5896",
             "location_id": "location:HQ",
             "language_code": "en_us",
-            "passcode": "0000",
+            "passcode": "293847",
             "notifications": {"enabled": True, "destination": "sales@example.com"},
             "message_storage": {"storageType": "INTERNAL"},
             "fax_message": {"enabled": False},
@@ -43,7 +43,7 @@ class TestHandleVoicemailGroupCreate:
         assert "orgId=Y2lzY286Lzk5OQ" in url
         assert body["name"] == "Sales Voicemail"
         assert body["extension"] == "5896"
-        assert body["passcode"] == "0000"
+        assert body["passcode"] == "293847"
         assert body["languageCode"] == "en_us"
         assert body["messageStorage"] == {"storageType": "INTERNAL"}
         assert body["notifications"] == {
@@ -66,6 +66,44 @@ class TestHandleVoicemailGroupCreate:
 
         assert handle_voicemail_group_create(data, deps, ctx) == []
 
+    def test_missing_extension_returns_empty(self):
+        data = {
+            "canonical_id": "voicemail_group:NoExt",
+            "name": "NoExt",
+            "extension": None,
+            "location_id": "location:HQ",
+            "passcode": "293847",
+        }
+        deps = {"location:HQ": "Y2lzY286LzEzMi8x"}
+        ctx = {"orgId": "Y2lzY286Lzk5OQ"}
+
+        assert handle_voicemail_group_create(data, deps, ctx) == []
+
+    def test_resolve_location_from_deps_fallback(self):
+        """Verify the _resolve_location_from_deps fallback path.
+
+        When data has no location_id key at all, but deps contains a single
+        location entry keyed with the 'location:' prefix, _resolve_location
+        returns None and _resolve_location_from_deps picks up the wid.
+        """
+        data = {
+            "canonical_id": "voicemail_group:FallbackVM",
+            "name": "FallbackVM",
+            "extension": "5100",
+            "passcode": "293847",
+            # No 'location_id' key at all — forces fallback path
+        }
+        deps = {"location:HQ": "Y2lzY286LzEzMi8x"}
+        ctx = {"orgId": "Y2lzY286Lzk5OQ"}
+
+        calls = handle_voicemail_group_create(data, deps, ctx)
+
+        assert len(calls) == 1
+        method, url, body = calls[0]
+        assert method == "POST"
+        assert "/telephony/config/locations/Y2lzY286LzEzMi8x/voicemailGroups" in url
+        assert body["name"] == "FallbackVM"
+
     def test_caller_id_name_sets_direct_line_and_dial_by_name(self):
         data = {
             "canonical_id": "voicemail_group:Sales Voicemail",
@@ -73,7 +111,7 @@ class TestHandleVoicemailGroupCreate:
             "extension": "5896",
             "location_id": "location:HQ",
             "caller_id_name": "Sales Team",
-            "passcode": "0000",
+            "passcode": "293847",
         }
         deps = {"location:HQ": "loc-wid"}
         ctx = {"orgId": "org-wid"}
@@ -93,7 +131,7 @@ class TestHandleVoicemailGroupCreate:
             "extension": "5896",
             "location_id": "location:HQ",
             "phone_number": "+16065551234",
-            "passcode": "0000",
+            "passcode": "293847",
         }
         deps = {"location:HQ": "loc-wid"}
         ctx = {"orgId": "org-wid"}

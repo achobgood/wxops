@@ -376,7 +376,7 @@ def _expand_paging_group(obj: dict[str, Any]) -> list[MigrationOp]:
 
 
 def _expand_voicemail_group(obj: dict[str, Any]) -> list[MigrationOp]:
-    """Voicemail group -> 1 op: create (tier 4).
+    """Voicemail group -> 1 op: create.
 
     Depends on the location's calling having been enabled. The batch
     partitioner groups this with other features in the same location.

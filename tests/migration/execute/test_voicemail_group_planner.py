@@ -30,7 +30,7 @@ class TestExpandVoicemailGroup:
             name="Sales Voicemail",
             extension="5896",
             location_id="location:HQ",
-            passcode="0000",
+            passcode="293847",
         )
         ops = _expand_voicemail_group(vg.model_dump())
 
