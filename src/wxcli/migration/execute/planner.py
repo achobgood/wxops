@@ -252,13 +252,13 @@ _NON_WEBEX_DEVICE_MODELS = {
 def _expand_device(
     obj: dict[str, Any], decisions: list[dict[str, Any]],
 ) -> list[MigrationOp]:
-    """Device → 1 op (CONVERTIBLE, accept) or 2 ops (NATIVE_MPP).
+    """Device → 1 op (CONVERTIBLE, convert) or 2 ops (NATIVE_MPP).
 
     - NATIVE_MPP / default: create (MAC-based POST /devices) + configure_settings
-    - CONVERTIBLE + decision 'accept': single create_activation_code op,
+    - CONVERTIBLE + decision 'convert': single create_activation_code op,
       no configure_settings (the phone auto-configures after registering)
-    - CONVERTIBLE + decision 'manual': no ops (user replaces phone out of band)
     - CONVERTIBLE + decision 'skip': caught by the generic skip path upstream
+    - CONVERTIBLE + unresolved / other: no ops (decision forces a no-op)
     - webex_app / infrastructure / dect / non-Webex models: no ops
 
     Skip decisions handled generically in expand_to_operations.
@@ -279,9 +279,10 @@ def _expand_device(
 
     if obj.get("compatibility_tier") == "convertible":
         choice = _decision_chosen(decisions, "DEVICE_FIRMWARE_CONVERTIBLE")
-        if choice != "accept":
-            # 'manual' → field tech replaces phone; no pipeline op.
-            # None/other → no action (skip already caught upstream).
+        if choice != "convert":
+            # Only 'convert' resolves to an activation code op.
+            # 'skip' is caught by the generic skip path upstream; any
+            # other value (None / unresolved) produces no op.
             return []
         return [
             _op(cid, "create_activation_code", "device",

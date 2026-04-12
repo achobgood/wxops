@@ -451,6 +451,11 @@ def handle_device_create_activation_code(
     if model:
         if not model.startswith("DMS "):
             model = f"DMS {model}"
+        # CanonicalDevice.model may arrive as either "Cisco 8851" or
+        # "Cisco IP Phone 8851" (both are recognized as convertible in
+        # cross_reference._CONVERTIBLE_PATTERNS). The Webex activation
+        # code API expects the concise form, so collapse " IP Phone ".
+        model = model.replace(" IP Phone ", " ")
         body["model"] = model
 
     owner_cid = data.get("owner_canonical_id")
