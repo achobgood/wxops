@@ -237,3 +237,52 @@ class TestDynamicSettingsAggregation:
         assert len(bulk_dyn) == 1
         assert bulk_dyn[0].tier == 7
         assert bulk_dyn[0].batch == "location:loc-1"
+
+
+class TestRebuildPhones:
+    def test_emits_one_rebuild_op_per_location_at_tier_8(self, store, device_factory):
+        # 120 devices across 2 locations. Expect 2 rebuild ops at tier 8.
+        for i in range(60):
+            store.upsert_object(device_factory(f"device:d{i}", location_cid="location:loc-1"))
+        for i in range(60, 120):
+            store.upsert_object(device_factory(f"device:d{i}", location_cid="location:loc-2"))
+
+        ops = []
+        for i in range(60):
+            ops.append(_op(f"device:d{i}", "create", "device",
+                            tier=3, batch="location:loc-1"))
+            ops.append(_op(f"device:d{i}", "configure_settings", "device",
+                            tier=5, batch="location:loc-1"))
+        for i in range(60, 120):
+            ops.append(_op(f"device:d{i}", "create", "device",
+                            tier=3, batch="location:loc-2"))
+            ops.append(_op(f"device:d{i}", "configure_settings", "device",
+                            tier=5, batch="location:loc-2"))
+
+        result = _optimize_for_bulk(ops, store, threshold=100)
+
+        rebuild = [
+            o for o in result
+            if o.resource_type == "bulk_rebuild_phones" and o.op_type == "submit"
+        ]
+        assert len(rebuild) == 2
+        assert all(o.tier == 8 for o in rebuild)
+        assert {o.batch for o in rebuild} == {"location:loc-1", "location:loc-2"}
+
+    def test_rebuild_depends_on_bulk_settings_ops(self, store, device_factory):
+        for i in range(120):
+            store.upsert_object(device_factory(f"device:d{i}", location_cid="location:loc-1"))
+
+        ops = []
+        for i in range(120):
+            ops.append(_op(f"device:d{i}", "create", "device",
+                            tier=3, batch="location:loc-1"))
+            ops.append(_op(f"device:d{i}", "configure_settings", "device",
+                            tier=5, batch="location:loc-1"))
+
+        result = _optimize_for_bulk(ops, store, threshold=100)
+
+        rebuild = [o for o in result if o.resource_type == "bulk_rebuild_phones"]
+        assert len(rebuild) == 1
+        dep_ids = set(rebuild[0].depends_on)
+        assert "bulk_device_settings:location:loc-1:submit" in dep_ids
