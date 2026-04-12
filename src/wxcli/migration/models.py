@@ -101,6 +101,9 @@ class DecisionType(str, Enum):
     E911_LOCATION_MISMATCH = "E911_LOCATION_MISMATCH"
     # Workspace call settings (from 2026-04-10-workspace-call-settings.md §5)
     WORKSPACE_SETTINGS_PROFESSIONAL_REQUIRED = "WORKSPACE_SETTINGS_PROFESSIONAL_REQUIRED"
+    # DECT Phase 2 decision types
+    DECT_NETWORK_DESIGN = "DECT_NETWORK_DESIGN"
+    DECT_HANDSET_ASSIGNMENT = "DECT_HANDSET_ASSIGNMENT"
 
 
 # ---------------------------------------------------------------------------
@@ -805,6 +808,30 @@ class CanonicalDeviceSettingsTemplate(MigrationObject):
 
 
 # ---------------------------------------------------------------------------
+# Canonical types — DECT Networks
+# ---------------------------------------------------------------------------
+
+class CanonicalDECTNetwork(MigrationObject):
+    """CUCM DECT infrastructure → Webex DECT Network + Base Stations + Handsets.
+
+    Produced by DECTMapper (Phase 2). One object per CUCM DECT network (identified
+    by access_code + base station cluster). Consumed by DECT execution handlers
+    which POST to /telephony/config/locations/{locationId}/dectNetworks.
+    """
+    location_canonical_id: str | None = None  # canonical_id of CanonicalLocation
+    network_name: str | None = None            # Internal name for the network
+    display_name: str | None = None            # User-visible display name
+    model: str | None = None                   # DECT network model (e.g., "DBS-110", "DBS-210")
+    access_code: str | None = None             # DECT system access code
+    base_stations: list[dict[str, Any]] = Field(default_factory=list)
+    # Each base station entry: {mac, display_name, location_canonical_id, cucm_device_name}
+    handset_assignments: list[dict[str, Any]] = Field(default_factory=list)
+    # Each handset entry: {index, line1_canonical_id, line2_canonical_id,
+    #                      display_name, user_canonical_id}
+    pre_migration_state: dict[str, Any] | None = None
+
+
+# ---------------------------------------------------------------------------
 # Inventory — aggregates all canonical types
 # ---------------------------------------------------------------------------
 
@@ -885,6 +912,7 @@ CANONICAL_TYPE_REGISTRY: dict[str, type[MigrationObject]] = {
     "announcement": CanonicalAnnouncement,
     "device_settings_template": CanonicalDeviceSettingsTemplate,
     "executive_assistant": CanonicalExecutiveAssistant,
+    "dect_network": CanonicalDECTNetwork,
 }
 
 # Reverse lookup: class -> type name string (O(1) for _object_type_for)
