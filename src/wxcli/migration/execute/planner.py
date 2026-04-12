@@ -927,6 +927,38 @@ def _expand_hoteling_location(obj: dict[str, Any]) -> list[MigrationOp]:
                 depends_on=deps)]
 
 
+def _expand_music_on_hold(obj: dict[str, Any]) -> list[MigrationOp]:
+    """Music on hold → 1 op: configure (tier 5).
+
+    Phase A: the handler is a no-op placeholder. The op exists so operators
+    see music_on_hold tracked in the deployment plan; the MOHMapper's
+    AUDIO_ASSET_MANUAL decisions still gate custom audio. Real per-location
+    PUT /telephony/config/locations/{id}/musicOnHold calls + custom audio
+    upload are deferred to a future Phase B that adds multipart support to
+    execute/engine.py.
+    """
+    cid = obj["canonical_id"]
+    name = obj.get("source_name") or cid
+    return [_op(cid, "configure", "music_on_hold",
+                f"Track MoH source {name} (Phase A: no-op)")]
+
+
+def _expand_announcement(obj: dict[str, Any]) -> list[MigrationOp]:
+    """Announcement → 1 op: upload (tier 1).
+
+    Phase A: the handler is a no-op placeholder. The AnnouncementMapper
+    always creates AUDIO_ASSET_MANUAL decisions for every announcement,
+    so operators already know to manually download and upload audio. The
+    op is emitted so the deployment plan shows announcements as tracked.
+    Real multipart POST /telephony/config/locations/{id}/announcements is
+    deferred to Phase B.
+    """
+    cid = obj["canonical_id"]
+    name = obj.get("name") or cid
+    return [_op(cid, "upload", "announcement",
+                f"Track announcement {name} (Phase A: manual upload required)")]
+
+
 # ---------------------------------------------------------------------------
 # Types that don't produce standalone operations
 # ---------------------------------------------------------------------------
@@ -934,6 +966,7 @@ def _expand_hoteling_location(obj: dict[str, Any]) -> list[MigrationOp]:
 _DATA_ONLY_TYPES = {
     "line": "Data consumed by user:create (extension) / workspace:assign_number",
     "voicemail_profile": "Data consumed by user:configure_voicemail",
+    "e911_config": "Advisory only — ECBN handled by user:configure_settings, RedSky civic addresses are a separate workstream",
 }
 
 
@@ -1001,6 +1034,8 @@ _EXPANDERS: dict[str, Any] = {
     "device_settings_template": lambda obj, d: _expand_device_settings_template(obj, d),
     "device_profile": lambda obj, _: _expand_device_profile(obj),
     "hoteling_location": lambda obj, _: _expand_hoteling_location(obj),
+    "music_on_hold": lambda obj, _: _expand_music_on_hold(obj),
+    "announcement": lambda obj, _: _expand_announcement(obj),
 }
 
 

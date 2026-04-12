@@ -143,6 +143,9 @@ TIER_ASSIGNMENTS: dict[tuple[str, str], int] = {
     ("bulk_line_key_template", "submit"): 7,
     ("bulk_dynamic_settings", "submit"): 7,
     ("bulk_rebuild_phones", "submit"): 8,  # Tier 8: runs after all device finalization
+    # Advisory-to-execution bridge (Phase A: no-op placeholders)
+    ("music_on_hold", "configure"): 5,   # Settings tier — location must exist + calling enabled
+    ("announcement", "upload"): 1,       # Routing backbone — features reference announcements
 }
 
 # ---------------------------------------------------------------------------
@@ -224,6 +227,9 @@ API_CALL_ESTIMATES: dict[str, int] = {
     "bulk_line_key_template:submit": 10,
     "bulk_dynamic_settings:submit": 10,
     "bulk_rebuild_phones:submit": 10,
+    # Advisory-to-execution bridge (Phase A: no-op placeholders, 0 API calls)
+    "music_on_hold:configure": 0,
+    "announcement:upload": 0,
 }
 
 # ---------------------------------------------------------------------------
