@@ -208,6 +208,16 @@ class FeatureMapper(Mapper):
         # here), so computing it once avoids O(N*M) store queries.
         has_vm_group = any(True for _ in store.get_objects("voicemail_group"))
 
+        # Index voicemail groups by extension for O(1) lookup — used to write
+        # feature_forwards_to_voicemail_group cross-refs so the dependency
+        # graph can enforce voicemail_group:create → feature:configure_*.
+        vg_by_ext: dict[str, str] = {}
+        for vg in store.get_objects("voicemail_group"):
+            vg_state = vg.get("pre_migration_state") or {}
+            vg_ext = vg_state.get("extension")
+            if vg_ext:
+                vg_by_ext[str(vg_ext)] = vg["canonical_id"]
+
         for hp_data in store.get_objects("hunt_pilot"):
             hp_id = hp_data["canonical_id"]
             hp_state = hp_data.get("pre_migration_state") or {}
@@ -423,6 +433,14 @@ class FeatureMapper(Mapper):
                 for agent_cid in unique_members:
                     store.add_cross_ref(feature_cid, agent_cid, "feature_has_agent")
 
+                # Phase C: link call queue to voicemail group for overflow dependency
+                for dest in [queue_full_dest, max_wait_dest, no_agent_dest]:
+                    if dest and str(dest) in vg_by_ext:
+                        store.add_cross_ref(
+                            feature_cid, vg_by_ext[str(dest)],
+                            "feature_forwards_to_voicemail_group",
+                        )
+
             else:
                 # --- Produce CanonicalHuntGroup ---
                 feature_cid = f"hunt_group:{hash_id(hp_id)}"
@@ -449,6 +467,14 @@ class FeatureMapper(Mapper):
                 # Fix 8: Write feature_has_agent cross-refs
                 for agent_cid in unique_members:
                     store.add_cross_ref(feature_cid, agent_cid, "feature_has_agent")
+
+                # Phase C: link hunt group to voicemail group for forwarding dependency
+                for dest in [forward_no_answer_dest, forward_busy_dest]:
+                    if dest and str(dest) in vg_by_ext:
+                        store.add_cross_ref(
+                            feature_cid, vg_by_ext[str(dest)],
+                            "feature_forwards_to_voicemail_group",
+                        )
 
             # --- MISSING_DATA if no extension ---
             if not extension:

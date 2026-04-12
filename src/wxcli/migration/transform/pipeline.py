@@ -28,6 +28,7 @@ from wxcli.migration.transform.normalizers import (
     NORMALIZER_REGISTRY,
     RAW_DATA_MAPPING,
     is_common_area_device,
+    normalize_dect_group,
     normalize_unity_vm_settings,
     normalize_workspace,
 )
@@ -242,6 +243,19 @@ def normalize_discovery(
     )
     pass2_counts = builder.build()
     summary["pass2"] = pass2_counts
+
+    # ------------------------------------------------------------------
+    # Post-normalization: DECT network grouping
+    # Runs after Pass 2 so compatibility_tier has been classified on all devices.
+    # Groups DECT handsets by device pool into CanonicalDECTNetwork objects.
+    # ------------------------------------------------------------------
+
+    dect_networks = normalize_dect_group(store)
+    summary["pass1"]["dect_networks_grouped"] = len(dect_networks)
+    if dect_networks:
+        logger.info("Grouped %d DECT handsets into %d DECT network(s)", sum(
+            len(n.handset_assignments) for n in dect_networks
+        ), len(dect_networks))
 
     logger.info(
         "Normalization complete: %d objects normalized, %d cross-refs built",
