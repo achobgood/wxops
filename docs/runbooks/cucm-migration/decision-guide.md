@@ -608,6 +608,24 @@ Custom voicemail greetings stored in Unity Connection cannot be extracted for mi
 **Recommended action:** Initiate a separate Webex E911 workstream in parallel with the calling migration. Map ERLs to Webex locations, configure ELIN ranges, set up nomadic-user floor/zone, run PSAP test calls, verify compliance (`severity=HIGH`). Do not attempt inside the calling cutover.
 **See also:** [`location-consolidation`](#location-consolidation) (consolidating locations mid-migration forces ERL remapping — coordinate with the E911 workstream), [`kb-location-design.md#dt-loc-003`](../../knowledge-base/migration/kb-location-design.md#dt-loc-003) and [`kb-location-design.md#dt-loc-005`](../../knowledge-base/migration/kb-location-design.md#dt-loc-005).
 
+#### e911-readiness
+
+**Category:** migrate_as_is (quantified posture)
+**Triggered by:** The quantified E911 readiness summary surfaced by `EcbnMapper` + `_e911_readiness` in `src/wxcli/migration/report/appendix.py`. Fires whenever the pipeline has produced at least one `CanonicalEcbnConfig` object or at least one `E911_ECBN_AMBIGUOUS` / `E911_LOCATION_MISMATCH` decision.
+**Detection signals:**
+- Count of `CanonicalEcbnConfig` objects with `ecbn_selection == "DIRECT_LINE"` (users with a DID auto-configured for ECBN).
+- Count of `CanonicalEcbnConfig` objects with `ecbn_selection == "LOCATION_ECBN"` (extension-only users falling back to their location's main number).
+- Count of unresolved, non-stale `E911_ECBN_AMBIGUOUS` decisions (users with multiple DIDs awaiting operator selection).
+- Count of unresolved, non-stale `E911_LOCATION_MISMATCH` decisions (users whose device and user-profile locations disagree).
+**Why/impact:** This pattern differs from [`e911-migration-flag`](#e911-migration-flag) — the latter is a categorical "E911 is out of scope, run it as a separate workstream" advisory, while `e911-readiness` is the quantified posture the operator needs when filing the calling cutover runbook. Kari's Law and RAY BAUM's Act require every user to have a valid ECBN before migration day. The status tiers are:
+- **PASS** — every user has a `DIRECT_LINE` ECBN, zero ambiguous, zero mismatch, zero fallback to `LOCATION_ECBN`.
+- **WARN** — at least one user falls back to `LOCATION_ECBN`, but there are zero ambiguous and zero mismatch decisions. Operator should confirm the location's main number is a staffed reception DID (not an auto attendant).
+- **REVIEW** — at least one `E911_ECBN_AMBIGUOUS` or `E911_LOCATION_MISMATCH` decision is unresolved. Operator must work through each one before sign-off.
+- **SKIP** — no ECBN objects were produced (E911 workstream has been descoped or this is an analysis-only dry run).
+**Example:** A 500-user migration produces 420 `DIRECT_LINE`, 60 `LOCATION_ECBN`, 18 `E911_ECBN_AMBIGUOUS` (multi-DID users), and 2 `E911_LOCATION_MISMATCH` (remote workers). Status: REVIEW. The operator resolves the 20 decisions via `wxcli cucm decide`, re-runs `wxcli cucm analyze` to pick up the cascade, and the status flips to WARN (60 users with `LOCATION_ECBN` still need main-number verification).
+**Recommended action:** Run through every unresolved `E911_ECBN_AMBIGUOUS` and `E911_LOCATION_MISMATCH` decision before cutover. For `LOCATION_ECBN` users, verify each location's main number is answered by a human who can relay a 911 callback. Set `config.e911.notification_email` to a monitored distribution list (see [Tuning Reference §e911](tuning-reference.md#e911)). If the customer runs RedSky Horizon or another dynamic-location provider, set `config.e911.redsky_enabled = true` so the report and advisory downgrade the ECBN-only concerns accordingly (`severity=HIGH` when REVIEW, `severity=MEDIUM` when WARN, `severity=INFO` when PASS).
+**See also:** [`e911-ecbn-ambiguous`](#e911-ecbn-ambiguous), [`e911-location-mismatch`](#e911-location-mismatch), [`e911-migration-flag`](#e911-migration-flag), [`kb-user-settings.md#dt-usr-e911`](../../knowledge-base/migration/kb-user-settings.md#dt-usr-e911), [`kb-location-design.md#dt-loc-e911`](../../knowledge-base/migration/kb-location-design.md#dt-loc-e911).
+
 #### recording-enabled-users
 
 **Category:** out_of_scope

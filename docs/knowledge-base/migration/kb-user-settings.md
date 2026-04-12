@@ -242,6 +242,28 @@ present 3 remediation paths ranked by effort:
 
 ---
 
+### dt-usr-e911
+
+**Title:** User ECBN selection — preferred DID is not always the correct 911 callback number
+
+**Condition:** A user has one or more DIDs and the pipeline is choosing which DID to configure as the Emergency Callback Number (ECBN), OR the user is extension-only and the pipeline is choosing between `LOCATION_ECBN` and deferring for manual review.
+
+**Why static rule fails:** `EcbnMapper` picks `DIRECT_LINE` for users with exactly one DID and `LOCATION_ECBN` for extension-only users. When the user has multiple DIDs, the mapper emits an `E911_ECBN_AMBIGUOUS` decision and the default `first_line` tiebreaker (from `config.e911.primary_did_strategy`) can be wrong in at least three common topologies the heuristic cannot detect from inventory alone:
+
+1. **Hoteling / hot desk workers** — the "owned" line on the CUCM device is a hoteling placeholder; the user's real daily extension changes per shift. Picking the placeholder DID as ECBN misdirects the 911 callback when the dispatcher tries to reach the person back.
+2. **Shared-line primaries** — the lowest-numbered line is often an assistant's or team inbox shared appearance, not the individual's reach number. ECBN should be the user's personal DID, not the shared appearance.
+3. **Separate outbound caller-ID DID** — some customers configure outbound caller ID to a central "main number" for privacy while each user still has a personal DID on a secondary line. The ECBN must be the personal DID (reachable), not the outbound-caller-ID DID (often a round-robin that does not ring back to the individual).
+
+**Advisor should:** When `E911_ECBN_AMBIGUOUS` fires, do not rubber-stamp the `first_line` default. Surface the three scenarios above as dissent candidates and ask: "Is this user in a hoteling pool? Is the lowest-numbered line actually a shared appearance? Does the customer run separate outbound-caller-ID DIDs?" If any answer is yes, recommend the user's personal reachable DID — not the `first_line` pick. For extension-only users, confirm that the location's main number is a staffed reception DID before accepting `LOCATION_ECBN`; if the main number routes to an auto attendant, recommend configuring a per-user RedSky profile or escalating to the customer for a dedicated 911 response number.
+
+**Confidence:** MEDIUM — depends heavily on customer topology that isn't visible in AXL output.
+
+**Signals to look for:** Device name containing `hoteling`, `hotdesk`, `shared`, or `guest`; multiple `device_has_dn` cross-refs where one of the DNs appears on 3+ devices (shared appearance); existence of `ExternalPhoneNumberMask` on the line that differs from the line's DirectoryNumber (outbound caller-ID rewrite).
+
+<!-- Source: ecbn_mapper.py (e911 primary-did tiebreaker), e911.md gotchas on ECBN reachability, RAY BAUM's Act callback requirement -->
+
+---
+
 ## Voicemail Greeting Migration Gap
 
 Custom voicemail greetings (busy and no-answer) stored in Unity Connection do not transfer to Webex Calling. This is a platform limitation — Unity Connection's CUPI API exposes greeting metadata but not the audio binary in a bulk-extractable format.

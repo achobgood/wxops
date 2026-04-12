@@ -273,6 +273,31 @@ A single phone at a location without a validated emergency address means a 911 c
 
 ---
 
+### dt-loc-e911
+
+**Title:** Location ECBN and emergency-call-notification — "user's assigned location" is wrong for hoteling / hotdesk / remote topologies
+
+**Condition:** A location-scoped E911 decision (`E911_LOCATION_MISMATCH` or the location half of `E911_ECBN_AMBIGUOUS`) fires, OR the operator is reviewing which phone number to designate as the location-level ECBN source for users without DIDs.
+
+**Why static rule fails:** The `EcbnMapper` and `e911_readiness` advisory pattern rely on `user_in_location` cross-refs built from CUCM device pool → location lookup. That mapping is correct for traditional fixed-seat deployments, but it silently breaks on three topologies that are now common:
+
+1. **Hoteling / hot desk users** — the "user's assigned location" is the hoteling pool controller, not the user's physical location on any given day. The ECBN and dispatch address must correspond to the physical seat, not the pool. Webex Calling supports this via RedSky or per-device location overrides; the static mapper cannot tell which users need it.
+2. **Remote / work-from-home users** — the CUCM device pool is the corporate HQ (because that's where the phone was provisioned originally), but the phone now lives at the user's home address. Dispatching EMS to the HQ address on a 911 call is both wrong and a regulatory violation under RAY BAUM's Act.
+3. **Multi-building or multi-floor campuses** — Webex location-level emergency addresses are a single address per location. Any campus larger than one building or taller than ~7000 sq ft per floor needs per-number or per-device address overrides. `emergency-services.md` lines 595–596 require the per-number override path for multi-building campuses; a location-level-only ECBN design silently under-serves these.
+
+**Advisor should:** When `E911_LOCATION_MISMATCH` fires, before accepting the mapper's location-ECBN pick, ask:
+1. Are any devices at this location actually hoteling/hotdesk phones? (Signal: device name contains `hotel`, `hotdesk`, `guest`, or the `DeviceProfile` / EM references are non-empty.)
+2. Are any users at this location remote workers? (Signal: user `homePhoneNumber` or `telephoneNumber` fields match an E.164 outside the location's area code.)
+3. Is the location a single building under ~7000 sq ft per floor? (Signal: customer provides building floorplan; otherwise ask explicitly.)
+
+If any signal fires, recommend either (a) integrating RedSky Horizon / dynamic-location provider and setting `e911.redsky_enabled = true` in config, (b) per-number/per-device emergency address overrides during execution, or (c) escalating to a customer-led E911 workshop before the cut. Also confirm that `e911.notification_email` is set to a monitored distribution — a failed 911 notification cannot be backfilled after the fact.
+
+**Confidence:** HIGH — grounded in `emergency-services.md` (Kari's Law + RAY BAUM's Act requirements) and `advisory_patterns.py:1066` (`detect_e911_migration_flag` always-fires design). The three topology signals are industry-standard concerns documented in RAY BAUM's Act compliance guidance.
+
+<!-- Source: emergency-services.md lines 17, 581-609, 595-596; ecbn_mapper.py LOCATION_ECBN selection path; advisory_patterns.py e911 pattern -->
+
+---
+
 ## Verification Log
 
 | # | Claim | Verified | Source | Finding |
