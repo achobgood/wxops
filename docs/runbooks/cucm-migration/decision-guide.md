@@ -714,6 +714,18 @@ Custom voicemail greetings stored in Unity Connection cannot be extracted for mi
 **Recommended action:** Review the detected receptionists in the report's Appendix AA (Receptionist Users) — each row shows user, location, BLF count, KEM presence, template name, and detection score. For high-score users (multi-signal confidence), plan dedicated training on the Webex Receptionist Client and verify that their BLF / KEM / button template migrated correctly post-cutover. For location main-number holders, double-check that call routing to the receptionist survives the migration (Auto Attendant / Call Queue in front of the main number still targets the right user). CUAC-specific features like directory search operators and CTI-routed calls must be rebuilt with Webex Receptionist Client directories and Call Queue routing.
 **See also:** [`kb-user-settings.md` § Receptionist](../../knowledge-base/migration/kb-user-settings.md), [`docs/reference/call-features-additional.md` § Receptionist Client](../../reference/call-features-additional.md).
 
+#### selective-call-handling-opportunities
+
+**Category:** out_of_scope (advisory only)
+**Triggered by:** `advisory_patterns.py` (`detect_selective_call_handling_opportunities`) — fires when 1+ `FEATURE_APPROXIMATION` decisions tagged with `selective_call_handling_pattern` are present in the store. Source decisions come from `src/wxcli/migration/transform/analyzers/selective_call_handling.py:SelectiveCallHandlingAnalyzer`, which runs three heuristics (multi-partition DN, low-membership partition, naming convention).
+**Detection signals:**
+- Multi-partition DN: same DN in 2+ partitions with different CSS scopes (filtered by location to drop multi-site false positives).
+- Low-membership partition: ≤10 DNs in a partition reachable via fewer than half of all CSSes.
+- Naming convention: partition name contains a VIP/executive/priority/bypass/afterhours keyword.
+**Why/impact:** CUCM operators implement caller-specific routing through CSS/partition manipulation rather than an explicit "selective forward" feature. Webex Calling has four explicit per-person APIs for this — Selective Forward, Selective Accept, Selective Reject, and Priority Alert. The first three are admin-configurable; Priority Alert requires per-user OAuth.
+**Recommended action:** Operator manually configures the relevant Webex selective rule per flagged user post-migration. The pipeline cannot auto-create rules because the phone-number criteria require operator review (CUCM CSS semantics don't map 1:1 to "calls from these specific numbers").
+**See also:** [`feature-approximation`](#feature-approximation) (the underlying decision type), [`kb-css-routing.md#selective-call-handling-detection`](../../knowledge-base/migration/kb-css-routing.md#selective-call-handling-detection).
+
 ## Dissent Handling
 
 Dissent flags appear when the `migration-advisor` Opus agent disagrees with the static recommendation produced by `recommendation_rules.py`. The confidence-level semantics are covered in [§Recommendation Confidence and When to Override](#recommendation-confidence-and-when-to-override); this section is the operator field reference for the **two surfaces** the flag renders on — the mid-review terminal prompt and the written migration narrative — and how to act at each decision point.

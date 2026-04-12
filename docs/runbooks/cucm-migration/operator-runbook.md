@@ -203,6 +203,12 @@ Before migration day, download all custom audio files from CUCM:
 
 **Why this matters.** The CUCM heuristic is intentionally permissive — the tool errs on the side of surfacing too many candidates rather than silently missing a terminated-user DN. If you skip this triage, terminated employees' numbers will become reachable again the moment they cut over to Webex, and office-relocation number announcements will simply stop playing. The advisory's `MEDIUM` severity reflects the operational risk of that silent failure, not how many users are typically affected (usually < 5%).
 
+### Selective Call Handling Verification
+
+**Timing:** Review surfaces during Step 1c of `/cucm-migrate` (decision review) as an advisory in the `out_of_scope` category. Post-migration operator configuration needed for flagged users.
+
+- **Review selective call handling advisories.** If the assessment report appendix section AB lists candidates, configure Webex Selective Forward, Selective Accept, or Selective Reject for each flagged user via `wxcli user-settings` or Control Hub. Priority Alert recommendations require user-level OAuth — flag those for end-user self-service.
+
 ## Pipeline Walkthrough
 
 The pipeline has 10 operator-facing stages, run in the order below. Each stage is idempotent unless noted, and each writes its output to the project's SQLite store (`<project>/store.db`) so that subsequent stages can read it. Run `wxcli cucm status` at any point to see what has already landed in the store and which decisions are open.
