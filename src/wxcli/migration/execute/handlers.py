@@ -1716,6 +1716,126 @@ def handle_assistant_configure_settings(data: dict, deps: dict, ctx: dict) -> Ha
     return calls
 
 
+# ---------------------------------------------------------------------------
+# DECT Network provisioning (Tier 2/3)
+# ---------------------------------------------------------------------------
+
+def handle_dect_network_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    """Create a DECT network at a location.
+
+    POST /telephony/config/locations/{locationId}/dectNetworks
+    Body: { name, displayName, model, defaultAccessCodeEnabled, defaultAccessCode }
+    Returns dectNetworkId in response.
+    (from spec §5e — handle_dect_network_create)
+    """
+    loc_wid = _resolve_location(data, deps) or _resolve_location_from_deps(deps)
+    if not loc_wid:
+        return []
+
+    name = data.get("network_name") or data.get("display_name")
+    if not name:
+        return []
+
+    access_code = data.get("access_code")
+    body: dict[str, Any] = {
+        "name": name,
+        "displayName": data.get("display_name") or name,
+        "model": data.get("model"),
+        "defaultAccessCodeEnabled": access_code is not None,
+        "defaultAccessCode": access_code,
+    }
+    return [("POST", _url(f"/telephony/config/locations/{loc_wid}/dectNetworks", ctx), body)]
+
+
+def handle_dect_base_station_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    """Register base stations with a DECT network by MAC address.
+
+    POST /telephony/config/locations/{locationId}/dectNetworks/{dectNetworkId}/baseStations
+    Body: { baseStationMacs: [...] }
+    (from spec §5e — handle_dect_base_station_create)
+    """
+    loc_wid = _resolve_location(data, deps) or _resolve_location_from_deps(deps)
+    if not loc_wid:
+        return []
+
+    cid = data.get("canonical_id", "")
+    dect_network_wid = deps.get(cid)
+    if not dect_network_wid:
+        return []
+
+    # MACs come from base_stations list — each entry has a 'mac' field
+    base_stations = data.get("base_stations") or []
+    macs = [bs["mac"] for bs in base_stations if bs.get("mac")]
+    if not macs:
+        return []
+
+    body: dict[str, Any] = {"baseStationMacs": macs}
+    return [(
+        "POST",
+        _url(
+            f"/telephony/config/locations/{loc_wid}/dectNetworks/{dect_network_wid}/baseStations",
+            ctx,
+        ),
+        body,
+    )]
+
+
+def handle_dect_handset_assign(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    """Assign handsets to users/workspaces in a DECT network (bulk, batches of 50).
+
+    POST /telephony/config/locations/{locationId}/dectNetworks/{dectNetworkId}/handsets/bulk
+    Body: { items: [ { line1MemberId, customDisplayName, line2MemberId? } ] }
+    (from spec §5e — handle_dect_handset_assign)
+    """
+    loc_wid = _resolve_location(data, deps) or _resolve_location_from_deps(deps)
+    if not loc_wid:
+        return []
+
+    cid = data.get("canonical_id", "")
+    dect_network_wid = deps.get(cid)
+    if not dect_network_wid:
+        return []
+
+    handset_assignments = data.get("handset_assignments") or []
+    items: list[dict[str, Any]] = []
+    for assignment in handset_assignments:
+        owner_cid = assignment.get("user_canonical_id")
+        line1_wid = deps.get(owner_cid) if owner_cid else None
+        if not line1_wid:
+            # Try resolving from line1_canonical_id directly
+            line1_cid = assignment.get("line1_canonical_id")
+            line1_wid = deps.get(line1_cid) if line1_cid else None
+        if not line1_wid:
+            continue
+
+        item: dict[str, Any] = {
+            "line1MemberId": line1_wid,
+            "customDisplayName": assignment.get("display_name", ""),
+        }
+        # Optional line 2 (virtual line or second user)
+        line2_cid = assignment.get("line2_canonical_id")
+        if line2_cid:
+            line2_wid = deps.get(line2_cid)
+            if line2_wid:
+                item["line2MemberId"] = line2_wid
+        items.append(item)
+
+    if not items:
+        return []
+
+    # Batch into groups of 50 (Webex bulk handset API limit)
+    url = _url(
+        f"/telephony/config/locations/{loc_wid}/dectNetworks/{dect_network_wid}/handsets/bulk",
+        ctx,
+    )
+    calls: HandlerResult = []
+    batch_size = 50
+    for i in range(0, len(items), batch_size):
+        batch = items[i : i + batch_size]
+        calls.append(("POST", url, {"items": batch}))
+    return calls
+
+
 # HANDLER_REGISTRY — complete with all operation types
 HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("location", "create"): handle_location_create,
@@ -1777,6 +1897,10 @@ HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("bulk_line_key_template", "submit"): handle_bulk_line_key_template_submit,
     ("bulk_dynamic_settings", "submit"): handle_bulk_dynamic_settings_submit,
     ("bulk_rebuild_phones", "submit"): handle_bulk_rebuild_phones_submit,
+    # DECT network provisioning
+    ("dect_network", "create"): handle_dect_network_create,
+    ("dect_network", "create_base_stations"): handle_dect_base_station_create,
+    ("dect_network", "assign_handsets"): handle_dect_handset_assign,
     # Advisory-to-execution bridge (Phase A: no-op placeholders)
     ("music_on_hold", "configure"): handle_music_on_hold_configure,
     ("announcement", "upload"): handle_announcement_upload,

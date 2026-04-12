@@ -59,10 +59,10 @@ When launched with an analysis mode prompt:
    | Pattern Name | KB Doc |
    |---|---|
    | restriction_css_consolidation, translation_pattern_elimination, partition_time_routing, partition_ordering_loss, overengineered_dial_plan, globalized_vs_localized, mixed_css, selective_call_handling_opportunities | kb-css-routing.md |
-   | pstn_connection_type, trunk_destination_consolidation, cpn_transformation_chain, transformation_patterns, trunk_type_selection, intercluster_trunks, legacy_gateway_protocols | kb-trunk-pstn.md |
-   | device_bulk_upgrade, extension_mobility_usage | kb-device-migration.md |
-   | hunt_pilot_reclassification, custom_audio_assets | kb-feature-mapping.md |
-   | voicemail_pilot_simplification, shared_line_simplification, recording_enabled_users, snr_configured_users, user_oauth_required, voicemail_greeting_rerecording, call_intercept_candidates, executive_assistant_migration, receptionist_workflow_impact | kb-user-settings.md |
+   | pstn_connection_type, trunk_destination_consolidation, cpn_transformation_chain, transformation_patterns, trunk_type_selection, intercluster_trunks, legacy_gateway_protocols, route_list_complexity | kb-trunk-pstn.md |
+   | device_bulk_upgrade, extension_mobility_usage, dect_deployment | kb-device-migration.md |
+   | hunt_pilot_reclassification, custom_audio_assets, feature_forwarding_gaps | kb-feature-mapping.md |
+   | voicemail_pilot_simplification, shared_line_simplification, recording_enabled_users, snr_configured_users, user_oauth_required, voicemail_greeting_rerecording, call_intercept_candidates, executive_assistant_migration, receptionist_workflow_impact, workspace_settings_gaps | kb-user-settings.md |
    | location_consolidation, e911_migration_flag | kb-location-design.md |
    | media_resource_scope_removal, cumulative_virtual_line_consumption | kb-webex-limits.md |
 

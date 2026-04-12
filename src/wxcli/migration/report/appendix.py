@@ -1,6 +1,6 @@
 """Technical appendix HTML generator for CUCM assessment reports (v4).
 
-Generates 27 lettered sections (A-AA), each as a collapsed <details> element:
+Generates 30 lettered sections (A-AE), each as a collapsed <details> element:
 A. Object Inventory, B. Decision Detail, C. CSS/Partitions, D. Device Inventory,
 E. DN Analysis, F. User/Device Map, G. Routing Topology, H. Voicemail Analysis,
 I. Audio Assets, J. Data Coverage, K. Gateways, L. Call Features,
@@ -8,7 +8,9 @@ M. Button Templates, N. Device Layouts, O. Softkey Migration,
 P. Cloud-Managed Resources, Q. Feature Gaps, R. Manual Reconfiguration,
 S. Planning Inputs, T. Call Recording, U. Single Number Reach,
 V. Caller ID Transformations, W. Extension Mobility, X. DECT Networks,
-Y. Intercept Candidates, Z. Executive/Assistant Pairings, AA. Receptionist Users.
+Y. Intercept Candidates, Z. Executive/Assistant Pairings, AA. Receptionist Users,
+AB. Selective Call Handling, AC. Device Settings Coverage,
+AD. Feature Forwarding Status, AE. Workspace Settings Coverage.
 
 One public function: generate_appendix().
 """
@@ -79,6 +81,9 @@ def generate_appendix(store: MigrationStore) -> str:
         ("Z", _executive_assistant_group(store)),
         ("AA", _receptionist_group(store)),
         ("AB", _selective_call_handling(store)),
+        ("AC", _device_settings_coverage(store)),
+        ("AD", _feature_forwarding_status(store)),
+        ("AE", _workspace_settings_coverage(store)),
     ]
     # Filter out empty sections
     sections = [(letter, section_html) for letter, section_html in sections if section_html]
@@ -2094,4 +2099,339 @@ def _selective_call_handling(store: MigrationStore) -> str:
         )
 
     parts.extend(['</tbody></table>', '</div></details>'])
+    return "\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# AC. Device Settings Coverage
+# ---------------------------------------------------------------------------
+
+_AUTOMATED_SETTINGS_BY_FAMILY: dict[str, list[str]] = {
+    "9800": ["Line keys", "PSK mappings", "Screen layout", "DND", "Language", "Backlight timer", "USB ports", "CDP/LLDP"],
+    "8875": ["Line keys", "PSK mappings", "Screen layout", "DND", "Language", "Backlight timer", "USB ports", "CDP/LLDP"],
+    "78xx": ["Line keys", "DND", "Language", "Backlight timer", "CDP/LLDP"],
+    "68xx": ["Line keys", "DND", "Language", "Backlight timer"],
+}
+
+_MANUAL_SETTINGS_BY_FAMILY: dict[str, list[str]] = {
+    "9800": ["Wallpaper / background image", "Wi-Fi credentials", "Bluetooth pairing", "Network VLAN"],
+    "8875": ["Wallpaper / background image", "Wi-Fi credentials", "Bluetooth pairing", "Network VLAN"],
+    "78xx": ["Wallpaper / background image", "Network VLAN"],
+    "68xx": ["Wallpaper / background image", "Network VLAN"],
+}
+
+
+def _device_settings_coverage(store: MigrationStore) -> str:
+    """AC. Device Settings Coverage — automated vs manual settings by model family."""
+    templates = store.get_objects("device_settings_template")
+    if not templates:
+        return ""
+
+    # Count phones per model family across only native_mpp / convertible devices
+    family_phone_counts: dict[str, int] = defaultdict(int)
+    family_override_counts: dict[str, int] = defaultdict(int)
+    family_unmappable: dict[str, list[str]] = defaultdict(list)
+
+    for t in templates:
+        family = t.get("model_family") or "unknown"
+        family_phone_counts[family] += t.get("phones_using") or 0
+        overrides = t.get("per_device_overrides") or []
+        family_override_counts[family] += len(overrides)
+        unmappable = t.get("unmappable_settings") or []
+        for field in unmappable:
+            if field not in family_unmappable[family]:
+                family_unmappable[family].append(field)
+
+    total_phones = sum(family_phone_counts.values())
+    total_automated = sum(
+        len(_AUTOMATED_SETTINGS_BY_FAMILY.get(f, []))
+        for f in family_phone_counts
+    )
+    total_manual = sum(
+        len(_MANUAL_SETTINGS_BY_FAMILY.get(f, []))
+        for f in family_phone_counts
+    )
+
+    summary = (
+        f"{len(family_phone_counts)} phone model {'families' if len(family_phone_counts) != 1 else 'family'}, "
+        f"{total_phones} phones, "
+        f"{total_automated} automated settings, "
+        f"{total_manual} require manual Control Hub configuration"
+    )
+
+    parts = [
+        '<details id="device-settings-coverage">',
+        f'<summary>AC. Device Settings Coverage <span class="summary-count">— {summary}</span></summary>',
+        '<div class="details-content">',
+        '<p>Settings the pipeline configures automatically (from CUCM <code>productSpecificConfiguration</code>) '
+        'vs settings that require manual action in Control Hub after migration.</p>',
+        '<table>',
+        '<thead><tr>'
+        '<th>Model Family</th>'
+        '<th class="num">Phones</th>'
+        '<th>Automated Settings</th>'
+        '<th>Manual Settings</th>'
+        '<th class="num">Overrides</th>'
+        '</tr></thead>',
+        '<tbody>',
+    ]
+
+    for family in sorted(family_phone_counts.keys()):
+        phone_count = family_phone_counts[family]
+        automated = _AUTOMATED_SETTINGS_BY_FAMILY.get(family, ["Line keys", "Language"])
+        manual = _MANUAL_SETTINGS_BY_FAMILY.get(family, ["Wallpaper", "Network VLAN"])
+        overrides = family_override_counts.get(family, 0)
+        automated_str = ", ".join(automated)
+        manual_str = ", ".join(manual)
+        unmappable = family_unmappable.get(family, [])
+        if unmappable:
+            manual_str += f"; also unmappable from CUCM: {', '.join(unmappable)}"
+        parts.append(
+            f'<tr>'
+            f'<td><strong>{html.escape(family)}</strong></td>'
+            f'<td class="num">{phone_count}</td>'
+            f'<td>{html.escape(automated_str)}</td>'
+            f'<td>{html.escape(manual_str)}</td>'
+            f'<td class="num">{overrides}</td>'
+            f'</tr>'
+        )
+
+    parts.extend(['</tbody></table>'])
+
+    # Callout for manual steps
+    parts.append(
+        '<div class="callout">'
+        '<p><strong>Manual Control Hub steps required post-migration:</strong> '
+        'Wallpaper images, Wi-Fi credentials, and Bluetooth pairing must be configured '
+        'directly in Control Hub or via device configuration templates. These settings '
+        'cannot be extracted from CUCM automatically.</p>'
+        '</div>'
+    )
+
+    parts.extend(['</div></details>'])
+    return "\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# AD. Feature Forwarding Status
+# ---------------------------------------------------------------------------
+
+def _feature_forwarding_status(store: MigrationStore) -> str:
+    """AD. Feature Forwarding Status — AA/HG/CQ with forwarding configuration gaps."""
+    feature_rows: list[dict] = []
+
+    # Hunt groups: check for forwarding destinations from CUCM
+    for hg in store.get_objects("hunt_group"):
+        name = hg.get("name") or strip_canonical_id(hg.get("canonical_id", ""))
+        pre = hg.get("pre_migration_state") or {}
+
+        # CUCM forwarding: forwardHuntNoAnswer, forwardHuntBusy on hunt pilot
+        cucm_fwd_no_answer = _axl_str(pre.get("forwardHuntNoAnswer", {}).get("destination") if isinstance(pre.get("forwardHuntNoAnswer"), dict) else pre.get("forwardHuntNoAnswer"))
+        cucm_fwd_busy = _axl_str(pre.get("forwardHuntBusy", {}).get("destination") if isinstance(pre.get("forwardHuntBusy"), dict) else pre.get("forwardHuntBusy"))
+        has_cucm_fwd = bool(cucm_fwd_no_answer or cucm_fwd_busy)
+
+        # Webex: check canonical fields populated by FeatureMapper
+        webex_fwd_dest = hg.get("forward_no_answer_destination") or hg.get("forward_busy_destination") or hg.get("forward_always_destination")
+        has_webex_fwd = bool(webex_fwd_dest)
+
+        gap = has_cucm_fwd and not has_webex_fwd
+        feature_rows.append({
+            "name": name,
+            "type": "Hunt Group",
+            "has_cucm_fwd": has_cucm_fwd,
+            "cucm_detail": cucm_fwd_no_answer or cucm_fwd_busy or "",
+            "has_webex_fwd": has_webex_fwd,
+            "gap": gap,
+        })
+
+    # Call queues: check queue_full_destination, max_wait_time_destination, etc.
+    for cq in store.get_objects("call_queue"):
+        name = cq.get("name") or strip_canonical_id(cq.get("canonical_id", ""))
+        pre = cq.get("pre_migration_state") or {}
+
+        # CUCM forwarding on queueCalls
+        queue_calls = pre.get("queueCalls") or {}
+        if isinstance(queue_calls, dict):
+            cucm_full = _axl_str(queue_calls.get("queueFullDestination"))
+            cucm_wait = _axl_str(queue_calls.get("maxWaitTimeDestination"))
+        else:
+            cucm_full = ""
+            cucm_wait = ""
+        has_cucm_fwd = bool(cucm_full or cucm_wait)
+
+        webex_fwd = cq.get("queue_full_destination") or cq.get("forward_always_destination")
+        has_webex_fwd = bool(webex_fwd)
+
+        gap = has_cucm_fwd and not has_webex_fwd
+        cucm_detail = cucm_full or cucm_wait or ""
+        feature_rows.append({
+            "name": name,
+            "type": "Call Queue",
+            "has_cucm_fwd": has_cucm_fwd,
+            "cucm_detail": cucm_detail,
+            "has_webex_fwd": has_webex_fwd,
+            "gap": gap,
+        })
+
+    # Auto attendants: check callForwardAll from CTI route point
+    for aa in store.get_objects("auto_attendant"):
+        name = aa.get("name") or strip_canonical_id(aa.get("canonical_id", ""))
+        pre = aa.get("pre_migration_state") or {}
+
+        cfa = pre.get("callForwardAll") or {}
+        if isinstance(cfa, dict):
+            cucm_dest = _axl_str(cfa.get("destination"))
+        else:
+            cucm_dest = _axl_str(cfa)
+        has_cucm_fwd = bool(cucm_dest)
+
+        webex_fwd = aa.get("forward_always_destination")
+        has_webex_fwd = bool(webex_fwd)
+
+        gap = has_cucm_fwd and not has_webex_fwd
+        feature_rows.append({
+            "name": name,
+            "type": "Auto Attendant",
+            "has_cucm_fwd": has_cucm_fwd,
+            "cucm_detail": cucm_dest,
+            "has_webex_fwd": has_webex_fwd,
+            "gap": gap,
+        })
+
+    if not feature_rows:
+        return ""
+
+    gap_count = sum(1 for r in feature_rows if r["gap"])
+    total = len(feature_rows)
+    summary = f"{total} features checked, {gap_count} forwarding gap{'s' if gap_count != 1 else ''}"
+
+    parts = [
+        '<details id="feature-forwarding-status">',
+        f'<summary>AD. Feature Forwarding Status <span class="summary-count">— {summary}</span></summary>',
+        '<div class="details-content">',
+        '<p>Hunt groups, call queues, and auto attendants with forwarding/overflow rules in CUCM. '
+        'A Gap means CUCM had a forwarding destination configured that was not mapped to Webex — '
+        'these features will use Webex defaults for overflow behavior after migration.</p>',
+        '<table>',
+        '<thead><tr>'
+        '<th>Feature Name</th>'
+        '<th>Type</th>'
+        '<th>CUCM Forwarding?</th>'
+        '<th>Webex Configured?</th>'
+        '<th>Status</th>'
+        '</tr></thead>',
+        '<tbody>',
+    ]
+
+    for row in sorted(feature_rows, key=lambda r: (not r["gap"], r["type"], r["name"])):
+        cucm_cell = f'Yes ({html.escape(row["cucm_detail"])})' if row["cucm_detail"] else ("Yes" if row["has_cucm_fwd"] else "No")
+        webex_cell = "Yes" if row["has_webex_fwd"] else "No"
+        if row["gap"]:
+            status_cell = '<span class="badge badge-warning">Gap</span>'
+        elif row["has_cucm_fwd"] and row["has_webex_fwd"]:
+            status_cell = '<span class="badge badge-success">Mapped</span>'
+        else:
+            status_cell = '<span class="badge badge-info">No forwarding</span>'
+
+        parts.append(
+            f'<tr>'
+            f'<td>{html.escape(row["name"])}</td>'
+            f'<td>{html.escape(row["type"])}</td>'
+            f'<td>{cucm_cell}</td>'
+            f'<td>{webex_cell}</td>'
+            f'<td>{status_cell}</td>'
+            f'</tr>'
+        )
+
+    parts.extend(['</tbody></table>'])
+
+    if gap_count > 0:
+        parts.append(
+            '<div class="callout warning">'
+            f'<p><strong>{gap_count} forwarding gap{"s" if gap_count != 1 else ""} detected.</strong> '
+            'These features had overflow or forwarding rules in CUCM that could not be '
+            'automatically mapped to Webex. After migration, affected features will use '
+            'Webex default overflow behavior. Review each gap and configure forwarding '
+            'destinations manually in Control Hub if required.</p>'
+            '</div>'
+        )
+
+    parts.extend(['</div></details>'])
+    return "\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# AE. Workspace Settings Coverage
+# ---------------------------------------------------------------------------
+
+def _workspace_settings_coverage(store: MigrationStore) -> str:
+    """AE. Workspace Settings Coverage — common-area phones with/without configured settings."""
+    workspaces = store.get_objects("workspace")
+    if not workspaces:
+        return ""
+
+    total = len(workspaces)
+    configured = [w for w in workspaces if w.get("call_settings")]
+    unconfigured = [w for w in workspaces if not w.get("call_settings")]
+
+    summary = (
+        f"{total} workspace{'s' if total != 1 else ''}, "
+        f"{len(configured)} with configured settings, "
+        f"{len(unconfigured)} using defaults"
+    )
+
+    parts = [
+        '<details id="workspace-settings-coverage">',
+        f'<summary>AE. Workspace Settings Coverage <span class="summary-count">— {summary}</span></summary>',
+        '<div class="details-content">',
+        '<p>Common-area phones (conference rooms, lobby phones, shared desks) mapped to Webex Workspaces. '
+        'Settings count shows how many call settings were extracted from CUCM and will be configured '
+        'automatically. Workspaces with 0 settings will use Webex defaults.</p>',
+        '<table>',
+        '<thead><tr>'
+        '<th>Workspace</th>'
+        '<th>Location</th>'
+        '<th>License</th>'
+        '<th class="num">Settings Count</th>'
+        '</tr></thead>',
+        '<tbody>',
+    ]
+
+    for ws in sorted(workspaces, key=lambda w: w.get("display_name") or ""):
+        name = ws.get("display_name") or strip_canonical_id(ws.get("canonical_id", ""))
+        loc_id = ws.get("location_id") or ws.get("location_canonical_id") or ""
+        loc_obj = store.get_object(loc_id) if loc_id else None
+        loc_name = loc_obj.get("name", strip_canonical_id(loc_id)) if loc_obj else (strip_canonical_id(loc_id) if loc_id else "\u2014")
+        license_tier = ws.get("license_tier") or "Workspace"
+        call_settings = ws.get("call_settings") or {}
+        settings_count = len(call_settings)
+
+        if settings_count == 0:
+            count_cell = '<span class="muted">0 — defaults</span>'
+        else:
+            count_cell = str(settings_count)
+
+        parts.append(
+            f'<tr>'
+            f'<td>{html.escape(name)}</td>'
+            f'<td>{html.escape(loc_name)}</td>'
+            f'<td>{html.escape(license_tier)}</td>'
+            f'<td class="num">{count_cell}</td>'
+            f'</tr>'
+        )
+
+    parts.extend(['</tbody></table>'])
+
+    if unconfigured:
+        parts.append(
+            '<div class="callout">'
+            f'<p><strong>{len(unconfigured)} workspace{"s" if len(unconfigured) != 1 else ""} '
+            f'will use default call settings.</strong> '
+            'If custom settings were configured in CUCM for these devices, review them in '
+            'Control Hub after migration. Common defaults to verify: DND, call forwarding, '
+            'and music on hold.</p>'
+            '</div>'
+        )
+
+    parts.extend(['</div></details>'])
     return "\n".join(parts)
