@@ -39,9 +39,11 @@ from wxcli.migration.transform.mappers.base import (
 
 logger = logging.getLogger(__name__)
 
-# Default placeholder passcode — admins must rotate post-migration.
-# (CUCM Unity Connection PINs are one-way hashed and not retrievable.)
-_DEFAULT_PASSCODE = "0000"
+# Placeholder passcode — admins must rotate post-migration.
+# Must satisfy Webex API rules: 6+ digits, no sequential or repeating
+# patterns (verified in docs/reference/call-features-additional.md:1224).
+# "293847" is a deliberately non-pattern value; it is NOT a secret.
+_DEFAULT_PASSCODE = "293847"
 
 
 class VoicemailGroupMapper(Mapper):
@@ -65,8 +67,11 @@ class VoicemailGroupMapper(Mapper):
         for raw in store.get_objects("voicemail_group"):
             raw_id = raw["canonical_id"]
             state = raw.get("pre_migration_state") or {}
-            # Skip if we've already replaced it with a CanonicalVoicemailGroup
-            # (protects against idempotent re-runs).
+            # Idempotency: a prior mapper run already enriched this object
+            # into a CanonicalVoicemailGroup (both name and passcode are set).
+            # Decisions emitted on the first run are already persisted to the
+            # decision store via save_decision(); re-emitting them here would
+            # duplicate. Skipping the whole row is safe.
             if raw.get("name") and raw.get("passcode"):
                 continue
 

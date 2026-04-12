@@ -590,10 +590,13 @@ def handle_voicemail_group_create(data: dict, deps: dict, ctx: dict) -> HandlerR
     if not loc_wid:
         return []
 
+    if not data.get("extension"):
+        return []
+
     body: dict[str, Any] = {
         "name": data.get("name"),
         "extension": data.get("extension"),
-        "passcode": data.get("passcode", "0000"),
+        "passcode": data.get("passcode"),
         "languageCode": data.get("language_code", "en_us"),
         "messageStorage": data.get(
             "message_storage", {"storageType": "INTERNAL"}

@@ -94,7 +94,7 @@ class TestBasicMapping:
             assert vg.get("name") == "Sales Voicemail"
             assert vg.get("extension") == "5896"
             assert vg.get("location_id") == "location:HQ"
-            assert vg.get("passcode") == "0000"
+            assert vg.get("passcode") == "293847"
             assert vg.get("language_code") == "en_us"
             # Should emit MISSING_DATA passcode decision (always)
             passcode_decisions = [
