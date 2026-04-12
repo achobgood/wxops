@@ -2123,3 +2123,81 @@ def detect_receptionist_workflow_impact(store: MigrationStore) -> list[AdvisoryF
 
 
 ALL_ADVISORY_PATTERNS.append(detect_receptionist_workflow_impact)
+
+
+# ===================================================================
+# Pattern 31: Selective Call Handling Opportunities
+# ===================================================================
+
+def detect_selective_call_handling_opportunities(
+    store: MigrationStore,
+) -> list[AdvisoryFinding]:
+    """Aggregate FEATURE_APPROXIMATION decisions with the
+    `selective_call_handling_pattern` context key into a single
+    cross-cutting advisory.
+
+    Spec: docs/superpowers/specs/2026-04-10-selective-call-forwarding.md §4b
+    """
+    decisions = store.get_all_decisions()
+    by_pattern: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    affected: list[str] = []
+    for d in decisions:
+        if d.get("type") != "FEATURE_APPROXIMATION":
+            continue
+        ctx = d.get("context", {}) or {}
+        pattern = ctx.get("selective_call_handling_pattern")
+        if not pattern:
+            continue
+        by_pattern[pattern].append(d)
+        for obj_id in ctx.get("_affected_objects", []) or []:
+            affected.append(obj_id)
+
+    if not by_pattern:
+        return []
+
+    total = sum(len(v) for v in by_pattern.values())
+    multi = len(by_pattern.get("multi_partition_dn", []))
+    low = len(by_pattern.get("low_membership_partition", []))
+    naming = len(by_pattern.get("naming_convention", []))
+
+    parts = []
+    if multi:
+        parts.append(
+            f"{multi} multi-partition DN candidate(s) (internal vs external "
+            f"routing split)"
+        )
+    if low:
+        parts.append(
+            f"{low} low-membership partition candidate(s) (VIP/priority bypass)"
+        )
+    if naming:
+        parts.append(
+            f"{naming} naming-convention candidate(s) (partition name keyword "
+            f"only — weak signal)"
+        )
+
+    detail = (
+        f"{total} CSS/partition pattern(s) suggest CUCM caller-specific "
+        f"routing. Webex Calling offers explicit per-person Selective Forward, "
+        f"Selective Accept, and Selective Reject features (admin-configurable) "
+        f"plus Priority Alert (user-only) that can replicate this behaviour. "
+        f"These advisories do not auto-create rules — the operator must review "
+        f"each candidate and configure the appropriate Webex selective rule "
+        f"manually post-migration. "
+        f"Detected patterns: " + "; ".join(parts) + "."
+    )
+
+    return [AdvisoryFinding(
+        pattern_name="selective_call_handling_opportunities",
+        severity="MEDIUM",
+        summary=(
+            f"{total} user/partition candidate(s) for Webex selective call "
+            f"handling — manual configuration"
+        ),
+        detail=detail,
+        affected_objects=sorted(set(affected)),
+        category="out_of_scope",
+    )]
+
+
+ALL_ADVISORY_PATTERNS.append(detect_selective_call_handling_opportunities)

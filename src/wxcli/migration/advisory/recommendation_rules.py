@@ -147,7 +147,41 @@ def recommend_hotdesk_dn_conflict(
 def recommend_feature_approximation(
     context: dict[str, Any], options: list
 ) -> tuple[str, str] | None:
-    """Spec §5.1: Feature approximation — CTI RP or Line Group → CQ/HG."""
+    """Spec §5.1: Feature approximation — CTI RP or Line Group → CQ/HG.
+
+    Also handles selective call handling decisions tagged with
+    `selective_call_handling_pattern` in context (spec
+    docs/superpowers/specs/2026-04-10-selective-call-forwarding.md §4c).
+    """
+    # Selective call handling — recommend accept with feature-specific reasoning.
+    sch_pattern = context.get("selective_call_handling_pattern")
+    if sch_pattern:
+        feature = context.get("recommended_webex_feature", "selective call handling")
+        confidence = (context.get("confidence") or "").upper()
+        if sch_pattern == "naming_convention" or confidence == "LOW":
+            note = (
+                " Note: this is a weak signal based on partition naming only — "
+                "verify the CUCM behaviour before configuring. Priority Alert "
+                "specifically requires user-only OAuth and cannot be configured "
+                "via admin token."
+                if feature.lower() == "priority alert"
+                else " Note: this is a weak signal based on partition naming "
+                "only — verify the CUCM behaviour before configuring."
+            )
+            return (
+                "accept",
+                f"CUCM CSS/partition pattern suggests caller-specific routing. "
+                f"Configure Webex {feature} post-migration to preserve this "
+                f"behaviour.{note}",
+            )
+        return (
+            "accept",
+            f"CUCM CSS/partition pattern suggests caller-specific routing. "
+            f"Configure Webex {feature} post-migration to preserve this "
+            f"behaviour. The pipeline cannot auto-create the rule because the "
+            f"phone-number criteria require operator review.",
+        )
+
     # EM profile → hot desking: always recommend accept (no alternative exists)
     if context.get("classification") == "EXTENSION_MOBILITY":
         line_count = context.get("line_count", 0)

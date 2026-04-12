@@ -241,3 +241,12 @@ CUCM hunt pilots carry overflow and forwarding behavior on three groups of field
 The migration pipeline emits one `configure_*` op per field group (`configure_forwarding`, `configure_holiday_service`, `configure_night_service`, `configure_stranded_calls`, `configure_forwarding` for AAs). All ops are tier 5 and depend on the corresponding feature's `create` op.
 
 **Schedule resolution.** Webex holiday/night APIs reference schedules by **name + level** (`LOCATION` or `ORGANIZATION`), not by Webex ID. Operating modes and location schedules are already created at tier 1, so by the time tier 5 runs the schedule exists in Webex with the same name. No additional dependency edges are required; tier ordering enforces the chain.
+
+## Selective Call Handling Feature Mapping
+
+| CUCM Pattern | Detection Source | Webex Feature | Migration Path |
+|---|---|---|---|
+| Selective Forward | CSS/partition analysis heuristic | Selective Forward (admin) | Advisory only — operator configures post-migration |
+| Selective Accept | CSS/partition analysis heuristic | Selective Accept (admin) | Advisory only — operator configures post-migration |
+| Selective Reject | CSS/partition analysis heuristic | Selective Reject (admin) | Advisory only — operator configures post-migration |
+| Priority Alert | CSS/partition analysis heuristic | Priority Alert (user-only) | Cannot be configured via admin token |

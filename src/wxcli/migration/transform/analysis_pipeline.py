@@ -1,4 +1,4 @@
-"""Analysis pipeline — runs all 13 analyzers, then auto-rules, then merge.
+"""Analysis pipeline — runs all 14 analyzers, then auto-rules, then merge.
 
 Orchestrates the conflict detection engine. Each analyzer sweeps the
 mapped inventory independently and produces Decision objects. After all
@@ -34,12 +34,13 @@ from wxcli.migration.transform.analyzers.missing_data import MissingDataAnalyzer
 from wxcli.migration.transform.analyzers.shared_line import SharedLineAnalyzer
 from wxcli.migration.transform.analyzers.voicemail_compatibility import VoicemailCompatibilityAnalyzer
 from wxcli.migration.transform.analyzers.workspace_license import WorkspaceLicenseAnalyzer
+from wxcli.migration.transform.analyzers.selective_call_handling import SelectiveCallHandlingAnalyzer
 from wxcli.migration.transform.mappers.base import decision_to_store_dict
 from wxcli.migration.transform.rules import apply_auto_rules
 
 logger = logging.getLogger(__name__)
 
-# All 13 analyzers in default execution order.
+# Analyzers in default execution order.
 # No inter-analyzer dependencies exist in the current set (from 03-conflict-detection-engine.md).
 ALL_ANALYZERS: list[type[Analyzer]] = [
     ExtensionConflictAnalyzer,
@@ -55,6 +56,7 @@ ALL_ANALYZERS: list[type[Analyzer]] = [
     FeatureApproximationAnalyzer,
     MissingDataAnalyzer,
     LayoutOverflowAnalyzer,
+    SelectiveCallHandlingAnalyzer,
 ]
 
 
