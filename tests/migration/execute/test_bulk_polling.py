@@ -126,3 +126,77 @@ async def test_fetch_job_errors_empty_on_none():
                 session, "callDeviceSettings", "JOB_XYZ", ctx={},
             )
     assert errors == []
+
+
+@pytest.mark.asyncio
+async def test_execute_bulk_op_submits_then_polls():
+    """execute_bulk_op POSTs the submit URL, captures job id, then polls."""
+    from wxcli.migration.execute.engine import execute_bulk_op, BASE
+    import aiohttp
+    import asyncio
+
+    submit_url = f"{BASE}/telephony/config/jobs/devices/callDeviceSettings"
+    poll_url = f"{submit_url}/JOB_XYZ"
+    calls = [("POST", submit_url, {"locationId": "LOC"})]
+
+    with aioresponses() as m:
+        m.post(submit_url, status=202, payload={
+            "id": "JOB_XYZ",
+            "latestExecutionStatus": "STARTED",
+            "percentageComplete": 5,
+        })
+        m.get(poll_url, status=200, payload={
+            "latestExecutionExitCode": "COMPLETED",
+            "percentageComplete": 100,
+            "updatedCount": 100,
+        })
+        async with aiohttp.ClientSession() as session:
+            sem = asyncio.Semaphore(5)
+            result = await execute_bulk_op(
+                session,
+                node_id="bulk_device_settings:loc-1:submit",
+                resource_type="bulk_device_settings",
+                calls=calls,
+                semaphore=sem,
+                poll_interval=0,
+                max_poll_time=5,
+                ctx={},
+            )
+
+    assert result.success
+    assert result.status == 200
+    assert result.webex_id == "JOB_XYZ"
+    assert result.body.get("updatedCount") == 100
+
+
+@pytest.mark.asyncio
+async def test_execute_bulk_op_failed_exit_marks_failed():
+    from wxcli.migration.execute.engine import execute_bulk_op, BASE
+    import aiohttp
+    import asyncio
+
+    submit_url = f"{BASE}/telephony/config/jobs/devices/rebuildPhones"
+    poll_url = f"{submit_url}/JOB_REB"
+    calls = [("POST", submit_url, {"locationId": "LOC"})]
+
+    with aioresponses() as m:
+        m.post(submit_url, status=202, payload={"id": "JOB_REB"})
+        m.get(poll_url, status=200, payload={
+            "latestExecutionExitCode": "FAILED",
+            "percentageComplete": 30,
+        })
+        async with aiohttp.ClientSession() as session:
+            sem = asyncio.Semaphore(5)
+            result = await execute_bulk_op(
+                session,
+                node_id="bulk_rebuild_phones:loc-1:submit",
+                resource_type="bulk_rebuild_phones",
+                calls=calls,
+                semaphore=sem,
+                poll_interval=0,
+                max_poll_time=5,
+                ctx={},
+            )
+
+    assert not result.success
+    assert result.error and "FAILED" in result.error

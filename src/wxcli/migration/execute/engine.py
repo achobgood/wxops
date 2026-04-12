@@ -202,6 +202,89 @@ async def execute_single_op(
     )
 
 
+async def execute_bulk_op(
+    session: aiohttp.ClientSession,
+    node_id: str,
+    resource_type: str,
+    calls: list[tuple[str, str, dict | None]],
+    semaphore: asyncio.Semaphore,
+    poll_interval: float = 5,
+    max_poll_time: float = 600,
+    ctx: dict | None = None,
+) -> OpResult:
+    """Submit a Webex bulk job, poll to completion, return an OpResult.
+
+    Expects exactly one call in ``calls`` — the submit POST. The response
+    body's ``id`` is the job ID. After submission, this function polls
+    using ``poll_job_until_complete`` until the job reaches COMPLETED or
+    FAILED (or times out). Partial-failure fallback is layered on top of
+    this function by the batch loop (see Task 18).
+    """
+    from wxcli.migration.execute import BULK_JOB_TYPES
+
+    if len(calls) != 1:
+        return OpResult(
+            node_id=node_id, status=0,
+            error=f"execute_bulk_op expects exactly 1 call, got {len(calls)}",
+            body={},
+        )
+
+    method, url, body = calls[0]
+    job_type = BULK_JOB_TYPES.get(resource_type)
+    if not job_type:
+        return OpResult(
+            node_id=node_id, status=0,
+            error=f"No BULK_JOB_TYPES mapping for {resource_type}",
+            body={},
+        )
+
+    # Submit the job
+    try:
+        async with semaphore:
+            async with session.request(method, url, json=body) as resp:
+                submit_status = resp.status
+                submit_body = await resp.json()
+    except aiohttp.ClientError as e:
+        return OpResult(node_id=node_id, status=0, error=f"Submit error: {e}", body={})
+
+    if submit_status >= 400:
+        msg = submit_body.get("message") if isinstance(submit_body, dict) else str(submit_body)
+        return OpResult(
+            node_id=node_id, status=submit_status,
+            error=f"{submit_status}: {msg}", body=submit_body or {},
+        )
+
+    job_id = submit_body.get("id") if isinstance(submit_body, dict) else None
+    if not job_id:
+        return OpResult(
+            node_id=node_id, status=submit_status,
+            error="Submit succeeded but returned no job id",
+            body=submit_body or {},
+        )
+
+    # Poll to completion
+    try:
+        final = await poll_job_until_complete(
+            session, job_type, job_id,
+            poll_interval=poll_interval,
+            max_poll_time=max_poll_time,
+            ctx=ctx,
+        )
+    except TimeoutError as e:
+        return OpResult(node_id=node_id, status=0, error=str(e), body={"id": job_id})
+
+    exit_code = final.get("latestExecutionExitCode", "UNKNOWN")
+    if exit_code == "COMPLETED":
+        return OpResult(
+            node_id=node_id, status=200, webex_id=job_id, body=final,
+        )
+    return OpResult(
+        node_id=node_id, status=500,
+        error=f"Job {job_id} ended in {exit_code}",
+        body=final,
+    )
+
+
 async def _try_find_existing(
     session: aiohttp.ClientSession,
     semaphore: asyncio.Semaphore,
