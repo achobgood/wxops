@@ -2282,3 +2282,271 @@ def detect_route_list_complexity(store: MigrationStore) -> list[AdvisoryFinding]
 
 
 ALL_ADVISORY_PATTERNS.append(detect_route_list_complexity)
+
+
+# ===================================================================
+# Pattern 31: DECT Deployment Detection
+# ===================================================================
+
+def detect_dect_deployment(store: MigrationStore) -> list[AdvisoryFinding]:
+    """DECT networks present — surface base station inventory guidance.
+
+    Fires when dect_network objects exist in the store. Guides operators
+    to provide base station MAC inventory via --dect-inventory to enable
+    automated provisioning. Without inventory, each DECT network maps to
+    a single auto-sized base station that must be manually confirmed in
+    Control Hub.
+    """
+    networks = store.get_objects("dect_network")
+    if not networks:
+        return []
+
+    total_handsets = sum(
+        len(n.get("handset_assignments") or [])
+        for n in networks
+    )
+    total_networks = len(networks)
+
+    # Count networks missing base station inventory
+    no_inventory_count = 0
+    for net in networks:
+        pre = (net.get("pre_migration_state") or {})
+        bs = pre.get("base_stations", []) or []
+        if not bs:
+            no_inventory_count += 1
+
+    network_ids = [n.get("canonical_id", "") for n in networks]
+    names = [n.get("name", n.get("canonical_id", "?")) for n in networks]
+
+    if no_inventory_count == 0:
+        # All networks have inventory — informational only
+        detail = (
+            f"{total_networks} DECT network{'s' if total_networks != 1 else ''} "
+            f"with {total_handsets} handset{'s' if total_handsets != 1 else ''} detected. "
+            f"Base station inventory is available for all networks — automated provisioning "
+            f"will create DECT networks with the correct base station count. "
+            f"Review DECT_NETWORK_DESIGN decisions to confirm zone-to-location mapping "
+            f"before running the execution plan."
+        )
+        severity = "INFO"
+    else:
+        detail = (
+            f"{total_networks} DECT network{'s' if total_networks != 1 else ''} "
+            f"with {total_handsets} handset{'s' if total_handsets != 1 else ''} detected "
+            f"({', '.join(names[:5])}{'...' if len(names) > 5 else ''}). "
+            f"{no_inventory_count} network{'s' if no_inventory_count != 1 else ''} "
+            f"{'are' if no_inventory_count != 1 else 'is'} missing base station MAC inventory.\n\n"
+            f"Without inventory, the migration tool creates a single placeholder DECT network "
+            f"per zone, sized automatically (DBS-110 for ≤30 handsets, DBS-210 for larger). "
+            f"Base stations must then be added manually in Control Hub.\n\n"
+            f"To enable automated provisioning: export base station MACs to a CSV and pass "
+            f"--dect-inventory <file> on the next discover run. The inventory CSV requires "
+            f"columns: coverage_zone, base_station_mac, base_station_model "
+            f"(DBS-110 or DBS-210). Re-run discover → normalize → map → analyze after "
+            f"providing inventory.\n\n"
+            f"Review DECT_NETWORK_DESIGN decisions for each network to confirm location "
+            f"assignment and approve auto-sizing or provide explicit base station counts. "
+            f"Review DECT_HANDSET_ASSIGNMENT decisions for any unowned handsets that need "
+            f"workspace or person assignment."
+        )
+        severity = "MEDIUM"
+
+    return [AdvisoryFinding(
+        pattern_name="dect_deployment",
+        severity=severity,
+        summary=(
+            f"{total_networks} DECT network{'s' if total_networks != 1 else ''} detected — "
+            f"{'provide base station inventory for automated provisioning' if no_inventory_count else 'base station inventory available'}"
+        ),
+        detail=detail,
+        affected_objects=network_ids,
+        category="migrate_as_is",
+    )]
+
+
+ALL_ADVISORY_PATTERNS.append(detect_dect_deployment)
+
+
+# ===================================================================
+# Pattern 33: Feature Forwarding Gaps
+# ===================================================================
+
+def detect_feature_forwarding_gaps(store: MigrationStore) -> list[AdvisoryFinding]:
+    """Call features with CUCM forwarding/overflow config that won't migrate automatically.
+
+    Hunt groups carry forwardHuntNoAnswer / forwardHuntBusy destinations.
+    Call queues carry queueCalls.queueFullDestination, noAgentDestination, and
+    maxWaitTimeDestination.  Auto attendants inherit callForwardAll from their
+    CTI Route Point.  Any feature where those fields are populated in
+    pre_migration_state but no Webex forwarding fields are set on the canonical
+    object represents a gap — the feature will work, but overflow / after-hours
+    behaviour will differ from CUCM.
+    """
+    gap_ids: list[str] = []
+
+    # --- Hunt Groups ---
+    for hg in store.get_objects("hunt_group"):
+        cid = hg.get("canonical_id", "")
+        pre = hg.get("pre_migration_state") or {}
+        has_cucm_fwd = bool(
+            pre.get("forwardHuntNoAnswer") or pre.get("forwardHuntBusy")
+        )
+        if not has_cucm_fwd:
+            continue
+        # Check whether the canonical object carries webex forwarding data
+        call_settings = hg.get("call_settings") or {}
+        webex_fwd = call_settings.get("forwarding") or hg.get("forwarding")
+        if not webex_fwd:
+            gap_ids.append(cid)
+
+    # --- Call Queues ---
+    for cq in store.get_objects("call_queue"):
+        cid = cq.get("canonical_id", "")
+        pre = cq.get("pre_migration_state") or {}
+        queue_calls = pre.get("queueCalls") or {}
+        has_cucm_overflow = bool(
+            queue_calls.get("queueFullDestination")
+            or queue_calls.get("noAgentDestination")
+            or queue_calls.get("maxWaitTimeDestination")
+        )
+        if not has_cucm_overflow:
+            continue
+        call_settings = cq.get("call_settings") or {}
+        webex_overflow = (
+            call_settings.get("overflow")
+            or cq.get("overflow")
+            or call_settings.get("forwarding")
+            or cq.get("forwarding")
+        )
+        if not webex_overflow:
+            gap_ids.append(cid)
+
+    # --- Auto Attendants ---
+    for aa in store.get_objects("auto_attendant"):
+        cid = aa.get("canonical_id", "")
+        pre = aa.get("pre_migration_state") or {}
+        # CTI Route Point callForwardAll or explicit after-hours routing
+        has_cucm_fwd = bool(
+            pre.get("callForwardAll")
+            or pre.get("afterHoursAction")
+            or pre.get("afterHoursDestination")
+        )
+        if not has_cucm_fwd:
+            continue
+        call_settings = aa.get("call_settings") or {}
+        webex_after_hours = (
+            call_settings.get("afterHours")
+            or aa.get("after_hours_action")
+            or aa.get("afterHours")
+        )
+        if not webex_after_hours:
+            gap_ids.append(cid)
+
+    if not gap_ids:
+        return []
+
+    count = len(gap_ids)
+    detail = (
+        f"{count} call feature{'s' if count != 1 else ''} "
+        f"(hunt group{'s' if count != 1 else ''}, call queue{'s' if count != 1 else ''}, "
+        f"or auto attendant{'s' if count != 1 else ''}) have forwarding or overflow "
+        f"destinations configured in CUCM that will not be automatically applied in Webex.\n\n"
+        f"Affected features will be created and will accept calls normally, but overflow, "
+        f"no-answer, and after-hours routing will fall back to Webex defaults (typically "
+        f"disconnect or voicemail) rather than matching the CUCM destinations.\n\n"
+        f"Review the execution plan for `configure_forwarding`, `configure_holiday_service`, "
+        f"`configure_night_service`, and `configure_stranded_calls` operations. If those "
+        f"operations are missing for the features listed above, the forwarding destinations "
+        f"must be configured manually in Control Hub after migration."
+    )
+
+    return [AdvisoryFinding(
+        pattern_name="feature_forwarding_gaps",
+        severity="MEDIUM",
+        summary=(
+            f"{count} call feature{'s' if count != 1 else ''} have CUCM forwarding/overflow "
+            f"config that won't migrate automatically"
+        ),
+        detail=detail,
+        affected_objects=gap_ids,
+        category="rebuild",
+    )]
+
+
+ALL_ADVISORY_PATTERNS.append(detect_feature_forwarding_gaps)
+
+
+# ===================================================================
+# Pattern 34: Workspace Call Settings Gaps
+# ===================================================================
+
+def detect_workspace_settings_gaps(store: MigrationStore) -> list[AdvisoryFinding]:
+    """Workspaces (common-area phones) whose call_settings are empty/None.
+
+    When a CUCM device is mapped to a workspace but the call_settings dict
+    is not populated, the workspace will be created with Webex defaults —
+    which may differ from whatever was configured on the CUCM device or its
+    device profile.  Cross-reference against pre_migration_state to surface
+    workspaces where CUCM had non-default settings.
+    """
+    workspaces = store.get_objects("workspace")
+    if not workspaces:
+        return []
+
+    gap_ids: list[str] = []
+
+    for ws in workspaces:
+        cid = ws.get("canonical_id", "")
+        call_settings = ws.get("call_settings")
+        settings_empty = not call_settings or (
+            isinstance(call_settings, dict) and not any(call_settings.values())
+        )
+        if not settings_empty:
+            continue
+
+        # Cross-reference: did the CUCM device have any non-trivial config?
+        pre = ws.get("pre_migration_state") or {}
+        # Any of these fields present in CUCM pre-state indicates custom settings
+        cucm_had_settings = bool(
+            pre.get("callingLineIdPresentation")
+            or pre.get("callingLineIdRestriction")
+            or pre.get("callForwardAll")
+            or pre.get("callForwardBusy")
+            or pre.get("callForwardNoAnswer")
+            or pre.get("dndOption")
+            or pre.get("singleButtonBarge")
+            or pre.get("joinAcrossLines")
+        )
+        if cucm_had_settings:
+            gap_ids.append(cid)
+
+    if not gap_ids:
+        return []
+
+    count = len(gap_ids)
+    detail = (
+        f"{count} workspace{'s' if count != 1 else ''} will be created with default Webex "
+        f"call settings because no settings were mapped from the CUCM device configuration. "
+        f"The CUCM device{'s' if count != 1 else ''} had call settings "
+        f"(caller ID presentation, call forwarding, DND, or barge policies) that are not "
+        f"reflected in the canonical workspace objects.\n\n"
+        f"Workspaces using defaults will function normally for basic calling, but "
+        f"call forwarding, DND, and caller ID behaviour may differ from CUCM. "
+        f"Review the listed workspace{'s' if count != 1 else ''} in Control Hub after "
+        f"migration and apply any custom settings as needed."
+    )
+
+    return [AdvisoryFinding(
+        pattern_name="workspace_settings_gaps",
+        severity="LOW",
+        summary=(
+            f"{count} workspace{'s' if count != 1 else ''} will use default call settings — "
+            f"review if custom settings were configured in CUCM"
+        ),
+        detail=detail,
+        affected_objects=gap_ids,
+        category="migrate_as_is",
+    )]
+
+
+ALL_ADVISORY_PATTERNS.append(detect_workspace_settings_gaps)

@@ -40,10 +40,10 @@ DEFAULT_AUTO_RULES: list[dict[str, Any]] = [
     {"type": "HOTDESK_DN_CONFLICT", "choice": "keep_primary",
      "reason": "Primary DN takes precedence over hotdesk conflict"},
     # CUCM-only forwarding variants — accept the loss (rarely configured)
-    {"type": "FORWARDING_LOSSY", "choice": "accept_loss",
+    {"type": "FORWARDING_LOSSY", "choice": "accept",
      "reason": "CUCM-specific forwarding variant has no Webex equivalent"},
     # SNR timer controls — accept Webex simplification
-    {"type": "SNR_LOSSY", "choice": "accept_loss",
+    {"type": "SNR_LOSSY", "choice": "accept",
      "reason": "SNR timer controls are simplified in Webex"},
     # Unmappable CUCM button types — no Webex equivalent exists
     {"type": "BUTTON_UNMAPPABLE", "choice": "accept_loss",

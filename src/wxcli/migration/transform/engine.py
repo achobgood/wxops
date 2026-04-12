@@ -50,6 +50,7 @@ from wxcli.migration.transform.mappers.executive_assistant_mapper import Executi
 from wxcli.migration.transform.mappers.device_settings_mapper import DeviceSettingsMapper
 from wxcli.migration.transform.mappers.receptionist_mapper import ReceptionistMapper
 from wxcli.migration.transform.mappers.voicemail_group_mapper import VoicemailGroupMapper
+from wxcli.migration.transform.mappers.dect_mapper import DECTMapper
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +70,7 @@ MAPPER_ORDER: list[type[Mapper]] = [
     WorkspaceMapper,      # Tier 2 (depends on locations)
     DeviceMapper,         # Tier 3 (depends on users, lines)
     DeviceSettingsMapper, # Tier 3: after DeviceMapper, before other dependent mappers
+    DECTMapper,           # Tier 3: after device/location/user mappers — enriches DECT networks
     FeatureMapper,        # Tier 4 (depends on users, lines, locations)
     VoicemailGroupMapper, # Tier 4 (depends on locations + features — runs after FeatureMapper)
     CSSMapper,            # Tier 5 (depends on routing_mapper output)
@@ -246,6 +248,9 @@ class TransformEngine:
 
         if mapper_cls is EcbnMapper:
             return EcbnMapper()
+
+        if mapper_cls is DECTMapper:
+            return DECTMapper()
 
         # Fallback: attempt no-arg construction
         return mapper_cls()  # type: ignore[call-arg]

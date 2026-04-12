@@ -85,7 +85,66 @@ These models support Webex Calling firmware natively. If already on MPP firmware
 Native MPP (PhoneOS/RoomOS-derived). No conversion or replacement needed. These use the Device Configurations API (RoomOS keys), not Telephony Device Settings. <!-- Source: devices-core.md §5a, line 1323 -->
 
 ### DECT networks
-A DECT network is a unit: base station(s) + handsets. Supported Webex DECT models: DBS110 (1 base, 30 lines), DBS210 (250 bases, 1000 lines). Migration requires creating the DECT network in Webex, registering base stations, then assigning handsets. Not supported for FedRAMP. <!-- Source: devices-dect.md §3 -->
+
+A DECT network is a unit: base station(s) + handsets. Supported Webex DECT models: DBS-110 (1 base, 30 lines) and DBS-210 (up to 250 bases, 1000 lines). Migration requires creating the DECT network in Webex, registering base stations by MAC address, then assigning handsets. Not supported for FedRAMP tenants. <!-- Source: devices-dect.md §3 -->
+
+#### Device Compatibility Tiers
+
+CUCM DECT handsets are classified as `DeviceCompatibilityTier.DECT` by `DeviceMapper` — distinct from `INCOMPATIBLE`, `CONVERTIBLE`, `NATIVE_MPP`, and `WEBEX_APP`. They require DECT network provisioning, not direct device replacement or firmware conversion.
+
+Supported CUCM DECT handset models: **6823, 6825, 6825ip**. Any CUCM device with one of these models is classified as DECT. Other wireless handset models (e.g., 7925, 7926) are `INCOMPATIBLE` and have no equivalent Webex hardware — Webex App on mobile is the closest substitute.
+
+#### Grouping by Device Pool
+
+`normalize_dect_group()` (Pass 1 normalizer) groups all DECT handsets by CUCM device pool into `dect_network:` MigrationObjects. Each MigrationObject carries:
+- `coverage_zone` — the CUCM device pool name
+- `handset_assignments` — list of handset canonical IDs and owner info
+- `handset_count` — total handsets for model auto-selection
+
+One `dect_network` MigrationObject is created per unique device pool that contains DECT handsets. If the CUCM environment uses a single device pool for all DECT handsets across multiple physical locations, the grouping will produce one combined network — see the multi-zone ambiguity issue below.
+
+#### Location Mapping
+
+`DECTMapper` resolves each network's Webex location via the `device_pool_to_location` cross-references built by `CrossReferenceBuilder`. The device pool → location mapping follows the same logic as `DeviceMapper` and `WorkspaceMapper` — if the device pool is unambiguously linked to a single Webex location, the network is assigned to it automatically.
+
+When the device pool maps to multiple candidate locations (ambiguous), or no location at all (unknown device pool), `DECTMapper` raises a `DECT_NETWORK_DESIGN` decision at MEDIUM severity.
+
+#### Auto Model Selection
+
+`DECTMapper` auto-selects the Webex DECT network model based on `handset_count`:
+- **≤30 handsets** → `DBS-110` (single base station, 30 lines max)
+- **>30 handsets** → `DBS-210` (multi-base, up to 1000 lines)
+
+This selection is stored on the `CanonicalDECTNetwork` object and used by the planner's `create` operation.
+
+#### Handset Owner Resolution
+
+`DECTMapper` enriches each entry in `handset_assignments` by looking up the handset's `ownerUserName` cross-reference:
+- **Owned handset** — `owner_canonical_id` is set to the matching `user:` canonical ID
+- **Unowned handset** — `owner_status = "unowned"` and a `DECT_HANDSET_ASSIGNMENT` decision is raised at LOW severity
+
+Unowned handsets are common for shared-use devices (warehouse floor, nurse station, lobby). The decision asks the operator to either assign a workspace or mark the handset as unowned in the Webex DECT network.
+
+#### Pipeline Operations
+
+The planner expands each `dect_network` canonical object into 3 sequential ops:
+
+| Op | Handler | What it does |
+|----|---------|-------------|
+| `dect_network:create` | `handle_dect_network_create` | POST `/telephony/config/locations/{loc}/dectNetworks` — creates the network with model and name |
+| `dect_network:create_base_stations` | `handle_dect_base_station_create` | POST `.../baseStations` — registers MAC addresses from `--dect-inventory` CSV. No-op if no inventory supplied. |
+| `dect_network:assign_handsets` | `handle_dect_handset_assign` | POST `.../handsets/bulk` — assigns handsets in batches of 50. No-op if no handsets. |
+
+Dependencies enforce: `create` → `create_base_stations` → `assign_handsets`. All three ops must complete before handsets show as registered in Control Hub.
+
+#### Gotchas
+
+1. **FedRAMP not supported.** `DECT_NETWORK_DESIGN` at HIGH severity if the org's `features.dect` is absent. Do not provision DECT on FedRAMP tenants. <!-- Source: devices-dect.md; Webex limits kb -->
+2. **Multi-zone ambiguity.** If two CUCM device pools with DECT handsets both resolve to the same Webex location, `DECTMapper` cannot determine whether to create one combined DECT network or two separate ones. This raises `DECT_NETWORK_DESIGN` and requires operator input on the desired network topology.
+3. **Base station inventory is not in CUCM AXL.** The CUCM AXL schema does not expose DECT base station MAC addresses. Operators must supply a `--dect-inventory` CSV manually. Without it, base stations are not registered post-migration and handsets cannot associate to the DECT network until an operator registers them in Control Hub.
+4. **Handset batch size limit.** The `/handsets/bulk` endpoint accepts max 50 handsets per request. The handler batches automatically — no operator action needed, but large DECT deployments will produce multiple sequential bulk calls.
+5. **Model mismatch detection.** If the base station model in the `--dect-inventory` CSV (e.g., `DBS-110-3PC`) does not match the auto-selected network model (`DBS-210`), the discrepancy is surfaced in the `DECT_NETWORK_DESIGN` decision context. Operator must correct either the handset count grouping or the inventory file before proceeding.
+6. **DECT classification is additive to device_compatibility_tier.** `DeviceMapper` sets `compatibility_tier = DECT` on `CanonicalDevice` for 6823/6825/6825ip. These devices are still tracked in the device inventory and appear in the assessment report's device table — they are not silently dropped.
 
 ### Conference room devices
 7832/8832 conference phones map to either a Webex Room device (RoomOS, full meetings + calling) or a 9800-series desk phone depending on use case. RoomOS devices use the Device Configurations API and Workspace Personalization API. <!-- Source: devices-platform.md §1 -->
@@ -244,3 +303,27 @@ The migration pipeline maps CUCM device-level settings (productSpecificConfigura
 | 1 | "42-model replacement map" in `recommend_device_incompatible()` | Partial | `recommendation_rules.py` lines 191-220 | Map has **28 keys** (26 unique models after normalizing ATA spacing variants: `ATA 190`/`ATA190`, `ATA 191`/`ATA191`). Not 42. The map covers 79xx (16 keys), 69xx (6 keys), 7832 (1 key), ATA (4 keys, 2 unique). |
 | 2 | Activation code provisioning flow | Verified | `devices-core.md` §1.3, §1.5, §6 | `activation_code()` method documented with workspace/person/model params, `ActivationCodeResponse` model, CLI `create-activation-code` command, and Raw HTTP `POST /devices/activationCode`. |
 | 3 | Hot desking requires Professional workspace license | Corrected | `devices-workspaces.md` gotcha #6, #10; `wxcadm-devices-workspaces.md` line 654 | Hot desking uses its own **`hotdesk` license type**, distinct from both Basic (`workspace`) and Professional. However, most `/telephony/config/workspaces/` settings DO require Professional. The claim as stated is imprecise -- hot desking requires a hot desk license, not specifically "Professional". |
+
+---
+
+## DECT Migration
+
+CUCM DECT phones (6823, 6825, 6825ip) register as regular SIP phones via AXL. Webex Calling DECT uses a hierarchical provisioning model:
+
+**CUCM** (flat): Phone → Device Pool → Location
+**Webex** (hierarchical): DECT Network → Base Station → Handset → User
+
+There is no 1:1 AXL-to-Webex mapping. The migration pipeline detects DECT handsets by model name during discovery and classifies them separately from desk phones. Base station topology and coverage zones are not discoverable from AXL — they require supplemental operator input via `--dect-inventory` CSV.
+
+**Phase 1 (Detection):** Advisory-only. Reports DECT handset count, model distribution, and estimated base station needs. Does NOT provision anything.
+
+**Phase 2 (Provisioning):** Creates DECT networks, registers base stations (requires physical MAC from supplemental inventory), and binds handsets to users. Handset registration requires the physical device to be powered on and in range of a registered base station.
+
+**Key constraint:** DECT base station MAC addresses are NOT in CUCM AXL. They must be provided separately. Without them, Phase 2 cannot execute.
+
+### Dissent Triggers
+
+| ID | Condition | Recommendation | Confidence |
+|----|-----------|---------------|------------|
+| DT-DEVICE-010 | DECT handsets > 20% of total phone inventory | Escalate to HIGH — operator may underestimate DECT migration effort. DECT requires physical site survey for base station placement that desk phone migration does not. | 0.85 |
+| DT-DEVICE-011 | DECT handsets detected but no supplemental inventory provided | Block execution — cannot provision DECT networks without base station MACs. Advisory should explicitly state this blocker. | 0.95 |
