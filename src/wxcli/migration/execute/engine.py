@@ -72,6 +72,43 @@ async def poll_job_until_complete(
     raise TimeoutError(f"Job {job_type}/{job_id} did not complete within {max_poll_time}s")
 
 
+async def fetch_job_errors(
+    session: aiohttp.ClientSession,
+    job_type: str,
+    job_id: str,
+    ctx: dict | None = None,
+) -> list[dict]:
+    """GET the errors endpoint for a bulk job and return the items list.
+
+    GET /v1/telephony/config/jobs/devices/{jobType}/{jobId}/errors
+
+    Returns ``[]`` on empty or non-200 response so callers can treat it
+    as a best-effort lookup.
+    """
+    from urllib.parse import urlencode
+
+    ctx = ctx or {}
+    path = f"/telephony/config/jobs/devices/{job_type}/{job_id}/errors"
+    url = f"{BASE}{path}"
+    if ctx.get("orgId"):
+        url += f"?{urlencode({'orgId': ctx['orgId']})}"
+
+    try:
+        async with session.get(url) as resp:
+            if resp.status != 200:
+                logger.warning("fetch_job_errors %s -> %d", job_id[:16], resp.status)
+                return []
+            body = await resp.json()
+    except Exception as e:
+        logger.warning("fetch_job_errors %s raised: %s", job_id[:16], e)
+        return []
+
+    if not isinstance(body, dict):
+        return []
+    items = body.get("items", [])
+    return list(items) if isinstance(items, list) else []
+
+
 @dataclass
 class OpResult:
     """Result of executing one operation."""

@@ -87,3 +87,42 @@ async def test_poll_injects_orgid_in_url(poll_url):
                 poll_interval=0, max_poll_time=5, ctx={"orgId": "org-xyz"},
             )
     assert result["latestExecutionExitCode"] == "COMPLETED"
+
+
+@pytest.mark.asyncio
+async def test_fetch_job_errors_parses_items():
+    from wxcli.migration.execute.engine import fetch_job_errors, BASE
+    import aiohttp
+
+    url = f"{BASE}/telephony/config/jobs/devices/callDeviceSettings/JOB_XYZ/errors"
+    with aioresponses() as m:
+        m.get(url, status=200, payload={
+            "items": [
+                {"itemId": "device-1", "trackingId": "t1",
+                 "error": {"key": "E100", "message": ["boom"]}},
+                {"itemId": "device-2", "trackingId": "t2",
+                 "error": {"key": "E200", "message": ["bam"]}},
+            ]
+        })
+        async with aiohttp.ClientSession() as session:
+            errors = await fetch_job_errors(
+                session, "callDeviceSettings", "JOB_XYZ", ctx={},
+            )
+    assert len(errors) == 2
+    assert errors[0]["itemId"] == "device-1"
+    assert errors[1]["error"]["key"] == "E200"
+
+
+@pytest.mark.asyncio
+async def test_fetch_job_errors_empty_on_none():
+    from wxcli.migration.execute.engine import fetch_job_errors, BASE
+    import aiohttp
+
+    url = f"{BASE}/telephony/config/jobs/devices/callDeviceSettings/JOB_XYZ/errors"
+    with aioresponses() as m:
+        m.get(url, status=200, payload={"items": []})
+        async with aiohttp.ClientSession() as session:
+            errors = await fetch_job_errors(
+                session, "callDeviceSettings", "JOB_XYZ", ctx={},
+            )
+    assert errors == []
