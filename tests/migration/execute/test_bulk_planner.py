@@ -35,10 +35,6 @@ class TestBelowThreshold:
 
         assert result == ops  # identity, no replacement
 
-    @pytest.mark.xfail(
-        reason="Bulk replacement added incrementally in Tasks 8-11",
-        strict=True,
-    )
     def test_threshold_zero_forces_bulk(self, store):
         # Threshold 0 means "always bulk". Below-threshold branch must not
         # be taken even when device count is small.
@@ -49,3 +45,42 @@ class TestBelowThreshold:
         ]
         result = _optimize_for_bulk(ops, store, threshold=0)
         assert result != ops  # optimization ran
+
+
+class TestDeviceSettingsAggregation:
+    def test_groups_device_settings_by_location(self, store):
+        # 120 devices spread across 2 locations (above threshold 100).
+        ops = []
+        for i in range(80):
+            cid = f"device:d{i}"
+            ops.append(_op(cid, "create", "device", tier=3, batch="location:loc-1"))
+            ops.append(_op(cid, "configure_settings", "device",
+                            tier=5, batch="location:loc-1"))
+        for i in range(80, 120):
+            cid = f"device:d{i}"
+            ops.append(_op(cid, "create", "device", tier=3, batch="location:loc-2"))
+            ops.append(_op(cid, "configure_settings", "device",
+                            tier=5, batch="location:loc-2"))
+
+        result = _optimize_for_bulk(ops, store, threshold=100)
+
+        # All 120 device:create ops preserved (no bulk create API).
+        creates = [o for o in result if o.resource_type == "device" and o.op_type == "create"]
+        assert len(creates) == 120
+
+        # All device:configure_settings ops gone.
+        per_device_settings = [
+            o for o in result
+            if o.resource_type == "device" and o.op_type == "configure_settings"
+        ]
+        assert per_device_settings == []
+
+        # One bulk_device_settings:submit per location.
+        bulk_settings = [
+            o for o in result
+            if o.resource_type == "bulk_device_settings" and o.op_type == "submit"
+        ]
+        assert len(bulk_settings) == 2
+        assert {o.batch for o in bulk_settings} == {"location:loc-1", "location:loc-2"}
+        # All at tier 5.
+        assert all(o.tier == 5 for o in bulk_settings)

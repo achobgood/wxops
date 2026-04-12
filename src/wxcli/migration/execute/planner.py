@@ -107,11 +107,45 @@ def _optimize_for_bulk(
     if len(device_creates) < threshold:
         return ops
 
-    # Subsequent tasks add the actual replacement logic. For now, return
-    # ops unchanged so the below-threshold test passes and the above-
-    # threshold test (threshold=0) fails with a clear diff, which we fix
-    # in Tasks 8-11.
-    return ops
+    logger.info(
+        "Bulk optimization: device count %d >= threshold %d — rewriting ops",
+        len(device_creates), threshold,
+    )
+
+    result: list[MigrationOp] = []
+    # Track which locations needed bulk ops (for tier 8 rebuild phones later).
+    device_settings_locations: set[str] = set()
+
+    for op in ops:
+        if op.resource_type == "device" and op.op_type == "configure_settings":
+            loc = op.batch or "org-wide"
+            device_settings_locations.add(loc)
+            continue  # drop the per-device op
+        result.append(op)
+
+    # Emit one bulk_device_settings:submit per location, at tier 5,
+    # dependent on all device:create ops in that location.
+    for loc in sorted(device_settings_locations):
+        dep_node_ids = [
+            _node_id(o.canonical_id, "create")
+            for o in ops
+            if o.resource_type == "device"
+            and o.op_type == "create"
+            and (o.batch or "org-wide") == loc
+        ]
+        bulk_cid = f"bulk_device_settings:{loc}"
+        result.append(MigrationOp(
+            canonical_id=bulk_cid,
+            op_type="submit",
+            resource_type="bulk_device_settings",
+            tier=TIER_ASSIGNMENTS[("bulk_device_settings", "submit")],
+            batch=loc if loc != "org-wide" else None,
+            api_calls=API_CALL_ESTIMATES["bulk_device_settings:submit"],
+            description=f"Bulk apply device settings at {loc}",
+            depends_on=dep_node_ids,
+        ))
+
+    return result
 
 
 # ---------------------------------------------------------------------------
