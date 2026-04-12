@@ -73,6 +73,12 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "recording_vendor": "Webex",
     "site_prefix_rules": [],
     "category_rules": None,
+    "e911": {
+        "auto_configure_ecbn": True,
+        "notification_email": None,
+        "redsky_enabled": False,
+        "primary_did_strategy": "first_line",
+    },
 }
 
 
