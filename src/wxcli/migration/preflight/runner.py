@@ -22,6 +22,7 @@ from wxcli.migration.preflight import (
 )
 from wxcli.migration.preflight.checks import (
     check_duplicate_users,
+    check_e911_readiness,
     check_feature_entitlements,
     check_licenses,
     check_locations,
@@ -113,6 +114,7 @@ class PreflightRunner:
             "numbers": lambda: self._run_number_check(store, numbers),
             "users": lambda: self._run_duplicate_check(store, people),
             "rate-limit": lambda: check_rate_limit_budget(store, self.config),
+            "e911-readiness": lambda: check_e911_readiness(store),
         }
 
         results: list[CheckResult] = []
