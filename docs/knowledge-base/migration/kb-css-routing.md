@@ -207,6 +207,41 @@ The `detect_partition_time_routing` pattern (advisory_patterns.py line 615) fire
 
 ---
 
+## Selective Call Handling Detection
+
+Three heuristics in `SelectiveCallHandlingAnalyzer` detect CUCM CSS/partition
+patterns that imply per-caller routing differences:
+
+1. **Multi-partition DN** — same DN appears in 2+ partitions reachable via
+   different user CSSes. Indicates the operator modelled "internal callers
+   reach me directly; external callers hit forwarding rules" by placing the
+   DN in two partitions with different CSS scopes.
+2. **Low-membership partition** — partition with ≤10 DNs that appears in
+   fewer than half of all CSSes. Indicates a VIP/executive bypass pattern
+   where only certain CSSes can reach this partition.
+3. **Naming convention** — partition name matches `vip`, `executive`,
+   `priority`, `direct`, `bypass`, `afterhours`, or `emergency`. Weak
+   signal — only LOW severity unless paired with a structural signal.
+
+Each heuristic produces a `FEATURE_APPROXIMATION` decision tagged with
+`selective_call_handling_pattern` in the context. The recommendation rule
+always suggests `accept` (configure Webex selective forwarding/acceptance/
+rejection or Priority Alert post-migration). The pipeline does NOT
+auto-create selective rules — phone-number criteria require operator review.
+
+The advisory pattern `detect_selective_call_handling_opportunities` aggregates
+all selective decisions into a single cross-cutting `ARCHITECTURE_ADVISORY`.
+
+**Mitigation 1: multi-site false positives.** Multi-partition DNs are
+filtered out when the owning users live at different `location_id` values
+(this is a multi-site routing pattern, not selective call handling).
+
+**Mitigation 2: weak naming signal.** Naming-only matches stay LOW severity.
+A structural confirmation (multi-partition DN OR low-membership subset) is
+required for MEDIUM severity.
+
+---
+
 ## Verification Log
 
 | # | Claim | Verified | Source | Finding |

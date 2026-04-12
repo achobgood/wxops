@@ -23,7 +23,7 @@ analysis_pipeline.py run()
 
 **Layer 1 — Per-Decision Recommendations.** Every decision the pipeline produces (from mappers and analyzers) gets an optional `recommendation` field: which option the system advises, and `recommendation_reasoning`: why. Populated by `populate_recommendations()` which calls into `recommendation_rules.py`. One function per DecisionType (16 total). Returns `(option_id, reasoning)` or `None` for genuinely ambiguous cases.
 
-**Layer 2 — Cross-Cutting Advisor.** The `ArchitectureAdvisor` runs after all 13 analyzers have merged their decisions. It reads the full canonical model plus all prior decisions and produces `ARCHITECTURE_ADVISORY` decisions for patterns spanning multiple objects — things like "6 of your 14 CSSes are restriction-only and should be calling permissions, not dial plans" or "your trunk topology indicates Local Gateway, not Cloud Connected PSTN." 30 pattern detector functions total.
+**Layer 2 — Cross-Cutting Advisor.** The `ArchitectureAdvisor` runs after all 13 analyzers have merged their decisions. It reads the full canonical model plus all prior decisions and produces `ARCHITECTURE_ADVISORY` decisions for patterns spanning multiple objects — things like "6 of your 14 CSSes are restriction-only and should be calling permissions, not dial plans" or "your trunk topology indicates Local Gateway, not Cloud Connected PSTN." 31 pattern detector functions total.
 
 ## Why Two Phases
 
@@ -37,7 +37,7 @@ Advisory decisions are merged separately using `decision_types=[ARCHITECTURE_ADV
 |------|---------|
 | `__init__.py` | Exports `populate_recommendations()` and `ArchitectureAdvisor` |
 | `recommendation_rules.py` | 21 recommendation functions (one per DecisionType) + `RECOMMENDATION_DISPATCH` dict |
-| `advisory_patterns.py` | 30 cross-cutting pattern detectors + `AdvisoryFinding` dataclass + `ALL_ADVISORY_PATTERNS` list |
+| `advisory_patterns.py` | 32 cross-cutting pattern detectors + `AdvisoryFinding` dataclass + `ALL_ADVISORY_PATTERNS` list |
 | `advisor.py` | `ArchitectureAdvisor` class (extends Analyzer ABC) |
 
 ## Decision Model Fields
@@ -70,7 +70,7 @@ Ambiguous cases return `None`. Honest uncertainty is a feature.
 
 ## Cross-Cutting Advisory Patterns (Layer 2)
 
-`advisory_patterns.py` has 29 pattern detector functions. Each takes a `MigrationStore` and returns `list[AdvisoryFinding]`.
+`advisory_patterns.py` has 31 pattern detector functions. Each takes a `MigrationStore` and returns `list[AdvisoryFinding]`.
 
 **Critical patterns (highest migration impact):**
 1. **Partition Ordering Loss** — CSSes that depend on partition ordering to resolve overlapping patterns. Webex uses longest-match routing — no ordering equivalent. Calls may route differently after migration.
@@ -102,20 +102,21 @@ Ambiguous cases return `None`. Honest uncertainty is a feature.
 19. Transformation Patterns — calling/called party transformations → manual caller ID review
 20. Extension Mobility Usage — device profiles → Webex hot desking configuration
 21. Call Intercept Candidates — heuristically detected blocked partitions + CFA-to-voicemail → manual Webex intercept setup
+22. Selective Call Handling Opportunities — CSS/partition patterns suggesting per-caller routing → Webex Selective Forward / Accept / Reject (admin) or Priority Alert (user-only)
 
 **Gap patterns (silent failures / platform limits):**
-22. Mixed CSS — CSSes mixing routing and restriction partitions (silent gap in Pattern 1)
-23. Cumulative Virtual Line Consumption — count VLs recommended across all decisions, warn if approaching limits
-24. User OAuth Required — features that require per-user OAuth (admin tokens can't set them)
-25. Trunk Type Selection — trunk type (REGISTERING vs CERTIFICATE_BASED) is immutable post-creation
-26. Intercluster Trunks — CUCM ICT disposition decision (no Webex equivalent)
-27. Legacy Gateway Protocols — MGCP and H.323 gateways need SIP conversion before migration
+23. Mixed CSS — CSSes mixing routing and restriction partitions (silent gap in Pattern 1)
+24. Cumulative Virtual Line Consumption — count VLs recommended across all decisions, warn if approaching limits
+25. User OAuth Required — features that require per-user OAuth (admin tokens can't set them)
+26. Trunk Type Selection — trunk type (REGISTERING vs CERTIFICATE_BASED) is immutable post-creation
+27. Intercluster Trunks — CUCM ICT disposition decision (no Webex equivalent)
+28. Legacy Gateway Protocols — MGCP and H.323 gateways need SIP conversion before migration
 
 **User communication:**
-28. Voicemail Greeting Re-Recording — counts users with custom greetings, produces user communication template
+29. Voicemail Greeting Re-Recording — counts users with custom greetings, produces user communication template
 
 **Audio migration:**
-29. Custom Audio Assets — custom MoH sources + announcements requiring manual download/upload
+30. Custom Audio Assets — custom MoH sources + announcements requiring manual download/upload
 
 ## AdvisoryFinding Dataclass
 

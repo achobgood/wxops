@@ -58,7 +58,7 @@ When launched with an analysis mode prompt:
    **By advisory pattern_name:**
    | Pattern Name | KB Doc |
    |---|---|
-   | restriction_css_consolidation, translation_pattern_elimination, partition_time_routing, partition_ordering_loss, overengineered_dial_plan, globalized_vs_localized, mixed_css | kb-css-routing.md |
+   | restriction_css_consolidation, translation_pattern_elimination, partition_time_routing, partition_ordering_loss, overengineered_dial_plan, globalized_vs_localized, mixed_css, selective_call_handling_opportunities | kb-css-routing.md |
    | pstn_connection_type, trunk_destination_consolidation, cpn_transformation_chain, transformation_patterns, trunk_type_selection, intercluster_trunks, legacy_gateway_protocols | kb-trunk-pstn.md |
    | device_bulk_upgrade, extension_mobility_usage | kb-device-migration.md |
    | hunt_pilot_reclassification, custom_audio_assets | kb-feature-mapping.md |

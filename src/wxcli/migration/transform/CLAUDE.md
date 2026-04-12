@@ -13,7 +13,7 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 | `pipeline.py` | `normalize_discovery(raw_data, store)` — Phase 04 entry point: runs Pass 1 normalizers + Pass 2 cross-refs |
 | `normalizers.py` | 40 Pass 1 normalizer functions + `NORMALIZER_REGISTRY` + `RAW_DATA_MAPPING` |
 | `cross_reference.py` | `CrossReferenceBuilder` — Pass 2: builds `cross_refs` table (34 relationships + 3 enrichments) |
-| `analysis_pipeline.py` | `AnalysisPipeline` — runs 13 analyzers, merges decisions, applies auto-rules, runs advisor |
+| `analysis_pipeline.py` | `AnalysisPipeline` — runs 14 analyzers, merges decisions, applies auto-rules, runs advisor |
 | `rules.py` | `apply_auto_rules(store, config)` — auto-resolution rules (simple cases resolved without user input) |
 | `decisions.py` | Decision-related helpers and constants |
 | `e164.py` | E.164 normalization with site prefix stripping |
@@ -21,7 +21,7 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 | `pattern_converter.py` | Route pattern wildcard conversion |
 | `engine.py` | Mapper execution engine — runs mappers in dependency order |
 | `mappers/` | 22 mapper classes — see `mappers/CLAUDE.md` |
-| `analyzers/` | 13 analyzer classes — see their docstrings |
+| `analyzers/` | 14 analyzer classes — see their docstrings |
 
 ## Pass 1: Normalizers
 
@@ -66,15 +66,15 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 
 ## Analysis Pipeline
 
-`analysis_pipeline.py:AnalysisPipeline.run(store)` runs all 13 analyzers, then advisory, then recommendations:
+`analysis_pipeline.py:AnalysisPipeline.run(store)` runs all 14 analyzers, then advisory, then recommendations:
 
-1. Run 13 analyzers (topological order by `depends_on`) → collect `Decision` objects
+1. Run 14 analyzers (topological order by `depends_on`) → collect `Decision` objects
 2. Convert decisions to store dicts → merge via `store.merge_decisions()` (fingerprint-based, marks stale)
 3. Apply auto-resolution rules from config
 4. Run `ArchitectureAdvisor` (Phase 2 — reads merged decisions, produces `ARCHITECTURE_ADVISORY` decisions)
 5. Populate recommendations on all decisions
 
-**13 Analyzers:**
+**14 Analyzers:**
 
 | Analyzer | Decision Types |
 |----------|---------------|
@@ -91,6 +91,7 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 | `FeatureApproximationAnalyzer` | `FEATURE_APPROXIMATION` |
 | `MissingDataAnalyzer` | `MISSING_DATA` |
 | `LayoutOverflowAnalyzer` | `LAYOUT_OVERFLOW` |
+| `SelectiveCallHandlingAnalyzer` | `FEATURE_APPROXIMATION` (with `selective_call_handling_pattern` context key) |
 
 **Cascade re-evaluation:** `resolve_and_cascade(store, decision_id, chosen_option)` resolves one decision and re-runs only the analyzers whose `decision_types` intersect `cascades_to` from the decision's context. Uses `save_decision()` (not `merge_decisions()`) in the cascade path to avoid incorrectly staling decisions from non-cascaded analyzers.
 
