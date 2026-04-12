@@ -174,6 +174,25 @@ Prerequisite: `analyze` stage must be complete (same as `report`).
 - `decisions` → user via `context` dict keys
 - `css` → user via `user_has_css` cross-ref
 
+## Voicemail Greeting Report Sections
+
+Custom voicemail greetings stored in Unity Connection do not migrate to Webex Calling. The report surfaces this in two places so the information reaches both the operator and the customer.
+
+### Appendix H — Voicemail Analysis
+
+`appendix.py` renders Appendix H ("Voicemail Analysis") as a collapsed `<details>` section. It contains:
+
+- **Custom greeting count** — number of users whose `voicemail_profile` has `has_custom_greeting=True` in the store. Sourced from `store.get_objects("voicemail_profile")`, filtered on that flag.
+- **Email template** — a pre-written plain-text notice for the operator to copy, fill in the voicemail access number, and send to affected users before migration day. The template is static text rendered inline by `appendix.py`; the canonical IDs are stripped via `strip_canonical_id()` before any user data is embedded.
+
+If no users have custom greetings, the section still renders but the count reads 0 and the template is suppressed (zero-count suppression for the body paragraph only — the section heading always appears).
+
+### Executive Summary Page 2 Callout
+
+`executive.py` renders a conditional "Custom Greetings" stat card on Page 2 ("What You Have") when the custom greeting count is non-zero. This stat card includes a `.callout` component that points the reader to Appendix H for the email template. The callout uses the standard `.callout` CSS class from `styles.py` — bordered left, tinted background, short one-sentence prompt.
+
+The Page 2 stat card is rendered alongside the Custom MoH Sources and Announcement Files cards (→ `executive.py:_page_environment`). All three point to their respective appendix sections. The callout text is hardcoded in `executive.py` rather than sourced from `explainer.py` because it is always the same message regardless of decision context.
+
 ## User Communication
 
 ```bash
