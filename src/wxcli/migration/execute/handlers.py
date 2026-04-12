@@ -1533,6 +1533,189 @@ def handle_announcement_upload(data: dict, deps: dict, ctx: dict) -> HandlerResu
     return []
 
 
+# ---------------------------------------------------------------------------
+# Tier 5: Executive/assistant pairing
+# (from 2026-04-10-executive-assistant-migration.md §4e)
+# ---------------------------------------------------------------------------
+
+def handle_executive_type_assign(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    """Set EXECUTIVE type on the executive person.
+
+    PUT /people/{personId}/features/executiveAssistant
+    Scope: spark-admin:people_write
+    (spec §3a)
+    """
+    exec_cid = data.get("executive_canonical_id")
+    person_wid = deps.get(exec_cid) if exec_cid else None
+    if not person_wid:
+        return []
+    return [(
+        "PUT",
+        _url(f"/people/{person_wid}/features/executiveAssistant", ctx),
+        {"type": "EXECUTIVE"},
+    )]
+
+
+def handle_assistant_type_assign(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    """Set EXECUTIVE_ASSISTANT type on each assistant person.
+
+    PUT /people/{personId}/features/executiveAssistant  (once per assistant)
+    Scope: spark-admin:people_write
+    (spec §3a)
+    """
+    calls: HandlerResult = []
+    for asst_cid in data.get("assistant_canonical_ids", []):
+        person_wid = deps.get(asst_cid)
+        if person_wid:
+            calls.append((
+                "PUT",
+                _url(f"/people/{person_wid}/features/executiveAssistant", ctx),
+                {"type": "EXECUTIVE_ASSISTANT"},
+            ))
+    return calls
+
+
+def handle_executive_assign_assistants(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    """Pair assistants to the executive.
+
+    PUT /telephony/config/people/{personId}/executive/assignedAssistants
+    Scope: spark-admin:telephony_config_write
+    (spec §3b)
+    """
+    exec_cid = data.get("executive_canonical_id")
+    person_wid = deps.get(exec_cid) if exec_cid else None
+    if not person_wid:
+        return []
+    assistants = []
+    for asst_cid in data.get("assistant_canonical_ids", []):
+        asst_wid = deps.get(asst_cid)
+        if asst_wid:
+            assistants.append({"id": asst_wid, "optInEnabled": True})
+    if not assistants:
+        return []
+    body: dict[str, Any] = {
+        "allowOptInEnabled": True,
+        "assistants": assistants,
+    }
+    return [(
+        "PUT",
+        _url(f"/telephony/config/people/{person_wid}/executive/assignedAssistants", ctx),
+        body,
+    )]
+
+
+def handle_executive_configure_alert(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    """Configure executive alert settings (alerting mode, rollover).
+
+    PUT /telephony/config/people/{personId}/executive/alert
+    Scope: spark-admin:telephony_config_write
+    (spec §3c)
+    """
+    exec_cid = data.get("executive_canonical_id")
+    person_wid = deps.get(exec_cid) if exec_cid else None
+    if not person_wid:
+        return []
+    alerting_mode = data.get("alerting_mode", "SIMULTANEOUS")
+    body: dict[str, Any] = {
+        "alertingMode": alerting_mode,
+        "nextAssistantNumberOfRings": 3,
+        "rolloverEnabled": True,
+        "rolloverAction": "VOICE_MESSAGING",
+        "rolloverWaitTimeInSecs": 20,
+        "clidNameMode": "EXECUTIVE_ORIGINATOR",
+        "clidPhoneNumberMode": "EXECUTIVE",
+    }
+    return [(
+        "PUT",
+        _url(f"/telephony/config/people/{person_wid}/executive/alert", ctx),
+        body,
+    )]
+
+
+def handle_executive_configure_filtering(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    """Configure executive call filtering.
+
+    PUT /telephony/config/people/{personId}/executive/callFiltering
+    Scope: spark-admin:telephony_config_write
+    (spec §3d)
+    """
+    exec_cid = data.get("executive_canonical_id")
+    person_wid = deps.get(exec_cid) if exec_cid else None
+    if not person_wid:
+        return []
+    if not data.get("filter_enabled"):
+        return []
+    # Map CUCM filter types to Webex filter types
+    _filter_type_map: dict[str, str] = {
+        "ALL_CALLS": "ALL_CALLS",
+        "INTERNAL_ONLY": "ALL_INTERNAL_CALLS",
+        "EXTERNAL_ONLY": "ALL_EXTERNAL_CALLS",
+    }
+    raw_filter_type = data.get("filter_type", "ALL_CALLS")
+    filter_type = _filter_type_map.get(raw_filter_type, "ALL_CALLS")
+    body: dict[str, Any] = {
+        "enabled": True,
+        "filterType": filter_type,
+    }
+    return [(
+        "PUT",
+        _url(f"/telephony/config/people/{person_wid}/executive/callFiltering", ctx),
+        body,
+    )]
+
+
+def handle_executive_configure_screening(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    """Configure executive call screening.
+
+    PUT /telephony/config/people/{personId}/executive/screening
+    Scope: spark-admin:telephony_config_write
+    (spec §3e)
+    """
+    exec_cid = data.get("executive_canonical_id")
+    person_wid = deps.get(exec_cid) if exec_cid else None
+    if not person_wid:
+        return []
+    if not data.get("screening_enabled"):
+        return []
+    body: dict[str, Any] = {
+        "enabled": True,
+        "alertType": "RING_SPLASH",
+    }
+    return [(
+        "PUT",
+        _url(f"/telephony/config/people/{person_wid}/executive/screening", ctx),
+        body,
+    )]
+
+
+def handle_assistant_configure_settings(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    """Configure assistant forward/opt-in settings for each assistant.
+
+    PUT /telephony/config/people/{personId}/executive/assistant  (once per assistant)
+    Scope: spark-admin:telephony_config_write
+    (spec §3f)
+    """
+    exec_cid = data.get("executive_canonical_id")
+    exec_wid = deps.get(exec_cid) if exec_cid else None
+
+    calls: HandlerResult = []
+    for asst_cid in data.get("assistant_canonical_ids", []):
+        asst_wid = deps.get(asst_cid)
+        if not asst_wid:
+            continue
+        body: dict[str, Any] = {
+            "forwardFilteredCallsEnabled": False,
+        }
+        if exec_wid:
+            body["executives"] = [{"personId": exec_wid, "optInEnabled": True}]
+        calls.append((
+            "PUT",
+            _url(f"/telephony/config/people/{asst_wid}/executive/assistant", ctx),
+            body,
+        ))
+    return calls
+
+
 # HANDLER_REGISTRY — complete with all operation types
 HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("location", "create"): handle_location_create,
@@ -1597,4 +1780,12 @@ HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     # Advisory-to-execution bridge (Phase A: no-op placeholders)
     ("music_on_hold", "configure"): handle_music_on_hold_configure,
     ("announcement", "upload"): handle_announcement_upload,
+    # Executive/assistant pairing (tier 5)
+    ("executive_assistant", "assign_executive_type"): handle_executive_type_assign,
+    ("executive_assistant", "assign_assistant_type"): handle_assistant_type_assign,
+    ("executive_assistant", "assign_assistants"): handle_executive_assign_assistants,
+    ("executive_assistant", "configure_alert"): handle_executive_configure_alert,
+    ("executive_assistant", "configure_filtering"): handle_executive_configure_filtering,
+    ("executive_assistant", "configure_screening"): handle_executive_configure_screening,
+    ("executive_assistant", "configure_assistant_settings"): handle_assistant_configure_settings,
 }
