@@ -185,6 +185,12 @@ class MigrationStore:
             except Exception:
                 pass  # Column already exists
 
+        # Bulk operations payload column (Phase: bulk-operations)
+        try:
+            self.conn.execute("ALTER TABLE plan_operations ADD COLUMN data_json TEXT")
+        except Exception:
+            pass  # Column already exists
+
         # Advisory system schema migration (Phase 13a)
         for col in ["recommendation", "recommendation_reasoning"]:
             try:

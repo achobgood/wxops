@@ -44,6 +44,7 @@ class MigrationOp(BaseModel):
     api_calls: int = 1          # estimated API call count for rate limit budgeting
     description: str = ""       # human-readable: "Create user jsmith@acme.com"
     depends_on: list[str] = Field(default_factory=list)  # node_ids this op must wait for
+    payload: dict | None = None  # Bulk ops: handler data that doesn't come from a canonical object
 
 
 class BrokenCycle(BaseModel):
