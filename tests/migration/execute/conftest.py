@@ -2,10 +2,19 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 import pytest
 
-from wxcli.migration.models import CanonicalDevice, DeviceCompatibilityTier
+from wxcli.migration.models import CanonicalDevice, DeviceCompatibilityTier, Provenance
 from wxcli.migration.store import MigrationStore
+
+_DEFAULT_PROVENANCE = Provenance(
+    source_system="cucm",
+    source_id="test-source-id",
+    source_name="test",
+    extracted_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+)
 
 
 @pytest.fixture
@@ -30,6 +39,7 @@ def device_factory():
     ) -> CanonicalDevice:
         return CanonicalDevice(
             canonical_id=cid,
+            provenance=_DEFAULT_PROVENANCE,
             mac=cid.replace(":", "").upper()[:12].ljust(12, "0"),
             model=model,
             compatibility_tier=compatibility_tier,
