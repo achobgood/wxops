@@ -395,3 +395,50 @@ class TestNamingConvention:
         analyzer = SelectiveCallHandlingAnalyzer()
         decisions = analyzer.analyze(store)
         assert decisions == []
+
+
+class TestFingerprintAndIdempotency:
+    def test_fingerprint_stable_across_runs(self, tmp_path):
+        """Re-running the analyzer produces identical fingerprints."""
+        store = _store(tmp_path)
+        _seed_user_with_dn_in_partitions(
+            store,
+            userid="alice",
+            location_id="loc:hq",
+            dn="1001",
+            partition_csses={
+                "PT_Internal": ["CSS_Internal"],
+                "PT_External": ["CSS_External"],
+            },
+        )
+
+        analyzer = SelectiveCallHandlingAnalyzer()
+        run1 = analyzer.analyze(store)
+        run2 = analyzer.analyze(store)
+
+        assert len(run1) == len(run2)
+        prints1 = sorted(d.fingerprint for d in run1)
+        prints2 = sorted(d.fingerprint for d in run2)
+        assert prints1 == prints2
+
+    def test_distinct_dns_get_distinct_fingerprints(self, tmp_path):
+        """Two different multi-partition DNs produce two distinct decisions."""
+        store = _store(tmp_path)
+        _seed_user_with_dn_in_partitions(
+            store, userid="u1", location_id="loc:hq", dn="1001",
+            partition_csses={"PT_A": ["CSS_A"], "PT_B": ["CSS_B"]},
+        )
+        _seed_user_with_dn_in_partitions(
+            store, userid="u2", location_id="loc:hq", dn="1002",
+            partition_csses={"PT_C": ["CSS_C"], "PT_D": ["CSS_D"]},
+        )
+
+        analyzer = SelectiveCallHandlingAnalyzer()
+        decisions = analyzer.analyze(store)
+
+        sch = [
+            d for d in decisions
+            if d.context.get("selective_call_handling_pattern") == "multi_partition_dn"
+        ]
+        assert len(sch) == 2
+        assert sch[0].fingerprint != sch[1].fingerprint
