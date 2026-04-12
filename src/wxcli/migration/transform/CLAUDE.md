@@ -11,7 +11,7 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 | File | Purpose |
 |------|---------|
 | `pipeline.py` | `normalize_discovery(raw_data, store)` — Phase 04 entry point: runs Pass 1 normalizers + Pass 2 cross-refs |
-| `normalizers.py` | 40 Pass 1 normalizer functions + `NORMALIZER_REGISTRY` + `RAW_DATA_MAPPING` |
+| `normalizers.py` | 41 Pass 1 normalizer functions + `NORMALIZER_REGISTRY` + `RAW_DATA_MAPPING` |
 | `cross_reference.py` | `CrossReferenceBuilder` — Pass 2: builds `cross_refs` table (34 relationships + 3 enrichments) |
 | `analysis_pipeline.py` | `AnalysisPipeline` — runs 14 analyzers, merges decisions, applies auto-rules, runs advisor |
 | `rules.py` | `apply_auto_rules(store, config)` — auto-resolution rules (simple cases resolved without user input) |
@@ -20,12 +20,12 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 | `cucm_pattern.py` | CUCM dial pattern → Webex translation pattern conversion |
 | `pattern_converter.py` | Route pattern wildcard conversion |
 | `engine.py` | Mapper execution engine — runs mappers in dependency order |
-| `mappers/` | 22 mapper classes — see `mappers/CLAUDE.md` |
+| `mappers/` | 26 mapper classes — see `mappers/CLAUDE.md` |
 | `analyzers/` | 14 analyzer classes — see their docstrings |
 
 ## Pass 1: Normalizers
 
-`normalizers.py` contains 40 stateless pure functions. Each takes a raw CUCM dict and returns a canonical Pydantic model or `MigrationObject`. They are order-independent and parallel-safe — no cross-object lookups, foreign keys stay as CUCM name strings.
+`normalizers.py` contains 42 stateless pure functions. Each takes a raw CUCM dict and returns a canonical Pydantic model or `MigrationObject`. They are order-independent and parallel-safe — no cross-object lookups, foreign keys stay as CUCM name strings.
 
 `RAW_DATA_MAPPING` is the routing table: `list[tuple[extractor_key, sub_key, normalizer_key]]` consumed by `normalize_discovery()`.
 
@@ -35,6 +35,7 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 - `normalize_workspace` → `CanonicalWorkspace` (common-area phones classified post-normalization)
 - `normalize_button_template` / `normalize_softkey_template` → `MigrationObject` (raw, for mapper consumption)
 - `normalize_intercept_candidate` → `MigrationObject` (Tier 4 informational — intercept-like signals from CUCM)
+- `normalize_dect_group` → `MigrationObject` (`dect_network:` prefix) — groups DECT handsets by CUCM device pool; each carries a `handset_assignments` list consumed by `DECTMapper`
 - Translation patterns, route patterns, CSSes, partitions, etc. → `MigrationObject`
 
 **Raw phone preservation (critical):** `normalize_phone()` creates a `CanonicalDevice` but discards the raw AXL dict. `pipeline.py` also stores each phone as `MigrationObject(canonical_id="phone:{name}", pre_migration_state=<full_raw_phone>)`. This is required because `MonitoringMapper`, `CallForwardingMapper`, `DeviceLayoutMapper`, `DeviceMapper`, and `WorkspaceMapper` all call `store.get_objects("phone")` to access `speeddials`, `busyLampFields`, and per-line call forwarding that isn't on `CanonicalDevice`.
@@ -63,7 +64,7 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 
 ## Mapper Execution Engine
 
-`engine.py` runs all 22 mapper classes in dependency order (topological sort on `depends_on`). Each mapper reads from the store, produces canonical objects via `store.upsert_object()`, and returns a `MapperResult` with counts and decisions. See `mappers/CLAUDE.md` for the full mapper inventory.
+`engine.py` runs all 26 mapper classes in dependency order (topological sort on `depends_on`). Each mapper reads from the store, produces canonical objects via `store.upsert_object()`, and returns a `MapperResult` with counts and decisions. See `mappers/CLAUDE.md` for the full mapper inventory.
 
 ## Analysis Pipeline
 

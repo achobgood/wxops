@@ -78,6 +78,20 @@ Platform constraints should override a static recommendation when:
 - **Background image limit:** 100 images per org. Custom backgrounds require multipart upload before referencing in device settings.
 - **Dynamic settings job:** Only 1 concurrent dynamic device settings job per org. Cannot run in parallel with other device jobs (settings push, rebuild phones).
 
+### DECT Networks
+
+| Resource | Limit | Scope | Notes | Source |
+|----------|-------|-------|-------|--------|
+| DECT networks | Not documented as a hard limit | Per location | No explicit cap found in reference docs; practical limit is base station and handset counts | devices-dect.md |
+| Base stations per DBS-110 network | 1 | Per network | DBS-110 is a single-base model — one base station, up to 30 registered lines | devices-dect.md §3 |
+| Base stations per DBS-210 network | Up to 250 | Per network | DBS-210 supports multi-cell roaming up to 250 base stations | devices-dect.md §3 |
+| Handsets per DBS-110 network | 30 | Per network | Max 30 lines on DBS-110 | devices-dect.md §3 |
+| Handsets per DBS-210 network | 1000 | Per network | Max 1000 lines on DBS-210 | devices-dect.md §3 |
+| Handsets per bulk assign request | 50 | Per API call | `/dectNetworks/{id}/handsets/bulk` accepts max 50 per call; handler batches automatically | devices-dect.md |
+| FedRAMP support | Not supported | Org-level | DECT networks cannot be provisioned on FedRAMP tenants | devices-dect.md |
+
+**Migration note:** The pipeline auto-selects `DBS-110` for coverage zones with ≤30 handsets and `DBS-210` for >30. If a zone exceeds 1000 handsets (unusual), it must be split into multiple DECT networks — the pipeline does not split automatically and will raise a `DECT_NETWORK_DESIGN` decision.
+
 ### Users and Provisioning
 
 | Resource | Limit | Notes | Source |
