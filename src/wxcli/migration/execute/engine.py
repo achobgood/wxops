@@ -211,14 +211,17 @@ async def execute_bulk_op(
     poll_interval: float = 5,
     max_poll_time: float = 600,
     ctx: dict | None = None,
+    fallback_context: dict | None = None,
 ) -> OpResult:
     """Submit a Webex bulk job, poll to completion, return an OpResult.
 
     Expects exactly one call in ``calls`` — the submit POST. The response
     body's ``id`` is the job ID. After submission, this function polls
     using ``poll_job_until_complete`` until the job reaches COMPLETED or
-    FAILED (or times out). Partial-failure fallback is layered on top of
-    this function by the batch loop (see Task 18).
+    FAILED (or times out). If the job completes but ``updatedCount`` is
+    less than the number of covered devices and ``fallback_context`` is
+    provided, the function fetches the job errors endpoint, identifies
+    failed device IDs, and re-runs a per-device handler for each.
     """
     from wxcli.migration.execute import BULK_JOB_TYPES
 
@@ -274,15 +277,121 @@ async def execute_bulk_op(
         return OpResult(node_id=node_id, status=0, error=str(e), body={"id": job_id})
 
     exit_code = final.get("latestExecutionExitCode", "UNKNOWN")
-    if exit_code == "COMPLETED":
+    if exit_code != "COMPLETED":
+        return OpResult(
+            node_id=node_id, status=500,
+            error=f"Job {job_id} ended in {exit_code}",
+            body=final,
+        )
+
+    # Partial-failure check.
+    updated = final.get("updatedCount", 0)
+    expected = 0
+    if fallback_context:
+        expected = len(fallback_context.get("covered_devices", []))
+    if not fallback_context or updated >= expected:
+        return OpResult(
+            node_id=node_id, status=200, webex_id=job_id, body=final,
+        )
+
+    logger.info(
+        "Bulk job %s partial: %d/%d succeeded — running per-device fallback",
+        job_id[:16], updated, expected,
+    )
+    failed_ids = await _resolve_failed_devices(
+        session, job_type, job_id, fallback_context, ctx,
+    )
+    if not failed_ids:
+        logger.warning(
+            "Bulk job %s updated=%d < expected=%d but error endpoint returned nothing",
+            job_id[:16], updated, expected,
+        )
+        return OpResult(
+            node_id=node_id, status=500,
+            error=f"Bulk job {job_id} partial failure with no error items",
+            body=final,
+        )
+
+    fallback_ok, fallback_error = await _run_per_device_fallback(
+        session, failed_ids, fallback_context, semaphore,
+    )
+    if fallback_ok:
+        logger.info("Bulk job %s: fallback recovered all %d failed devices",
+                    job_id[:16], len(failed_ids))
         return OpResult(
             node_id=node_id, status=200, webex_id=job_id, body=final,
         )
     return OpResult(
         node_id=node_id, status=500,
-        error=f"Job {job_id} ended in {exit_code}",
+        error=f"Bulk {job_id}: fallback failed — {fallback_error}",
         body=final,
     )
+
+
+async def _resolve_failed_devices(
+    session: aiohttp.ClientSession,
+    job_type: str,
+    job_id: str,
+    fallback_context: dict,
+    ctx: dict | None,
+) -> list[str]:
+    """Return the list of webex device IDs that failed in the bulk job.
+
+    Reads the errors endpoint and pulls itemId for each failed row.
+    """
+    items = await fetch_job_errors(session, job_type, job_id, ctx)
+    return [i["itemId"] for i in items if i.get("itemId")]
+
+
+async def _run_per_device_fallback(
+    session: aiohttp.ClientSession,
+    failed_webex_ids: list[str],
+    fallback_context: dict,
+    semaphore: asyncio.Semaphore,
+) -> tuple[bool, str | None]:
+    """Re-run the per-device handler for each failed device.
+
+    Returns (all_ok, error_message). The handler is looked up in
+    HANDLER_REGISTRY by fallback_context['fallback_handler_key']. Deps
+    are augmented with the device's own canonical_id → webex_id so the
+    handler can resolve the device. If the handler still returns no calls
+    (e.g. because the settings dict is empty but present), a direct PUT
+    to the device settings endpoint is issued using the record's data.
+    """
+    handler_key = fallback_context.get("fallback_handler_key")
+    handler = HANDLER_REGISTRY.get(handler_key) if handler_key else None
+    if handler is None:
+        return False, f"No handler for fallback key {handler_key}"
+
+    covered = {d["webex_id"]: d for d in fallback_context.get("covered_devices", [])}
+    deps = fallback_context.get("deps", {})
+    ctx = fallback_context.get("ctx", {})
+
+    for wid in failed_webex_ids:
+        record = covered.get(wid)
+        if not record:
+            return False, f"Failed device {wid} not in covered_devices"
+        # Augment deps with the device's own webex_id so handler can resolve it.
+        per_device_deps = {**deps, record["canonical_id"]: record["webex_id"]}
+        calls = handler(record.get("data", {}), per_device_deps, ctx)
+        if not calls:
+            # Handler returned no-op. Issue a direct settings PUT using the
+            # record's data (supports both "device_settings" and "settings" keys).
+            data_body = record.get("data", {})
+            settings = data_body.get("device_settings")
+            if settings is None:
+                settings = data_body.get("settings")
+            if settings is None:
+                continue  # truly nothing to apply → treat as success
+            url = f"{BASE}/telephony/config/devices/{wid}/settings"
+            calls = [("PUT", url, settings)]
+        for method, url, body in calls:
+            async with semaphore:
+                async with session.request(method, url, json=body) as resp:
+                    if resp.status >= 400:
+                        text = await resp.text()
+                        return False, f"{wid} fallback {resp.status}: {text[:200]}"
+    return True, None
 
 
 async def _try_find_existing(
