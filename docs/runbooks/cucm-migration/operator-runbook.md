@@ -31,11 +31,16 @@
    - [export](#export)
    - [execute (via /cucm-migrate)](#execute-via-cucm-migrate)
 5. [Assessment Report Orientation](#assessment-report-orientation)
-6. [Decision Review](#decision-review)
-7. [Execution & Recovery](#execution--recovery)
+6. [User Communications](#user-communications)
+   - [Voicemail Greeting Notice](#voicemail-greeting-notice)
+   - [Scenario-Based User Notice](#scenario-based-user-notice)
+   - [Audience Filtering](#audience-filtering)
+   - [Timing and Delivery](#timing-and-delivery)
+7. [Decision Review](#decision-review)
+8. [Execution & Recovery](#execution--recovery)
    - [Calibration Data Capture](#calibration-data-capture)
-8. [Failure Patterns](#failure-patterns)
-9. [Glossary](#glossary)
+9. [Failure Patterns](#failure-patterns)
+10. [Glossary](#glossary)
 
 ---
 
@@ -560,9 +565,24 @@ wxcli cucm user-diff --location "loc:dallas-hq"   # verify one site
 
 The diff shows each user's CUCM state vs. planned Webex state side by side: device model/tier, call forwarding rules, voicemail, BLF keys, speed dials, shared lines, button layout, calling permissions, and any decisions that affect that user. Use this to spot-check a representative sample before pressing go.
 
-### User Communication Notice
+---
 
-After generating the assessment report, you can also generate a user-facing communication notice:
+## User Communications
+
+User communications are generated from the same post-analyze store as the assessment report. Two distinct artifacts serve different audiences: a **voicemail greeting notice** for users who will lose custom greetings, and a **scenario-based migration notice** for all affected users. Both require the pipeline to have completed through `analyze`.
+
+### Voicemail Greeting Notice
+
+Custom voicemail greetings recorded in Unity Connection do not migrate to Webex Calling. Users who have custom greetings need advance notice so they can re-record them in Webex after cutover. The assessment report surfaces this automatically in two places:
+
+- **Appendix H (Voicemail Analysis):** lists the count of users with custom greetings and includes a ready-to-send email template with blanks for the site voicemail access number. Expand this appendix section, copy the template, fill in the voicemail pilot number for your site, and send to affected users.
+- **Executive Summary Page 2 ("What You Have"):** renders a "Custom Greetings" stat card when the count is non-zero, drawing the customer's attention before they reach the appendix.
+
+Check Appendix H before finalizing the migration date — if the count is high, users need more lead time to re-record.
+
+### Scenario-Based User Notice
+
+The `user-notice` command generates a branded HTML (or plain-text) document tailored to the scenarios detected in this specific customer's store. It only includes sections relevant to what the pipeline found — a customer with no convertible phones will not receive a phone-upgrade paragraph.
 
 ```bash
 wxcli cucm user-notice \
@@ -572,13 +592,29 @@ wxcli cucm user-notice \
   --prepared-by "Your Name, Cisco Partner SE"
 ```
 
-This produces an HTML document that can be sent directly to end users. It scans the migration analysis and includes only the sections relevant to the detected scenarios (e.g., phone upgrades, voicemail re-recording, call forwarding changes).
+Seven scenarios are detected and rendered when present: phone upgrade (convertible devices), Webex App transition (Jabber/soft-phone users), device replacement (incompatible hardware), call forwarding simplification, voicemail re-recording required, button layout changes, and executive/assistant pairing. The output is email-safe single-column HTML (640px max-width, inline CSS) suitable for forwarding or embedding directly in a customer email.
 
-**Options:**
-- `--text-only` — plain text output (for plain-text email)
-- `--audience phone-upgrade` — filter to users with device changes only
-- `--audience webex-app` — filter to Jabber-to-Webex App transitions only
-- `--audience general` — filter to users with no device changes (reassurance notice)
+### Audience Filtering
+
+Pass `--audience` to generate a targeted notice for a specific user segment rather than the full population. This is useful when different groups have different change drivers and receive separate communications.
+
+| Flag | Who it reaches |
+|---|---|
+| `--audience phone-upgrade` | Users whose device is convertible — getting a firmware change or new hardware |
+| `--audience webex-app` | Users transitioning from Jabber or a soft-phone seat to the Webex App |
+| `--audience general` | Users with no device change — reassurance that their number and settings carry over |
+
+Use `--text-only` to produce plain text instead of HTML when your email system does not support HTML content.
+
+### Timing and Delivery
+
+Send voicemail greeting notices at least **1 week before migration day** — users who need to re-record require time to locate greetings they care about, and the helpdesk will get calls if this notice arrives the day of cutover. The scenario notice is less urgent but should land no later than **3–5 business days before cutover** so users know what to expect when they pick up a different handset or open Webex for the first time.
+
+Both artifacts can be regenerated at any time without affecting the store — they are read-only outputs. If the customer's migration date shifts, re-run `user-notice` with the updated `--migration-date` and resend.
+
+→ Implementation: `src/wxcli/migration/report/user_notice.py` (notice generator) and `src/wxcli/migration/report/notice_templates.py` (7 scenario templates + audience filters). See also [§User Communication — Voicemail Greetings](#user-communication--voicemail-greetings) in Prerequisites for the pre-run checklist entry.
+
+---
 
 ## Decision Review
 
