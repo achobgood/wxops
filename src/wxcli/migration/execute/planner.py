@@ -75,6 +75,46 @@ def _decision_chosen(decisions: list[dict[str, Any]], decision_type: str) -> str
 
 
 # ---------------------------------------------------------------------------
+# Bulk optimization pass
+# (from docs/superpowers/specs/2026-04-10-bulk-operations.md §3b)
+# ---------------------------------------------------------------------------
+
+def _optimize_for_bulk(
+    ops: list[MigrationOp],
+    store: MigrationStore,
+    threshold: int,
+) -> list[MigrationOp]:
+    """Replace per-device operations with bulk submissions.
+
+    When the number of unique devices being created meets or exceeds
+    ``threshold``, replaces:
+
+    - ``device:configure_settings`` ops  → ``bulk_device_settings:submit``
+      (one per location)
+    - ``device_layout:configure`` ops    → ``bulk_line_key_template:submit``
+      (one per (template_id, location))
+    - ``softkey_config:configure`` ops   → ``bulk_dynamic_settings:submit``
+      (one per location)
+    - (post-all)                         → ``bulk_rebuild_phones:submit``
+      (one per location, tier 8)
+
+    ``device:create`` ops are never replaced — there is no bulk device
+    create API.
+
+    Below the threshold, the input list is returned unchanged.
+    """
+    device_creates = [o for o in ops if o.resource_type == "device" and o.op_type == "create"]
+    if len(device_creates) < threshold:
+        return ops
+
+    # Subsequent tasks add the actual replacement logic. For now, return
+    # ops unchanged so the below-threshold test passes and the above-
+    # threshold test (threshold=0) fails with a clear diff, which we fix
+    # in Tasks 8-11.
+    return ops
+
+
+# ---------------------------------------------------------------------------
 # Operation builder helpers
 # ---------------------------------------------------------------------------
 
