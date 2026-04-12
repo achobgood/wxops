@@ -435,6 +435,63 @@ def _explain_audio_asset_manual(
     return {"title": title, "explanation": explanation, "reassurance": _reassurance_for_severity(severity)}
 
 
+def _explain_dect_network_design(
+    summary: str, context: dict[str, Any], severity: str
+) -> dict[str, str]:
+    pool = context.get("cucm_device_pool", "")
+    handsets = context.get("total_handsets", 0)
+    has_inventory = context.get("base_stations_provided", False)
+    location = context.get("location_name")
+
+    if location is None:
+        title = f"DECT network for '{pool}' has no location" if pool else "DECT network location unresolved"
+        explanation = (
+            f"The DECT network for device pool '{pool}' could not be mapped to a Webex location. "
+            f"Every DECT network in Webex must be assigned to a location. "
+            f"You'll specify which location this network belongs to before migration proceeds."
+            if pool else
+            _with_summary(summary, "This DECT network could not be mapped to a Webex location and requires manual assignment.")
+        )
+    elif not has_inventory:
+        title = f"DECT network for '{pool}' needs base station inventory" if pool else "DECT network missing base station inventory"
+        explanation = (
+            f"The DECT network for '{pool}' ({handsets} handset{'s' if handsets != 1 else ''}) "
+            f"has no base station MAC inventory. Without it, the migration tool creates a single "
+            f"placeholder network — you choose to accept auto-sizing or provide a MAC inventory CSV "
+            f"(--dect-inventory) for fully automated provisioning."
+        )
+    else:
+        zone_count = context.get("zone_count", 1)
+        title = f"Multiple DECT zones share a location for '{pool}'" if pool else "Multiple DECT zones share one location"
+        explanation = (
+            f"{zone_count} CUCM device pools map to the same Webex location. "
+            f"In Webex, a single DECT network spans a location. "
+            f"You can merge all zones into one network or assign each to its own location."
+        )
+
+    return {"title": title, "explanation": explanation, "reassurance": _reassurance_for_severity(severity)}
+
+
+def _explain_dect_handset_assignment(
+    summary: str, context: dict[str, Any], severity: str
+) -> dict[str, str]:
+    device_name = context.get("cucm_device_name", "")
+    title = f"DECT handset '{device_name}' has no owner" if device_name else "Unowned DECT handset"
+    if device_name:
+        explanation = (
+            f"DECT handset '{device_name}' has no assigned user in CUCM. "
+            f"In Webex, every DECT handset must be assigned to either a person or a workspace. "
+            f"Common-area handsets (lobby, conference room, break room) should be assigned as "
+            f"workspaces (PLACE). Handsets with a regular user should be assigned to that person."
+        )
+    else:
+        explanation = _with_summary(
+            summary,
+            "This DECT handset has no assigned owner. You'll assign it to a person or workspace before migration.",
+        )
+    return {"title": title, "explanation": explanation, "reassurance": _reassurance_for_severity(severity)}
+
+
 # Template dispatch table
 _TEMPLATES: dict[str, Any] = {
     "EXTENSION_CONFLICT": _explain_extension_conflict,
@@ -455,6 +512,8 @@ _TEMPLATES: dict[str, Any] = {
     "NUMBER_CONFLICT": _explain_number_conflict,
     "ARCHITECTURE_ADVISORY": _explain_architecture_advisory,
     "AUDIO_ASSET_MANUAL": _explain_audio_asset_manual,
+    "DECT_NETWORK_DESIGN": _explain_dect_network_design,
+    "DECT_HANDSET_ASSIGNMENT": _explain_dect_handset_assignment,
 }
 
 

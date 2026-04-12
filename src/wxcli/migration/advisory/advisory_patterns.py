@@ -2282,3 +2282,84 @@ def detect_route_list_complexity(store: MigrationStore) -> list[AdvisoryFinding]
 
 
 ALL_ADVISORY_PATTERNS.append(detect_route_list_complexity)
+
+
+# ===================================================================
+# Pattern 31: DECT Deployment Detection
+# ===================================================================
+
+def detect_dect_deployment(store: MigrationStore) -> list[AdvisoryFinding]:
+    """DECT networks present — surface base station inventory guidance.
+
+    Fires when dect_network objects exist in the store. Guides operators
+    to provide base station MAC inventory via --dect-inventory to enable
+    automated provisioning. Without inventory, each DECT network maps to
+    a single auto-sized base station that must be manually confirmed in
+    Control Hub.
+    """
+    networks = store.get_objects("dect_network")
+    if not networks:
+        return []
+
+    handsets = store.get_objects("dect_handset")
+    total_handsets = len(handsets)
+    total_networks = len(networks)
+
+    # Count networks missing base station inventory
+    no_inventory_count = 0
+    for net in networks:
+        pre = (net.get("pre_migration_state") or {})
+        bs = pre.get("base_stations", []) or []
+        if not bs:
+            no_inventory_count += 1
+
+    network_ids = [n.get("canonical_id", "") for n in networks]
+    names = [n.get("name", n.get("canonical_id", "?")) for n in networks]
+
+    if no_inventory_count == 0:
+        # All networks have inventory — informational only
+        detail = (
+            f"{total_networks} DECT network{'s' if total_networks != 1 else ''} "
+            f"with {total_handsets} handset{'s' if total_handsets != 1 else ''} detected. "
+            f"Base station inventory is available for all networks — automated provisioning "
+            f"will create DECT networks with the correct base station count. "
+            f"Review DECT_NETWORK_DESIGN decisions to confirm zone-to-location mapping "
+            f"before running the execution plan."
+        )
+        severity = "INFO"
+    else:
+        detail = (
+            f"{total_networks} DECT network{'s' if total_networks != 1 else ''} "
+            f"with {total_handsets} handset{'s' if total_handsets != 1 else ''} detected "
+            f"({', '.join(names[:5])}{'...' if len(names) > 5 else ''}). "
+            f"{no_inventory_count} network{'s' if no_inventory_count != 1 else ''} "
+            f"{'are' if no_inventory_count != 1 else 'is'} missing base station MAC inventory.\n\n"
+            f"Without inventory, the migration tool creates a single placeholder DECT network "
+            f"per zone, sized automatically (DBS-110 for ≤30 handsets, DBS-210 for larger). "
+            f"Base stations must then be added manually in Control Hub.\n\n"
+            f"To enable automated provisioning: export base station MACs to a CSV and pass "
+            f"--dect-inventory <file> on the next discover run. The inventory CSV requires "
+            f"columns: mac_address, network_name (or zone_name), base_station_type "
+            f"(DBS-110 or DBS-210). Re-run discover → normalize → map → analyze after "
+            f"providing inventory.\n\n"
+            f"Review DECT_NETWORK_DESIGN decisions for each network to confirm location "
+            f"assignment and approve auto-sizing or provide explicit base station counts. "
+            f"Review DECT_HANDSET_ASSIGNMENT decisions for any unowned handsets that need "
+            f"workspace or person assignment."
+        )
+        severity = "MEDIUM"
+
+    return [AdvisoryFinding(
+        pattern_name="dect_deployment",
+        severity=severity,
+        summary=(
+            f"{total_networks} DECT network{'s' if total_networks != 1 else ''} detected — "
+            f"{'provide base station inventory for automated provisioning' if no_inventory_count else 'base station inventory available'}"
+        ),
+        detail=detail,
+        affected_objects=network_ids,
+        category="migrate_as_is",
+    )]
+
+
+ALL_ADVISORY_PATTERNS.append(detect_dect_deployment)

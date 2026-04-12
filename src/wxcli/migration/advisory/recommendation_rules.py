@@ -728,6 +728,76 @@ def recommend_workspace_settings_professional_required(
     )
 
 
+def recommend_dect_network_design(
+    context: dict[str, Any], options: list
+) -> tuple[str, str] | None:
+    """Recommendation for DECT_NETWORK_DESIGN decisions.
+
+    Three sub-cases:
+    1. No location resolved — no recommendation, operator must assign manually.
+    2. No base station inventory — recommend accept (auto-size) unless operator has inventory.
+    3. Multiple zones map to same location — recommend accept (merge).
+    """
+    option_ids = {o.get("id") for o in options}
+    base_stations_provided = context.get("base_stations_provided", False)
+    location_name = context.get("location_name")
+    zone_count = context.get("zone_count", 1)
+
+    # Case 1: no location resolved — force operator to assign
+    if location_name is None:
+        return None
+
+    # Case 2: no base station inventory — recommend accept (auto-size) with guidance
+    if not base_stations_provided and "accept" in option_ids:
+        pool = context.get("cucm_device_pool", "this zone")
+        handsets = context.get("total_handsets", 0)
+        return (
+            "accept",
+            f"Accept auto-sized DECT network for '{pool}' ({handsets} handset{'s' if handsets != 1 else ''}). "
+            f"The pipeline will create a single base station placeholder (DBS-110 for ≤30 handsets, "
+            f"DBS-210 otherwise). If you have base station MAC addresses, re-run discovery with "
+            f"--dect-inventory to enable fully automated provisioning instead.",
+        )
+
+    # Case 3: multiple zones same location — recommend accept (merge zones)
+    if zone_count > 1 and "accept" in option_ids:
+        loc = context.get("location_name", "this location")
+        return (
+            "accept",
+            f"{zone_count} CUCM device pools map to the same Webex location ({loc}). "
+            f"Accept to merge them into a single Webex DECT network. "
+            f"If the zones have independent base station coverage (e.g., separate buildings), "
+            f"use the 'manual' option to assign each zone to its own location.",
+        )
+
+    return None
+
+
+def recommend_dect_handset_assignment(
+    context: dict[str, Any], options: list
+) -> tuple[str, str] | None:
+    """Recommendation for DECT_HANDSET_ASSIGNMENT decisions.
+
+    Unowned handsets (no CUCM user or device owner) default to a Webex workspace.
+    This is correct for common-area handsets (lobby, conference room, break room).
+    If the handset belongs to a specific person, the operator must supply the person.
+    """
+    option_ids = {o.get("id") for o in options}
+    owner_status = context.get("owner_status", "")
+    device_name = context.get("cucm_device_name", "this handset")
+
+    if owner_status == "unowned" and "accept" in option_ids:
+        return (
+            "accept",
+            f"Handset '{device_name}' has no CUCM owner. Creating a Webex workspace (PLACE) "
+            f"is correct for common-area handsets (lobby phones, shared DECT). "
+            f"If this handset belongs to a specific person, use the 'manual' option and "
+            f"provide their email address or Webex person ID.",
+        )
+
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Dispatch table — ALL 19 DecisionType string values
 # ---------------------------------------------------------------------------
@@ -756,4 +826,6 @@ RECOMMENDATION_DISPATCH: dict[str, Any] = {
     "E911_ECBN_AMBIGUOUS": recommend_e911_ecbn_ambiguous,
     "E911_LOCATION_MISMATCH": recommend_e911_location_mismatch,
     "WORKSPACE_SETTINGS_PROFESSIONAL_REQUIRED": recommend_workspace_settings_professional_required,
+    "DECT_NETWORK_DESIGN": recommend_dect_network_design,
+    "DECT_HANDSET_ASSIGNMENT": recommend_dect_handset_assignment,
 }

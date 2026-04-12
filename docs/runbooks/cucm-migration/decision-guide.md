@@ -331,6 +331,7 @@ Custom voicemail greetings stored in Unity Connection cannot be extracted for mi
 **DecisionType:** `DECT_NETWORK_DESIGN`
 **Severity:** HIGH (missing location) or MEDIUM (no base station inventory, multiple zones same location)
 **Triggered by:** `src/wxcli/migration/transform/mappers/dect_mapper.py`. Fires in three conditions: (1) a DECT coverage zone cannot be resolved to a Webex location, (2) no operator-provided base station inventory (MAC addresses) was supplied via `--dect-inventory`, or (3) multiple CUCM device pools with DECT handsets all map to the same Webex location, making it ambiguous whether they should be one combined DECT network or separate per-zone networks.
+**Recommendation:** For no-inventory cases: `accept` (auto-select DBS-110 or DBS-210 by handset count; add base stations manually post-migration). For missing location: no recommendation — resolve location mapping first. For multi-zone ambiguity: `accept` (merge zones into one network).
 **Options:**
 - **Accept fidelity loss** — Create one network (DBS-110 or DBS-210 depending on handset count) for the zone; base stations must be added manually in Control Hub post-migration.
 - **Manual** — Provide a base station inventory CSV (`--dect-inventory`) and re-run the mapper, or resolve the multi-zone ambiguity by specifying per-zone network design.
@@ -344,6 +345,7 @@ Custom voicemail greetings stored in Unity Connection cannot be extracted for mi
 **DecisionType:** `DECT_HANDSET_ASSIGNMENT`
 **Severity:** INFO
 **Triggered by:** `src/wxcli/migration/transform/mappers/dect_mapper.py`. Fires when a DECT handset has no `ownerUserName` in CUCM (unowned/shared handset). This indicates the handset may be a shared device (warehouse floor, nurse station, lobby) that should become a workspace assignment, or it may be a data quality issue in CUCM.
+**Recommendation:** `accept` — create a Webex workspace for the unowned handset (PLACE assignment). Override to `manual` if the operator knows the intended user.
 **Options:**
 - **Accept fidelity loss** — Create a Webex workspace for this handset and assign it as a PLACE (workspace assignment). Appropriate for truly shared/roaming handsets.
 - **Manual** — Assign to a specific person (operator provides person ID or email after migration).
@@ -812,6 +814,19 @@ Custom voicemail greetings stored in Unity Connection cannot be extracted for mi
 **Example:** An org has three route lists: `US-West-RL` with members `[US-West-RG, US-East-RG]`, `EU-RL` with members `[EU-London-RG, EU-Frankfurt-RG]`, and `HQ-RL` with member `[HQ-RG]`. The advisory fires MEDIUM (mixed: 2 multi-member, 1 single-member). It reports that split would create 5 Webex route lists (3 original + 2 extra from the two-member lists), while flatten would create 3.
 **Recommended action:** Review each multi-member FEATURE_APPROXIMATION decision individually. Default to split when the deployment uses geographic PSTN redundancy or Dedicated Instance. Flatten only when the secondary route groups are being decommissioned during the migration cutover. Check `docs/knowledge-base/migration/kb-trunk-pstn.md § Route List Complexity` for the split-vs-flatten decision table and Dedicated Instance guidance.
 **See also:** [`feature-approximation`](#feature-approximation) (the per-list decisions this advisory aggregates), [`kb-trunk-pstn.md § Route List Complexity`](../../knowledge-base/migration/kb-trunk-pstn.md), [`docs/reference/call-routing.md` § Route Lists](../../reference/call-routing.md).
+
+#### dect-deployment
+
+**Category:** `migrate_as_is` (DECT handsets are on a straight migration path — they just need DECT network infrastructure provisioned in Webex)
+**Severity:** `MEDIUM` when any DECT network lacks base station inventory; `INFO` when all networks have inventory attached.
+**Triggered by:** `advisory/advisory_patterns.py:detect_dect_deployment` (Pattern 31) — fires when `dect_network` objects exist in the migration store.
+**Detection signals:**
+- Reads all `dect_network` objects from the store.
+- Checks each network's `base_stations` list — empty means no inventory was provided via `--dect-inventory`.
+- Fires one aggregate advisory finding covering all DECT networks.
+**Why/impact:** CUCM has no knowledge of DECT base stations — handsets register as Third-Party SIP devices with dummy MACs. Webex requires explicit DECT network → base station → handset hierarchy. Without base station inventory (provided via `--dect-inventory <csv>` on `wxcli cucm discover`), the pipeline creates networks and assigns handsets but cannot register base stations, requiring manual post-migration setup in Control Hub.
+**Recommended action:** Provide a base station inventory CSV and re-run discovery. If base station data is unavailable, accept the advisory and plan for manual base station registration post-cutover. Review `DECT_NETWORK_DESIGN` and `DECT_HANDSET_ASSIGNMENT` decisions for per-network and per-handset details.
+**See also:** [`dect-network-design`](#dect-network-design) (DecisionType), [`dect-handset-assignment`](#dect-handset-assignment) (DecisionType), [`kb-device-migration.md § DECT Networks`](../../knowledge-base/migration/kb-device-migration.md), [`kb-webex-limits.md § DECT Networks`](../../knowledge-base/migration/kb-webex-limits.md).
 
 ## Dissent Handling
 
