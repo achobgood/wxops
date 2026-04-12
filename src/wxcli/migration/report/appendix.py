@@ -52,6 +52,7 @@ def generate_appendix(store: MigrationStore) -> str:
     sections = [
         ("A", _object_inventory(store)),
         ("B", _decisions_group(store)),
+        ("E911", _e911_readiness(store)),
         ("C", _css_partitions(store)),
         ("D", _device_inventory(store)),
         ("E", _dn_analysis(store)),
@@ -216,6 +217,72 @@ def _decisions_group(store: MigrationStore) -> str:
 
     parts.append('</div></details>')
     return "\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# E911 Readiness (appendix placement after Decision Detail)
+# ---------------------------------------------------------------------------
+
+def _e911_readiness(store: MigrationStore) -> str:
+    """E911 Readiness appendix section — ECBN auto-config counts + decision counts."""
+    ecbn_configs = store.get_objects("ecbn_config")
+    direct_line = [c for c in ecbn_configs if c.get("ecbn_selection") == "DIRECT_LINE"]
+    location_ecbn = [c for c in ecbn_configs if c.get("ecbn_selection") == "LOCATION_ECBN"]
+
+    ambiguous = 0
+    mismatch = 0
+    for d in store.get_all_decisions():
+        if d.get("chosen_option") == "__stale__":
+            continue
+        t = d.get("type", "")
+        if t == "E911_ECBN_AMBIGUOUS":
+            ambiguous += 1
+        elif t == "E911_LOCATION_MISMATCH":
+            mismatch += 1
+
+    # Skip section entirely when there is nothing to report.
+    if not ecbn_configs and ambiguous == 0 and mismatch == 0:
+        return ""
+
+    if not ecbn_configs:
+        status_label = "SKIP"
+        status_class = "badge-info"
+    elif ambiguous == 0 and mismatch == 0 and len(location_ecbn) == 0:
+        status_label = "PASS"
+        status_class = "badge-success"
+    elif ambiguous == 0 and mismatch == 0:
+        status_label = "WARN"
+        status_class = "badge-warning"
+    else:
+        status_label = "REVIEW"
+        status_class = "badge-warning"
+
+    rows = [
+        ("Users with DID (auto-ECBN / DIRECT_LINE)", len(direct_line)),
+        ("Extension-only users (LOCATION_ECBN)", len(location_ecbn)),
+        ("Ambiguous ECBN (multi-DID) decisions", ambiguous),
+        ("Location-mismatch decisions", mismatch),
+    ]
+
+    row_html = "\n".join(
+        f"<tr><td>{label}</td><td>{count}</td></tr>"
+        for label, count in rows
+    )
+
+    return f"""
+<details id="appendix-e911-readiness">
+  <summary><strong>E911 Readiness</strong> <span class="badge {status_class}">{status_label}</span></summary>
+  <p>Emergency Callback Number (ECBN) breakdown. Kari's Law and RAY BAUM's Act require that every user has a valid ECBN before dialing 911.</p>
+  <table class="data-table">
+    <thead>
+      <tr><th>Metric</th><th>Count</th></tr>
+    </thead>
+    <tbody>
+      {row_html}
+    </tbody>
+  </table>
+</details>
+"""
 
 
 # ---------------------------------------------------------------------------

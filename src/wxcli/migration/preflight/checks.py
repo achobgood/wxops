@@ -697,3 +697,111 @@ def check_rate_limit_budget(store: MigrationStore, config: dict) -> CheckResult:
         detail=detail,
         data={"api_calls": total_api_calls, "hours": round(estimated_hours, 1)},
     )
+
+
+# ---------------------------------------------------------------------------
+# Check 9: E911 Readiness
+# (from 2026-04-10-e911-ecbn-execution.md §7)
+# ---------------------------------------------------------------------------
+
+
+def check_e911_readiness(store: MigrationStore) -> CheckResult:
+    """Verify every user/workspace has a resolvable ECBN candidate.
+
+    Passes if every ecbn_config has a valid selection AND every extension-only
+    user's location has a main number. Warns on extension-only users.
+    Fails on unresolved E911 decisions or users with no ECBN candidate.
+    """
+    users = store.get_objects("user")
+    if not users:
+        return CheckResult(
+            name="E911 readiness",
+            status=CheckStatus.SKIP,
+            detail="No users in migration plan",
+        )
+
+    location_main: dict[str, str | None] = {}
+    for loc in store.get_objects("location"):
+        location_main[loc.get("canonical_id", "")] = loc.get("main_number")
+
+    ecbn_by_entity: dict[str, dict] = {}
+    for cfg in store.get_objects("ecbn_config"):
+        ecbn_by_entity[cfg.get("entity_canonical_id", "")] = cfg
+
+    issues: list[PreflightIssue] = []
+    warnings: list[str] = []
+    extension_only_count = 0
+    ok_count = 0
+
+    for user in users:
+        user_cid = user.get("canonical_id", "")
+        if user.get("status") in ("skipped", "SKIPPED"):
+            continue
+        cfg = ecbn_by_entity.get(user_cid)
+        if cfg is None:
+            issues.append(PreflightIssue(
+                "E911_NO_ECBN_CONFIG",
+                f"User {user_cid} has no ECBN config — EcbnMapper did not run or user was filtered",
+            ))
+            continue
+
+        selection = cfg.get("ecbn_selection", "")
+        if selection == "DIRECT_LINE" and cfg.get("primary_did"):
+            ok_count += 1
+        elif selection == "LOCATION_ECBN":
+            loc_cid = cfg.get("location_canonical_id") or user.get("location_id")
+            main = location_main.get(loc_cid)
+            if not main:
+                issues.append(PreflightIssue(
+                    "E911_NO_LOCATION_ECBN",
+                    f"User {user_cid} at {loc_cid} has no ECBN candidate "
+                    f"(extension-only, and location has no main number)",
+                ))
+            else:
+                extension_only_count += 1
+                warnings.append(
+                    f"User {user_cid} relies on location ECBN {main} at {loc_cid}"
+                )
+
+    unresolved_e911 = 0
+    for d in store.get_all_decisions():
+        dtype = d.get("type", "")
+        if dtype in ("E911_ECBN_AMBIGUOUS", "E911_LOCATION_MISMATCH"):
+            if d.get("chosen_option") is None or d.get("chosen_option") == "__stale__":
+                unresolved_e911 += 1
+                issues.append(PreflightIssue(
+                    "E911_UNRESOLVED_DECISION",
+                    f"Unresolved {dtype}: {d.get('summary', '')}",
+                ))
+
+    if issues:
+        return CheckResult(
+            name="E911 readiness",
+            status=CheckStatus.FAIL,
+            detail=(
+                f"{len(issues)} E911 blocker(s): "
+                f"{unresolved_e911} unresolved decision(s), "
+                f"{len(issues) - unresolved_e911} users without ECBN candidates"
+            ),
+            issues=issues,
+            data={
+                "ok_count": ok_count,
+                "extension_only_count": extension_only_count,
+                "unresolved_decisions": unresolved_e911,
+            },
+        )
+
+    if warnings:
+        return CheckResult(
+            name="E911 readiness",
+            status=CheckStatus.WARN,
+            detail=f"{ok_count} users with DIDs, {extension_only_count} extension-only users rely on location ECBN",
+            data={"ok_count": ok_count, "extension_only_count": extension_only_count},
+        )
+
+    return CheckResult(
+        name="E911 readiness",
+        status=CheckStatus.PASS,
+        detail=f"{ok_count} users have resolvable ECBN candidates",
+        data={"ok_count": ok_count},
+    )

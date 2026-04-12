@@ -614,6 +614,40 @@ The `--json-body` bypass fix means all create commands accept JSON body without
 needing individual flags. If a CLI command is genuinely broken, flag it for a
 generator fix.
 
+## Step 4c: Emergency Call Notification
+
+One-shot org-level configuration for Kari's Law compliance. Runs AFTER execution
+and BEFORE the final report. Advisory only — never fails the migration if skipped.
+
+Kari's Law requires every multi-line telephone system to notify a designated party
+(security desk, front office, facilities) when any user dials 911. Step 4 handled
+per-entity ECBN selection (tier 5 operations); this step covers the org-level
+notification half of the compliance requirement.
+
+Prompt the operator:
+
+```
+Emergency Call Notification (Kari's Law compliance)
+When a user dials 911, Webex Calling can email a designated address with
+the caller's identity and location. Enter an email, or press Enter to skip.
+
+Notification email: _______________
+```
+
+IF operator provides an email:
+
+```bash
+wxcli request PUT /v1/telephony/config/emergencyCallNotification \
+  --json-body '{"emergencyCallNotificationEnabled": true, "allowEmailNotificationAllLocationEnabled": true, "emailAddress": "<provided-email>"}'
+```
+
+Log success and proceed to Step 5.
+
+IF operator skips: log a warning in the execution report — "Emergency Call
+Notification not configured. Kari's Law compliance requires this; set manually
+via Control Hub → Calling → Service Settings → Emergency Call Notification
+before cutover." Proceed to Step 5 regardless.
+
 ## Step 5: Report Results
 
 ```bash
