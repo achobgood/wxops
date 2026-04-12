@@ -606,7 +606,7 @@ def recommend_forwarding_lossy(
     context: dict[str, Any], options: list,
 ) -> tuple[str, str] | None:
     """CUCM-only forwarding variants are rarely configured. Accept the loss."""
-    return ("accept_loss", "The 7 CUCM-only variants (busyInt, noAnswerInt, noCoverage, "
+    return ("accept", "The 7 CUCM-only variants (busyInt, noAnswerInt, noCoverage, "
             "noCoverageInt, onFailure, notRegistered, notRegisteredInt) are rarely "
             "configured; CFA/CFB/CFNA covers >95% of real forwarding behavior.")
 
@@ -615,7 +615,7 @@ def recommend_snr_lossy(
     context: dict[str, Any], options: list,
 ) -> tuple[str, str] | None:
     """Timer controls rarely customized from defaults."""
-    return ("accept_loss", "Timer controls (answerTooSoon/answerTooLate) are rarely "
+    return ("accept", "Timer controls (answerTooSoon/answerTooLate) are rarely "
             "customized from defaults. Webex answerConfirmationEnabled provides "
             "equivalent 'don't connect too soon' behavior.")
 
