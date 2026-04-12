@@ -26,6 +26,52 @@ BASE = "https://webexapis.com/v1"
 MAX_RETRIES = 5
 
 
+async def poll_job_until_complete(
+    session: aiohttp.ClientSession,
+    job_type: str,
+    job_id: str,
+    poll_interval: float = 5,
+    max_poll_time: float = 600,
+    ctx: dict | None = None,
+) -> dict:
+    """Poll a Webex bulk device job until completion or timeout.
+
+    Returns the final job status dict. Raises TimeoutError if max_poll_time
+    elapses without reaching COMPLETED or FAILED.
+    """
+    from urllib.parse import urlencode
+
+    ctx = ctx or {}
+    path = f"/telephony/config/jobs/devices/{job_type}/{job_id}"
+    url = f"{BASE}{path}"
+    if ctx.get("orgId"):
+        url += f"?{urlencode({'orgId': ctx['orgId']})}"
+
+    elapsed: float = 0
+    while elapsed <= max_poll_time:
+        async with session.get(url) as resp:
+            body = await resp.json()
+
+        exit_code = body.get("latestExecutionExitCode", "UNKNOWN")
+        if exit_code in ("COMPLETED", "FAILED"):
+            logger.info(
+                "Job %s %s: exit=%s updated=%d",
+                job_type, job_id[:16], exit_code, body.get("updatedCount", 0),
+            )
+            return body
+
+        logger.debug(
+            "Job %s %s: %d%% (elapsed %.0fs)",
+            job_type, job_id[:16], body.get("percentageComplete", 0), elapsed,
+        )
+        if elapsed >= max_poll_time:
+            break
+        await asyncio.sleep(poll_interval)
+        elapsed += poll_interval
+
+    raise TimeoutError(f"Job {job_type}/{job_id} did not complete within {max_poll_time}s")
+
+
 @dataclass
 class OpResult:
     """Result of executing one operation."""
