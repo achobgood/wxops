@@ -259,10 +259,16 @@ Set to 0 to force bulk always; set to 999999 to disable.
 
 **Engine polling:** `execute_bulk_op()` POSTs the submit URL, captures the
 job id, calls `poll_job_until_complete()`, and returns an `OpResult` only
-when the job reaches COMPLETED or FAILED. Per-device fallback runs
-in-line when `updatedCount < expected` — the engine fetches the errors
-endpoint, identifies failed device IDs, and re-runs the per-device
-handler for each via `_run_per_device_fallback`.
+when the job reaches COMPLETED or FAILED. If a bulk job fails or times
+out, the op is marked `failed` and cascade-skip applies to its dependents.
+On the next `execute_all_batches` run, the failed op can be retried.
+
+**Partial-failure fallback (not yet wired):** `execute_bulk_op` accepts a
+`fallback_context` parameter with `_run_per_device_fallback` logic for
+re-running per-device handlers on failed items. The primitives exist and
+are unit-tested, but `run_batch_ops` does not yet populate `fallback_context`
+from the plan. Until this is wired, partial bulk job failures are treated as
+full failures. Follow-up task needed.
 
 **Serialization:** All four bulk resource types are in
 `SERIALIZED_RESOURCE_TYPES` — the batch loop runs them sequentially via
