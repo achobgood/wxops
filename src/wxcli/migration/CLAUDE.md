@@ -38,6 +38,24 @@ See `docs/plans/cucm-migration-roadmap.md` for the master project status.
 
 ## Pipeline Commands
 
+## Feature Forwarding / Holiday / Night Service Migration
+
+The `FeatureMapper` extracts CUCM hunt pilot forwarding destinations
+(`forwardHuntNoAnswer`, `forwardHuntBusy`) and queue overflow targets
+(`queueCalls.queueFullDestination`, `queueCalls.maxWaitTimeDestination`,
+`queueCalls.noAgentDestination`) onto the canonical hunt group / call queue
+objects, and CTI Route Point `callForwardAll` onto the canonical auto attendant.
+The planner emits 6 tier-5 `configure_*` ops (`hunt_group:configure_forwarding`,
+`call_queue:configure_forwarding`, `call_queue:configure_holiday_service`,
+`call_queue:configure_night_service`, `call_queue:configure_stranded_calls`,
+`auto_attendant:configure_forwarding`) that PUT the new settings via per-feature
+endpoints once the feature has been created. Empty / None data short-circuits
+the planner so unaffected features produce no extra ops. Schedules referenced
+by holiday or night service are resolved by name + level (LOCATION /
+ORGANIZATION) — operating modes and location schedules are already created at
+tier 1, so no additional dependency edges are needed. Spec at
+`docs/superpowers/specs/2026-04-10-feature-forwarding-night-service.md`.
+
 ## Hoteling / Hot Desking Migration
 
 The `DeviceProfileMapper` produces execution-ready hoteling data alongside the
