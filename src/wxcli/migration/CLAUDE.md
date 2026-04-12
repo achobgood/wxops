@@ -61,8 +61,8 @@ billing@ — typically reachable via a hunt pilot) are extracted via a new
 `UnityConnectionClient.extract_shared_mailboxes()` method and normalized into
 `voicemail_group:{name}` MigrationObjects. `VoicemailGroupMapper` (tier 4,
 depends on `location_mapper` + `feature_mapper`) resolves each mailbox's
-location (hunt-list match first, then user extension match, then
-single-location fallback; multi-location without match → `LOCATION_AMBIGUOUS`),
+location (user extension match first, then single-location fallback;
+multi-location without match → `LOCATION_AMBIGUOUS`),
 generates a placeholder passcode (`MISSING_DATA`), flags custom greetings
 (`AUDIO_ASSET_MANUAL`), and detects extension conflicts (`EXTENSION_CONFLICT`).
 The `handle_voicemail_group_create` handler POSTs to
