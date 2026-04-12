@@ -636,6 +636,77 @@ def config_reset(
 # ===================================================================
 
 
+def _parse_dect_inventory_csv(path: str) -> list[dict[str, str]]:
+    """Parse a DECT base station inventory CSV file.
+
+    Expected columns (in any order): coverage_zone, base_station_mac, base_station_model
+
+    Args:
+        path: Filesystem path to the CSV file.
+
+    Returns:
+        List of dicts with keys: coverage_zone, base_station_mac, base_station_model.
+
+    Raises:
+        typer.Exit: On file-not-found or malformed CSV.
+    """
+    csv_path = Path(path)
+    if not csv_path.exists():
+        console.print(f"[red]DECT inventory file not found:[/red] {csv_path}")
+        raise typer.Exit(1)
+
+    required_columns = {"coverage_zone", "base_station_mac", "base_station_model"}
+    rows: list[dict[str, str]] = []
+
+    try:
+        with open(csv_path, newline="") as f:
+            reader = csv.DictReader(f)
+            if reader.fieldnames is None:
+                console.print(
+                    f"[red]DECT inventory CSV is empty or has no header row:[/red] {csv_path}"
+                )
+                raise typer.Exit(1)
+
+            actual_columns = {col.strip() for col in reader.fieldnames}
+            missing = required_columns - actual_columns
+            if missing:
+                console.print(
+                    f"[red]DECT inventory CSV is missing required columns:[/red] "
+                    f"{', '.join(sorted(missing))}\n"
+                    f"Expected columns: coverage_zone, base_station_mac, base_station_model"
+                )
+                raise typer.Exit(1)
+
+            for lineno, row in enumerate(reader, start=2):
+                zone = (row.get("coverage_zone") or "").strip()
+                mac = (row.get("base_station_mac") or "").strip()
+                model = (row.get("base_station_model") or "").strip()
+                if not zone or not mac or not model:
+                    console.print(
+                        f"[red]DECT inventory CSV line {lineno} has empty required field "
+                        f"(coverage_zone={zone!r}, base_station_mac={mac!r}, "
+                        f"base_station_model={model!r})[/red]"
+                    )
+                    raise typer.Exit(1)
+                rows.append({
+                    "coverage_zone": zone,
+                    "base_station_mac": mac,
+                    "base_station_model": model,
+                })
+    except typer.Exit:
+        raise
+    except Exception as exc:
+        console.print(f"[red]Failed to parse DECT inventory CSV:[/red] {exc}")
+        raise typer.Exit(1)
+
+    if not rows:
+        console.print(
+            f"[yellow]Warning:[/yellow] DECT inventory CSV has a header but no data rows: {csv_path}"
+        )
+
+    return rows
+
+
 @app.command()
 def discover(
     host: Optional[str] = typer.Option(None, "--host", help="CUCM hostname or IP"),
@@ -645,6 +716,15 @@ def discover(
     version: Optional[str] = typer.Option(None, "--version", help="AXL schema version (auto-detected if omitted)"),
     wsdl: Optional[str] = typer.Option(None, "--wsdl", help="Path to local AXL WSDL file"),
     from_file: Optional[str] = typer.Option(None, "--from-file", help="Path to collector file (.json.gz or .json)"),
+    dect_inventory: Optional[str] = typer.Option(
+        None,
+        "--dect-inventory",
+        help=(
+            "Path to DECT base station inventory CSV file. "
+            "Columns: coverage_zone,base_station_mac,base_station_model. "
+            "Example row: zone1,AA:BB:CC:DD:EE:FF,DBS-110"
+        ),
+    ),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed logging"),
     project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
 ):
@@ -656,6 +736,17 @@ def discover(
     project_dir = _resolve_project_dir(project)
     _check_prerequisite(project_dir, "discover")
     _invalidate_downstream(project_dir, "discover")
+
+    # Parse and store DECT inventory if provided
+    if dect_inventory:
+        parsed_inventory = _parse_dect_inventory_csv(dect_inventory)
+        cfg = load_config(project_dir)
+        cfg["dect_inventory"] = parsed_inventory
+        save_config(project_dir, cfg)
+        console.print(
+            f"[dim]DECT inventory loaded: {len(parsed_inventory)} base station(s) "
+            f"from {Path(dect_inventory).name}[/dim]"
+        )
 
     # Validate: must provide either --from-file or --host
     if not from_file and not host:
@@ -820,6 +911,7 @@ def normalize(
             store=store,
             default_country_code=config.get("default_country", "US"),
             site_prefix_rules=config.get("site_prefix_rules"),
+            dect_inventory=config.get("dect_inventory"),
         )
         _mark_stage_complete(project_dir, "normalize")
         elapsed = time.time() - t0
