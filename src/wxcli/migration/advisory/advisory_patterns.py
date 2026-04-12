@@ -1100,6 +1100,28 @@ def detect_e911_migration_flag(store: MigrationStore) -> list[AdvisoryFinding]:
             signals.append(f"translation pattern '{name}'")
             affected.append(xlate.get("canonical_id", ""))
 
+    # Quantify ECBN readiness from ecbn_config objects
+    ecbn_configs = store.get_objects("ecbn_config")
+    direct_line_count = sum(1 for c in ecbn_configs if c.get("ecbn_selection") == "DIRECT_LINE")
+    location_ecbn_count = sum(1 for c in ecbn_configs if c.get("ecbn_selection") == "LOCATION_ECBN")
+
+    ambiguous_count = 0
+    mismatch_count = 0
+    for d in store.get_all_decisions():
+        if d.get("chosen_option") == "__stale__":
+            continue
+        if d.get("type") == "E911_ECBN_AMBIGUOUS":
+            ambiguous_count += 1
+        elif d.get("type") == "E911_LOCATION_MISMATCH":
+            mismatch_count += 1
+
+    ecbn_summary = (
+        f" ECBN readiness: {direct_line_count} users auto-configured (DIRECT_LINE), "
+        f"{location_ecbn_count} users rely on LOCATION_ECBN, "
+        f"{ambiguous_count} ambiguous (multi-DID) decisions, "
+        f"{mismatch_count} location-mismatch decisions."
+    )
+
     if signals:
         detail = (
             f"Emergency services (E911) configuration detected: {'; '.join(signals)}. "
@@ -1108,6 +1130,7 @@ def detect_e911_migration_flag(store: MigrationStore) -> list[AdvisoryFinding]:
             f"to Webex locations, ELIN range configuration, floor/zone mapping for "
             f"nomadic users, and compliance verification. This is NOT covered by the "
             f"standard calling migration. Initiate the E911 workstream in parallel."
+            + ecbn_summary
         )
     else:
         detail = (
@@ -1115,6 +1138,7 @@ def detect_e911_migration_flag(store: MigrationStore) -> list[AdvisoryFinding]:
             "Cisco Emergency Responder (CER) uses its own database and may not be fully "
             "visible via AXL. If this deployment uses CER, E911 migration requires a "
             "separate workstream. Verify with the CUCM administrator."
+            + ecbn_summary
         )
         # Still produce an informational advisory
         return [AdvisoryFinding(
