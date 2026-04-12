@@ -15,6 +15,7 @@ from typing import Any
 
 from wxcli.migration.execute import (
     API_CALL_ESTIMATES,
+    BULK_DEVICE_THRESHOLD_DEFAULT,
     MigrationOp,
     ORG_WIDE_TYPES,
     TIER_ASSIGNMENTS,
@@ -860,7 +861,10 @@ _EXPANDERS: dict[str, Any] = {
 # Main entry point
 # ---------------------------------------------------------------------------
 
-def expand_to_operations(store: MigrationStore) -> list[MigrationOp]:
+def expand_to_operations(
+    store: MigrationStore,
+    bulk_device_threshold: int | None = None,
+) -> list[MigrationOp]:
     """Expand each analyzed canonical object into its constituent API operations.
 
     Only objects at status 'analyzed' are expanded. Objects at 'needs_decision'
@@ -873,6 +877,13 @@ def expand_to_operations(store: MigrationStore) -> list[MigrationOp]:
     Special handling: SHARED_LINE_COMPLEX decisions are checked inside
     the shared_line expander (supports "virtual_line" option in addition
     to "skip").
+
+    Args:
+        store: The migration store to read analyzed objects from.
+        bulk_device_threshold: When the number of unique devices being created
+            meets or exceeds this value, replace per-device settings/layout/
+            softkey ops with bulk submission ops via ``_optimize_for_bulk``.
+            When ``None``, uses ``BULK_DEVICE_THRESHOLD_DEFAULT``.
 
     (from 05-dependency-graph.md lines 38-75,
      phase-07-planning.md lines 26-27)
@@ -929,4 +940,10 @@ def expand_to_operations(store: MigrationStore) -> list[MigrationOp]:
         skipped_data_only,
         skipped_by_decision,
     )
+
+    # Post-expansion bulk optimization pass.
+    if bulk_device_threshold is None:
+        bulk_device_threshold = BULK_DEVICE_THRESHOLD_DEFAULT
+    all_ops = _optimize_for_bulk(all_ops, store, bulk_device_threshold)
+
     return all_ops
