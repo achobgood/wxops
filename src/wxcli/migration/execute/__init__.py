@@ -100,6 +100,7 @@ TIER_ASSIGNMENTS: dict[tuple[str, str], int] = {
     ("call_park", "create"): 4,
     ("pickup_group", "create"): 4,
     ("paging_group", "create"): 4,
+    ("voicemail_group", "create"): 4,
     # Tier 5: Settings configuration (depends on licensed users)
     ("user", "configure_settings"): 5,
     ("user", "configure_voicemail"): 5,
@@ -175,6 +176,7 @@ API_CALL_ESTIMATES: dict[str, int] = {
     "call_park:create": 1,          # POST /telephony/config/locations/{id}/callParks (from call-features-additional.md)
     "pickup_group:create": 1,       # POST /telephony/config/locations/{id}/callPickups (from call-features-additional.md)
     "paging_group:create": 1,       # POST /telephony/config/locations/{id}/paging (from call-features-additional.md)
+    "voicemail_group:create": 1,    # POST /telephony/config/locations/{id}/voicemailGroups
     # Tier 6: Shared/virtual lines + monitoring
     "shared_line:configure": 2,     # Approximate — one PUT per owner to /people/{id}/applications/members
                                     # (from person-call-settings-behavior.md §4)
