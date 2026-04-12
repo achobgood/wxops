@@ -22,6 +22,7 @@
 4. [Pipeline Walkthrough](#pipeline-walkthrough)
    - [init](#init)
    - [discover](#discover)
+   - [DECT Base Station Inventory](#dect-base-station-inventory)
    - [normalize](#normalize)
    - [map](#map)
    - [analyze](#analyze)
@@ -247,6 +248,7 @@ The pipeline has 10 operator-facing stages, run in the order below. Each stage i
 **Inputs:**
 - **Live mode:** `--host <cucm-publisher>`, `--username <axl-admin>`, `--password <password>`. Optional: `--port` (default 8443), `--version` (auto-detected if omitted), `--wsdl <local-wsdl-path>`.
 - **File mode:** `--from-file <path>` accepts `.json.gz` or `.json` collector output (e.g., from a standalone field-collector script).
+- **DECT base station inventory:** `--dect-inventory <path>` accepts a CSV file with base station MAC addresses. Required for full DECT fidelity — without it, `DECT_NETWORK_DESIGN` decisions are raised at MEDIUM severity and base stations must be registered manually in Control Hub post-migration. See [§DECT Base Station Inventory](#dect-base-station-inventory) below.
 - Common flags on every stage command: `-p/--project <name>` and `-v/--verbose`.
 - Verified against `wxcli cucm discover --help` (2026-04-07).
 
@@ -265,9 +267,39 @@ The pipeline has 10 operator-facing stages, run in the order below. Each stage i
 
 **See also:** [§Prerequisites — AXL Access](#axl-access) for credential and port requirements; [§Failure Patterns](#failure-patterns) for AXL throttling recovery.
 
+### DECT Base Station Inventory
+
+`--dect-inventory <path>` supplies a CSV file of base station MAC addresses and models for DECT networks found during discovery. The pipeline uses this file to populate `base_station_assignments` on each `CanonicalDECTNetwork` object so that `handle_dect_base_station_create` can register hardware in Webex. Without this file, base stations are not registered and `DECT_NETWORK_DESIGN` decisions are raised at MEDIUM severity for every DECT coverage zone.
+
+**CSV format — three required columns:**
+
+| Column | Description | Example |
+|--------|-------------|---------|
+| `coverage_zone` | CUCM device pool name containing the DECT handsets | `DP_BUILDING_A` |
+| `base_station_mac` | MAC address of the physical base station | `00:11:22:33:44:55` |
+| `base_station_model` | Webex base station model string | `DBS-110-3PC` or `DBS-210-3PC` |
+
+**Example CSV:**
+
+```csv
+coverage_zone,base_station_mac,base_station_model
+DP_BUILDING_A,00:11:22:33:44:55,DBS-110-3PC
+DP_BUILDING_A,00:11:22:33:44:56,DBS-110-3PC
+DP_WAREHOUSE,AA:BB:CC:DD:EE:FF,DBS-210-3PC
+```
+
+**Rules:**
+- One row per base station. Multiple rows with the same `coverage_zone` register multiple base stations for that network.
+- MAC addresses must be colon-separated hex pairs (case-insensitive). Other delimiters (dashes, no delimiter) are normalized automatically.
+- The `coverage_zone` value must match the CUCM device pool name exactly as returned by the `dect_handset` extractor. Run `wxcli cucm inventory -p <project> --type dect_network` to see device pool names after `normalize`.
+- If `--dect-inventory` is omitted: the pipeline still creates DECT network objects and assigns handsets, but no base stations are registered. Operators must register base stations manually in Control Hub after migration.
+- FedRAMP tenants: DECT is not supported. Do not supply `--dect-inventory` on FedRAMP tenants — the `DECT_NETWORK_DESIGN` decision will flag this.
+
+**Model selection (auto):** `DECTMapper` auto-selects the Webex network model based on handset count — `DBS-110` for ≤30 handsets, `DBS-210` for >30. The base station model in the CSV must match the network model family (mixing DBS-110 and DBS-210 base stations in the same network is not supported by Webex). A mismatch generates a `DECT_NETWORK_DESIGN` decision at MEDIUM severity.
+
 ### normalize
 
-**What it does:** Two passes. **Pass 1** runs 37 normalizer functions that convert raw CUCM objects (device pools, phones, users, CSS, partitions, route patterns, hunt pilots, voicemail profiles, etc.) into canonical `MigrationObject` rows. **Pass 2** runs the `CrossReferenceBuilder` which links objects together (line ↔ device, device ↔ user, route pattern ↔ partition, etc.) and stores the relationships in the `cross_refs` table. → `src/wxcli/migration/transform/normalizers.py` and `src/wxcli/migration/transform/cross_reference.py:113`
+**What it does:** Two passes. **Pass 1** runs 42 normalizer functions that convert raw CUCM objects (device pools, phones, users, CSS, partitions, route patterns, hunt pilots, voicemail profiles, etc.) into canonical `MigrationObject` rows. **Pass 2** runs the `CrossReferenceBuilder` which links objects together (line ↔ device, device ↔ user, route pattern ↔ partition, etc.) and stores the relationships in the `cross_refs` table. → `src/wxcli/migration/transform/normalizers.py` and `src/wxcli/migration/transform/cross_reference.py:113`
 
 **Inputs:**
 - `discover` must have run (raw object rows must exist in `store.db`).

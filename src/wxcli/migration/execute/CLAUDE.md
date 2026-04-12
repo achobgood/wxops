@@ -72,7 +72,7 @@ members = [{"id": deps[cid]} for cid in member_cids if cid in deps]
 
 ## Handler Inventory
 
-All 52 handlers in `HANDLER_REGISTRY`:
+All 65 handlers in `HANDLER_REGISTRY`:
 
 ### Tier 0 — Infrastructure
 | Key | URL | Notes |
@@ -102,6 +102,13 @@ All 52 handlers in `HANDLER_REGISTRY`:
 | `(device, create_activation_code)` | POST `/devices/activationCode` | For CONVERTIBLE phones only; drops MAC, normalizes model to `DMS <name>` format, sets personId/workspaceId from owner prefix |
 | `(dial_plan, create)` | POST `/telephony/config/premisePstn/dialPlans` | |
 | `(translation_pattern, create)` | POST `/telephony/config/callRouting/translationPatterns` | |
+
+### Tier 2-3 — DECT Networks
+| Key | URL | Notes |
+|-----|-----|-------|
+| `(dect_network, create)` | POST `/telephony/config/locations/{loc}/dectNetworks` | Returns `dectNetworkId` in response. Requires base station MAC inventory for full fidelity. |
+| `(dect_network, create_base_stations)` | POST `/telephony/config/locations/{loc}/dectNetworks/{id}/baseStations` | Registers MAC addresses from base station inventory. Returns `[]` (no-op) if no base stations in data. |
+| `(dect_network, assign_handsets)` | POST `/telephony/config/locations/{loc}/dectNetworks/{id}/handsets/bulk` | Batches handset assignments (max 50 per request). Returns `[]` if no handsets. |
 
 ### Tier 4 — Call Features
 | Key | URL | Notes |
