@@ -143,6 +143,10 @@ TIER_ASSIGNMENTS: dict[tuple[str, str], int] = {
     ("bulk_line_key_template", "submit"): 7,
     ("bulk_dynamic_settings", "submit"): 7,
     ("bulk_rebuild_phones", "submit"): 8,  # Tier 8: runs after all device finalization
+    # DECT network provisioning (depends on location, users/workspaces)
+    ("dect_network", "create"): 2,              # Create DECT network at location
+    ("dect_network", "create_base_stations"): 2,  # Register base stations with MACs
+    ("dect_network", "assign_handsets"): 3,     # Assign handsets (after users/workspaces created)
     # Advisory-to-execution bridge (Phase A: no-op placeholders)
     ("music_on_hold", "configure"): 5,   # Settings tier — location must exist + calling enabled
     ("announcement", "upload"): 1,       # Routing backbone — features reference announcements
@@ -237,6 +241,10 @@ API_CALL_ESTIMATES: dict[str, int] = {
     "bulk_line_key_template:submit": 10,
     "bulk_dynamic_settings:submit": 10,
     "bulk_rebuild_phones:submit": 10,
+    # DECT network provisioning
+    "dect_network:create": 1,              # POST /telephony/config/locations/{id}/dectNetworks
+    "dect_network:create_base_stations": 1,  # POST /telephony/config/locations/{id}/dectNetworks/{id}/baseStations
+    "dect_network:assign_handsets": 1,     # POST /telephony/config/locations/{id}/dectNetworks/{id}/handsets
     # Advisory-to-execution bridge (Phase A: no-op placeholders, 0 API calls)
     "music_on_hold:configure": 0,
     "announcement:upload": 0,
