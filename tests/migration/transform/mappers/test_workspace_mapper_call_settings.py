@@ -197,6 +197,30 @@ class TestVoicemailExtraction:
         assert vm["sendUnansweredCalls"]["enabled"] is True
         assert vm["sendUnansweredCalls"]["numberOfRings"] == 4  # 24s / 6s per ring
 
+    def test_voicemail_profile_as_zeep_ref_dict(self):
+        """Live CUCM AXL returns voiceMailProfileName as a zeep ref dict, not a string."""
+        store = MigrationStore(":memory:")
+        phone = _common_area_phone_with_lines(
+            "conf-zeep",
+            lines=[{
+                "index": 1,
+                "dirn": {"pattern": "5999"},
+                # Real live AXL shape from dCloud CUCM 14.0
+                "voiceMailProfileName": {
+                    "_value_1": "dCloud_VoiceMailProfile",
+                    "uuid": "{7F845909-303E-98CB-A3E8-3A513E371D73}",
+                },
+            }],
+        )
+        phone.pre_migration_state["outgoing_call_permissions"] = True  # force Professional
+        store.upsert_object(phone)
+
+        WorkspaceMapper().map(store)
+
+        ws = store.get_object("workspace:conf-zeep")
+        assert ws["license_tier"] == "Professional Workspace"
+        assert ws["call_settings"]["voicemail"] == {"enabled": True}
+
 
 class TestCallForwardingExtraction:
     def test_cfna_to_reception_after_n_rings(self):
@@ -272,7 +296,7 @@ class TestPrivacyExtraction:
             "conf-private",
             lines=[{"index": 1, "dirn": {"pattern": "5500"}}],
         )
-        phone.pre_migration_state["privacy"] = "On"
+        phone.pre_migration_state["callInfoPrivacyStatus"] = "On"
         phone.pre_migration_state["outgoing_call_permissions"] = True
         store.upsert_object(phone)
 
@@ -288,13 +312,45 @@ class TestPrivacyExtraction:
             "conf-default",
             lines=[{"index": 1, "dirn": {"pattern": "5600"}}],
         )
-        phone.pre_migration_state["privacy"] = "Default"
+        phone.pre_migration_state["callInfoPrivacyStatus"] = "Default"
         phone.pre_migration_state["outgoing_call_permissions"] = True
         store.upsert_object(phone)
 
         WorkspaceMapper().map(store)
 
         ws = store.get_object("workspace:conf-default")
+        assert "privacy" not in (ws.get("call_settings") or {})
+
+    def test_privacy_real_axl_field_name(self):
+        """Real CUCM AXL uses callInfoPrivacyStatus, not privacy. Verified on live CUCM 14.0."""
+        store = MigrationStore(":memory:")
+        phone = _common_area_phone_with_lines(
+            "conf-real-priv",
+            lines=[{"index": 1, "dirn": {"pattern": "5998"}}],
+        )
+        phone.pre_migration_state["callInfoPrivacyStatus"] = "On"
+        phone.pre_migration_state["outgoing_call_permissions"] = True
+        store.upsert_object(phone)
+
+        WorkspaceMapper().map(store)
+
+        ws = store.get_object("workspace:conf-real-priv")
+        assert ws["call_settings"]["privacy"] == {"enabled": True}
+
+    def test_privacy_default_is_omitted_real_shape(self):
+        """'Default' means inherit from common phone profile — don't override on Webex."""
+        store = MigrationStore(":memory:")
+        phone = _common_area_phone_with_lines(
+            "conf-default-priv",
+            lines=[{"index": 1, "dirn": {"pattern": "5997"}}],
+        )
+        phone.pre_migration_state["callInfoPrivacyStatus"] = "Default"
+        phone.pre_migration_state["outgoing_call_permissions"] = True
+        store.upsert_object(phone)
+
+        WorkspaceMapper().map(store)
+
+        ws = store.get_object("workspace:conf-default-priv")
         assert "privacy" not in (ws.get("call_settings") or {})
 
 
@@ -313,7 +369,7 @@ class TestLicenseTierGating:
             }],
         )
         phone.pre_migration_state["dndStatus"] = "true"
-        phone.pre_migration_state["privacy"] = "On"
+        phone.pre_migration_state["callInfoPrivacyStatus"] = "On"
         store.upsert_object(phone)
 
         WorkspaceMapper().map(store)
@@ -339,7 +395,7 @@ class TestLicenseTierGating:
             }],
         )
         phone.pre_migration_state["dndStatus"] = "true"
-        phone.pre_migration_state["privacy"] = "On"
+        phone.pre_migration_state["callInfoPrivacyStatus"] = "On"
         phone.pre_migration_state["outgoing_call_permissions"] = True  # forces Professional
         store.upsert_object(phone)
 
@@ -380,7 +436,7 @@ class TestLicenseTierGateStructural:
         )
         phone.pre_migration_state["dndStatus"] = "true"
         phone.pre_migration_state["dndOption"] = "Call Reject"
-        phone.pre_migration_state["privacy"] = "On"
+        phone.pre_migration_state["callInfoPrivacyStatus"] = "On"
         # No outgoing_call_permissions → inferred as Workspace tier
         store.upsert_object(phone)
 

@@ -38,6 +38,7 @@ from wxcli.migration.transform.mappers.base import (
     manual_option,
     skip_option,
 )
+from wxcli.migration.cucm.extractors.helpers import ref_value
 from wxcli.migration.transform.mappers.call_forwarding_mapper import _duration_to_rings
 
 logger = logging.getLogger(__name__)
@@ -335,11 +336,12 @@ def _extract_workspace_call_settings(
         }
 
     # --- voicemail (Professional-only; license gate drops it for Workspace tier) ---
-    # voiceMailProfile is extracted per-line by getLine enrichment (not from phone root).
-    # Read from line 1's voiceMailProfileName field.
+    # voiceMailProfileName is extracted per-line via getLine enrichment. Live AXL
+    # returns it as a zeep reference dict: {"_value_1": "name", "uuid": "..."},
+    # so unwrap with ref_value().
     first_line = _get_first_line(state)
-    vm_profile = (first_line or {}).get("voiceMailProfileName") if first_line else None
-    has_vm_profile = bool(vm_profile) and str(vm_profile).lower() not in ("none", "")
+    vm_profile = ref_value(first_line.get("voiceMailProfileName")) if first_line else None
+    has_vm_profile = bool(vm_profile) and vm_profile.lower() not in ("none", "")
     if has_vm_profile:
         vm_body: dict[str, Any] = {"enabled": True}
         # Pull CFNA ring timing + VM flag from line 1
@@ -363,6 +365,11 @@ def _extract_workspace_call_settings(
     # --- callForwarding (Professional-only) ---
     line1 = _get_first_line(state)
     if line1:
+        # Only emit callForwarding if there's an explicit destination. When CUCM
+        # has forwardToVoiceMail=true with destination=None (forward to the phone's
+        # voicemail), we intentionally skip callForwarding — the voicemail block
+        # above already captures the user intent. Webex /telephony/config/.../callForwarding
+        # doesn't accept a "forward to voicemail" sentinel; that requires the voicemail endpoint.
         cfa = (line1.get("callForwardAll") or {}).get("destination")
         cfb = (line1.get("callForwardBusy") or {}).get("destination")
         cfna_raw = line1.get("callForwardNoAnswer") or {}
@@ -384,8 +391,11 @@ def _extract_workspace_call_settings(
             settings["callForwarding"] = cf_body
 
     # --- privacy (Professional-only) ---
-    privacy = state.get("privacy")
-    if privacy in ("On", "on", True):
+    # Real CUCM AXL field name is callInfoPrivacyStatus. Values observed on live
+    # CUCM 14.0 dCloud: "On" (privacy enabled), "Default" (inherits from common
+    # phone profile), or None (no owner — unowned phones don't get this field).
+    privacy = state.get("callInfoPrivacyStatus")
+    if privacy == "On":
         settings["privacy"] = {"enabled": True}
 
     # License tier gating: Workspace-tier only supports DND + MOH at /telephony/config/

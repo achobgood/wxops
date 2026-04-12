@@ -47,7 +47,7 @@ class TestWorkspacePipelineIntegration:
 
         # Phone B: conference room, privacy + outgoing permissions → Professional
         store.upsert_object(_phone("conf-b", {
-            "privacy": "On",
+            "callInfoPrivacyStatus": "On",
             "outgoing_call_permissions": True,
             "lines": [{"index": 1, "dirn": {"pattern": "5002"}}],
         }))
