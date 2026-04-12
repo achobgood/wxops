@@ -25,6 +25,7 @@ from typing import Any
 from wxcli.migration.models import (
     CanonicalDECTNetwork,
     DecisionType,
+    DeviceCompatibilityTier,
     MapperResult,
     MigrationStatus,
 )
@@ -108,7 +109,7 @@ class DECTMapper(Mapper):
             # (spec §5c rule 5)
             model = "DBS-110" if handset_count <= _DBS110_MAX_HANDSETS else "DBS-210"
 
-            # --- Resolve handset owners and detect unowned handsets ---
+            # --- Resolve handset owners and detect unowned/orphaned handsets ---
             enriched_assignments: list[dict[str, Any]] = []
             for assignment in handset_assignments:
                 device_cid = assignment.get("device_canonical_id")
@@ -123,22 +124,72 @@ class DECTMapper(Mapper):
                 enriched["user_canonical_id"] = owner_canonical_id
                 enriched_assignments.append(enriched)
 
-                # Generate DECT_HANDSET_ASSIGNMENT for unowned handsets
+                # Look up device model and extension for decision context
+                device_model: str | None = None
+                device_extension: str | None = None
+                if device_cid:
+                    device_obj = store.get_object(device_cid)
+                    if device_obj:
+                        device_model = device_obj.get("model")
+                        # Extension from first line appearance
+                        line_apps = device_obj.get("line_appearances") or []
+                        if line_apps:
+                            device_extension = line_apps[0].get("directory_number") or line_apps[0].get("dn")
+
+                # Determine if a DECT_HANDSET_ASSIGNMENT decision is needed:
+                # 1. Handset has no owner (unowned/shared)
+                # 2. Owner is transitioning to Webex App (no physical phone in Webex)
+                needs_assignment = False
+                owner_status = "owned"
+
                 if owner_canonical_id is None:
+                    needs_assignment = True
+                    owner_status = "unowned"
+                elif owner_canonical_id:
+                    # Check if the owner's other devices are all WEBEX_APP tier,
+                    # meaning the user is transitioning to Webex App only and
+                    # won't have a DECT handset in Webex.
+                    # device_owned_by_user: from=device, to=user — reverse lookup
+                    owner_device_refs = store.get_cross_refs(
+                        to_id=owner_canonical_id, relationship="device_owned_by_user",
+                    )
+                    owner_devices = [ref["from_id"] for ref in owner_device_refs]
+                    # Filter to non-DECT devices owned by this user
+                    non_dect_devices = []
+                    for dev_id in owner_devices:
+                        dev = store.get_object(dev_id)
+                        if dev and dev.get("compatibility_tier") != DeviceCompatibilityTier.DECT:
+                            non_dect_devices.append(dev)
+                    # If all non-DECT devices are WEBEX_APP, the user is transitioning
+                    if non_dect_devices and all(
+                        d.get("compatibility_tier") == DeviceCompatibilityTier.WEBEX_APP
+                        for d in non_dect_devices
+                    ):
+                        needs_assignment = True
+                        owner_status = "webex_app_transition"
+
+                if needs_assignment:
                     cucm_device_name = assignment.get("cucm_device_name", device_cid or "unknown")
+                    summary_reason = (
+                        "has no owner"
+                        if owner_status == "unowned"
+                        else "owner is transitioning to Webex App (no physical phone)"
+                    )
                     decision = self._create_decision(
                         store=store,
                         decision_type=DecisionType.DECT_HANDSET_ASSIGNMENT,
                         severity="INFO",
                         summary=(
-                            f"DECT handset '{cucm_device_name}' has no owner — "
+                            f"DECT handset '{cucm_device_name}' {summary_reason} — "
                             f"needs person or workspace assignment"
                         ),
                         context={
                             "device_canonical_id": device_cid,
                             "cucm_device_name": cucm_device_name,
+                            "model": device_model,
+                            "extension": device_extension,
                             "device_pool": pool_name,
-                            "owner_status": "unowned",
+                            "owner_status": owner_status,
                             "network_canonical_id": network_cid,
                         },
                         options=[
@@ -288,13 +339,16 @@ class DECTMapper(Mapper):
 
             # --- Build and upsert the enriched CanonicalDECTNetwork ---
             provenance = extract_provenance(network_data)
+            # Webex DECT display_name max 11 chars (shown on handset screen)
+            raw_display = network_data.get("display_name") or network_data.get("network_name") or f"DECT-{pool_name}"
+            display_name = raw_display[:11] if raw_display else None
             enriched_network = CanonicalDECTNetwork(
                 canonical_id=network_cid,
                 provenance=provenance,
                 status=MigrationStatus.ANALYZED,
                 location_canonical_id=location_canonical_id,
                 network_name=network_data.get("network_name") or f"DECT-{pool_name}",
-                display_name=network_data.get("display_name"),
+                display_name=display_name,
                 model=model,
                 access_code=network_data.get("access_code") or "",
                 base_stations=base_stations,
