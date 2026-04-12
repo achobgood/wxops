@@ -280,6 +280,7 @@ class TestBridgeCoverage:
         """Plant one object of each bridge type in the store and confirm
         the planner does not log 'No expansion pattern' for any of them."""
         import logging
+        from wxcli.migration.models import CanonicalDeviceProfile
 
         store = MigrationStore(":memory:")
         store.upsert_object(CanonicalMusicOnHold(
@@ -298,6 +299,10 @@ class TestBridgeCoverage:
             canonical_id="schedule:abc", provenance=_prov(),
             status=MigrationStatus.ANALYZED, name="abc",
             schedule_type="businessHours", location_id="location:dallas",
+        ))
+        store.upsert_object(CanonicalDeviceProfile(
+            canonical_id="device_profile:UDP-test", provenance=_prov(),
+            status=MigrationStatus.ANALYZED, profile_name="UDP-test",
         ))
 
         with caplog.at_level(logging.WARNING, logger="wxcli.migration.execute.planner"):
