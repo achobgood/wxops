@@ -145,6 +145,55 @@ def _optimize_for_bulk(
             depends_on=dep_node_ids,
         ))
 
+    # ---- Line key template aggregation ----
+    # Group device_layout:configure ops by (template_canonical_id, location_canonical_id).
+    lkt_groups: dict[tuple[str, str], list[str]] = {}
+    layout_ops_to_remove: set[str] = set()
+
+    for op in ops:
+        if op.resource_type != "device_layout" or op.op_type != "configure":
+            continue
+        layout_obj = store.get_object(op.canonical_id)
+        if not layout_obj:
+            continue
+        data = layout_obj.model_dump() if hasattr(layout_obj, "model_dump") else layout_obj
+        template_cid = data.get("template_canonical_id") or ""
+        device_cid = data.get("device_canonical_id") or ""
+        if not template_cid or not device_cid:
+            continue
+        device_obj = store.get_object(device_cid)
+        if not device_obj:
+            continue
+        dev_data = device_obj.model_dump() if hasattr(device_obj, "model_dump") else device_obj
+        loc_cid = dev_data.get("location_canonical_id") or "org-wide"
+
+        lkt_groups.setdefault((template_cid, loc_cid), []).append(device_cid)
+        layout_ops_to_remove.add(op.canonical_id)
+
+    # Filter out the replaced layout ops from result.
+    result = [
+        o for o in result
+        if not (o.resource_type == "device_layout"
+                and o.op_type == "configure"
+                and o.canonical_id in layout_ops_to_remove)
+    ]
+
+    # Emit bulk_line_key_template submissions.
+    for (template_cid, loc_cid), device_cids in sorted(lkt_groups.items()):
+        bulk_cid = f"bulk_line_key_template:{template_cid.split(':', 1)[-1]}:{loc_cid}"
+        dep_node_ids = [_node_id(template_cid, "create")]
+        dep_node_ids.extend(_node_id(dc, "create") for dc in device_cids)
+        result.append(MigrationOp(
+            canonical_id=bulk_cid,
+            op_type="submit",
+            resource_type="bulk_line_key_template",
+            tier=TIER_ASSIGNMENTS[("bulk_line_key_template", "submit")],
+            batch=loc_cid if loc_cid != "org-wide" else None,
+            api_calls=API_CALL_ESTIMATES["bulk_line_key_template:submit"],
+            description=f"Bulk apply line key template {template_cid} at {loc_cid}",
+            depends_on=dep_node_ids,
+        ))
+
     return result
 
 
