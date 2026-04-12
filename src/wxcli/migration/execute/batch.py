@@ -47,7 +47,7 @@ def partition_into_batches(
         batch = G.nodes[node].get("batch")
         tier = G.nodes[node].get("tier", 0)
 
-        if tier == 7 or batch == "fixups":
+        if batch == "fixups":
             fixup_nodes.append(node)
         elif batch is None or batch == "org-wide":
             org_wide_nodes.append(node)
