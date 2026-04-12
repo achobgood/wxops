@@ -44,6 +44,7 @@ class MigrationOp(BaseModel):
     api_calls: int = 1          # estimated API call count for rate limit budgeting
     description: str = ""       # human-readable: "Create user jsmith@acme.com"
     depends_on: list[str] = Field(default_factory=list)  # node_ids this op must wait for
+    payload: dict | None = None  # Bulk ops: handler data that doesn't come from a canonical object
 
 
 class BrokenCycle(BaseModel):
@@ -135,6 +136,11 @@ TIER_ASSIGNMENTS: dict[tuple[str, str], int] = {
     ("device_profile", "enable_hoteling_guest"): 5,
     ("device_profile", "enable_hoteling_host"): 5,
     ("hoteling_location", "enable_hotdesking"): 0,  # Same tier as location:enable_calling
+    # Bulk job operations (Phase: bulk-operations)
+    ("bulk_device_settings", "submit"): 5,
+    ("bulk_line_key_template", "submit"): 7,
+    ("bulk_dynamic_settings", "submit"): 7,
+    ("bulk_rebuild_phones", "submit"): 8,  # Tier 8: runs after all device finalization
 }
 
 # ---------------------------------------------------------------------------
@@ -209,6 +215,11 @@ API_CALL_ESTIMATES: dict[str, int] = {
     "device_profile:enable_hoteling_guest": 1,  # PUT /people/{id}/features/hoteling
     "device_profile:enable_hoteling_host": 1,   # PUT /telephony/config/people/{id}/devices/settings/hoteling
     "hoteling_location:enable_hotdesking": 1,   # PUT /telephony/config/locations/{id}/features/hotDesking
+    # Bulk job operations (submit=1 + ~5-10 polling calls; conservatively estimated at 10)
+    "bulk_device_settings:submit": 10,
+    "bulk_line_key_template:submit": 10,
+    "bulk_dynamic_settings:submit": 10,
+    "bulk_rebuild_phones:submit": 10,
 }
 
 # ---------------------------------------------------------------------------
@@ -226,4 +237,31 @@ ORG_WIDE_TYPES: set[str] = {
     "translation_pattern",
     "calling_permission",
     "line_key_template",    # Org-scoped; not tied to a specific location
+}
+
+# ---------------------------------------------------------------------------
+# Bulk job support
+# (from docs/superpowers/specs/2026-04-10-bulk-operations.md §3a, §4c)
+# ---------------------------------------------------------------------------
+
+BULK_DEVICE_THRESHOLD_DEFAULT: int = 100
+
+# Resource types whose ops must run sequentially within a tier, not via
+# asyncio.gather(). Driven by Webex's one-job-per-org constraint for these
+# job families (spec §4c, §5a).
+SERIALIZED_RESOURCE_TYPES: set[str] = {
+    "bulk_device_settings",
+    "bulk_line_key_template",
+    "bulk_dynamic_settings",
+    "bulk_rebuild_phones",
+}
+
+# Maps internal bulk resource_type to the Webex jobType path segment used
+# for polling and error-fetch URLs:
+# GET /v1/telephony/config/jobs/devices/{jobType}/{jobId}[/errors]
+BULK_JOB_TYPES: dict[str, str] = {
+    "bulk_device_settings": "callDeviceSettings",
+    "bulk_line_key_template": "applyLineKeyTemplate",
+    "bulk_dynamic_settings": "dynamicDeviceSettings",
+    "bulk_rebuild_phones": "rebuildPhones",
 }

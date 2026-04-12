@@ -10,6 +10,7 @@ execute the actual commands.
 
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from typing import Any
 
@@ -52,7 +53,7 @@ def get_next_batch(store: MigrationStore) -> list[dict[str, Any]]:
     # Only REQUIRES and CONFIGURES edges block execution.
     ready_rows = conn.execute(
         """SELECT po.node_id, po.canonical_id, po.op_type, po.resource_type,
-                  po.tier, po.batch, po.description
+                  po.tier, po.batch, po.description, po.data_json
            FROM plan_operations po
            WHERE po.status = 'pending'
              AND NOT EXISTS (
@@ -82,9 +83,13 @@ def get_next_batch(store: MigrationStore) -> list[dict[str, Any]]:
         node_id = row["node_id"]
         canonical_id = row["canonical_id"]
 
-        # Get canonical object data
-        obj_data = store.get_object(canonical_id)
-        data = obj_data if obj_data else {}
+        # Prefer inline payload (bulk ops) over canonical object lookup.
+        raw_payload = row["data_json"] if row["data_json"] else None
+        if raw_payload:
+            data = json.loads(raw_payload)
+        else:
+            obj_data = store.get_object(canonical_id)
+            data = obj_data if obj_data else {}
 
         # Get resolved dependency IDs (explicit edges)
         deps = conn.execute(

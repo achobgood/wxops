@@ -1337,6 +1337,86 @@ def handle_auto_attendant_configure_forwarding(
     return [("PUT", url, body)]
 
 
+# ---------------------------------------------------------------------------
+# Bulk job handlers (Phase: bulk-operations)
+# Submit jobs that replace per-device operations when device count exceeds
+# the configured threshold. Polling is handled by the engine, not the handler.
+# (from docs/superpowers/specs/2026-04-10-bulk-operations.md §2, §3d)
+# ---------------------------------------------------------------------------
+
+def handle_bulk_device_settings_submit(
+    data: dict, deps: dict, ctx: dict,
+) -> HandlerResult:
+    """Submit a bulk Change Device Settings job for a location.
+
+    POST /v1/telephony/config/jobs/devices/callDeviceSettings
+    (spec §2b)
+    """
+    loc_cid = data.get("location_canonical_id", "")
+    loc_wid = deps.get(loc_cid) or _resolve_location_from_deps(deps)
+    body: dict[str, Any] = {
+        "locationId": loc_wid,
+        "locationCustomizationsEnabled": True,
+        "customizations": data.get("customizations", {}),
+    }
+    return [("POST", _url("/telephony/config/jobs/devices/callDeviceSettings", ctx), body)]
+
+
+def handle_bulk_line_key_template_submit(
+    data: dict, deps: dict, ctx: dict,
+) -> HandlerResult:
+    """Submit a bulk Apply Line Key Template job.
+
+    POST /v1/telephony/config/jobs/devices/applyLineKeyTemplate
+    (spec §2a)
+    """
+    template_cid = data.get("template_canonical_id", "")
+    template_wid = deps.get(template_cid)
+    loc_wids = [
+        deps[cid]
+        for cid in data.get("location_canonical_ids", [])
+        if cid in deps and deps[cid]
+    ]
+    body: dict[str, Any] = {
+        "action": "APPLY_TEMPLATE",
+        "templateId": template_wid,
+    }
+    if loc_wids:
+        body["locationIds"] = loc_wids
+    return [("POST", _url("/telephony/config/jobs/devices/applyLineKeyTemplate", ctx), body)]
+
+
+def handle_bulk_dynamic_settings_submit(
+    data: dict, deps: dict, ctx: dict,
+) -> HandlerResult:
+    """Submit a bulk Update Dynamic Device Settings job.
+
+    POST /v1/telephony/config/jobs/devices/dynamicDeviceSettings
+    (spec §2d)
+    """
+    loc_cid = data.get("location_canonical_id", "")
+    loc_wid = deps.get(loc_cid, "") if loc_cid else ""
+    body: dict[str, Any] = {
+        "locationId": loc_wid,
+        "tags": data.get("tags", []),
+    }
+    return [("POST", _url("/telephony/config/jobs/devices/dynamicDeviceSettings", ctx), body)]
+
+
+def handle_bulk_rebuild_phones_submit(
+    data: dict, deps: dict, ctx: dict,
+) -> HandlerResult:
+    """Submit a bulk Rebuild Phones job for a location.
+
+    POST /v1/telephony/config/jobs/devices/rebuildPhones
+    (spec §2c). Not supported for Webex for Government.
+    """
+    loc_cid = data.get("location_canonical_id", "")
+    loc_wid = deps.get(loc_cid) or _resolve_location_from_deps(deps)
+    body: dict[str, Any] = {"locationId": loc_wid}
+    return [("POST", _url("/telephony/config/jobs/devices/rebuildPhones", ctx), body)]
+
+
 # HANDLER_REGISTRY — complete with all operation types
 HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("location", "create"): handle_location_create,
@@ -1391,4 +1471,9 @@ HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("device_profile", "enable_hoteling_guest"): handle_hoteling_guest_enable,
     ("device_profile", "enable_hoteling_host"): handle_hoteling_host_configure,
     ("hoteling_location", "enable_hotdesking"): handle_location_hotdesking_enable,
+    # Bulk job handlers
+    ("bulk_device_settings", "submit"): handle_bulk_device_settings_submit,
+    ("bulk_line_key_template", "submit"): handle_bulk_line_key_template_submit,
+    ("bulk_dynamic_settings", "submit"): handle_bulk_dynamic_settings_submit,
+    ("bulk_rebuild_phones", "submit"): handle_bulk_rebuild_phones_submit,
 }

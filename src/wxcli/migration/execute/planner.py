@@ -15,6 +15,7 @@ from typing import Any
 
 from wxcli.migration.execute import (
     API_CALL_ESTIMATES,
+    BULK_DEVICE_THRESHOLD_DEFAULT,
     MigrationOp,
     ORG_WIDE_TYPES,
     TIER_ASSIGNMENTS,
@@ -72,6 +73,217 @@ def _decision_chosen(decisions: list[dict[str, Any]], decision_type: str) -> str
         if d.get("type") == decision_type and d.get("chosen_option") is not None:
             return d["chosen_option"]
     return None
+
+
+# ---------------------------------------------------------------------------
+# Bulk optimization pass
+# (from docs/superpowers/specs/2026-04-10-bulk-operations.md §3b)
+# ---------------------------------------------------------------------------
+
+def _optimize_for_bulk(
+    ops: list[MigrationOp],
+    store: MigrationStore,
+    threshold: int,
+) -> list[MigrationOp]:
+    """Replace per-device operations with bulk submissions.
+
+    When the number of unique devices being created meets or exceeds
+    ``threshold``, replaces:
+
+    - ``device:configure_settings`` ops  → ``bulk_device_settings:submit``
+      (one per location)
+    - ``device_layout:configure`` ops    → ``bulk_line_key_template:submit``
+      (one per (template_id, location))
+    - ``softkey_config:configure`` ops   → ``bulk_dynamic_settings:submit``
+      (one per location)
+    - (post-all)                         → ``bulk_rebuild_phones:submit``
+      (one per location, tier 8)
+
+    ``device:create`` ops are never replaced — there is no bulk device
+    create API.
+
+    Below the threshold, the input list is returned unchanged.
+    """
+    device_creates = [o for o in ops if o.resource_type == "device" and o.op_type == "create"]
+    if len(device_creates) < threshold:
+        return ops
+
+    logger.info(
+        "Bulk optimization: device count %d >= threshold %d — rewriting ops",
+        len(device_creates), threshold,
+    )
+
+    result: list[MigrationOp] = []
+    # Track which locations needed bulk ops (for tier 8 rebuild phones later).
+    device_settings_locations: set[str] = set()
+
+    for op in ops:
+        if op.resource_type == "device" and op.op_type == "configure_settings":
+            loc = op.batch or "org-wide"
+            device_settings_locations.add(loc)
+            continue  # drop the per-device op
+        result.append(op)
+
+    # Emit one bulk_device_settings:submit per location, at tier 5,
+    # dependent on all device:create ops in that location.
+    for loc in sorted(device_settings_locations):
+        dep_node_ids = [
+            _node_id(o.canonical_id, "create")
+            for o in ops
+            if o.resource_type == "device"
+            and o.op_type == "create"
+            and (o.batch or "org-wide") == loc
+        ]
+        bulk_cid = f"bulk_device_settings:{loc}"
+        result.append(MigrationOp(
+            canonical_id=bulk_cid,
+            op_type="submit",
+            resource_type="bulk_device_settings",
+            tier=TIER_ASSIGNMENTS[("bulk_device_settings", "submit")],
+            batch=loc if loc != "org-wide" else None,
+            api_calls=API_CALL_ESTIMATES["bulk_device_settings:submit"],
+            description=f"Bulk apply device settings at {loc}",
+            depends_on=dep_node_ids,
+            payload={
+                "location_canonical_id": loc,
+                "customizations": {},
+            },
+        ))
+
+    # ---- Line key template aggregation ----
+    # Group device_layout:configure ops by (template_canonical_id, location_canonical_id).
+    lkt_groups: dict[tuple[str, str], list[str]] = {}
+    layout_ops_to_remove: set[str] = set()
+
+    for op in ops:
+        if op.resource_type != "device_layout" or op.op_type != "configure":
+            continue
+        layout_obj = store.get_object(op.canonical_id)
+        if not layout_obj:
+            continue
+        data = layout_obj.model_dump() if hasattr(layout_obj, "model_dump") else layout_obj
+        template_cid = data.get("template_canonical_id") or ""
+        device_cid = data.get("device_canonical_id") or ""
+        if not template_cid or not device_cid:
+            continue
+        device_obj = store.get_object(device_cid)
+        if not device_obj:
+            continue
+        dev_data = device_obj.model_dump() if hasattr(device_obj, "model_dump") else device_obj
+        loc_cid = dev_data.get("location_canonical_id") or "org-wide"
+
+        lkt_groups.setdefault((template_cid, loc_cid), []).append(device_cid)
+        layout_ops_to_remove.add(op.canonical_id)
+
+    # Filter out the replaced layout ops from result.
+    result = [
+        o for o in result
+        if not (o.resource_type == "device_layout"
+                and o.op_type == "configure"
+                and o.canonical_id in layout_ops_to_remove)
+    ]
+
+    # Emit bulk_line_key_template submissions.
+    for (template_cid, loc_cid), device_cids in sorted(lkt_groups.items()):
+        bulk_cid = f"bulk_line_key_template:{template_cid.split(':', 1)[-1]}:{loc_cid}"
+        dep_node_ids = [_node_id(template_cid, "create")]
+        dep_node_ids.extend(_node_id(dc, "create") for dc in device_cids)
+        result.append(MigrationOp(
+            canonical_id=bulk_cid,
+            op_type="submit",
+            resource_type="bulk_line_key_template",
+            tier=TIER_ASSIGNMENTS[("bulk_line_key_template", "submit")],
+            batch=loc_cid if loc_cid != "org-wide" else None,
+            api_calls=API_CALL_ESTIMATES["bulk_line_key_template:submit"],
+            description=f"Bulk apply line key template {template_cid} at {loc_cid}",
+            depends_on=dep_node_ids,
+            payload={
+                "template_canonical_id": template_cid,
+                "location_canonical_ids": [loc_cid],
+            },
+        ))
+
+    # ---- Dynamic device settings (PSK) aggregation ----
+    psk_groups: dict[str, list[str]] = {}  # location_cid → device_cids
+    softkey_ops_to_remove: set[str] = set()
+
+    for op in ops:
+        if op.resource_type != "softkey_config" or op.op_type != "configure":
+            continue
+        sk_obj = store.get_object(op.canonical_id)
+        if not sk_obj:
+            continue
+        sk_data = sk_obj.model_dump() if hasattr(sk_obj, "model_dump") else sk_obj
+        if not sk_data.get("is_psk_target"):
+            continue
+        device_cid = sk_data.get("device_canonical_id") or ""
+        if not device_cid:
+            continue
+        device_obj = store.get_object(device_cid)
+        if not device_obj:
+            continue
+        dev_data = device_obj.model_dump() if hasattr(device_obj, "model_dump") else device_obj
+        loc_cid = dev_data.get("location_canonical_id") or "org-wide"
+        psk_groups.setdefault(loc_cid, []).append(device_cid)
+        softkey_ops_to_remove.add(op.canonical_id)
+
+    result = [
+        o for o in result
+        if not (o.resource_type == "softkey_config"
+                and o.op_type == "configure"
+                and o.canonical_id in softkey_ops_to_remove)
+    ]
+
+    for loc_cid, device_cids in sorted(psk_groups.items()):
+        bulk_cid = f"bulk_dynamic_settings:{loc_cid}"
+        dep_node_ids = [_node_id(dc, "create") for dc in device_cids]
+        result.append(MigrationOp(
+            canonical_id=bulk_cid,
+            op_type="submit",
+            resource_type="bulk_dynamic_settings",
+            tier=TIER_ASSIGNMENTS[("bulk_dynamic_settings", "submit")],
+            batch=loc_cid if loc_cid != "org-wide" else None,
+            api_calls=API_CALL_ESTIMATES["bulk_dynamic_settings:submit"],
+            description=f"Bulk apply PSK/dynamic settings at {loc_cid}",
+            depends_on=dep_node_ids,
+            payload={
+                "location_canonical_id": loc_cid,
+                "tags": [],
+            },
+        ))
+
+    # ---- Rebuild phones (tier 8) ----
+    # One rebuild per location touched by any bulk op. Depends on every
+    # bulk op in that location so it runs strictly after them.
+    rebuild_locations: dict[str, list[str]] = {}
+
+    for op in result:
+        if op.resource_type not in {"bulk_device_settings",
+                                      "bulk_line_key_template",
+                                      "bulk_dynamic_settings"}:
+            continue
+        loc = op.batch or "org-wide"
+        rebuild_locations.setdefault(loc, []).append(
+            _node_id(op.canonical_id, op.op_type)
+        )
+
+    for loc, bulk_node_ids in sorted(rebuild_locations.items()):
+        bulk_cid = f"bulk_rebuild_phones:{loc}"
+        result.append(MigrationOp(
+            canonical_id=bulk_cid,
+            op_type="submit",
+            resource_type="bulk_rebuild_phones",
+            tier=TIER_ASSIGNMENTS[("bulk_rebuild_phones", "submit")],
+            batch=loc if loc != "org-wide" else None,
+            api_calls=API_CALL_ESTIMATES["bulk_rebuild_phones:submit"],
+            description=f"Bulk rebuild phones at {loc}",
+            depends_on=bulk_node_ids,
+            payload={
+                "location_canonical_id": loc,
+            },
+        ))
+
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -746,7 +958,10 @@ _EXPANDERS: dict[str, Any] = {
 # Main entry point
 # ---------------------------------------------------------------------------
 
-def expand_to_operations(store: MigrationStore) -> list[MigrationOp]:
+def expand_to_operations(
+    store: MigrationStore,
+    bulk_device_threshold: int | None = None,
+) -> list[MigrationOp]:
     """Expand each analyzed canonical object into its constituent API operations.
 
     Only objects at status 'analyzed' are expanded. Objects at 'needs_decision'
@@ -759,6 +974,13 @@ def expand_to_operations(store: MigrationStore) -> list[MigrationOp]:
     Special handling: SHARED_LINE_COMPLEX decisions are checked inside
     the shared_line expander (supports "virtual_line" option in addition
     to "skip").
+
+    Args:
+        store: The migration store to read analyzed objects from.
+        bulk_device_threshold: When the number of unique devices being created
+            meets or exceeds this value, replace per-device settings/layout/
+            softkey ops with bulk submission ops via ``_optimize_for_bulk``.
+            When ``None``, uses ``BULK_DEVICE_THRESHOLD_DEFAULT``.
 
     (from 05-dependency-graph.md lines 38-75,
      phase-07-planning.md lines 26-27)
@@ -815,4 +1037,10 @@ def expand_to_operations(store: MigrationStore) -> list[MigrationOp]:
         skipped_data_only,
         skipped_by_decision,
     )
+
+    # Post-expansion bulk optimization pass.
+    if bulk_device_threshold is None:
+        bulk_device_threshold = BULK_DEVICE_THRESHOLD_DEFAULT
+    all_ops = _optimize_for_bulk(all_ops, store, bulk_device_threshold)
+
     return all_ops

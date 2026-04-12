@@ -73,6 +73,11 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "recording_vendor": "Webex",
     "site_prefix_rules": [],
     "category_rules": None,
+    # Execution tuning (from 2026-04-10-bulk-operations spec §5b).
+    # Device count at/above which the planner replaces per-device ops with
+    # Webex bulk job submissions. Set to 0 to force bulk always; set to a
+    # very large number (e.g., 999999) to disable bulk.
+    "bulk_device_threshold": 100,
 }
 
 

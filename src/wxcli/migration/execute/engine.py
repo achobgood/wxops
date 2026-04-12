@@ -26,6 +26,89 @@ BASE = "https://webexapis.com/v1"
 MAX_RETRIES = 5
 
 
+async def poll_job_until_complete(
+    session: aiohttp.ClientSession,
+    job_type: str,
+    job_id: str,
+    poll_interval: float = 5,
+    max_poll_time: float = 600,
+    ctx: dict | None = None,
+) -> dict:
+    """Poll a Webex bulk device job until completion or timeout.
+
+    Returns the final job status dict. Raises TimeoutError if max_poll_time
+    elapses without reaching COMPLETED or FAILED.
+    """
+    from urllib.parse import urlencode
+
+    ctx = ctx or {}
+    path = f"/telephony/config/jobs/devices/{job_type}/{job_id}"
+    url = f"{BASE}{path}"
+    if ctx.get("orgId"):
+        url += f"?{urlencode({'orgId': ctx['orgId']})}"
+
+    elapsed: float = 0
+    while elapsed <= max_poll_time:
+        async with session.get(url) as resp:
+            body = await resp.json()
+
+        exit_code = body.get("latestExecutionExitCode", "UNKNOWN")
+        if exit_code in ("COMPLETED", "FAILED"):
+            logger.info(
+                "Job %s %s: exit=%s updated=%d",
+                job_type, job_id[:16], exit_code, body.get("updatedCount", 0),
+            )
+            return body
+
+        logger.debug(
+            "Job %s %s: %d%% (elapsed %.0fs)",
+            job_type, job_id[:16], body.get("percentageComplete", 0), elapsed,
+        )
+        if elapsed >= max_poll_time:
+            break
+        await asyncio.sleep(poll_interval)
+        elapsed += poll_interval
+
+    raise TimeoutError(f"Job {job_type}/{job_id} did not complete within {max_poll_time}s")
+
+
+async def fetch_job_errors(
+    session: aiohttp.ClientSession,
+    job_type: str,
+    job_id: str,
+    ctx: dict | None = None,
+) -> list[dict]:
+    """GET the errors endpoint for a bulk job and return the items list.
+
+    GET /v1/telephony/config/jobs/devices/{jobType}/{jobId}/errors
+
+    Returns ``[]`` on empty or non-200 response so callers can treat it
+    as a best-effort lookup.
+    """
+    from urllib.parse import urlencode
+
+    ctx = ctx or {}
+    path = f"/telephony/config/jobs/devices/{job_type}/{job_id}/errors"
+    url = f"{BASE}{path}"
+    if ctx.get("orgId"):
+        url += f"?{urlencode({'orgId': ctx['orgId']})}"
+
+    try:
+        async with session.get(url) as resp:
+            if resp.status != 200:
+                logger.warning("fetch_job_errors %s -> %d", job_id[:16], resp.status)
+                return []
+            body = await resp.json()
+    except Exception as e:
+        logger.warning("fetch_job_errors %s raised: %s", job_id[:16], e)
+        return []
+
+    if not isinstance(body, dict):
+        return []
+    items = body.get("items", [])
+    return list(items) if isinstance(items, list) else []
+
+
 @dataclass
 class OpResult:
     """Result of executing one operation."""
@@ -121,6 +204,198 @@ async def execute_single_op(
         node_id=node_id, status=200,
         webex_id=webex_id, body=last_body,
     )
+
+
+async def execute_bulk_op(
+    session: aiohttp.ClientSession,
+    node_id: str,
+    resource_type: str,
+    calls: list[tuple[str, str, dict | None]],
+    semaphore: asyncio.Semaphore,
+    poll_interval: float = 5,
+    max_poll_time: float = 600,
+    ctx: dict | None = None,
+    fallback_context: dict | None = None,
+) -> OpResult:
+    """Submit a Webex bulk job, poll to completion, return an OpResult.
+
+    Expects exactly one call in ``calls`` — the submit POST. The response
+    body's ``id`` is the job ID. After submission, this function polls
+    using ``poll_job_until_complete`` until the job reaches COMPLETED or
+    FAILED (or times out). If the job completes but ``updatedCount`` is
+    less than the number of covered devices and ``fallback_context`` is
+    provided, the function fetches the job errors endpoint, identifies
+    failed device IDs, and re-runs a per-device handler for each.
+    """
+    from wxcli.migration.execute import BULK_JOB_TYPES
+
+    if len(calls) != 1:
+        return OpResult(
+            node_id=node_id, status=0,
+            error=f"execute_bulk_op expects exactly 1 call, got {len(calls)}",
+            body={},
+        )
+
+    method, url, body = calls[0]
+    job_type = BULK_JOB_TYPES.get(resource_type)
+    if not job_type:
+        return OpResult(
+            node_id=node_id, status=0,
+            error=f"No BULK_JOB_TYPES mapping for {resource_type}",
+            body={},
+        )
+
+    # Submit the job
+    try:
+        async with semaphore:
+            async with session.request(method, url, json=body) as resp:
+                submit_status = resp.status
+                submit_body = await resp.json()
+    except aiohttp.ClientError as e:
+        return OpResult(node_id=node_id, status=0, error=f"Submit error: {e}", body={})
+
+    if submit_status >= 400:
+        msg = submit_body.get("message") if isinstance(submit_body, dict) else str(submit_body)
+        return OpResult(
+            node_id=node_id, status=submit_status,
+            error=f"{submit_status}: {msg}", body=submit_body or {},
+        )
+
+    job_id = submit_body.get("id") if isinstance(submit_body, dict) else None
+    if not job_id:
+        return OpResult(
+            node_id=node_id, status=submit_status,
+            error="Submit succeeded but returned no job id",
+            body=submit_body or {},
+        )
+
+    # Poll to completion
+    try:
+        final = await poll_job_until_complete(
+            session, job_type, job_id,
+            poll_interval=poll_interval,
+            max_poll_time=max_poll_time,
+            ctx=ctx,
+        )
+    except TimeoutError as e:
+        return OpResult(node_id=node_id, status=0, error=str(e), body={"id": job_id})
+
+    exit_code = final.get("latestExecutionExitCode", "UNKNOWN")
+    if exit_code != "COMPLETED":
+        return OpResult(
+            node_id=node_id, status=500,
+            error=f"Job {job_id} ended in {exit_code}",
+            body=final,
+        )
+
+    # Partial-failure check.
+    updated = final.get("updatedCount", 0)
+    expected = 0
+    if fallback_context:
+        expected = len(fallback_context.get("covered_devices", []))
+    if not fallback_context or updated >= expected:
+        return OpResult(
+            node_id=node_id, status=200, webex_id=job_id, body=final,
+        )
+
+    logger.info(
+        "Bulk job %s partial: %d/%d succeeded — running per-device fallback",
+        job_id[:16], updated, expected,
+    )
+    failed_ids = await _resolve_failed_devices(
+        session, job_type, job_id, fallback_context, ctx,
+    )
+    if not failed_ids:
+        logger.warning(
+            "Bulk job %s updated=%d < expected=%d but error endpoint returned nothing",
+            job_id[:16], updated, expected,
+        )
+        return OpResult(
+            node_id=node_id, status=500,
+            error=f"Bulk job {job_id} partial failure with no error items",
+            body=final,
+        )
+
+    fallback_ok, fallback_error = await _run_per_device_fallback(
+        session, failed_ids, fallback_context, semaphore,
+    )
+    if fallback_ok:
+        logger.info("Bulk job %s: fallback recovered all %d failed devices",
+                    job_id[:16], len(failed_ids))
+        return OpResult(
+            node_id=node_id, status=200, webex_id=job_id, body=final,
+        )
+    return OpResult(
+        node_id=node_id, status=500,
+        error=f"Bulk {job_id}: fallback failed — {fallback_error}",
+        body=final,
+    )
+
+
+async def _resolve_failed_devices(
+    session: aiohttp.ClientSession,
+    job_type: str,
+    job_id: str,
+    fallback_context: dict,
+    ctx: dict | None,
+) -> list[str]:
+    """Return the list of webex device IDs that failed in the bulk job.
+
+    Reads the errors endpoint and pulls itemId for each failed row.
+    """
+    items = await fetch_job_errors(session, job_type, job_id, ctx)
+    return [i["itemId"] for i in items if i.get("itemId")]
+
+
+async def _run_per_device_fallback(
+    session: aiohttp.ClientSession,
+    failed_webex_ids: list[str],
+    fallback_context: dict,
+    semaphore: asyncio.Semaphore,
+) -> tuple[bool, str | None]:
+    """Re-run the per-device handler for each failed device.
+
+    Returns (all_ok, error_message). The handler is looked up in
+    HANDLER_REGISTRY by fallback_context['fallback_handler_key']. Deps
+    are augmented with the device's own canonical_id → webex_id so the
+    handler can resolve the device. If the handler still returns no calls
+    (e.g. because the settings dict is empty but present), a direct PUT
+    to the device settings endpoint is issued using the record's data.
+    """
+    handler_key = fallback_context.get("fallback_handler_key")
+    handler = HANDLER_REGISTRY.get(handler_key) if handler_key else None
+    if handler is None:
+        return False, f"No handler for fallback key {handler_key}"
+
+    covered = {d["webex_id"]: d for d in fallback_context.get("covered_devices", [])}
+    deps = fallback_context.get("deps", {})
+    ctx = fallback_context.get("ctx", {})
+
+    for wid in failed_webex_ids:
+        record = covered.get(wid)
+        if not record:
+            return False, f"Failed device {wid} not in covered_devices"
+        # Augment deps with the device's own webex_id so handler can resolve it.
+        per_device_deps = {**deps, record["canonical_id"]: record["webex_id"]}
+        calls = handler(record.get("data", {}), per_device_deps, ctx)
+        if not calls:
+            # Handler returned no-op. Issue a direct settings PUT using the
+            # record's data (supports both "device_settings" and "settings" keys).
+            data_body = record.get("data", {})
+            settings = data_body.get("device_settings")
+            if settings is None:
+                settings = data_body.get("settings")
+            if settings is None:
+                continue  # truly nothing to apply → treat as success
+            url = f"{BASE}/telephony/config/devices/{wid}/settings"
+            calls = [("PUT", url, settings)]
+        for method, url, body in calls:
+            async with semaphore:
+                async with session.request(method, url, json=body) as resp:
+                    if resp.status >= 400:
+                        text = await resp.text()
+                        return False, f"{wid} fallback {resp.status}: {text[:200]}"
+    return True, None
 
 
 async def _try_find_existing(
@@ -224,6 +499,75 @@ async def _try_find_existing(
     return None
 
 
+async def run_batch_ops(
+    session: aiohttp.ClientSession,
+    tasks: list[dict],
+    semaphore: asyncio.Semaphore,
+    ctx: dict,
+    poll_interval: float = 5,
+    max_poll_time: float = 600,
+) -> list[OpResult]:
+    """Execute all tasks in one (batch, tier) group.
+
+    Each task is ``{"op": {...}, "calls": [(method, url, body), ...]}``.
+    Tasks whose op.resource_type is in ``SERIALIZED_RESOURCE_TYPES`` run
+    sequentially; all others run concurrently via ``asyncio.gather``.
+    Bulk ops dispatch to ``execute_bulk_op``; non-bulk ops use
+    ``execute_single_op``.
+
+    Results are returned in the same order as the input tasks list so
+    that callers can zip(tasks, results) without misalignment.
+    """
+    from wxcli.migration.execute import SERIALIZED_RESOURCE_TYPES
+
+    results: list[OpResult | None] = [None] * len(tasks)
+
+    parallel_indexed: list[tuple[int, dict]] = []
+    serial_indexed: list[tuple[int, dict]] = []
+    for idx, t in enumerate(tasks):
+        op = t["op"]
+        if op["resource_type"] in SERIALIZED_RESOURCE_TYPES:
+            serial_indexed.append((idx, t))
+        else:
+            parallel_indexed.append((idx, t))
+
+    # Kick off parallel ops
+    if parallel_indexed:
+        parallel_coros = [
+            execute_single_op(session, t["op"]["node_id"], t["calls"], semaphore)
+            for _, t in parallel_indexed
+        ]
+        parallel_results = await asyncio.gather(*parallel_coros, return_exceptions=True)
+        for (idx, t), res in zip(parallel_indexed, parallel_results):
+            if isinstance(res, Exception):
+                results[idx] = OpResult(
+                    node_id=t["op"]["node_id"], status=0, error=str(res), body={},
+                )
+            else:
+                results[idx] = res
+
+    # Then serial bulk ops, one at a time
+    for idx, t in serial_indexed:
+        op = t["op"]
+        try:
+            res = await execute_bulk_op(
+                session,
+                node_id=op["node_id"],
+                resource_type=op["resource_type"],
+                calls=t["calls"],
+                semaphore=semaphore,
+                poll_interval=poll_interval,
+                max_poll_time=max_poll_time,
+                ctx=ctx,
+            )
+        except Exception as e:
+            res = OpResult(node_id=op["node_id"], status=0, error=str(e), body={})
+        results[idx] = res
+
+    # At this point every slot should be filled; cast for the return type
+    return [r for r in results if r is not None]  # type: ignore[misc]
+
+
 async def execute_all_batches(
     store: MigrationStore,
     token: str,
@@ -278,12 +622,11 @@ async def execute_all_batches(
 
                 tasks.append((op, calls))
 
-            # Execute all ops in this batch concurrently
+            # Execute all ops in this batch — serialized bulk types run sequentially.
             if tasks:
-                results = await asyncio.gather(
-                    *[execute_single_op(session, op["node_id"], calls, semaphore)
-                      for op, calls in tasks],
-                    return_exceptions=True,
+                results = await run_batch_ops(
+                    session, [{"op": op, "calls": calls} for op, calls in tasks],
+                    semaphore=semaphore, ctx=ctx,
                 )
 
                 for (op, _calls), result in zip(tasks, results):
