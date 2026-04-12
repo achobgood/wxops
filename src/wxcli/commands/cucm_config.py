@@ -78,6 +78,9 @@ DEFAULT_CONFIG: dict[str, Any] = {
     # Webex bulk job submissions. Set to 0 to force bulk always; set to a
     # very large number (e.g., 999999) to disable bulk.
     "bulk_device_threshold": 100,
+    # FedRAMP / Webex for Government: rebuildPhones is not supported.
+    # Set to True to omit bulk_rebuild_phones ops from the plan.
+    "skip_rebuild_phones": False,
     "e911": {
         "auto_configure_ecbn": True,
         "notification_email": None,

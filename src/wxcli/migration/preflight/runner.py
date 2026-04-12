@@ -215,6 +215,7 @@ class PreflightRunner:
             ("numbers", "Number conflicts", "E.164 and extension collision check"),
             ("users", "Duplicate users", f"{store.count_by_type('user')} users to check against Webex"),
             ("rate-limit", "Rate limit budget", "API call estimate from plan_operations"),
+            ("e911-readiness", "E911 readiness", f"{store.count_by_type('user')} users ECBN candidate check"),
         ]
 
         results = []

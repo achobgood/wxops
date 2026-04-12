@@ -231,6 +231,51 @@ class WorkspaceMapper(Mapper):
             # --- Call settings extraction ---
             call_settings = _extract_workspace_call_settings(state, license_tier)
 
+            # --- Decision: Professional-only settings dropped by license gate ---
+            if license_tier == "Workspace":
+                ungated = _extract_workspace_call_settings(state, "Professional Workspace")
+                ungated_keys = set(ungated.keys()) if ungated else set()
+                gated_keys = set(call_settings.keys()) if call_settings else set()
+                dropped = sorted(ungated_keys - gated_keys)
+                # Don't flag voicemail:{enabled:false} — that's a Webex default
+                # concern (VM on by default), not an active CUCM feature being lost.
+                # Handle at org/location level instead of per-phone decision.
+                dropped = [
+                    k for k in dropped
+                    if not (k == "voicemail"
+                            and ungated and ungated.get(k) == {"enabled": False})
+                ]
+                if dropped:
+                    decision = self._create_decision(
+                        store=store,
+                        decision_type=DecisionType.WORKSPACE_SETTINGS_PROFESSIONAL_REQUIRED,
+                        severity="MEDIUM",
+                        summary=(
+                            f"Workspace '{display_name}' has {', '.join(dropped)} settings "
+                            f"that require Professional Workspace license"
+                        ),
+                        context={
+                            "device_name": device_name,
+                            "display_name": display_name,
+                            "license_tier": license_tier,
+                            "dropped_settings": dropped,
+                        },
+                        options=[
+                            accept_option(
+                                "Upgrade to Professional Workspace — preserves all settings"
+                            ),
+                            accept_option(
+                                "Accept loss — keep basic Workspace license, lose these settings"
+                            ),
+                            manual_option(
+                                "Configure manually post-migration"
+                            ),
+                        ],
+                        affected_objects=[phone_id],
+                    )
+                    store.save_decision(decision_to_store_dict(decision))
+                    result.decisions.append(decision)
+
             # --- Build CanonicalWorkspace ---
             workspace = CanonicalWorkspace(
                 canonical_id=f"workspace:{device_name}",

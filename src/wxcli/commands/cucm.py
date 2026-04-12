@@ -959,7 +959,11 @@ def plan(
     try:
         # Step 1: Expand to operations
         config = load_config(project_dir)
-        ops = expand_to_operations(store, bulk_device_threshold=config.get("bulk_device_threshold", 100))
+        ops = expand_to_operations(
+            store,
+            bulk_device_threshold=config.get("bulk_device_threshold", 100),
+            skip_rebuild_phones=config.get("skip_rebuild_phones", False),
+        )
         console.print(f"  Expanded to {len(ops)} operations")
 
         # Step 2: Build dependency graph

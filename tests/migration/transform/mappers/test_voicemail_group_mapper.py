@@ -250,3 +250,40 @@ class TestEngineRegistration:
 
         assert VoicemailGroupMapper in MAPPER_ORDER
         assert MAPPER_ORDER.index(VoicemailGroupMapper) > MAPPER_ORDER.index(FeatureMapper)
+
+
+class TestVoicemailGroupInLocationCrossRef:
+    def test_cross_ref_written_when_location_resolved(self):
+        """Mapper writes voicemail_group_in_location cross-ref when location is found."""
+        store = MigrationStore(":memory:")
+        try:
+            _seed_location(store, "location:HQ", "HQ")
+            _seed_voicemail_group(store, "Sales VM", "5001")
+
+            mapper = VoicemailGroupMapper()
+            mapper.map(store)
+
+            refs = store.find_cross_refs(
+                "voicemail_group:Sales VM", "voicemail_group_in_location"
+            )
+            assert refs == ["location:HQ"]
+        finally:
+            store.close()
+
+    def test_no_cross_ref_when_location_ambiguous(self):
+        """No cross-ref when multiple locations and no user extension match."""
+        store = MigrationStore(":memory:")
+        try:
+            _seed_location(store, "location:HQ", "HQ")
+            _seed_location(store, "location:Branch", "Branch")
+            _seed_voicemail_group(store, "Shared VM", "9999")
+
+            mapper = VoicemailGroupMapper()
+            mapper.map(store)
+
+            refs = store.find_cross_refs(
+                "voicemail_group:Shared VM", "voicemail_group_in_location"
+            )
+            assert refs == []
+        finally:
+            store.close()

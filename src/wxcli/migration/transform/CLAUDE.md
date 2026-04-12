@@ -54,11 +54,12 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 | `_build_routing_refs` | gateway_to_route_group, route_group_to_route_list, etc. |
 | `_build_feature_refs` | feature_has_agent, aa_has_schedule, pickup members |
 | `_build_voicemail_refs` | user_has_voicemail_profile, unity_user |
+| `_build_voicemail_group_refs` | hunt_group_uses_voicemail_group (hunt pilot overflow/fwd dest → VM group extension) |
 | `_build_intercept_refs` | user_has_intercept_signal |
 | `_build_template_refs` | phone_uses_button_template, phone_uses_softkey_template |
 | `_build_audio_refs` | feature_uses_moh_source (hunt pilot networkHoldMohAudioSourceID → music_on_hold canonical ID) |
 
-**Note:** `device_pool_to_location` is NOT built here — it's written by `LocationMapper` during the map pass, because the mapping requires decisions about ambiguous device pool → location assignments.
+**Note:** `device_pool_to_location` is NOT built here — it's written by `LocationMapper` during the map pass, because the mapping requires decisions about ambiguous device pool → location assignments. Similarly, `voicemail_group_in_location` is written by `VoicemailGroupMapper` after location resolution.
 
 ## Mapper Execution Engine
 

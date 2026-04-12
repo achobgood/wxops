@@ -91,6 +91,12 @@ class VoicemailGroupMapper(Mapper):
             if notification_dest:
                 notifications["destination"] = notification_dest
 
+            # Write voicemail_group_in_location cross-ref when resolved.
+            if location_id:
+                store.add_cross_ref(
+                    raw_id, location_id, "voicemail_group_in_location"
+                )
+
             vg = CanonicalVoicemailGroup(
                 canonical_id=raw_id,  # Same ID — we're enriching in place.
                 provenance=extract_provenance(raw),

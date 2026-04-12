@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 
 from wxcli.migration.models import (
-    CanonicalWorkspace, MigrationObject, MigrationStatus, Provenance,
+    CanonicalWorkspace, DecisionType, MigrationObject, MigrationStatus, Provenance,
 )
 from wxcli.migration.store import MigrationStore
 from wxcli.migration.transform.mappers.workspace_mapper import WorkspaceMapper
@@ -451,3 +451,77 @@ class TestLicenseTierGateStructural:
             f"Either add them to TestLicenseTierGateStructural.ALLOWED_ON_WORKSPACE if they're "
             f"genuinely supported on Basic workspaces, or fix the license gate."
         )
+
+
+class TestWorkspaceSettingsProfessionalRequiredDecision:
+    """Decision fires when Workspace-tier gating drops Professional-only settings."""
+
+    def test_decision_generated_when_settings_dropped(self):
+        """Workspace with forwarding + voicemail + privacy → decision lists dropped keys."""
+        store = MigrationStore(":memory:")
+        phone = _common_area_phone_with_lines(
+            "lobby-dropped",
+            lines=[{
+                "index": 1,
+                "dirn": {"pattern": "5050"},
+                "callForwardNoAnswer": {"destination": "2000", "duration": "24"},
+                "voiceMailProfileName": "Default VM",
+            }],
+        )
+        phone.pre_migration_state["dndStatus"] = "true"
+        phone.pre_migration_state["callInfoPrivacyStatus"] = "On"
+        # No outgoing_call_permissions → Workspace tier
+        store.upsert_object(phone)
+
+        result = WorkspaceMapper().map(store)
+
+        # Find the WORKSPACE_SETTINGS_PROFESSIONAL_REQUIRED decision
+        prof_decisions = [
+            d for d in result.decisions
+            if d.type == DecisionType.WORKSPACE_SETTINGS_PROFESSIONAL_REQUIRED
+        ]
+        assert len(prof_decisions) == 1
+        d = prof_decisions[0]
+        dropped = d.context["dropped_settings"]
+        assert "callForwarding" in dropped
+        assert "voicemail" in dropped
+        assert "privacy" in dropped
+        assert "doNotDisturb" not in dropped  # DND survives the gate
+
+    def test_no_decision_when_nothing_dropped(self):
+        """Workspace with only DND → no professional-required decision."""
+        store = MigrationStore(":memory:")
+        phone = _common_area_phone("dnd-only", dnd_status="true")
+        store.upsert_object(phone)
+
+        result = WorkspaceMapper().map(store)
+
+        prof_decisions = [
+            d for d in result.decisions
+            if d.type == DecisionType.WORKSPACE_SETTINGS_PROFESSIONAL_REQUIRED
+        ]
+        assert len(prof_decisions) == 0
+
+    def test_no_decision_for_professional_tier(self):
+        """Professional tier never fires this decision (no gating occurs)."""
+        store = MigrationStore(":memory:")
+        phone = _common_area_phone_with_lines(
+            "pro-full",
+            lines=[{
+                "index": 1,
+                "dirn": {"pattern": "5060"},
+                "callForwardNoAnswer": {"destination": "2000", "duration": "24"},
+            }],
+        )
+        phone.pre_migration_state["dndStatus"] = "true"
+        phone.pre_migration_state["callInfoPrivacyStatus"] = "On"
+        phone.pre_migration_state["outgoing_call_permissions"] = True  # forces Professional
+        store.upsert_object(phone)
+
+        result = WorkspaceMapper().map(store)
+
+        prof_decisions = [
+            d for d in result.decisions
+            if d.type == DecisionType.WORKSPACE_SETTINGS_PROFESSIONAL_REQUIRED
+        ]
+        assert len(prof_decisions) == 0

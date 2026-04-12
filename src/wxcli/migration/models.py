@@ -99,6 +99,8 @@ class DecisionType(str, Enum):
     # E911/ECBN execution (from 2026-04-10-e911-ecbn-execution.md §4.3)
     E911_ECBN_AMBIGUOUS = "E911_ECBN_AMBIGUOUS"
     E911_LOCATION_MISMATCH = "E911_LOCATION_MISMATCH"
+    # Workspace call settings (from 2026-04-10-workspace-call-settings.md §5)
+    WORKSPACE_SETTINGS_PROFESSIONAL_REQUIRED = "WORKSPACE_SETTINGS_PROFESSIONAL_REQUIRED"
 
 
 # ---------------------------------------------------------------------------

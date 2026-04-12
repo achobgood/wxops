@@ -499,6 +499,46 @@ async def _try_find_existing(
     return None
 
 
+def _build_fallback_context(op: dict, ctx: dict) -> dict | None:
+    """Build fallback_context for a bulk op from its payload and resolved deps.
+
+    Returns None if the op's payload lacks ``covered_canonical_ids`` or
+    ``fallback_handler_key`` — e.g. for ``bulk_rebuild_phones`` which has
+    no per-device fallback path.
+    """
+    data = op.get("data", {})
+    covered_cids = data.get("covered_canonical_ids")
+    fallback_key = data.get("fallback_handler_key")
+    if not covered_cids or not fallback_key:
+        return None
+
+    resolved_deps = op.get("resolved_deps", {})
+    store = ctx.get("store")
+
+    covered_devices = []
+    for cid in covered_cids:
+        webex_id = resolved_deps.get(cid)
+        if not webex_id:
+            continue  # device not created yet or failed — can't fall back
+        device_data = {}
+        if store:
+            obj = store.get_object(cid)
+            if obj:
+                device_data = obj if isinstance(obj, dict) else obj
+        covered_devices.append({
+            "canonical_id": cid,
+            "webex_id": webex_id,
+            "data": device_data,
+        })
+
+    return {
+        "fallback_handler_key": tuple(fallback_key),
+        "covered_devices": covered_devices,
+        "deps": resolved_deps,
+        "ctx": ctx,
+    }
+
+
 async def run_batch_ops(
     session: aiohttp.ClientSession,
     tasks: list[dict],
@@ -549,6 +589,7 @@ async def run_batch_ops(
     # Then serial bulk ops, one at a time
     for idx, t in serial_indexed:
         op = t["op"]
+        fallback_ctx = _build_fallback_context(op, ctx)
         try:
             res = await execute_bulk_op(
                 session,
@@ -559,6 +600,7 @@ async def run_batch_ops(
                 poll_interval=poll_interval,
                 max_poll_time=max_poll_time,
                 ctx=ctx,
+                fallback_context=fallback_ctx,
             )
         except Exception as e:
             res = OpResult(node_id=op["node_id"], status=0, error=str(e), body={})
@@ -580,6 +622,7 @@ async def execute_all_batches(
     Returns summary: {"completed": N, "failed": M, "skipped": K}
     """
     ctx = ctx or {}
+    ctx.setdefault("store", store)
     summary = {"completed": 0, "failed": 0, "skipped": 0, "batches": 0}
     semaphore = asyncio.Semaphore(concurrency)
     headers = {

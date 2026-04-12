@@ -291,7 +291,16 @@ Custom voicemail greetings stored in Unity Connection cannot be extracted for mi
 **Recommendation:** `recommend_workspace_license_tier` at `src/wxcli/migration/advisory/recommendation_rules.py:103-118` checks `context["features_detected"]` against the `_PROFESSIONAL_FEATURES` set. Any hit → returns `professional` with a reasoning string naming which detected features triggered the upgrade. No hits → returns `basic` (`Webex Calling Basic license is sufficient`).
 **Dissent triggers:** [`kb-user-settings.md#dt-user-004`](../../knowledge-base/migration/kb-user-settings.md#dt-user-004) — workspace tier footguns, in particular the 405 behavior on non-Professional workspaces documented in the devices-workspaces reference doc.
 **Cascade impact:** Resolving this affects license inventory in the preflight phase; it does not re-trigger any analyzer.
-**See also:** [`workspace-type-uncertain`](#workspace-type-uncertain), [`hotdesk-dn-conflict`](#hotdesk-dn-conflict), [devices-platform reference](../../reference/devices-platform.md) (Professional Workspace is required for device configuration templates).
+**See also:** [`workspace-type-uncertain`](#workspace-type-uncertain), [`hotdesk-dn-conflict`](#hotdesk-dn-conflict), [`workspace-settings-professional-required`](#workspace-settings-professional-required), [devices-platform reference](../../reference/devices-platform.md) (Professional Workspace is required for device configuration templates).
+
+### workspace-settings-professional-required
+
+**Triggered by:** `src/wxcli/migration/transform/mappers/workspace_mapper.py`. Fires when a common-area phone at Workspace (basic) license tier has call settings (call forwarding, voicemail, privacy, barge-in) that require Professional Workspace license. The mapper extracts settings from CUCM, applies the license gate (only DND and MOH work on basic tier), and compares what was dropped. Settings representing inactive state (e.g., voicemail explicitly disabled) are excluded from the dropped count — only active CUCM features trigger this decision.
+**Options:** Upgrade to Professional Workspace (preserves all settings), accept loss (keep basic tier, lose these settings), or configure manually post-migration.
+**Recommendation:** `recommend_workspace_settings_professional_required` at `src/wxcli/migration/advisory/recommendation_rules.py` returns `accept_loss` with a reasoning string naming the dropped settings. Most common-area phones don't actively use forwarding or voicemail — upgrade only when the phone genuinely relies on those features.
+**Dissent triggers:** [`kb-user-settings.md#dt-user-004`](../../knowledge-base/migration/kb-user-settings.md#dt-user-004) — workspace tier footguns, the 405 behavior on non-Professional workspaces.
+**Cascade impact:** Resolving this may lead the admin to change the `workspace-license-tier` decision to Professional, which affects license inventory in the preflight phase.
+**See also:** [`workspace-license-tier`](#workspace-license-tier) (the tier decision itself), [`workspace-type-uncertain`](#workspace-type-uncertain).
 
 ### workspace-type-uncertain
 

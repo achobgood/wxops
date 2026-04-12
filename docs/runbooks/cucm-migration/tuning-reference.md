@@ -163,6 +163,17 @@ See §[Auto-Rule Reference](#auto-rule-reference) below for the full treatment �
 ```
 **Consumed by:** `src/wxcli/migration/execute/planner.py:expand_to_operations()` — the threshold is read from project config and passed to `_optimize_for_bulk()` as a post-expansion pass. The engine then dispatches bulk submissions via `execute_bulk_op()` and polls them via `poll_job_until_complete()`.
 
+### skip-rebuild-phones
+
+**Default:** `false` (from `src/wxcli/commands/cucm_config.py`)
+**What it controls:** When `true`, the `_optimize_for_bulk()` planner pass omits `bulk_rebuild_phones:submit` operations from the plan. All other bulk operations (`callDeviceSettings`, `applyLineKeyTemplate`, `dynamicDeviceSettings`) are unaffected.
+**When to change:** Set to `true` for Webex for Government (FedRAMP) tenants — the `rebuildPhones` API is not supported on that platform. Non-FedRAMP tenants should leave this at `false`; the phone rebuild ensures configuration changes take effect without manual intervention.
+**Example non-default:**
+```json
+{"skip_rebuild_phones": true}
+```
+**Consumed by:** `src/wxcli/migration/execute/planner.py:expand_to_operations()` → `_optimize_for_bulk()`. When `true`, the rebuild-phones section of the bulk optimization is skipped entirely.
+
 ## Auto-Rule Reference
 
 > Anchor convention for the 7 default rules: `default-rule-` plus the slug-form of the rule's `type` field, with `-<match-key>-<match-value>` appended when a `match` filter is present (e.g., `default-rule-calling-permission-mismatch-assigned-users-count-0`). Validated by `test_default_auto_rules_coverage.py`.
