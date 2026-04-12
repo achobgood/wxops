@@ -1,6 +1,6 @@
 # mappers/ — CUCM-to-Webex Transform Mappers (Phase 05)
 
-22 mapper classes that read normalized CUCM objects from the store, resolve cross-references, and produce Webex-ready canonical objects. Each mapper extends `Mapper` (base.py) and implements `map(store) -> MapperResult`.
+23 mapper classes that read normalized CUCM objects from the store, resolve cross-references, and produce Webex-ready canonical objects. Each mapper extends `Mapper` (base.py) and implements `map(store) -> MapperResult`.
 
 ## Mapper Contract
 
@@ -66,6 +66,7 @@ Execution order determined by `depends_on` (topological sort):
 | `DeviceLayoutMapper` | `device_layout_mapper` | `button_template_mapper`, `monitoring_mapper`, `line_mapper`, `device_mapper` | `CanonicalDeviceLayout` | `phone` (raw) + `CanonicalLineKeyTemplate` |
 | `SoftkeyMapper` | `softkey_mapper` | `device_mapper` | `CanonicalSoftkeyConfig` (2 per template: 1 template-level + N per-device) | `button_template` (raw softkey data), `phone` (raw) |
 | `VoicemailMapper` | `voicemail_mapper` | `user_mapper` | (voicemail config enrichment) | `voicemail_profile`, `user` |
+| `VoicemailGroupMapper` | `voicemail_group_mapper` | `location_mapper`, `feature_mapper` | `CanonicalVoicemailGroup` (Unity Connection shared mailboxes) | `voicemail_group` (raw Unity Connection CallHandlers) |
 
 ---
 
