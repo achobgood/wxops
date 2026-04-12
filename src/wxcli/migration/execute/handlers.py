@@ -580,6 +580,49 @@ def handle_paging_group_create(data: dict, deps: dict, ctx: dict) -> HandlerResu
     return [("POST", _url(f"/telephony/config/locations/{loc_wid}/paging", ctx), body)]
 
 
+def handle_voicemail_group_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    """Create a Webex Voicemail Group at a location.
+
+    (from docs/superpowers/specs/2026-04-10-voicemail-groups.md)
+    POST /v1/telephony/config/locations/{locationId}/voicemailGroups
+    """
+    loc_wid = _resolve_location(data, deps) or _resolve_location_from_deps(deps)
+    if not loc_wid:
+        return []
+
+    body: dict[str, Any] = {
+        "name": data.get("name"),
+        "extension": data.get("extension"),
+        "passcode": data.get("passcode", "0000"),
+        "languageCode": data.get("language_code", "en_us"),
+        "messageStorage": data.get(
+            "message_storage", {"storageType": "INTERNAL"}
+        ),
+        "notifications": data.get("notifications", {"enabled": False}),
+        "faxMessage": data.get("fax_message", {"enabled": False}),
+        "transferToNumber": data.get(
+            "transfer_to_number", {"enabled": False}
+        ),
+        "emailCopyOfMessage": data.get(
+            "email_copy_of_message", {"enabled": False}
+        ),
+    }
+    if data.get("phone_number"):
+        body["phoneNumber"] = data["phone_number"]
+    caller_id_name = data.get("caller_id_name")
+    if caller_id_name:
+        body["directLineCallerIdName"] = {
+            "selection": "CUSTOM_NAME",
+            "customName": caller_id_name,
+        }
+        body["dialByName"] = caller_id_name
+
+    url = _url(
+        f"/telephony/config/locations/{loc_wid}/voicemailGroups", ctx
+    )
+    return [("POST", url, body)]
+
+
 # ---------------------------------------------------------------------------
 # Tier 5: Settings configuration
 # ---------------------------------------------------------------------------
@@ -1134,6 +1177,7 @@ HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("call_park", "create"): handle_call_park_create,
     ("pickup_group", "create"): handle_pickup_group_create,
     ("paging_group", "create"): handle_paging_group_create,
+    ("voicemail_group", "create"): handle_voicemail_group_create,
     ("user", "configure_settings"): handle_user_configure_settings,
     ("user", "configure_voicemail"): handle_user_configure_voicemail,
     ("device", "configure_settings"): handle_device_configure_settings,
