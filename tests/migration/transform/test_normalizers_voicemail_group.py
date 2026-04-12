@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from wxcli.migration.models import MigrationObject, MigrationStatus
 from wxcli.migration.transform.normalizers import (
     NORMALIZER_REGISTRY,
