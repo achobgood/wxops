@@ -392,6 +392,13 @@ class CanonicalHuntGroup(MigrationObject):
     no_answer_rings: int | None = None
     enabled: bool = True
     location_id: str | None = None
+    # Forwarding configuration (from 2026-04-10-feature-forwarding-night-service.md)
+    forward_always_enabled: bool = False
+    forward_always_destination: str | None = None
+    forward_busy_enabled: bool = False
+    forward_busy_destination: str | None = None
+    forward_no_answer_enabled: bool = False
+    forward_no_answer_destination: str | None = None
 
 
 class CanonicalCallQueue(MigrationObject):
@@ -407,6 +414,29 @@ class CanonicalCallQueue(MigrationObject):
     queue_size: int = 25
     enabled: bool = True
     location_id: str | None = None
+    # Forwarding configuration (from 2026-04-10-feature-forwarding-night-service.md)
+    forward_always_enabled: bool = False
+    forward_always_destination: str | None = None
+    # Overflow destinations from CUCM queueCalls
+    queue_full_destination: str | None = None
+    max_wait_time_destination: str | None = None
+    max_wait_time: int | None = None
+    no_agent_destination: str | None = None
+    # Holiday service
+    holiday_service_enabled: bool = False
+    holiday_schedule_name: str | None = None
+    holiday_schedule_level: str = "LOCATION"
+    holiday_action: str = "BUSY"
+    holiday_transfer_number: str | None = None
+    # Night service
+    night_service_enabled: bool = False
+    night_business_hours_name: str | None = None
+    night_business_hours_level: str = "LOCATION"
+    night_action: str = "TRANSFER"
+    night_transfer_number: str | None = None
+    # Forced forward (currently unused — left for future spec)
+    forced_forward_enabled: bool = False
+    forced_forward_number: str | None = None
 
 
 class CanonicalAutoAttendant(MigrationObject):
@@ -420,6 +450,9 @@ class CanonicalAutoAttendant(MigrationObject):
     business_hours_menu: dict[str, Any] | None = None
     after_hours_menu: dict[str, Any] | None = None
     location_id: str | None = None
+    # Forwarding configuration (from 2026-04-10-feature-forwarding-night-service.md)
+    forward_always_enabled: bool = False
+    forward_always_destination: str | None = None
 
 
 class CanonicalCallPark(MigrationObject):

@@ -108,6 +108,14 @@ TIER_ASSIGNMENTS: dict[tuple[str, str], int] = {
     ("calling_permission", "assign"): 5,
     ("call_forwarding", "configure"): 5,
     ("single_number_reach", "configure"): 5,
+    # Feature forwarding/holiday/night service configuration
+    # (from 2026-04-10-feature-forwarding-night-service.md)
+    ("hunt_group", "configure_forwarding"): 5,
+    ("call_queue", "configure_forwarding"): 5,
+    ("call_queue", "configure_holiday_service"): 5,
+    ("call_queue", "configure_night_service"): 5,
+    ("call_queue", "configure_stranded_calls"): 5,
+    ("auto_attendant", "configure_forwarding"): 5,
     # Tier 6: Shared/virtual lines + monitoring (depend on users + devices)
     ("shared_line", "configure"): 6,
     ("virtual_line", "create"): 6,
@@ -165,6 +173,13 @@ API_CALL_ESTIMATES: dict[str, int] = {
                                       # (from person-call-settings-permissions.md line 401)
     "call_forwarding:configure": 1,   # PUT /people/{id}/features/callForwarding
     "single_number_reach:configure": 2,  # PUT SNR enable + POST per number
+    # Feature forwarding/holiday/night service configuration
+    "hunt_group:configure_forwarding": 1,         # PUT .../huntGroups/{id}/callForwarding
+    "call_queue:configure_forwarding": 1,         # PUT .../queues/{id}/callForwarding
+    "call_queue:configure_holiday_service": 1,    # PUT .../queues/{id}/holidayService
+    "call_queue:configure_night_service": 1,      # PUT .../queues/{id}/nightService
+    "call_queue:configure_stranded_calls": 1,     # PUT .../queues/{id}/strandedCalls
+    "auto_attendant:configure_forwarding": 1,     # PUT .../autoAttendants/{id}/callForwarding
     # Tier 4: Call features
     "hunt_group:create": 1,         # POST /telephony/config/locations/{id}/huntGroups
                                     # agents optional at create (from call-features-major.md line 894)
