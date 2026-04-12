@@ -1459,7 +1459,8 @@ def decide(
 def export(
     format: str = typer.Option(
         "deployment-plan", "--format", "-f",
-        help="Export format: deployment-plan, json, csv-decisions, location-worksheet",
+        help="Export format: deployment-plan, json, csv-decisions, "
+             "csv-activation-codes, location-worksheet",
     ),
     project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
 ):
@@ -1474,12 +1475,15 @@ def export(
             _export_json(project_dir, store)
         elif format == "csv-decisions":
             _export_csv_decisions(project_dir, store)
+        elif format == "csv-activation-codes":
+            _export_csv_activation_codes(project_dir, store)
         elif format == "location-worksheet":
             _export_location_worksheet(project_dir, store)
         else:
             console.print(
                 f"[red]Unknown format: {format}[/red]\n"
-                "Valid formats: deployment-plan, json, csv-decisions, location-worksheet"
+                "Valid formats: deployment-plan, json, csv-decisions, "
+                "csv-activation-codes, location-worksheet"
             )
             raise typer.Exit(1)
     finally:
@@ -1552,6 +1556,28 @@ def _export_csv_decisions(project_dir: Path, store) -> None:
     output_path = exports_dir / "decisions.csv"
     output_path.write_text(csv_content)
     console.print(f"[green]CSV decisions exported:[/green] {output_path}")
+
+
+def _export_csv_activation_codes(project_dir: Path, store) -> None:
+    """Export convertible-device activation codes for field tech distribution."""
+    from wxcli.migration.export.csv_export import (
+        generate_csv_activation_codes,
+        has_activation_codes,
+    )
+
+    if not has_activation_codes(store):
+        console.print(
+            "No activation codes to export "
+            "(no CONVERTIBLE devices in the plan)."
+        )
+        return
+
+    csv_content = generate_csv_activation_codes(store)
+    exports_dir = project_dir / "exports"
+    exports_dir.mkdir(parents=True, exist_ok=True)
+    output_path = exports_dir / "activation-codes.csv"
+    output_path.write_text(csv_content)
+    console.print(f"[green]Activation codes exported:[/green] {output_path}")
 
 
 def _export_location_worksheet(project_dir: Path, store) -> None:

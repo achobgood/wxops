@@ -93,9 +93,13 @@ async def execute_single_op(
                         error=f"{resp_status}: {error_msg}", body=resp_body,
                     )
 
-                # Success — extract ID from first call
+                # Success — extract ID from first call.
+                # Activation-code responses (POST /devices/activationCode)
+                # return {"code": "...", "expiryTime": "..."} with no "id" field,
+                # so fall back to "code" so the activation string is persisted
+                # into plan_operations.webex_id for export.
                 if webex_id is None and isinstance(resp_body, dict):
-                    webex_id = resp_body.get("id")
+                    webex_id = resp_body.get("id") or resp_body.get("code")
                 last_body = resp_body
                 break  # Move to next sub-call
 

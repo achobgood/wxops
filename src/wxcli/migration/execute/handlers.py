@@ -443,6 +443,45 @@ def handle_device_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
     return [("POST", _url("/devices", ctx), body)]
 
 
+def handle_device_create_activation_code(
+    data: dict, deps: dict, ctx: dict,
+) -> HandlerResult:
+    """Generate an activation code for a firmware-convertible device.
+
+    Used for CUCM-sourced phones classified as DeviceCompatibilityTier.CONVERTIBLE
+    (8845/8851/8865/7821/7841/7861). These phones are factory-reset, reflashed
+    with MPP firmware, and then registered to Webex via the returned activation
+    code. Unlike handle_device_create, this flow:
+
+    - does NOT send the MAC address (the code, not the MAC, establishes identity)
+    - REQUIRES `model` for phones (absent → code only works on RoomOS devices)
+    - normalizes the model string to the Webex "DMS <name>" format
+    """
+    body: dict[str, Any] = {}
+
+    model = data.get("model")
+    if model:
+        if not model.startswith("DMS "):
+            model = f"DMS {model}"
+        # CanonicalDevice.model may arrive as either "Cisco 8851" or
+        # "Cisco IP Phone 8851" (both are recognized as convertible in
+        # cross_reference._CONVERTIBLE_PATTERNS). The Webex activation
+        # code API expects the concise form, so collapse " IP Phone ".
+        model = model.replace(" IP Phone ", " ")
+        body["model"] = model
+
+    owner_cid = data.get("owner_canonical_id")
+    if owner_cid:
+        owner_wid = deps.get(owner_cid)
+        if owner_wid:
+            if owner_cid.startswith("user:"):
+                body["personId"] = owner_wid
+            elif owner_cid.startswith("workspace:"):
+                body["workspaceId"] = owner_wid
+
+    return [("POST", _url("/devices/activationCode", ctx), body)]
+
+
 # ---------------------------------------------------------------------------
 # Tier 3: Routing patterns
 # ---------------------------------------------------------------------------
@@ -1313,6 +1352,7 @@ HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("workspace", "create"): handle_workspace_create,
     ("workspace", "assign_number"): handle_workspace_assign_number,
     ("device", "create"): handle_device_create,
+    ("device", "create_activation_code"): handle_device_create_activation_code,
     ("dial_plan", "create"): handle_dial_plan_create,
     ("translation_pattern", "create"): handle_translation_pattern_create,
     ("hunt_group", "create"): handle_hunt_group_create,

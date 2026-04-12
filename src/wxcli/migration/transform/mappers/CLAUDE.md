@@ -87,6 +87,8 @@ Key fields on `CanonicalDeviceLayout`: `device_canonical_id`, `device_id_surface
 
 **`member_canonical_id`** on `line_members` is what `handle_device_layout_configure` uses to resolve Webex IDs from `deps`. It's the canonical_id of the user or workspace assigned to that port.
 
+**Convertible-device skip.** Devices classified as `DeviceCompatibilityTier.CONVERTIBLE` do not get a `CanonicalDeviceLayout` emitted. The mapper checks the device's `compatibility_tier` and continues past the phone silently. Rationale: these phones use activation-code registration (`POST /devices/activationCode`) and auto-configure post-registration, so applying line key templates during the main execution pipeline would race registration. Post-registration bulk layout application is tracked as future work.
+
 ### SoftkeyMapper
 
 Reads softkey template data (via SQL — not AXL) and PSK-capable phone references. Produces **two kinds** of `CanonicalSoftkeyConfig`:
