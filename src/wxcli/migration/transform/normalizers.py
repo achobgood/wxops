@@ -1815,7 +1815,10 @@ def normalize_executive_settings(
 # Post-normalization: DECT network grouping
 # ---------------------------------------------------------------------------
 
-def normalize_dect_group(store: Any) -> list[CanonicalDECTNetwork]:
+def normalize_dect_group(
+    store: Any,
+    dect_inventory: list[dict[str, str]] | None = None,
+) -> list[CanonicalDECTNetwork]:
     """Group DECT handsets by device pool and create CanonicalDECTNetwork objects.
 
     Post-normalization step — runs after Pass 2 CrossReferenceBuilder so that
@@ -1828,10 +1831,22 @@ def normalize_dect_group(store: Any) -> list[CanonicalDECTNetwork]:
 
     Args:
         store: MigrationStore instance with normalized + cross-ref'd objects.
+        dect_inventory: Optional list of base station dicts from the
+            --dect-inventory CLI flag.  Each dict has keys: coverage_zone,
+            base_station_mac, base_station_model.  When provided, stations
+            whose coverage_zone matches the network's device pool name are
+            attached to the CanonicalDECTNetwork.base_stations list.
 
     Returns:
         List of CanonicalDECTNetwork objects (also written to the store).
     """
+    # Build coverage_zone → base station list index for fast lookup
+    inventory_by_zone: dict[str, list[dict[str, str]]] = {}
+    for entry in (dect_inventory or []):
+        zone = entry.get("coverage_zone", "")
+        if zone:
+            inventory_by_zone.setdefault(zone, []).append(entry)
+
     # Collect all DECT-tier devices
     dect_by_pool: dict[str, list[CanonicalDevice]] = {}
     for obj in store.query_by_type("device"):
@@ -1849,6 +1864,19 @@ def normalize_dect_group(store: Any) -> list[CanonicalDECTNetwork]:
             {"device_canonical_id": d.canonical_id, "cucm_device_name": d.cucm_device_name}
             for d in devices
         ]
+
+        # Attach base stations from inventory whose coverage_zone matches this pool
+        base_stations: list[dict] = []
+        for entry in inventory_by_zone.get(pool_name, []):
+            base_stations.append({
+                "mac": entry["base_station_mac"],
+                "model": entry["base_station_model"],
+                "coverage_zone": entry["coverage_zone"],
+            })
+
+        # Derive DECT network model from inventory (first station's model; PENDING if absent)
+        network_model = base_stations[0]["model"] if base_stations else "PENDING"
+
         network = CanonicalDECTNetwork(
             canonical_id=f"dect_network:{pool_name}",
             provenance=Provenance(
@@ -1861,13 +1889,14 @@ def normalize_dect_group(store: Any) -> list[CanonicalDECTNetwork]:
             status=MigrationStatus.NORMALIZED,
             network_name=network_name,
             display_name=network_name,
-            model="PENDING",
+            model=network_model,
             access_code="",
-            base_stations=[],
+            base_stations=base_stations,
             handset_assignments=handset_assignments,
             pre_migration_state={
                 "cucm_device_pool": pool_name,
                 "handset_count": len(devices),
+                "base_station_count": len(base_stations),
             },
         )
         store.upsert_object(network)

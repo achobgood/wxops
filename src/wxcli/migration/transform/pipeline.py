@@ -42,6 +42,7 @@ def normalize_discovery(
     cluster: str = "default",
     default_country_code: str = "US",
     site_prefix_rules: list[dict] | None = None,
+    dect_inventory: list[dict[str, str]] | None = None,
 ) -> dict[str, Any]:
     """Run the full normalization pipeline on discovery raw_data.
 
@@ -51,6 +52,10 @@ def normalize_discovery(
         cluster: CUCM cluster name for provenance.
         default_country_code: ISO country code for E.164 normalization.
         site_prefix_rules: Prefix stripping rules for E.164 normalization.
+        dect_inventory: Optional list of base station dicts from --dect-inventory
+            CSV. Each dict has keys: coverage_zone, base_station_mac,
+            base_station_model.  Passed through to normalize_dect_group() so
+            that inventory data is merged into CanonicalDECTNetwork objects.
 
     Returns:
         Summary dict with counts per step.
@@ -250,7 +255,7 @@ def normalize_discovery(
     # Groups DECT handsets by device pool into CanonicalDECTNetwork objects.
     # ------------------------------------------------------------------
 
-    dect_networks = normalize_dect_group(store)
+    dect_networks = normalize_dect_group(store, dect_inventory=dect_inventory)
     summary["pass1"]["dect_networks_grouped"] = len(dect_networks)
     if dect_networks:
         logger.info("Grouped %d DECT handsets into %d DECT network(s)", sum(
