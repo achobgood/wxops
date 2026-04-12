@@ -473,10 +473,11 @@ Job callDeviceSettings JOB_... exit=COMPLETED updated=483
   bulk_device_settings:location:sf-hq:submit: completed
 ```
 
-**Partial failures:** if the job reports fewer updated devices than it
-was given, the engine fetches `/errors` and re-runs the per-device
-handler for each failed device in-line. The bulk op is marked completed
-only after all fallbacks succeed.
+**Partial failures:** if a bulk job fails or partially succeeds, the
+bulk op is marked `failed` and its dependent ops are cascade-skipped.
+Re-running `execute_all_batches` retries the failed op. Per-device
+automatic fallback primitives exist in the engine but are not yet
+wired into the production execution path.
 
 **Disabling bulk:** set `wxcli cucm config set bulk_device_threshold 999999`
 to keep the engine on the per-device code path. Useful for FedRAMP

@@ -46,7 +46,6 @@ def partition_into_batches(
 
     for node in nx.topological_sort(G):
         batch = G.nodes[node].get("batch")
-        tier = G.nodes[node].get("tier", 0)
 
         if batch == "fixups":
             fixup_nodes.append(node)
