@@ -20,6 +20,7 @@
    - [Recipe 3: CSS-heavy customer with strict partition ordering](#recipe-3-css-heavy-customer-with-strict-partition-ordering)
    - [Recipe 4: Cert-based trunk customer](#recipe-4-cert-based-trunk-customer)
    - [Recipe 5: Analog-gateway-heavy customer](#recipe-5-analog-gateway-heavy-customer)
+   - [Recipe 6: FedRAMP-constrained migration](#recipe-6-fedramp-constrained-migration)
 
 ---
 
@@ -781,3 +782,21 @@ Analog endpoints — fax lines, paging amps, modems, alarm panels, lobby phones,
 - E911 verification: confirm with whoever owns the E911 workstream that the analog endpoints are accounted for in the post-migration emergency-routing plan.
 
 **See also:** [`dt-dev-001`](decision-guide.md#device-incompatible) · [`dt-loc-001`](decision-guide.md#location-ambiguous) · [`dt-user-003`](decision-guide.md#voicemail-incompatible) · [`device-bulk-upgrade`](decision-guide.md#device-bulk-upgrade) · [`legacy-gateway-protocols`](decision-guide.md#legacy-gateway-protocols) · [`e911-migration-flag`](decision-guide.md#e911-migration-flag) · [`media-resource-scope-removal`](decision-guide.md#media-resource-scope-removal)
+
+### Recipe 6: FedRAMP-constrained migration
+
+**Environment:** Webex for Government tenant. The rebuildPhones bulk
+API is explicitly unsupported.
+
+**Config:**
+```json
+{"bulk_device_threshold": 999999}
+```
+
+Or via CLI:
+```
+wxcli cucm config set bulk_device_threshold 999999
+```
+
+**Result:** planner stays on the per-device code path. Device phase
+takes longer but does not attempt the unsupported rebuild API.
