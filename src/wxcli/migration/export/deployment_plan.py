@@ -333,6 +333,72 @@ def _section_impact(
     return lines
 
 
+def _section_activation_codes(
+    store: MigrationStore,
+) -> list[str]:
+    """Section: Activation Codes (only shown when convertible devices are present).
+
+    Lists every device:create_activation_code op with device, owner, model,
+    code, and status. Pre-execution the code column shows '(pending)';
+    post-execution it shows the 16-digit activation code formatted in groups
+    of 4 for readability (e.g., 5414-0112-5617-3816).
+    """
+    rows = store.conn.execute(
+        """SELECT canonical_id, webex_id, status, batch
+           FROM plan_operations
+           WHERE op_type = 'create_activation_code'
+           ORDER BY canonical_id"""
+    ).fetchall()
+
+    if not rows:
+        return []
+
+    lines = [
+        "## Activation Codes",
+        "",
+        "The following firmware-convertible phones require an activation code",
+        "after their firmware is converted to MPP. Distribute the codes below",
+        "to on-site IT staff before the conversion window. Codes are generated",
+        "by `POST /v1/devices/activationCode` during execution.",
+        "",
+        "| Device | Owner | Model | Code | Status |",
+        "|--------|-------|-------|------|--------|",
+    ]
+
+    for row in rows:
+        device_data = store.get_object(row["canonical_id"]) or {}
+        device_name = device_data.get("display_name") or row["canonical_id"].split(":", 1)[-1]
+        model = device_data.get("model", "")
+
+        owner_cid = device_data.get("owner_canonical_id")
+        owner_label = "—"
+        if owner_cid:
+            owner_data = store.get_object(owner_cid) or {}
+            owner_label = (
+                owner_data.get("display_name")
+                or owner_data.get("name")
+                or owner_cid
+            )
+
+        raw_code = row["webex_id"] or ""
+        if raw_code and len(raw_code) == 16 and raw_code.isdigit():
+            code_display = "-".join(
+                raw_code[i:i + 4] for i in range(0, 16, 4)
+            )
+        elif raw_code:
+            code_display = raw_code
+        else:
+            code_display = "(pending)"
+
+        status_label = row["status"] or "pending"
+        lines.append(
+            f"| {device_name} | {owner_label} | {model} | {code_display} | {status_label} |"
+        )
+
+    lines.append("")
+    return lines
+
+
 def _section_rollback_strategy() -> list[str]:
     """Section 7: Rollback Strategy."""
     return [
@@ -405,6 +471,7 @@ def generate_plan_summary(
     lines.extend(_section_resource_summary(type_counts))
     lines.extend(_section_decisions(resolved_decisions))
     lines.extend(_section_batch_order(ops))
+    lines.extend(_section_activation_codes(store))
     lines.extend(_section_impact(type_counts, total_ops, total_api_calls))
     lines.extend(_section_rollback_strategy())
     lines.extend(_section_approval())
