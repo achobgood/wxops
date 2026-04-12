@@ -222,3 +222,22 @@ AA with 4-8 key options, each transferring to a department Hunt Group or Call Qu
 - Webex max file size: 8 MB per announcement, 500 MB org total.
 
 **Cross-reference:** The `_build_audio_refs` method in `cross_reference.py` builds `feature_uses_moh_source` cross-refs from hunt pilot `networkHoldMohAudioSourceID` to music_on_hold canonical IDs. These refs feed the `detect_custom_audio_assets` advisory pattern (Pattern 28) and populate the Audio Assets appendix section (Appendix I) in the assessment report.
+
+## Hunt Pilot Forwarding & Queue Overflow
+
+CUCM hunt pilots carry overflow and forwarding behavior on three groups of fields:
+
+| CUCM source | Webex target | Notes |
+|---|---|---|
+| `forwardHuntNoAnswer.destination` | Hunt Group `callForwarding.selective.destination` | Maps no-answer to selective forwarding |
+| `forwardHuntBusy.destination` | Hunt Group `callForwarding.always.destination` | Approximation — Webex HG has no busy block |
+| `queueCalls.queueFullDestination` | Call Queue `callForwarding.always.destination` | Forward all when full |
+| `queueCalls.maxWaitTimeDestination` | Call Queue `callForwarding.always.destination` (alternate) | Same field reused — only one of full/maxWait can map |
+| `queueCalls.noAgentDestination` | Call Queue `strandedCalls.transferPhoneNumber` (action=TRANSFER) | "No agents logged in" path |
+| Holiday schedule (by name) | Call Queue `holidayService.holidayScheduleName` + `holidayScheduleLevel` | Resolved by name, not ID |
+| Business hours schedule (by name) | Call Queue `nightService.businessHoursName` + `businessHoursLevel` | Resolved by name, not ID |
+| CTI RP `callForwardAll.destination` | Auto Attendant `callForwarding.always.destination` | One-shot always-forward |
+
+The migration pipeline emits one `configure_*` op per field group (`configure_forwarding`, `configure_holiday_service`, `configure_night_service`, `configure_stranded_calls`, `configure_forwarding` for AAs). All ops are tier 5 and depend on the corresponding feature's `create` op.
+
+**Schedule resolution.** Webex holiday/night APIs reference schedules by **name + level** (`LOCATION` or `ORGANIZATION`), not by Webex ID. Operating modes and location schedules are already created at tier 1, so by the time tier 5 runs the schedule exists in Webex with the same name. No additional dependency edges are required; tier ordering enforces the chain.

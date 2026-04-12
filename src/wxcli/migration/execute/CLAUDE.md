@@ -121,6 +121,12 @@ All 35 handlers in `HANDLER_REGISTRY`:
 | `(workspace, configure_settings)` | PUT `/workspaces/{id}/features/{feature}` | Uses /workspaces/ not /telephony/config/ |
 | `(calling_permission, assign)` | PUT `/people/{id}/features/outgoingPermission` | One call per user in assigned_users |
 | `(call_forwarding, configure)` | PUT `/people/{id}/features/callForwarding` | Returns `[]` if all forwarding types disabled |
+| `(hunt_group, configure_forwarding)` | PUT `/telephony/config/locations/{loc}/huntGroups/{id}/callForwarding` | Returns `[]` if no forwarding fields set or feature/location not yet created |
+| `(call_queue, configure_forwarding)` | PUT `/telephony/config/locations/{loc}/queues/{id}/callForwarding` | Maps queue_full_destination → callForwarding.always |
+| `(call_queue, configure_holiday_service)` | PUT `/telephony/config/locations/{loc}/queues/{id}/holidayService` | References schedule by name + level |
+| `(call_queue, configure_night_service)` | PUT `/telephony/config/locations/{loc}/queues/{id}/nightService` | References business hours by name + level |
+| `(call_queue, configure_stranded_calls)` | PUT `/telephony/config/locations/{loc}/queues/{id}/strandedCalls` | TRANSFER action, transferPhoneNumber from no_agent_destination |
+| `(auto_attendant, configure_forwarding)` | PUT `/telephony/config/locations/{loc}/autoAttendants/{id}/callForwarding` | Always-forward only |
 | `(device_settings_template, apply_device_override)` | PUT `/telephony/config/devices/{id}/settings` | Apply per-device settings override |
 | `(device_profile, enable_hoteling_guest)` | PUT `/people/{id}/features/hoteling` | Enables EM-subscribed user as hoteling guest |
 | `(device_profile, enable_hoteling_host)` | PUT `/telephony/config/people/{id}/devices/settings/hoteling` | Configures EM-enabled device as hoteling host (no-op when host data unavailable) |

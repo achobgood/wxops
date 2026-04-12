@@ -1309,3 +1309,16 @@ When creating/updating, only `agent_id` is required. Set `weight` or `skill_leve
 - [Additional Call Features](call-features-additional.md) -- Paging Groups, Call Park, Call Pickup, Voicemail Groups, and Customer Assist (Call Park recall uses Hunt Groups; Voicemail Groups can serve as overflow destinations for CQ/HG)
 - [Call Routing & PSTN](call-routing.md) -- dial plans, trunks, and route lists (AA/CQ/HG phone numbers participate in the call routing chain)
 - [Location Call Settings: Media](location-call-settings-media.md) -- schedule management (business hours and holiday schedules used by AA menus and CQ/HG policies)
+
+## Migration Notes — CUCM Forwarding & Night Service
+
+The CUCM-to-Webex migration pipeline writes hunt group and call queue forwarding via these per-feature endpoints:
+
+- `PUT /telephony/config/locations/{locationId}/huntGroups/{huntGroupId}/callForwarding`
+- `PUT /telephony/config/locations/{locationId}/queues/{queueId}/callForwarding`
+- `PUT /telephony/config/locations/{locationId}/queues/{queueId}/holidayService`
+- `PUT /telephony/config/locations/{locationId}/queues/{queueId}/nightService`
+- `PUT /telephony/config/locations/{locationId}/queues/{queueId}/strandedCalls`
+- `PUT /telephony/config/locations/{locationId}/autoAttendants/{autoAttendantId}/callForwarding`
+
+All endpoints require the same scope as feature creation (`spark-admin:telephony_config_write`). The migration tool only writes these settings when the corresponding CUCM source data is present; features without forwarding configuration are created with Webex defaults.
