@@ -1115,6 +1115,14 @@ def handle_music_on_hold_configure(data: dict, deps: dict, ctx: dict) -> Handler
     """Phase A no-op. The op appears in the deployment plan so operators
     see music_on_hold tracked, but no API call is made. Real per-location
     MOH configuration + custom audio upload is deferred to Phase B.
+
+    Phase B prerequisites:
+    1. MOHMapper sets location_canonical_id (one object per location)
+    2. MOHMapper writes moh_in_location cross-ref → dependency rule activates
+    3. API_CALL_ESTIMATES["music_on_hold:configure"] updated from 0 to 1
+    4. This handler upgraded to: PUT /telephony/config/locations/{locId}/musicOnHold
+       with greeting=SYSTEM (default) or greeting=CUSTOM + audioFile.id (custom)
+    5. engine.py multipart support for custom audio upload (aiohttp.FormData)
     """
     return []
 
@@ -1124,6 +1132,15 @@ def handle_announcement_upload(data: dict, deps: dict, ctx: dict) -> HandlerResu
     decisions for every announcement, so operators already know to manually
     download/upload. The op exists in the plan for visibility. Real multipart
     upload is deferred to Phase B alongside engine multipart support.
+
+    Phase B prerequisites:
+    1. AnnouncementMapper sets location_canonical_id (from associated feature's location)
+    2. AnnouncementMapper writes announcement_in_location cross-ref → dependency rule activates
+    3. API_CALL_ESTIMATES["announcement:upload"] updated from 0 to 1
+    4. engine.py multipart support (aiohttp.FormData) for binary WAV upload
+    5. This handler upgraded to: POST /telephony/config/locations/{locId}/announcements
+       with multipart/form-data (name field + binary file field)
+    6. cucm-collect script integration to pre-download audio files from CUCM
     """
     return []
 

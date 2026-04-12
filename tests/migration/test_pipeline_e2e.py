@@ -1187,14 +1187,18 @@ class TestPlanningPhase:
         # music_on_hold and announcement now produce Phase-A no-op visibility
         # ops — the handler returns [] so no API calls are made, but the op
         # appears in the deployment plan so operators see these types tracked.
-        moh_op_types = {op.op_type for op in ops if op.resource_type == "music_on_hold"}
-        assert moh_op_types.issubset({"configure"})
-        ann_op_types = {op.op_type for op in ops if op.resource_type == "announcement"}
-        assert ann_op_types.issubset({"upload"})
+        # Use len() checks instead of issubset() to catch regressions where
+        # the expander stops emitting ops (empty set is a vacuous subset).
+        moh_ops = [op for op in ops if op.resource_type == "music_on_hold"]
+        assert len(moh_ops) > 0, "Expected music_on_hold ops in plan"
+        assert all(op.op_type == "configure" for op in moh_ops)
+        ann_ops = [op for op in ops if op.resource_type == "announcement"]
+        assert len(ann_ops) > 0, "Expected announcement ops in plan"
+        assert all(op.op_type == "upload" for op in ann_ops)
         # device_profile is executable (hoteling): only produces ops when
         # enable_hoteling_guest / enable_hoteling_host, not for other op types
-        dp_op_types = {op.op_type for op in ops if op.resource_type == "device_profile"}
-        assert dp_op_types.issubset({"enable_hoteling_guest", "enable_hoteling_host"})
+        dp_ops = [op for op in ops if op.resource_type == "device_profile"]
+        assert all(op.op_type in {"enable_hoteling_guest", "enable_hoteling_host"} for op in dp_ops)
 
 
 # ---------------------------------------------------------------------------
