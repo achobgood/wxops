@@ -65,6 +65,9 @@ class WorkspaceMapper(Mapper):
 
         for phone_data in store.get_objects("phone"):
             phone_id = phone_data["canonical_id"]
+            # pre_migration_state here is the raw AXL getPhone dict (preserved by pipeline.py
+            # alongside the CanonicalDevice). Field names use original CUCM casing, not the
+            # normalized CanonicalDevice field names.
             state = phone_data.get("pre_migration_state") or {}
 
             # Only process common-area phones
@@ -332,19 +335,14 @@ def _extract_workspace_call_settings(
         }
 
     # --- voicemail (Professional-only; license gate drops it for Workspace tier) ---
-    vm_profile = state.get("voiceMailProfile")
+    # voiceMailProfile is extracted per-line by getLine enrichment (not from phone root).
+    # Read from line 1's voiceMailProfileName field.
+    first_line = _get_first_line(state)
+    vm_profile = (first_line or {}).get("voiceMailProfileName") if first_line else None
     has_vm_profile = bool(vm_profile) and str(vm_profile).lower() not in ("none", "")
     if has_vm_profile:
         vm_body: dict[str, Any] = {"enabled": True}
         # Pull CFNA ring timing + VM flag from line 1
-        lines = state.get("lines") or []
-        first_line: dict | None = None
-        if isinstance(lines, dict):
-            first_line = lines.get(1) or lines.get("1")
-        elif isinstance(lines, list) and lines:
-            cand = lines[0]
-            if isinstance(cand, dict):
-                first_line = cand
         if first_line:
             cfna = first_line.get("callForwardNoAnswer") or {}
             if cfna.get("forwardToVoiceMail") in ("true", True):
@@ -363,14 +361,7 @@ def _extract_workspace_call_settings(
         settings["voicemail"] = {"enabled": False}
 
     # --- callForwarding (Professional-only) ---
-    lines_data = state.get("lines") or []
-    line1: dict | None = None
-    if isinstance(lines_data, dict):
-        line1 = lines_data.get(1) or lines_data.get("1")
-    elif isinstance(lines_data, list) and lines_data:
-        cand = lines_data[0]
-        if isinstance(cand, dict):
-            line1 = cand
+    line1 = _get_first_line(state)
     if line1:
         cfa = (line1.get("callForwardAll") or {}).get("destination")
         cfb = (line1.get("callForwardBusy") or {}).get("destination")
@@ -404,5 +395,15 @@ def _extract_workspace_call_settings(
         settings = {k: v for k, v in settings.items() if k in allowed}
 
     return settings or None
+
+
+def _get_first_line(state: dict[str, Any]) -> dict | None:
+    """Return the first line entry from a raw phone state, or None if missing."""
+    lines = state.get("lines") or []
+    if isinstance(lines, dict):
+        return lines.get(1) or lines.get("1")
+    if isinstance(lines, list) and lines and isinstance(lines[0], dict):
+        return lines[0]
+    return None
 
 
