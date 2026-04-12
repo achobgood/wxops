@@ -29,6 +29,11 @@ from wxcli.migration.cucm.extractors.templates import TemplateExtractor
 from wxcli.migration.cucm.extractors.voicemail import VoicemailExtractor
 from wxcli.migration.cucm.extractors.informational import InformationalExtractor
 from wxcli.migration.cucm.extractors.tier4 import Tier4Extractor
+from wxcli.migration.cucm.extractors.remote_destinations import RemoteDestinationExtractor
+from wxcli.migration.cucm.extractors.e911 import E911Extractor
+from wxcli.migration.cucm.extractors.device_profiles import DeviceProfileExtractor
+from wxcli.migration.cucm.extractors.moh import MOHExtractor
+from wxcli.migration.cucm.extractors.announcements import AnnouncementExtractor
 from wxcli.migration.cucm.unity_connection import UnityConnectionClient
 from wxcli.migration.store import MigrationStore
 
@@ -49,6 +54,11 @@ EXTRACTOR_ORDER = [
     "templates",   # Button templates, softkey templates — no dependencies
     "informational",  # Tier 3: report-only informational objects — no dependencies
     "tier4",  # Tier 4 feature gaps: recording, SNR, transformations, EM profiles
+    "remote_destinations",  # SNR remote destinations
+    "e911",                 # ELIN groups, geo locations
+    "device_profiles",      # EM device profiles
+    "moh",                  # Music on Hold sources
+    "announcements",        # Announcements / media resources
 ]
 
 
@@ -150,6 +160,11 @@ def run_discovery(
         "templates": TemplateExtractor(connection),
         "informational": InformationalExtractor(connection),
         "tier4": Tier4Extractor(connection),
+        "remote_destinations": RemoteDestinationExtractor(connection),
+        "e911": E911Extractor(connection),
+        "device_profiles": DeviceProfileExtractor(connection),
+        "moh": MOHExtractor(connection),
+        "announcements": AnnouncementExtractor(connection),
     }
 
     # Run each extractor in order

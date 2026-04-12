@@ -19,11 +19,13 @@ from datetime import datetime, timezone
 from typing import Any
 
 from wxcli.migration.models import (
+    CanonicalDECTNetwork,
     CanonicalDevice,
     CanonicalTranslationPattern,
     CanonicalUser,
     CanonicalVoicemailProfile,
     CanonicalWorkspace,
+    DeviceCompatibilityTier,
     MigrationObject,
     MigrationStatus,
     Provenance,
@@ -1807,6 +1809,71 @@ def normalize_executive_settings(
             "servicetype": raw.get("servicetype"),
         },
     )
+
+
+# ---------------------------------------------------------------------------
+# Post-normalization: DECT network grouping
+# ---------------------------------------------------------------------------
+
+def normalize_dect_group(store: Any) -> list[CanonicalDECTNetwork]:
+    """Group DECT handsets by device pool and create CanonicalDECTNetwork objects.
+
+    Post-normalization step — runs after Pass 2 CrossReferenceBuilder so that
+    compatibility_tier has been classified on each CanonicalDevice.  Reads all
+    devices with compatibility_tier == "dect", groups them by device pool name,
+    and creates one CanonicalDECTNetwork per group.
+
+    The mapper (DECTMapper, Task 3) will enrich each network with location refs,
+    handset owner resolution, and access codes.
+
+    Args:
+        store: MigrationStore instance with normalized + cross-ref'd objects.
+
+    Returns:
+        List of CanonicalDECTNetwork objects (also written to the store).
+    """
+    # Collect all DECT-tier devices
+    dect_by_pool: dict[str, list[CanonicalDevice]] = {}
+    for obj in store.query_by_type("device"):
+        if not isinstance(obj, CanonicalDevice):
+            continue
+        if obj.compatibility_tier != DeviceCompatibilityTier.DECT:
+            continue
+        pool_name = (obj.pre_migration_state or {}).get("cucm_device_pool") or "DEFAULT"
+        dect_by_pool.setdefault(pool_name, []).append(obj)
+
+    networks: list[CanonicalDECTNetwork] = []
+    for pool_name, devices in dect_by_pool.items():
+        network_name = f"DECT-{pool_name}"
+        handset_assignments = [
+            {"device_canonical_id": d.canonical_id, "cucm_device_name": d.cucm_device_name}
+            for d in devices
+        ]
+        network = CanonicalDECTNetwork(
+            canonical_id=f"dect_network:{pool_name}",
+            provenance=Provenance(
+                source_system="cucm",
+                source_id=pool_name,
+                source_name=network_name,
+                cluster=devices[0].provenance.cluster if devices[0].provenance else "default",
+                extracted_at=_now(),
+            ),
+            status=MigrationStatus.NORMALIZED,
+            network_name=network_name,
+            display_name=network_name,
+            model="PENDING",
+            access_code="",
+            base_stations=[],
+            handset_assignments=handset_assignments,
+            pre_migration_state={
+                "cucm_device_pool": pool_name,
+                "handset_count": len(devices),
+            },
+        )
+        store.upsert_object(network)
+        networks.append(network)
+
+    return networks
 
 
 # ---------------------------------------------------------------------------

@@ -59,7 +59,7 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 | `_build_template_refs` | phone_uses_button_template, phone_uses_softkey_template |
 | `_build_audio_refs` | feature_uses_moh_source (hunt pilot networkHoldMohAudioSourceID → music_on_hold canonical ID) |
 
-**Note:** `device_pool_to_location` is NOT built here — it's written by `LocationMapper` during the map pass, because the mapping requires decisions about ambiguous device pool → location assignments. Similarly, `voicemail_group_in_location` is written by `VoicemailGroupMapper` after location resolution.
+**Note:** `device_pool_to_location` is NOT built here — it's written by `LocationMapper` during the map pass, because the mapping requires decisions about ambiguous device pool → location assignments. Similarly, `voicemail_group_in_location` is written by `VoicemailGroupMapper` after location resolution. `feature_forwards_to_voicemail_group` is written by `FeatureMapper` when a hunt group/call queue forwarding destination matches a voicemail group extension — this powers the dependency graph edge that ensures `voicemail_group:create` runs before `feature:configure_forwarding`.
 
 ## Mapper Execution Engine
 

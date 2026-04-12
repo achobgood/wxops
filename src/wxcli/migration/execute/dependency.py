@@ -254,6 +254,32 @@ _CROSS_OBJECT_RULES: list[dict] = [
         "target_op": "create",
         "dep_type": DependencyType.REQUIRES,
     },
+    # Hunt group forwarding must wait for voicemail group to be created
+    # so the VM group extension exists as a valid destination.
+    # Cross-ref feature_forwards_to_voicemail_group written by FeatureMapper.
+    {
+        "source_type": "hunt_group",
+        "source_op": "configure_forwarding",
+        "relationship": "feature_forwards_to_voicemail_group",
+        "target_op": "create",
+        "dep_type": DependencyType.REQUIRES,
+    },
+    # Call queue forwarding must wait for voicemail group to be created.
+    {
+        "source_type": "call_queue",
+        "source_op": "configure_forwarding",
+        "relationship": "feature_forwards_to_voicemail_group",
+        "target_op": "create",
+        "dep_type": DependencyType.REQUIRES,
+    },
+    # Call queue stranded calls must wait for voicemail group to be created.
+    {
+        "source_type": "call_queue",
+        "source_op": "configure_stranded_calls",
+        "relationship": "feature_forwards_to_voicemail_group",
+        "target_op": "create",
+        "dep_type": DependencyType.REQUIRES,
+    },
 ]
 
 

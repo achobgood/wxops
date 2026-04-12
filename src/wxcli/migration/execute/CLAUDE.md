@@ -206,7 +206,7 @@ migration work (see "Tier 5 — Settings" above for `enable_hoteling_guest` and
 
 **Two edge sources:**
 1. **Intra-object** — from `depends_on` field set by expanders (e.g., `configure_settings` depends on `create` for the same object).
-2. **Cross-object** — from `_CROSS_OBJECT_RULES` (20+ rules) queried against store cross_refs. Examples: device:create requires its owner user:create; monitoring_list:configure requires each monitored target's create (SOFT).
+2. **Cross-object** — from `_CROSS_OBJECT_RULES` (30 rules) queried against store cross_refs. Examples: device:create requires its owner user:create; monitoring_list:configure requires each monitored target's create (SOFT); hunt_group/call_queue:configure_forwarding requires voicemail_group:create when forwarding to a VM group extension (cross-ref `feature_forwards_to_voicemail_group` written by FeatureMapper).
 
 **Cycle breaking:**
 - All-REQUIRES cycle → hard error (unbreakable — needs human decision).

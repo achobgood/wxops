@@ -22,11 +22,16 @@ Connects to CUCM via AXL SOAP and extracts raw configuration into the SQLite sto
 | `extractors/workspaces.py` | Common-area phone workspace classification (post-normalization) |
 | `extractors/informational.py` | Tier 3: 20 informational object types (regions, SRST, MRG, app users, etc.) — report only |
 | `extractors/tier4.py` | Tier 4 feature gaps: recording profiles, remote destinations, transformation patterns, EM device profiles |
+| `extractors/remote_destinations.py` | Remote destinations for SNR |
+| `extractors/e911.py` | ELIN groups, geo locations |
+| `extractors/device_profiles.py` | Extension Mobility device profiles |
+| `extractors/moh.py` | Music on Hold sources |
+| `extractors/announcements.py` | Announcements / media resources |
 
 ## Extraction Order
 
 ```
-locations → users → devices → features → routing → templates → voicemail → informational → tier4
+locations → users → devices → features → routing → templates → voicemail → informational → tier4 → remote_destinations → e911 → device_profiles → moh → announcements
 ```
 
 Extractors are independent at extraction time — the order is a documentation convention, not a dependency constraint. All raw dicts go into `raw_data` keyed by extractor name.
@@ -46,6 +51,14 @@ Extractors are independent at extraction time — the order is a documentation c
 
 **Intercept candidates** are extracted via SQL heuristics:
 - `raw_data["tier4"]["intercept_candidates"]` — heuristically-detected intercept-like configurations (blocked partition DNs, CFA-to-voicemail with no registered device). Uses two SQL queries for partition name pattern matching and call forwarding state detection.
+
+**Standalone extractors** (wired into discovery.py alongside the 9 original extractors):
+- `raw_data["remote_destinations"]["remote_destinations"]` — SNR remote destinations
+- `raw_data["e911"]["elin_groups"]` — ELIN groups for E911
+- `raw_data["e911"]["geo_locations"]` — geo locations for E911
+- `raw_data["device_profiles"]["device_profiles"]` — Extension Mobility device profiles
+- `raw_data["moh"]["moh_sources"]` — Music on Hold audio sources
+- `raw_data["announcements"]["announcements"]` — announcement / media resources
 
 ## Key Gotchas
 

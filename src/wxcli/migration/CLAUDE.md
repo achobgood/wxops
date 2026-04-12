@@ -13,7 +13,7 @@ All 11 phases complete. **1642 tests passing.** Wired into the CLI as `wxcli cuc
 | `src/wxcli/commands/cucm_config.py` | Phase 08 — Config management helpers |
 | `models.py` | Canonical data models — 28 types, DecisionType (24 values), Decision, MapperResult, TransformResult |
 | `store.py` | SQLite-backed store — objects, cross_refs, decisions, journal, merge_log, merge_decisions() |
-| `cucm/` | Phase 03 — AXL connection, 9 extractors, discovery pipeline |
+| `cucm/` | Phase 03 — AXL connection, 14 extractors, discovery pipeline |
 | `transform/normalizers.py` | Phase 04 — 41 Pass 1 normalizers |
 | `transform/cross_reference.py` | Phase 04 — CrossReferenceBuilder (31 relationships + 3 enrichments) |
 | `transform/pipeline.py` | Phase 04 — `normalize_discovery()` entry point |
@@ -84,10 +84,14 @@ multi-location without match → `LOCATION_AMBIGUOUS`),
 generates a placeholder passcode (`MISSING_DATA`), flags custom greetings
 (`AUDIO_ASSET_MANUAL`), and detects extension conflicts (`EXTENSION_CONFLICT`).
 The `handle_voicemail_group_create` handler POSTs to
-`/telephony/config/locations/{id}/voicemailGroups`. Overflow linkage from
-hunt groups / call queues back to the voicemail group (Phase C in the spec)
-is NOT implemented — configure overflow manually post-migration. Spec at
-`docs/superpowers/specs/2026-04-10-voicemail-groups.md`.
+`/telephony/config/locations/{id}/voicemailGroups`. Overflow linkage (Phase C):
+the `FeatureMapper` writes `feature_forwards_to_voicemail_group` cross-refs
+when a hunt group/call queue forwarding destination matches a VM group extension,
+and `dependency.py` enforces `voicemail_group:create` before
+`hunt_group:configure_forwarding` / `call_queue:configure_forwarding` /
+`call_queue:configure_stranded_calls`. The forwarding handlers already PUT the
+destination extension — the dependency edge ensures the VM group exists first.
+Spec at `docs/superpowers/specs/2026-04-10-voicemail-groups.md`.
 
 **To run a migration:** `wxcli cucm init` → `discover` → `normalize` → `map` → `analyze` → `decisions` → `plan` → `preflight` → `export` → then invoke `/cucm-migrate`.
 
