@@ -146,6 +146,16 @@ TIER_ASSIGNMENTS: dict[tuple[str, str], int] = {
     # Advisory-to-execution bridge (Phase A: no-op placeholders)
     ("music_on_hold", "configure"): 5,   # Settings tier — location must exist + calling enabled
     ("announcement", "upload"): 1,       # Routing backbone — features reference announcements
+    # Executive/assistant pairing (from 2026-04-10-executive-assistant-migration.md §4e)
+    # Type assignments must precede pairing; pairing must precede alert/filtering/screening.
+    # Steps 4-7 (alert, filtering, screening, assistant settings) can run in parallel after step 3.
+    ("executive_assistant", "assign_executive_type"): 5,
+    ("executive_assistant", "assign_assistant_type"): 5,
+    ("executive_assistant", "assign_assistants"): 5,
+    ("executive_assistant", "configure_alert"): 5,
+    ("executive_assistant", "configure_filtering"): 5,
+    ("executive_assistant", "configure_screening"): 5,
+    ("executive_assistant", "configure_assistant_settings"): 5,
 }
 
 # ---------------------------------------------------------------------------
@@ -230,6 +240,14 @@ API_CALL_ESTIMATES: dict[str, int] = {
     # Advisory-to-execution bridge (Phase A: no-op placeholders, 0 API calls)
     "music_on_hold:configure": 0,
     "announcement:upload": 0,
+    # Executive/assistant pairing
+    "executive_assistant:assign_executive_type": 1,   # PUT /people/{id}/features/executiveAssistant
+    "executive_assistant:assign_assistant_type": 2,   # PUT per assistant (typically 1-3)
+    "executive_assistant:assign_assistants": 1,        # PUT /telephony/config/people/{id}/executive/assignedAssistants
+    "executive_assistant:configure_alert": 1,          # PUT /telephony/config/people/{id}/executive/alert
+    "executive_assistant:configure_filtering": 1,      # PUT /telephony/config/people/{id}/executive/callFiltering
+    "executive_assistant:configure_screening": 1,      # PUT /telephony/config/people/{id}/executive/screening
+    "executive_assistant:configure_assistant_settings": 2,  # PUT per assistant /executive/assistant
 }
 
 # ---------------------------------------------------------------------------

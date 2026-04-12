@@ -1019,6 +1019,76 @@ def _expand_receptionist_config(obj: dict) -> list:
                 f"Configure receptionist client for {cid}",
                 depends_on=deps)]
 
+
+def _expand_executive_assistant(obj: dict[str, Any]) -> list[MigrationOp]:
+    """Executive/assistant pairing → up to 7 ops.
+
+    Execution order (from spec §3g):
+    1. assign_executive_type  — depends on executive user:create
+    2. assign_assistant_type  — depends on all assistant user:create
+    3. assign_assistants      — depends on steps 1 + 2 (both type ops)
+    4-7. configure_alert, configure_filtering, configure_screening,
+         configure_assistant_settings — each depends on step 3
+
+    If the executive or all assistants are unresolved, the pairing has no
+    users to act on and produces no ops. Individual unresolved assistants are
+    silently skipped at handler time.
+    (from 2026-04-10-executive-assistant-migration.md §4e)
+    """
+    cid = obj["canonical_id"]
+    exec_cid = obj.get("executive_canonical_id")
+    asst_cids = obj.get("assistant_canonical_ids") or []
+
+    if not exec_cid and not asst_cids:
+        return []
+
+    # Build dependencies for type-assignment ops
+    exec_user_dep = [_node_id(exec_cid, "create")] if exec_cid else []
+    asst_user_deps = [_node_id(a, "create") for a in asst_cids if a]
+
+    # Step 1: assign executive type
+    assign_exec_type_node = _node_id(cid, "assign_executive_type")
+    ops = [_op(cid, "assign_executive_type", "executive_assistant",
+               f"Set EXECUTIVE type for {exec_cid or cid}",
+               depends_on=exec_user_dep)]
+
+    # Step 2: assign assistant types (one op covers all assistants in the handler)
+    assign_asst_type_node = _node_id(cid, "assign_assistant_type")
+    ops.append(_op(cid, "assign_assistant_type", "executive_assistant",
+                   f"Set EXECUTIVE_ASSISTANT type for assistants of {cid}",
+                   depends_on=asst_user_deps))
+
+    # Step 3: pair assistants to executive — depends on both type assignments
+    assign_assistants_node = _node_id(cid, "assign_assistants")
+    ops.append(_op(cid, "assign_assistants", "executive_assistant",
+                   f"Assign assistants to executive {exec_cid or cid}",
+                   depends_on=[assign_exec_type_node, assign_asst_type_node]))
+
+    # Steps 4-7: post-pairing configuration — all depend on step 3
+    post_deps = [assign_assistants_node]
+
+    ops.append(_op(cid, "configure_alert", "executive_assistant",
+                   f"Configure executive alert settings for {exec_cid or cid}",
+                   depends_on=post_deps))
+
+    if obj.get("filter_enabled"):
+        ops.append(_op(cid, "configure_filtering", "executive_assistant",
+                       f"Configure executive call filtering for {exec_cid or cid}",
+                       depends_on=post_deps))
+
+    if obj.get("screening_enabled"):
+        ops.append(_op(cid, "configure_screening", "executive_assistant",
+                       f"Configure executive call screening for {exec_cid or cid}",
+                       depends_on=post_deps))
+
+    if asst_cids:
+        ops.append(_op(cid, "configure_assistant_settings", "executive_assistant",
+                       f"Configure assistant settings for {cid}",
+                       depends_on=post_deps))
+
+    return ops
+
+
 _EXPANDERS: dict[str, Any] = {
     "location": lambda obj, _: _expand_location(obj),
     "trunk": lambda obj, _: _expand_trunk(obj),
@@ -1054,6 +1124,7 @@ _EXPANDERS: dict[str, Any] = {
     "hoteling_location": lambda obj, _: _expand_hoteling_location(obj),
     "music_on_hold": lambda obj, _: _expand_music_on_hold(obj),
     "announcement": lambda obj, _: _expand_announcement(obj),
+    "executive_assistant": lambda obj, _: _expand_executive_assistant(obj),
 }
 
 
