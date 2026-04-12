@@ -72,7 +72,7 @@ members = [{"id": deps[cid]} for cid in member_cids if cid in deps]
 
 ## Handler Inventory
 
-All 35 handlers in `HANDLER_REGISTRY`:
+All 36 handlers in `HANDLER_REGISTRY`:
 
 ### Tier 0 — Infrastructure
 | Key | URL | Notes |
@@ -124,6 +124,7 @@ All 35 handlers in `HANDLER_REGISTRY`:
 | `(device_settings_template, apply_device_override)` | PUT `/telephony/config/devices/{id}/settings` | Apply per-device settings override |
 | `(device_profile, enable_hoteling_guest)` | PUT `/people/{id}/features/hoteling` | Enables EM-subscribed user as hoteling guest |
 | `(device_profile, enable_hoteling_host)` | PUT `/telephony/config/people/{id}/devices/settings/hoteling` | Configures EM-enabled device as hoteling host (no-op when host data unavailable) |
+| `(ecbn_config, configure)` | PUT `/telephony/config/{people|workspaces|virtualLines}/{id}/emergencyCallbackNumber` | Configures per-entity ECBN selection |
 
 ### Tier 0 — Hoteling location (voice portal sign-in)
 | Key | URL | Notes |
