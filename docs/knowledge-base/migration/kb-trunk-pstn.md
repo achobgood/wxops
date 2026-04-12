@@ -197,11 +197,53 @@ Two trunk types exist in Webex Calling, determined at creation time and immutabl
 - **Advisor should:** For each MGCP or H.323 object flagged by `detect_legacy_gateway_protocols`, project forward to the expected post-conversion topology and surface the remaining decisions explicitly: (1) After conversion, will the device run IOS-XE CUBE → flag for REGISTERING type (DT-TRUNK-004). (2) After conversion, will a third-party SBC handle the call leg → flag for CERTIFICATE_BASED type (DT-TRUNK-004). (3) After conversion, is the resulting connection pure carrier SIP with no on-premises SBC → flag for `pstn_connection_type` decision (DT-TRUNK-002: LGW vs CCPP). Present these as a sequenced checklist: "Before provisioning this trunk in Webex, verify: (a) protocol conversion is complete, (b) trunk type has been determined (REGISTERING vs CERTIFICATE_BASED), (c) PSTN connection type has been determined (LGW vs CCPP)."
 - **Confidence:** HIGH
 
+## Route List Complexity
+
+<!-- Added 2026-04-12 for advisory Pattern 32 -->
+
+### The Constraint: One Route Group Per Webex Route List
+
+CUCM route lists are multi-member ordered lists — a single route list can contain multiple route groups (e.g., `US-West-RG` as primary, `US-East-RG` as backup). This ordered membership is the mechanism for geographic PSTN failover: when the first route group's trunks are unavailable, CUCM tries the next member in sequence. Webex route lists bind to exactly one route group (`routeGroupId` is a required singular field in the POST body — see `docs/reference/call-routing.md` §Route Lists). There is no concept of ordered failover across route groups at the route list level.
+
+### Split vs Flatten: When Each Applies
+
+When a CUCM route list has N route group members, the migration mapper produces a FEATURE_APPROXIMATION decision with three options:
+
+| Option | Result | When to Use |
+|--------|--------|-------------|
+| **Split** | N Webex route lists, one per route group member | Geographic PSTN failover is a live requirement. Each site's trunks must remain independently routable. The customer's dial plan already distinguishes inbound DID ranges by region. |
+| **Flatten** | 1 Webex route list using the first (primary) route group | The secondary route groups were CUCM-era redundancy that the customer is retiring. All calls will use a single carrier/SBC post-migration. SRST is not a concern (cloud survivability handles it). |
+| **Skip** | No Webex route list created | The route list was an engineering artifact — its dial patterns are being removed, its number range is being decommissioned, or it was part of an over-engineered dial plan that simplifies away on Webex. |
+
+**Split is the safer default for Dedicated Instance deployments.** Webex Calling Dedicated Instance requires route lists to bind phone numbers to the correct route group for cloud PSTN connectivity. Flattening loses which DIDs are reachable via which trunk, which can prevent Dedicated Instance PSTN calls from routing correctly. When in doubt with a DI topology, split.
+
+### Concrete Example
+
+```
+CUCM route list: US-Failover-RL
+  Member 1 (primary):  US-West-RG  → SJ-GW trunk (priority 1)
+  Member 2 (backup):   US-East-RG  → NY-GW trunk (priority 1)
+
+Split result (2 Webex route lists):
+  US-Failover-RL-West  → US-West-RG  (numbers: +14085551000–+14085551999)
+  US-Failover-RL-East  → US-East-RG  (numbers: +12125551000–+12125551999)
+
+Flatten result (1 Webex route list):
+  US-Failover-RL       → US-West-RG  (all numbers: both ranges)
+  [US-East-RG no longer in routing path]
+```
+
+The split result preserves regional DID bindings. Dial plans that previously pointed at `US-Failover-RL` now must be updated to reference the correct split list — or if Webex dial plans cannot reference route lists directly (RouteType enum only exposes `ROUTE_GROUP` and `TRUNK`), the route groups remain the dial-plan target and the route lists serve as number-binding containers for Dedicated Instance connectivity.
+
+### Advisory Pattern
+
+`detect_route_list_complexity` (Pattern 32, `advisory_patterns.py`) fires as a MEDIUM/HIGH cross-cutting advisory when any route list in the store has multiple route group members. HIGH fires when every route list is multi-member (entire routing layer needs decisions). MEDIUM fires when a mix of single-member and multi-member route lists exists. The advisory quantifies total Webex route list count under each option so the operator understands scope before reaching individual per-list FEATURE_APPROXIMATION decisions in the review queue.
+
 ## See Also
 
 - `docs/reference/call-routing.md` -- Full Webex call routing API reference (trunks, route groups, dial plans, translation patterns, PSTN config)
 - `docs/reference/emergency-services.md` -- E911 implications for PSTN routing
-- `src/wxcli/migration/advisory/advisory_patterns.py` -- Pattern 8 (trunk consolidation), Pattern 12 (CPN transformation), Pattern 13 (PSTN connection type), Pattern 19 (transformation patterns)
+- `src/wxcli/migration/advisory/advisory_patterns.py` -- Pattern 8 (trunk consolidation), Pattern 12 (CPN transformation), Pattern 13 (PSTN connection type), Pattern 19 (transformation patterns), Pattern 32 (route list complexity)
 - `docs/knowledge-base/migration/kb-css-routing.md` -- CSS/partition routing decisions (related: dial plan scoping differences)
 
 ---
