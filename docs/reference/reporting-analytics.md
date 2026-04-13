@@ -37,8 +37,10 @@ CDR feed, report templates, report generation/download, and call quality/queue/A
 | CDR Stream path | `/v1/cdr_stream` |
 | Method | `GET` |
 
-- **CDR Feed** (`cdr_feed`) — Pull records for a specific time window. Best for batch/historical pulls.
-- **CDR Stream** (`cdr_stream`) — Returns records based on their **insertion time** into the Webex Calling cloud (when data became available), vs CDR Feed which uses the call's actual start/end time. CDR Stream is better for near-real-time monitoring since it returns records as soon as they are ingested, regardless of when the call occurred. CDR Feed is better for historical/batch pulls where you want all calls within a specific time window.
+- **CDR Feed** (`cdr_feed`) — Pull records for a specific time window based on **call start time**. Best for batch/historical pulls. 12-hour max window, 30-day retention.
+- **CDR Stream** (`cdr_stream`) — Returns records based on their **database write time** (when the record was ingested into the Webex Calling cloud), not when the call occurred. 2-hour max window, 12-hour retention. Best for near-real-time monitoring — catches late-arriving records that Feed may miss.
+
+**Late-arriving records:** A call placed at 11:59 lasting 10 minutes generates a CDR record around 12:10. CDR Feed querying 11:00–12:00 misses this call (it started in-window but the record didn't exist yet). CDR Stream querying 12:00–13:00 catches it because it queries by write time, not call time.
 
 If the region's servers do not host the organization's data, an **HTTP 451** is returned. The response body contains the correct regional endpoint to use instead.
 
@@ -46,23 +48,29 @@ If the region's servers do not host the organization's data, an **HTTP 451** is 
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `startTime` | ISO 8601 datetime | Yes | Start of time window (report time = call finish time). Must be between 5 minutes ago and 30 days ago. |
+| `startTime` | ISO 8601 datetime | Yes | Start of time window. Feed: call start time. Stream: database write time. |
 | `endTime` | ISO 8601 datetime | Yes | End of time window. Must be after `startTime`. |
 | `locations` | comma-separated strings | No | Location names (as shown in Control Hub). Up to 10. |
 | `max` | int | No | Results per page (pagination). |
 
 ### Time Range Constraints
 
-- **Oldest data:** 30 days prior to current UTC time.
-- **Newest data:** 5 minutes ago (minimum latency before records appear).
-- **Maximum window per request:** 12 hours (the gap between `startTime` and `endTime`).
-- **Data availability:** A call that ends at 9:46 AM is available starting at 9:51 AM and remains for 30 days.
-- **Data generation lag:** CDR records may take up to 24 hours after call completion to appear.
+| Constraint | CDR Feed | CDR Stream |
+|------------|----------|------------|
+| **Timestamp meaning** | Call start time | Database write time |
+| **Max window per request** | 12 hours | 2 hours |
+| **Data retention** | 30 days | 12 hours |
+| **Oldest data** | 30 days ago | 12 hours ago |
+| **Newest data** | ~5 minutes ago | ~1 minute ago |
+
+- **Data generation lag:** CDR records may take up to 24 hours after call completion to fully populate. Most appear within 5 minutes.
+- **Late records:** CDR Stream automatically captures late-arriving records via write-time semantics. CDR Feed may miss calls whose records are generated after the queried window closes.
 
 ### Rate Limits
 
 - **1 initial request per minute** per user token.
 - **Up to 10 additional pagination requests per minute** per user token.
+- A 7-day historical pull via CDR Feed requires 14 sequential requests = ~14 minutes. For windows >7 days, consider the Reports API (Detailed Call History template) instead.
 
 ### Pagination
 
@@ -191,9 +199,61 @@ The `CDR` model (class `wxc_sdk.cdr.CDR`) contains 55+ fields. Field names arriv
 | `local_call_id` | `str` | Used with Remote call ID to correlate CDR legs. |
 | `remote_call_id` | `str` | Used with Local call ID to identify remote CDR of a leg. |
 | `network_call_id` | `str` | Same value = same call leg across CDRs. |
-| `related_call_id` | `str` | Call ID of a call created by this call (service activation). |
-| `transfer_related_call_id` | `str` | Call ID of the other party in a transfer. |
+| `related_call_id` | `str` | Call ID of a different call created by this call due to service activation (e.g., call recording, executive-assistant). Not used for transfers. |
+| `transfer_related_call_id` | `str` | Correlation ID of the other call involved in an **attended (consultative) transfer**. Not populated for blind transfers. |
 | `interaction_id` | `str` | Correlates CDRs linked by service interaction (e.g., consult + transfer). |
+
+### CDR Data Model — Call Legs and ID Relationships
+
+Every call generates one CDR record per **call leg**. A call leg is one participant's perspective of the call. Understanding how legs relate is critical for accurate reporting.
+
+#### How legs are generated
+
+| Scenario | Legs Generated | Correlation ID |
+|----------|---------------|----------------|
+| **Simple point-to-point call** | 2 legs: ORIGINATING (caller) + TERMINATING (callee) | Same Correlation ID on both legs |
+| **Blind transfer** | Original call: 2 legs. New call to transfer target: 2 new legs with a **new Correlation ID**. `Transfer related call ID` is **not populated**. | Different Correlation ID per call |
+| **Attended (consultative) transfer** | Original call: 2 legs. Consultation call: 2 legs with a new Correlation ID. After transfer completes, the consultation leg's `Transfer related call ID` contains the **Correlation ID of the original call**. | Different Correlation ID per call, linked by `Transfer related call ID` |
+| **Hunt Group / Call Queue** | Inbound call + each agent delivery attempt all share the **same Correlation ID**. Each ring/attempt to an agent generates a TERMINATING leg. | Same Correlation ID throughout |
+| **Call forwarding (CFA/CFB/CFNA)** | Original call legs + forwarded legs share the same Correlation ID. `Redirect reason` and `Original reason` explain why it was forwarded. | Same Correlation ID |
+| **Call park + retrieve** | Park and retrieve events share the same Correlation ID. `Related reason` = `CallPark` or `CallParkRetrieve`. | Same Correlation ID |
+
+#### Key ID relationships
+
+```
+Correlation ID ─── groups all legs of ONE call (or one HG/CQ interaction)
+    │
+    ├── Call ID ─── unique per leg (SIP Call ID)
+    │
+    ├── Transfer Related Call ID ─── points to the Correlation ID of the
+    │                                OTHER call in an attended transfer
+    │                                (NOT populated for blind transfers)
+    │
+    ├── Related Call ID ─── points to the Call ID of a different call
+    │                       created by service activation (recording,
+    │                       exec-assistant, etc.) — NOT transfers
+    │
+    └── Interaction ID ─── correlates CDRs linked by service interaction
+                           (consult + transfer sequence)
+```
+
+#### Direction semantics per leg
+
+- **ORIGINATING**: The leg from the perspective of the party who **placed** the call (or initiated the transfer/forward).
+- **TERMINATING**: The leg from the perspective of the party who **received** the call (or was the target of a transfer/forward).
+- A single call always produces at least one ORIGINATING and one TERMINATING leg.
+- Hunt group/call queue calls produce one ORIGINATING leg (the inbound caller) and multiple TERMINATING legs (one per agent attempt).
+
+#### Answer indicator per leg
+
+- `Yes` — this specific leg was answered by the target party.
+- `No` — this leg was not answered (rang out, rejected, or redirected before answer).
+- `Yes-PostRedirection` — this leg was answered, but only after being redirected (forwarded/transferred) from another destination.
+- In a hunt group with 5 ring attempts, only the agent who answered has `Answer indicator = Yes`; the other 4 have `No`.
+
+#### Webhook delivery and deduplication
+
+CDR webhooks deliver records every 5 minutes with automatic late-record backfill. Duplicate records may appear in subsequent payloads. Use the `report_id` field as the primary dedup key and `report_time` to determine record freshness.
 
 #### Routing / Redirect Fields
 
@@ -299,6 +359,10 @@ The `CDR` model (class `wxc_sdk.cdr.CDR`) contains 55+ fields. Field names arriv
 | `SIP_TOLLFREE` | Toll-free call |
 | `SIP_NATIONAL` | National call |
 | `SIP_MOBILE` | Mobile call |
+| `SIP_URI` | SIP URI call |
+| `SIP_OPERATOR` | Operator-assisted call |
+| `SIP_CLICKTOCALL` | Click-to-call initiated |
+| `ZTN` | Zero-touch notification |
 | `UNKNOWN` | Unknown call type |
 
 #### CDRClientType
@@ -309,6 +373,10 @@ The `CDR` model (class `wxc_sdk.cdr.CDR`) contains 55+ fields. Field names arriv
 | `WXC_CLIENT` | Webex Calling native client |
 | `WXC_THIRD_PARTY` | Third-party client |
 | `TEAMS_WXC_CLIENT` | Teams with Webex Calling client |
+| `TEAMS_CLIENT` | Microsoft Teams client |
+| `TEAMS_DEVICE` | Microsoft Teams device |
+| `TEAMS_SHARE` | Microsoft Teams shared device |
+| `CLOUD_AWARE_SIP` | Cloud-aware SIP endpoint |
 | `WXC_DEVICE` | Webex Calling device |
 | `WXC_SIP_GW` | Webex Calling SIP gateway |
 
@@ -329,11 +397,11 @@ Values: `Unconditional`, `NoAnswer`, `CallQueue`, `TimeOfDay`, `UserBusy`, `Foll
 
 #### CDRRelatedReason
 
-Values: `ConsultativeTransfer`, `CallForwardSelective`, `CallPark`, `CallParkRetrieve`, `CallQueue`, `Unrecognised`, `CallPickup`, `CallForwardAlways`, `CallForwardBusy`, `FaxDeposit`, `HuntGroup`, `PushNotificationRetrieval`, `VoiceXMLScriptTermination`, `CallForwardNoAnswer`, `AnywhereLocation`, `CallRetrieve`, `Deflection`, `DirectedCallPickup`, `CallForwardModeBased`
+Values: `ConsultativeTransfer`, `CallForwardSelective`, `CallForwardAlways`, `CallForwardNoAnswer`, `CallForwardBusy`, `CallForwardNotReachable`, `CallForwardModeBased`, `CallPark`, `CallParkRetrieve`, `CallQueue`, `CallPickup`, `DirectedCallPickup`, `CallRetrieve`, `CallRecording`, `Deflection`, `FaxDeposit`, `HuntGroup`, `PushNotificationRetrieval`, `VoiceXMLScriptTermination`, `AnywhereLocation`, `AnywherePortal`, `Executive`, `ExecutiveAssistantInitiateCall`, `ExecutiveAssistantDivert`, `ExecutiveAssistantCallPush`, `ExecutiveForward`, `RemoteOffice`, `RoutePoint`, `SequentialRing`, `SimultaneousRingPersonal`, `CCMonitoringBI`, `BargeIn`, `Unrecognised`
 
 #### CDRUserType
 
-Values: `AutomatedAttendantVideo`, `Anchor`, `BroadworksAnywhere`, `VoiceMailRetrieval`, `LocalGateway`, `HuntGroup`, `GroupPaging`, `User`, `VoiceMailGroup`, `CallCenterStandard`, `CallCenterPremium`, `VoiceXML`, `RoutePoint`, `VirtualLine`, `Place`
+Values: `AutomatedAttendantVideo`, `Anchor`, `BroadworksAnywhere`, `VoiceMailRetrieval`, `LocalGateway`, `HuntGroup`, `GroupPaging`, `User`, `VoiceMailGroup`, `CallCenterStandard`, `CallCenterPremium`, `VoiceXML`, `RoutePoint`, `VirtualLine`, `Place`, `RouteList`
 
 ---
 
