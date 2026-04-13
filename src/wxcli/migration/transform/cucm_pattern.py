@@ -27,7 +27,9 @@ import re
 # in overlap detection (it over-matches, so overlapping patterns are always
 # detected). generate_representative_strings compensates by producing
 # US-format 10-digit numbers for '@' patterns.
-# <!-- NEEDS VERIFICATION: exact CUCM @ macro expansion rules per country -->
+# CUCM @ pattern matches "any dialed number" — exact expansion varies by
+# cluster/country dial plan. [0-9]{1,15} is a conservative over-match that
+# never produces false negatives in overlap detection. Safe approximation.
 # ---------------------------------------------------------------------------
 _AT_MACRO_REGEX = "[0-9]{1,15}"
 

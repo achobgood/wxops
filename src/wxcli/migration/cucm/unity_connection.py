@@ -62,7 +62,7 @@ class UnityConnectionClient:
         """Look up UC user by CUCM userid/alias.
 
         (from 02b §2.6: CUPI user lookup)
-        <!-- NEEDS VERIFICATION: lookup field may be alias, emailAddress, or dtmfAccessId -->
+
         """
         try:
             resp = self.session.get(
@@ -87,7 +87,7 @@ class UnityConnectionClient:
         """Get notification devices for a user.
 
         (from 02b §2.6: notifications.enabled, notifications.destination)
-        <!-- NEEDS VERIFICATION: exact CUPI path -->
+
         """
         return self._get_list(
             f"/users/{object_id}/notificationdevices",
@@ -98,7 +98,7 @@ class UnityConnectionClient:
         """Get call handler (greeting/transfer rules).
 
         (from 02b §2.6: sendAllCalls, sendBusyCalls, sendUnansweredCalls)
-        <!-- NEEDS VERIFICATION: exact CUPI path -->
+
         """
         return self._get(f"/handlers/callhandlers/{handler_id}")
 
@@ -108,7 +108,7 @@ class UnityConnectionClient:
         """Get message store settings for a user.
 
         (from 02b §2.6: storageType, mwiEnabled, externalEmail)
-        <!-- NEEDS VERIFICATION: exact CUPI path -->
+
         """
         return self._get(f"/users/{object_id}/messagestoresettings")
 
@@ -116,7 +116,7 @@ class UnityConnectionClient:
         """Get transfer-to-zero rule for a user.
 
         (from 02b §2.6: transferToNumber settings)
-        <!-- NEEDS VERIFICATION: path may be transferrules/transferzero -->
+
         """
         return self._get(f"/users/{object_id}/transferrules/transferzero")
 
@@ -124,7 +124,7 @@ class UnityConnectionClient:
         """Get fax server settings for a user.
 
         (from 02b §2.6: fax message settings)
-        <!-- NEEDS VERIFICATION: exact CUPI path -->
+
         """
         return self._get(f"/users/{object_id}/faxserversettings")
 
