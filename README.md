@@ -1,6 +1,6 @@
 # wxcli — Webex Calling CLI
 
-A command-line tool for provisioning and managing Webex Calling environments. 100 command groups covering the full Webex Calling, admin, device, and messaging API surface.
+A command-line tool for provisioning and managing Webex Calling environments. 166 command groups covering the full Webex Calling, admin, device, messaging, meetings, and contact center API surface.
 
 ## Install
 
@@ -27,7 +27,7 @@ wxcli whoami
 ## Usage
 
 ```bash
-# See all 100 command groups
+# See all 166 command groups
 wxcli --help
 
 # List calling-enabled locations
@@ -110,11 +110,11 @@ wxcli numbers list --location-id LOC_ID  # Get number inventory
 | `pstn` | PSTN connection management |
 | `cx-essentials` | Customer Assist (screen pop, wrap-up, supervisors) |
 
-This table shows the 31 most commonly used groups. Run `wxcli --help` to see all ~100 groups, which also cover admin, device, and messaging APIs.
+This table shows the most commonly used groups. Run `wxcli --help` to see all 166 groups, which also cover admin, device, messaging, meetings, and contact center APIs.
 
 ## CUCM-to-Webex Migration Tool
 
-A full migration pipeline at `src/wxcli/migration/` that analyzes a CUCM environment, maps objects to Webex Calling equivalents, and executes the migration. 1426 tests passing.
+A full migration pipeline at `src/wxcli/migration/` that analyzes a CUCM environment, maps objects to Webex Calling equivalents, and executes the migration. 2535 tests passing.
 
 ### Pipeline
 
@@ -124,12 +124,12 @@ wxcli cucm discover --host 10.0.0.1 \    # Extract from CUCM via AXL
   --username admin --password secret -p myproject
 wxcli cucm normalize -p myproject         # Normalize to canonical models
 wxcli cucm map -p myproject               # Map CUCM objects to Webex operations
-wxcli cucm analyze -p myproject           # Run 13 analyzers, generate decisions
+wxcli cucm analyze -p myproject           # Run 14 analyzers, generate decisions
 wxcli cucm report --brand "Acme Corp" \   # Generate HTML assessment report
   --prepared-by "Jane Admin" -p myproject
 ```
 
-The assessment report provides a complexity score, environment inventory, analog gateway review, and effort estimates — suitable for customer-facing delivery.
+The assessment report provides a complexity score, environment inventory, analog gateway review, and effort estimates — suitable for customer-facing delivery. See [`assessment-report-v3.html`](assessment-report-v3.html) for a sample report.
 
 ### Execution
 
@@ -148,10 +148,10 @@ The execution engine handles 409 auto-recovery (existing resources), cascade-ski
 ### Architecture
 
 - **SQLite-backed store** with objects, cross-references, decisions, and journal
-- **37 normalizers** (Pass 1) + CrossReferenceBuilder (28 relationships)
-- **20 mappers** that convert CUCM objects to Webex Calling operations
-- **13 analyzers** that surface decisions requiring human review
-- **Advisory system** with 19 per-decision rules + 16 cross-cutting patterns
+- **42 normalizers** (Pass 1) + CrossReferenceBuilder (34 relationships)
+- **26 mappers** that convert CUCM objects to Webex Calling operations
+- **14 analyzers** that surface decisions requiring human review
+- **Advisory system** with 19 per-decision rules + 30 cross-cutting patterns
 - **NetworkX DAG** for dependency ordering and batch planning
 - **Async execution engine** with configurable concurrency
 
@@ -170,8 +170,8 @@ A guided AI assistant that walks you through Webex Calling configuration end-to-
 ### What's Included
 
 - **1 builder agent** (`/agents` → wxc-calling-builder) — the main entry point that drives the full workflow
-- **17 specialized skills** covering: provisioning & teardown, call features, Customer Assist, routing, devices, device platform, call settings, call control, reporting, identity/SCIM, licensing, audit/compliance, messaging spaces, messaging bots, CUCM migration, debugging, and a seven-advisors decision framework
-- **42 reference docs** in `docs/reference/` documenting every Webex Calling API surface with SDK method signatures, raw HTTP examples, and verified gotchas
+- **22 specialized skills** covering: provisioning & teardown, call features, Customer Assist, routing, devices, device platform, call settings, call control, reporting (calling, meetings, contact center), identity/SCIM, licensing, audit/compliance, messaging spaces, messaging bots, meetings, video mesh, contact center, CUCM migration, and debugging
+- **48 reference docs** in `docs/reference/` documenting every Webex Calling API surface with SDK method signatures, raw HTTP examples, and gotchas
 - **Shared permissions** (`.claude/settings.json`) that pre-approve `wxcli` commands so Claude Code doesn't prompt you for every CLI execution
 
 ### How to Use It
@@ -190,36 +190,36 @@ The repo includes a `.claude/settings.json` that pre-approves common commands (`
 The AI playbook is optional — everything else works standalone:
 
 - **wxcli** is a regular Python CLI tool. Install it and use it directly.
-- The **29 reference docs** in `docs/reference/` are a comprehensive API knowledge base, useful for any developer working with Webex APIs.
-- The **OpenAPI specs** (`webex-*.json`) can be imported into Postman or any API client.
+- The **48 reference docs** in `docs/reference/` are a comprehensive API knowledge base, useful for any developer working with Webex APIs.
+- The **7 OpenAPI specs** (`specs/webex-*.json`) can be imported into Postman or any API client.
 
 ## Project Architecture
 
 ```
 webexCalling/
 ├── src/wxcli/                    # CLI source (Typer + wxc-sdk REST client)
-│   ├── main.py                   # Entry point — registers 100 command groups
+│   ├── main.py                   # Entry point — registers 166 command groups
 │   ├── auth.py                   # Token storage and API client init
 │   ├── output.py                 # Table/JSON output formatting
-│   ├── commands/                 # 100 generated command files (one per API group)
+│   ├── commands/                 # 166 generated command files (one per API group)
 │   └── migration/                # CUCM-to-Webex migration engine
 │       ├── cucm/                 # AXL extractors and discovery
 │       ├── transform/            # Normalizers, mappers, analyzers
 │       ├── execute/              # Async execution engine + handlers
 │       ├── advisory/             # Decision recommendations
 │       ├── report/               # HTML/PDF assessment report generator
-│       └── models.py             # 23 canonical data models
+│       └── models.py             # 38 canonical data models
 ├── tools/                        # Code generator pipeline
 │   ├── generate_commands.py      # Orchestrator: OpenAPI → Click commands
 │   ├── openapi_parser.py         # Parses OpenAPI 3.0 specs into Endpoint objects
 │   ├── command_renderer.py       # Renders Endpoints into Python command files
 │   └── field_overrides.yaml      # Table columns, display config, bug fixes
-├── tests/                        # 1426 tests (pytest)
-├── webex-*.json                  # 4 OpenAPI 3.0 specs (calling, admin, device, messaging)
-├── docs/reference/               # 40 API reference docs (SDK + raw HTTP + gotchas)
+├── tests/                        # 2535 tests (pytest)
+├── specs/                        # 7 OpenAPI 3.0 specs (calling, admin, device, messaging, meetings, CC, wholesale)
+├── docs/reference/               # 48 API reference docs (SDK + raw HTTP + gotchas)
 ├── .claude/settings.json         # Shared permissions (pre-approves wxcli commands)
-├── .claude/agents/               # Claude Code builder agent
-└── .claude/skills/               # 17 Claude Code skills
+├── .claude/agents/               # Claude Code builder + migration advisor agents
+└── .claude/skills/               # 22 Claude Code skills
 ```
 
 **Key design decisions:**
