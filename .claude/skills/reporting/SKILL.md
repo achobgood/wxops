@@ -1552,6 +1552,7 @@ for (caller, called), count in sorted(repeats.items(), key=lambda x: x[1], rever
 
 **Recipe 70 — Spam that reached a queue and was abandoned**
 Question: "Spam calls that made it into a queue and the caller hung up?"
+# Output: Time | Rep Score | Rep Result | Calling # | Queue Type
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -1566,13 +1567,14 @@ if not spam_queue_abandoned:
     print('No matching records found in this time window.')
 else:
     for c in spam_queue_abandoned[:10]:
-        print(f\"  {c.get('Start time')} | score={c.get('Caller Reputation Score')} | {c.get('Calling number')} | queue={c.get('Queue type')}\")
+        print(f\"  {c.get('Start time','')[:16]} | score={c.get('Caller Reputation Score','?')} | {c.get('Caller Reputation Service Result','?')} | {c.get('Calling number','?')} | queue={c.get('Queue type','?')}\")
 "
 ```
 
 **Recipe 71 — International calls on a specific trunk during business hours**
 Question: "International calls on trunk X during business hours?"
 Note: Replace TRUNK_NAME with the actual trunk name.
+# Output: Time | User | Called # | Duration(s) | Trunk
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -1588,13 +1590,15 @@ print(f'Total duration: {total_dur/60:.1f} min')
 if not results:
     print('No matching records found in this time window.')
 else:
-    for c in results[:10]:
-        print(f\"  {c.get('Start time')} | {c.get('User')} | {c.get('Called number')} | {c.get('Duration')}s\")
+    for r in results[:10]:
+        trunk_used = r.get('Outbound trunk') or r.get('Inbound trunk','?')
+        print(f\"  {r.get('Start time','')[:16]} | {r.get('User','?')} | {r.get('Called number','?')} | {r.get('Duration','?')}s | {trunk_used}\")
 "
 ```
 
 **Recipe 72 — Calls forwarded twice that ended in voicemail**
 Question: "Calls that were forwarded multiple times and ended in voicemail?"
+# Output: Time | Calling # | Legs | Redirected Legs
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -1616,13 +1620,15 @@ if not multi_fwd_vm:
     print('No matching records found in this time window.')
 else:
     for cid, legs in multi_fwd_vm[:5]:
-        first = sorted(legs, key=lambda x: x.get('Start time', ''))[0]
-        print(f\"  {first.get('Start time')} | {first.get('Calling number')} | {len(legs)} legs\")
+        first = sorted(legs, key=lambda x: x.get('Start time',''))[0]
+        redirected_count = len([l for l in legs if l.get('Redirect reason')])
+        print(f\"  {first.get('Start time','')[:16]} | {first.get('Calling number','?')} | {len(legs)} legs | {redirected_count} redirected\")
 "
 ```
 
 **Recipe 73 — Missed calls from repeat callers**
 Question: "Repeat callers we keep missing?"
+# Output: Calling # | Missed Count
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -1639,6 +1645,7 @@ for num, count in sorted(repeats.items(), key=lambda x: x[1], reverse=True)[:15]
 
 **Recipe 74 — Long-hold calls that were transferred**
 Question: "Calls with long hold that ended up being transferred?"
+# Output: Time | User | Hold Duration(s) | Calling # | Called # | Related Reason
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -1651,12 +1658,13 @@ if not hold_transfer:
     print('No matching records found in this time window.')
 else:
     for c in hold_transfer[:10]:
-        print(f\"  {c.get('Start time')} | {c.get('User')} | hold {c.get('Hold duration')}s | {c.get('Related reason')}\")
+        print(f\"  {c.get('Start time','')[:16]} | {c.get('User','?')} | hold {c.get('Hold duration','?')}s | {c.get('Calling number','?')} -> {c.get('Called number','?')} | {c.get('Related reason','?')}\")
 "
 ```
 
 **Recipe 75 — After-hours emergency calls**
 Question: "Emergency calls outside business hours?"
+# Output: Time | User | Location | Calling # | Called #
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
