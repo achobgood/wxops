@@ -112,6 +112,8 @@ wxcli cdr list --start-time "2026-04-10T14:00:00.000Z" --end-time "2026-04-10T16
 
 #### CDR Stream (near-real-time)
 
+CDR Stream uses **database write time** (not call start time), has a **2-hour max window** and **12-hour retention**. Use it for near-real-time monitoring or to catch late-arriving records that Feed may miss.
+
 ```bash
 wxcli cdr list-cdr_stream --start-time "2026-04-10T14:00:00.000Z" --end-time "2026-04-10T16:00:00.000Z" -o json
 ```
@@ -133,10 +135,26 @@ Use this guide to construct CDR queries for ANY natural-language question. The r
 
 **Time window rules:**
 - Replace START/END with ISO 8601 timestamps: `2026-04-10T14:00:00.000Z`
-- Maximum 12-hour window per request — for longer ranges, issue multiple requests
-- Data available for the last 30 days only, with a minimum 5-minute delay
+- **CDR Feed** (`wxcli cdr list`): 12-hour max window, 30-day retention, timestamps = call start time
+- **CDR Stream** (`wxcli cdr list-cdr_stream`): 2-hour max window, 12-hour retention, timestamps = database write time
+- All recipes use CDR Feed unless noted otherwise
+- Data available for the last 30 days (Feed) or 12 hours (Stream), with a minimum 5-minute delay
 - Add `--locations "Name1,Name2"` to filter by location (up to 10)
 - `--limit` is not supported for CDR: `wxcli cdr list` auto-paginates and always returns all records in the window regardless of `--limit`. To get a small sample, use a short time window (30 minutes) instead of relying on `--limit`.
+
+### CDR Call Leg Model
+
+Every call generates one CDR record per **call leg** (one per participant perspective). Understanding leg relationships is essential for correct recipe logic:
+
+- **Correlation ID** groups all legs of one call. A simple call has 2 legs (ORIGINATING + TERMINATING) sharing one Correlation ID.
+- **Hunt Group / Call Queue**: the Correlation ID stays the same for the entire interaction — the inbound call and every agent delivery attempt share the same Correlation ID.
+- **Attended (consultative) transfer**: creates a second call with a new Correlation ID. After transfer completes, `Transfer related call ID` on the new call contains the **Correlation ID of the original call**. This is how you link the two calls.
+- **Blind transfer**: creates a new call with a new Correlation ID. `Transfer related call ID` is **NOT populated** — blind transfers cannot be linked to the original call via this field.
+- **Related Call ID**: points to a different call created by **service activation** (recording, executive-assistant) — NOT transfers.
+- **Direction**: ORIGINATING = caller's perspective, TERMINATING = called party's perspective. HG/CQ calls have one ORIGINATING leg and multiple TERMINATING legs (one per agent attempt).
+- **Answer indicator**: `Yes` on the leg that was answered, `No` on all others. In a HG with 5 ring attempts, only the answering agent's leg has `Yes`.
+
+See `docs/reference/reporting-analytics.md` § CDR Data Model for the full reference including diagrams and all enum values.
 
 ### Field Taxonomy
 
