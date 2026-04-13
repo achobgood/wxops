@@ -1321,6 +1321,7 @@ else:
 
 **Recipe 58 — Recording success rate**
 Question: "What percentage of recordings succeed?"
+# Output: Recording Result | Count | %
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -1336,32 +1337,37 @@ for result, count in results.most_common():
 
 **Recipe 59 — Recording by platform**
 Question: "Which recording platforms are in use?"
+# Output: Platform | Count | %
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
 from collections import Counter
 data = json.load(sys.stdin)
 platforms = Counter(r.get('Call Recording Platform Name') for r in data if r.get('Call Recording Platform Name'))
+total = sum(platforms.values())
 for platform, count in platforms.most_common():
-    print(f'{platform}: {count} calls')
+    print(f'{platform}: {count} ({count/total*100:.1f}%)')
 "
 ```
 
 **Recipe 60 — Recording by trigger type**
 Question: "How are recordings initiated?"
+# Output: Trigger | Count | %
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
 from collections import Counter
 data = json.load(sys.stdin)
 triggers = Counter(r.get('Call Recording Trigger') for r in data if r.get('Call Recording Trigger'))
+total = sum(triggers.values())
 for trigger, count in triggers.most_common():
-    print(f'{trigger}: {count} calls')
+    print(f'{trigger}: {count} ({count/total*100:.1f}%)')
 "
 ```
 
 **Recipe 61 — Failed recordings**
 Question: "Which calls failed to record?"
+# Output: Time | User | Platform | Calling # | Called #
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -1378,6 +1384,7 @@ else:
 
 **Recipe 62 — Unrecorded calls analysis**
 Question: "How many answered calls have no recording data?"
+# Output: Metric | Value (summary) + Location | Unrecorded (sub-table)
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -1390,14 +1397,15 @@ print(f'With recording data: {len(answered) - len(no_recording)}')
 print(f'Without recording data: {len(no_recording)}')
 if no_recording:
     locs = Counter(r.get('Location', 'Unknown') for r in no_recording)
-    print('Unrecorded by location:')
+    print(f\"{'Location':<25} {'Unrecorded':>10}\")
     for loc, count in locs.most_common():
-        print(f'  {loc}: {count}')
+        print(f\"{loc:<25} {count:>10}\")
 "
 ```
 
 **Recipe 63 — Recording compliance by location**
 Question: "Which office has the worst recording rate?"
+# Output: Location | Recorded% | Recorded | Answered | Failed
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -1413,9 +1421,10 @@ for r in data:
             stats[loc]['recorded'] += 1
         elif result == 'failed':
             stats[loc]['failed'] += 1
+print(f\"{'Location':<25} {'Recorded%':>10} {'Recorded':>10} {'Answered':>10} {'Failed':>8}\")
 for loc, s in sorted(stats.items(), key=lambda x: x[1]['recorded']/max(x[1]['answered'],1)):
     rate = s['recorded']/s['answered']*100 if s['answered'] else 0
-    print(f\"{loc}: {rate:.1f}% recorded ({s['recorded']}/{s['answered']}, {s['failed']} failed)\")
+    print(f\"{loc:<25} {rate:>9.1f}% {s['recorded']:>10} {s['answered']:>10} {s['failed']:>8}\")
 "
 ```
 
@@ -1424,6 +1433,7 @@ for loc, s in sorted(stats.items(), key=lambda x: x[1]['recorded']/max(x[1]['ans
 **Recipe 64 — Trace call by correlation ID**
 Question: "Find all legs of this call"
 Note: Replace CORRELATION_ID with the actual value.
+# Output: Leg # | Time | Direction | User | From | To | Duration | Outcome
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -1435,13 +1445,14 @@ if not legs:
     print('No matching records found in this time window.')
 else:
     for i, c in enumerate(sorted(legs, key=lambda x: x.get('Start time', '')), 1):
-        print(f'  Leg {i}: {c.get(\"Start time\")} | {c.get(\"Direction\")} | {c.get(\"Calling number\")} -> {c.get(\"Called number\")} | {c.get(\"Duration\")}s | {c.get(\"Related reason\", \"\")}')
+        print(f'  Leg {i}: {c.get(\"Start time\")} | {c.get(\"Direction\")} | {c.get(\"User\", \"?\")} | {c.get(\"Calling number\")} -> {c.get(\"Called number\")} | {c.get(\"Duration\")}s | {c.get(\"Related reason\", \"\")}')
 "
 ```
 
 **Recipe 65 — Transfer chain reconstruction**
 Question: "Show the full transfer path for this call"
 Note: Replace CALL_ID with the actual Call ID.
+# Output: Leg # | Time | User | Direction | Related Reason | From | To
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -1452,13 +1463,14 @@ print(f'Transfer chain ({len(chain)} records):')
 if not chain:
     print('No matching records found in this time window.')
 else:
-    for c in sorted(chain, key=lambda x: x.get('Start time', '')):
-        print(f\"  {c.get('Start time')} | {c.get('User')} | {c.get('Direction')} | {c.get('Related reason', '')} | {c.get('Calling number')} -> {c.get('Called number')}\")
+    for i, c in enumerate(sorted(chain, key=lambda x: x.get('Start time', '')), 1):
+        print(f\"  Leg {i}: {c.get('Start time')} | {c.get('User')} | {c.get('Direction')} | {c.get('Related reason', '')} | {c.get('Calling number')} -> {c.get('Called number')}\")
 "
 ```
 
 **Recipe 66 — Park and retrieve trace**
 Question: "How many calls were parked? Average park duration?"
+# Output: Metric | Value
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -1478,6 +1490,7 @@ else:
 **Recipe 67 — Forwarding path reconstruction**
 Question: "How did this call reach this user?"
 Note: Replace CORRELATION_ID with the actual value.
+# Output: Hop # | User | Original Reason | Redirect Reason | Related Reason
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -1498,6 +1511,7 @@ else:
 
 **Recipe 68 — Call quality proxy (failure patterns)**
 Question: "Find calls with likely quality issues"
+# Output: Metric | Value (summary) + Reason | Count (sub-table)
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -1512,13 +1526,15 @@ print(f'SIP error outcomes: {len(sip_errors)}')
 if sip_errors:
     from collections import Counter
     reasons = Counter(r.get('Call outcome reason') for r in sip_errors)
+    print(f\"{'Reason':<40} {'Count':>6}\")
     for reason, count in reasons.most_common(10):
-        print(f'  {reason}: {count}')
+        print(f\"  {reason:<38} {count:>6}\")
 "
 ```
 
 **Recipe 69 — Repeated caller detection**
 Question: "Who's calling the same number over and over?"
+# Output: Calling # | Called # | Call Count
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
