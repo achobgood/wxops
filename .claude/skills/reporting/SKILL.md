@@ -820,24 +820,32 @@ for user, s in sorted(ah_users.items(), key=lambda x: x[1]['ah'], reverse=True)[
 
 **Recipe 33 — Calls per trunk**
 Question: "How much traffic on each trunk?"
+# Output: Trunk | Direction | Total | Duration(min) | Answer%
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
-from collections import Counter
+from collections import defaultdict
 data = json.load(sys.stdin)
-inbound = Counter(r.get('Inbound trunk') for r in data if r.get('Inbound trunk'))
-outbound = Counter(r.get('Outbound trunk') for r in data if r.get('Outbound trunk'))
-print('Inbound trunks:')
-for trunk, count in inbound.most_common():
-    print(f'  {trunk}: {count} calls')
-print('Outbound trunks:')
-for trunk, count in outbound.most_common():
-    print(f'  {trunk}: {count} calls')
+stats = defaultdict(lambda: {'total':0,'answered':0,'dur':0})
+for r in data:
+    for field, direction in [('Inbound trunk','Inbound'),('Outbound trunk','Outbound')]:
+        trunk = r.get(field)
+        if trunk:
+            key = (trunk, direction)
+            stats[key]['total'] += 1
+            if r.get('Answer indicator') == 'Yes':
+                stats[key]['answered'] += 1
+            stats[key]['dur'] += int(r.get('Duration',0))
+print(f\"{'Trunk':<30} {'Dir':>8} {'Total':>6} {'Min':>7} {'Ans%':>6}\")
+for (trunk, direction), s in sorted(stats.items(), key=lambda x: x[1]['total'], reverse=True):
+    rate = s['answered']/s['total']*100 if s['total'] else 0
+    print(f\"{trunk:<30} {direction:>8} {s['total']:>6} {s['dur']/60:>7.1f} {rate:>5.1f}%\")
 "
 ```
 
 **Recipe 34 — Trunk utilization by hour**
 Question: "When are our trunks busiest?"
+# Output: Trunk | Hour | Calls
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -856,19 +864,22 @@ for (trunk, hour), count in sorted(trunk_hours.items()):
 
 **Recipe 35 — Route group distribution**
 Question: "How is traffic distributed across route groups?"
+# Output: Route Group | Count | %
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
 from collections import Counter
 data = json.load(sys.stdin)
 groups = Counter(r.get('Route group') for r in data if r.get('Route group'))
+total = sum(groups.values())
 for group, count in groups.most_common():
-    print(f'{group}: {count} calls')
+    print(f\"{group}: {count} ({count/total*100:.1f}%)\")
 "
 ```
 
 **Recipe 36 — Redirect chain analysis**
 Question: "How many calls were forwarded/redirected?"
+# Output: Summary + Reason | Count | %
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -877,45 +888,45 @@ data = json.load(sys.stdin)
 redirected = [r for r in data if r.get('Redirect reason')]
 print(f'Redirected calls: {len(redirected)} of {len(data)} ({len(redirected)/len(data)*100:.1f}%)' if data else 'No data')
 reasons = Counter(r.get('Redirect reason') for r in redirected)
+total_r = sum(reasons.values())
 for reason, count in reasons.most_common():
-    print(f'  {reason}: {count}')
+    print(f\"  {reason}: {count} ({count/total_r*100:.1f}%)\")
 "
 ```
 
 **Recipe 37 — Calls by redirect reason**
 Question: "Why are calls being redirected?"
+# Output: Reason | Count | %
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
 from collections import Counter
 data = json.load(sys.stdin)
-orig = Counter(r.get('Original reason') for r in data if r.get('Original reason'))
-redirect = Counter(r.get('Redirect reason') for r in data if r.get('Redirect reason'))
-related = Counter(r.get('Related reason') for r in data if r.get('Related reason'))
-print('Original reasons:')
-for r, c in orig.most_common(10): print(f'  {r}: {c}')
-print('Redirect reasons:')
-for r, c in redirect.most_common(10): print(f'  {r}: {c}')
-print('Related reasons:')
-for r, c in related.most_common(10): print(f'  {r}: {c}')
+reasons = Counter(r.get('Redirect reason') for r in data if r.get('Redirect reason'))
+total = sum(reasons.values())
+for reason, count in reasons.most_common(10):
+    print(f\"{reason}: {count} ({count/total*100:.1f}%)\")
 "
 ```
 
 **Recipe 38 — Calls by original reason**
 Question: "What triggers the first redirect?"
+# Output: Reason | Count | %
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
 from collections import Counter
 data = json.load(sys.stdin)
 reasons = Counter(r.get('Original reason') for r in data if r.get('Original reason'))
-for reason, count in reasons.most_common():
-    print(f'{reason}: {count}')
+total = sum(reasons.values())
+for reason, count in reasons.most_common(10):
+    print(f\"{reason}: {count} ({count/total*100:.1f}%)\")
 "
 ```
 
 **Recipe 39 — Forwarding loop detection**
 Question: "Any calls redirected 3+ times (possible forwarding loops)?"
+# Output: Correlation ID | Legs | Start Time | Calling # | Called #
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -932,7 +943,7 @@ loops = {cid: count for cid, count in corr_counts.items() if count >= 3}
 print(f'Calls with 3+ legs (possible loops): {len(loops)}')
 for cid, count in sorted(loops.items(), key=lambda x: x[1], reverse=True)[:10]:
     s = corr_samples[cid]
-    print(f\"  {count} legs | {s.get('Start time')} | {s.get('Calling number')} -> {s.get('Called number')}\")
+    print(f\"  {cid} | {count} legs | {s.get('Start time')} | {s.get('Calling number')} -> {s.get('Called number')}\")
 "
 ```
 
@@ -940,71 +951,91 @@ for cid, count in sorted(loops.items(), key=lambda x: x[1], reverse=True)[:10]:
 
 **Recipe 40 — Calls by PSTN vendor**
 Question: "How is traffic split across carriers?"
-```bash
-wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
-import json, sys
-from collections import Counter
-data = json.load(sys.stdin)
-vendors = Counter(r.get('PSTN vendor name') for r in data if r.get('PSTN vendor name'))
-for vendor, count in vendors.most_common():
-    print(f'{vendor}: {count} calls')
-"
-```
-
-**Recipe 41 — Duration by PSTN vendor**
-Question: "Which carrier carries the most minutes?"
+# Output: Vendor | Total | Duration(min) | Answer%
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
 from collections import defaultdict
 data = json.load(sys.stdin)
-vendor_dur = defaultdict(int)
-vendor_count = defaultdict(int)
+stats = defaultdict(lambda: {'total':0,'answered':0,'dur':0})
 for r in data:
     v = r.get('PSTN vendor name')
     if v:
-        vendor_dur[v] += int(r.get('Duration', 0))
-        vendor_count[v] += 1
-for v, dur in sorted(vendor_dur.items(), key=lambda x: x[1], reverse=True):
-    print(f'{v}: {dur}s ({dur/60:.1f} min) across {vendor_count[v]} calls')
+        stats[v]['total'] += 1
+        if r.get('Answer indicator') == 'Yes':
+            stats[v]['answered'] += 1
+        stats[v]['dur'] += int(r.get('Duration',0))
+print(f\"{'Vendor':<30} {'Total':>6} {'Min':>7} {'Ans%':>6}\")
+for v, s in sorted(stats.items(), key=lambda x: x[1]['total'], reverse=True):
+    rate = s['answered']/s['total']*100 if s['total'] else 0
+    print(f\"{v:<30} {s['total']:>6} {s['dur']/60:>7.1f} {rate:>5.1f}%\")
+"
+```
+
+**Recipe 41 — Duration by PSTN vendor**
+Question: "Which carrier carries the most minutes?"
+# Output: Vendor | Total | Duration(min) | Answer%
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import defaultdict
+data = json.load(sys.stdin)
+stats = defaultdict(lambda: {'total':0,'answered':0,'dur':0})
+for r in data:
+    v = r.get('PSTN vendor name')
+    if v:
+        stats[v]['total'] += 1
+        if r.get('Answer indicator') == 'Yes':
+            stats[v]['answered'] += 1
+        stats[v]['dur'] += int(r.get('Duration',0))
+print(f\"{'Vendor':<30} {'Total':>6} {'Min':>7} {'Ans%':>6}\")
+for v, s in sorted(stats.items(), key=lambda x: x[1]['dur'], reverse=True):
+    rate = s['answered']/s['total']*100 if s['total'] else 0
+    print(f\"{v:<30} {s['total']:>6} {s['dur']/60:>7.1f} {rate:>5.1f}%\")
 "
 ```
 
 **Recipe 42 — International calls by country**
 Question: "Which countries are we calling?"
+# Output: Country | Calls | %
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
 from collections import Counter
 data = json.load(sys.stdin)
 countries = Counter(r.get('International country') for r in data if r.get('International country'))
+total = sum(countries.values())
 print(f'International calls to {len(countries)} countries:')
 for country, count in countries.most_common():
-    print(f'  {country}: {count} calls')
+    print(f'  {country}: {count} ({count/total*100:.1f}%)')
 "
 ```
 
 **Recipe 43 — International call duration by country**
 Question: "How many minutes to each country?"
+# Output: Country | Duration(min) | Calls | %
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
 from collections import defaultdict
 data = json.load(sys.stdin)
-country_dur = defaultdict(int)
-country_count = defaultdict(int)
+stats = defaultdict(lambda: {'dur':0,'count':0})
 for r in data:
     c = r.get('International country')
     if c:
-        country_dur[c] += int(r.get('Duration', 0))
-        country_count[c] += 1
-for c, dur in sorted(country_dur.items(), key=lambda x: x[1], reverse=True):
-    print(f'{c}: {dur/60:.1f} min ({country_count[c]} calls)')
+        stats[c]['dur'] += int(r.get('Duration',0))
+        stats[c]['count'] += 1
+total_calls = sum(s['count'] for s in stats.values())
+print(f\"{'Country':<20} {'Min':>7} {'Calls':>6} {'%':>5}\")
+for c, s in sorted(stats.items(), key=lambda x: x[1]['dur'], reverse=True):
+    pct = s['count']/total_calls*100 if total_calls else 0
+    print(f\"{c:<20} {s['dur']/60:>7.1f} {s['count']:>6} {pct:>4.1f}%\")
 "
 ```
 
 **Recipe 44 — Call type mix**
 Question: "What's our toll-free vs premium vs national breakdown?"
+# Output: Call Type | Count | %
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -1019,16 +1050,25 @@ for t, c in types.most_common():
 
 **Recipe 45 — Authorization code usage**
 Question: "Which auth codes are being used and how often?"
+# Output: Code | Calls | Distinct Users
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
-from collections import Counter
+from collections import defaultdict
 data = json.load(sys.stdin)
-codes = Counter(r.get('Authorization code') for r in data if r.get('Authorization code'))
-if codes:
-    print(f'{len(codes)} auth codes in use:')
-    for code, count in codes.most_common():
-        print(f'  {code}: {count} calls')
+stats = defaultdict(lambda: {'calls':0,'users':set()})
+for r in data:
+    code = r.get('Authorization code')
+    if code:
+        stats[code]['calls'] += 1
+        user = r.get('User')
+        if user:
+            stats[code]['users'].add(user)
+if stats:
+    print(f'{len(stats)} auth codes in use:')
+    print(f\"{'Code':<20} {'Calls':>6} {'Users':>6}\")
+    for code, s in sorted(stats.items(), key=lambda x: x[1]['calls'], reverse=True):
+        print(f\"{code:<20} {s['calls']:>6} {len(s['users']):>6}\")
 else:
     print('No calls with authorization codes found')
 "
@@ -1036,6 +1076,7 @@ else:
 
 **Recipe 46 — PSTN vendor comparison**
 Question: "Compare carriers on volume and duration"
+# Output: Vendor | Calls | Minutes | Answer%
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
