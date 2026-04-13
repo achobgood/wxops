@@ -491,6 +491,7 @@ for loc, s in sorted(stats.items(), key=lambda x: x[1]['answered']/max(x[1]['tot
 
 **Recipe 17 — Average hold time**
 Question: "What's our average hold time?"
+# Output: Metric | Value
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -507,6 +508,7 @@ else:
 
 **Recipe 18 — Calls with excessive hold (>30s)**
 Question: "How many calls had over 30 seconds of hold?"
+# Output: Time | User | Calling # | Hold Duration
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -523,6 +525,7 @@ else:
 
 **Recipe 19 — Calls with excessive hold (>60s)**
 Question: "How many calls had over a minute of hold?"
+# Output: Time | User | Calling # | Hold Duration
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -539,6 +542,7 @@ else:
 
 **Recipe 20 — Hold-then-abandoned (>30s)**
 Question: "Calls we answered, put on hold >30s, and the caller hung up?"
+# Output: Time | User | Hold Duration | Total Duration
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -558,6 +562,7 @@ else:
 
 **Recipe 21 — Hold-then-abandoned (>60s)**
 Question: "Calls we answered, put on hold >60s, and the caller hung up?"
+# Output: Time | User | Hold Duration | Total Duration
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -577,6 +582,7 @@ else:
 
 **Recipe 22 — Average ring duration**
 Question: "How long are callers waiting before we pick up?"
+# Output: Metric | Value
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -591,6 +597,7 @@ if rings:
 
 **Recipe 23 — Ring duration by location**
 Question: "Which office is slowest to answer?"
+# Output: Location | Avg Ring(s) | Calls
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -608,6 +615,7 @@ for loc, rings in sorted(stats.items(), key=lambda x: sum(x[1])/len(x[1]), rever
 
 **Recipe 24 — Hold time by user**
 Question: "Which agents put callers on hold the longest?"
+# Output: User | Avg Hold(s) | Calls with Hold | Max Hold(s)
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -628,77 +636,120 @@ for user, holds in sorted(stats.items(), key=lambda x: sum(x[1])/len(x[1]), reve
 
 **Recipe 25 — Top talkers (by call count)**
 Question: "Who makes/receives the most calls?"
+# Output: User | Total | Answered | Missed | Answer% | Avg Duration(s)
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
-from collections import Counter
+from collections import defaultdict
 data = json.load(sys.stdin)
-users = Counter(r.get('User', 'Unknown') for r in data)
-for user, count in users.most_common(15):
-    print(f'{user}: {count} calls')
+stats = defaultdict(lambda: {'total':0,'answered':0,'dur':0})
+for r in data:
+    user = r.get('User','Unknown')
+    stats[user]['total'] += 1
+    if r.get('Answer indicator') == 'Yes':
+        stats[user]['answered'] += 1
+        stats[user]['dur'] += int(r.get('Duration',0))
+print(f\"{'User':<30} {'Total':>6} {'Answered':>9} {'Missed':>7} {'Ans%':>6} {'AvgDur':>7}\")
+for user, s in sorted(stats.items(), key=lambda x: x[1]['total'], reverse=True)[:15]:
+    missed = s['total'] - s['answered']
+    rate = s['answered']/s['total']*100 if s['total'] else 0
+    avg = s['dur']/s['answered'] if s['answered'] else 0
+    print(f\"{user:<30} {s['total']:>6} {s['answered']:>9} {missed:>7} {rate:>5.1f}% {avg:>6.0f}s\")
 "
 ```
 
 **Recipe 26 — Top talkers (by total duration)**
 Question: "Who spends the most time on the phone?"
+# Output: User | Total Min | Avg Duration(s) | Calls | Answer%
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
 from collections import defaultdict
 data = json.load(sys.stdin)
-durations = defaultdict(int)
+stats = defaultdict(lambda: {'total':0,'answered':0,'dur':0})
 for r in data:
-    durations[r.get('User', 'Unknown')] += int(r.get('Duration', 0))
-for user, dur in sorted(durations.items(), key=lambda x: x[1], reverse=True)[:15]:
-    print(f'{user}: {dur}s ({dur/60:.1f} min)')
+    user = r.get('User','Unknown')
+    stats[user]['total'] += 1
+    if r.get('Answer indicator') == 'Yes':
+        stats[user]['answered'] += 1
+    stats[user]['dur'] += int(r.get('Duration',0))
+print(f\"{'User':<30} {'Total Min':>10} {'Avg Dur':>8} {'Calls':>6} {'Ans%':>6}\")
+for user, s in sorted(stats.items(), key=lambda x: x[1]['dur'], reverse=True)[:15]:
+    rate = s['answered']/s['total']*100 if s['total'] else 0
+    avg = s['dur']/s['total'] if s['total'] else 0
+    print(f\"{user:<30} {s['dur']/60:>10.1f} {avg:>7.0f}s {s['total']:>6} {rate:>5.1f}%\")
 "
 ```
 
 **Recipe 27 — Calls per user**
 Question: "How many calls does each user handle?"
-```bash
-wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
-import json, sys
-from collections import Counter
-data = json.load(sys.stdin)
-users = Counter(r.get('User', 'Unknown') for r in data)
-for user, count in sorted(users.items(), key=lambda x: x[1], reverse=True):
-    print(f'{user}: {count}')
-"
-```
-
-**Recipe 28 — Average duration per user**
-Question: "Who has the longest average call?"
+# Output: User | Total | Answered | Missed | Answer%
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
 from collections import defaultdict
 data = json.load(sys.stdin)
-stats = defaultdict(list)
+stats = defaultdict(lambda: {'total':0,'answered':0})
 for r in data:
+    user = r.get('User','Unknown')
+    stats[user]['total'] += 1
     if r.get('Answer indicator') == 'Yes':
-        stats[r.get('User', 'Unknown')].append(int(r.get('Duration', 0)))
-for user, durs in sorted(stats.items(), key=lambda x: sum(x[1])/len(x[1]), reverse=True)[:15]:
-    avg = sum(durs)/len(durs)
-    print(f'{user}: avg {avg:.1f}s ({len(durs)} calls)')
+        stats[user]['answered'] += 1
+print(f\"{'User':<30} {'Total':>6} {'Answered':>9} {'Missed':>7} {'Ans%':>6}\")
+for user, s in sorted(stats.items(), key=lambda x: x[1]['total'], reverse=True):
+    missed = s['total'] - s['answered']
+    rate = s['answered']/s['total']*100 if s['total'] else 0
+    print(f\"{user:<30} {s['total']:>6} {s['answered']:>9} {missed:>7} {rate:>5.1f}%\")
+"
+```
+
+**Recipe 28 — Average duration per user**
+Question: "Who has the longest average call?"
+# Output: User | Avg Duration(s) | Calls | Answer%
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import defaultdict
+data = json.load(sys.stdin)
+stats = defaultdict(lambda: {'durs':[], 'total':0, 'answered':0})
+for r in data:
+    user = r.get('User','Unknown')
+    stats[user]['total'] += 1
+    if r.get('Answer indicator') == 'Yes':
+        stats[user]['answered'] += 1
+        stats[user]['durs'].append(int(r.get('Duration',0)))
+print(f\"{'User':<30} {'Avg Dur':>8} {'Calls':>6} {'Ans%':>6}\")
+for user, s in sorted(stats.items(), key=lambda x: sum(x[1]['durs'])/len(x[1]['durs']) if x[1]['durs'] else 0, reverse=True)[:15]:
+    avg = sum(s['durs'])/len(s['durs']) if s['durs'] else 0
+    rate = s['answered']/s['total']*100 if s['total'] else 0
+    print(f\"{user:<30} {avg:>7.0f}s {s['total']:>6} {rate:>5.1f}%\")
 "
 ```
 
 **Recipe 29 — Users with most missed calls**
 Question: "Who misses the most calls?"
+# Output: User | Missed | Total | Miss%
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
-from collections import Counter
+from collections import defaultdict
 data = json.load(sys.stdin)
-missed = Counter(r.get('User', 'Unknown') for r in data if r.get('Answer indicator') == 'No')
-for user, count in missed.most_common(15):
-    print(f'{user}: {count} missed calls')
+stats = defaultdict(lambda: {'total':0,'missed':0})
+for r in data:
+    user = r.get('User','Unknown')
+    stats[user]['total'] += 1
+    if r.get('Answer indicator') == 'No':
+        stats[user]['missed'] += 1
+print(f\"{'User':<30} {'Missed':>7} {'Total':>6} {'Miss%':>6}\")
+for user, s in sorted(stats.items(), key=lambda x: x[1]['missed'], reverse=True)[:15]:
+    rate = s['missed']/s['total']*100 if s['total'] else 0
+    print(f\"{user:<30} {s['missed']:>7} {s['total']:>6} {rate:>5.1f}%\")
 "
 ```
 
 **Recipe 30 — User answer rate**
 Question: "What's each user's answer rate?"
+# Output: User | Total | Answered | Answer%
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -718,38 +769,50 @@ for user, s in sorted(stats.items(), key=lambda x: x[1]['answered']/max(x[1]['to
 
 **Recipe 31 — International calls per user**
 Question: "Who makes the most international calls?"
+# Output: User | Intl Calls | Total Calls | Intl%
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
-from collections import Counter
+from collections import defaultdict
 data = json.load(sys.stdin)
-intl = Counter(r.get('User', 'Unknown') for r in data if r.get('Call type') == 'SIP_INTERNATIONAL')
-print(f'Users making international calls:')
-for user, count in intl.most_common(15):
-    print(f'  {user}: {count} calls')
+stats = defaultdict(lambda: {'total':0,'intl':0})
+for r in data:
+    user = r.get('User','Unknown')
+    stats[user]['total'] += 1
+    if r.get('Call type') == 'SIP_INTERNATIONAL':
+        stats[user]['intl'] += 1
+intl_users = {u: s for u, s in stats.items() if s['intl'] > 0}
+print(f\"{'User':<30} {'Intl':>5} {'Total':>6} {'Intl%':>6}\")
+for user, s in sorted(intl_users.items(), key=lambda x: x[1]['intl'], reverse=True)[:15]:
+    rate = s['intl']/s['total']*100 if s['total'] else 0
+    print(f\"{user:<30} {s['intl']:>5} {s['total']:>6} {rate:>5.1f}%\")
 "
 ```
 
 **Recipe 32 — After-hours activity**
 Question: "Who's making calls outside business hours (before 8am or after 6pm)?"
+# Output: User | After-Hours | Total | AH%
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
-from collections import Counter
-from datetime import datetime
+from collections import defaultdict
 data = json.load(sys.stdin)
-after_hours = Counter()
+stats = defaultdict(lambda: {'total':0,'ah':0})
 for r in data:
-    ts = r.get('Start time', '')
+    user = r.get('User','Unknown')
+    stats[user]['total'] += 1
+    ts = r.get('Start time','')
     if ts:
         try:
             hour = int(ts[11:13])
             if hour < 8 or hour >= 18:
-                after_hours[r.get('User', 'Unknown')] += 1
+                stats[user]['ah'] += 1
         except: pass
-print('After-hours calls (before 8am / after 6pm UTC):')
-for user, count in after_hours.most_common(15):
-    print(f'  {user}: {count} calls')
+ah_users = {u: s for u, s in stats.items() if s['ah'] > 0}
+print(f\"{'User':<30} {'After-Hours':>12} {'Total':>6} {'AH%':>5}\")
+for user, s in sorted(ah_users.items(), key=lambda x: x[1]['ah'], reverse=True)[:15]:
+    rate = s['ah']/s['total']*100 if s['total'] else 0
+    print(f\"{user:<30} {s['ah']:>12} {s['total']:>6} {rate:>4.1f}%\")
 "
 ```
 
