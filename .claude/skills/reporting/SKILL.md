@@ -351,6 +351,8 @@ print(f'Last period: {len(last_week)} calls')
 print(f'Change: {direction} {abs(diff)} ({abs(pct):.1f}%)')
 "
 ```
+# Note: R8 requires live CDR pulls written to /tmp/cdr_this.json and /tmp/cdr_last.json.
+# Not compatible with the session cache (/tmp/cdr-session.json). See Step 6a for pull instructions.
 
 ### Category 2: Call Outcomes & Quality
 
@@ -462,7 +464,7 @@ if not long_ring:
     print('No matching records found in this time window.')
 else:
     for c in long_ring[:10]:
-        print(f\"  {c.get('Start time')} | {c.get('User')} | rang {c.get('Ring duration')}s | from {c.get('Calling number')}\")
+        print(f\"  {c.get('Start time','')[:16]} | {c.get('User')} | rang {c.get('Ring duration')}s | from {c.get('Calling number')}\")
 "
 ```
 
@@ -508,7 +510,7 @@ else:
 
 **Recipe 18 — Calls with excessive hold (>30s)**
 Question: "How many calls had over 30 seconds of hold?"
-# Output: Time | User | Calling # | Hold Duration
+# Output: Time | User | Hold Duration | Calling #
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -519,13 +521,13 @@ if not over30:
     print('No matching records found in this time window.')
 else:
     for c in over30[:10]:
-        print(f\"  {c.get('Start time')} | {c.get('User')} | hold {c.get('Hold duration')}s | {c.get('Calling number')}\")
+        print(f\"  {c.get('Start time','')[:16]} | {c.get('User')} | hold {c.get('Hold duration')}s | {c.get('Calling number')}\")
 "
 ```
 
 **Recipe 19 — Calls with excessive hold (>60s)**
 Question: "How many calls had over a minute of hold?"
-# Output: Time | User | Calling # | Hold Duration
+# Output: Time | User | Hold Duration | Calling #
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -536,7 +538,7 @@ if not over60:
     print('No matching records found in this time window.')
 else:
     for c in over60[:10]:
-        print(f\"  {c.get('Start time')} | {c.get('User')} | hold {c.get('Hold duration')}s | {c.get('Calling number')}\")
+        print(f\"  {c.get('Start time','')[:16]} | {c.get('User')} | hold {c.get('Hold duration')}s | {c.get('Calling number')}\")
 "
 ```
 
@@ -556,7 +558,7 @@ if not hold_abandoned:
     print('No matching records found in this time window.')
 else:
     for c in hold_abandoned[:10]:
-        print(f\"  {c.get('Start time')} | {c.get('User')} | hold {c.get('Hold duration')}s | {c.get('Duration')}s total\")
+        print(f\"  {c.get('Start time','')[:16]} | {c.get('User')} | hold {c.get('Hold duration')}s | {c.get('Duration')}s total\")
 "
 ```
 
@@ -576,7 +578,7 @@ if not hold_abandoned:
     print('No matching records found in this time window.')
 else:
     for c in hold_abandoned[:10]:
-        print(f\"  {c.get('Start time')} | {c.get('User')} | hold {c.get('Hold duration')}s | {c.get('Duration')}s total\")
+        print(f\"  {c.get('Start time','')[:16]} | {c.get('User')} | hold {c.get('Hold duration')}s | {c.get('Duration')}s total\")
 "
 ```
 
@@ -749,21 +751,25 @@ for user, s in sorted(stats.items(), key=lambda x: x[1]['missed'], reverse=True)
 
 **Recipe 30 — User answer rate**
 Question: "What's each user's answer rate?"
-# Output: User | Total | Answered | Answer%
+# Output: User | Total | Answered | Missed | Answer% | Avg Duration(s)
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
 from collections import defaultdict
 data = json.load(sys.stdin)
-stats = defaultdict(lambda: {'total': 0, 'answered': 0})
+stats = defaultdict(lambda: {'total': 0, 'answered': 0, 'dur': 0})
 for r in data:
     user = r.get('User', 'Unknown')
     stats[user]['total'] += 1
     if r.get('Answer indicator') == 'Yes':
         stats[user]['answered'] += 1
+        stats[user]['dur'] += int(r.get('Duration', 0))
+print(f\"{'User':<30} {'Total':>6} {'Answered':>9} {'Missed':>7} {'Ans%':>6} {'AvgDur':>7}\")
 for user, s in sorted(stats.items(), key=lambda x: x[1]['answered']/max(x[1]['total'],1)):
+    missed = s['total'] - s['answered']
     rate = s['answered']/s['total']*100 if s['total'] else 0
-    print(f\"{user}: {rate:.1f}% ({s['answered']}/{s['total']})\")
+    avg = s['dur']/s['answered'] if s['answered'] else 0
+    print(f\"{user:<30} {s['total']:>6} {s['answered']:>9} {missed:>7} {rate:>5.1f}% {avg:>6.0f}s\")
 "
 ```
 
@@ -1196,7 +1202,7 @@ if not mobile:
     print('No matching records found in this time window.')
 else:
     for c in mobile[:10]:
-        print(f\"  {c.get('Start time')} | {c.get('User')} | {c.get('Direction')} | {c.get('Duration')}s\")
+        print(f\"  {c.get('Start time','')[:16]} | {c.get('User')} | {c.get('Direction')} | {c.get('Duration')}s\")
 "
 ```
 
@@ -1433,7 +1439,7 @@ for loc, s in sorted(stats.items(), key=lambda x: x[1]['recorded']/max(x[1]['ans
 **Recipe 64 — Trace call by correlation ID**
 Question: "Find all legs of this call"
 Note: Replace CORRELATION_ID with the actual value.
-# Output: Leg # | Time | Direction | User | From | To | Duration | Outcome
+# Output: Leg # | Time | Direction | User | From | To | Duration | Related Reason
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -1445,7 +1451,7 @@ if not legs:
     print('No matching records found in this time window.')
 else:
     for i, c in enumerate(sorted(legs, key=lambda x: x.get('Start time', '')), 1):
-        print(f'  Leg {i}: {c.get(\"Start time\")} | {c.get(\"Direction\")} | {c.get(\"User\", \"?\")} | {c.get(\"Calling number\")} -> {c.get(\"Called number\")} | {c.get(\"Duration\")}s | {c.get(\"Related reason\", \"\")}')
+        print(f'  Leg {i}: {c.get(\"Start time\",\"\")[:16]} | {c.get(\"Direction\")} | {c.get(\"User\", \"?\")} | {c.get(\"Calling number\")} -> {c.get(\"Called number\")} | {c.get(\"Duration\")}s | {c.get(\"Related reason\", \"\")}')
 "
 ```
 
@@ -1464,7 +1470,7 @@ if not chain:
     print('No matching records found in this time window.')
 else:
     for i, c in enumerate(sorted(chain, key=lambda x: x.get('Start time', '')), 1):
-        print(f\"  Leg {i}: {c.get('Start time')} | {c.get('User')} | {c.get('Direction')} | {c.get('Related reason', '')} | {c.get('Calling number')} -> {c.get('Called number')}\")
+        print(f\"  Leg {i}: {c.get('Start time','')[:16]} | {c.get('User')} | {c.get('Direction')} | {c.get('Related reason', '')} | {c.get('Calling number')} -> {c.get('Called number')}\")
 "
 ```
 
@@ -1483,7 +1489,7 @@ if not parked:
     print('No matching records found in this time window.')
 else:
     for c in parked[:10]:
-        print(f\"  {c.get('Start time')} | {c.get('User')} | {c.get('Calling number')} -> {c.get('Called number')}\")
+        print(f\"  {c.get('Start time','')[:16]} | {c.get('User')} | {c.get('Calling number')} -> {c.get('Called number')}\")
 "
 ```
 
@@ -1677,7 +1683,7 @@ if not after_hours_emergency:
     print('No matching records found in this time window.')
 else:
     for c in after_hours_emergency[:10]:
-        print(f\"  {c.get('Start time')} | {c.get('User')} | {c.get('Location')} | {c.get('Calling number')} -> {c.get('Called number')}\")
+        print(f\"  {c.get('Start time','')[:16]} | {c.get('User')} | {c.get('Location')} | {c.get('Calling number')} -> {c.get('Called number')}\")
 "
 ```
 
