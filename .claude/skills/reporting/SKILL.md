@@ -17,8 +17,9 @@ argument-hint: [report-type]
 1. What is the maximum date range for a single CDR query? (Answer: 12 hours per request. For longer ranges, issue multiple sequential requests.)
 2. What base URL does CDR use? (Answer: `https://analytics-calling.webexapis.com` — different from the standard `webexapis.com` base. The CLI handles this automatically.)
 3. CDR field names use spaces in JSON output — what format? (Answer: `"Start time"`, `"Call outcome reason"`, `"Answer indicator"` — use `r.get('Field Name')` in Python.)
+4. Does `/tmp/cdr-session.json` exist and what window does it cover? (If yes, check the `_meta` object for `start` and `end` timestamps before re-pulling.)
 
-If you cannot answer all three, read `docs/reference/reporting-analytics.md` before proceeding.
+If you cannot answer all four, read `docs/reference/reporting-analytics.md` before proceeding.
 
 ## Step 1: Load references
 
@@ -1558,7 +1559,69 @@ wxcli recording-report list -o json
 wxcli recording-report list-access-detail --recording-id RECORDING_ID -o json
 ```
 
-## Step 7: Verify
+## Step 7: Session Pattern — Pull Once, Query Many
+
+CDR pulls are slow (8+ sequential API calls for a multi-day window). This section prevents redundant pulls across follow-up questions in the same conversation.
+
+### Two-phase split
+
+1. **Pull phase** — requires `wxc-calling-builder` agent (wxcli hook blocks direct CLI calls). The caller (Claude's main context) spawns the builder agent with instructions to pull CDR data and save to `/tmp/cdr-session.json`. The builder agent handles multi-pull merge for windows >12h automatically. Once the file is written, the builder agent's job is done — do not keep it running.
+2. **Recipe phase** — runs directly via Bash, no agent spawn needed. `cat /tmp/cdr-session.json | python3.11 -c "..."` executes in ~2 seconds. The skill guides recipe selection; Claude executes inline.
+
+### Cache file format
+
+The pull phase writes `/tmp/cdr-session.json` as a JSON object:
+```json
+{"_meta": {"start": "2026-04-10T00:00:00.000Z", "end": "2026-04-13T00:00:00.000Z", "pulled": "2026-04-13T12:34:56Z", "records": 1847}, "data": [ ...CDR records... ]}
+```
+
+Recipes read from the `data` array: `data = json.load(sys.stdin)['data']`
+
+### Cache decision logic
+
+On every CDR question:
+
+1. **Check** — does `/tmp/cdr-session.json` exist? Read `_meta.start`, `_meta.end`.
+2. **Cache hit** — requested window is within `_meta` boundaries → run recipe directly via Bash. No agent spawn.
+3. **Cache miss** — requested window extends beyond `_meta` boundaries, or file doesn't exist, or user says "refresh" → spawn `wxc-calling-builder` to re-pull. Builder overwrites the cache file with the new window.
+4. **Explicit refresh** — if the user says "refresh", "re-pull", or "new data", always re-pull regardless of cache state.
+
+### Presentation format
+
+Read the recipe's `print()` output, match it to the closest pattern below, and format accordingly. Do not pre-map recipes to patterns — match dynamically from the output shape.
+
+**Patterns:**
+
+| Pattern | Output shape | Markdown format |
+|---------|-------------|-----------------|
+| **Summary stats** | Key/value pairs (Total: N, Rate: X%) | 2-column table: Metric / Value |
+| **Top-N / Counter** | Item + count, sorted | 2-column table: [Field] / Count, sorted desc. Top 15 max; note total if truncated |
+| **Detail rows** | Per-record details (time, user, number, reason) | Multi-column table: one row per record, max 10 rows; note "N more not shown" if truncated |
+| **Aggregation** | Stats like avg/max/min/count | 2-column table: Metric / Value |
+| **Grouped** | Group key + multiple metrics per group | Multi-column table: [Group] / Metric1 / Metric2 / ..., sorted by worst-performing first |
+| **Trace** | Ordered sequence of call legs | Multi-column table: Leg # / Time / Direction / User / Reason, chronological order |
+
+**Rules for all patterns:**
+- One summary line above the table (e.g., "5 missed calls out of 247 total (2.0%)")
+- No commentary below the table unless the user asks "why", "what do you see", or "analyze this"
+- If the recipe prints `No matching records found in this time window.`, say that — no table
+- Percentages to 1 decimal place
+- Timestamps trimmed to `YYYY-MM-DD HH:MM` (drop seconds and timezone)
+- Phone numbers as-is (don't format E.164)
+- If output doesn't fit any pattern, fall back to a fenced code block with raw output
+
+### Recipe adaptation for cached data
+
+When running recipes against the cache file, adapt the standard recipe pattern:
+```bash
+# Standard (from pull): wxcli cdr list ... -o json | python3.11 -c "..."
+# Cached: read from file, access the 'data' array
+cat /tmp/cdr-session.json | python3.11 -c "import json,sys; raw=json.load(sys.stdin); data=raw['data']; ..."
+```
+
+All 75 recipes work unchanged except: replace `data = json.load(sys.stdin)` with `data = json.load(sys.stdin)['data']`.
+
+## Step 8: Verify
 
 After retrieving data, verify the results make sense and present key findings.
 
@@ -1570,13 +1633,13 @@ wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "import
 wxcli report-templates list -o json | python3.11 -c "import json,sys; data=json.load(sys.stdin); print(f'Templates: {len(data)}')"
 ```
 
-## Step 8: Report results
+## Step 9: Report results
 
-Present findings to the user in a structured format:
+Present findings using the Step 7 presentation format: one-line summary + markdown table. No unsolicited recommendations or data quality commentary unless the user asks.
+
+For non-CDR results (Reports API, recordings), use:
 - **Data retrieved:** Report type, date range, record count
 - **Key findings:** Top metrics, trends, anomalies discovered
-- **Data quality notes:** Any gaps, missing records, or incomplete data
-- **Next steps:** Recommended follow-up queries or actions
 - **Cleanup reminders:** Delete reports to free quota if applicable
 
 ---
