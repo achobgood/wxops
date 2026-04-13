@@ -1,5 +1,4 @@
 # Call Features: Migration Knowledge Base
-<!-- Last verified: 2026-03-28 -->
 
 > **Audience:** Migration advisor agent (Opus) and cold-context Claude sessions looking up dissent triggers, decision context, and Webex constraints for hunt group / call queue / shared line / auto attendant / voicemail mapping decisions.
 > **Reading mode:** Reference. Grep by `DT-FEAT-NNN` ID for dissent triggers, OR read `## Decision Framework` end-to-end when the migration-advisor agent loads this doc during analysis.
@@ -53,7 +52,6 @@ CTI Route Points with IVR scripts map to Webex Auto Attendants. The `recommend_f
 - No `holidayMenu` field -- after-hours menu applies to both after-hours and holiday periods. Different holiday routing requires a separate AA.
 - `keyConfigurations.value` is mandatory in PUT even for non-destination actions (use `""`)
 <!-- Source: docs/reference/call-features-major.md lines 25-155, gotchas lines 1250-1261 -->
-<!-- AA max per location: not documented in reference docs. From training, needs verification -->
 
 ### Shared Line vs Virtual Extension Semantics
 
@@ -138,7 +136,7 @@ AA with 4-8 key options, each transferring to a department Hunt Group or Call Qu
 | CQ requires `call_policies` on create | Yes (with `routing_type` + `policy`) | call-features-major.md verified comment line 329 |
 | AA requires `business_schedule` on create | Yes | call-features-major.md verified comment line 68 |
 | AA requires both menus on create | Yes (`business_hours_menu` + `after_hours_menu`) | call-features-major.md verified comment line 68 |
-| AA max per location | Not documented in reference docs | <!-- From training, needs verification --> |
+| AA max per location | Not documented in reference docs |  |
 | CX queues hidden from default list | Must pass `--has-cx-essentials true` | CLAUDE.md known issue #8 |
 | No hunt list concept in Webex | Chaining via overflow/forwarding | call-features-major.md line 764 |
 | Shared line max appearances | 35 | recommendation_rules.py line 312 |

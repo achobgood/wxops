@@ -1,5 +1,4 @@
 <!-- Updated by playbook session 2026-03-19 -->
-<!-- Verified via CLI Batches 1-4, 2026-03-19 through 2026-03-21 -->
 
 # Admin: Apps, Data & Resources
 
@@ -621,7 +620,7 @@ For calling-specific report creation and download, see [reporting-analytics.md](
 
 3. **Service app tokens are short-lived.** The token returned by `service-apps create` expires quickly (typically minutes, not hours). Your automation must handle token refresh by calling `service-apps create` again before expiration. The admin must have pre-authorized the service app in Control Hub -- the CLI cannot perform that step.
 
-4. **Client secret and refresh token are shown only once.** When registering a service app on developer.webex.com, the client secret is displayed only at creation time. Similarly, when generating tokens after admin authorization, the refresh token is shown only once. Copy both immediately and store securely. If lost, you must regenerate credentials (client secret) or re-authorize and generate new tokens (refresh token). <!-- Verified via developer.webex.com docs 2026-03-20 -->
+4. **Client secret and refresh token are shown only once.** When registering a service app on developer.webex.com, the client secret is displayed only at creation time. Similarly, when generating tokens after admin authorization, the refresh token is shown only once. Copy both immediately and store securely. If lost, you must regenerate credentials (client secret) or re-authorize and generate new tokens (refresh token).
 
 5. **`admin-recordings create` is a soft-delete, not a true create.** Despite the command name (`create` maps to POST), this moves recordings into the recycle bin. It does not create a recording. The `--json-body` must include the `recordingIds` array. Similarly, `create-restore` and `create-purge` are POST operations that restore from or permanently delete the recycle bin.
 

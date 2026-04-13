@@ -1,4 +1,3 @@
-<!-- Verified via CLI Batches 1-4, 2026-03-19 through 2026-03-21 -->
 # Admin: Audit & Security
 
 Admin audit trail, security audit events, and compliance event review for Webex organizations.
@@ -306,7 +305,7 @@ wxcli audit-events list \
 
 4. **`audit:events_read` scope is specifically required for `security-audit`, not for `audit-events`.** This is counterintuitive. The `audit-events` group works with a standard admin token. The `security-audit` group requires the `audit:events_read` scope on the token. If you get 401/403 on `security-audit list`, check your scopes.
 
-5. **Event categories help narrow `audit-events` results.** Run `wxcli audit-events list-event-categories` first to see available category names (34 categories including `USERS`, `WEBEX_CALLING`, `DEVICES`, `LOGINS`, `LICENSE`, `LOCATIONS`, etc.), then pass them via `--event-categories`. The category names are **case-insensitive** — `USERS`, `users`, and `Users` all return the same results. <!-- Corrected via live API 2026-03-19: tested USERS vs users vs Users — all returned identical results. The API is case-insensitive. -->
+5. **Event categories help narrow `audit-events` results.** Run `wxcli audit-events list-event-categories` first to see available category names (34 categories including `USERS`, `WEBEX_CALLING`, `DEVICES`, `LOGINS`, `LICENSE`, `LOCATIONS`, etc.), then pass them via `--event-categories`. The category names are **case-insensitive** — `USERS`, `users`, and `Users` all return the same results.
 
 6. **`events list` resource types are not validated client-side.** If you pass a misspelled `--resource` value, you get an empty result set, not an error. Use the known resource types listed above.
 

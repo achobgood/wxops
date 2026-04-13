@@ -313,7 +313,7 @@ wxcli people delete <person_id> --force
 The single most common mistake. Without `calling_data=True` on `list()`, `details()`, `create()`, and `update()`, the response will **not include** `location_id`, `extension`, or calling-related `phone_numbers`. Your code will see `None` for these fields and may incorrectly conclude the user is not calling-enabled.
 
 **`location_id` is write-once for calling users.**
-You can set `location_id` when you first assign a calling license to a user. After that, `location_id` **cannot be changed** via the People API update. To move a user to a different location, you would need to remove the calling license, re-add it with the new location. <!-- Verified via wxc_sdk source (people_auto.py): "The locationId can only be set when assigning a calling license to a user. It cannot be changed if a user is already an existing calling user." 2026-03-19 -->
+You can set `location_id` when you first assign a calling license to a user. After that, `location_id` **cannot be changed** via the People API update. To move a user to a different location, you would need to remove the calling license, re-add it with the new location.
 
 **The People API is a composite of multiple microservices.**
 A create or update call can **partially succeed**. For example, the user may be created but the phone number assignment may fail (especially with invalid numbers). Always verify with a subsequent GET after errors.
@@ -329,7 +329,6 @@ The SDK enforces a soft limit of 10 users per page when fetching with `calling_d
 After deleting a user, their phone numbers may not be immediately available for reassignment. The SDK test suite retries number removal with delays of up to 10 seconds between attempts when encountering 502 errors.
 
 **`PeopleApi.create()` takes a `Person` model, not kwargs.**
-<!-- Verified via CLI implementation 2026-03-17 -->
 
 ```python
 from wxc_sdk.people import Person
@@ -650,7 +649,6 @@ api.locations.delete(location_id='<id>')
 
 Creating a location via the Locations API does **not** automatically enable it for Webex Calling. You must use the separate Location Call Settings API:
 
-<!-- Verified via CLI implementation 2026-03-18 -->
 ```python
 # SDK method:
 api.telephony.location.enable_for_calling(location_id='<id>', ...)
@@ -807,7 +805,6 @@ You cannot assign a user to a location that does not exist. Create the location 
 Locations enabled for Webex Calling must have names of **80 characters or fewer**. The general Locations API allows 256, but calling features and Control Hub enforce the shorter limit.
 
 **`enable_for_calling` requires lowercase language codes.**
-<!-- Verified via CLI implementation 2026-03-17 -->
 The telephony `enable_for_calling` API rejects `en_US` (mixed case) for `announcement_language` with error `Invalid Language Code`. Use `en_us` (all lowercase). The general Locations API stores `preferredLanguage` as `en_US` but the telephony backend expects lowercase.
 
 ```python
@@ -818,17 +815,14 @@ api.telephony.location.enable_for_calling(location=location)
 ```
 
 **`announcement_language` returns None from details endpoint.**
-<!-- Verified via CLI implementation 2026-03-17 -->
 `LocationsApi.details()` returns `announcement_language = None` even on locations that have it set. This is a Webex API inconsistency. Always set it explicitly before calling `enable_for_calling`.
 
 **Cannot delete calling-enabled locations via API.**
-<!-- Verified via CLI implementation 2026-03-17 -->
 `LocationsApi.delete()` returns `409 Conflict: Location is being referenced, cannot be deleted` for any location with Webex Calling enabled. There is **no API to disable calling on a location** — `wxcadm` confirms: "There is currently no way to delete a Location outside of Control Hub." The `safe_delete_check_before_disabling_calling_location` precheck may return `UNBLOCKED` but the delete still fails due to the telephony reference.
 
 Calling-enabled locations can only be deleted from Control Hub.
 
 **`SafeDeleteCheckResponse` uses `location_delete_status`, not `status`.**
-<!-- Verified via CLI implementation 2026-03-17 -->
 The response model field is `location_delete_status` (value: `"UNBLOCKED"` or `"BLOCKED"`), not `status`. The `blocking` field contains a model with `users_in_use_count`, `trunks_in_use_count`, etc.
 
 ---
@@ -1245,37 +1239,30 @@ api.telephony.location.number.add(
 ```
 
 ### Numbers list API returns key `phoneNumbers`, not `numbers`
-<!-- Verified via CLI implementation 2026-03-18 -->
 
 `GET /telephony/config/numbers` returns a response body with the key `phoneNumbers`, not `numbers`. Code that looks for `response['numbers']` will get a `KeyError`.
 
 ### Workspaces list API returns key `items`, not `workspaces`
-<!-- Verified via CLI implementation 2026-03-18 -->
 
 `GET /workspaces` returns a response body with the key `items`, not `workspaces`. Parse using `response['items']` when working with raw API responses.
 
 ### Manage numbers jobs list API returns key `items`, not `manageNumbers`
-<!-- Verified via CLI implementation 2026-03-18 -->
 
 The manage numbers jobs list endpoint returns its results under the key `items`, not `manageNumbers`. This is inconsistent with other telephony job endpoints.
 
 ### Manage numbers job body uses `numberList` array, not `phoneNumbers`
-<!-- Verified via CLI implementation 2026-03-18 -->
 
 The manage numbers job creation body expects a `numberList` array where each element contains `locationId` and `numbers`. Do not use `phoneNumbers` as the key -- the API will reject or ignore it.
 
 ### Location creation is two steps: create + enable calling
-<!-- Verified via live migration execution 2026-03-24 -->
 
 `POST /v1/locations` creates the location but does NOT enable Webex Calling. You must separately call `POST /v1/telephony/config/locations` with the location's `id`, `name`, `timeZone`, `preferredLanguage`, `announcementLanguage`, and `address`. Without this second call, assigning calling-licensed users to the location fails with "Calling flag not set".
 
 ### Calling user creation requires extension or phone number
-<!-- Verified via live migration execution 2026-03-24 -->
 
 `POST /v1/people?callingData=true` with a calling license and location requires either `extension` or `phoneNumbers` in the body. The API rejects with "Create Calling user either Phone number or Extension is required" if neither is provided. You cannot create a calling user first and assign an extension separately — it must be done atomically.
 
 ### User create with callingData=false may silently create the user
-<!-- Verified via live migration execution 2026-03-24 -->
 
 If `POST /v1/people?callingData=false` fails with 400 (e.g., "Calling flag not set"), the user may have already been created without calling configuration. A subsequent retry returns 409 Conflict. Always check `GET /v1/people?email=...` before retrying user creation. If the user exists, use `PUT` to update with calling data instead.
 
@@ -1284,7 +1271,6 @@ If `POST /v1/people?callingData=false` fails with 400 (e.g., "Calling flag not s
 Number port-in requests, LOA submission, porting status tracking, and new number ordering from Cisco Calling Plan are all done through the Control Hub UI or via Cisco's PTS (PSTN Technical Support) team. The Numbers API (`wxcli numbers`) only manages numbers *after* they are ported in or provisioned — it cannot initiate a port.
 
 ### Location deletion requires calling disable with cooldown
-<!-- Verified via stress test bulk execution 2026-03-25 -->
 
 Locations with Webex Calling enabled cannot be deleted directly (409 Conflict). The deletion sequence is:
 1. Delete all location-scoped resources (virtual lines, call parks, hunt groups, call queues, schedules, trunks, devices, workspaces, users)
@@ -1297,7 +1283,6 @@ Even after waiting, the delete may return 409 "Location is being referenced" for
 ---
 
 ## Bulk Cleanup / Teardown
-<!-- Verified via stress test bulk execution 2026-03-25 -->
 
 When tearing down resources programmatically (e.g., cleaning up after a stress test or migration dry run), resources must be deleted in **reverse dependency order**. Deleting in the wrong order produces 409 (Conflict) or 400 (reference still exists) errors.
 

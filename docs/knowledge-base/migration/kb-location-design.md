@@ -1,5 +1,4 @@
 # Location Architecture: Migration Knowledge Base
-<!-- Last verified: 2026-03-28 -->
 
 > **Audience:** Migration advisor agent (Opus) and cold-context Claude sessions looking up dissent triggers, decision context, and Webex constraints for device pool consolidation, location architecture, and E911 decisions.
 > **Reading mode:** Reference. Grep by `DT-LOC-NNN` ID for dissent triggers, OR read `## Decision Framework` end-to-end when the migration-advisor agent loads this doc during analysis.
@@ -74,7 +73,7 @@ In CUCM, device pools are the primary mechanism for assigning:
 - **Calling Search Space** (routing permissions)
 - **Device Mobility Group**
 
-A single physical building commonly has 3-10 device pools for different purposes (lobby phones, exec phones, conference rooms, elevator phones, etc.). The pipeline's location mapper creates one candidate Webex location per device pool, then the advisory system flags consolidation opportunities. <!-- From training, needs verification -->
+A single physical building commonly has 3-10 device pools for different purposes (lobby phones, exec phones, conference rooms, elevator phones, etc.). The pipeline's location mapper creates one candidate Webex location per device pool, then the advisory system flags consolidation opportunities.
 
 ### Locations with Devices but No Street Address
 
@@ -88,7 +87,7 @@ When migrating from multiple CUCM clusters into a single Webex org:
 - Each cluster's device pools are discovered independently
 - The normalize phase assigns canonical IDs scoped by cluster
 - Location consolidation may recommend merging device pools from different clusters that serve the same physical site
-- Extension conflicts across clusters must be resolved before location mapping (different clusters may use overlapping extension ranges) <!-- From training, needs verification -->
+- Extension conflicts across clusters must be resolved before location mapping (different clusters may use overlapping extension ranges)
 
 ### Remote Workers Assigned to "HQ" Device Pool
 
@@ -121,7 +120,7 @@ CUCM commonly assigns all remote/VPN workers to a headquarters device pool for c
 
 **CUCM:** Shared infrastructure with per-tenant device pools, partitions, and CSSes for call routing isolation.
 
-**Webex:** Separate Webex locations per tenant (different emergency addresses, different PSTN connectivity, different business hours). If tenants are in different Webex orgs, this becomes a partner/VAR multi-org scenario. <!-- From training, needs verification -->
+**Webex:** Separate Webex locations per tenant (different emergency addresses, different PSTN connectivity, different business hours). If tenants are in different Webex orgs, this becomes a partner/VAR multi-org scenario.
 
 ## Webex Constraints
 
@@ -177,7 +176,7 @@ Even after waiting, delete may return 409 for minutes to hours. Re-run cleanup t
 
 - Location name: max 80 characters (calling-enabled) <!-- Source: provisioning.md line 627 -->
 - `user_limit`: max people at location (read-only field in `TelephonyLocation`) <!-- Source: location-call-settings-core.md line 79 -->
-- Auto attendants per location: 100 <!-- From training, needs verification -->
+- Auto attendants per location: 100
 
 ## Dissent Triggers
 

@@ -42,8 +42,6 @@ The `/people/me` response includes a `type` field:
 | Admin (personal) | `person` | CAN post to spaces if admin is a member — same as user token with elevated scopes |
 | Service App | `appuser` | NOT suitable for sending messages — service app tokens cannot post to spaces |
 
-<!-- NEEDS VERIFICATION: Confirm wxcli whoami exposes the type field -->
-
 ### Bot token scopes (fixed, cannot be expanded)
 
 - `spark:messages_read` / `spark:messages_write` — read and send messages

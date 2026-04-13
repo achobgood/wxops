@@ -250,7 +250,7 @@ Represents a single Call Queue.
 | `config` | `@property -> dict` | `dict` | Full queue config (fetches fresh each time) |
 | `call_forwarding` | `@property -> dict` | `dict` | Call Forwarding settings |
 | `agents` | `@property -> list` | `list` | List of agents from the config |
-| `add_agent` | `add_agent(agent: Person \| Workspace, weight=None, skill=None, joined=True) -> bool` | `bool` | **Not implemented** (`pass` in source, with `# TODO: Fix this` comment) <!-- Verified via wxcadm source 2026-03-19 --> |
+| `add_agent` | `add_agent(agent: Person \| Workspace, weight=None, skill=None, joined=True) -> bool` | `bool` | **Not implemented** (`pass` in source, with `# TODO: Fix this` comment)  |
 | `push` | `push() -> dict` | `dict` | Pushes `self.config` back to Webex via PUT |
 
 **Method aliases:**
@@ -288,7 +288,7 @@ HuntGroupList(org: Org, location: Optional[Location] = None)
 | `get` | `get(id=None, name=None, spark_id=None, uuid=None) -> HuntGroup \| None` | `HuntGroup` or `None` | Case-insensitive name match. Raises `ValueError` if no argument. |
 | `create` | See full signature below | `HuntGroup` | Creates a new Hunt Group |
 
-> **Bug note:** The `get` method contains a typo on the `uuid` branch -- `item.spark_id.split('/')[-1].uppper()` should be `.upper()`. This will raise `AttributeError` at runtime when searching by UUID. <!-- Verified via wxcadm source (hunt_group.py line 164) 2026-03-19 -->
+> **Bug note:** The `get` method contains a typo on the `uuid` branch -- `item.spark_id.split('/')[-1].uppper()` should be `.upper()`. This will raise `AttributeError` at runtime when searching by UUID.
 
 **`create` full signature:**
 
@@ -396,7 +396,7 @@ PickupGroupList(location: Location)
 |--------|-----------|---------|-------------|
 | `get` | `get(id=None, name=None, spark_id=None) -> PickupGroup \| None` | `PickupGroup` or `None` | Looks up by ID, Name, or Spark ID. Raises `ValueError` if no argument. |
 
-> **Note:** There is no `refresh`, `create`, or `delete` method on `PickupGroupList`. Only `get()` and `_get_items()` are defined. <!-- Verified via wxcadm source (pickup_group.py) 2026-03-19 -->
+> **Note:** There is no `refresh`, `create`, or `delete` method on `PickupGroupList`. Only `get()` and `_get_items()` are defined.
 
 ### PickupGroup
 
@@ -539,7 +539,7 @@ Dataclass (with `@dataclass_json`) for a single playlist.
 | `file_size` | `int` | Total file size in bytes |
 | `announcements` | `list` | List of `Announcement` instances in the playlist |
 
-> **Bug note:** The `__getattr__` method uses `"fv1/telephony/config/announcements/playlists/{self.id}"` as the URL -- this is a regular string (not an f-string), so `{self.id}` is literal text and the path starts with `fv1/` instead of `v1/`. The `refresh()` method uses the correct f-string `f"v1/telephony/config/announcements/playlists/{self.id}"`. The lazy-load will fail with an API error. <!-- Verified via wxcadm source (announcements.py lines 324 vs 338) 2026-03-19 -->
+> **Bug note:** The `__getattr__` method uses `"fv1/telephony/config/announcements/playlists/{self.id}"` as the URL -- this is a regular string (not an f-string), so `{self.id}` is literal text and the path starts with `fv1/` instead of `v1/`. The `refresh()` method uses the correct f-string `f"v1/telephony/config/announcements/playlists/{self.id}"`. The lazy-load will fail with an API error.
 
 **Methods:**
 
@@ -620,7 +620,7 @@ OrgRecordingVendorSelection(org: Org)
 | Method | Signature | Returns | Description |
 |--------|-----------|---------|-------------|
 | `change_vendor` | `change_vendor(new_vendor: RecordingVendor) -> bool` | `True` | Switches the Org recording vendor |
-| `set_failure_behavior` | `set_failure_behavior(failure_behavior: str) -> bool` | `False` | **Not implemented** (returns `False`, with `#TODO: Fix this` comment). Valid values would be `PROCEED_WITH_CALL_NO_ANNOUNCEMENT`, `PROCEED_CALL_WITH_ANNOUNCEMENT`, `END_CALL_WITH_ANNOUNCEMENT`. <!-- Verified via wxcadm source (recording.py lines 87-99) 2026-03-19 --> |
+| `set_failure_behavior` | `set_failure_behavior(failure_behavior: str) -> bool` | `False` | **Not implemented** (returns `False`, with `#TODO: Fix this` comment). Valid values would be `PROCEED_WITH_CALL_NO_ANNOUNCEMENT`, `PROCEED_CALL_WITH_ANNOUNCEMENT`, `END_CALL_WITH_ANNOUNCEMENT`.  |
 
 ### LocationRecordingVendorSelection
 
@@ -696,7 +696,7 @@ ComplianceAnnouncementSettings(
 | `to_json` | `to_json() -> str` | `str` | JSON string representation |
 | `push` | `push() -> bool` | `True` | Pushes settings to Webex. Uses Location endpoint if `self.location` is set, otherwise Org endpoint. |
 
-> **Bug note:** The Location-level endpoint in `push()` has a double slash: `f"v1//telephony/config/locations/{self.location.id}/callRecording/complianceAnnouncement"`. This may cause API failures depending on how the HTTP client normalizes paths. <!-- Verified via wxcadm source (recording.py line 284) 2026-03-19 -->
+> **Bug note:** The Location-level endpoint in `push()` has a double slash: `f"v1//telephony/config/locations/{self.location.id}/callRecording/complianceAnnouncement"`. This may cause API failures depending on how the HTTP client normalizes paths.
 
 ### RecordingList
 
@@ -785,16 +785,16 @@ Recording(org: Org, id: str, details: Optional[dict] = None, timezone: Optional[
 
 | Aspect | wxcadm | wxc_sdk |
 |--------|--------|---------|
-| **Architecture** | List classes (UserList subclasses) own data fetching; item classes are plain classes or dataclasses. Lazy-loaded properties on items. | Strongly typed Pydantic models (`ApiModel(BaseModel)`) with a central API client. Separate API method classes (e.g. `AutoAttendantApi(ApiChild)`). <!-- Verified via wxc_sdk source (base.py, autoattendant.py) 2026-03-19 --> |
-| **Data fetching** | Automatic on list init; manual `refresh()` to update. Detail calls are lazy (triggered on first property access). | Explicit method calls on API objects (e.g. `AutoAttendantApi.list()`, `.details()`, `.create()`). Returns generators for list operations. <!-- Verified via wxc_sdk source (autoattendant.py) 2026-03-19 --> |
-| **Scoping** | List classes accept `org` + optional `location` in constructor (except `PickupGroupList` which is Location-only). | Location filtering via `location_id` parameter on API methods (e.g. `list(location_id=...)`, `create(location_id=...)`). <!-- Verified via wxc_sdk source (autoattendant.py, callpickup.py) 2026-03-19 --> |
-| **Lookup pattern** | `.get(id=, name=, spark_id=, uuid=)` on every list class. Search order: ID, Name, UUID, Spark ID. | `.details(location_id, feature_id)` for single-item fetch; `.list()` with filter params for discovery. <!-- Corrected via wxc_sdk source (autoattendant.py `details()` method, not `get_by_id()`) 2026-03-19 --> |
-| **Create pattern** | `.create(...)` on list class; returns the new item instance. Location defaults from parent if scoped. | `<FeatureApi>.create(location_id, settings)` methods; returns new ID as string. <!-- Verified via wxc_sdk source (autoattendant.py `create()`) 2026-03-19 --> |
-| **Update pattern** | Modify `config` dict, then call `push()` (Call Queue) or use dedicated methods (Hunt Group `add_agent`). No universal update pattern. | `<FeatureApi>.update(location_id, feature_id, settings)` methods with typed `ApiModel` settings objects. <!-- Verified via wxc_sdk source (autoattendant.py `update()`) 2026-03-19 --> |
-| **Serialization** | Mix of plain dicts, `@dataclass`, and `@dataclass_json`. No unified serialization layer. | Pydantic `ApiModel(BaseModel)` with camelCase alias generation, `model_dump_json()`, and `model_validate()`. <!-- Verified via wxc_sdk source (base.py `ApiModel` class) 2026-03-19 --> |
-| **Recordings** | Full converged recordings support: list, download, transcript, reassign, compliance settings, vendor selection at Org and Location level. | `ConvergedRecordingsApi` with list, get, delete, reassign, download, and transcript support. Also has in-call recording controls (start/stop/pause/resume) via `CallsApi`. <!-- Corrected via wxc_sdk source (converged_recordings/, telephony/calls.py) 2026-03-19 --> |
-| **Announcements** | Full support including upload, delete, replace, Playlists with Location assignment. | Full announcement repo support via `announcements_repo/`: list, upload (`upload_announcement`), modify, delete. Supports both Org and Location level. <!-- Corrected via wxc_sdk source (telephony/announcements_repo/__init__.py) 2026-03-19 --> |
-| **Pickup Groups** | Location-only; read-only (no create/delete). | Full CRUD via `CallPickupApi`: `list()`, `create()`, `details()`, `update()`. No explicit `delete()` method found. <!-- Corrected via wxc_sdk source (telephony/callpickup.py) 2026-03-19 --> |
+| **Architecture** | List classes (UserList subclasses) own data fetching; item classes are plain classes or dataclasses. Lazy-loaded properties on items. | Strongly typed Pydantic models (`ApiModel(BaseModel)`) with a central API client. Separate API method classes (e.g. `AutoAttendantApi(ApiChild)`).  |
+| **Data fetching** | Automatic on list init; manual `refresh()` to update. Detail calls are lazy (triggered on first property access). | Explicit method calls on API objects (e.g. `AutoAttendantApi.list()`, `.details()`, `.create()`). Returns generators for list operations.  |
+| **Scoping** | List classes accept `org` + optional `location` in constructor (except `PickupGroupList` which is Location-only). | Location filtering via `location_id` parameter on API methods (e.g. `list(location_id=...)`, `create(location_id=...)`).  |
+| **Lookup pattern** | `.get(id=, name=, spark_id=, uuid=)` on every list class. Search order: ID, Name, UUID, Spark ID. | `.details(location_id, feature_id)` for single-item fetch; `.list()` with filter params for discovery.  |
+| **Create pattern** | `.create(...)` on list class; returns the new item instance. Location defaults from parent if scoped. | `<FeatureApi>.create(location_id, settings)` methods; returns new ID as string.  |
+| **Update pattern** | Modify `config` dict, then call `push()` (Call Queue) or use dedicated methods (Hunt Group `add_agent`). No universal update pattern. | `<FeatureApi>.update(location_id, feature_id, settings)` methods with typed `ApiModel` settings objects.  |
+| **Serialization** | Mix of plain dicts, `@dataclass`, and `@dataclass_json`. No unified serialization layer. | Pydantic `ApiModel(BaseModel)` with camelCase alias generation, `model_dump_json()`, and `model_validate()`.  |
+| **Recordings** | Full converged recordings support: list, download, transcript, reassign, compliance settings, vendor selection at Org and Location level. | `ConvergedRecordingsApi` with list, get, delete, reassign, download, and transcript support. Also has in-call recording controls (start/stop/pause/resume) via `CallsApi`.  |
+| **Announcements** | Full support including upload, delete, replace, Playlists with Location assignment. | Full announcement repo support via `announcements_repo/`: list, upload (`upload_announcement`), modify, delete. Supports both Org and Location level.  |
+| **Pickup Groups** | Location-only; read-only (no create/delete). | Full CRUD via `CallPickupApi`: `list()`, `create()`, `details()`, `update()`. No explicit `delete()` method found.  |
 | **Known gaps in wxcadm** | `CallQueue.add_agent` not implemented. `OrgRecordingVendorSelection.set_failure_behavior` not implemented. Several typos in API URLs (see bug notes above). | N/A |
 
 ---

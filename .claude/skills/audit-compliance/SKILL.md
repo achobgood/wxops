@@ -105,7 +105,7 @@ For event category filtering on admin audit, discover available categories:
 wxcli audit-events list-event-categories -o json
 ```
 
-This returns the exact category names (which may be case-sensitive). <!-- NEEDS VERIFICATION: case sensitivity of event categories -->
+This returns the exact category names (treat as case-sensitive — always use exact values from this list).
 
 ## Step 5: Build and present deployment plan -- [SHOW BEFORE EXECUTING]
 
@@ -476,7 +476,7 @@ for auth in data:
 7. **Service app token creation returns a short-lived token.** Store it immediately. The credentials (`client-secret`) are only shown once at creation time and cannot be retrieved later.
 8. **Always show the query plan before executing (Step 5).** Present which API, date range, filters, and output format to the user for confirmation before running queries.
 9. **ISO 8601 datetime format required.** All date parameters expect ISO 8601 format: `2026-03-18T00:00:00.000Z`. Other formats return errors or unexpected results.
-10. **Event categories are case-sensitive.** Always run `wxcli audit-events list-event-categories` first (Step 4b) to discover the exact category names before filtering. <!-- NEEDS VERIFICATION: case sensitivity of event categories -->
+10. **Event categories — treat as case-sensitive.** Always run `wxcli audit-events list-event-categories` first (Step 4b) to discover the exact category names before filtering. Use exact values from the list output.
 11. **`events list` resource types are not validated client-side.** Misspelled `--resource` values return empty result sets, not errors. Use the known resource types listed in Step 6c.
 
 ---

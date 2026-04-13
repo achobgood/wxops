@@ -329,8 +329,6 @@ The `TelephonyApi` object is the gateway to all calling features. Key sub-proper
 - `api.telephony.voice_messaging` -- Voice messaging
 - `api.telephony.voiceportal` -- Voice portal settings
 
-<!-- Verified via wxc_sdk v1.30.0 source (wxc_sdk/telephony/__init__.py TelephonyApi class) 2026-03-19 -->
-
 ---
 
 ## 3. Authentication Patterns
@@ -1036,8 +1034,6 @@ async with AsWebexSimpleApi(tokens=tokens) as api:
         await api.people.list()
 ```
 
-<!-- Verified via wxc_sdk v1.30.0 source (wxc_sdk/har_writer/__init__.py). Constructor: HarWriter(path=None, api=None, with_authorization=False, incremental=False). 2026-03-19 -->
-
 ---
 
 ## 8. Data Types
@@ -1217,13 +1213,13 @@ The SDK's response dump (enabled at DEBUG level) includes:
 
 8. **Webex IDs are base64-encoded** -- Use `webex_id_to_uuid()` if you need the raw UUID (e.g., for matching against other systems).
 
-9. **Agent model imports differ per feature** -- Hunt Groups and Call Queues use `from wxc_sdk.telephony.hg_and_cq import Agent`. Call Park and Call Pickup use `from wxc_sdk.common import PersonPlaceAgent`. Paging uses `from wxc_sdk.telephony.paging import PagingAgent`. Do NOT try importing Agent from the individual feature modules. <!-- Verified via CLI implementation 2026-03-17 -->
+9. **Agent model imports differ per feature** -- Hunt Groups and Call Queues use `from wxc_sdk.telephony.hg_and_cq import Agent`. Call Park and Call Pickup use `from wxc_sdk.common import PersonPlaceAgent`. Paging uses `from wxc_sdk.telephony.paging import PagingAgent`. Do NOT try importing Agent from the individual feature modules.
 
-10. **Named delete methods vs generic `.delete()`** -- Call Park, Call Pickup, Paging, and several other APIs inherit a generic `.delete()` that accepts anything silently. Always use the named method: `delete_callpark()`, `delete_pickup()`, `delete_paging()`, `delete_huntgroup()`, `delete_queue()`, `delete_auto_attendant()`, `delete_schedule()`. <!-- Verified via CLI implementation 2026-03-17 -->
+10. **Named delete methods vs generic `.delete()`** -- Call Park, Call Pickup, Paging, and several other APIs inherit a generic `.delete()` that accepts anything silently. Always use the named method: `delete_callpark()`, `delete_pickup()`, `delete_paging()`, `delete_huntgroup()`, `delete_queue()`, `delete_auto_attendant()`, `delete_schedule()`.
 
-11. **`ScheduleApi` import path** -- Lives at `wxc_sdk.common.schedules`, NOT `wxc_sdk.telephony.schedules` (which doesn't exist). `from wxc_sdk.common.schedules import ScheduleApi, Schedule, Event, ScheduleType`. <!-- Verified via CLI implementation 2026-03-17 -->
+11. **`ScheduleApi` import path** -- Lives at `wxc_sdk.common.schedules`, NOT `wxc_sdk.telephony.schedules` (which doesn't exist). `from wxc_sdk.common.schedules import ScheduleApi, Schedule, Event, ScheduleType`.
 
-12. **`PagingApi.update()` unusual parameter order** -- Signature is `(location_id, update: Paging, paging_id)` — the model object comes BEFORE the ID. Always use keyword arguments to avoid silent misassignment. <!-- Verified via CLI implementation 2026-03-17 -->
+12. **`PagingApi.update()` unusual parameter order** -- Signature is `(location_id, update: Paging, paging_id)` — the model object comes BEFORE the ID. Always use keyword arguments to avoid silent misassignment.
 
 ---
 

@@ -1,5 +1,4 @@
 # Identity & Numbering: Migration Knowledge Base
-<!-- Last verified: 2026-03-28 -->
 
 > **Audience:** Migration advisor agent (Opus) and cold-context Claude sessions looking up dissent triggers, decision context, and Webex constraints for DN ownership, extension conflicts, duplicate users, and number porting decisions.
 > **Reading mode:** Reference. Grep by `DT-ID-NNN` ID for dissent triggers, OR read `## Decision Framework` end-to-end when the migration-advisor agent loads this doc during analysis.
@@ -94,7 +93,6 @@ Rationale: Webex is the target system. Existing Webex assignments represent prod
 <!-- Source: provisioning.md Person data model: "emails list[str] Currently only one email supported"; People API list filter: email parameter -->
 
 - **Max virtual lines per org: not documented** -- No official per-org limit for virtual lines is stated in the API docs or SDK reference. The `LIMIT_EXCEEDED` validation status exists in the virtual extension range validation model, suggesting a limit exists but its value is not published.
-<!-- From training, needs verification -->
 
 - **Number validation states** -- Before assigning numbers, use `validate_phone_numbers`. Possible states: `Available`, `Duplicate`, `Duplicate In List`, `Invalid`, `Unavailable`. Only `Available` numbers can be assigned.
 <!-- Source: call-routing.md ValidatePhoneNumberStatus model -->
@@ -131,6 +129,6 @@ Rationale: Webex is the target system. Existing Webex assignments represent prod
 
 | # | Claim | Verified | Source | Finding |
 |---|-------|----------|--------|---------|
-| 1 | Max 1000 virtual lines per org | **Not verified** | `virtual-lines.md` | No org-level limit documented. The `max=1000` values in the doc are pagination page sizes, not org limits. A `LIMIT_EXCEEDED` validation status exists but no number is stated. Marked `<!-- From training, needs verification -->`. |
+| 1 | Max virtual lines per org | No | `virtual-lines.md` | No org-level limit documented. `max=1000` values are pagination page sizes. `LIMIT_EXCEEDED` validation status exists but no number is stated. |
 | 2 | Virtual extension vs virtual line ID type issue | Yes | CLAUDE.md Known Issue #12 | `virtual-extensions` uses `VIRTUAL_EXTENSION` IDs, virtual lines use `VIRTUAL_LINE` IDs. `virtual-extensions list` returns empty, `delete` returns 400. Confirmed. |
 | 3 | Email as primary Webex identifier | Yes | `provisioning.md` Person data model line 1109 | `emails: list[str]` — currently only one email supported. People API uses email as filter/lookup key. |

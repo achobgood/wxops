@@ -1,4 +1,3 @@
-<!-- Verified via CLI Batches 1-4, 2026-03-19 through 2026-03-21 -->
 # Location Call Settings — Core Settings & Voicemail
 
 ## Sources
@@ -644,7 +643,7 @@ wxcli location-settings change-announcement-language Y2lzY29zcGFyazovL... \
 | `org_transcripts_enabled` | `bool` | Org-level transcripts (read-only) |
 | `use_org_settings_enabled` | `bool` | `True` = org settings override location settings |
 
-**Note:** Not supported for locations in India. <!-- Verified via wxc_sdk source (location/__init__.py docstring) 2026-03-19 -->
+**Note:** Not supported for locations in India.
 
 #### `get_call_captions_settings`
 
@@ -1237,7 +1236,7 @@ def delete_receptionist_contact_directory(location_id, directory_id, org_id=None
 def modify_receptionist_contact_directory(location_id, directory_id, name, contacts, org_id=None) -> str
 ```
 
-Note: `modify` performs a **full replacement** of the contacts list (not incremental). The details API is supported for orgs with fewer than 2000 users or location-based calling features; orgs exceeding this threshold get error 25395. <!-- Verified via wxc_sdk source (location/__init__.py docstring) 2026-03-19 -->
+Note: `modify` performs a **full replacement** of the contacts list (not incremental). The details API is supported for orgs with fewer than 2000 users or location-based calling features; orgs exceeding this threshold get error 25395.
 
 ---
 
@@ -1316,7 +1315,7 @@ api.session.rest_put(f"{BASE}/telephony/config/locations/{loc_id}/voicemail", js
 
 ### Organisation Voicemail Settings
 
-**API path:** `api.telephony.organisation_voicemail` <!-- Verified via wxc_sdk telephony/__init__.py 2026-03-19 -->
+**API path:** `api.telephony.organisation_voicemail`
 
 **Source:** `wxc_sdk.telephony.organisation_vm`
 
@@ -1391,7 +1390,7 @@ api.session.rest_put(f"{BASE}/telephony/config/voicemail/settings", json=body)
 
 ## 3. Voicemail Rules (Org-Level Passcode Policy)
 
-**API path:** `api.telephony.voicemail_rules` <!-- Verified via wxc_sdk telephony/__init__.py 2026-03-19 -->
+**API path:** `api.telephony.voicemail_rules`
 
 **Source:** `wxc_sdk.telephony.vm_rules`
 
@@ -1529,7 +1528,7 @@ api.session.rest_put(f"{BASE}/telephony/config/voicemail/rules", json=body)
 
 ## 4. Voice Messaging (User-Level)
 
-**API path:** `api.telephony.voice_messaging` <!-- Verified via wxc_sdk telephony/__init__.py 2026-03-19 -->
+**API path:** `api.telephony.voice_messaging`
 
 **Source:** `wxc_sdk.telephony.voice_messaging`
 
@@ -1661,7 +1660,7 @@ api.session.rest_put(f"{BASE}/telephony/voiceMessages/{message_id}/markAsUnread"
 
 ## 5. Voice Portal
 
-**API path:** `api.telephony.voiceportal` <!-- Verified via wxc_sdk telephony/__init__.py 2026-03-19 -->
+**API path:** `api.telephony.voiceportal`
 
 **Source:** `wxc_sdk.telephony.voiceportal`
 
@@ -1938,8 +1937,6 @@ wxcli location-voicemail list-available-numbers-fax-message Y2lzY29zcGFyazovL...
 | Voicemail rules | `api.telephony.voicemail_rules.read/update()` | read/write |
 | Voice messaging (user) | `api.telephony.voice_messaging.summary/list/delete/mark_as_read/mark_as_unread()` | calls_read/write |
 | Voice portal | `api.telephony.voiceportal.read/update/passcode_rules/available_phone_numbers()` | read/write |
-
-<!-- Verified: all attribute names confirmed against wxc_sdk telephony/__init__.py 2026-03-19: organisation_voicemail, voicemail_rules, voice_messaging, voiceportal -->
 
 ---
 

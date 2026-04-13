@@ -505,7 +505,7 @@ wxcli caller-reputation show --organization-id <org_id>
 - **`client_secret` is write-only** -- it is never returned by `get()`. Only usable in `update()`.
 - The `unlock()` method invokes `actions/unlock/invoke` -- use this when the provider is in a locked state (e.g., after auth failure). <!-- UNVERIFIABLE: exact conditions that trigger a locked state are not documented in SDK or OpenAPI spec; would need live API testing -->
 - Note the parameter is `organization_id` (not `org_id`) in this API, differing from most other telephony APIs.
-- Score thresholds are strings, not integers. The OpenAPI spec examples show decimal numeric strings (e.g., `"0.7"`, `"0.3"`), not integer strings. <!-- Verified via OpenAPI spec (specs/webex-cloud-calling.json) 2026-03-19 -->
+- Score thresholds are strings, not integers. The OpenAPI spec examples show decimal numeric strings (e.g., `"0.7"`, `"0.3"`), not integer strings.
 
 ---
 
@@ -675,7 +675,7 @@ Used for both supervisor and agent listings.
 | `id` | `str` | |
 | `status` | `str` | Status result |
 | `message` | `str` | Detail message |
-| `type` | `UserType` | SDK-only field; absent from OpenAPI spec `ListSupervisorAgentStatusObject`. SDK marks as `# TODO: undocumented, issue 202` <!-- Verified via OpenAPI spec + wxc_sdk source 2026-03-19 --> |
+| `type` | `UserType` | SDK-only field; absent from OpenAPI spec `ListSupervisorAgentStatusObject`. SDK marks as `# TODO: undocumented, issue 202`  |
 
 ### 4.3 API Methods
 
@@ -749,7 +749,7 @@ wxcli call-queue update-supervisors SUPERVISOR_ID --has-cx-essentials true \
 
 > **WARNING:** `delete-supervisors-config --force` without specifying IDs may remove **all supervisors in the org**. Always confirm scope before executing.
 
-> **GOTCHA:** `delete-supervisors-config-1` returns 204 but the Customer Assist supervisor may persist. The reliable method is to remove all agents via `update-supervisors` with `action: DELETE` — when the last agent is removed, the supervisor is automatically deleted. <!-- Verified via live API 2026-03-21 -->
+> **GOTCHA:** `delete-supervisors-config-1` returns 204 but the Customer Assist supervisor may persist. The reliable method is to remove all agents via `update-supervisors` with `action: DELETE` — when the last agent is removed, the supervisor is automatically deleted.
 
 ### 4.5 Key Behaviors
 
@@ -784,7 +784,7 @@ Click-to-call allows external (guest) callers to reach internal destinations. Or
 |-------|------|-------|
 | `enabled` | `bool` | Click-to-call enabled |
 | `privacy_enabled` | `bool` | Privacy mode |
-| `video_enabled` | `bool` | SDK-only field with no docstring; absent from all OpenAPI specs. May be undocumented or deprecated <!-- Verified via OpenAPI spec + wxc_sdk source 2026-03-19 --> |
+| `video_enabled` | `bool` | SDK-only field with no docstring; absent from all OpenAPI specs. May be undocumented or deprecated  |
 
 #### `DestinationMember`
 
@@ -1060,10 +1060,8 @@ result = api.session.rest_get(
 **Gotcha:** Create requires `level` set to `ORGANIZATION` or `LOCATION`. For `LOCATION`, you must also include `locationId` in the body. The `type` field must use the enum value directly (e.g., `SAME_HOURS_DAILY`, `DIFFERENT_HOURS_DAILY`, `HOLIDAY`).
 
 **Gotcha:** For `SAME_HOURS_DAILY` type, you must provide actual schedule data in `sameHoursDaily` -- the API rejects a create with no schedule data.
-<!-- Verified via CLI implementation 2026-03-17 -->
 
 **Gotcha:** Holidays can only be added to operating modes with `type: HOLIDAY`. The `holiday_create` endpoint requires `startDate`, `endDate`, and `allDayEnabled` at minimum.
-<!-- Verified via CLI implementation 2026-03-17 -->
 
 ### 6.5 CLI Examples
 
@@ -1138,7 +1136,6 @@ wxcli operating-modes list-available-numbers <location_id>
 - **Max 100 operating modes per location** and 100 per org. `available_operating_modes()` returns up to 200 (location + org combined).
 - **Max 150 holidays per operating mode.**
 - The `create()` method requires at least `name`, `type`, and `level` on the `OperatingMode` object. If `level` is LOCATION, `location.id` must be set.
-<!-- Verified via CLI implementation 2026-03-17: Operating Modes create requires level=ORGANIZATION (or LOCATION with location.id). The type field must use the OperatingModeSchedule enum value (e.g., SAME_HOURS_DAILY, not the camelCase string "sameHoursDaily"). For SAME_HOURS_DAILY type, actual DaySchedule hours must be provided in same_hours_daily — the API rejects a create with no schedule data. -->
 - On `create()`, the SDK internally converts `location` to `locationId` and strips `id` from holidays. On `update()`, it additionally strips `type` and `level` (immutable after creation).
 - `call_forward_available_phone_numbers()` lists PSTN numbers available as forwarding destinations for operating modes at a given location.
 - The `list()` result is sorted ascending by operating mode name.
@@ -1473,7 +1470,7 @@ Note that Conference Controls uses **user-level** scopes (`spark:calls_*`), not 
 - **Score thresholds are strings.** The caller reputation `callBlockScoreThreshold` and `callAllowScoreThreshold` fields are string-typed, not integers. Pass them as quoted values in both CLI and raw HTTP.
 - **`delete_bulk` supervisors has a nuke option.** Setting `delete_all: true` on `delete_bulk()` ignores the provided ID list and removes ALL supervisors in the org. Double-check before using.
 - **Hot desking has two levels.** The location setting enables the feature globally for the location; the user-level setting controls whether a specific user can act as a hot desking guest. Both must be enabled for a user to hot-desk at that location.
-- **TimePeriod AXL field constraints.** The `monthOfYear` field uses 3-letter abbreviations only (`Dec`, `Jan`, `Feb`, etc., not full names like `December`). The `startTime`/`endTime` fields only accept on-the-hour values per the `TypeTimeOfDay` enum — values like `23:59` or `17:30` are rejected. For date-specific (holiday) time periods, use `monthOfYear` + `dayOfMonth` with valid time range (e.g., `08:00`–`17:00`). <!-- Verified via test bed expansion 2026-03-24 -->
+- **TimePeriod AXL field constraints.** The `monthOfYear` field uses 3-letter abbreviations only (`Dec`, `Jan`, `Feb`, etc., not full names like `December`). The `startTime`/`endTime` fields only accept on-the-hour values per the `TypeTimeOfDay` enum — values like `23:59` or `17:30` are rejected. For date-specific (holiday) time periods, use `monthOfYear` + `dayOfMonth` with valid time range (e.g., `08:00`–`17:00`).
 
 ---
 

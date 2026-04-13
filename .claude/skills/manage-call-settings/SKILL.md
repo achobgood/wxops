@@ -227,7 +227,7 @@ All CLI commands above are under `wxcli user-settings`. Run `wxcli user-settings
 
 **6 USER-ONLY settings (no admin endpoint — require user-level OAuth token):**
 SimRing, SequentialRing, PriorityAlert, CallNotify, AnonymousCallReject, CallPolicies (person-level).
-These ONLY work at `/telephony/config/people/me/settings/{feature}` with a user token. Admin tokens get 404. <!-- Verified via live API 2026-03-19 -->
+These ONLY work at `/telephony/config/people/me/settings/{feature}` with a user token. Admin tokens get 404.
 
 For other settings marked "SDK only" above (Music on Hold, Feature Access Controls, Preferred Answer, MS Teams, Mode Management, Personal Assistant, ECBN), use the raw HTTP fallback pattern with an **admin** token:
 

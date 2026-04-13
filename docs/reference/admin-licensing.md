@@ -1,4 +1,3 @@
-<!-- Verified via CLI Batches 1-4, 2026-03-19 through 2026-03-21 -->
 # Admin: Licensing
 
 License inventory, assignment, usage auditing, and reclamation for Webex organizations.

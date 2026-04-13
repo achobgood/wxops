@@ -1,6 +1,4 @@
 <!-- Updated by playbook session 2026-03-18 -->
-<!-- Verified via live API 2026-03-19: admin vs user-only access levels for all endpoints -->
-<!-- Verified via CLI Batches 1-4, 2026-03-19 through 2026-03-21 -->
 # Person Call Settings — Call Handling Reference
 
 ## Sources
@@ -18,7 +16,6 @@ Person-level call handling settings control how incoming calls are routed, filte
 ---
 
 ## Admin vs User-Only Access
-<!-- Verified via live API 2026-03-19 -->
 
 Not all person call handling endpoints support admin-level access. Four features are **user-only** — they exist only at `/telephony/config/people/me/settings/{feature}` and require user-level OAuth. An admin cannot read or write these settings for another user.
 
@@ -87,8 +84,6 @@ Every feature API follows the same read/configure (or read/update) pattern. All 
 ---
 
 ## 1. Call Forwarding
-
-<!-- Verified via live API 2026-03-19: admin access works at /people/{id}/features/callForwarding (200) -->
 
 Controls where incoming calls are sent when the user cannot or does not want to answer. Three forwarding modes plus business continuity.
 
@@ -272,8 +267,6 @@ api.session.rest_put(f"{BASE}/people/{person_id}/features/callForwarding", json=
 
 ## 2. Call Waiting
 
-<!-- Verified via live API 2026-03-19: admin access works at /people/{id}/features/callWaiting (200) -->
-
 Controls whether a user can place an active call on hold to answer a second incoming call. A tone alerts the user of the incoming call.
 
 **SDK path:** `api.person_settings.call_waiting`
@@ -354,8 +347,6 @@ api.session.rest_put(f"{BASE}/people/{person_id}/features/callWaiting", json={"e
 ---
 
 ## 3. Do Not Disturb (DND)
-
-<!-- Verified via live API 2026-03-19: admin access works at /people/{id}/features/doNotDisturb (200) -->
 
 When enabled, all incoming calls receive busy treatment. Optionally plays a ring splash (brief tone) on the desktop phone as a reminder.
 
@@ -450,7 +441,7 @@ api.session.rest_put(f"{BASE}/people/{person_id}/features/doNotDisturb", json={
 
 ## 4. Simultaneous Ring
 
-> **Admin access: Not available.** This endpoint only exists at `/telephony/config/people/me/settings/simultaneousRing` (user-level OAuth). No admin-level path exists — `/telephony/config/people/{personId}/simultaneousRing` returns 404. <!-- Verified via live API 2026-03-19 -->
+> **Admin access: Not available.** This endpoint only exists at `/telephony/config/people/me/settings/simultaneousRing` (user-level OAuth). No admin-level path exists — `/telephony/config/people/{personId}/simultaneousRing` returns 404.
 
 Ring the user's office phone and up to 10 additional phone numbers at the same time when an incoming call arrives. Supports schedule-based criteria to control when simultaneous ring is active.
 
@@ -553,7 +544,7 @@ api.session.rest_delete(f"{BASE}/telephony/config/people/{person_id}/simultaneou
 
 ### Gotchas
 
-- **User-only endpoint.** No admin-level path exists. The paths `telephony/config/people/{personId}/simultaneousRing` and `people/{personId}/features/simultaneousRing` both return 404 with an admin token. Only `/telephony/config/people/me/settings/simultaneousRing` works, and it requires user-level OAuth. <!-- Verified via live API 2026-03-19 -->
+- **User-only endpoint.** No admin-level path exists. The paths `telephony/config/people/{personId}/simultaneousRing` and `people/{personId}/features/simultaneousRing` both return 404 with an admin token. Only `/telephony/config/people/me/settings/simultaneousRing` works, and it requires user-level OAuth.
 - `SimRingApi` may not be imported into `PersonSettingsApi` in some SDK versions.
 - The `criteria` list is excluded from the update payload. Criteria are managed via dedicated CRUD methods.
 
@@ -561,7 +552,7 @@ api.session.rest_delete(f"{BASE}/telephony/config/people/{person_id}/simultaneou
 
 ## 5. Sequential Ring
 
-> **Admin access: Not available.** This endpoint only exists at `/telephony/config/people/me/settings/sequentialRing` (user-level OAuth). No admin-level path exists — `/telephony/config/people/{personId}/sequentialRing` returns 404. <!-- Verified via live API 2026-03-19 -->
+> **Admin access: Not available.** This endpoint only exists at `/telephony/config/people/me/settings/sequentialRing` (user-level OAuth). No admin-level path exists — `/telephony/config/people/{personId}/sequentialRing` returns 404.
 
 Ring up to five phone numbers one after another when an incoming call arrives. Configurable ring counts per number, optional primary-line-first behavior, and schedule-based criteria.
 
@@ -668,7 +659,7 @@ api.session.rest_delete(f"{BASE}/telephony/config/people/{person_id}/sequentialR
 
 ### Gotchas
 
-- **User-only endpoint.** No admin-level path exists. The paths `telephony/config/people/{personId}/sequentialRing` and `people/{personId}/features/sequentialRing` both return 404 with an admin token. Only `/telephony/config/people/me/settings/sequentialRing` works, and it requires user-level OAuth. <!-- Verified via live API 2026-03-19 -->
+- **User-only endpoint.** No admin-level path exists. The paths `telephony/config/people/{personId}/sequentialRing` and `people/{personId}/features/sequentialRing` both return 404 with an admin token. Only `/telephony/config/people/me/settings/sequentialRing` works, and it requires user-level OAuth.
 - `SequentialRingApi` may not be imported into `PersonSettingsApi` in some SDK versions.
 - The `criteria` list is excluded from the update payload. Criteria are managed via dedicated CRUD methods.
 
@@ -834,8 +825,6 @@ result = api.session.rest_get(
 
 ## 7. Selective Accept
 
-<!-- Verified via live API 2026-03-19: admin access works at /telephony/config/people/{id}/selectiveAccept (200) -->
-
 Accept calls only from specific callers or during specific schedules. Calls not matching any enabled criteria are rejected.
 
 **SDK path:** `api.person_settings.selective_accept`
@@ -956,8 +945,6 @@ api.session.rest_delete(f"{BASE}/telephony/config/people/{person_id}/selectiveAc
 
 ## 8. Selective Forward
 
-<!-- Verified via live API 2026-03-19: admin access works at /telephony/config/people/{id}/selectiveForward (200) -->
-
 Forward calls to a specific destination based on caller identity and/or schedule. **Takes precedence over standard call forwarding settings.**
 
 **SDK path:** `api.person_settings.selective_forward`
@@ -1074,8 +1061,6 @@ api.session.rest_delete(f"{BASE}/telephony/config/people/{person_id}/selectiveFo
 
 ## 9. Selective Reject
 
-<!-- Verified via live API 2026-03-19: admin access works at /telephony/config/people/{id}/selectiveReject (200) -->
-
 Reject calls from specific callers or during specific schedules. **Takes precedence over Selective Accept.**
 
 **SDK path:** `api.person_settings.selective_reject`
@@ -1177,7 +1162,7 @@ api.session.rest_delete(f"{BASE}/telephony/config/people/{person_id}/selectiveRe
 
 ## 10. Priority Alert
 
-> **Admin access: Not available.** This endpoint only exists at `/telephony/config/people/me/settings/priorityAlert` (user-level OAuth). No admin-level path exists — `/telephony/config/people/{personId}/priorityAlert` returns 404. <!-- Verified via live API 2026-03-19 -->
+> **Admin access: Not available.** This endpoint only exists at `/telephony/config/people/me/settings/priorityAlert` (user-level OAuth). No admin-level path exists — `/telephony/config/people/{personId}/priorityAlert` returns 404.
 
 Play a distinctive ring pattern for calls matching specific criteria (caller identity, schedule). Useful for VIP caller identification.
 
@@ -1252,7 +1237,7 @@ api.session.rest_delete(f"{BASE}/telephony/config/people/{person_id}/priorityAle
 
 ### Gotchas
 
-- **User-only endpoint.** No admin-level path exists. The path `telephony/config/people/{personId}/priorityAlert` returns 404 with an admin token. Only `/telephony/config/people/me/settings/priorityAlert` works, and it requires user-level OAuth. <!-- Verified via live API 2026-03-19 -->
+- **User-only endpoint.** No admin-level path exists. The path `telephony/config/people/{personId}/priorityAlert` returns 404 with an admin token. Only `/telephony/config/people/me/settings/priorityAlert` works, and it requires user-level OAuth.
 - `PriorityAlertApi` may not be imported into `PersonSettingsApi` in some SDK versions.
 - Criteria use `notificationEnabled` (not `enabled`) as the REST API field name.
 - Priority Alert only changes the ring pattern; it does not affect call routing or acceptance.
@@ -1342,7 +1327,7 @@ For user-token access (a person managing their own settings), the SDK provides p
 | Selective Reject | `selective_reject` | `selective_reject` (`MeSelectiveRejectApi`) |
 | Priority Alert | N/A in SDK¹ | `priority_alert` (`MePriorityAlertApi`) |
 
-> **¹ "N/A in SDK" means the SDK class is not wired to `PersonSettingsApi`** — and **no admin-level REST endpoint exists** for these features. Simultaneous Ring, Sequential Ring, and Priority Alert are user-only: they only work at `/telephony/config/people/me/settings/{feature}` with user-level OAuth. An admin cannot read or write these settings for another user. The Raw HTTP examples in sections 4, 5, and 10 above show the `{person_id}` path pattern used by the SDK internally, but these paths return 404 when called with an admin token against another user. <!-- Verified via live API 2026-03-19 — corrects previous claim from 2026-03-18 -->
+> **¹ "N/A in SDK" means the SDK class is not wired to `PersonSettingsApi`** — and **no admin-level REST endpoint exists** for these features. Simultaneous Ring, Sequential Ring, and Priority Alert are user-only: they only work at `/telephony/config/people/me/settings/{feature}` with user-level OAuth. An admin cannot read or write these settings for another user. The Raw HTTP examples in sections 4, 5, and 10 above show the `{person_id}` path pattern used by the SDK internally, but these paths return 404 when called with an admin token against another user.
 
 ---
 
@@ -1392,7 +1377,7 @@ Some feature/selector combinations are remapped to different URL bases. For pers
 
 ## Gotchas (Cross-Cutting)
 
-- **Four features are user-only (no admin access):** Simultaneous Ring, Sequential Ring, Priority Alert, and Call Notify only exist at `/telephony/config/people/me/settings/{feature}` and require user-level OAuth. There is no admin-level path — an admin cannot read or write these settings for another user. All other call handling features in this doc support admin-level access. <!-- Verified via live API 2026-03-19 -->
+- **Four features are user-only (no admin access):** Simultaneous Ring, Sequential Ring, Priority Alert, and Call Notify only exist at `/telephony/config/people/me/settings/{feature}` and require user-level OAuth. There is no admin-level path — an admin cannot read or write these settings for another user. All other call handling features in this doc support admin-level access.
 - **Selective features remapped URLs:** Selective Accept, Selective Forward, and Selective Reject all use `telephony/config/people/{person_id}/` instead of `people/{person_id}/features/`. This remapping is transparent in the SDK but matters for raw HTTP and CLI usage.
 - **Enabled attribute naming varies by feature:** Each criteria-based feature uses a different REST field name for its enabled flag (`ringEnabled`, `acceptEnabled`, `forwardEnabled`, `rejectEnabled`, `notificationEnabled`). The SDK normalizes all of these to `enabled` on the Python model, but CLI `--json-body` and raw HTTP payloads must use the REST field names.
 - **Criteria are managed separately:** For all criteria-based features (Sim Ring, Sequential Ring, Selective Accept/Forward/Reject, Priority Alert), the `criteria` list in the top-level settings response is read-only. Create, update, and delete criteria via their dedicated CRUD endpoints.

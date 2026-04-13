@@ -194,7 +194,7 @@ Operator-facing reference docs for the CUCM-to-Webex migration tool. Written for
 
 ### CUCM→Webex Migration Tool (All 11 phases complete)
 
-The migration tool is at `src/wxcli/migration/` and wired into the CLI as `wxcli cucm <command>`. **1642 tests passing.** See `src/wxcli/migration/CLAUDE.md` for the full file map, architecture, and pipeline commands. Use `/cucm-migrate` to execute a migration after running the pipeline.
+The migration tool is at `src/wxcli/migration/` and wired into the CLI as `wxcli cucm <command>`. **2535 tests passing.** See `src/wxcli/migration/CLAUDE.md` for the full file map, architecture, and pipeline commands. Use `/cucm-migrate` to execute a migration after running the pipeline.
 
 **To run a migration:** `wxcli cucm init` → `discover` → `normalize` → `map` → `analyze` → `decisions` → `plan` → `preflight` → `export` → then invoke `/cucm-migrate`.
 
@@ -339,7 +339,6 @@ See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for fu
 | `docs/templates/deployment-plan.md` | Template: what the agent produces before executing |
 | `docs/templates/execution-report.md` | Template: what the agent produces after executing |
 | `docs/plans/` | Generated design docs (one per customer build) |
-| `docs/later/` | Parked: meetings (messaging now has full reference docs and skills) |
 
 ### Agent Teams
 
@@ -368,7 +367,6 @@ All reference docs are grounded in actual source code and official documentation
 
 **Execution pattern:** wxcli CLI commands are the primary execution method. Reference docs contain both SDK method signatures (for understanding) and Raw HTTP sections (for fallback). All Raw HTTP sections were added 2026-03-18.
 
-Items marked `<!-- NEEDS VERIFICATION -->` need confirmation against live API behavior.
 Known bugs found in wxcadm source are documented in the reference docs.
 
 Maintainers: update reference docs when you discover new gotchas or API changes.
@@ -394,8 +392,6 @@ Whenever you discover a technical detail through implementation — a gotcha, a 
 2. **If the reference doc is wrong or incomplete**, update it:
    - Fix incorrect method signatures, scopes, or data models
    - Add the gotcha to the doc's Gotchas section (create one if missing)
-   - If you resolved a `<!-- NEEDS VERIFICATION -->` tag, remove it and replace with the verified info
-   - Add a comment: `<!-- Verified via CLI implementation YYYY-MM-DD -->`
 
 3. **If the reference doc is right**, move on — no action needed.
 

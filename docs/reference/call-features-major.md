@@ -65,8 +65,6 @@ Use an auto attendant when you need an IVR-style front door: "Press 1 for Sales,
 | `direct_line_caller_id_name` | `DirectLineCallerIdName` | No | Not supported in FedRAMP. See [authentication.md → FedRAMP](authentication.md#webex-for-government-fedramp) for all FedRAMP restrictions. |
 | `dial_by_name` | `str` | No | Not supported in FedRAMP. See [authentication.md → FedRAMP](authentication.md#webex-for-government-fedramp) for all FedRAMP restrictions. |
 
-<!-- Verified via CLI implementation 2026-03-17: Auto Attendant create requires businessHoursMenu and afterHoursMenu (each with greeting=DEFAULT, extensionEnabled=true, at least one keyConfiguration), AND businessSchedule referencing an existing schedule name. All three are mandatory for a successful create. -->
-
 **Convenience constructor:**
 ```python
 AutoAttendant.create(name="Main Menu",
@@ -132,7 +130,7 @@ AutoAttendant.create(name="Main Menu",
 
 - `list_announcement_files(location_id, auto_attendant_id, org_id=None) -> list[AnnAudioFile]`
 - `delete_announcement_file(location_id, auto_attendant_id, file_name, org_id=None)`
-- **Upload is supported via the Announcement Repository API** (`POST /telephony/config/announcements` or `POST /telephony/config/locations/{locationId}/announcements` with multipart/form-data). See [location-call-settings-media.md](location-call-settings-media.md) section 1. <!-- Corrected 2026-03-21 -->
+- **Upload is supported via the Announcement Repository API** (`POST /telephony/config/announcements` or `POST /telephony/config/locations/{locationId}/announcements` with multipart/form-data). See [location-call-settings-media.md](location-call-settings-media.md) section 1.
 
 ### Forwarding
 
@@ -326,8 +324,6 @@ CallQueue.create(name="Support Queue",
 
 #### `CallQueueCallPolicies`
 
-<!-- Verified via CLI implementation 2026-03-17: Call Queue create requires callPolicies with routingType and policy set. Without these, the API returns an error. -->
-
 | Field | Type | Notes |
 |-------|------|-------|
 | `routing_type` | `CQRoutingType` | `PRIORITY_BASED` or `SKILL_BASED` |
@@ -461,9 +457,7 @@ Agents can be people, workspaces, or virtual lines. The `Agent` model (from `hg_
 | `details()` | `details(id, has_cx_essentials=None, max_=50, start=0, org_id=None) -> CallQueueAgentDetail` | Get agent detail with their queue assignments |
 | `update_call_queue_settings()` | `update_call_queue_settings(id, settings: list[AgentCallQueueSetting], has_cx_essentials=None, org_id=None)` | Update an agent's join status across multiple queues |
 
-**Known SDK note:** The decoded value of the agent's `id` and the `type` returned are always `PEOPLE`, even for workspaces or virtual lines. This is a known platform issue that persists as of 2026-03-19. The OpenAPI spec defines `MemberType` as `["PEOPLE", "PLACE"]` and `GetPersonPlaceVirtualLineCallQueueObject.type` as `["PEOPLE", "PLACE", "VIRTUAL_LINE"]`, but the live API returns `"type": "PEOPLE"` for all agent types in queue detail responses. The `availableUsers` endpoint correctly returns `PLACE` and `VIRTUAL_LINE` types, but once assigned to a queue the type collapses to `PEOPLE`. <!-- Verified via live API 2026-03-19: all agents in queue detail response return type=PEOPLE; availableUsers endpoint returns correct types -->
-
-<!-- Verified via CLI implementation 2026-03-17: Call Queue update — sending the full details object back fails because callingLineIdPolicy=CUSTOM with no phone number causes a validation error. Must use a partial CallQueue object with only the changed fields. -->
+**Known SDK note:** The decoded value of the agent's `id` and the `type` returned are always `PEOPLE`, even for workspaces or virtual lines. This is a known platform issue that persists as of 2026-03-19. The OpenAPI spec defines `MemberType` as `["PEOPLE", "PLACE"]` and `GetPersonPlaceVirtualLineCallQueueObject.type` as `["PEOPLE", "PLACE", "VIRTUAL_LINE"]`, but the live API returns `"type": "PEOPLE"` for all agent types in queue detail responses. The `availableUsers` endpoint correctly returns `PLACE` and `VIRTUAL_LINE` types, but once assigned to a queue the type collapses to `PEOPLE`.
 
 **Adding/removing agents from a queue** (from examples):
 ```python
@@ -570,7 +564,7 @@ Temporarily diverts all incoming calls to a destination. Calls already in the qu
 
 `Announcement` model: `name` (alias: `fileName`), `size` (alias: `fileSize`)
 
-**Upload is supported via the Announcement Repository API** (`POST /telephony/config/announcements` or `POST /telephony/config/locations/{locationId}/announcements` with multipart/form-data). See [location-call-settings-media.md](location-call-settings-media.md) section 1. <!-- Corrected 2026-03-21 -->
+**Upload is supported via the Announcement Repository API** (`POST /telephony/config/announcements` or `POST /telephony/config/locations/{locationId}/announcements` with multipart/form-data). See [location-call-settings-media.md](location-call-settings-media.md) section 1.
 
 ### Phone Number/Extension Assignment
 
@@ -779,8 +773,6 @@ Use a hunt group when calls should ring agents directly without queuing (small t
 | **Delete** | `delete_huntgroup()` | `delete_huntgroup(location_id, huntgroup_id, org_id=None) -> None` |
 
 ### Key Data Models
-
-<!-- Verified via CLI implementation 2026-03-17: Hunt Group create/update/delete all work as documented. No additional required fields beyond what the SDK model provides. -->
 
 #### `HuntGroup` (extends `HGandCQ`)
 
@@ -1247,7 +1239,7 @@ When creating/updating, only `agent_id` is required. Set `weight` or `skill_leve
 8. **Audio files** -- custom greetings require announcement audio files uploaded via the Announcement Repository API (`POST /telephony/config/announcements` with multipart/form-data). See [location-call-settings-media.md](location-call-settings-media.md) section 1 for upload details. WAV and WMA formats supported.
 9. **FedRAMP** -- `directLineCallerIdName`, `customName`, and `dialByName` are not available in Webex for Government. Use `firstName`/`lastName` instead. See [authentication.md → FedRAMP](authentication.md#webex-for-government-fedramp) for all FedRAMP restrictions.
 
-### Auto Attendant API Gotchas <!-- Verified via CLI implementation 2026-03-18 -->
+### Auto Attendant API Gotchas
 
 10. **`wxcli auto-attendants update` only supports basic fields** -- the CLI `update` command accepts `--name`, `--extension`, `--phone-number`, `--enabled` only. Menu configuration (`businessHoursMenu`, `afterHoursMenu`) requires raw HTTP PUT to `telephony/config/locations/{locationId}/autoAttendants/{aaId}`.
 
@@ -1299,7 +1291,7 @@ When creating/updating, only `agent_id` is required. Set `weight` or `skill_leve
 
 5. **Selective forwarding rule IDs change on name update.** Across all three features, renaming a selective forwarding rule changes its ID. The update response returns the new ID — capture it if you need to reference the rule again.
 
-6. **Audio file upload IS supported via API.** Use the Announcement Repository API (`POST /telephony/config/announcements` or `POST /telephony/config/locations/{locationId}/announcements`) with multipart/form-data encoding. Supports WAV and WMA formats. See [location-call-settings-media.md](location-call-settings-media.md) section 1 for full upload details and examples. <!-- Corrected 2026-03-21: was incorrectly stated as not supported -->
+6. **Audio file upload IS supported via API.** Use the Announcement Repository API (`POST /telephony/config/announcements` or `POST /telephony/config/locations/{locationId}/announcements`) with multipart/form-data encoding. Supports WAV and WMA formats. See [location-call-settings-media.md](location-call-settings-media.md) section 1 for full upload details and examples.
 
 ---
 

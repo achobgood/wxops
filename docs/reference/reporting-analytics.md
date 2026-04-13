@@ -1,5 +1,4 @@
 <!-- Updated by playbook session 2026-03-18 -->
-<!-- Verified via CLI Batches 1-4, 2026-03-19 through 2026-03-21 -->
 
 # Reporting & Analytics
 
@@ -39,7 +38,7 @@ CDR feed, report templates, report generation/download, and call quality/queue/A
 | Method | `GET` |
 
 - **CDR Feed** (`cdr_feed`) — Pull records for a specific time window. Best for batch/historical pulls.
-- **CDR Stream** (`cdr_stream`) — Returns records based on their **insertion time** into the Webex Calling cloud (when data became available), vs CDR Feed which uses the call's actual start/end time. CDR Stream is better for near-real-time monitoring since it returns records as soon as they are ingested, regardless of when the call occurred. CDR Feed is better for historical/batch pulls where you want all calls within a specific time window. <!-- Verified via OpenAPI spec 2026-03-19: cdr_feed filters by call time period, cdr_stream filters by insertion time into Webex cloud -->
+- **CDR Stream** (`cdr_stream`) — Returns records based on their **insertion time** into the Webex Calling cloud (when data became available), vs CDR Feed which uses the call's actual start/end time. CDR Stream is better for near-real-time monitoring since it returns records as soon as they are ingested, regardless of when the call occurred. CDR Feed is better for historical/batch pulls where you want all calls within a specific time window.
 
 If the region's servers do not host the organization's data, an **HTTP 451** is returned. The response body contains the correct regional endpoint to use instead.
 
@@ -377,7 +376,7 @@ class ReportTemplate(ApiModel):
 | **Auto-attendant Stats Summary** | AA call volume and menu usage | Call volume, handling metrics, caller menu selections |
 | **Auto-attendant Business & After-Hours Key Details** | AA interaction patterns by time period | Business hours vs. after-hours key press patterns |
 
-**Note:** Template IDs are dynamic and may vary by organization. Always use `list_templates()` (or the `GET /report/templates` endpoint) to discover IDs at runtime. The OpenAPI spec example shows ID 130, but actual IDs should not be hardcoded. <!-- Verified via OpenAPI spec (specs/webex-admin.json /report/templates example) and wxc_sdk source (reports/__init__.py) 2026-03-19 -->
+**Note:** Template IDs are dynamic and may vary by organization. Always use `list_templates()` (or the `GET /report/templates` endpoint) to discover IDs at runtime. The OpenAPI spec example shows ID 130, but actual IDs should not be hardcoded.
 
 ### CLI Examples
 
@@ -407,7 +406,7 @@ Create, list, poll, download, and delete generated reports. Reports are CSV file
 ### Constraints
 
 - **Maximum 50 reports** can exist at any time. Delete old reports to free quota.
-- Each report can be downloaded up to 30 times. <!-- Verified via Cisco documentation (developer.webex.com/blog/exploring-the-webex-calling-reports-and-analytics-apis) 2026-03-19 -->
+- Each report can be downloaded up to 30 times.
 - CSV reports for Webex services are only supported for **North American** organizations. Other regions return blank CSVs for Webex-service reports.
 - Reports are delivered in **ZIP format** (Content-Type: `application/zip` or `application/octet-stream`).
 
@@ -426,7 +425,7 @@ wxcli reports create --template-id 25 \
 wxcli reports create --json-body '{"templateId": 130, "startDate": "2026-03-01", "endDate": "2026-03-15"}'
 ```
 
-**Note:** The CLI `reports` group has `list`, `create`, `show` (poll status/get download URL), and `delete`. To download report CSVs after getting the `downloadURL` from `wxcli reports show`, use `curl` or the SDK `ReportsApi.download()` method. <!-- Verified via CLI regen 2026-04-10 -->
+**Note:** The CLI `reports` group has `list`, `create`, `show` (poll status/get download URL), and `delete`. To download report CSVs after getting the `downloadURL` from `wxcli reports show`, use `curl` or the SDK `ReportsApi.download()` method.
 
 ### Create a Report
 

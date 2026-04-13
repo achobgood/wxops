@@ -40,7 +40,7 @@ DECT network management (networks, base stations, handsets, line assignment) and
 | Generate serviceability password | `spark-admin:telephony_config_write` **or** `spark-admin:devices_write` |
 | Get serviceability password status | `spark-admin:telephony_config_read` **or** `spark-admin:devices_read` |
 | Update serviceability password status | `spark-admin:telephony_config_write` **or** `spark-admin:devices_write` |
-| List/delete hot desk sessions | Admin token required (scopes not explicitly documented in OpenAPI spec, but the endpoints work with a full admin token). The hot desk session endpoints are at `/v1/hotdesk/sessions`, separate from the DECT/telephony config scope. | <!-- Verified via live API 2026-03-19: GET /v1/hotdesk/sessions succeeds with admin token -->
+| List/delete hot desk sessions | Admin token required (scopes not explicitly documented in OpenAPI spec, but the endpoints work with a full admin token). The hot desk session endpoints are at `/v1/hotdesk/sessions`, separate from the DECT/telephony config scope. |
 
 All DECT operations require a **full or read-only administrator auth token**.
 
@@ -57,7 +57,7 @@ api = WebexSimpleApi(tokens='<token>')
 dect = api.telephony.dect_devices
 
 # Hot desk API
-hotdesk = api.telephony.hotdesk  # <!-- Corrected via wxc_sdk source (telephony/__init__.py line 651) 2026-03-19 -->
+hotdesk = api.telephony.hotdesk  #
 ```
 
 ---
@@ -683,7 +683,7 @@ Hot desking allows users to temporarily sign into a shared workspace device and 
 ### API Access
 
 ```python
-hotdesk = api.telephony.hotdesk  # <!-- Corrected via wxc_sdk source (telephony/__init__.py line 651) 2026-03-19 -->
+hotdesk = api.telephony.hotdesk  #
 ```
 
 ### Data Model
@@ -1132,14 +1132,13 @@ api.session.rest_put(
 
 7. **Line 1 vs Line 2 member types.** Line 1 supports only PEOPLE and PLACE. Line 2 also supports VIRTUAL_LINE. Virtual lines cannot be the primary (line 1) member.
 
-8. **Hot desk scopes not documented.** The source code for `HotDeskApi` does not include scope documentation in the docstrings, and the OpenAPI specs also omit security/scope blocks for the Hot Desk endpoints. <!-- Verified via wxc_sdk source and OpenAPI spec (specs/webex-cloud-calling.json, specs/webex-device.json) 2026-03-19 -->
+8. **Hot desk scopes not documented.** The source code for `HotDeskApi` does not include scope documentation in the docstrings, and the OpenAPI specs also omit security/scope blocks for the Hot Desk endpoints.
 
 9. **`DECTNetworkModel` has alternate names.** `dms_cisco_dbs110` and `cisco_dect_110_base` both refer to the same physical hardware (DBS-110). Same for the 210 variants. Choose either enum value.
 
 10. **`list_dect_networks` is org-wide.** Unlike most DECT methods that require `location_id`, `list_dect_networks` searches across the entire org and accepts `location_id` as an optional filter.
 
 11. **DECT network create returns `dectNetworkId`, not `id`, in response body.**
-<!-- Verified via CLI implementation 2026-03-18 -->
 The `create_dect_network` API response body returns the new network's identifier under the key `dectNetworkId`, not `id`. Code that parses the raw JSON response as `response['id']` will get a `KeyError`. The wxc_sdk method handles this internally and returns the ID as a string.
 
 ---

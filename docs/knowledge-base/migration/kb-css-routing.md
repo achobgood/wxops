@@ -1,5 +1,4 @@
 # CSS & Routing: Migration Knowledge Base
-<!-- Last verified: 2026-03-28 -->
 
 > **Audience:** Migration advisor agent (Opus) and cold-context Claude sessions looking up dissent triggers, decision context, and Webex constraints for CSS / dial plan / routing decisions.
 > **Reading mode:** Reference. Grep by `DT-CSS-NNN` ID for dissent triggers, OR read `## Decision Framework` end-to-end when the migration-advisor agent loads this doc during analysis.
@@ -94,7 +93,6 @@ CUCM deployments commonly use a `9.` prefix for outside line access. This appear
 ### Multi-site CUCM with per-site CSS/partition sets
 
 Multi-site CUCM deployments typically have one CSS per site (e.g., `NYC-CSS`, `LAX-CSS`), each containing site-specific partitions plus shared partitions. The `location_consolidation` pattern (advisory_patterns.py line 225) detects when multiple device pools share the same timezone and region, suggesting they map to a single Webex location. The routing implications: each site's CSS patterns become part of org-wide Webex dial plans. Per-site routing isolation is lost -- all patterns are visible to all users. Site-specific routing must be achieved via translation patterns (location-level) or trunk/route group assignment.
-<!-- From training, needs verification -->
 
 ### Time-of-day routing via partition time schedules
 
@@ -106,19 +104,14 @@ The `detect_partition_time_routing` pattern (advisory_patterns.py line 615) fire
 ## Webex Constraints
 
 **Dial plans are org-wide, not per-location.** Dial plans are configured globally for an enterprise and apply to all users regardless of location. Each dial plan contains one or more dial patterns and is associated with a single routing choice (trunk or route group).
-<!-- Verified: call-routing.md line 55: "Dial Plans are configured globally (org-wide, not per-location)" and line 128: "configured globally for an enterprise and apply to all users, regardless of location" -->
 
 **Translation patterns can be org-level or location-level.** The `TranslationPatternsApi.create()` method accepts an optional `location_id` parameter -- omit it for org-level, set it for location-level. Org-level patterns live at `/telephony/config/callRouting/translationPatterns`, location-level at `/telephony/config/locations/{locationId}/callRouting/translationPatterns`.
-<!-- Verified: call-routing.md line 60 and lines 1363-1364, 1489, 1529 -->
 
 **No partition ordering -- longest-match only.** Webex matches dialed digits against all dial plan patterns across the org and selects the longest (most specific) match. There is no concept of partition position or priority among patterns.
-<!-- Verified: call-routing.md Architecture Overview lines 55-56 -->
 
 **Calling permissions are per-person, per-workspace, and per-location.** The `OutgoingPermissionsApi` is used for person, workspace, location, and virtual line settings. Each entity can have custom outgoing permissions that control which call types (INTERNAL, NATIONAL, INTERNATIONAL, PREMIUM_SERVICES_I, etc.) are allowed, blocked, or require auth codes.
-<!-- Verified: person-call-settings-permissions.md line 136: "Also used for: user, workspace, location, virtual line settings" and lines 143-161 for call type enum. Access codes endpoint exists at location level: `/telephony/config/locations/{locationId}/outgoingPermission/accessCodes` per location-call-settings-media.md line 594 -->
 
 **Route groups max 10 trunks.** A route group bundles up to 10 trunks from different locations with priority-based failover.
-<!-- Verified: call-routing.md line 58: "bundles up to 10 trunks" and line 820: "collection of trunks (up to 10, from different locations)" -->
 
 ---
 
@@ -145,7 +138,6 @@ The `detect_partition_time_routing` pattern (advisory_patterns.py line 615) fire
 **Confidence:** MEDIUM -- the `blockEnable` check is reliable when the field is populated, but CUCM configurations that use implicit blocking (route to announcement) will be missed.
 
 ### DT-CSS-003: Translation pattern flagged for elimination but implements inter-site routing
-
 
 **Condition:** `translation_pattern_elimination` fires AND the pattern transforms a short code to a full E.164 with a site-specific prefix (e.g., `8XXX` -> `+14155551XXX` for the SF office).
 

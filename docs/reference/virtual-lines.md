@@ -1,5 +1,4 @@
 <!-- Updated by playbook session 2026-03-18 -->
-<!-- Verified via CLI Batches 1-4, 2026-03-19 through 2026-03-21 -->
 
 # Virtual Lines & Virtual Extensions
 
@@ -779,7 +778,7 @@ VirtualExtensionsApi.modify_extension_settings(
 
 **Standard mode** (default): Virtual extensions must have an E.164 prefix. No special PSTN provider support required.
 
-**Enhanced mode**: Prefix can be E.164 or non-E.164, but requires PSTN provider support for special network signaling extensions. The API documentation states: "virtual extensions won't function properly in this mode unless your PSTN provider supports special network signaling extensions and there aren't many PSTN providers that do." No specific provider list is published in the API documentation or OpenAPI spec. Contact your Cisco account team or PSTN provider to confirm Enhanced mode support. <!-- Verified via OpenAPI spec 2026-03-19: no provider list in spec; API description confirms few providers support it -->
+**Enhanced mode**: Prefix can be E.164 or non-E.164, but requires PSTN provider support for special network signaling extensions. The API documentation states: "virtual extensions won't function properly in this mode unless your PSTN provider supports special network signaling extensions and there aren't many PSTN providers that do." No specific provider list is published in the API documentation or OpenAPI spec. Contact your Cisco account team or PSTN provider to confirm Enhanced mode support.
 
 ### Data Models
 

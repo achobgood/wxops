@@ -1,4 +1,3 @@
-<!-- Verified via CLI Batches 1-4, 2026-03-19 through 2026-03-21 -->
 # Person Call Settings -- Behavior, Devices, Apps & Misc
 
 SDK reference for person-level settings that control calling behavior, application/device configuration, shared lines, hoteling, receptionist, number management, preferred answer endpoints, MS Teams integration, mode management, personal assistant, and emergency callback numbers.
@@ -34,7 +33,6 @@ SDK reference for person-level settings that control calling behavior, applicati
 **Source**: `wxc_sdk/person_settings/common.py`
 
 ### Two Path Families
-<!-- Verified via live API 2026-03-19 -->
 
 Person call settings endpoints split across two URL path families:
 
@@ -44,7 +42,6 @@ Person call settings endpoints split across two URL path families:
 | **Telephony config** | `/v1/telephony/config/people/{personId}/{feature}` | emergencyCallbackNumber, singleNumberReach, musicOnHold, devices, callCaptions, selective rules, callBridge (via `features/callBridge`), personalAssistant (via `features/personalAssistant`), hotDesking/guest, agent/callerId, dectNetworks, preferredAnswerEndpoint, modeManagement/features, settings/msTeams |
 
 **Important endpoint name mismatches** (SDK feature name vs. actual API path):
-<!-- Verified via live API 2026-03-19 -->
 
 | SDK Feature Name | Actual API Path Segment | Full Path |
 |-----------------|------------------------|-----------|
@@ -296,7 +293,6 @@ Get the count of members available for shared-line assignment.
 
 - **Scope**: `spark-admin:telephony_config_read`
 - **HTTP**: `GET telephony/config/people/{person_id}/applications/availableMembers/count`
-  <!-- Verified via wxc_sdk source 2026-03-19: This IS a double-prefix bug. AppSharedLineApi base='telephony/config/people' and members_count() passes 'telephony/config/people/{id}/...' to self.ep(), producing a doubled prefix. The search_members() and get_members() methods correctly use relative paths like '{person_id}/applications/...'. -->
 
 #### get_members
 
@@ -438,8 +434,6 @@ wxcli user-settings update-call-bridge <personId> --warning-tone-enabled true
 
 Enables a person's phone profile (number, features, calling plan) to be temporarily loaded onto a shared (host) phone.
 
-<!-- Verified via wxc_sdk source + OpenAPI spec 2026-03-19: The TODO comment exists at hoteling.py line 16. The OpenAPI spec confirms the person-level hoteling endpoint (GET/PUT /people/{personId}/features/hoteling) uses only a single-field HotelingInfo schema with just "enabled" (boolean). Workspace/device-level hoteling has richer configuration (limitGuestUse, timeLimit, etc.). -->
-
 ### Methods
 
 #### read
@@ -489,7 +483,6 @@ api.session.rest_put(url, json=body)
 ### Gotchas
 
 - **Person-level hoteling API may be incomplete.** The wxc_sdk source contains a TODO: "this seems to be wrong. For workspace devices methods exist with complete coverage for all hoteling settings." The person-level API only exposes a single boolean toggle (`enabled`), while workspace-level hoteling has richer configuration including host/guest settings and time limits. If you need full hoteling host configuration, use the workspace/device-level APIs instead.
-  <!-- Verified via OpenAPI spec 2026-03-19: HotelingInfo schema contains only {"enabled": boolean}. No additional fields. -->
 
 ---
 
@@ -1353,8 +1346,6 @@ Manages the Emergency Callback Number for a person (also workspaces and virtual 
 
 Same values as `ECBNSelection`: `DIRECT_LINE`, `LOCATION_ECBN`, `LOCATION_MEMBER_NUMBER`.
 
-<!-- Verified via wxc_sdk source + OpenAPI spec 2026-03-19: ECBNSelection (read) has 4 values: DIRECT_LINE, LOCATION_ECBN, LOCATION_MEMBER_NUMBER, NONE. SelectedECBN (write) has 3 values: DIRECT_LINE, LOCATION_ECBN, LOCATION_MEMBER_NUMBER (no NONE). OpenAPI spec confirms: ECBNSelectionType (read) includes NONE; CallBackSelectedPatch (write) excludes NONE. -->
-
 #### ECBNEffectiveLevel (Enum)
 
 | Value | Description |
@@ -1445,7 +1436,6 @@ def configure(self, entity_id: str, selected: SelectedECBN,
 Update the ECBN. When `selected` is `LOCATION_MEMBER_NUMBER`, pass `location_member_id` to specify which member's number to use.
 
 - **Scope**: `spark-admin:telephony_config_write` (full, location, user, or read-only admin)
-  <!-- Verified via OpenAPI spec + wxc_sdk source 2026-03-19: Both the OpenAPI spec description and SDK docstring explicitly list "read-only administrator" for the PUT endpoint. Unusual but officially documented. -->
 - **HTTP**: `PUT telephony/config/people/{entity_id}/emergencyCallbackNumber`
 - **Body**: `{"selected": "<value>", "locationMemberId": "<optional>"}`
 
@@ -1490,9 +1480,7 @@ result = api.session.rest_get(url)
 ### Gotchas
 
 - **Two overlapping enums for ECBN selection.** The SDK defines both `ECBNSelection` and `SelectedECBN` with overlapping values (`DIRECT_LINE`, `LOCATION_ECBN`, `LOCATION_MEMBER_NUMBER`). `ECBNSelection` also includes `NONE`, while `SelectedECBN` does not. The `configure()` method uses `SelectedECBN`. When reading, the `selected` field uses `ECBNSelection` which may return `NONE`.
-  <!-- Verified via OpenAPI spec + wxc_sdk source 2026-03-19: Read returns ECBNSelectionType (DIRECT_LINE, LOCATION_ECBN, LOCATION_MEMBER_NUMBER, NONE). Write accepts CallBackSelectedPatch/SelectedECBN (DIRECT_LINE, LOCATION_ECBN, LOCATION_MEMBER_NUMBER -- no NONE). -->
 - **Read-only admin may have write access.** The docstring for `configure()` lists "read-only administrator" as a valid scope for updating ECBN, which is unusual. Most write operations require full or user admin.
-  <!-- Verified via OpenAPI spec + wxc_sdk source 2026-03-19: Both sources list "read-only administrator" for the PUT ECBN endpoint. Unusual but officially documented. -->
 - **Check dependencies before changing ECBN.** Use the `dependencies` endpoint before modifying a person's ECBN. If the person is the location's default ECBN or is used by other members (`dependentMemberCount > 0`), changing their number could break emergency callback for multiple users.
 
 ---
@@ -1584,7 +1572,6 @@ wxcli user-settings update-push-to-talk <personId> --json-body '{"allowAutoAnswe
 ---
 
 ## 17. Additional Discovered Endpoints
-<!-- Verified via live API 2026-03-19 — all returned HTTP 200 -->
 
 The following endpoints were discovered via live API probing and are not yet covered by wxc_sdk person_settings modules. They all live under the telephony config path family.
 
@@ -1642,7 +1629,6 @@ Returns DECT network associations for a person. Lists which DECT networks/handse
 ## Gotchas (Cross-Cutting)
 
 - **Two distinct URL path families for person settings.** See the [Two Path Families](#two-path-families) table in section 1 for the complete mapping. Classic features use `people/{id}/features/{feature}`, while newer/specialized settings use `telephony/config/people/{id}/{feature}`. The Numbers API is the worst case: read uses `people/{id}/features/numbers` but update uses `telephony/config/people/{id}/numbers`. Always check the documented HTTP path for each method rather than assuming a pattern.
-  <!-- Verified via live API 2026-03-19 -->
 - **Scope mismatch between read and write.** Several APIs in this doc require different scopes for reading vs. writing. For example, App Services read needs `spark-admin:telephony_config_read` but write needs `spark-admin:people_write`. Numbers read needs `spark-admin:people_read` but update needs `spark-admin:telephony_config_write`. Service apps and integrations should request all four person-settings scopes (`people_read`, `people_write`, `telephony_config_read`, `telephony_config_write`) to avoid unexpected 403 errors.
 - **`--json-body` required for nested settings.** Monitoring members, push-to-talk members, receptionist monitored members, shared-line members, and mode management feature assignments all require nested JSON arrays. The CLI generator skips deeply nested body fields, so use `--json-body '{...}'` for these operations.
 - **Person vs. workspace API coverage differs.** Hoteling and call bridge have corresponding workspace-level APIs with richer configuration options. If the person-level API feels limited (e.g., hoteling returns only a boolean), check the workspace/device-level APIs in `docs/reference/devices-workspaces.md`.

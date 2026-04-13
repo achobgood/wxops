@@ -438,7 +438,7 @@ Next steps:
 15. **Customer Assist queues are hidden from default `call-queue list`.** You must pass `--has-cx-essentials true` to see them. Without the flag, only regular (non-Customer Assist) queues are returned.
 16. **Queue recording response uses nested objects.** The API returns `notification: {enabled, type}`, `repeat: {enabled, interval}`, and `startStopAnnouncement: {internalCallsEnabled, pstnCallsEnabled}` — not flat fields. Use the nested structure in `--json-body`.
 17. **`create-supervisors` requires `id` in both `--id` flag and `--json-body`.** The `--id` flag is a required CLI option. When using `--json-body`, include `"id"` in the JSON body too, since `--json-body` overrides flag-built body fields.
-18. **To remove a Customer Assist supervisor, remove all their agents first.** The DELETE endpoint (`delete-supervisors-config-1`) returns 204 but the supervisor may persist. Instead, use `update-supervisors` with `action: DELETE` on each agent. When the last agent is removed, the supervisor is automatically deleted. <!-- Verified via live API 2026-03-21: update-supervisors DELETE on last agent causes supervisor to vanish; direct DELETE returns 204 but supervisor persists -->
+18. **To remove a Customer Assist supervisor, remove all their agents first.** The DELETE endpoint (`delete-supervisors-config-1`) returns 204 but the supervisor may persist. Instead, use `update-supervisors` with `action: DELETE` on each agent. When the last agent is removed, the supervisor is automatically deleted.
 19. **Customer Assist queue creation requires `callPolicies`.** Unlike regular queues, CX queues require the `callPolicies` field (e.g., `{"policy":"SIMULTANEOUS"}`). This must be passed via `--json-body` since it's not available as a CLI flag.
 
 ---

@@ -1,5 +1,4 @@
 <!-- Updated by playbook session 2026-03-18 -->
-<!-- Verified via CLI Batches 1-4, 2026-03-19 through 2026-03-21 -->
 # Webhooks & Telephony Events Reference
 
 ## Sources
@@ -396,14 +395,12 @@ The messaging webhook resources (`messages`, `memberships`, `rooms`, `attachment
 
 **Critical gotcha for `messages` webhooks:** The webhook payload does NOT include the message text when the receiving token is a bot. The bot must call `GET /messages/{messageId}` (or `wxcli messages show MESSAGE_ID`) to retrieve the actual message content. This is the standard bot pattern: webhook fires → bot fetches message → bot processes text.
 
-<!-- Verified: messages, memberships, and attachmentActions data fields confirmed via wxc_sdk source (MessagesData, MembershipsData, AttachmentActionData classes) 2026-03-19. rooms data fields unverifiable (no RoomsData class in SDK). -->
-
 #### messages Resource
 
 | Webhook `event` | When It Fires |
 |-----------------|---------------|
 | `created` | A message was posted to a space |
-| `updated` | A message was edited | <!-- Verified via wxc_sdk firehose.py example 2026-03-19 -->
+| `updated` | A message was edited |
 | `deleted` | A message was deleted from a space |
 
 **Event payload `data` fields:**
@@ -416,8 +413,6 @@ The messaging webhook resources (`messages`, `memberships`, `rooms`, `attachment
 | `personId` | str | Person who sent the message |
 | `personEmail` | str | Email of the sender |
 | `created` | datetime | When the message was created |
-
-<!-- Verified via wxc_sdk MessagesData class 2026-03-19 -->
 
 **Note:** `text` is NOT included in the webhook payload for bot tokens (security measure). Always call `wxcli messages show MESSAGE_ID` to retrieve the text.
 
@@ -449,8 +444,6 @@ wxcli messages show MESSAGE_ID
 | `isRoomHidden` | bool (optional) | Whether the direct type room is hidden |
 | `roomType` | str (optional) | Type of room (`direct` or `group`) |
 | `created` | datetime | When the membership was created |
-
-<!-- Verified via wxc_sdk MembershipsData class (inherits Membership) 2026-03-19 -->
 
 #### rooms Resource
 
@@ -490,8 +483,6 @@ wxcli messages show MESSAGE_ID
 | `roomId` | str | Space where the card was submitted |
 | `created` | datetime | When the action was submitted |
 
-<!-- Verified via wxc_sdk AttachmentActionData class 2026-03-19 -->
-
 **Note:** `inputs` (the user's form values) are NOT included in the webhook payload. Call `wxcli attachment-actions show ACTION_ID` to retrieve the submitted values.
 
 **CLI to fetch card response inputs:**
@@ -511,8 +502,6 @@ Filters use the format: `fieldName=value` or `fieldName=value1,value2` for multi
 
 **Available filters for `telephony_calls`:**
 
-<!-- Verified via live API 2026-03-19: API error message confirms exactly these 5 filters. All 5 tested and accepted. -->
-
 | Filter | Example | Description |
 |--------|---------|-------------|
 | `personality` | `personality=terminator` | Only incoming calls |
@@ -523,8 +512,6 @@ Filters use the format: `fieldName=value` or `fieldName=value1,value2` for multi
 | `address` | `address=+15551234567` | Only events for a specific phone number or SIP address |
 
 **Available filters for messaging resources:**
-
-<!-- Verified via live API 2026-03-19: API error messages confirm complete filter lists for messages and memberships. mentionedPeople=me, personEmail, roomId all tested and accepted. -->
 
 | Resource | Filter | Example | Description |
 |----------|--------|---------|-------------|

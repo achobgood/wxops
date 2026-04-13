@@ -1,4 +1,3 @@
-<!-- Verified via CLI Batches 1-4, 2026-03-19 through 2026-03-21 -->
 # Messaging: Spaces, Messages, Teams, ECM, and HDS
 
 Reference for Webex messaging infrastructure management. Covers the 40 commands across 7 CLI groups that an IT admin or space manager uses to create and manage spaces, messages, memberships, teams, and enterprise content. Sourced from the Webex Messaging API (OpenAPI spec: `specs/webex-messaging.json`).
@@ -476,7 +475,7 @@ Same parameters as create, all optional. Pass only the fields you want to change
 
 ### Required Scopes
 
-ECM operations require an admin token with standard `spark-admin:` scopes (e.g., `spark-admin:rooms_read`). No special ECM-specific scopes are needed -- the `/room/linkedFolders` endpoint works with a full admin token using standard room scopes. Standard user tokens are insufficient. <!-- Verified via live API 2026-03-19 -->
+ECM operations require an admin token with standard `spark-admin:` scopes (e.g., `spark-admin:rooms_read`). No special ECM-specific scopes are needed -- the `/room/linkedFolders` endpoint works with a full admin token using standard room scopes. Standard user tokens are insufficient.
 
 ### Raw HTTP
 
@@ -510,7 +509,7 @@ api.session.rest_delete(f"{BASE}/room/linkedFolders/{folder_id}")
 - **`--display-name` should match the actual folder name in the ECM backend** to avoid confusion for end users.
 - **Unlinking a folder removes the link but does not delete the files** in SharePoint/OneDrive.
 
-**ECM provider support:** The OpenAPI spec and schema definitions reference only Microsoft SharePoint and OneDrive. The `driveId` and `itemId` fields are described as "Sharepoint or OneDrive" identifiers collected via the MS Graph API, and all examples use `sharepoint.com` URLs. Box is not supported as an ECM provider for folder linking. <!-- Verified via OpenAPI spec (specs/webex-messaging.json) 2026-03-19 -->
+**ECM provider support:** The OpenAPI spec and schema definitions reference only Microsoft SharePoint and OneDrive. The `driveId` and `itemId` fields are described as "Sharepoint or OneDrive" identifiers collected via the MS Graph API, and all examples use `sharepoint.com` URLs. Box is not supported as an ECM provider for folder linking.
 
 ---
 
@@ -585,7 +584,7 @@ avail = api.session.rest_get(f"{BASE}/clusters/{cluster_id}/availability",
 - **Requires admin token.** HDS monitoring is not available via user or bot tokens.
 - **IDs are required positional arguments** for all `hds` commands (e.g., `hds show ORG_ID`, `hds show-clusters CLUSTER_ID`). The org ID is available from `wxcli organizations list`.
 
-HDS endpoints work with a standard full admin token -- no special admin role (e.g., Compliance Officer) is required. The `/hybrid/clusters` endpoint returns 200 with a full admin token. <!-- Verified via live API 2026-03-19 -->
+HDS endpoints work with a standard full admin token -- no special admin role (e.g., Compliance Officer) is required. The `/hybrid/clusters` endpoint returns 200 with a full admin token.
 
 ---
 
