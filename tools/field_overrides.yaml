@@ -273,6 +273,17 @@
       - ["Extension", "extension"]
       - ["Phone Number", "phoneNumber"]
 
+"Features: Text To Speech":
+  command_name_overrides:
+    generate-a-text: "generate"
+    show: "show-usage"
+    show-text-to-speech: "show-status"
+    list: "list-voices"
+  table_columns:
+    list-voices:
+      - ["ID", "id"]
+      - ["Label", "label"]
+
 "Features: Call Recording":
   table_columns:
     list-regions:
@@ -574,6 +585,7 @@ cli_name_overrides:
   "Features: Announcement Playlist": "announcement-playlists"
   "Features: Announcement Repository": "announcements"
   "Features: Call Recording": "call-recording"
+  "Features: Text To Speech": "text-to-speech"
   "Features: Customer Experience Essentials": "cx-essentials"
   "Features: Hot Desking Sign-in via Voice Portal": "hot-desking-portal"
   "Features: Operating Modes": "operating-modes"

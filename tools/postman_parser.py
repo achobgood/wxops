@@ -123,6 +123,11 @@ def apply_endpoint_overrides(ep: 'Endpoint', folder_overrides: dict) -> None:
     """Apply folder-level overrides to an endpoint (e.g. command_type, response_list_key, url)."""
     if not folder_overrides:
         return
+    # Command name overrides (e.g. rename auto-generated names to human-friendly ones)
+    name_overrides = folder_overrides.get("command_name_overrides", {})
+    old_name = ep.command_name
+    if old_name in name_overrides:
+        ep.command_name = name_overrides[old_name]
     # URL overrides (e.g. fix incorrect paths)
     url_overrides = folder_overrides.get("url_overrides", {})
     if ep.command_name in url_overrides:
