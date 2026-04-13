@@ -1792,29 +1792,32 @@ On every CDR question:
 3. **Cache miss** — requested window extends beyond `_meta` boundaries, or file doesn't exist, or user says "refresh" → spawn `wxc-calling-builder` to re-pull. Builder overwrites the cache file with the new window.
 4. **Explicit refresh** — if the user says "refresh", "re-pull", or "new data", always re-pull regardless of cache state.
 
-### Presentation format
+### Presentation Rules
 
-Read the recipe's `print()` output, match it to the closest pattern below, and format accordingly. Do not pre-map recipes to patterns — match dynamically from the output shape.
+**Rule 1 — Format what the recipe prints.**
+Present all columns the recipe outputs. The `# Output:` comment above each recipe's bash block tells you exactly what columns to expect. Never collapse to 2 columns if the recipe produces more.
 
-**Patterns:**
+**Rule 2 — Collapse to prose when ≤ 2 rows.**
+A table with 1–2 rows is worse than a sentence.
+- ✅ "All 10 calls came from HQ (10/10)."
+- ❌ | Location | Total | ... | / | HQ | 10 | ...
 
-| Pattern | Output shape | Markdown format |
-|---------|-------------|-----------------|
-| **Summary stats** | Key/value pairs (Total: N, Rate: X%) | 2-column table: Metric / Value |
-| **Top-N / Counter** | Item + count, sorted | 2-column table: [Field] / Count, sorted desc. Top 15 max; note total if truncated |
-| **Detail rows** | Per-record details (time, user, number, reason) | Multi-column table: one row per record, max 10 rows; note "N more not shown" if truncated |
-| **Aggregation** | Stats like avg/max/min/count | 2-column table: Metric / Value |
-| **Grouped** | Group key + multiple metrics per group | Multi-column table: [Group] / Metric1 / Metric2 / ..., sorted by worst-performing first |
-| **Trace** | Ordered sequence of call legs | Multi-column table: Leg # / Time / Direction / User / Reason, chronological order |
+**Rule 3 — Adapt to the user's question framing.**
 
-**Rules for all patterns:**
-- One summary line above the table (e.g., "5 missed calls out of 247 total (2.0%)")
-- No commentary below the table unless the user asks "why", "what do you see", or "analyze this"
-- If the recipe prints `No matching records found in this time window.`, say that — no table
-- Percentages to 1 decimal place
-- Timestamps trimmed to `YYYY-MM-DD HH:MM` (drop seconds and timezone)
-- Phone numbers as-is (don't format E.164)
-- If output doesn't fit any pattern, fall back to a fenced code block with raw output
+| User says | Format |
+|---|---|
+| "how many", "what's the count" | Lead with the number inline; table is secondary or omitted |
+| "show me", "list", "breakdown", "by X" | Table is primary |
+| "analyze", "what do you see", "explain" | Narrative with numbers embedded inline |
+| "compare" | Two-row side-by-side if two windows; sorted table otherwise |
+
+**Rule 4 — One summary line above every table.**
+e.g., "5 missed calls out of 247 total (2.0%)" — always present, even for large tables.
+
+**Rule 5 — Timestamps trimmed to YYYY-MM-DD HH:MM.** Drop seconds and timezone.
+
+**Rule 6 — No unsolicited commentary.**
+No analysis, recommendations, or data quality notes below the table unless the user asks "why", "what do you see", or "analyze this".
 
 ### Recipe adaptation for cached data
 
