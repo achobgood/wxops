@@ -195,6 +195,7 @@ CDR returns 55+ fields with space-separated JSON keys. Use this taxonomy to find
 
 **Recipe 1 — Total call count**
 Question: "How many calls did we get?"
+# Output: Metric | Value
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -212,53 +213,82 @@ print(f'Unique calls (by Correlation ID): {unique}')
 
 **Recipe 2 — Calls by location**
 Question: "Which office is busiest?"
+# Output: Location | Total | Answered | Missed | Answer% | Avg Duration(s)
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
-from collections import Counter
+from collections import defaultdict
 data = json.load(sys.stdin)
-locs = Counter(r.get('Location', 'Unknown') for r in data)
-for loc, count in locs.most_common():
-    print(f'{loc}: {count} calls')
+stats = defaultdict(lambda: {'total':0,'answered':0,'dur':0})
+for r in data:
+    loc = r.get('Location','Unknown')
+    stats[loc]['total'] += 1
+    if r.get('Answer indicator') == 'Yes':
+        stats[loc]['answered'] += 1
+        stats[loc]['dur'] += int(r.get('Duration',0))
+print(f\"{'Location':<25} {'Total':>6} {'Answered':>9} {'Missed':>7} {'Ans%':>6} {'AvgDur':>7}\")
+for loc, s in sorted(stats.items(), key=lambda x: x[1]['total'], reverse=True):
+    missed = s['total'] - s['answered']
+    rate = s['answered']/s['total']*100 if s['total'] else 0
+    avg = s['dur']/s['answered'] if s['answered'] else 0
+    print(f\"{loc:<25} {s['total']:>6} {s['answered']:>9} {missed:>7} {rate:>5.1f}% {avg:>6.0f}s\")
 "
 ```
 
 **Recipe 3 — Calls by hour**
 Question: "When is our peak call time?"
+# Output: Hour | Total | Answered | Missed Rate%
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
-from collections import Counter
+from collections import defaultdict
 data = json.load(sys.stdin)
-hours = Counter(r.get('Start time', '')[:13] for r in data)
-for h, c in sorted(hours.items()):
-    print(f'{h}: {c} calls')
+stats = defaultdict(lambda: {'total':0,'answered':0})
+for r in data:
+    h = r.get('Start time','')[:13]
+    if h:
+        stats[h]['total'] += 1
+        if r.get('Answer indicator') == 'Yes':
+            stats[h]['answered'] += 1
+print(f\"{'Hour':<14} {'Total':>6} {'Answered':>9} {'Missed%':>8}\")
+for h, s in sorted(stats.items()):
+    missed_rate = (s['total']-s['answered'])/s['total']*100 if s['total'] else 0
+    print(f\"{h:<14} {s['total']:>6} {s['answered']:>9} {missed_rate:>7.1f}%\")
 "
 ```
 
 **Recipe 4 — Calls by day of week**
 Question: "Which day of the week is busiest?"
+# Output: Day | Total | Answered | Missed Rate%
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
-from collections import Counter
+from collections import defaultdict
 from datetime import datetime
 data = json.load(sys.stdin)
-days = Counter()
+stats = defaultdict(lambda: {'total':0,'answered':0})
 for r in data:
-    ts = r.get('Start time', '')
+    ts = r.get('Start time','')
     if ts:
         try:
-            dt = datetime.fromisoformat(ts.replace('Z', '+00:00'))
-            days[dt.strftime('%A')] += 1
+            dt = datetime.fromisoformat(ts.replace('Z','+00:00'))
+            day = dt.strftime('%A')
+            stats[day]['total'] += 1
+            if r.get('Answer indicator') == 'Yes':
+                stats[day]['answered'] += 1
         except: pass
+print(f\"{'Day':<12} {'Total':>6} {'Answered':>9} {'Missed%':>8}\")
 for day in ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']:
-    print(f'{day}: {days.get(day, 0)} calls')
+    if stats[day]['total'] > 0:
+        s = stats[day]
+        missed_rate = (s['total']-s['answered'])/s['total']*100 if s['total'] else 0
+        print(f\"{day:<12} {s['total']:>6} {s['answered']:>9} {missed_rate:>7.1f}%\")
 "
 ```
 
 **Recipe 5 — Calls by type**
 Question: "How many internal vs external vs international calls?"
+# Output: Call Type | Count | %
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -272,6 +302,7 @@ for t, c in types.most_common():
 
 **Recipe 6 — Inbound vs outbound ratio**
 Question: "What's our inbound/outbound split?"
+# Output: Metric | Value
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -287,6 +318,7 @@ print(f'Outbound: {outb} ({outb/total*100:.1f}%)' if total else '')
 
 **Recipe 7 — Peak hour identification**
 Question: "What's the single busiest hour?"
+# Output: Metric | Value
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -303,6 +335,7 @@ if hours:
 **Recipe 8 — Volume trend comparison**
 Question: "Are calls up or down vs last week?"
 Note: Requires two CDR pulls — one for this week, one for last week. Replace THIS_START/THIS_END and LAST_START/LAST_END accordingly.
+# Output: Period | Calls | Change | % Change
 ```bash
 wxcli cdr list --start-time THIS_START --end-time THIS_END -o json > /tmp/cdr_this.json
 wxcli cdr list --start-time LAST_START --end-time LAST_END -o json > /tmp/cdr_last.json
@@ -323,22 +356,22 @@ print(f'Change: {direction} {abs(diff)} ({abs(pct):.1f}%)')
 
 **Recipe 9 — Missed calls**
 Question: "How many calls did we miss?"
+# Output: Time | User | Calling # | Called # | Ring Duration | Reason
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 missed = [r for r in data if r.get('Answer indicator') == 'No']
 print(f'Missed calls: {len(missed)} of {len(data)} ({len(missed)/len(data)*100:.1f}%)' if data else 'No data')
-if not missed:
-    print('No matching records found in this time window.')
-else:
-    for c in missed[:10]:
-        print(f\"  {c.get('Start time')} | {c.get('Calling number')} -> {c.get('Called number')} | {c.get('Call outcome reason')}\")
+print(f'No matching records found in this time window.') if not missed else None
+for c in missed[:10]:
+    print(f\"  {c.get('Start time','')[:16]} | {c.get('User','?')} | {c.get('Calling number','?')} -> {c.get('Called number','?')} | ring {c.get('Ring duration','?')}s | {c.get('Call outcome reason','?')}\")
 "
 ```
 
 **Recipe 10 — Failed calls**
 Question: "How many calls failed?"
+# Output: Time | User | Calling # | Called # | Outcome | Reason
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -349,12 +382,13 @@ if not failed:
     print('No matching records found in this time window.')
 else:
     for c in failed[:10]:
-        print(f\"  {c.get('Start time')} | {c.get('User')} | {c.get('Call outcome')}: {c.get('Call outcome reason')}\")
+        print(f\"  {c.get('Start time','')[:16]} | {c.get('User','?')} | {c.get('Calling number','?')} -> {c.get('Called number','?')} | {c.get('Call outcome','?')}: {c.get('Call outcome reason','?')}\")
 "
 ```
 
 **Recipe 11 — Abandoned calls**
 Question: "How many callers hung up before we answered?"
+# Output: Time | User | Calling # | Called # | Ring Duration
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -365,12 +399,13 @@ if not abandoned:
     print('No matching records found in this time window.')
 else:
     for c in abandoned[:10]:
-        print(f\"  {c.get('Start time')} | {c.get('Calling number')} | rang {c.get('Ring duration', '?')}s\")
+        print(f\"  {c.get('Start time','')[:16]} | {c.get('User','?')} | {c.get('Calling number','?')} -> {c.get('Called number','?')} | rang {c.get('Ring duration','?')}s\")
 "
 ```
 
 **Recipe 12 — Answer rate**
 Question: "What percentage of calls do we answer?"
+# Output: Metric | Value
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -383,19 +418,23 @@ print(f'Answer rate: {answered/total*100:.1f}% ({answered} of {total})' if total
 
 **Recipe 13 — Calls by outcome reason**
 Question: "Why are calls failing?"
+# Output: Reason | Count | %
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
 from collections import Counter
 data = json.load(sys.stdin)
 reasons = Counter(r.get('Call outcome reason', 'Unknown') for r in data if r.get('Call outcome') != 'Success')
+total_non_success = sum(reasons.values())
 for reason, count in reasons.most_common():
-    print(f'{reason}: {count}')
+    pct = count/total_non_success*100 if total_non_success else 0
+    print(f'{reason}: {count} ({pct:.1f}%)')
 "
 ```
 
 **Recipe 14 — Short calls (possible misroutes)**
 Question: "How many calls lasted under 10 seconds?"
+# Output: Time | User | Called # | Duration | Outcome
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -406,12 +445,13 @@ if not short:
     print('No matching records found in this time window.')
 else:
     for c in short[:10]:
-        print(f\"  {c.get('Start time')} | {c.get('User')} | {c.get('Duration')}s | {c.get('Called number')}\")
+        print(f\"  {c.get('Start time','')[:16]} | {c.get('User','?')} | {c.get('Called number','?')} | {c.get('Duration','?')}s | {c.get('Call outcome','?')}\")
 "
 ```
 
 **Recipe 15 — Long-ring no-answer**
 Question: "Calls that rang for over 30 seconds and weren't answered?"
+# Output: Time | User | Calling # | Ring Duration
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -428,6 +468,7 @@ else:
 
 **Recipe 16 — Call outcome by location**
 Question: "Which office has the worst answer rate?"
+# Output: Location | Total | Answered | Answer%
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -439,9 +480,10 @@ for r in data:
     stats[loc]['total'] += 1
     if r.get('Answer indicator') == 'Yes':
         stats[loc]['answered'] += 1
+print(f\"{'Location':<25} {'Total':>6} {'Answered':>9} {'Ans%':>6}\")
 for loc, s in sorted(stats.items(), key=lambda x: x[1]['answered']/max(x[1]['total'],1)):
     rate = s['answered']/s['total']*100 if s['total'] else 0
-    print(f\"{loc}: {rate:.1f}% answer rate ({s['answered']}/{s['total']})\")
+    print(f\"{loc:<25} {s['total']:>6} {s['answered']:>9} {rate:>5.1f}%\")
 "
 ```
 
