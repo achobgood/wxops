@@ -1102,47 +1102,71 @@ for v, s in sorted(stats.items(), key=lambda x: x[1]['calls'], reverse=True):
 
 **Recipe 47 — Client type distribution**
 Question: "What are people using to make calls?"
+# Output: Client Type | Total | % | Duration(min) | Answer%
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
-from collections import Counter
+from collections import defaultdict
 data = json.load(sys.stdin)
-clients = Counter(r.get('Client type', 'Unknown') for r in data)
+stats = defaultdict(lambda: {'total':0,'answered':0,'dur':0})
+for r in data:
+    ct = r.get('Client type','Unknown')
+    stats[ct]['total'] += 1
+    if r.get('Answer indicator') == 'Yes':
+        stats[ct]['answered'] += 1
+    stats[ct]['dur'] += int(r.get('Duration',0))
 total = len(data)
-for client, count in clients.most_common():
-    print(f'{client}: {count} ({count/total*100:.1f}%)')
+print(f\"{'Client Type':<25} {'Total':>6} {'%':>5} {'Min':>7} {'Ans%':>6}\")
+for ct, s in sorted(stats.items(), key=lambda x: x[1]['total'], reverse=True):
+    pct = s['total']/total*100 if total else 0
+    rate = s['answered']/s['total']*100 if s['total'] else 0
+    print(f\"{ct:<25} {s['total']:>6} {pct:>4.1f}% {s['dur']/60:>7.1f} {rate:>5.1f}%\")
 "
 ```
 
 **Recipe 48 — Device model inventory**
 Question: "What phone models are active in CDR?"
+# Output: Model | Calls | %
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
 from collections import Counter
 data = json.load(sys.stdin)
 models = Counter(r.get('Model') for r in data if r.get('Model'))
+total = sum(models.values())
 print(f'{len(models)} device models seen:')
 for model, count in models.most_common():
-    print(f'  {model}: {count} calls')
+    print(f'  {model}: {count} ({count/total*100:.1f}%)')
 "
 ```
 
 **Recipe 49 — Calls by OS type**
 Question: "Mobile vs desktop breakdown?"
+# Output: OS Type | Count | % | Answer%
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
-from collections import Counter
+from collections import defaultdict
 data = json.load(sys.stdin)
-os_types = Counter(r.get('OS type') for r in data if r.get('OS type'))
-for os, count in os_types.most_common():
-    print(f'{os}: {count} calls')
+stats = defaultdict(lambda: {'total':0,'answered':0})
+for r in data:
+    os = r.get('OS type')
+    if os:
+        stats[os]['total'] += 1
+        if r.get('Answer indicator') == 'Yes':
+            stats[os]['answered'] += 1
+total = sum(s['total'] for s in stats.values())
+print(f\"{'OS Type':<20} {'Count':>6} {'%':>5} {'Ans%':>6}\")
+for os, s in sorted(stats.items(), key=lambda x: x[1]['total'], reverse=True):
+    pct = s['total']/total*100 if total else 0
+    rate = s['answered']/s['total']*100 if s['total'] else 0
+    print(f\"{os:<20} {s['total']:>6} {pct:>4.1f}% {rate:>5.1f}%\")
 "
 ```
 
 **Recipe 50 — Softphone vs desk phone ratio**
 Question: "How many calls from Webex app vs physical phones?"
+# Output: Client Category | Count | %
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -1161,6 +1185,7 @@ print(f'Other: {other} ({other/total*100:.1f}%)')
 
 **Recipe 51 — Webex Go mobile calls**
 Question: "How many calls over cellular (Webex Go)?"
+# Output: Time | User | Direction | Duration(s)
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -1177,14 +1202,16 @@ else:
 
 **Recipe 52 — Client version distribution**
 Question: "Are users on the latest app version?"
+# Output: Client Version | Count | %
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
 from collections import Counter
 data = json.load(sys.stdin)
 versions = Counter(r.get('Client version') for r in data if r.get('Client version'))
+total = sum(versions.values())
 for version, count in versions.most_common(15):
-    print(f'{version}: {count} calls')
+    print(f'{version}: {count} ({count/total*100:.1f}%)')
 "
 ```
 
@@ -1192,6 +1219,7 @@ for version, count in versions.most_common(15):
 
 **Recipe 53 — Reputation score distribution**
 Question: "How many calls by reputation score range?"
+# Output: Score Range | Count | %
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -1209,13 +1237,16 @@ for r in data:
         else: buckets['4-5 (trusted)'] += 1
 has_score = sum(buckets.values())
 print(f'Calls with reputation scores: {has_score} of {len(data)}')
+total_scored = sum(buckets.values())
 for bucket, count in sorted(buckets.items()):
-    print(f'  {bucket}: {count}')
+    pct = count/total_scored*100 if total_scored else 0
+    print(f'  {bucket}: {count} ({pct:.1f}%)')
 "
 ```
 
 **Recipe 54 — Blocked vs allowed ratio**
 Question: "What percentage of calls are we blocking?"
+# Output: Result | Count | %
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -1230,6 +1261,7 @@ for result, count in results.most_common():
 
 **Recipe 55 — Top blocked numbers**
 Question: "Which numbers get blocked most?"
+# Output: Calling Number | Blocked Count | %
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -1237,14 +1269,17 @@ from collections import Counter
 data = json.load(sys.stdin)
 blocked = Counter(r.get('Calling number') for r in data
     if r.get('Caller Reputation Service Result') in ('block', 'captcha-block'))
-print(f'Top blocked callers:')
+total = sum(blocked.values())
+print('Top blocked callers:')
 for number, count in blocked.most_common(15):
-    print(f'  {number}: {count} blocked calls')
+    pct = count/total*100 if total else 0
+    print(f'  {number}: {count} ({pct:.1f}%)')
 "
 ```
 
 **Recipe 56 — Spam rate by location**
 Question: "Which office gets the most spam?"
+# Output: Location | Spam Count | Spam% | Total
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -1265,6 +1300,7 @@ for loc, s in sorted(stats.items(), key=lambda x: x[1]['spam'], reverse=True):
 
 **Recipe 57 — Captcha effectiveness**
 Question: "How many captcha challenges succeed vs fail?"
+# Output: Metric | Value
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
