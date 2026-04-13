@@ -1,5 +1,4 @@
 <!-- Created by playbook session 2026-03-19 -->
-<!-- Verified via CLI Batches 1-4, 2026-03-19 through 2026-03-21 -->
 # Messaging Bots & Adaptive Cards Reference
 
 Developer reference for building Webex bots and integrations. Covers bot fundamentals, adaptive card patterns, the `attachment-actions` and `room-tabs` CLI groups, and cross-domain calling + messaging recipes.
@@ -74,7 +73,7 @@ The `/people/me` endpoint (called by `wxcli whoami`) returns a `type` field:
 
 The key discriminator: if `type` is `bot`, it is a bot token. If `type` is `person`, check the intended scopes — admin vs. regular user depends on token scopes, not the `/people/me` type field.
 
-> **`wxcli whoami` does not display the `type` field.** It shows display name, email, org ID, roles, and token expiry. To distinguish bot from user via CLI, use `wxcli people list-me -o json` and check the `type` field in the JSON output, or call `/people/me` via Raw HTTP and inspect the `type` field directly. <!-- Corrected via wxcli source (main.py lines 28-58, people.py line 239) and OpenAPI spec Person schema 2026-03-19 -->
+> **`wxcli whoami` does not display the `type` field.** It shows display name, email, org ID, roles, and token expiry. To distinguish bot from user via CLI, use `wxcli people list-me -o json` and check the `type` field in the JSON output, or call `/people/me` via Raw HTTP and inspect the `type` field directly.
 
 ---
 
@@ -626,7 +625,7 @@ curl -X POST "https://webexapis.com/v1/messages" \
 
 Webex supports **Adaptive Cards schema version 1.3**.
 
-Adaptive Cards with `"version": "1.3"` are accepted by the Webex Messages API, including `Action.ToggleVisibility` (a 1.2+ feature). Card was sent successfully to a test room with HTTP 200. <!-- Verified via live API 2026-03-19 -->
+Adaptive Cards with `"version": "1.3"` are accepted by the Webex Messages API, including `Action.ToggleVisibility` (a 1.2+ feature). Card was sent successfully to a test room with HTTP 200.
 
 ### Supported Elements
 

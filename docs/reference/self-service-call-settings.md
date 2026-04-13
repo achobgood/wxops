@@ -1,4 +1,3 @@
-<!-- Verified via CLI Batches 1-4, 2026-03-19 through 2026-03-21 -->
 # Self-Service Call Settings Reference — /people/me/ API Surface
 
 User-level self-service endpoints for managing personal call settings via user OAuth tokens. These endpoints mirror many admin-path settings but use `/telephony/config/people/me/` instead of `/telephony/config/people/{personId}/`.

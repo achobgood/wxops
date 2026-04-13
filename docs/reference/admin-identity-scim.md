@@ -1,4 +1,3 @@
-<!-- Verified via CLI Batches 1-4, 2026-03-19 through 2026-03-21 -->
 # Admin: Identity & SCIM
 
 SCIM 2.0 user/group provisioning, Webex People/Groups APIs, identity org settings, and directory management.
@@ -68,9 +67,9 @@ Use `scim-users` when integrating with an external IdP (Okta, Azure AD, etc.) or
 | `identity:people_read` | Read-only access to SCIM users and SCIM groups. |
 | `identity:organizations_rw` | Read and write identity organization settings. |
 | `identity:organizations_read` | Read-only access to identity organization settings. |
-| `Identity:one_time_password` | Generate OTP for a user. <!-- Verified via OpenAPI spec (specs/webex-admin.json generateOtp endpoint) 2026-03-19 --> |
-| `spark-admin:people_write` | Create, update, and delete people (Webex REST API). <!-- Verified via wxc_sdk source (people_auto.py) 2026-03-19 --> |
-| `spark-admin:people_read` | List and get people (Webex REST API). <!-- Verified via wxc_sdk source (people_auto.py) 2026-03-19 --> |
+| `Identity:one_time_password` | Generate OTP for a user.  |
+| `spark-admin:people_write` | Create, update, and delete people (Webex REST API).  |
+| `spark-admin:people_read` | List and get people (Webex REST API).  |
 
 **Note:** SCIM endpoints (`scim-users`, `scim-groups`, `scim-bulk`) use `identity:*` scopes. Webex REST endpoints (`people`, `groups`) use `spark-admin:*` scopes. Mixing them up produces 403 errors.
 
@@ -742,7 +741,7 @@ curl -s -H "Authorization: Bearer $TOKEN" \
 > ```
 
 > **Gotcha — People API: update is PUT (Full Replace):**
-> Like the SCIM PUT, `people update` uses HTTP PUT. It replaces the entire person record. The CLI does **not** do a GET-merge-PUT for flag-based options -- it sends only the specified fields in the PUT body, which means unspecified fields may be cleared by the API. Always use `--json-body` with the full person record for safe updates, or use the GET-modify-PUT pattern shown in the SCIM section above. <!-- Corrected via CLI source (people.py) 2026-03-19 -->
+> Like the SCIM PUT, `people update` uses HTTP PUT. It replaces the entire person record. The CLI does **not** do a GET-merge-PUT for flag-based options -- it sends only the specified fields in the PUT body, which means unspecified fields may be cleared by the API. Always use `--json-body` with the full person record for safe updates, or use the GET-modify-PUT pattern shown in the SCIM section above.
 
 ---
 
@@ -809,7 +808,6 @@ wxcli scim-users list YOUR_ORG_ID --filter 'department eq "Engineering"'
 # SCIM: search users whose department starts with "Eng"
 wxcli scim-users list YOUR_ORG_ID --filter 'department sw "Eng"'
 ```
-<!-- Verified via OpenAPI spec (specs/webex-admin.json SCIM Users filter parameter) 2026-03-19: department is a supported Enterprise Extension filter attribute with eq/sw/ew operators -->
 
 ### Bulk Deactivate Stale Users
 
@@ -885,7 +883,7 @@ wxcli identity-org generate-otp YOUR_ORG_ID USER_ID
 
 ### orgId Requirement on SCIM Commands
 
-All SCIM commands (`scim-users`, `scim-groups`, `scim-bulk`) require `ORG_ID` as a positional argument because the org ID is part of the URL path (`/identity/scim/{orgId}/v2/...`). It cannot be omitted or inferred from the token. The Webex REST API commands (`people`, `groups`) do not require it -- they use the org implied by the token. <!-- Verified via OpenAPI spec (specs/webex-admin.json path structure) 2026-03-19 -->
+All SCIM commands (`scim-users`, `scim-groups`, `scim-bulk`) require `ORG_ID` as a positional argument because the org ID is part of the URL path (`/identity/scim/{orgId}/v2/...`). It cannot be omitted or inferred from the token. The Webex REST API commands (`people`, `groups`) do not require it -- they use the org implied by the token.
 
 ### Scope Troubleshooting for Identity Scopes
 
@@ -893,7 +891,7 @@ SCIM endpoints use `identity:*` scopes, not the `spark-admin:*` scopes used by P
 
 1. Your integration/service-app has `identity:people_rw` or `identity:people_read` granted.
 2. For `identity-org` endpoints, you need `identity:organizations_rw` or `identity:organizations_read`.
-3. For OTP generation, you need `Identity:one_time_password` (note the capital "I" in `Identity`). An alternative scope is `Identity:Config`. <!-- Verified via OpenAPI spec (specs/webex-admin.json generateOtp endpoint) 2026-03-19 -->
+3. For OTP generation, you need `Identity:one_time_password` (note the capital "I" in `Identity`). An alternative scope is `Identity:Config`.
 4. These identity scopes must be explicitly requested during OAuth authorization. They are separate from the `spark-admin:people_*` scopes.
 
 ### SCIM Filter URL Encoding

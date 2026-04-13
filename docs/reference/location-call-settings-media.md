@@ -442,7 +442,7 @@ def usage(
 
 - Returns which locations and features reference this playlist.
 
-- **Scopes:** `spark-admin:telephony_config_read` (the `PlayListApi` class docstring confirms all read operations use `spark-admin:telephony_config_read`; the `usage()` method itself has no explicit scope docstring but inherits from the class-level scope) <!-- Verified via wxc_sdk source (PlayListApi class docstring) 2026-03-19 -->
+- **Scopes:** `spark-admin:telephony_config_read` (the `PlayListApi` class docstring confirms all read operations use `spark-admin:telephony_config_read`; the `usage()` method itself has no explicit scope docstring but inherits from the class-level scope)
 
 #### `assigned_locations(...)` — List locations assigned to a playlist
 
@@ -780,7 +780,7 @@ api.session.rest_put(f"{BASE}/telephony/config/outgoingPermission/accessCodes", 
 - **Location vs. org level:** Location codes bypass permissions for persons/workspaces at that location only. Org codes apply across all locations.
 - **No update method:** To change an access code, delete the old one and create a new one.
 - **Delete uses PUT:** Both location and org `delete` methods send a PUT with `deleteCodes` in the body, not an HTTP DELETE. The SDK handles this transparently.
-- **Batch limits:** Org-level create and delete support up to 10,000 codes per request (confirmed in SDK docstrings: "max limit is 10k per request"). Location-level create/delete has no documented batch limit in the SDK source -- the `LocationAccessCodesApi.create()` and `delete_codes()` methods accept a `list[AuthCode]` with no stated maximum. <!-- Verified via wxc_sdk source (org_access_codes/__init__.py + access_codes.py) 2026-03-19 -->
+- **Batch limits:** Org-level create and delete support up to 10,000 codes per request (confirmed in SDK docstrings: "max limit is 10k per request"). Location-level create/delete has no documented batch limit in the SDK source -- the `LocationAccessCodesApi.create()` and `delete_codes()` methods accept a `list[AuthCode]` with no stated maximum.
 
 ---
 
@@ -912,7 +912,7 @@ def list(
 - Returns a **paginated generator**.
 - Listing does **not** include events; use `details()` to get events.
 
-**Required scope:** Depends on schedule level. The wxc_sdk `ScheduleApi.list()` docstring says `spark-admin:people_read` (this applies when listing **person/user** schedules via `/people/{id}/features/schedules`). For **location** schedules via `/telephony/config/locations/{id}/schedules`, the OpenAPI spec requires `spark-admin:telephony_config_read`. <!-- Corrected via OpenAPI spec + wxc_sdk source 2026-03-19: person schedules use people_read, location schedules use telephony_config_read -->
+**Required scope:** Depends on schedule level. The wxc_sdk `ScheduleApi.list()` docstring says `spark-admin:people_read` (this applies when listing **person/user** schedules via `/people/{id}/features/schedules`). For **location** schedules via `/telephony/config/locations/{id}/schedules`, the OpenAPI spec requires `spark-admin:telephony_config_read`.
 
 #### `details(...)` — Get schedule details with events
 
@@ -931,8 +931,6 @@ def details(
 **Required scope:** `spark-admin:telephony_config_read`
 
 #### `create(...)` — Create a schedule
-
-<!-- Verified via CLI implementation 2026-03-17: Schedule create/update works with just name + schedule_type for holidays type. No issues found — events can be added later via event_create(). -->
 
 ```python
 def create(
@@ -959,8 +957,6 @@ def update(
 ```
 
 > **Important:** The schedule ID **changes** if the schedule name is modified.
-
-<!-- Verified via CLI implementation 2026-03-17: Schedule IDs are name-derived (base64-encoded from the schedule name). Renaming a schedule changes its ID — the old ID returns 404 after rename. Always re-fetch the ID after a name change. -->
 
 **Required scope:** `spark-admin:telephony_config_write`
 
@@ -1140,7 +1136,6 @@ api.session.rest_delete(
 ```
 
 **Gotcha:** Schedule IDs are name-derived (base64-encoded from the schedule name). Renaming a schedule changes its ID -- the old ID returns 404 after rename. Always re-fetch the ID after a name change. Event IDs behave the same way.
-<!-- Verified via CLI implementation 2026-03-17 -->
 
 **Gotcha:** The `ScheduleApi` import path is `wxc_sdk.common.schedules`, NOT `wxc_sdk.telephony.schedules`.
 
@@ -1307,8 +1302,8 @@ ats.delete_schedule(
 |-----------|---------------|
 | Read announcements, playlists, schedules, access codes | `spark-admin:telephony_config_read` |
 | Write announcements, playlists, schedules, access codes | `spark-admin:telephony_config_write` |
-| List schedules (location) | `spark-admin:telephony_config_read` <!-- Corrected via OpenAPI spec 2026-03-19 --> |
-| List schedules (user/person) | `spark-admin:people_read` <!-- Verified via OpenAPI spec + wxc_sdk source 2026-03-19 --> |
+| List schedules (location) | `spark-admin:telephony_config_read`  |
+| List schedules (user/person) | `spark-admin:people_read`  |
 
 ### Org vs. Location Scoping
 

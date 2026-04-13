@@ -243,7 +243,7 @@ def role_names(self) -> Optional[list]
 
 Returns a list of role name strings by resolving role IDs against `self.org.roles`. Returns `None` if the person has no roles.
 
-> **Note:** There is a bug in the source — `return roles` is inside the `for` loop (line 483 of person.py), so only the first role is ever returned. <!-- Verified via wxcadm source 2026-03-19 -->
+> **Note:** There is a bug in the source — `return roles` is inside the `for` loop (line 483 of person.py), so only the first role is ever returned.
 
 ##### `delete`
 
@@ -1158,7 +1158,7 @@ Accessed via `Person.single_number_reach` property.
 | `set_do_not_forward_calls` | `(enabled: bool) -> bool` | Toggle call forwarding prevention |
 | `delete` | `() -> bool` | Delete the SNR number |
 
-> **Note:** In `set_do_not_forward_calls`, the source code sets `self.answer_confirmation = enabled` instead of `self.do_not_forward_calls = enabled` (line 2547 of person.py). This is a confirmed copy-paste bug — the API call itself sends the correct `doNotForwardCallsEnabled` payload, but the local instance attribute is stale after the call. <!-- Verified via wxcadm source 2026-03-19 -->
+> **Note:** In `set_do_not_forward_calls`, the source code sets `self.answer_confirmation = enabled` instead of `self.do_not_forward_calls = enabled` (line 2547 of person.py). This is a confirmed copy-paste bug — the API call itself sends the correct `doNotForwardCallsEnabled` payload, but the local instance attribute is stale after the call.
 
 ---
 
@@ -1208,18 +1208,18 @@ For the complete person settings surface, see the wxc_sdk person-call-settings d
 |---------|--------------|-------------------|
 | User CRUD | `PersonList.create()`, `Person.delete()`, `Person.update_person()` | `PeopleApi.create()`, `.delete()`, `.update()` |
 | License management | `assign_wxc()`, `unassign_wxc()`, `set_calling_only()` | Manual via `PeopleApi.update()` |
-| Voicemail greeting upload | `upload_busy_greeting()`, `upload_no_answer_greeting()` | `VoicemailApi.configure_busy_greeting()` / `.configure_no_answer_greeting()` <!-- Corrected via wxc_sdk source 2026-03-19 --> |
+| Voicemail greeting upload | `upload_busy_greeting()`, `upload_no_answer_greeting()` | `VoicemailApi.configure_busy_greeting()` / `.configure_no_answer_greeting()`  |
 | Caller ID (friendly) | `set_caller_id(name, number)` with keyword shortcuts | Must build payload manually for `PersonSettingsApi.caller_id.configure()` |
 | Call recording (friendly) | `enable_call_recording(type=..., transcribe=..., ai_summary=...)` | Must build `CallRecordingSetting` model manually |
 | XSI session | `start_xsi()` — built-in XSI integration | Not available |
 | Spark ID decode | `spark_id` property (base64 decode) | Not available |
-| ECBN management | `ecbn` property, `set_ecbn()`, `ecbn_null_change()` | `PersonSettingsApi.ecbn` (`ECBNApi`) <!-- Verified via wxc_sdk source 2026-03-19 --> |
-| Single Number Reach | `single_number_reach` property with full `SnrNumber` management | `PersonSettingsApi.single_number_reach` (`SingleNumberReachApi`) <!-- Verified via wxc_sdk source 2026-03-19 --> |
-| Application line assignments | `ApplicationLineAssignments` with add/remove/configure | `PersonSettingsApi.app_shared_line` (`AppSharedLineApi`) — has `search_members()`, `get_members()`, `update_members()` <!-- Corrected via wxc_sdk source 2026-03-19 --> |
+| ECBN management | `ecbn` property, `set_ecbn()`, `ecbn_null_change()` | `PersonSettingsApi.ecbn` (`ECBNApi`)  |
+| Single Number Reach | `single_number_reach` property with full `SnrNumber` management | `PersonSettingsApi.single_number_reach` (`SingleNumberReachApi`)  |
+| Application line assignments | `ApplicationLineAssignments` with add/remove/configure | `PersonSettingsApi.app_shared_line` (`AppSharedLineApi`) — has `search_members()`, `get_members()`, `update_members()`  |
 | Hunt Group / Call Queue membership | `hunt_groups`, `call_queues` properties (reverse lookup) | Must query `HuntGroupApi` / `CallQueueApi` directly |
 | Monitoring (who monitors whom) | `monitoring` property, `get_monitored_by()` | `PersonSettingsApi.monitoring` |
-| User Groups | `UserGroups`/`UserGroup` classes with CRUD | `GroupsApi` (at `api.groups`) — list, create, get, update, delete, members <!-- Corrected via wxc_sdk source 2026-03-19 --> |
-| Voice Messages (Me scope) | `Me.get_voice_messages()`, `Me.voicemail_summary` | `TelephonyApi.voice_messaging` (`VoiceMessagingApi`) — `.summary()`, `.list()`, `.delete()`, `.mark_as_read()`, `.mark_as_unread()` <!-- Corrected via wxc_sdk source 2026-03-19 --> |
+| User Groups | `UserGroups`/`UserGroup` classes with CRUD | `GroupsApi` (at `api.groups`) — list, create, get, update, delete, members  |
+| Voice Messages (Me scope) | `Me.get_voice_messages()`, `Me.voicemail_summary` | `TelephonyApi.voice_messaging` (`VoiceMessagingApi`) — `.summary()`, `.list()`, `.delete()`, `.mark_as_read()`, `.mark_as_unread()`  |
 
 ### wxcadm-Unique Capabilities
 
@@ -1240,11 +1240,11 @@ These features have no direct wxc_sdk equivalent or are significantly more conve
 
 ## Gotchas
 
-- **`role_names()` returns only the first role.** <!-- Verified via wxcadm source 2026-03-19 --> The source code has `return roles` inside the `for` loop (line 483 of person.py), so it exits after resolving the first role ID instead of collecting all of them.
-- **`SnrNumber.set_do_not_forward_calls()` has a confirmed copy-paste bug.** <!-- Verified via wxcadm source 2026-03-19 --> The method sets `self.answer_confirmation = enabled` instead of `self.do_not_forward_calls = enabled` on the local instance (line 2547 of person.py). The API payload is correct, but the local state is stale after the call.
+- **`role_names()` returns only the first role.**  The source code has `return roles` inside the `for` loop (line 483 of person.py), so it exits after resolving the first role ID instead of collecting all of them.
+- **`SnrNumber.set_do_not_forward_calls()` has a confirmed copy-paste bug.**  The method sets `self.answer_confirmation = enabled` instead of `self.do_not_forward_calls = enabled` on the local instance (line 2547 of person.py). The API payload is correct, but the local state is stale after the call.
 - **Reverse group lookups are slow on large orgs.** `person.hunt_groups` and `person.call_queues` iterate every hunt group/call queue in the org and check each agent list. On orgs with many groups, this generates significant API traffic.
 - **`push_call_recording()` silently strips Dubber keys.** The method removes `serviceProvider`, `externalGroup`, and `externalIdentifier` before PUT, since the API rejects them. If you build a config dict from a GET response and push it back, this is handled automatically, but be aware the round-trip is not lossless.
-- **wxc_sdk equivalents have been verified and corrected.** <!-- Verified via wxc_sdk source 2026-03-19 --> Key corrections: voicemail greeting upload uses `VoicemailApi.configure_busy_greeting()` / `.configure_no_answer_greeting()`; application line assignments use `AppSharedLineApi` (not "not exposed"); groups use `GroupsApi` (not `GroupApi`); voice messages use `TelephonyApi.voice_messaging` (not `.voicemail`).
+- **wxc_sdk equivalents have been verified and corrected.**  Key corrections: voicemail greeting upload uses `VoicemailApi.configure_busy_greeting()` / `.configure_no_answer_greeting()`; application line assignments use `AppSharedLineApi` (not "not exposed"); groups use `GroupsApi` (not `GroupApi`); voice messages use `TelephonyApi.voice_messaging` (not `.voicemail`).
 - **`get_full_config()` returns `False` silently for non-WxC users.** If you call it on a person without a Webex Calling license, it returns `False` instead of raising an exception. Check the return value or verify `person.wxc` first.
 
 ## See Also

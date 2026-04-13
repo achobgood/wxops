@@ -21,7 +21,7 @@ Partner/VAR/MSP multi-tenant management -- customer org management, admin assign
 
 **Token requirement:** A standard org admin token will not work. You must authenticate as a partner administrator with access to the partner organization. Service app tokens scoped to a single customer org will also fail.
 
-**wxcli multi-org support:** wxcli natively handles partner token org targeting. Run `wxcli configure` to auto-detect your multi-org token and select a target customer org. Use `wxcli switch-org` to change the active org and `wxcli clear-org` to reset. Once configured, `orgId` is injected automatically on all applicable commands — no extra flags required. See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for full details. <!-- Verified via CLI implementation 2026-03-23 -->
+**wxcli multi-org support:** wxcli natively handles partner token org targeting. Run `wxcli configure` to auto-detect your multi-org token and select a target customer org. Use `wxcli switch-org` to change the active org and `wxcli clear-org` to reset. Once configured, `orgId` is injected automatically on all applicable commands — no extra flags required. See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for full details.
 
 ---
 
@@ -342,7 +342,7 @@ wxcli partner-reports show REPORT_ID
 
 6. **Report generation is asynchronous.** After `partner-reports create`, the report is queued for generation. Poll with `partner-reports show REPORT_ID` until the status indicates completion. The completed response includes a download URL for the CSV/report file.
 
-7. **Response key extraction.** The `partner-reports list` command looks for results under the `Report Attributes` key, and `list-templates` looks under `Template Collection`. If the API changes these keys, the table output will appear empty. Use `-o json` to see the raw response. <!-- Verified via OpenAPI spec (ReportCollectionResponse, TemplateCollectionResponse schemas) and CLI source (partner_reports.py lines 53, 174) 2026-03-19 -->
+7. **Response key extraction.** The `partner-reports list` command looks for results under the `Report Attributes` key, and `list-templates` looks under `Template Collection`. If the API changes these keys, the table output will appear empty. Use `-o json` to see the raw response.
 
 8. **`--type` parameter on `partner-tags show`.** This parameter is required but the valid values are not enumerated in the OpenAPI spec. The spec provides `ORGANIZATION` (uppercase) as the example value. The endpoint requires partner admin privileges — a standard org admin token gets 403 Forbidden for all values tested (`ORGANIZATION`, `SUBSCRIPTION`, `organization`). Both `ORGANIZATION` and `SUBSCRIPTION` return the same 403 (not a 400 "invalid value"), suggesting both may be valid types, but this cannot be confirmed without a partner admin token. <!-- Partially verified via live API 2026-03-19: all values return 403 with org admin token (partner admin required). No 400 "invalid type" error observed for ORGANIZATION or SUBSCRIPTION. -->
 

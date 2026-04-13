@@ -546,7 +546,7 @@ CPAPI.reset_vm_pin(person: Person, pin: str = None) -> bool
 
 Resets a user's VM PIN to the org default. If `pin` is provided, temporarily sets the global PIN to that value, resets the user, then clears it -- enabling per-user PIN assignment.
 
-<!-- Verified via wxcadm source (cpapi.py lines 75-90) 2026-03-19 --> The `reset_vm_pin` method's temporary global-pin-set-and-clear pattern will cause race conditions if called concurrently for multiple users. The source confirms there is no locking: it calls `set_global_vm_pin(pin)`, resets the user, then `clear_global_vm_pin()` sequentially with no mutex.
+ The `reset_vm_pin` method's temporary global-pin-set-and-clear pattern will cause race conditions if called concurrently for multiple users. The source confirms there is no locking: it calls `set_global_vm_pin(pin)`, resets the user, then `clear_global_vm_pin()` sequentially with no mutex.
 
 ### Workspace Caller ID
 
@@ -600,7 +600,7 @@ Activates the uploaded custom greeting and sets the greeting mode to `CUSTOM`.
 CPAPI.get_numbers() -> list[dict]
 ```
 
-<!-- Verified via wxcadm source (cpapi.py line 93) 2026-03-19 --> This method is marked as deprecated in the source with the comment: "This method is deprecated and will likely be removed eventually. The Webex API now supports a Numbers GET." The CP-API wrapper is unnecessary for orgs using the public API.
+ This method is marked as deprecated in the source with the comment: "This method is deprecated and will likely be removed eventually. The Webex API now supports a Numbers GET." The CP-API wrapper is unnecessary for orgs using the public API.
 
 ### Workspace Calling Location
 
@@ -657,7 +657,7 @@ WebexApplications.add_service_application(
 
 Creates a Service App (formerly Authorized App). The response includes `clientSecret` -- **store it immediately**, as it will not be visible later.
 
-<!-- Verified via wxcadm source (applications.py lines 91-93) 2026-03-19 --> The wxcadm source docstring says: "The Service App capability is in Early Field Trial and may not be available for your Org." Whether this has since reached GA would require checking the live Webex developer portal.
+ The wxcadm source docstring says: "The Service App capability is in Early Field Trial and may not be available for your Org." Whether this has since reached GA would require checking the live Webex developer portal.
 
 **Service App authorization flow:**
 
@@ -801,7 +801,7 @@ Bifrost.get_location() -> list[dict]
 
 Retrieves all locations from the Bifrost API and **enriches** the corresponding wxcadm `Location` instances by setting `location.bifrost_config` on each matched location. This attaches the full Bifrost configuration dict to the Location object.
 
-<!-- Verified via wxcadm source (bifrost.py, 52 lines) 2026-03-19 --> The exact contents of `bifrost_config` are not documented in the source. The `get_location()` method fetches from `bifrost-a.wbx2.com/api/v2/customers/{id}/locations`, paginates through all results, and assigns each raw location dict to the matching wxcadm `Location` object's `bifrost_config` attribute. The Bifrost module is exactly 52 lines with only the `get_location()` method.
+ The exact contents of `bifrost_config` are not documented in the source. The `get_location()` method fetches from `bifrost-a.wbx2.com/api/v2/customers/{id}/locations`, paginates through all results, and assigns each raw location dict to the matching wxcadm `Location` object's `bifrost_config` attribute. The Bifrost module is exactly 52 lines with only the `get_location()` method.
 
 ---
 
@@ -820,10 +820,10 @@ Retrieves all locations from the Bifrost API and **enriches** the corresponding 
 
 ## Gotchas
 
-- **CPAPI.reset_vm_pin() has a confirmed race condition.** The method temporarily sets the org-wide global VM PIN, resets the user's PIN, then clears the global PIN. No locking exists; concurrent calls for multiple users will collide. <!-- Verified via wxcadm source (cpapi.py lines 75-90) 2026-03-19 -->
-- **CPAPI.get_numbers() is deprecated.** The source code comment confirms: "This method is deprecated and will likely be removed eventually. The Webex API now supports a Numbers GET." <!-- Verified via wxcadm source (cpapi.py line 93) 2026-03-19 -->
-- **Service Apps marked as "Early Field Trial" in wxcadm source.** The `add_service_application()` docstring warns EFT status. Whether this has reached GA would require checking the live Webex developer portal. <!-- Verified via wxcadm source (applications.py lines 91-93) 2026-03-19 -->
-- **Bifrost config contents are undocumented.** `location.bifrost_config` is populated by `Bifrost.get_location()` with the raw location dict from the Bifrost API. The exact keys depend on the Bifrost API response and are not documented in wxcadm source. The module is exactly 52 lines with a single method. <!-- Verified via wxcadm source (bifrost.py) 2026-03-19 -->
+- **CPAPI.reset_vm_pin() has a confirmed race condition.** The method temporarily sets the org-wide global VM PIN, resets the user's PIN, then clears the global PIN. No locking exists; concurrent calls for multiple users will collide.
+- **CPAPI.get_numbers() is deprecated.** The source code comment confirms: "This method is deprecated and will likely be removed eventually. The Webex API now supports a Numbers GET."
+- **Service Apps marked as "Early Field Trial" in wxcadm source.** The `add_service_application()` docstring warns EFT status. Whether this has reached GA would require checking the live Webex developer portal.
+- **Bifrost config contents are undocumented.** `location.bifrost_config` is populated by `Bifrost.get_location()` with the raw location dict from the Bifrost API. The exact keys depend on the Bifrost API response and are not documented in wxcadm source. The module is exactly 52 lines with a single method.
 - **CP-API requires a special token scope.** Standard developer tokens may lack CP-API scope. Methods raise `TokenError` if the scope is missing — there is no graceful fallback.
 - **RedSky is a separate auth domain.** RedSky credentials (username/password for `api.wxc.e911cloud.com`) are completely independent from Webex tokens. The `add_building()` method only supports US locations and raises `ValueError` for non-US addresses.
 

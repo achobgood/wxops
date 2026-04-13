@@ -20,10 +20,6 @@
 - **Executor design** (pipeline doc 05b) — API call sequences and error handling
 - **Build sessions** — implementation reference for CLI and agent work
 
-## Verification Status
-
-All unverified markers have been resolved (0 remaining). 38 items carry `<!-- Verified via CLI implementation -->` comments across 9 files (3 new entries added 2026-03-23 for partner multi-org orgId support).
-
 ## Maintenance
 
 Update these docs when you discover new gotchas, API behavior changes, or scope/permission corrections. See the Sync Protocol in the project root `CLAUDE.md` for the full workflow.

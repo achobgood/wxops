@@ -651,7 +651,6 @@ def update_event(self,
 
 Updates an existing event by ID. Fetches the current config for the event, merges in provided values, and PUTs it back.
 
-<!-- Verified via wxcadm source (location_features.py:261) 2026-03-19 -->
 **Known bug in wxcadm:** The `update_event()` method's API URL is truncated — it PUTs to `v1/telephony/config/` instead of the full schedule/event path (`v1/telephony/config/locations/{loc_id}/schedules/{type}/{id}/events/{event_id}`). This means updates will fail with an API error. Workaround: use raw HTTP via `api.session.rest_put()` with the correct URL.
 
 #### `delete_event(event)`
@@ -705,7 +704,6 @@ class VoicePortal(RealtimeClass):
 
 Extends `RealtimeClass` -- changing attributes directly pushes updates to Webex immediately (unlike other wxcadm classes that require explicit save calls).
 
-<!-- Verified via wxcadm source (realtime.py, location_features.py:369-374) 2026-03-19 -->
 **How auto-push works:** `_api_fields` is initialized with `['phone_number', 'extension']`, but `RealtimeClass.__init__` appends ALL fields from the API GET response to the same list. The `__setattr__` override fires on ANY attribute change after initialization, PUTting the full `api_fields` payload back. So all API-returned fields (language, language_code, first_name, last_name, etc.) are also auto-synced — not just phone_number and extension. If the PUT fails, the attribute is reverted to its old value and a `PutError` is raised.
 
 #### `copy_config(target_location, phone_number=None, passcode=None)`
@@ -766,7 +764,6 @@ def refresh_config(self) -> None
 
 Re-fetches the paging group configuration from `v1/telephony/config/locations/{loc_id}/paging/{id}`.
 
-<!-- Corrected via wxcadm source (org.py:242-257, 308-339) 2026-03-19 -->
 **Access pattern:** PagingGroup instances are accessed at the **org level** via `org.paging_groups` (a lazily-loaded list property that fetches from `v1/telephony/config/paging`) and `org.get_paging_group(id=, name=, spark_id=)`. They are NOT exposed as a Location property despite being location-scoped.
 
 ---
@@ -820,8 +817,6 @@ Only pass the values you want to change to `update()`.
 ### VoicemailGroup
 
 Managed at the **org level** via `org.voicemail_groups` (a `VoicemailGroupList`), but scoped to a location.
-
-<!-- Verified via wxcadm source (org.py:122-127) 2026-03-19 -->
 
 #### VoicemailGroupList
 
@@ -910,14 +905,14 @@ def enable_email_copy(self, email: str) -> VoicemailGroup  # shortcut for update
 | Get by name | `org.locations.get(name="...")` | `api.locations.list(name="...")` then iterate |
 | Get by ID | `org.locations.get(id="...")` | `api.locations.details(location_id="...")` |
 | Create | `org.locations.create(...)` returns `Location` | `api.locations.create(...)` returns ID string |
-| Delete | Not supported (returns `False`) | `api.locations.delete(location_id)` <!-- Verified via wxc_sdk source (locations/__init__.py:272) 2026-03-19 --> |
+| Delete | Not supported (returns `False`) | `api.locations.delete(location_id)`  |
 
 ### Calling enablement
 
 | Operation | wxcadm | wxc_sdk |
 |-----------|--------|---------|
 | Check if Calling-enabled | `loc.calling_enabled` (bool property) | Check via `api.telephony.location.details()` |
-| Enable Calling | `loc.enable_webex_calling()` | `api.telephony.location.enable_for_calling(location)` <!-- Verified via wxc_sdk source (telephony/location/__init__.py:348) 2026-03-19 --> |
+| Enable Calling | `loc.enable_webex_calling()` | `api.telephony.location.enable_for_calling(location)`  |
 | Filter Calling locations | `org.locations.webex_calling()` (bulk API) | Manual filtering required |
 | Filter by PSTN | `org.locations.with_pstn()` / `without_pstn()` | Manual filtering required |
 
@@ -931,7 +926,7 @@ def enable_email_copy(self, email: str) -> VoicemailGroup  # shortcut for update
 
 4. **Setter pattern**: wxcadm uses separate `set_*` methods (e.g., `set_ecbn()`, `set_routing_prefix()`) rather than property setters that auto-push. The exception is `VoicePortal` which extends `RealtimeClass` for auto-push behavior.
 
-5. **Schedule management**: wxcadm exposes `LocationSchedule` objects with `add_holiday()`, `create_event()`, `clone()`, etc. wxc_sdk uses `api.telephony.schedules` (a `ScheduleApi` instance) with `list()`, `details()`, `create()`, `update()`, `delete()`, and event-level methods. <!-- Verified via wxc_sdk source (common/schedules.py:357, telephony/__init__.py:668) 2026-03-19 -->
+5. **Schedule management**: wxcadm exposes `LocationSchedule` objects with `add_holiday()`, `create_event()`, `clone()`, etc. wxc_sdk uses `api.telephony.schedules` (a `ScheduleApi` instance) with `list()`, `details()`, `create()`, `update()`, `delete()`, and event-level methods.
 
 6. **Bulk operations**: wxcadm's `LocationList.webex_calling()` uses a single bulk API call (`v1/telephony/config/locations`) for efficiency (added in v4.3.9). Earlier versions made per-location calls.
 

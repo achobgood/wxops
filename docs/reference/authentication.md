@@ -149,11 +149,11 @@ Endpoint locations and server capabilities are available at:
 https://idbroker.webex.com/idb/.well-known/openid-configuration
 ```
 
-This returns a standard OpenID Connect discovery document including `authorization_endpoint`, `token_endpoint`, `userinfo_endpoint`, `jwks_uri`, supported scopes (`openid`, `email`, `profile`, `phone`, `address`), and `code_challenge_methods_supported` (`plain`, `S256`). <!-- Corrected via live API 2026-03-19: the URL was listed as webexapis.com/v1/... but the actual working endpoint is idbroker.webex.com/idb/... -->
+This returns a standard OpenID Connect discovery document including `authorization_endpoint`, `token_endpoint`, `userinfo_endpoint`, `jwks_uri`, supported scopes (`openid`, `email`, `profile`, `phone`, `address`), and `code_challenge_methods_supported` (`plain`, `S256`).
 
 ### Gotchas
 
-- **wxc_sdk does not support PKCE natively.** The `Integration.auth_url()` method builds the authorization URL with only `client_id`, `response_type`, `redirect_uri`, `scope`, and `state` — no `code_challenge` or `code_challenge_method` parameters. The `tokens_from_code()` method does not send a `code_verifier`. To use PKCE with Webex, you would need to construct the authorization URL and token exchange manually. <!-- Verified via wxc_sdk source (integration/__init__.py) 2026-03-19 -->
+- **wxc_sdk does not support PKCE natively.** The `Integration.auth_url()` method builds the authorization URL with only `client_id`, `response_type`, `redirect_uri`, `scope`, and `state` — no `code_challenge` or `code_challenge_method` parameters. The `tokens_from_code()` method does not send a `code_verifier`. To use PKCE with Webex, you would need to construct the authorization URL and token exchange manually.
 
 ---
 
@@ -313,8 +313,6 @@ if tokens.expires_in is not None and tokens.remaining < 24 * 60 * 60:
 
 Partner/VAR/MSP admins hold tokens that have access to multiple customer organizations. Most Webex API endpoints accept an `orgId` query parameter to target a specific customer org; without it, the API defaults to the partner's own org (usually not what you want).
 
-<!-- Verified via CLI implementation 2026-03-23 -->
-
 ### How wxcli handles partner tokens
 
 wxcli detects multi-org tokens automatically and manages `orgId` injection transparently:
@@ -382,7 +380,7 @@ Guest Issuer tokens create temporary, anonymous guest users for scenarios like c
 
 ### Gotchas
 
-- **Guest token lifetime is variable, set by `expiresIn` in the response.** The OpenAPI spec example shows `expiresIn: 64799` (~18 hours), but the actual lifetime is returned per-token at creation time via the `expiresIn` field. The SDK `Guest` model exposes this as `expires_in` and computes `expires_at` from it. There is no single fixed lifetime — it depends on org/service-app configuration. <!-- Verified via OpenAPI spec (specs/webex-admin.json Guest schema) and wxc_sdk source (guests/__init__.py) 2026-03-19 -->
+- **Guest token lifetime is variable, set by `expiresIn` in the response.** The OpenAPI spec example shows `expiresIn: 64799` (~18 hours), but the actual lifetime is returned per-token at creation time via the `expiresIn` field. The SDK `Guest` model exposes this as `expires_in` and computes `expires_at` from it. There is no single fixed lifetime — it depends on org/service-app configuration.
 
 ---
 

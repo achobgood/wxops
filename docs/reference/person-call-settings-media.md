@@ -1,5 +1,4 @@
 <!-- Updated by playbook session 2026-03-18 -->
-<!-- Verified via CLI Batches 1-4, 2026-03-19 through 2026-03-21 -->
 # Person Call Settings -- Voicemail, Caller ID, Privacy & Recording
 
 Reference for per-person (also virtual line and workspace) call settings covering voicemail, caller ID, anonymous call rejection, privacy, barge-in, call recording, call intercept, monitoring, push-to-talk, and music on hold.
@@ -21,7 +20,7 @@ All APIs in this group follow the same structural pattern: they extend `PersonSe
 | Voicemail PIN Reset | `spark-admin:people_write` | `spark-admin:people_write` | Write-only action |
 | Caller ID | `spark-admin:people_read` | `spark-admin:people_write` | Self: `spark:people_read` / `spark:people_write` |
 | Agent Caller ID | `spark-admin:telephony_config_read` | `spark-admin:telephony_config_write` | Available caller IDs uses `spark-admin:people_read` |
-| Anonymous Call Rejection | `spark-admin:workspaces_read` | `spark-admin:workspaces_write` | Workspace-only admin endpoint. No admin-level `/people/{id}` path exists; self-service via `/me` only. <!-- Verified via live API 2026-03-19 --> |
+| Anonymous Call Rejection | `spark-admin:workspaces_read` | `spark-admin:workspaces_write` | Workspace-only admin endpoint. No admin-level `/people/{id}` path exists; self-service via `/me` only.  |
 | Privacy | `spark-admin:people_read` | `spark-admin:people_write` | |
 | Barge-In | `spark-admin:people_read` | `spark-admin:people_write` | Self: `spark:people_read` / `spark:people_write` |
 | Call Recording | `spark-admin:people_read` | `spark-admin:people_write` | |
@@ -671,7 +670,7 @@ api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/agent/callerId
 
 When enabled, blocks all incoming calls from unidentified or blocked caller IDs.
 
-> **Note from source:** This API is documented as "only available for professional licensed workspaces," and live testing confirms this. The OpenAPI spec only defines endpoints for `/me` (self) and `/workspaces/{id}` -- no admin-level `/people/{id}` endpoint exists. Attempting `GET /v1/telephony/config/people/{personId}/anonymousCallReject` returns 404. The workspace endpoint requires a Professional-licensed workspace (error 25409 returned for non-professional workspaces). The SDK's `PersonSettingsApiChild` base class constructs the person URL pattern, but the API does not accept it. <!-- Verified via live API 2026-03-19 -->
+> **Note from source:** This API is documented as "only available for professional licensed workspaces," and live testing confirms this. The OpenAPI spec only defines endpoints for `/me` (self) and `/workspaces/{id}` -- no admin-level `/people/{id}` endpoint exists. Attempting `GET /v1/telephony/config/people/{personId}/anonymousCallReject` returns 404. The workspace endpoint requires a Professional-licensed workspace (error 25409 returned for non-professional workspaces). The SDK's `PersonSettingsApiChild` base class constructs the person URL pattern, but the API does not accept it.
 
 ### Methods
 
@@ -683,7 +682,7 @@ AnonCallsApi.read(entity_id: str, org_id: str = None) -> bool
 
 Returns a simple boolean: `True` if anonymous call rejection is enabled.
 
-- **Scopes:** `spark-admin:workspaces_read` (workspace admin), `spark:people_read` (self via `/me`). No admin-level person endpoint exists. <!-- Verified via live API 2026-03-19 -->
+- **Scopes:** `spark-admin:workspaces_read` (workspace admin), `spark:people_read` (self via `/me`). No admin-level person endpoint exists.
 
 #### `configure`
 
@@ -712,7 +711,7 @@ wxcli workspace-settings update-anonymous-call-reject WORKSPACE_ID --no-enabled
 
 ### Raw HTTP
 
-> **WARNING: No admin-level person endpoint exists.** The path `people/{personId}/features/anonymousCallReject` returns 404. Only the workspace admin path and the self-service `/me` path work. <!-- Verified via live API 2026-03-19 -->
+> **WARNING: No admin-level person endpoint exists.** The path `people/{personId}/features/anonymousCallReject` returns 404. Only the workspace admin path and the self-service `/me` path work.
 
 #### Read Anonymous Call Rejection (Workspace — admin token)
 
@@ -1043,8 +1042,8 @@ Provides hosted call recording for replay and archival, for quality assurance, s
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `summary_and_action_items_enabled` | `bool` | Undocumented field; present in SDK source (`call_recording.py` line 83) with `# TODO: undocumented, issue 201` <!-- Verified via wxc_sdk source 2026-03-19 --> |
-| `transcript_enabled` | `bool` | Undocumented field; present in SDK source (`call_recording.py` line 84) with `# TODO: undocumented, issue 201` <!-- Verified via wxc_sdk source 2026-03-19 --> |
+| `summary_and_action_items_enabled` | `bool` | Undocumented field; present in SDK source (`call_recording.py` line 83) with `# TODO: undocumented, issue 201`  |
+| `transcript_enabled` | `bool` | Undocumented field; present in SDK source (`call_recording.py` line 84) with `# TODO: undocumented, issue 201`  |
 
 #### `CallRecordingSetting`
 
@@ -1089,7 +1088,7 @@ CallRecordingSetting(
 CallRecordingApi.read(entity_id: str, org_id: str = None) -> CallRecordingSetting
 ```
 
-- **Scopes:** `spark-admin:people_read` (Note: the SDK source docstring incorrectly says `people_write` for read; this is a documentation bug in the SDK -- read operations use `people_read` per the consistent pattern across all PersonSettingsApiChild endpoints) <!-- Verified via wxc_sdk source inspection 2026-03-19: call_recording.py line 162 docstring says people_write but all other read methods use people_read -->
+- **Scopes:** `spark-admin:people_read` (Note: the SDK source docstring incorrectly says `people_write` for read; this is a documentation bug in the SDK -- read operations use `people_read` per the consistent pattern across all PersonSettingsApiChild endpoints)
 
 #### `configure`
 
@@ -1867,7 +1866,7 @@ Not all settings apply equally to all entity types:
 | Voicemail | Yes | Yes | Yes |
 | Caller ID | Yes | Yes | Yes |
 | Agent Caller ID | Yes | -- | Yes |
-| Anonymous Call Rejection | No (admin `/people/{id}` endpoint does not exist; self via `/me` only) | Yes (Professional-licensed workspaces only) | -- | <!-- Verified via live API 2026-03-19 -->
+| Anonymous Call Rejection | No (admin `/people/{id}` endpoint does not exist; self via `/me` only) | Yes (Professional-licensed workspaces only) | -- |
 | Privacy | Yes | Yes | Yes |
 | Barge-In | Yes | Yes | Yes |
 | Call Recording | Yes | Yes | Yes |
@@ -1886,7 +1885,7 @@ Not all settings apply equally to all entity types:
 - **Scope mismatch between read and write.** Agent Caller ID uses `people_read` for listing available IDs but `telephony_config_read` for reading the current selection. Always check the specific scope required per method.
 - **Music on Hold depends on location-level setting.** Even if `mohEnabled` is `true` for a person, MoH will not play unless `mohLocationEnabled` is also `true` at the location level. The person-level API cannot change the location-level setting.
 - **`notification.type` null serialization.** Call Recording's `notification.type` returns the string `"None"` on reads but expects JSON `null` on writes. In wxcli, pass `"type": null` in `--json-body`.
-- **Anonymous Call Rejection has NO admin-level person endpoint.** Live API testing confirms that `GET /v1/people/{personId}/features/anonymousCallReject` and `GET /v1/telephony/config/people/{personId}/anonymousCallReject` both return 404. The only working paths are: (1) workspace admin: `/telephony/config/workspaces/{workspaceId}/anonymousCallReject` (requires Professional-licensed workspace, error 25409 otherwise), and (2) self-service: `/telephony/config/people/me/settings/anonymousCallReject` (requires calling-licensed user token with `spark:telephony_config_read/write`). The wxcli CLI only exposes it under `workspace-settings`, not `user-settings`. <!-- Verified via live API 2026-03-19 -->
+- **Anonymous Call Rejection has NO admin-level person endpoint.** Live API testing confirms that `GET /v1/people/{personId}/features/anonymousCallReject` and `GET /v1/telephony/config/people/{personId}/anonymousCallReject` both return 404. The only working paths are: (1) workspace admin: `/telephony/config/workspaces/{workspaceId}/anonymousCallReject` (requires Professional-licensed workspace, error 25409 otherwise), and (2) self-service: `/telephony/config/people/me/settings/anonymousCallReject` (requires calling-licensed user token with `spark:telephony_config_read/write`). The wxcli CLI only exposes it under `workspace-settings`, not `user-settings`.
 - **Monitoring has a 50-element maximum.** The `monitoredElements` list accepts at most 50 entries (persons, places, virtual lines, and call park extensions combined). The API does not surface this limit in error messages clearly.
 - **Members lists return objects but accept IDs.** Privacy (`monitoringAgents`), Monitoring (`monitoredElements`), and Push-to-Talk (`members`) all return full member objects on reads but accept flat lists of ID strings on writes.
 

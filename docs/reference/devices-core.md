@@ -1,5 +1,4 @@
 <!-- Updated by playbook session 2026-03-18 -->
-<!-- Verified via CLI Batches 1-4, 2026-03-19 through 2026-03-21 -->
 
 # Devices API Reference (wxc_sdk)
 
@@ -217,7 +216,7 @@ def create_by_mac_address(
 
 ### 1.4 Sub-APIs
 
-**`DevicesApi.settings_jobs`** (`DeviceSettingsJobsApi`) -- handles bulk device settings jobs at the location and organization level. Methods: `change(location_id, customization, org_id)` to initiate bulk settings changes, `list(org_id)` to list all jobs, `status(job_id, org_id)` to get job status, and `errors(job_id, org_id)` to list job errors. Defined in `wxc_sdk.telephony.jobs.DeviceSettingsJobsApi`, base path `telephony/config/jobs/devices/callDeviceSettings`. <!-- Verified via wxc_sdk source (telephony/jobs/__init__.py + devices/__init__.py) 2026-03-19 -->
+**`DevicesApi.settings_jobs`** (`DeviceSettingsJobsApi`) -- handles bulk device settings jobs at the location and organization level. Methods: `change(location_id, customization, org_id)` to initiate bulk settings changes, `list(org_id)` to list all jobs, `status(job_id, org_id)` to get job status, and `errors(job_id, org_id)` to list job errors. Defined in `wxc_sdk.telephony.jobs.DeviceSettingsJobsApi`, base path `telephony/config/jobs/devices/callDeviceSettings`.
 
 > **Gotcha — Tags PATCH content type:** `modify_device_tags` uses `application/json-patch+json` content type, not standard JSON. The SDK handles this automatically, but raw HTTP callers must set the header explicitly.
 
@@ -1765,7 +1764,7 @@ result = api.session.rest_get(f"{BASE}/telephony/config/devices/dectNetworks/sup
 5. **Background image upload is multipart.** The upload endpoint requires multipart form data, not JSON. Max 625 KB, `.jpeg` or `.png` only.
 6. **Tags PATCH uses `application/json-patch+json`** content type, not standard JSON. The `rest_patch` method handles this.
 7. **No auto-pagination.** Pass `max=1000` on list endpoints. The `rest_get` method does not auto-paginate like SDK generator methods do.
-8. **CTI Route Point protocol varies by device pool.** CTI Route Points require SCCP protocol on some device pools — SIP protocol assignment fails with "Device Protocol not valid" error. When creating CTI Route Points via AXL, try SCCP first if SIP fails, or verify the device pool's supported protocols before assignment. <!-- Verified via test bed expansion 2026-03-24 -->
+8. **CTI Route Point protocol varies by device pool.** CTI Route Points require SCCP protocol on some device pools — SIP protocol assignment fails with "Device Protocol not valid" error. When creating CTI Route Points via AXL, try SCCP first if SIP fails, or verify the device pool's supported protocols before assignment.
 9. **Org/location device settings PUT affects all matching devices on next sync. No rollback.** The PUT to `/telephony/config/locations/{id}/devices/settings` immediately queues the settings for all devices at that location. There is no way to preview or roll back.
 
 ---

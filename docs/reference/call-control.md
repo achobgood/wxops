@@ -1,5 +1,4 @@
 <!-- Updated by playbook session 2026-03-18 -->
-<!-- Verified via CLI Batches 1-4, 2026-03-19 through 2026-03-21 -->
 # Call Control API Reference
 
 Webex Calling Call Control APIs enable 3rd-party applications to manage calls on behalf of users. These are **3rd Party Call Control** APIs only, applicable to **Webex Calling Multi-Tenant users** (not UCM or Dedicated Instance users).
@@ -1049,8 +1048,6 @@ The Members API mirrors the user-level API but adds `member_id` and `org_id` par
 | Hangup | `CallControlsMembersApi.hangup(member_id, call_id, org_id)` | None |
 
 **`member_id`** can be one of: person ID, workspace ID, or virtual line ID.
-
-<!-- Corrected via OpenAPI spec (specs/webex-cloud-calling.json) 2026-03-19: The Members API supports exactly 5 endpoints — dial, answer, hangup, list calls, and get call details. No hold, resume, transfer, park, or other actions exist for the Members API. These additional call control actions are only available on the user-level /telephony/calls/* endpoints. -->
 
 ---
 

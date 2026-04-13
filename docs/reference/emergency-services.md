@@ -1,6 +1,5 @@
 <!-- Updated by playbook session 2026-03-18 -->
 <!-- Updated by playbook session 2026-03-18 -->
-<!-- Verified via CLI Batches 1-4, 2026-03-19 through 2026-03-21 -->
 
 # Emergency Services & E911
 
@@ -588,7 +587,6 @@ To be fully compliant with Kari's Law and RAY BAUM's Act, an organization should
 - [ ] Set `allow_email_notification_all_location_enabled` to `True` (covers all locations)
 - [ ] Configure `email_address` to a monitored mailbox (e.g., security, facilities)
 - [ ] Optionally configure location-level notification overrides via `/telephony/config/locations/{locationId}/emergencyCallNotification` (separate from org-level settings; the location-level GET also returns the org-level settings in an `organization` object for reference)
-<!-- Verified via OpenAPI spec (specs/webex-cloud-calling.json) 2026-03-19: Location-level emergency call notification endpoints exist at /telephony/config/locations/{locationId}/emergencyCallNotification with GET and PUT, separate from the org-level /telephony/config/emergencyCallNotification endpoints -->
 
 ### RAY BAUM's Act (Dispatchable Location)
 

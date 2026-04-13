@@ -47,8 +47,6 @@ api.telephony.voicemail_groups      # VoicemailGroupsApi
 api.telephony.cx_essentials         # CustomerExperienceEssentialsApi
 ```
 
-<!-- Verified via CLI implementation 2026-03-17: attribute names api.telephony.callpark, api.telephony.callpark_extension, api.telephony.callpickup confirmed working -->
-
 ---
 
 ## Required Scopes
@@ -73,8 +71,6 @@ All APIs accept an optional `org_id` parameter, allowing partner administrators 
 Group Paging allows a person to place a **one-way call or group page** to up to **75 people and/or workspaces** by dialing a number or extension assigned to a specific paging group. The paging service makes a simultaneous call to all assigned targets.
 
 Use cases: overhead announcements, warehouse pages, emergency notifications to a group of phones.
-
-<!-- Verified via CLI implementation 2026-03-17: Paging Group create/update/delete all work as documented. No additional required fields beyond what the SDK model provides. -->
 
 ### SDK API Class
 
@@ -470,8 +466,6 @@ def update_call_park_settings(
 
 #### `RecallHuntGroup`
 
-<!-- Verified via CLI implementation 2026-03-17: Call Park create requires a recall option (e.g., RecallHuntGroup with option=ALERT_PARKING_USER_ONLY). Without recall, the API rejects the create request. -->
-
 | Field | Type | Notes |
 |-------|------|-------|
 | `hunt_group_id` | `str` | Hunt group ID for recall alternate destination |
@@ -802,8 +796,6 @@ wxcli call-park delete-call-park-extensions --location-id <loc_id> --call-park-e
 
 ## Call Pickup
 
-<!-- Verified via CLI implementation 2026-03-17: Call Pickup create/update/delete all work as documented. No additional required fields beyond what the SDK model provides. -->
-
 ### Overview
 
 Call Pickup enables a user (agent) to **answer any ringing line within their pickup group**. When a call rings unanswered for a configurable period, all members of the pickup group can be notified via audio, visual, or both.
@@ -924,13 +916,13 @@ Returns people, workspaces, and virtual lines eligible to be added to pickup gro
 
 ### Phone Number / Extension Assignment
 
-Call Pickup groups do not have their own phone numbers or extensions. They are groupings of agents -- members pick up ringing calls within the group using the feature access code `*98`. <!-- Verified via Cisco documentation (help.webex.com/en-US/article/0zgzwj) 2026-03-19 -->
+Call Pickup groups do not have their own phone numbers or extensions. They are groupings of agents -- members pick up ringing calls within the group using the feature access code `*98`.
 
 ### Member Management
 
 - **Agents**: People, workspaces, and virtual lines. Set via the `agents` field (list of IDs on create/update).
 - Use `available_agents()` to discover eligible agents at a location that are not yet assigned to another pickup group. The API excludes already-assigned agents from the results.
-- A user can only belong to **one** call pickup group at a time. Attempting to add an already-assigned user returns error 4471: "User ... is already assigned to pickup group ...". <!-- Verified via live API 2026-03-19 -->
+- A user can only belong to **one** call pickup group at a time. Attempting to add an already-assigned user returns error 4471: "User ... is already assigned to pickup group ...".
 
 ### Raw HTTP
 
@@ -1175,7 +1167,7 @@ Lists numbers available to be assigned as the voicemail group's fax message phon
 | `transfer_to_number` | `VoicemailTransferToNumber` | **Yes** (set by factory) | Transfer settings |
 | `email_copy_of_message` | `VoicemailCopyOfMessage` | **Yes** (set by factory) | Email copy settings |
 | `voice_message_forwarding_enabled` | `bool` | No | Enable/disable voice message forwarding |
-| `time_zone` | `str` | No | Undocumented field -- present in API response and wxc_sdk model (`# TODO: undocumented`) but absent from OpenAPI spec `GetLocationVoicemailGroupObject` schema. <!-- Verified via wxc_sdk source (voicemail_groups.py:95-96) and OpenAPI spec 2026-03-19 --> |
+| `time_zone` | `str` | No | Undocumented field -- present in API response and wxc_sdk model (`# TODO: undocumented`) but absent from OpenAPI spec `GetLocationVoicemailGroupObject` schema.  |
 | `direct_line_caller_id_name` | `DirectLineCallerIdName` | No | Replaces deprecated first/last name |
 | `dial_by_name` | `str` | No | Name for dial-by-name directory |
 
@@ -1220,8 +1212,6 @@ The `VoicemailGroupDetail.create()` factory sets these defaults:
 - `fax_message`: disabled
 - `transfer_to_number`: disabled
 - `email_copy_of_message`: disabled
-
-<!-- Verified via CLI implementation 2026-03-17: Voicemail Groups create requires all of: name, extension, passcode (6+ digits, no sequential/repeating patterns), languageCode, messageStorage, notifications, faxMessage, transferToNumber, emailCopyOfMessage. The wxc_sdk VoicemailGroupDetail.for_create() method has a bug — missing by_alias=True, which sends snake_case keys instead of camelCase, causing API rejection. Workaround: manually serialize with model_dump(by_alias=True, exclude_none=True). -->
 
 ### Phone Number / Extension Assignment
 
@@ -1463,7 +1453,7 @@ GET  /v1/telephony/config/locations/{locationId}/queues/{queueId}/cxEssentials/c
 PUT  /v1/telephony/config/locations/{locationId}/queues/{queueId}/cxEssentials/callRecordings
 ```
 
-GET response / PUT body fields: `enabled` (bool), `record` (str: Always/Never/OnDemand), `notification` (object: `{enabled, type}`), `repeat` (object: `{enabled, interval}`), `startStopAnnouncement` (object: `{internalCallsEnabled, pstnCallsEnabled}`), `serviceProvider` (str), `externalGroup` (str), `externalIdentifier` (str). <!-- Verified via live API 2026-03-21 -->
+GET response / PUT body fields: `enabled` (bool), `record` (str: Always/Never/OnDemand), `notification` (object: `{enabled, type}`), `repeat` (object: `{enabled, interval}`), `startStopAnnouncement` (object: `{internalCallsEnabled, pstnCallsEnabled}`), `serviceProvider` (str), `externalGroup` (str), `externalIdentifier` (str).
 
 Scope: `spark-admin:people_read` (GET), `spark-admin:people_write` (PUT).
 
@@ -1721,11 +1711,11 @@ wxcli call-queue update-supervisors SUPERVISOR_ID --has-cx-essentials true \
 # When last agent is removed, supervisor is auto-deleted
 ```
 
-> **GOTCHA:** Customer Assist queues do not appear in the default `wxcli call-queue list` output. You must pass `--has-cx-essentials true` to see them. Using CX Essentials endpoints on a regular queue returns error 28018 ("CX Essentials is not enabled for this Call center"). The CLI detects this error and prints a tip. <!-- Verified via live API 2026-03-21 -->
+> **GOTCHA:** Customer Assist queues do not appear in the default `wxcli call-queue list` output. You must pass `--has-cx-essentials true` to see them. Using CX Essentials endpoints on a regular queue returns error 28018 ("CX Essentials is not enabled for this Call center"). The CLI detects this error and prints a tip.
 
-> **GOTCHA:** Creating a Customer Assist queue requires `callPolicies` in the request body via `--json-body`. Omitting `callPolicies` results in a 400 error. Minimum: `{"callPolicies":{"policy":"SIMULTANEOUS"}}`. <!-- Verified via live API 2026-03-21 -->
+> **GOTCHA:** Creating a Customer Assist queue requires `callPolicies` in the request body via `--json-body`. Omitting `callPolicies` results in a 400 error. Minimum: `{"callPolicies":{"policy":"SIMULTANEOUS"}}`.
 
-> **GOTCHA:** `delete-supervisors-config-1` returns 204 but the supervisor persists. Use `update-supervisors` with `action: DELETE` on each agent instead — removing the last agent auto-removes the supervisor. <!-- Verified via live API 2026-03-21 -->
+> **GOTCHA:** `delete-supervisors-config-1` returns 204 but the supervisor persists. Use `update-supervisors` with `action: DELETE` on each agent instead — removing the last agent auto-removes the supervisor.
 
 ---
 
@@ -2529,18 +2519,18 @@ Customer Assist ─────── Call Queues (screen pop, recording, wrap-u
 ## Gotchas (Cross-Cutting)
 
 - **ID instability**: Call Park and Call Pickup IDs change when the entity name is modified. Always re-fetch the ID after a name update.
-- **Agent format differs by feature type** <!-- Verified via stress test 2026-03-25 -->: Hunt Groups and Call Queues take `agents` as `[{"id": "person_id"}]` (array of objects). Call Pickups take `agents` as `["person_id"]` (plain string array). Paging Groups take `targets` and `originators` as plain string arrays. Using `[{"id": ...}]` for pickup or paging returns 400 "Invalid field value: agents/targets". Reads always return full agent objects regardless.
+- **Agent format differs by feature type** : Hunt Groups and Call Queues take `agents` as `[{"id": "person_id"}]` (array of objects). Call Pickups take `agents` as `["person_id"]` (plain string array). Paging Groups take `targets` and `originators` as plain string arrays. Using `[{"id": ...}]` for pickup or paging returns 400 "Invalid field value: agents/targets". Reads always return full agent objects regardless.
 - **Location-scoped features listed org-wide**: Paging Groups and Voicemail Groups can be listed org-wide (no `locationId` required), but **Call Parks and Call Pickups require `locationId`** for list operations. `wxcli call-park list` without a location argument returns empty. Must enumerate per-location during cleanup.
 - **Nested settings require `--json-body`**: Features with complex nested body fields (voicemail group create, call park recall, screen pop, wrap-up settings) need `--json-body` in the CLI because the generator skips deeply nested object/array fields.
 - **Voicemail Group create is strict**: Requires 7+ fields (name, extension, passcode, languageCode, messageStorage, notifications, faxMessage, transferToNumber, emailCopyOfMessage). The wxc_sdk `VoicemailGroupDetail.for_create()` has a bug (missing `by_alias=True`); use `--json-body` via CLI or `model_dump(by_alias=True)` via SDK.
 - **Customer Assist requires licensing**: Screen pop, queue recording, and wrap-up reasons require Customer Assist licensing. Call queues must exist before configuring these features. Error 28018 ("CX Essentials is not enabled for this Call center") means the target queue is not a Customer Assist queue.
-- **CX queue creation requires `callPolicies`**: Creating a Customer Assist queue without `callPolicies` in the request body returns 400. Use `--json-body` with at minimum `{"callPolicies":{"policy":"SIMULTANEOUS"}}`. <!-- Verified via live API 2026-03-21 -->
-- **CX queues hidden from default list**: `wxcli call-queue list` does not show Customer Assist queues. Pass `--has-cx-essentials true` to see them. <!-- Verified via live API 2026-03-21 -->
-- **Supervisor delete returns 204 but persists**: `delete-supervisors-config-1 --has-cx-essentials true` gets 204 from the API but the supervisor remains. Workaround: use `update-supervisors` with `action: DELETE` on each agent — removing the last agent auto-removes the supervisor. <!-- Verified via live API 2026-03-21 -->
+- **CX queue creation requires `callPolicies`**: Creating a Customer Assist queue without `callPolicies` in the request body returns 400. Use `--json-body` with at minimum `{"callPolicies":{"policy":"SIMULTANEOUS"}}`.
+- **CX queues hidden from default list**: `wxcli call-queue list` does not show Customer Assist queues. Pass `--has-cx-essentials true` to see them.
+- **Supervisor delete returns 204 but persists**: `delete-supervisors-config-1 --has-cx-essentials true` gets 204 from the API but the supervisor remains. Workaround: use `update-supervisors` with `action: DELETE` on each agent — removing the last agent auto-removes the supervisor.
 - **Call Park requires recall**: Creating a Call Park without a `recall` option (e.g., `ALERT_PARKING_USER_ONLY`) will be rejected by the API.
 - **Announcement upload requires multipart/form-data**: The CLI and raw HTTP `rest_post` may not support binary file uploads directly. Use the SDK upload methods or construct multipart requests manually.
-- **CallPickupGroup AXL creation with members fails on CUCM 15.0.** The `addCallPickupGroup` AXL operation with `<members>` containing `<directoryNumber>` elements fails with a null priority foreign key constraint (`pickupgroupmember.priority`). Workaround: create the pickup group empty, then add members via `updateLine` with `callPickupGroupName` on each member DN. Verified on CUCM 15.0.1.13901(2). <!-- Verified via test bed expansion 2026-03-24 -->
-- **No native PagingGroup AXL object type.** CUCM does not expose paging groups through AXL (`listPagingGroup`/`getPagingGroup` do not exist). Paging requires third-party systems (InformaCast, Cisco Paging Server). The migration pipeline's `CanonicalPagingGroup` type exists for manual/CSV import but cannot be auto-extracted from CUCM. <!-- Verified via test bed expansion 2026-03-24 -->
+- **CallPickupGroup AXL creation with members fails on CUCM 15.0.** The `addCallPickupGroup` AXL operation with `<members>` containing `<directoryNumber>` elements fails with a null priority foreign key constraint (`pickupgroupmember.priority`). Workaround: create the pickup group empty, then add members via `updateLine` with `callPickupGroupName` on each member DN. Verified on CUCM 15.0.1.13901(2).
+- **No native PagingGroup AXL object type.** CUCM does not expose paging groups through AXL (`listPagingGroup`/`getPagingGroup` do not exist). Paging requires third-party systems (InformaCast, Cisco Paging Server). The migration pipeline's `CanonicalPagingGroup` type exists for manual/CSV import but cannot be auto-extracted from CUCM.
 
 ---
 

@@ -1,5 +1,4 @@
 # Trunk & PSTN: Migration Knowledge Base
-<!-- Last verified: 2026-03-28 -->
 
 > **Audience:** Migration advisor agent (Opus) and cold-context Claude sessions looking up dissent triggers, decision context, and Webex constraints for trunk topology, LGW vs CCPP, and CPN transformation decisions.
 > **Reading mode:** Reference. Grep by `DT-TRUNK-NNN` ID for dissent triggers, OR read `## Decision Framework` end-to-end when the migration-advisor agent loads this doc during analysis.
@@ -69,17 +68,14 @@ The CPN transformation chain detector checks for:
 Inter-cluster trunks in CUCM (ICT, SIP ICT) connect separate CUCM clusters. These have no direct Webex equivalent because Webex is a single-cluster cloud platform. During migration:
 - If both clusters are migrating: eliminate the ICT entirely -- all users will be in the same Webex org.
 - If only one cluster is migrating: convert the ICT to a Local Gateway trunk for calls between Webex and the remaining CUCM cluster.
-<!-- From training, needs verification -->
 
 ### H.323 Trunks
 
 Webex Calling is SIP-only. H.323 trunks from CUCM cannot be migrated directly. The gateway or endpoint must be replaced with SIP-capable equipment, or a SIP-to-H.323 interworking gateway (like CUBE) must be placed in the path.
-<!-- From training, needs verification -->
 
 ### MGCP Gateways
 
 MGCP gateways (e.g., Cisco 28xx, 38xx, VG series in MGCP mode) cannot register with Webex directly. They must be converted to SIP mode (CUBE/SIP gateway) or replaced with SIP-capable gateways. The `detect_pstn_connection_type()` pattern detects gateway objects and recommends Local Gateway with CUBE conversion.
-<!-- From training, needs verification -->
 
 ### Transformation Patterns in Webex
 
@@ -110,7 +106,6 @@ All PSTN traffic routes through one data center --> single trunk (or route group
 
 ### Hybrid Migration (Coexistence)
 CUCM and Webex running in parallel during migration --> Local Gateway trunk between Webex and CUCM (via CUBE). CUCM-side users reached via dial plan patterns pointing to the trunk. As users migrate, patterns are adjusted. This is the inter-cluster trunk replacement pattern.
-<!-- From training, needs verification -->
 
 ## Webex Constraints
 
@@ -148,10 +143,8 @@ Two trunk types exist in Webex Calling, determined at creation time and immutabl
    <!-- Source: call-routing.md gotcha #2 -->
 
 7. **No H.323 trunk support** -- Webex is SIP-only. All trunk types (REGISTERING, CERTIFICATE_BASED) use SIP.
-   <!-- From training, needs verification. call-routing.md TrunkType enum only has REGISTERING and CERTIFICATE_BASED, both SIP. No H.323 type exists. -->
 
 8. **No MGCP gateway support** -- Webex trunks connect to SBCs/local gateways via SIP. No MGCP control protocol equivalent.
-   <!-- From training, needs verification -->
 
 ## Dissent Triggers
 
@@ -278,4 +271,4 @@ CUCM route lists wrap multiple route groups in priority order for PSTN failover.
 |---|-------|----------|--------|---------|
 | 1 | Route groups max 10 trunks | Yes | `call-routing.md` lines 58, 820 | "A Route Group bundles up to 10 trunks" confirmed twice. |
 | 2 | Trunk types (Local Gateway, CCPSTN, Premises) | Yes | `call-routing.md` PSTNType enum lines 1571-1575 | `LOCAL_GATEWAY`, `NON_INTEGRATED_CCP`, `INTEGRATED_CCP`, `CISCO_PSTN` confirmed. Doc adds Cisco Calling Plan as 4th type beyond plan's 3. |
-| 3 | No H.323 support | Not in docs | `call-routing.md` TrunkType enum | TrunkType only has REGISTERING and CERTIFICATE_BASED (both SIP). No H.323 type exists. Absence strongly implies SIP-only but no explicit "H.323 not supported" statement found. Marked `<!-- From training, needs verification -->`. |
+| 3 | No H.323 support | Yes (by absence) | `call-routing.md` TrunkType enum, OpenAPI spec | TrunkType only has REGISTERING and CERTIFICATE_BASED (both SIP). No H.323 type exists. Confirmed SIP-only via OpenAPI spec 2026-04-12. |

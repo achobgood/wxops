@@ -1,4 +1,3 @@
-<!-- Verified via CLI Batches 1-4, 2026-03-19 through 2026-03-21 -->
 # Device Platform Management (RoomOS Configurations, Personalization, xAPI)
 
 ## Sources
@@ -50,7 +49,7 @@ This returns all devices in the org. Filter for the device you need and capture 
 
 **Key distinction:** Device Configurations and Workspace Personalization use admin-level scopes (`spark-admin:`). xAPI uses user-level scopes (`spark:`). A token may have one set but not the other.
 
-For full xAPI access (both status queries and command execution), ensure your token has both `spark:xapi_statuses` and `spark:xapi_commands`. The official Webex API documentation specifically requires these scopes and does not mention `spark-admin:devices_read/write` as a substitute. <!-- Corrected via wxc_sdk source + developer.webex.com full_spec.yml 2026-03-19 -->
+For full xAPI access (both status queries and command execution), ensure your token has both `spark:xapi_statuses` and `spark:xapi_commands`. The official Webex API documentation specifically requires these scopes and does not mention `spark-admin:devices_read/write` as a substitute.
 
 ---
 
@@ -445,7 +444,7 @@ Content-Type: application/json
 
 5. **Workspace personalization is asynchronous.** The `create` command returns immediately. Always poll with `show` until the task reports `success: true` or `success: false`. Do not assume instant completion — typical completion time is approximately 30 seconds.
 
-6. **xAPI scopes are user-level, not admin-level.** xAPI status queries need `spark:xapi_statuses` and command execution needs `spark:xapi_commands`. These are `spark:` scopes (user-level), not `spark-admin:` scopes. The official Webex API documentation does not indicate that `spark-admin:devices_read/write` can substitute for these scopes. Ensure your token explicitly includes the `spark:xapi_*` scopes for xAPI operations. <!-- Corrected via wxc_sdk source + developer.webex.com full_spec.yml 2026-03-19 -->
+6. **xAPI scopes are user-level, not admin-level.** xAPI status queries need `spark:xapi_statuses` and command execution needs `spark:xapi_commands`. These are `spark:` scopes (user-level), not `spark-admin:` scopes. The official Webex API documentation does not indicate that `spark-admin:devices_read/write` can substitute for these scopes. Ensure your token explicitly includes the `spark:xapi_*` scopes for xAPI operations.
 
 7. **Configuration key paths use different separators in different contexts.** The key filter (for reading) uses dot-notation: `Audio.Ultrasound.MaxVolume`. The update path field uses dots for the key portion but forward slashes for the path suffix: `Audio.Ultrasound.MaxVolume/sources/configured/value`. Do not mix them up.
 
@@ -453,9 +452,9 @@ Content-Type: application/json
 
 9. **xAPI `create` with `--json-body` does not auto-inject deviceId.** When you pass `--json-body`, the CLI uses the JSON body as-is without injecting the `--device-id` value. You must include `"deviceId"` in your JSON body manually. Without `--json-body`, the CLI correctly populates `deviceId` from `--device-id`.
 
-10. **Device configuration schema is device-reported and firmware-dependent.** The set of available config keys is not static — each device reports its own schema when it registers with Webex cloud. Newer PhoneOS/RoomOS firmware versions may expose keys that older versions do not. Offline or `offline_expired` devices retain a stale schema. A key visible in Control Hub's UI may not appear in the Device Configurations API if the device's firmware hasn't been updated to a version that includes it in the reported schema. <!-- Verified via CLI investigation 2026-03-30 -->
+10. **Device configuration schema is device-reported and firmware-dependent.** The set of available config keys is not static — each device reports its own schema when it registers with Webex cloud. Newer PhoneOS/RoomOS firmware versions may expose keys that older versions do not. Offline or `offline_expired` devices retain a stale schema. A key visible in Control Hub's UI may not appear in the Device Configurations API if the device's firmware hasn't been updated to a version that includes it in the reported schema.
 
-11. **Per-line ringtone (`Lines.Line[N].CallFeatureSettings.Ringtone`) is available on PhoneOS 4.1+.** On PhoneOS 3.5.1 and 3.6.1 the key does not appear in the Device Configurations API schema — only `Lines.Line[N].CallFeatureSettings.MissedCallNotification` is present on those versions. On PhoneOS 4.1.1 (build 20260318), the `Ringtone` key is present and writable for all 16 line positions. Value space is `"No Ring"` or `"1"` through `"13"`. Set per-line ringtones with a single multi-operation PATCH: `[{"op": "replace", "path": "Lines.Line[1].CallFeatureSettings.Ringtone/sources/configured/value", "value": "2"}, ...]`. Revert a line to default with `"op": "remove"`. <!-- Verified via CLI against Cisco 9851, PhoneOS 4.1.1.0001, 2026-03-31 -->
+11. **Per-line ringtone (`Lines.Line[N].CallFeatureSettings.Ringtone`) is available on PhoneOS 4.1+.** On PhoneOS 3.5.1 and 3.6.1 the key does not appear in the Device Configurations API schema — only `Lines.Line[N].CallFeatureSettings.MissedCallNotification` is present on those versions. On PhoneOS 4.1.1 (build 20260318), the `Ringtone` key is present and writable for all 16 line positions. Value space is `"No Ring"` or `"1"` through `"13"`. Set per-line ringtones with a single multi-operation PATCH: `[{"op": "replace", "path": "Lines.Line[1].CallFeatureSettings.Ringtone/sources/configured/value", "value": "2"}, ...]`. Revert a line to default with `"op": "remove"`.
 12. **Static device settings API and dynamic settings API are separate surfaces.** Static (`/telephony/config/devices/{id}/settings`) uses JSON objects under `customizations.mpp`. Dynamic (`/telephony/config/devices/{id}/dynamicSettings`) uses tag-based addressing (`%ENABLE_BLUETOOTH%`). Do not mix them — use static API for standard MPP/PhoneOS settings.
 
 ---

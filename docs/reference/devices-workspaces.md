@@ -1,5 +1,4 @@
 <!-- Updated by playbook session 2026-03-18 -->
-<!-- Verified via CLI Batches 1-4, 2026-03-19 through 2026-03-21 -->
 
 # Devices & Workspaces — wxc_sdk Reference
 
@@ -769,7 +768,7 @@ api.workspace_settings.numbers.update(
     workspace_id=workspace_id,
     phone_numbers=[
         UpdateWorkspacePhoneNumber(
-            action=PatternAction.add,       # PatternAction.add = 'ADD', PatternAction.delete = 'DELETE' <!-- Verified via wxc_sdk source (common/__init__.py) 2026-03-19 -->
+            action=PatternAction.add,       # PatternAction.add = 'ADD', PatternAction.delete = 'DELETE'
             direct_number="+14155551234",
             primary=False,
         )
@@ -949,7 +948,7 @@ api.session.rest_put(f"{BASE}/telephony/config/workspaces/{workspace_id}/devices
 4. **Two different base paths** -- CRUD and features use `/workspaces/{id}` and `/workspaces/{id}/features/*`. Telephony device operations use `/telephony/config/workspaces/{id}/devices`.
 5. **Update is full PUT** -- Omitting optional fields (`capacity`, `type`, `notes`) clears them. `locationId`, `supportedDevices`, `calendar`, and `calling` are preserved when omitted.
 6. **`webexCalling` details not returned on GET** -- The `calling.webexCalling` object is write-only (used on create). GET responses only include `calling.type`.
-7. **Migration tool populates workspace `call_settings` from CUCM common-area phones.** `WorkspaceMapper._extract_workspace_call_settings` translates CUCM `dndStatus`, `voiceMailProfile`, per-line `callForward*`, and `privacy` into Webex `/telephony/config/workspaces/{id}/{feature}` PUT bodies. Output is license-gated: Workspace-tier workspaces only keep `doNotDisturb` and `musicOnHold`; everything else requires Professional Workspace. See `src/wxcli/migration/transform/mappers/workspace_mapper.py` and the spec at `docs/superpowers/specs/2026-04-10-workspace-call-settings.md`. Under the default license-tier inference, most workspaces land at Workspace tier, so only `doNotDisturb` actually migrates — `voicemail`, `callForwarding`, and `privacy` only activate when an operator overrides the tier to Professional Workspace during decision review. <!-- Verified via migration implementation 2026-04-11 -->
+7. **Migration tool populates workspace `call_settings` from CUCM common-area phones.** `WorkspaceMapper._extract_workspace_call_settings` translates CUCM `dndStatus`, `voiceMailProfile`, per-line `callForward*`, and `privacy` into Webex `/telephony/config/workspaces/{id}/{feature}` PUT bodies. Output is license-gated: Workspace-tier workspaces only keep `doNotDisturb` and `musicOnHold`; everything else requires Professional Workspace. See `src/wxcli/migration/transform/mappers/workspace_mapper.py` and the spec at `docs/superpowers/specs/2026-04-10-workspace-call-settings.md`. Under the default license-tier inference, most workspaces land at Workspace tier, so only `doNotDisturb` actually migrates — `voicemail`, `callForwarding`, and `privacy` only activate when an operator overrides the tier to Professional Workspace during decision review.
 
 ---
 
@@ -1348,7 +1347,7 @@ wxcli workspace-locations show-floors <location_id> <floor_id>
 
 9. **Personalization is one-time** — The Workspace Personalization API is for migrating Edge devices from shared to personal mode. It requires the device to be online and the workspace to have no calendar configured.
 
-10. **Workspace call settings endpoint access by license tier.** <!-- Verified via live API 2026-03-19, matrix completed 2026-03-27 -->
+10. **Workspace call settings endpoint access by license tier.**
 
     **Rule of thumb:** Under `/telephony/config/workspaces/{id}/`, only `musicOnHold` and `doNotDisturb` work on Basic. Everything else returns 405 "Invalid Professional Place". For Basic workspaces, use the `/workspaces/{id}/features/` path family instead (5 endpoints listed below).
 

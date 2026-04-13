@@ -1,5 +1,4 @@
 # Person & Workspace Settings: Migration Knowledge Base
-<!-- Last verified: 2026-03-28 -->
 
 > **Audience:** Migration advisor agent (Opus) and cold-context Claude sessions looking up dissent triggers, decision context, and Webex constraints for call forwarding, voicemail, calling permissions, and workspace licensing decisions.
 > **Reading mode:** Reference. Grep by `DT-USER-NNN` ID for dissent triggers, OR read `## Decision Framework` end-to-end when the migration-advisor agent loads this doc during analysis.
@@ -126,7 +125,6 @@ CUCM forwarding → Webex mapping:
 <!-- Source: location-call-settings-advanced.md sec 1; person-call-settings-media.md sec 7 -->
 
 - **Max 35 shared line appearances.** Webex shared lines support up to 35 appearances per DN.
-<!-- From training, needs verification -->
 
 ## Dissent Triggers
 

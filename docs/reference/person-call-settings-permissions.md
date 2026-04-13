@@ -1,4 +1,3 @@
-<!-- Verified via CLI Batches 1-4, 2026-03-19 through 2026-03-21 -->
 # Person Call Settings — Permissions, Executive & Feature Access
 
 Reference for managing incoming/outgoing call permissions, feature access controls, executive/assistant pairing, and call policy settings via `wxc_sdk`.
@@ -256,7 +255,7 @@ Update outgoing calling permissions. The `drop_call_types` parameter excludes sp
 
 ### Methods — Transfer Numbers (`OutgoingPermissionsApi.transfer_numbers`)
 
-> **Scope note:** The SDK docstrings list `workspaces_read/write` scopes for Transfer Numbers, but this is only correct for workspace entities. Per the OpenAPI spec, person-level transfer number endpoints use `spark-admin:telephony_config_read/write`. <!-- Corrected via OpenAPI spec 2026-03-19 -->
+> **Scope note:** The SDK docstrings list `workspaces_read/write` scopes for Transfer Numbers, but this is only correct for workspace entities. Per the OpenAPI spec, person-level transfer number endpoints use `spark-admin:telephony_config_read/write`.
 
 #### `read`
 
@@ -280,7 +279,7 @@ def configure(self, entity_id: str, settings: AutoTransferNumbers, org_id: str =
 
 > Not available for locations — use the telephony-level access codes API.
 
-> **Scope note:** The SDK docstrings list `workspaces_read/write` scopes for Access Codes, but this is only correct for workspace entities. Per the OpenAPI spec, person-level access code endpoints use `spark-admin:telephony_config_read/write`. <!-- Corrected via OpenAPI spec 2026-03-19 -->
+> **Scope note:** The SDK docstrings list `workspaces_read/write` scopes for Access Codes, but this is only correct for workspace entities. Per the OpenAPI spec, person-level access code endpoints use `spark-admin:telephony_config_read/write`.
 
 #### `read`
 
@@ -415,7 +414,7 @@ Delete all digit patterns for the entity.
 | Delete all digit patterns | DELETE | `telephony/config/people/{personId}/outgoingPermission/digitPatterns` |
 | Update category control | PUT | `telephony/config/people/{personId}/outgoingPermission/digitPatterns` |
 
-> **Note:** Main outgoing permissions and transfer numbers/access codes use the `people/{personId}/features/...` base path. Digit patterns use the `telephony/config/people/{personId}/...` base path. The transfer numbers endpoint path is `autoTransferNumbers` (not `transferNumbers`). <!-- Verified via live API 2026-03-19 -->
+> **Note:** Main outgoing permissions and transfer numbers/access codes use the `people/{personId}/features/...` base path. Digit patterns use the `telephony/config/people/{personId}/...` base path. The transfer numbers endpoint path is `autoTransferNumbers` (not `transferNumbers`).
 
 ```python
 from wxc_sdk import WebexSimpleApi
@@ -1115,7 +1114,7 @@ Controls Connected Line Identification Privacy on redirected calls.
 **API class:** `CallPolicyApi` (extends `PersonSettingsApiChild`)
 - Feature path segment: `callPolicies`
 
-> **Important:** This API is only available for **professional licensed workspaces** when accessed via admin tokens. The scopes shown (`workspaces_read/write`) are workspace-specific. There is no admin-level `people/{personId}` callPolicies endpoint. However, calling-licensed users can access their own call policy via the self-access endpoint (`/telephony/config/people/me/settings/callPolicies`) with the `spark:telephony_config_read/write` scope. The wxc_sdk only wires `CallPolicyApi` into `workspace_settings`, not `person_settings`. <!-- Verified via OpenAPI spec + wxc_sdk source 2026-03-19 -->
+> **Important:** This API is only available for **professional licensed workspaces** when accessed via admin tokens. The scopes shown (`workspaces_read/write`) are workspace-specific. There is no admin-level `people/{personId}` callPolicies endpoint. However, calling-licensed users can access their own call policy via the self-access endpoint (`/telephony/config/people/me/settings/callPolicies`) with the `spark:telephony_config_read/write` scope. The wxc_sdk only wires `CallPolicyApi` into `workspace_settings`, not `person_settings`.
 
 ### Data Models
 
@@ -1149,9 +1148,8 @@ def configure(self, entity_id: str,
 
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
-<!-- Verified via live API 2026-03-19: no admin-level person endpoint exists -->
 
-> **WARNING: No admin-level person endpoint exists.** The path `people/{personId}/features/callPolicies` returns 404 for persons. Only the workspace admin path and the self-service `/me` path work. <!-- Verified via live API 2026-03-19 -->
+> **WARNING: No admin-level person endpoint exists.** The path `people/{personId}/features/callPolicies` returns 404 for persons. Only the workspace admin path and the self-service `/me` path work.
 
 **Base URL:** `https://webexapis.com/v1`
 
@@ -1185,7 +1183,7 @@ api.session.rest_put(f"{BASE}/telephony/config/people/me/settings/callPolicies",
 
 ### CLI Examples
 
-> **Note:** Call Policy is only available for **workspaces** via admin CLI commands (`workspace-settings show-call-policies`, `update-call-policies`). There is no admin-level `people/{personId}` endpoint for call policy. Calling-licensed users can read/update their own call policy via the self-access endpoint (`/telephony/config/people/me/settings/callPolicies` with `spark:telephony_config_read/write` scope), but this requires user-level OAuth, not admin tokens. <!-- Verified via OpenAPI spec 2026-03-19 -->
+> **Note:** Call Policy is only available for **workspaces** via admin CLI commands (`workspace-settings show-call-policies`, `update-call-policies`). There is no admin-level `people/{personId}` endpoint for call policy. Calling-licensed users can read/update their own call policy via the self-access endpoint (`/telephony/config/people/me/settings/callPolicies` with `spark:telephony_config_read/write` scope), but this requires user-level OAuth, not admin tokens.
 
 ```bash
 # Read call policy for a workspace
@@ -1227,8 +1225,6 @@ curl -s -H "Authorization: Bearer $USER_TOKEN" \
 | Executive Settings (alert, filtering, screening, assistants) | `spark-admin:telephony_config_read` | `spark-admin:telephony_config_write` |
 | Call Policy (workspace, admin) | `spark-admin:workspaces_read` | `spark-admin:workspaces_write` |
 | Call Policy (self, user token) | `spark:telephony_config_read` | `spark:telephony_config_write` |
-
-<!-- Corrected via OpenAPI spec 2026-03-19: The SDK docstrings on TransferNumbersApi and AccessCodesApi incorrectly reference workspaces_read/write for person settings. Per the OpenAPI spec, person-level transfer numbers and access codes endpoints are at telephony/config/people/{personId}/outgoingPermission/... and require spark-admin:telephony_config_read (GET) and spark-admin:telephony_config_write (PUT/POST/DELETE). The workspaces_read/write scopes only apply to workspace-level endpoints. -->
 
 ---
 
@@ -1321,9 +1317,9 @@ api.person_settings.feature_access.update(person_id, settings)
 
 6. **Feature access `reset` is a POST, not a DELETE.** Resetting a person's feature access to org defaults uses `POST .../actions/reset/invoke`, not a DELETE. Sending DELETE to this endpoint returns 405.
 
-7. **Call Policy has NO admin-level person endpoint.** Live API testing confirms that `people/{personId}/features/callPolicies` returns 404 for persons. The only working paths are: (1) workspace admin: `workspaces/{workspaceId}/features/callPolicies`, and (2) self-service: `telephony/config/people/me/settings/callPolicies` (requires calling-licensed user token with `spark:telephony_config_read/write`). The `wxcli` commands (`show-call-policies`, `update-call-policies`) are under `workspace-settings` only. <!-- Verified via live API 2026-03-19 -->
+7. **Call Policy has NO admin-level person endpoint.** Live API testing confirms that `people/{personId}/features/callPolicies` returns 404 for persons. The only working paths are: (1) workspace admin: `workspaces/{workspaceId}/features/callPolicies`, and (2) self-service: `telephony/config/people/me/settings/callPolicies` (requires calling-licensed user token with `spark:telephony_config_read/write`). The `wxcli` commands (`show-call-policies`, `update-call-policies`) are under `workspace-settings` only.
 
-8. **Transfer numbers and access codes scopes differ by entity type.** The SDK docstrings for `TransferNumbersApi` and `AccessCodesApi` incorrectly list `workspaces_read/write` scopes for all entities. Per the OpenAPI spec, person-level transfer numbers and access codes endpoints (at `telephony/config/people/{personId}/outgoingPermission/...`) require `spark-admin:telephony_config_read/write`, not `workspaces_read/write`. The workspace scopes only apply to workspace-level endpoints. <!-- Corrected via OpenAPI spec 2026-03-19 -->
+8. **Transfer numbers and access codes scopes differ by entity type.** The SDK docstrings for `TransferNumbersApi` and `AccessCodesApi` incorrectly list `workspaces_read/write` scopes for all entities. Per the OpenAPI spec, person-level transfer numbers and access codes endpoints (at `telephony/config/people/{personId}/outgoingPermission/...`) require `spark-admin:telephony_config_read/write`, not `workspaces_read/write`. The workspace scopes only apply to workspace-level endpoints.
 
 ---
 

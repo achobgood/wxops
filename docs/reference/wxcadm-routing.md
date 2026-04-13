@@ -287,7 +287,7 @@ After `__post_init__`, the raw ID/name fields are replaced with:
 - `self.location` -- resolved `Location` instance
 - `self.route_group` -- resolved `RouteGroup` instance
 
-<!-- Verified via wxcadm source 2026-03-19 --> **Bug:** `__post_init__` calls `self.org.call_routing.route_groups.get_route_group(id=...)` but the `RouteGroups` class only defines `get()`, not `get_route_group()`. This will raise `AttributeError` at runtime when a `RouteList` is instantiated. Workaround: iterate `route_groups` manually or call `.get(id=...)` instead.
+ **Bug:** `__post_init__` calls `self.org.call_routing.route_groups.get_route_group(id=...)` but the `RouteGroups` class only defines `get()`, not `get_route_group()`. This will raise `AttributeError` at runtime when a `RouteList` is instantiated. Workaround: iterate `route_groups` manually or call `.get(id=...)` instead.
 
 **Properties:**
 
@@ -298,7 +298,7 @@ def numbers(self)
 
 Returns the numbers assigned to this route list. Fetches from `GET /v1/telephony/config/premisePstn/routeLists/{id}/numbers`.
 
-<!-- Verified via wxcadm source 2026-03-19 --> **Bug:** The `numbers` property calls `response.json()` on the return value of `org.api.get()`, but `org.api.get()` already returns a parsed dict (not a raw `Response` object). This will raise `AttributeError: 'dict' object has no attribute 'json'` at runtime. Workaround: use raw HTTP `GET /v1/telephony/config/premisePstn/routeLists/{id}/numbers` instead.
+ **Bug:** The `numbers` property calls `response.json()` on the return value of `org.api.get()`, but `org.api.get()` already returns a parsed dict (not a raw `Response` object). This will raise `AttributeError: 'dict' object has no attribute 'json'` at runtime. Workaround: use raw HTTP `GET /v1/telephony/config/premisePstn/routeLists/{id}/numbers` instead.
 
 **Not implemented:** Delete route list (noted as TODO in source).
 
@@ -1086,7 +1086,7 @@ def device_count(self) -> int
 
 Returns the number of devices included in the rebuild job.
 
-<!-- Verified via wxcadm source 2026-03-19 --> `RebuildPhonesJob` does not have a `success` property unlike the other job types (`NumberManagementJob` and `UserMoveJob` both have one). The `completed` property's docstring incorrectly references a `success` attribute that was never implemented. To check success, inspect `self.details` dict directly after `completed` returns `True` (look for `deviceCount` and execution status fields).
+ `RebuildPhonesJob` does not have a `success` property unlike the other job types (`NumberManagementJob` and `UserMoveJob` both have one). The `completed` property's docstring incorrectly references a `success` attribute that was never implemented. To check success, inspect `self.details` dict directly after `completed` returns `True` (look for `deviceCount` and execution status fields).
 
 ---
 
@@ -1208,8 +1208,6 @@ Sets status to `'active'`. Returns `True` even if already active.
 ---
 
 ## 7. wxcadm vs wxc_sdk Comparison
-
-<!-- Verified via wxc_sdk v1.30.0 source 2026-03-19 -->
 
 | Feature Area | wxcadm | wxc_sdk |
 |-------------|--------|---------|

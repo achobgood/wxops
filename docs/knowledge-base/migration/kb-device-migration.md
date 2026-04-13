@@ -1,5 +1,4 @@
 # Device Migration: Migration Knowledge Base
-<!-- Last verified: 2026-03-28 -->
 
 > **Audience:** Migration advisor agent (Opus) and cold-context Claude sessions looking up dissent triggers, decision context, and Webex constraints for device replacement, firmware conversion, and MPP-vs-RoomOS decisions.
 > **Reading mode:** Reference. Grep by `DT-DEV-NNN` ID for dissent triggers, OR read `## Decision Framework` end-to-end when the migration-advisor agent loads this doc during analysis.
@@ -163,7 +162,7 @@ Webex line key count depends on model. The `SupportedDevice` catalog includes `n
 |---------|------------|-------------|---------|-------|
 | Hallway phone | 7811/7821 | Workspace + 9841 | Webex Calling Basic | Common area, no user assignment. 9841 is RoomOS. |
 | Executive suite | 8865 + 3 sidecars | 9871 + KEM modules | Professional | KEM types: `KEM_14_KEYS`, `KEM_18_KEYS`, `KEM_20_KEYS`. Max modules per model from `kem_module_count` in supported devices catalog. <!-- Source: devices-core.md §3.2 --> |
-| Factory floor | 7925/7926 wireless | No direct equivalent | -- | CUCM wireless phones have no Webex hardware equivalent. Webex App on mobile is the nearest substitute. <!-- From training, needs verification --> |
+| Factory floor | 7925/7926 wireless | No direct equivalent | -- | CUCM wireless phones have no Webex hardware equivalent. Webex App on mobile is the nearest substitute.  |
 | Conference room | 7832/8832 | Webex Room device or 9800 | Workspace | RoomOS device provides both calling and meetings capability. |
 | ATA + fax | ATA 190/191 | ATA 192 | Workspace | ATA 192 supports T.38 fax on Webex Calling. `t38_enabled` field in supported devices catalog. <!-- Source: devices-core.md §3.2 --> |
 | Extension Mobility user | Device profile (EM login) | Workspace + hot desking | Hot Desk license | Webex hot desking is simpler: user login/logout with primary line only, no device-profile switching. <!-- Source: advisory_patterns.py detect_extension_mobility_usage() --> |
@@ -255,7 +254,6 @@ Fires when `info_device_profile` objects exist in the store. CUCM Extension Mobi
 - **Confidence:** LOW -- the grouping heuristic is useful for volume purchasing but masks deployment diversity
 
 ### DT-DEV-003: DECT network migration loses roaming topology
-<!-- From training, needs verification -->
 
 - **Condition:** CUCM DECT deployment has multi-cell roaming across base stations AND migration creates a new Webex DECT network
 - **Why this matters:** CUCM DECT configurations may have complex roaming chains and handoff patterns between base stations. Webex DECT networks (DBS110: 1 base/30 lines, DBS210: 250 bases/1000 lines) support roaming natively but the specific base-station-to-handset assignments must be manually recreated.

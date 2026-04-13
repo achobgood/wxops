@@ -27,8 +27,8 @@ Organizations, org settings, contacts, roles, and domain management for Webex ad
 | `identity:organizations_read` | Read organization details and settings. Required for `organizations list`, `organizations show`, `org-settings show`. |
 | `identity:organizations_rw` | Write organization settings and manage domains. Required for `org-settings create`, all `domains` commands. |
 | `identity:contacts_rw` | Create, update, delete organization contacts. Required for all `org-contacts` write commands. |
-| `identity:contacts_read` | Read organization contacts. Required for `org-contacts list`, `org-contacts show`. Without this scope (or `identity:contacts_rw`), the API returns 403 Forbidden. A standard admin token alone is not sufficient. <!-- Verified via live API 2026-03-19: admin token without identity:contacts_read scope gets 403 --> |
-| (admin token) | `roles list` and `roles show` require a valid admin token. No additional scopes documented. <!-- Verified via OpenAPI spec (specs/webex-admin.json): "Must be called by an admin user." No scopes listed. 2026-03-19 --> |
+| `identity:contacts_read` | Read organization contacts. Required for `org-contacts list`, `org-contacts show`. Without this scope (or `identity:contacts_rw`), the API returns 403 Forbidden. A standard admin token alone is not sufficient.  |
+| (admin token) | `roles list` and `roles show` require a valid admin token. No additional scopes documented.  |
 | (full admin) | `organizations delete` requires full administrator privileges. |
 
 **Note:** Scope names for organizations and domains use the `identity:` prefix, not the `spark-admin:` prefix used by Calling APIs. This is a common source of 401/403 errors when reusing Calling tokens for admin operations.
@@ -93,7 +93,7 @@ curl -s -X DELETE -H "Authorization: Bearer $TOKEN" \
 
 - **`organizations delete` is destructive and irreversible.** Deleting an organization removes all users, licenses, devices, and configuration permanently. The CLI prompts for confirmation unless `--force` is passed. There is no undo.
 
-- **`organizations list` typically returns one org.** Unless your token is a partner/MSP token with cross-org access, you will only see the single organization the token belongs to. Partner tokens return multiple orgs — wxcli uses this behavior for multi-org detection: if `organizations list` returns more than one result, wxcli treats the token as a partner token and prompts for customer org selection during `wxcli configure`. <!-- Verified via CLI implementation 2026-03-23 -->
+- **`organizations list` typically returns one org.** Unless your token is a partner/MSP token with cross-org access, you will only see the single organization the token belongs to. Partner tokens return multiple orgs — wxcli uses this behavior for multi-org detection: if `organizations list` returns more than one result, wxcli treats the token as a partner token and prompts for customer org selection during `wxcli configure`.
 
 ---
 
@@ -155,7 +155,7 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" \
 
 - **`org-settings create` is POST-as-upsert.** Despite the command name `create`, this endpoint creates the setting if it does not exist or updates it if it already does. There is no separate `update` command. The HTTP method is POST, not PUT or PATCH.
 
-- **`org-settings show` value type.** The `--value/--no-value` flag on `org-settings create` only supports boolean settings. The OpenAPI schema (`updateOrgSettingObject`) defines the `value` field as `type: boolean`. For any non-boolean values, use `--json-body`. <!-- Verified via OpenAPI spec (specs/webex-admin.json): updateOrgSettingObject schema defines value as type:boolean. 2026-03-19 -->
+- **`org-settings show` value type.** The `--value/--no-value` flag on `org-settings create` only supports boolean settings. The OpenAPI schema (`updateOrgSettingObject`) defines the `value` field as `type: boolean`. For any non-boolean values, use `--json-body`.
 
 ---
 
@@ -312,7 +312,7 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" \
 
 ### Gotchas
 
-- **`org-contacts list` uses a search endpoint.** The list command hits `/contacts/search`, not a plain list endpoint. Without any filters (`--keyword`, `--source`), it returns all contacts, but the response key is `result`, not `items`. The CLI handles this automatically. <!-- Verified via source code 2026-03-19 -->
+- **`org-contacts list` uses a search endpoint.** The list command hits `/contacts/search`, not a plain list endpoint. Without any filters (`--keyword`, `--source`), it returns all contacts, but the response key is `result`, not `items`. The CLI handles this automatically.
 
 - **`org-contacts create` requires `--schemas` and `--source`.** Both are mandatory. The schema value is always `"urn:cisco:codev:identity:contact:core:1.0"`. Source must be `CH` (Control Hub) or `Webex4Broadworks`.
 

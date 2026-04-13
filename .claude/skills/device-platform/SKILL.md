@@ -40,7 +40,7 @@ If this fails, stop and resolve authentication first (`wxcli configure`). Requir
 | xAPI command execution | -- | `spark:xapi_commands` |
 
 > **NOTE:** xAPI scopes are user-level (`spark:`), not admin-level (`spark-admin:`). Admin tokens with `spark-admin:devices_read`/`spark-admin:devices_write` are **NOT** a substitute for xAPI scopes. A token may have device-config scopes but not xAPI scopes, or vice versa. Diagnose scope issues early.
-> <!-- Verified 2026-03-19 against wxc_sdk source + developer.webex.com -->
+>
 
 ## Step 3: Identify which device platform operation to perform
 
@@ -368,8 +368,8 @@ Next steps:
 | `wxcli xapi` (status) | `spark:xapi_statuses` | -- |
 | `wxcli xapi` (commands) | -- | `spark:xapi_commands` |
 
-> Admin tokens with `spark-admin:devices_read`/`spark-admin:devices_write` should also work for xAPI operations.
-> <!-- NEEDS VERIFICATION -- xAPI scope behavior with admin vs user tokens -->
+> Admin tokens with `spark-admin:devices_read`/`spark-admin:devices_write` do NOT work for xAPI operations. xAPI requires user-level scopes: `spark:xapi_statuses` (for status queries) and `spark:xapi_commands` (for command execution). See devices-platform.md scope table.
+>
 
 ---
 

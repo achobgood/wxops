@@ -2111,7 +2111,7 @@ result = api.session.rest_post(
     })
 ```
 
-**Note:** The `originatorType` value differs between sources. The OpenAPI spec defines `OriginatorType` as `["PEOPLE", "TRUNK"]`, while wxc_sdk uses `"USER"` and `"TRUNK"`. The live API accepts **both** `"PEOPLE"` and `"USER"` as valid values for `originatorType` and returns identical results. Use `"PEOPLE"` for new code (matches OpenAPI spec), but `"USER"` (wxc_sdk convention) also works. <!-- Verified via live API 2026-03-19: tested testCallRouting/invoke with both PEOPLE and USER, both succeed -->
+**Note:** The `originatorType` value differs between sources. The OpenAPI spec defines `OriginatorType` as `["PEOPLE", "TRUNK"]`, while wxc_sdk uses `"USER"` and `"TRUNK"`. The live API accepts **both** `"PEOPLE"` and `"USER"` as valid values for `originatorType` and returns identical results. Use `"PEOPLE"` for new code (matches OpenAPI spec), but `"USER"` (wxc_sdk convention) also works.
 
 | Operation | Method | URL |
 |-----------|--------|-----|
@@ -2275,17 +2275,14 @@ Step 7: test_call_routing() to validate
 Dial plans, trunks, route groups, and route lists all live under `telephony/config/premisePstn/` -- NOT under `telephony/config/dialPlans` or similar. Translation patterns use a different prefix: `telephony/config/callRouting/translationPatterns`. PSTN connection uses yet another: `telephony/pstn/locations/`. Test call routing uses `telephony/config/actions/testCallRouting/invoke`. Getting any of these prefixes wrong returns 404.
 
 ### 1. Translation pattern replacement must use fully specified digits
-<!-- Verified via CLI implementation 2026-03-18 -->
 
 E.164-formatted translation pattern replacement strings cannot contain `X` wildcards. For example, `+1919666XXXX` is rejected — use `+19196660000` instead. Note: `X` wildcards ARE valid in non-E.164 replacement patterns for digit manipulation (e.g., replacing `9XXX` with `XXX` to strip a prefix).
 
 ### 2. Dial plans require an existing trunk or route group
-<!-- Verified via CLI implementation 2026-03-18 -->
 
 You cannot create a standalone dial plan without a route choice. The dial plan must reference an existing trunk or route group as its route choice at creation time.
 
 ### 3. Test Call Routing requires a calling-enabled user's originatorId
-<!-- Verified via CLI implementation 2026-03-18 -->
 
 The `test_call_routing` API requires the `originatorId` to be a valid calling-enabled user. Passing a non-calling user's ID returns `404 "Originator not found"`. Always verify the user has a Webex Calling license and location assigned before using them as an originator.
 

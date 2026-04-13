@@ -430,7 +430,6 @@ dect_networks = DECTNetworkList(org)
 dect_networks = DECTNetworkList(org, location=location)
 ```
 
-<!-- Verified via wxcadm source (org.py, location.py) 2026-03-19 -->
 **Note:** Both `org.dect_networks` and `location.dect_networks` property accessors exist and return `DECTNetworkList` instances. Direct instantiation (`DECTNetworkList(org)` or `DECTNetworkList(org, location=location)`) also works.
 
 ### DECTNetworkList Methods
@@ -996,7 +995,6 @@ Disable call recording. Returns `True` even if recording was not previously enab
 
 Returns the current call recording configuration.
 
-<!-- Verified via wxcadm source (virtual_line.py, common.py) 2026-03-19 -->
 **Bug:** This method has a confirmed bug in the source -- it passes `'get'` as the first positional argument to `self.org.api.get()`, where the first parameter is `endpoint`. The actual URL `v1/telephony/config/virtualLines/{id}/callRecording` is passed as the second argument, which maps to `params`. This will cause an incorrect API call. Use raw HTTP as a workaround: `GET /v1/telephony/config/virtualLines/{id}/callRecording`.
 
 #### `VirtualLine.refresh_config() -> bool`
@@ -1007,7 +1005,6 @@ Re-fetch the Virtual Line config from Webex. Useful after `create()` since the i
 
 Delete the Virtual Line.
 
-<!-- Verified via wxcadm source (virtual_line.py line 240-244) 2026-03-19 -->
 **Bug:** The `delete()` method returns `False` on success. This is a confirmed bug in the source -- the method explicitly `return False` after the API call succeeds, while other `delete()` methods in wxcadm return `True`.
 
 #### `VirtualLine.get_monitored_by()`
@@ -1186,8 +1183,8 @@ ws = api.workspaces.create(settings=WorkspaceSettings(...))
 | Create device (activation code) | `workspace.devices.create(model=m)` | `api.devices.create_by_activation_code(...)` |
 | Get device members/lines | `device.members` (property) | `api.telephony.devices.members(device_id=...)` |
 | Add shared line | `device.members.add(person)` | `api.telephony.devices.update_members(device_id=..., members=[...])` |
-| Create DECT network | `dect_list.create(name=..., model=...)` | `api.telephony.dect_devices.create_dect_network(...)` <!-- Corrected via wxc_sdk source (dect_devices/__init__.py) 2026-03-19 --> |
-| Virtual line CRUD | `org.virtual_lines.create(...)` / `vl.update(...)` / `vl.delete()` | `api.telephony.virtual_lines.create(...)` / `.update(...)` / `.delete(...)` <!-- Verified via wxc_sdk source (virtual_line/__init__.py) 2026-03-19 --> |
+| Create DECT network | `dect_list.create(name=..., model=...)` | `api.telephony.dect_devices.create_dect_network(...)`  |
+| Virtual line CRUD | `org.virtual_lines.create(...)` / `vl.update(...)` / `vl.delete()` | `api.telephony.virtual_lines.create(...)` / `.update(...)` / `.delete(...)`  |
 
 ### When to Use Which
 
@@ -1292,12 +1289,12 @@ device.members.add(vl, line_type="shared", line_label="Reception")
 
 ## Gotchas
 
-- **VirtualLine.get_call_recording() is broken.** The source passes `'get'` as the first positional argument to `self.org.api.get()`, where the first parameter is `endpoint`. The actual URL ends up as `params`. Use raw HTTP instead: `GET /v1/telephony/config/virtualLines/{id}/callRecording`. <!-- Verified via wxcadm source 2026-03-19 -->
-- **VirtualLine.delete() returns False on success.** Confirmed bug — the source explicitly `return False` after a successful API call, while other `delete()` methods return `True`. <!-- Verified via wxcadm source 2026-03-19 -->
+- **VirtualLine.get_call_recording() is broken.** The source passes `'get'` as the first positional argument to `self.org.api.get()`, where the first parameter is `endpoint`. The actual URL ends up as `params`. Use raw HTTP instead: `GET /v1/telephony/config/virtualLines/{id}/callRecording`.
+- **VirtualLine.delete() returns False on success.** Confirmed bug — the source explicitly `return False` after a successful API call, while other `delete()` methods return `True`.
 - **VirtualLine.create() returns a sparse object.** The returned instance only has `id` populated. Call `vl.refresh_config()` to populate all fields before accessing other attributes.
-- **DECTNetworkList has three access patterns.** Both `org.dect_networks` and `location.dect_networks` property accessors exist (lazy-loaded), and direct instantiation (`DECTNetworkList(org, location=location)`) also works. <!-- Verified via wxcadm source (org.py, location.py) 2026-03-19 -->
+- **DECTNetworkList has three access patterns.** Both `org.dect_networks` and `location.dect_networks` property accessors exist (lazy-loaded), and direct instantiation (`DECTNetworkList(org, location=location)`) also works.
 - **Workspace.unassign_wxc() only works for collaboration devices.** Phone-based workspaces (`supportedDevices="phones"`) cannot have WxC unassigned — they must be deleted and recreated.
-- **wxc_sdk DECT method name corrected.** The DECT network creation method is `api.telephony.dect_devices.create_dect_network(...)`, not `create_network()`. Virtual line methods (`api.telephony.virtual_lines.create/update/delete`) are correct as documented. <!-- Corrected via wxc_sdk source 2026-03-19 -->
+- **wxc_sdk DECT method name corrected.** The DECT network creation method is `api.telephony.dect_devices.create_dect_network(...)`, not `create_network()`. Virtual line methods (`api.telephony.virtual_lines.create/update/delete`) are correct as documented.
 
 ---
 
