@@ -1,6 +1,6 @@
 # migration/ — CUCM→Webex Migration Tool
 
-All 11 phases complete. **1642 tests passing.** Wired into the CLI as `wxcli cucm <command>`. Does NOT use the auto-generator.
+All 11 phases complete. **2535 tests passing.** Wired into the CLI as `wxcli cucm <command>`. Does NOT use the auto-generator.
 
 ## File Map
 
