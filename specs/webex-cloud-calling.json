@@ -5307,7 +5307,7 @@
         },
         "summary": "Set or Clear Message Waiting Indicator (MWI) Status",
         "operationId": "postExternalVoicemailMwi",
-        "description": "Enables an external voicemail service to SET or CLEAR the Message Waiting Indicator (MWI) for a person or workspace.\n\nInvoke the API using a bearer token from a Service App in the target organization, created by a full admin with the scope `spark-admin:calls_write`.\n\nSpecify the target user or workspace with the required `id` query parameter.\n\nOptionally, use the orgId parameter to indicate the organization; if omitted, the Service App’s organization is used.\n\nIf `orgId` is provided, it must match the Service App’s organization or be a managed organization.\n\nSet the desired action (SET or CLEAR) in the message body’s action field.\n\nLearn more about [using Webex Service Apps](https://developer.webex.com/messaging/docs/service-apps).",
+        "description": "Enables an external voicemail service to SET or CLEAR the Message Waiting Indicator (MWI) for a person or workspace.\n\nInvoke the API using a bearer token from a Service App in the target organization, created by a full admin with the scope `spark-admin:calls_write`.\n\nSpecify the target user or workspace with the required `id` query parameter.\n\nOptionally, use the orgId parameter to indicate the organization; if omitted, the Service App\u2019s organization is used.\n\nIf `orgId` is provided, it must match the Service App\u2019s organization or be a managed organization.\n\nSet the desired action (SET or CLEAR) in the message body\u2019s action field.\n\nLearn more about [using Webex Service Apps](https://developer.webex.com/messaging/docs/service-apps).",
         "tags": [
           "External Voicemail"
         ],
@@ -12063,7 +12063,7 @@
       "put": {
         "summary": "Modify Preferred Answer Endpoint",
         "operationId": "modifyMyPreferredAnswerEndpoint",
-        "description": "Sets or clears the person’s preferred answer endpoint. To clear the preferred answer endpoint the `id` attribute must be set to null.\n\n A Webex Calling user may be associated with multiple endpoints such as Webex App (desktop or mobile), Cisco desk IP phone, Webex Calling-supported analog devices or third-party endpoints. Preferred answering endpoints allow users to specify which of these devices should be prioritized for answering calls, particularly when a person's extension (or a virtual line assigned to them) rings on multiple devices. This helps ensure that calls are answered on the most convenient or appropriate device for the person.\n\nThis API requires a user auth token with a scope of `spark:telephony_config_write`.",
+        "description": "Sets or clears the person\u2019s preferred answer endpoint. To clear the preferred answer endpoint the `id` attribute must be set to null.\n\n A Webex Calling user may be associated with multiple endpoints such as Webex App (desktop or mobile), Cisco desk IP phone, Webex Calling-supported analog devices or third-party endpoints. Preferred answering endpoints allow users to specify which of these devices should be prioritized for answering calls, particularly when a person's extension (or a virtual line assigned to them) rings on multiple devices. This helps ensure that calls are answered on the most convenient or appropriate device for the person.\n\nThis API requires a user auth token with a scope of `spark:telephony_config_write`.",
         "tags": [
           "Call Settings For Me"
         ],
@@ -14259,7 +14259,7 @@
         },
         "summary": "Get My Executive Assistant Settings",
         "operationId": "getMyExecutiveAssistantSettings",
-        "description": "Get settings for an executive assistant.\n\nExecutive assistants can make, answer, intercept, and route calls appropriately on behalf of their executive.\nAssistants can also set the call forwarding destination, and join or leave an executive’s pool.\n\nThis API requires a user auth token with a scope of `spark:telephony_config_read`.",
+        "description": "Get settings for an executive assistant.\n\nExecutive assistants can make, answer, intercept, and route calls appropriately on behalf of their executive.\nAssistants can also set the call forwarding destination, and join or leave an executive\u2019s pool.\n\nThis API requires a user auth token with a scope of `spark:telephony_config_read`.",
         "tags": [
           "Call Settings For Me"
         ],
@@ -14320,7 +14320,7 @@
         },
         "summary": "Modify My Executive Assistant Settings",
         "operationId": "modifyMyExecutiveAssistantSettings",
-        "description": "Update Settings for an executive assistant.\n\nExecutive assistants can make, answer, intercept, and route calls appropriately on behalf of their executive.\nAssistants can also set the call forwarding destination, and join or leave an executive’s pool.\n\nThis API requires a user auth token with a scope of `spark:telephony_config_write`.",
+        "description": "Update Settings for an executive assistant.\n\nExecutive assistants can make, answer, intercept, and route calls appropriately on behalf of their executive.\nAssistants can also set the call forwarding destination, and join or leave an executive\u2019s pool.\n\nThis API requires a user auth token with a scope of `spark:telephony_config_write`.",
         "tags": [
           "Call Settings For Me"
         ],
@@ -20967,7 +20967,7 @@
       "post": {
         "summary": "Add a Selective Call Forwarding Criteria",
         "operationId": "createMySelectiveCallForwardCriteria",
-        "description": "Create a Selective Call Forwarding Criteria for the authenticated user.\n\nSelective Call Forward allows you to define rules that automatically forward incoming calls based on specific criteria, such as the caller’s phone number, caller identity, and the time and day the call is received.\n\nThis API requires a user auth token with a scope of `spark:telephony_config_write`.",
+        "description": "Create a Selective Call Forwarding Criteria for the authenticated user.\n\nSelective Call Forward allows you to define rules that automatically forward incoming calls based on specific criteria, such as the caller\u2019s phone number, caller identity, and the time and day the call is received.\n\nThis API requires a user auth token with a scope of `spark:telephony_config_write`.",
         "tags": [
           "Call Settings For Me With UserHub Phase2"
         ],
@@ -21113,7 +21113,7 @@
         },
         "summary": "Get Settings for a Selective Call Forwarding Criteria",
         "operationId": "getMySelectiveCallForwardCriteria",
-        "description": "Get settings for a Selective Call Forwarding Criteria for the authenticated user.\n\nSelective Call Forward allows you to define rules that automatically forward incoming calls based on specific criteria, such as the caller’s phone number, caller identity, and the time and day the call is received.\n\nThis API requires a user auth token with a scope of `spark:telephony_config_read`.",
+        "description": "Get settings for a Selective Call Forwarding Criteria for the authenticated user.\n\nSelective Call Forward allows you to define rules that automatically forward incoming calls based on specific criteria, such as the caller\u2019s phone number, caller identity, and the time and day the call is received.\n\nThis API requires a user auth token with a scope of `spark:telephony_config_read`.",
         "tags": [
           "Call Settings For Me With UserHub Phase2"
         ],
@@ -21183,7 +21183,7 @@
         },
         "summary": "Modify Settings for a Selective Call Forwarding Criteria",
         "operationId": "updateMySelectiveCallForwardingCriteriaSettings",
-        "description": "Modify settings for a Selective Call Forwarding Criteria for the authenticated user.\n\nSelective Call Forward allows you to define rules that automatically forward incoming calls based on specific criteria, such as the caller’s phone number, caller identity, and the time and day the call is received.\n\nThis API requires a user auth token with a scope of `spark:telephony_config_write`.",
+        "description": "Modify settings for a Selective Call Forwarding Criteria for the authenticated user.\n\nSelective Call Forward allows you to define rules that automatically forward incoming calls based on specific criteria, such as the caller\u2019s phone number, caller identity, and the time and day the call is received.\n\nThis API requires a user auth token with a scope of `spark:telephony_config_write`.",
         "tags": [
           "Call Settings For Me With UserHub Phase2"
         ],
@@ -33591,7 +33591,7 @@
         },
         "summary": "Get Device Layout by Device ID",
         "operationId": "getDeviceLayoutByDeviceId",
-        "description": "Get layout information of a device by device ID in an organization.\n\nDevice layout customizes a user’s programmable line keys (PLK) on the phone and any attached Key Expansion Modules (KEM) with the existing configured line members and the user’s monitoring list.\n\nThis API requires a full or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "description": "Get layout information of a device by device ID in an organization.\n\nDevice layout customizes a user\u2019s programmable line keys (PLK) on the phone and any attached Key Expansion Modules (KEM) with the existing configured line members and the user\u2019s monitoring list.\n\nThis API requires a full or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Device Call Settings"
         ],
@@ -33672,7 +33672,7 @@
         },
         "summary": "Modify Device Layout by Device ID",
         "operationId": "modifyDeviceLayoutByDeviceId",
-        "description": "Modify the layout of a device by device ID in an organization.\n\nDevice layout customizes a user’s programmable line keys (PLK) on the phone and any attached Key Expansion Modules (KEM) with the existing configured line members and the user’s monitoring list.\n\nThis API requires a full or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "description": "Modify the layout of a device by device ID in an organization.\n\nDevice layout customizes a user\u2019s programmable line keys (PLK) on the phone and any attached Key Expansion Modules (KEM) with the existing configured line members and the user\u2019s monitoring list.\n\nThis API requires a full or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Device Call Settings"
         ],
@@ -38758,7 +38758,7 @@
         },
         "summary": "Get an Organization Emergency Call Notification",
         "operationId": "Get an Organization Emergency Call Notification",
-        "description": "Get organization emergency call notification.\n\nEmergency Call Notifications can be enabled at the organization level, allowing specified email addresses to receive email notifications when an emergency call is made. To comply with U.S. Public Law 115-127, also known as Kari’s Law, any call that's made from within your organization to emergency services must generate an email notification.\n\nTo retrieve organization call notifications requires a full, user or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "description": "Get organization emergency call notification.\n\nEmergency Call Notifications can be enabled at the organization level, allowing specified email addresses to receive email notifications when an emergency call is made. To comply with U.S. Public Law 115-127, also known as Kari\u2019s Law, any call that's made from within your organization to emergency services must generate an email notification.\n\nTo retrieve organization call notifications requires a full, user or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Emergency Services Settings"
         ],
@@ -38829,7 +38829,7 @@
         },
         "summary": "Update an Organization Emergency Call Notification",
         "operationId": "Update an Organization Emergency Call Notification",
-        "description": "Update an organization emergency call notification.\n\nOnce settings are enabled at the organization level, the configured email address will receive emergency call notifications for all locations.\n\nEmergency Call Notifications can be enabled at the organization level, allowing specified email addresses to receive email notifications when an emergency call is made. To comply with U.S. Public Law 115-127, also known as Kari’s Law, any call that's made from within your organization to emergency services must generate an email notification.\n\nTo update organization call notification requires a full or user administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "description": "Update an organization emergency call notification.\n\nOnce settings are enabled at the organization level, the configured email address will receive emergency call notifications for all locations.\n\nEmergency Call Notifications can be enabled at the organization level, allowing specified email addresses to receive email notifications when an emergency call is made. To comply with U.S. Public Law 115-127, also known as Kari\u2019s Law, any call that's made from within your organization to emergency services must generate an email notification.\n\nTo update organization call notification requires a full or user administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Emergency Services Settings"
         ],
@@ -38931,7 +38931,7 @@
         },
         "summary": "Get a Location Emergency Call Notification",
         "operationId": "Get a Location Emergency Call Notification",
-        "description": "Get location emergency call notification.\n\nEmergency Call Notifications can be enabled at the organization level, allowing specified email addresses to receive email notifications when an emergency call is made. Once activated at the organization level, individual locations can configure this setting to direct notifications to specific email addresses. To comply with U.S. Public Law 115-127, also known as Kari’s Law, any call that's made from within your organization to emergency services must generate an email notification.\n\nTo retrieve location call notifications requires a full, user or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "description": "Get location emergency call notification.\n\nEmergency Call Notifications can be enabled at the organization level, allowing specified email addresses to receive email notifications when an emergency call is made. Once activated at the organization level, individual locations can configure this setting to direct notifications to specific email addresses. To comply with U.S. Public Law 115-127, also known as Kari\u2019s Law, any call that's made from within your organization to emergency services must generate an email notification.\n\nTo retrieve location call notifications requires a full, user or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Emergency Services Settings"
         ],
@@ -39012,7 +39012,7 @@
         },
         "summary": "Update a Location Emergency Call Notification",
         "operationId": "Update a Location Emergency Call Notification",
-        "description": "Update a location emergency call notification.\n\nOnce settings enabled at the organization level, the configured email address will receive emergency call notifications for all locations; for specific location customization, users can navigate to Management > Locations, select the Calling tab, and update the Emergency Call Notification settings.\n\nEmergency Call Notifications can be enabled at the organization level, allowing specified email addresses to receive email notifications when an emergency call is made. Once activated at the organization level, individual locations can configure this setting to direct notifications to specific email addresses. To comply with U.S. Public Law 115-127, also known as Kari’s Law, any call that's made from within your organization to emergency services must generate an email notification.\n\nTo update location call notification requires a full, user or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "description": "Update a location emergency call notification.\n\nOnce settings enabled at the organization level, the configured email address will receive emergency call notifications for all locations; for specific location customization, users can navigate to Management > Locations, select the Calling tab, and update the Emergency Call Notification settings.\n\nEmergency Call Notifications can be enabled at the organization level, allowing specified email addresses to receive email notifications when an emergency call is made. Once activated at the organization level, individual locations can configure this setting to direct notifications to specific email addresses. To comply with U.S. Public Law 115-127, also known as Kari\u2019s Law, any call that's made from within your organization to emergency services must generate an email notification.\n\nTo update location call notification requires a full, user or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Emergency Services Settings"
         ],
@@ -49992,7 +49992,7 @@
         },
         "summary": "Get Details for a Call Queue Stranded Calls",
         "operationId": "Get Details for a Call Queue Stranded Calls",
-        "description": "Allow admin to view default/configured Stranded Calls settings.\n\nStranded-All agents logoff Policy: If the last agent staffing a queue “unjoins” the queue or signs out, then all calls in the queue become stranded.\nStranded-Unavailable Policy: This policy allows for the configuration of the processing of calls that are in a staffed queue when all agents are unavailable.\n\nRetrieving call queue Stranded Calls details requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "description": "Allow admin to view default/configured Stranded Calls settings.\n\nStranded-All agents logoff Policy: If the last agent staffing a queue \u201cunjoins\u201d the queue or signs out, then all calls in the queue become stranded.\nStranded-Unavailable Policy: This policy allows for the configuration of the processing of calls that are in a staffed queue when all agents are unavailable.\n\nRetrieving call queue Stranded Calls details requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features:  Call Queue"
         ],
@@ -61524,7 +61524,7 @@
         },
         "summary": "Delete a Virtual Extension",
         "operationId": "Delete a Virtual Extension",
-        "description": "Delete Virtual Extension using the extension ID.\n\nThis API permanently deletes a virtual extension from the organization. Once deleted, the extension will no longer route calls to the external phone number, and users won’t be able to reach it via the assigned extension.\n\nDeleting a Virtual Extension requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write` and `identity:contacts_rw`.",
+        "description": "Delete Virtual Extension using the extension ID.\n\nThis API permanently deletes a virtual extension from the organization. Once deleted, the extension will no longer route calls to the external phone number, and users won\u2019t be able to reach it via the assigned extension.\n\nDeleting a Virtual Extension requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write` and `identity:contacts_rw`.",
         "tags": [
           "Features: Virtual Extensions"
         ],
@@ -78997,7 +78997,7 @@
           {
             "name": "max",
             "in": "query",
-            "description": "Limit the maximum number of reports per page of the response. The range is 500 to 5000. Values below 500 are automatically adjusted up to 500, and values above 5000 are automatically adjusted down to 5000. When the API has more reports to return than the max value, the API response will be paginated. Follow the next link contained in the “Link” header within a response to request the next page of results. If there is no next link, all reports for the selected time range have been collected.\n\nFor instance, let's say the initial API request is\n\nhttps://analytics-calling.webexapis.com/v1/cdr_feed?endTime=2025-08-15T10:00:00.000Z&startTime=2025-08-15T08:00:00.000Z&max=5000\n\nThe link header in the response would look something like\n\n<<https://analytics-calling.webexapis.com/v1/cdr_feed?endTime=2025-08-15T10:00:00.000Z&startTime=2025-08-15T08:00:00.000Z&startTimeForNextFetch=2025-08-15T09:30:00.000Z&totalCount=20000&max=5000&orgId=zzzzzzzz-yyyy-zzzz-xxxx-yyyyyyyyyyyy>;rel=\"next\">",
+            "description": "Limit the maximum number of reports per page of the response. The range is 500 to 5000. Values below 500 are automatically adjusted up to 500, and values above 5000 are automatically adjusted down to 5000. When the API has more reports to return than the max value, the API response will be paginated. Follow the next link contained in the \u201cLink\u201d header within a response to request the next page of results. If there is no next link, all reports for the selected time range have been collected.\n\nFor instance, let's say the initial API request is\n\nhttps://analytics-calling.webexapis.com/v1/cdr_feed?endTime=2025-08-15T10:00:00.000Z&startTime=2025-08-15T08:00:00.000Z&max=5000\n\nThe link header in the response would look something like\n\n<<https://analytics-calling.webexapis.com/v1/cdr_feed?endTime=2025-08-15T10:00:00.000Z&startTime=2025-08-15T08:00:00.000Z&startTimeForNextFetch=2025-08-15T09:30:00.000Z&totalCount=20000&max=5000&orgId=zzzzzzzz-yyyy-zzzz-xxxx-yyyyyyyyyyyy>;rel=\"next\">",
             "example": 1000,
             "schema": {
               "type": "number",
@@ -79168,7 +79168,7 @@
           {
             "name": "endTime",
             "in": "query",
-            "description": "The end date-time of the last record you wish to collect in UTC time. It would be the latest time at which the data was inserted into the Webex Calling cloud for the records you wish to collect. Format must be as `YYYY-MM-DDTHH:MM:SS.mmmZ`. `endTime` must be 1 minute ago from your current UTC time and can’t be older than 12 hours. `endTime` must be greater than `startTime`. The window period between `startTime` and `endTime` must not exceed 2 hours in a single API request.",
+            "description": "The end date-time of the last record you wish to collect in UTC time. It would be the latest time at which the data was inserted into the Webex Calling cloud for the records you wish to collect. Format must be as `YYYY-MM-DDTHH:MM:SS.mmmZ`. `endTime` must be 1 minute ago from your current UTC time and can\u2019t be older than 12 hours. `endTime` must be greater than `startTime`. The window period between `startTime` and `endTime` must not exceed 2 hours in a single API request.",
             "required": true,
             "example": "2022-06-09T23:27:18.604Z",
             "schema": {
@@ -79187,7 +79187,7 @@
           {
             "name": "max",
             "in": "query",
-            "description": "Limit the maximum number of reports per page of the response. The range is 500 to 5000. Values below 500 are automatically adjusted up to 500, and values above 5000 are automatically adjusted down to 5000. When the API has more reports to return than the max value, the API response will be paginated. Follow the next link contained in the “Link” header within a response to request the next page of results. If there is no next link, all reports for the selected time range have been collected.\n\nFor instance, let's say the initial API request is\n\nhttps://analytics-calling.webexapis.com/v1/cdr_stream?endTime=2025-08-15T10:00:00.000Z&startTime=2025-08-15T08:00:00.000Z&max=5000\n\nThe link header in the response would look something like\n\n<<https://analytics-calling.webexapis.com/v1/cdr_stream?endTime=2025-08-15T10:00:00.000Z&startTime=2025-08-15T08:00:00.000Z&startTimeForNextFetch=2025-08-15T09:30:00.000Z&totalCount=20000&max=5000&orgId=zzzzzzzz-yyyy-zzzz-xxxx-yyyyyyyyyyyy>;rel=\"next\">",
+            "description": "Limit the maximum number of reports per page of the response. The range is 500 to 5000. Values below 500 are automatically adjusted up to 500, and values above 5000 are automatically adjusted down to 5000. When the API has more reports to return than the max value, the API response will be paginated. Follow the next link contained in the \u201cLink\u201d header within a response to request the next page of results. If there is no next link, all reports for the selected time range have been collected.\n\nFor instance, let's say the initial API request is\n\nhttps://analytics-calling.webexapis.com/v1/cdr_stream?endTime=2025-08-15T10:00:00.000Z&startTime=2025-08-15T08:00:00.000Z&max=5000\n\nThe link header in the response would look something like\n\n<<https://analytics-calling.webexapis.com/v1/cdr_stream?endTime=2025-08-15T10:00:00.000Z&startTime=2025-08-15T08:00:00.000Z&startTimeForNextFetch=2025-08-15T09:30:00.000Z&totalCount=20000&max=5000&orgId=zzzzzzzz-yyyy-zzzz-xxxx-yyyyyyyyyyyy>;rel=\"next\">",
             "example": 1000,
             "schema": {
               "type": "number",
@@ -87382,7 +87382,7 @@
         },
         "summary": "Modify Preferred Answer Endpoint",
         "operationId": "modifyPreferredAnswerEndpoint",
-        "description": "Sets or clears the person’s preferred answer endpoint. To clear the preferred answer endpoint the `preferredAnswerEndpointId` attribute must be set to null.<br>\nThis API requires `spark:telephony_config_write` or `spark-admin:telephony_config_write` scope.",
+        "description": "Sets or clears the person\u2019s preferred answer endpoint. To clear the preferred answer endpoint the `preferredAnswerEndpointId` attribute must be set to null.<br>\nThis API requires `spark:telephony_config_write` or `spark-admin:telephony_config_write` scope.",
         "tags": [
           "User Call Settings (2/2)"
         ],
@@ -90899,7 +90899,7 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Get the User’s Selective Call Accept Criteria List",
+        "summary": "Get the User\u2019s Selective Call Accept Criteria List",
         "operationId": "getUserSelectiveCallAcceptCriteriaList",
         "description": "Retrieve selective call accept criteria list for a user.\n\nWith the selective call accept feature, you can create different rules to accept specific calls based on the phone number, who's calling, and/or the time and day of the call.\n\nRequires a full, user, read-only, or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
@@ -90984,7 +90984,7 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Update User’s Selective Call Accept Criteria",
+        "summary": "Update User\u2019s Selective Call Accept Criteria",
         "operationId": "updateUserSelectiveCallAcceptCriteria",
         "description": "Modify selective call accept setting for a user.\n\nWith the Selective Call accept feature, you can create different rules to accept specific calls based on the phone number, who's calling, and/or the time and day of the call.\n\nRequires a full, user, or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
@@ -91101,7 +91101,7 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Create a Criteria to the User’s Selective Call Accept Service",
+        "summary": "Create a Criteria to the User\u2019s Selective Call Accept Service",
         "operationId": "createCriteriaToUserSelectiveCallAcceptService",
         "description": "Add a criteria to the user's selective call accept service.\n\nWith the Selective Call accept feature, you can create different rules to accept specific calls based on the phone number, who's calling, and/or the time and day of the call.\n\nRequires a full, user, or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
@@ -91230,7 +91230,7 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Get a Criteria for the User’s Selective Call Accept Service",
+        "summary": "Get a Criteria for the User\u2019s Selective Call Accept Service",
         "operationId": "getCriteriaForUserSelectiveCallAcceptService",
         "description": "Get the criteria details for the user's selective call accept service.\n\nWith the Selective Call accept feature, you can create different rules to accept specific calls based on the phone number, who's calling, and/or the time and day of the call.\n\nRequires a full, user, read-only, or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
@@ -91327,7 +91327,7 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Modify a Criteria From the User’s Selective Call Accept Service",
+        "summary": "Modify a Criteria From the User\u2019s Selective Call Accept Service",
         "operationId": "modifyCriteriaFromUserSelectiveCallAcceptService",
         "description": "Modify a criteria for the user's selective call accept service.\n\nWith the Selective Call Accept feature, you can create different rules to accept specific calls based on the phone number, who's calling, and/or the time and day of the call.\n\nRequires a full, user, or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
@@ -91440,7 +91440,7 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Delete a Criteria From the User’s Selective Call Accept service",
+        "summary": "Delete a Criteria From the User\u2019s Selective Call Accept service",
         "operationId": "deleteCriteriaFromUserSelectiveCallAcceptService",
         "description": "Delete a criteria from the user's selective call accept criteria list.\n\nWith the Selective Call Accept feature, you can create different rules to accept specific calls based on the phone number, who's calling, and/or the time and day of the call.\n\nRequires a full, user, or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
@@ -91556,7 +91556,7 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Get the User’s Selective Call Rejection Criteria Listing",
+        "summary": "Get the User\u2019s Selective Call Rejection Criteria Listing",
         "operationId": "getUserSelectiveCallRejectionCriteriaListing",
         "description": "Retrieve selective call rejection criteria for a user.\n\nWith the Selective Call Rejection feature, you can create different rules to reject specific calls based on the phone number, who's calling, and/or the time and day of the call.\n\nRequires a full, user, read-only, or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
@@ -91641,7 +91641,7 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Update User’s Selective Call Rejection Criteria List",
+        "summary": "Update User\u2019s Selective Call Rejection Criteria List",
         "operationId": "updateUserSelectiveCallRejectionCriteriaList",
         "description": "Modify selective call rejection setting for a user.\n\nWith the Selective Call Rejection feature, you can create different rules to reject specific calls based on the phone number, who's calling, and/or the time and day of the call.\n\nRequires a full, user, or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
@@ -91758,7 +91758,7 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Create a Criteria to the User’s Selective Call Rejection Service",
+        "summary": "Create a Criteria to the User\u2019s Selective Call Rejection Service",
         "operationId": "createCriteriaToUserSelectiveCallRejectionService",
         "description": "Add a criteria to the user's selective call rejection service.\n\nWith the Selective Call Rejection feature, you can create different rules to reject specific calls based on the phone number, who's calling, and/or the time and day of the call.\n\nRequires a full, user, or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
@@ -91882,7 +91882,7 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Get a Criteria for the User’s Selective Call Rejection Service",
+        "summary": "Get a Criteria for the User\u2019s Selective Call Rejection Service",
         "operationId": "getCriteriaForUserSelectiveCallRejectionService",
         "description": "Get a criteria for the user's selective call rejection service.\n\nWith the Selective Call Rejection feature, you can create different rules to reject specific calls based on the phone number, who's calling, and/or the time and day of the call.\n\nRequires a full, user, read-only, or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
@@ -91979,7 +91979,7 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Modify a Criteria for the User’s Selective Call Rejection Service",
+        "summary": "Modify a Criteria for the User\u2019s Selective Call Rejection Service",
         "operationId": "modifyCriteriaForUserSelectiveCallRejectionService",
         "description": "Modify a criteria for the user's selective call rejection service.\n\nWith the Selective Call Rejection feature, you can create different rules to reject specific calls based on the phone number, who's calling, and/or the time and day of the call.\n\nRequires a full, user, or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
@@ -92097,7 +92097,7 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Delete a Criteria From the User’s Selective Call Rejection Service",
+        "summary": "Delete a Criteria From the User\u2019s Selective Call Rejection Service",
         "operationId": "deleteCriteriaFromUserSelectiveCallRejectionService",
         "description": "Delete a criteria from the user's selective call rejection service.\n\nWith the Selective Call Rejection feature, you can create different rules to reject specific calls based on the phone number, who's calling, and/or the time and day of the call.\n\nRequires a full, user, or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
@@ -92216,7 +92216,7 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Get the User’s Selective Call Forwarding",
+        "summary": "Get the User\u2019s Selective Call Forwarding",
         "operationId": "getUserSelectiveCallForwarding",
         "description": "Retrieve selective call forwarding criteria for a user.\n\nWith the Selective Call Forwarding feature, you can create different rules to forward specific calls based on the phone number, who's calling, and/or the time and day of the call.\n\nRequires a full, user, read-only, or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
@@ -92301,7 +92301,7 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Update User’s Selective Call Forwarding Criteria List",
+        "summary": "Update User\u2019s Selective Call Forwarding Criteria List",
         "operationId": "updateUserSelectiveCallForwardingCriteriaList",
         "description": "Modify selective call forwarding setting for a user.\n\nWith the Selective Call Forwarding feature, you can create different rules to forward specific calls based on the phone number, who's calling, and/or the time and day of the call.\n\nRequires a full, user, or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
@@ -92421,7 +92421,7 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Create a Criteria to the User’s Selective Call Forwarding Service",
+        "summary": "Create a Criteria to the User\u2019s Selective Call Forwarding Service",
         "operationId": "createCriteriaToUserSelectiveCallForwardingService",
         "description": "Add a criteria to the user's selective call forwarding service.\n\nWith the Selective Call Forwarding feature, you can create different rules to forward specific calls based on the phone number, who's calling, and/or the time and day of the call.\n\nRequires a full, user, or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
@@ -92523,7 +92523,7 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Get a Criteria for the User’s Selective Call Forwarding Service",
+        "summary": "Get a Criteria for the User\u2019s Selective Call Forwarding Service",
         "operationId": "getCriteriaForUserSelectiveCallForwardingService",
         "description": "Get the criteria details for the user's selective call forwarding service.\n\nWith the Selective Call Forwarding feature, you can create different rules to forward specific calls based on the phone number, who's calling, and/or the time and day of the call.\n\nRequires a full, user, read-only, or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
@@ -92620,7 +92620,7 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Modify a Criteria for the User’s Selective Call Forwarding Service",
+        "summary": "Modify a Criteria for the User\u2019s Selective Call Forwarding Service",
         "operationId": "modifyCriteriaForUserSelectiveCallForwardingService",
         "description": "Modify a criteria for the user's selective call forwarding service.\n\nWith the Selective Call Forwarding feature, you can create different rules to forward specific calls based on the phone number, who's calling, and/or the time and day of the call.\n\nRequires a full, user, or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
@@ -92741,7 +92741,7 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Delete a Criteria From the User’s Selective Call Forwarding Service",
+        "summary": "Delete a Criteria From the User\u2019s Selective Call Forwarding Service",
         "operationId": "deleteCriteriaFromUserSelectiveCallForwardingService",
         "description": "Delete a criteria from the user's selective call forwarding service.\n\nWith the Selective Call Forwarding feature, you can create different rules to forward specific calls based on the phone number, who's calling, and/or the time and day of the call.\n\nRequires a full, user, or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
@@ -94652,7 +94652,7 @@
         },
         "summary": "Get Person Executive Assistant Settings",
         "operationId": "getPersonExecutiveAssistantSettings",
-        "description": "Get executive assistant settings for the specified person when person is configured as executive assistant.\n\nExecutive assistants can make, answer, intercept, and route calls appropriately on behalf of their executive.\nAssistants can also set the call forwarding destination, and join or leave an executive’s pool.\n\nThis API requires a full, user, read-only or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "description": "Get executive assistant settings for the specified person when person is configured as executive assistant.\n\nExecutive assistants can make, answer, intercept, and route calls appropriately on behalf of their executive.\nAssistants can also set the call forwarding destination, and join or leave an executive\u2019s pool.\n\nThis API requires a full, user, read-only or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "User Call Settings (2/2)"
         ],
@@ -94733,7 +94733,7 @@
         },
         "summary": "Modify Person Executive Assistant Settings",
         "operationId": "modifyPersonExecutiveAssistantSettings",
-        "description": "Update executive assistant settings for the specified person when person is configured as executive assistant.\n\nExecutive assistants can make, answer, intercept, and route calls appropriately on behalf of their executive.\nAssistants can also set the call forwarding destination, and join or leave an executive’s pool.\n\nThis API requires a full, user, or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "description": "Update executive assistant settings for the specified person when person is configured as executive assistant.\n\nExecutive assistants can make, answer, intercept, and route calls appropriately on behalf of their executive.\nAssistants can also set the call forwarding destination, and join or leave an executive\u2019s pool.\n\nThis API requires a full, user, or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "User Call Settings (2/2)"
         ],
@@ -95228,7 +95228,7 @@
           {
             "name": "order",
             "in": "query",
-            "description": "Return the list of virtual lines based on the order. Default sort will be in an Ascending order. Maximum 3 orders allowed at a time. Example for multiple values - `?order=order1&order=order2`.",
+            "description": "Return the list of virtual lines based on the order. Default sort will be\u00a0in an Ascending order. Maximum 3 orders allowed at a time. Example for multiple values - `?order=order1&order=order2`.",
             "example": "lastName",
             "schema": {
               "type": "array",
@@ -95236,13 +95236,13 @@
                 "type": "string",
                 "example": "lastName"
               },
-              "description": "Return the list of virtual lines based on the order. Default sort will be in an Ascending order. Maximum 3 orders allowed at a time. Example for multiple values - `?order=order1&order=order2`."
+              "description": "Return the list of virtual lines based on the order. Default sort will be\u00a0in an Ascending order. Maximum 3 orders allowed at a time. Example for multiple values - `?order=order1&order=order2`."
             }
           },
           {
             "name": "hasDeviceAssigned",
             "in": "query",
-            "description": "If `true`, includes only virtual lines with devices assigned. When not explicitly specified, the default includes both virtual lines with devices assigned and not assigned.",
+            "description": "If `true`, includes only\u00a0virtual lines with devices assigned. When not explicitly specified, the default includes both\u00a0virtual lines with devices assigned and not assigned.",
             "example": "true",
             "schema": {
               "type": "boolean"
@@ -95251,7 +95251,7 @@
           {
             "name": "hasExtensionAssigned",
             "in": "query",
-            "description": "If `true`, includes only virtual lines with an extension assigned. When not explicitly specified, the default includes both virtual lines with extension assigned and not assigned.",
+            "description": "If `true`, includes\u00a0only virtual lines with\u00a0an extension assigned. When not explicitly specified, the default includes both virtual lines with\u00a0extension assigned and not assigned.",
             "example": "'true'",
             "schema": {
               "type": "boolean"
@@ -95260,7 +95260,7 @@
           {
             "name": "hasDnAssigned",
             "in": "query",
-            "description": "If `true`, includes only virtual lines with an assigned directory number, also known as a Dn. When not explicitly specified, the default includes both virtual lines with a Dn assigned and not assigned.",
+            "description": "If `true`, includes only virtual lines with\u00a0an assigned directory number, also known as a Dn. When not explicitly specified, the default includes both virtual lines with\u00a0a Dn assigned and not assigned.",
             "example": "true",
             "schema": {
               "type": "boolean"
@@ -98433,7 +98433,7 @@
         },
         "summary": "Retrieve Specified Digit Pattern Details for a Virtual Profile",
         "operationId": "Retrieve Specified Digit Pattern Details for a Virtual Profile",
-        "description": "Get the specified digit pattern for the virtual profile​.\n\nDigit patterns are used to bypass permissions.\n\nRetrieving the digit pattern details requires a full, user or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "description": "Get the specified digit pattern for the virtual profile\u200b.\n\nDigit patterns are used to bypass permissions.\n\nRetrieving the digit pattern details requires a full, user or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Virtual Line Call Settings"
         ],
@@ -106877,7 +106877,7 @@
         },
         "summary": "Retrieve Barge In Call Settings for a Workspace",
         "operationId": "Retrieve Barge In Call Settings for a Workspace",
-        "description": "Retrieve Barge In Call Settings for a Workspace.\n\nBarge In, when enabled, allows you to use the Feature Access Code (FAC) on your desk phone to answer someone else’s phone call or barge in on a call they’ve already answered.\n\nThis API requires a full, read-only or location administrator auth token with a scope of `spark-admin:workspaces_read` or a user auth token with a scope of `spark:workspaces_read` to read workspace settings.\n\n**NOTE**: This API is only available for professional licensed workspaces.",
+        "description": "Retrieve Barge In Call Settings for a Workspace.\n\nBarge In, when enabled, allows you to use the Feature Access Code (FAC) on your desk phone to answer someone else\u2019s phone call or barge in on a call they\u2019ve already answered.\n\nThis API requires a full, read-only or location administrator auth token with a scope of `spark-admin:workspaces_read` or a user auth token with a scope of `spark:workspaces_read` to read workspace settings.\n\n**NOTE**: This API is only available for professional licensed workspaces.",
         "tags": [
           "Workspace Call Settings (2/2)"
         ],
@@ -106958,7 +106958,7 @@
         },
         "summary": "Modify Barge In Call Settings for a Workspace",
         "operationId": "Modify Barge In Call Settings for a Workspace",
-        "description": "Modify Barge In Call Settings for a Workspace.\n\nBarge In, when enabled, allows you to use the Feature Access Code (FAC) on your desk phone to answer someone else’s phone call or barge in on a call they’ve already answered.\n\nThis API requires a full, user or location administrator auth token with the `spark-admin:workspaces_write` scope or a user auth token with a scope of `spark:workspaces_write` to update workspace settings.\n\n**NOTE**: This API is only available for professional licensed workspaces.",
+        "description": "Modify Barge In Call Settings for a Workspace.\n\nBarge In, when enabled, allows you to use the Feature Access Code (FAC) on your desk phone to answer someone else\u2019s phone call or barge in on a call they\u2019ve already answered.\n\nThis API requires a full, user or location administrator auth token with the `spark-admin:workspaces_write` scope or a user auth token with a scope of `spark:workspaces_write` to update workspace settings.\n\n**NOTE**: This API is only available for professional licensed workspaces.",
         "tags": [
           "Workspace Call Settings (2/2)"
         ],
@@ -113847,6 +113847,325 @@
             "description": "A unique identifier for the workspace.",
             "required": true,
             "example": "Y2lzY29zcGFyazovL3VzL1BMQUNFUy81MTAxQjA3Qi00RjhGLTRFRjctQjU2NS1EQjE5QzdCNzIzRjc",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/telephony/config/textToSpeech/actions/generate/invoke": {
+      "post": {
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateTtsResponse"
+                },
+                "example": {
+                  "id": "Y2lzY29zcGFyazovL3VzL1RFWFRfVE9fU1BFRUNILzMyMDE2NGY0LWU1YTMtNDFmZi1hMzI2LTY3YzA5OGU0MWQxZA"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Generate a Text-to-Speech Prompt",
+        "operationId": "generateTextToSpeech",
+        "description": "Generate a text-to-speech prompt from the provided text, voice, and language.\n\nText-to-speech (TTS) efficiently generates prompts, greetings, and announcements by converting written text into synthesized audio using the specified voice. The generated audio functions like a recorded WAV file, eliminating the need for manual recording.\n\nThis API requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "tags": [
+          "Features: Text To Speech"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Generate text-to-speech for this organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateTtsRequest"
+              },
+              "example": {
+                "voice": "veronica",
+                "text": "Welcome to our service. Please hold while we connect you.",
+                "languageCode": "en_us"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/telephony/config/textToSpeech/usage": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TtsUsageResponse"
+                },
+                "example": {
+                  "noOfApiCalls": 25,
+                  "maxAllowedApiCalls": 150,
+                  "usageResetTimestamp": "2026-01-01T00:00:00.000Z"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get Text-to-Speech Usage",
+        "operationId": "getTextToSpeechUsage",
+        "description": "Retrieve text-to-speech usage information, including the number of API calls made, the maximum allowed within the time window, and the timestamp indicating when the usage will reset.\n\nText-to-speech (TTS) efficiently generates prompts, greetings, and announcements by converting written text into synthesized audio using the specified voice. The generated audio functions like a recorded WAV file, eliminating the need for manual recording.\n\nThis API requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "tags": [
+          "Features: Text To Speech"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Get text-to-speech usage for this organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/telephony/config/textToSpeech/{ttsId}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TtsStatusResponse"
+                },
+                "example": {
+                  "id": "Y2lzY29zcGFyazovL3VzL1RFWFRfVE9fU1BFRUNILzMyMDE2NGY0LWU1YTMtNDFmZi1hMzI2LTY3YzA5OGU0MWQxZA",
+                  "voice": "veronica",
+                  "text": "Welcome to our service. Please hold while we connect you.",
+                  "languageCode": "en_us",
+                  "status": "SUCCESS",
+                  "promptUrl": "https://wxc-int-media-file.ciscospark.com/b535b87e-0994-4387-ace1-56facfba9b75/tmp/af01164f-ed87-44d9-bc41-f63f26fb8663",
+                  "kmsKeyUri": "kms://kms-cisco.wbx2.com/keys/b56642f3-d597-420c-8a55-41aaa8c5b6e7",
+                  "fileUri": "cmf://customers/bf01164f-ed87-44d9-bc41-f63f26fb9663/media/tmp/af01164f-ed87-44d9-bc41-f63f26fb8663"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get Text-to-Speech Generation Status",
+        "operationId": "getTextToSpeechGenerationStatus",
+        "description": "Get the status of a text-to-speech generation request by its ID. If the status is SUCCESS, the response includes `promptUrl`, `kmsKeyUri`, and `fileUri` to preview or use the audio prompt.\n\nTo preview the audio prompt:\n\n1. Download the KMS key - use the Webex Node.js SDK and provide `kmsKeyUri` to download the key from KMS.\n\n2. Download the encrypted audio - The encrypted audio file content is stored in cloud and can be retrieved using `promptURL`.\n\n3. Decrypt the audio content - Use the jose library to decrypt the content downloaded from `promptUrl` using the downloaded key.\n\nText-to-speech (TTS) efficiently generates prompts, greetings, and announcements by converting written text into synthesized audio using the specified voice. The generated audio functions like a recorded WAV file, eliminating the need for manual recording.\n\nThis API requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "tags": [
+          "Features: Text To Speech"
+        ],
+        "parameters": [
+          {
+            "name": "ttsId",
+            "in": "path",
+            "description": "Unique identifier of the text-to-speech generation request.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL1RFWFRfVE9fU1BFRUNILzMyMDE2NGY0LWU1YTMtNDFmZi1hMzI2LTY3YzA5OGU0MWQxZA",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Get text-to-speech status for this organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/telephony/config/textToSpeech/voices": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TtsVoicesResponse"
+                },
+                "example": {
+                  "voices": [
+                    {
+                      "id": "veronica",
+                      "label": "Veronica-Female"
+                    },
+                    {
+                      "id": "calvin",
+                      "label": "Calvin-Male"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "List Text-to-Speech Voices",
+        "operationId": "listTextToSpeechVoices",
+        "description": "Fetch a list of available text-to-speech voices. Use the returned voice ID in the generation request.\n\nText-to-speech (TTS) efficiently generates prompts, greetings, and announcements by converting written text into synthesized audio using the specified voice. The generated audio functions like a recorded WAV file, eliminating the need for manual recording.\n\nThis API requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "tags": [
+          "Features: Text To Speech"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "List text-to-speech voices supported for this organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
             "schema": {
               "type": "string"
             }
@@ -120859,7 +121178,7 @@
               "presenting",
               "unknown"
             ],
-            "description": "The current presence status of the person. This will only be returned for people within your organization or an organization you manage. Presence information will not be shown if the authenticated user has [disabled status sharing](https://help.webex.com/nkzs6wl/). Presence status is different from Control Hub's \"Last Service Access Time\" which indicates the last time an oAuth token was issued for this user.\n * `active` - Active within the last 10 minutes.\n * `call` - The user is in a call.\n * `DoNotDisturb` - The user has manually set their status to \"Do Not Disturb\".\n * `inactive` - Last activity occurred more than 10 minutes ago.\n * `meeting` - The user is in a meeting.\n * `OutOfOffice` - The user or a Hybrid Calendar service has indicated that they are \"Out of Office\".\n * `pending` - The user has never logged in; a status cannot be determined.\n * `presenting` - The user is sharing content.\n * `unknown` - The user’s status could not be determined.\n"
+            "description": "The current presence status of the person. This will only be returned for people within your organization or an organization you manage. Presence information will not be shown if the authenticated user has [disabled status sharing](https://help.webex.com/nkzs6wl/). Presence status is different from Control Hub's \"Last Service Access Time\" which indicates the last time an oAuth token was issued for this user.\n * `active` - Active within the last 10 minutes.\n * `call` - The user is in a call.\n * `DoNotDisturb` - The user has manually set their status to \"Do Not Disturb\".\n * `inactive` - Last activity occurred more than 10 minutes ago.\n * `meeting` - The user is in a meeting.\n * `OutOfOffice` - The user or a Hybrid Calendar service has indicated that they are \"Out of Office\".\n * `pending` - The user has never logged in; a status cannot be determined.\n * `presenting` - The user is sharing content.\n * `unknown` - The user\u2019s status could not be determined.\n"
           },
           "invitePending": {
             "type": "string",
@@ -124206,7 +124525,7 @@
           },
           "muteCapable": {
             "type": "boolean",
-            "description": "Indicates whether the call is capable of using the [mute](/docs/api/v1/call-controls/mute) and [unmute](/docs/api/v1/call-controls/unmute) APIs.​"
+            "description": "Indicates whether the call is capable of using the [mute](/docs/api/v1/call-controls/mute) and [unmute](/docs/api/v1/call-controls/unmute) APIs.\u200b"
           },
           "muted": {
             "type": "boolean",
@@ -126453,7 +126772,7 @@
           "ASSERTED_IDENTITY",
           "CONFIGURABLE_CHARGE_NUMBER"
         ],
-        "description": " * `DISABLED` - The P-Charge-Info header support policy is disabled.\n * `ASSERTED_IDENTITY` - The P-Charge-Info header is always included in outbound PSTN calls using Webex Calling primary number or location’s main number.\n * `CONFIGURABLE_CHARGE_NUMBER` - The P-Charge-Info header is included in outbound PSTN calls using the originating or redirecting Webex Calling entity's location charge number if set, else the entity's primary number if set and not toll-free, else the main number of the entity's location if set and not toll-free. If none of these are set or not toll-free, it uses the same number as the ASSERTED_IDENTITY option.\n"
+        "description": " * `DISABLED` - The P-Charge-Info header support policy is disabled.\n * `ASSERTED_IDENTITY` - The P-Charge-Info header is always included in outbound PSTN calls using Webex Calling primary number or location\u2019s main number.\n * `CONFIGURABLE_CHARGE_NUMBER` - The P-Charge-Info header is included in outbound PSTN calls using the originating or redirecting Webex Calling entity's location charge number if set, else the entity's primary number if set and not toll-free, else the main number of the entity's location if set and not toll-free. If none of these are set or not toll-free, it uses the same number as the ASSERTED_IDENTITY option.\n"
       },
       "TrunkType": {
         "type": "string",
@@ -129316,7 +129635,7 @@
           "name": {
             "type": "string",
             "example": "Cisco 8865 (Phone in reception area)",
-            "description": "The `name` field in the response is calculated using device tag. Admins have the ability to set tags for devices. If a `name=<value>` tag is set, for example “name=home phone“, then the `<value>` is included in the `name` field of the API response. In this example “home phone”."
+            "description": "The `name` field in the response is calculated using device tag. Admins have the ability to set tags for devices. If a `name=<value>` tag is set, for example \u201cname=home phone\u201c, then the `<value>` is included in the `name` field of the API response. In this example \u201chome phone\u201d."
           }
         }
       },
@@ -129329,7 +129648,7 @@
           "preferredAnswerEndpointId": {
             "type": "string",
             "example": "Y2lzY29z...",
-            "description": "Person’s preferred answer endpoint.",
+            "description": "Person\u2019s preferred answer endpoint.",
             "nullable": true
           }
         }
@@ -129885,7 +130204,7 @@
           },
           "callsToNumbers": {
             "type": "array",
-            "description": "List of numbers for the executive that will match the criteria when called. This may include the executive’s primary number and/or extension, as well as secondary (alternate) numbers (and associated extensions). If the list is empty, any number or extension for the executive matches the criteria when called. If the list is not empty, only the specified numbers and their extensions match the criteria.",
+            "description": "List of numbers for the executive that will match the criteria when called. This may include the executive\u2019s primary number and/or extension, as well as secondary (alternate) numbers (and associated extensions). If the list is empty, any number or extension for the executive matches the criteria when called. If the list is not empty, only the specified numbers and their extensions match the criteria.",
             "items": {
               "type": "object",
               "description": "Executive phone number that will match the criteria when called.",
@@ -129984,7 +130303,7 @@
           },
           "callsToNumbers": {
             "type": "array",
-            "description": "List of numbers for the executive that will match the criteria when called. This may include the executive’s primary number and/or extension, as well as secondary (alternate) numbers (and associated extensions). If the list is empty, any number or extension for the executive matches the criteria when called. If the list is not empty, only the specified numbers and their extensions match the criteria.",
+            "description": "List of numbers for the executive that will match the criteria when called. This may include the executive\u2019s primary number and/or extension, as well as secondary (alternate) numbers (and associated extensions). If the list is empty, any number or extension for the executive matches the criteria when called. If the list is not empty, only the specified numbers and their extensions match the criteria.",
             "items": {
               "type": "object",
               "description": "Executive phone number that will match the criteria when called.",
@@ -135437,7 +135756,7 @@
           "LOCATION_MEMBER_NUMBER",
           "NONE"
         ],
-        "description": " * `DIRECT_LINE` - Returned calls from the Public Safety Answering Point go directly to the member. The Emergency Service Address configured by the PSTN to the member's phone is specific to the member’s location.\n * `LOCATION_ECBN` - Each location can have an ECBN configured that is different from the location’s main number. Location Default ECBN is typically configured for users without dedicated telephone numbers or with only an extension.\n * `LOCATION_MEMBER_NUMBER` - Configure one user with another user’s telephone number as an ECBN. This option is used in place of a location’s main number when the location has multiple floors or buildings. This allows the ECBN assigned to have a more accurate Emergency Service Address associated with it.\n * `NONE` - When no other option is selected.\n"
+        "description": " * `DIRECT_LINE` - Returned calls from the Public Safety Answering Point go directly to the member. The Emergency Service Address configured by the PSTN to the member's phone is specific to the member\u2019s location.\n * `LOCATION_ECBN` - Each location can have an ECBN configured that is different from the location\u2019s main number. Location Default ECBN is typically configured for users without dedicated telephone numbers or with only an extension.\n * `LOCATION_MEMBER_NUMBER` - Configure one user with another user\u2019s telephone number as an ECBN. This option is used in place of a location\u2019s main number when the location has multiple floors or buildings. This allows the ECBN assigned to have a more accurate Emergency Service Address associated with it.\n * `NONE` - When no other option is selected.\n"
       },
       "ECBNDirectLineEffectiveLevelType": {
         "type": "string",
@@ -135447,7 +135766,7 @@
           "LOCATION_NUMBER",
           "NONE"
         ],
-        "description": " * `DIRECT_LINE` - Returned calls from the Public Safety Answering Point go directly to the member. The Emergency Service Address configured by the PSTN to the member's phone is specific to the member’s location.\n * `LOCATION_ECBN` - Each location can have an ECBN configured that is different from the location’s main number. Location Default ECBN is typically configured for users without dedicated telephone numbers or with only an extension.\n * `LOCATION_NUMBER` - A location’s main number that is suitable for when the location has a single building with a single floor.\n * `NONE` - There is no effective level type selected.\n"
+        "description": " * `DIRECT_LINE` - Returned calls from the Public Safety Answering Point go directly to the member. The Emergency Service Address configured by the PSTN to the member's phone is specific to the member\u2019s location.\n * `LOCATION_ECBN` - Each location can have an ECBN configured that is different from the location\u2019s main number. Location Default ECBN is typically configured for users without dedicated telephone numbers or with only an extension.\n * `LOCATION_NUMBER` - A location\u2019s main number that is suitable for when the location has a single building with a single floor.\n * `NONE` - There is no effective level type selected.\n"
       },
       "LocationMemberInfoEffectiveLevelType": {
         "type": "string",
@@ -135458,7 +135777,7 @@
           "LOCATION_MEMBER_NUMBER",
           "NONE"
         ],
-        "description": " * `DIRECT_LINE` - Returned calls from the Public Safety Answering Point go directly to the member. The Emergency Service Address configured by the PSTN to the member's phone is specific to the member’s location.\n * `LOCATION_ECBN` - Each location can have an ECBN configured that is different from the location’s main number. Location Default ECBN is typically configured for users without dedicated telephone numbers or with only an extension.\n * `LOCATION_NUMBER` - A location’s main number that is suitable for when the location has a single building with a single floor.\n * `LOCATION_MEMBER_NUMBER` - Configure one user with another user’s telephone number as an ECBN. This option is used in place of a location’s main number when the location has multiple floors or buildings. This allows the ECBN assigned to have a more accurate Emergency Service Address associated with it.\n * `NONE` - When no other option is selected.\n"
+        "description": " * `DIRECT_LINE` - Returned calls from the Public Safety Answering Point go directly to the member. The Emergency Service Address configured by the PSTN to the member's phone is specific to the member\u2019s location.\n * `LOCATION_ECBN` - Each location can have an ECBN configured that is different from the location\u2019s main number. Location Default ECBN is typically configured for users without dedicated telephone numbers or with only an extension.\n * `LOCATION_NUMBER` - A location\u2019s main number that is suitable for when the location has a single building with a single floor.\n * `LOCATION_MEMBER_NUMBER` - Configure one user with another user\u2019s telephone number as an ECBN. This option is used in place of a location\u2019s main number when the location has multiple floors or buildings. This allows the ECBN assigned to have a more accurate Emergency Service Address associated with it.\n * `NONE` - When no other option is selected.\n"
       },
       "ECBNQualityType": {
         "type": "string",
@@ -135630,7 +135949,7 @@
           "LOCATION_ECBN",
           "LOCATION_MEMBER_NUMBER"
         ],
-        "description": " * `DIRECT_LINE` - Returned calls from the Public Safety Answering Point go directly to the member. The Emergency Service Address configured by the PSTN to the member's phone is specific to the member’s location.\n * `LOCATION_ECBN` - Each location can have an ECBN configured that is different from the location’s main number. Location Default ECBN is typically configured for users without dedicated telephone numbers or with only an extension.\n * `LOCATION_MEMBER_NUMBER` - Configure one user with another user’s telephone number as an ECBN. This option is used in place of a location’s main number when the location has multiple floors or buildings. This allows the ECBN assigned to have a more accurate Emergency Service Address associated with it.\n"
+        "description": " * `DIRECT_LINE` - Returned calls from the Public Safety Answering Point go directly to the member. The Emergency Service Address configured by the PSTN to the member's phone is specific to the member\u2019s location.\n * `LOCATION_ECBN` - Each location can have an ECBN configured that is different from the location\u2019s main number. Location Default ECBN is typically configured for users without dedicated telephone numbers or with only an extension.\n * `LOCATION_MEMBER_NUMBER` - Configure one user with another user\u2019s telephone number as an ECBN. This option is used in place of a location\u2019s main number when the location has multiple floors or buildings. This allows the ECBN assigned to have a more accurate Emergency Service Address associated with it.\n"
       },
       "GetWorkspaceCallbackNumberObject": {
         "type": "object",
@@ -139481,7 +139800,7 @@
                 "description": "Array of announcement files to be played as `welcomeMessage` greetings. These files are from the list of announcement files associated with this call queue. For `CUSTOM` announcement, a minimum of 1 file is mandatory, and the maximum is 4."
               }
             },
-            "description": "Play a message when callers first reach the queue. For example, “Thank you for calling. An agent will be with you shortly.” It can be set as mandatory. If the mandatory option is not selected and a caller reaches the call queue while there is an available agent, the caller will not hear this announcement and is transferred to an agent. The welcome message feature is enabled by default."
+            "description": "Play a message when callers first reach the queue. For example, \u201cThank you for calling. An agent will be with you shortly.\u201d It can be set as mandatory. If the mandatory option is not selected and a caller reaches the call queue while there is an available agent, the caller will not hear this announcement and is transferred to an agent. The welcome message feature is enabled by default."
           },
           "waitMessage": {
             "type": "object",
@@ -139830,7 +140149,7 @@
                 "description": "Array of announcement files to be played as `welcomeMessage` greetings. These files are from the list of announcement files associated with this call queue. For `CUSTOM` announcement, a minimum of 1 file is mandatory, and the maximum is 4."
               }
             },
-            "description": "Play a message when callers first reach the queue. For example, “Thank you for calling. An agent will be with you shortly.” It can be set as mandatory. If the mandatory option is not selected and a caller reaches the call queue while there is an available agent, the caller will not hear this announcement and is transferred to an agent. The welcome message feature is enabled by default."
+            "description": "Play a message when callers first reach the queue. For example, \u201cThank you for calling. An agent will be with you shortly.\u201d It can be set as mandatory. If the mandatory option is not selected and a caller reaches the call queue while there is an available agent, the caller will not hear this announcement and is transferred to an agent. The welcome message feature is enabled by default."
           },
           "waitMessage": {
             "type": "object",
@@ -146458,7 +146777,7 @@
             "items": {
               "type": "string"
             },
-            "description": "List of virtual extension patterns. You can add up to 100 patterns at a time. Extension patterns can include one or more right-justified wildcards “X” matching any digit."
+            "description": "List of virtual extension patterns. You can add up to 100 patterns at a time. Extension patterns can include one or more right-justified wildcards \u201cX\u201d matching any digit."
           },
           "locationId": {
             "type": "string",
@@ -146496,7 +146815,7 @@
             "items": {
               "type": "string"
             },
-            "description": "List of virtual extension patterns. The maximum number of patterns supported at a time is 100. Extension patterns can include one or more right-justified wildcards “X” matching any digit."
+            "description": "List of virtual extension patterns. The maximum number of patterns supported at a time is 100. Extension patterns can include one or more right-justified wildcards \u201cX\u201d matching any digit."
           },
           "locationName": {
             "type": "string",
@@ -151630,7 +151949,7 @@
           "Caller ID number": {
             "type": "string",
             "example": "2003",
-            "description": "Displays the calling party’s presentation number based on the caller ID setting from Control Hub. Can be a line/extension, location number, or a custom organization option.\n\n- The Caller ID number is not restricted to E.164 format and can vary based on system configuration.\n\n- For redirected calls, represents only the redirecting party's caller ID number."
+            "description": "Displays the calling party\u2019s presentation number based on the caller ID setting from Control Hub. Can be a line/extension, location number, or a custom organization option.\n\n- The Caller ID number is not restricted to E.164 format and can vary based on system configuration.\n\n- For redirected calls, represents only the redirecting party's caller ID number."
           },
           "Call outcome": {
             "type": "string",
@@ -151640,7 +151959,7 @@
           "Call outcome reason": {
             "type": "string",
             "example": "Normal",
-            "description": "Additional information about the Call outcome returned. Possible reasons are:\n\n- Success\n  - Normal: Call is completed successfully.\n  - UserBusy: Call is a success, but the user is busy.\n  - NoAnswer: Call is a success, but the user didn't answer.\n\n- Refusal\n  - CallRejected: Call attempt rejected at the recipient's end.\n  - UnassignedNumber: The dialed number isn't assigned to any user or service.\n  - SIP408: Request timed out because couldn’t find the user in time.\n  - InternalRequestTimeout: Request timed out as the service couldn’t fulfill the request due to an unexpected condition.\n  - Q850102ServerTimeout: Recovery on timer expiry/server timed out\n  - NoUserResponse: No response from any end-user device/client\n  - NoAnswerFromUser: No answer from the user.\n  - SIP480: Callee or called party is currently unavailable.\n  - SIP487: Request is terminated by bye or cancel.\n  - TemporarilyUnavailable: User is temporarily unavailable.\n  - AdminCallBlock: Call attempt is rejected due to the organization's call block list.\n  - UserCallBlock: The call to user is rejected because the number is on the user's block list.\n  - Unreachable: Unable to route the call to the desired destination.\n  - LocalGatewayLoop: Loop detected between the local gateway and Webex Calling.\n  - UserAbsent: User is temporarily unreachable or unavailable.\n\n- Failure\n  - DestinationOutOfOrder: Service request failed as the destination can’t be reached or the interface to the destination isn’t functioning correctly.\n  - SIP501: Invalid method and can’t identify the request method.\n  - SIP503: Service is temporarily unavailable so can’t process the request.\n  - ProtocolError: Unknown or unimplemented release code.\n  - SIP606: Some aspect of the session description wasn't acceptable.\n  - NoRouteToDestination: No route available to the destination\n  - Internal: Failed because of internal Webex Calling reasons.\n  - MaxConcurrentTerminatingAlertingRequestsExceeded: The number of simultaneous unanswered calls to a local gateway, for the same calling and called number, exceeded the limit.\n - RouteListCalls: When off-net route list call is blocked due to exceeding the Route List Calls license overage limit for the organization."
+            "description": "Additional information about the Call outcome returned. Possible reasons are:\n\n- Success\n  - Normal: Call is completed successfully.\n  - UserBusy: Call is a success, but the user is busy.\n  - NoAnswer: Call is a success, but the user didn't answer.\n\n- Refusal\n  - CallRejected: Call attempt rejected at the recipient's end.\n  - UnassignedNumber: The dialed number isn't assigned to any user or service.\n  - SIP408: Request timed out because couldn\u2019t find the user in time.\n  - InternalRequestTimeout: Request timed out as the service couldn\u2019t fulfill the request due to an unexpected condition.\n  - Q850102ServerTimeout: Recovery on timer expiry/server timed out\n  - NoUserResponse: No response from any end-user device/client\n  - NoAnswerFromUser: No answer from the user.\n  - SIP480: Callee or called party is currently unavailable.\n  - SIP487: Request is terminated by bye or cancel.\n  - TemporarilyUnavailable: User is temporarily unavailable.\n  - AdminCallBlock: Call attempt is rejected due to the organization's call block list.\n  - UserCallBlock: The call to user is rejected because the number is on the user's block list.\n  - Unreachable: Unable to route the call to the desired destination.\n  - LocalGatewayLoop: Loop detected between the local gateway and Webex Calling.\n  - UserAbsent: User is temporarily unreachable or unavailable.\n\n- Failure\n  - DestinationOutOfOrder: Service request failed as the destination can\u2019t be reached or the interface to the destination isn\u2019t functioning correctly.\n  - SIP501: Invalid method and can\u2019t identify the request method.\n  - SIP503: Service is temporarily unavailable so can\u2019t process the request.\n  - ProtocolError: Unknown or unimplemented release code.\n  - SIP606: Some aspect of the session description wasn't acceptable.\n  - NoRouteToDestination: No route available to the destination\n  - Internal: Failed because of internal Webex Calling reasons.\n  - MaxConcurrentTerminatingAlertingRequestsExceeded: The number of simultaneous unanswered calls to a local gateway, for the same calling and called number, exceeded the limit.\n - RouteListCalls: When off-net route list call is blocked due to exceeding the Route List Calls license overage limit for the organization."
           },
           "Call Recording Platform Name": {
             "type": "string",
@@ -151790,7 +152109,7 @@
           "Original reason": {
             "type": "string",
             "example": "UserBusy",
-            "description": "Call redirection reason for the original called number. For example:\n\n- Unconditional: Call Forward Always (CFA) service, Group night forwarding.\n\n- NoAnswer: The party was not available to take the call. CF/busy or Voicemail/busy.\n\n- Deflection: Indication that a call was redirected. Possible causes could be Blind transfer, Auto attendant transfer, Transfer out of a Call center etc.\n\n- TimeOfDay: Automated redirection based on the time of the call. Call Forwarding Selective, Call Forwarding mode-based, or Group Night.\n\n- UserBusy: DND enabled or the user willingly declined the call. CF/busy or voicemail/busy.\n\n- FollowMe: Automated redirection to a personal redirecting service which could be Simultaneous Ringing, Sequential Ringing, Office Anywhere, or Remote Office.\n\n- CallQueue: A call center call to an agent or a user (a member of the call queue).\n\n- HuntGroup: A hunt-group-based call to an agent or a user (denotes a member of the hunt group).\n\n- Unavailable: To voicemail, when the user has no app or device.\n\n- Unrecognized: Unable to determine the reason.\n\n- Unknown: Call forward by phone with no reason.\n\n- ExplicitIdxxx: Enterprise voice portal redirection to the user’s home voice portal. The “xxx” portion is the digits collected from the caller, identifying the target mailbox (Extension or DN).\n\n- ImplicitId: Indicates an enterprise voice portal redirection to the user’s home voice portal."
+            "description": "Call redirection reason for the original called number. For example:\n\n- Unconditional: Call Forward Always (CFA) service, Group night forwarding.\n\n- NoAnswer: The party was not available to take the call. CF/busy or Voicemail/busy.\n\n- Deflection: Indication that a call was redirected. Possible causes could be Blind transfer, Auto attendant transfer, Transfer out of a Call center etc.\n\n- TimeOfDay: Automated redirection based on the time of the call. Call Forwarding Selective, Call Forwarding mode-based, or Group Night.\n\n- UserBusy: DND enabled or the user willingly declined the call. CF/busy or voicemail/busy.\n\n- FollowMe: Automated redirection to a personal redirecting service which could be Simultaneous Ringing, Sequential Ringing, Office Anywhere, or Remote Office.\n\n- CallQueue: A call center call to an agent or a user (a member of the call queue).\n\n- HuntGroup: A hunt-group-based call to an agent or a user (denotes a member of the hunt group).\n\n- Unavailable: To voicemail, when the user has no app or device.\n\n- Unrecognized: Unable to determine the reason.\n\n- Unknown: Call forward by phone with no reason.\n\n- ExplicitIdxxx: Enterprise voice portal redirection to the user\u2019s home voice portal. The \u201cxxx\u201d portion is the digits collected from the caller, identifying the target mailbox (Extension or DN).\n\n- ImplicitId: Indicates an enterprise voice portal redirection to the user\u2019s home voice portal."
           },
           "OS type": {
             "type": "string",
@@ -151830,7 +152149,7 @@
           "Redirect reason": {
             "type": "string",
             "example": "Unavailable",
-            "description": "Call Redirection Reason for the redirecting number. For example:\n\n- Unconditional: Call Forward Always (CFA) service.\n\n- NoAnswer: The party was not available to take the call. CF/busy or Voicemail/busy.\n\n- Deflection: Indication that a call was redirected. Possible causes could be Blind transfer, Auto attendant transfer, Transfer out of a Call center etc.\n\n- TimeOfDay: Automated redirection based on the time of the call. Call Forwarding Selective, Call Forwarding Mode-Based, or Group Night\n\n- UserBusy: DND enabled or user willingly declined the call. CF/busy or Voicemail/busy.\n\n- FollowMe: Automated redirection to a personal redirecting service which could be Simultaneous Ringing, Sequential Ringing, Office Anywhere, or Remote Office.\n\n- CallQueue: A call center call to an agent or a user (denotes a member of the call queue).\n\n- HuntGroup: A hunt-group-based call to an agent or a user (denotes a member of the hunt group).\n\n- Unavailable: To voicemail, when the user has no app or device.\n\n- Unrecognized: Unable to determine the reason.\n\n- Unknown: Call forward by phone with no reason.\n\n- ExplicitIdxxx: Enterprise voice portal redirection to the user’s home voice portal. The “xxx” portion is the digits collected from the caller, identifying the target mailbox (Extension or DN).\n\n- ImplicitId: Indicates an enterprise voice portal redirection to the user’s home voice portal."
+            "description": "Call Redirection Reason for the redirecting number. For example:\n\n- Unconditional: Call Forward Always (CFA) service.\n\n- NoAnswer: The party was not available to take the call. CF/busy or Voicemail/busy.\n\n- Deflection: Indication that a call was redirected. Possible causes could be Blind transfer, Auto attendant transfer, Transfer out of a Call center etc.\n\n- TimeOfDay: Automated redirection based on the time of the call. Call Forwarding Selective, Call Forwarding Mode-Based, or Group Night\n\n- UserBusy: DND enabled or user willingly declined the call. CF/busy or Voicemail/busy.\n\n- FollowMe: Automated redirection to a personal redirecting service which could be Simultaneous Ringing, Sequential Ringing, Office Anywhere, or Remote Office.\n\n- CallQueue: A call center call to an agent or a user (denotes a member of the call queue).\n\n- HuntGroup: A hunt-group-based call to an agent or a user (denotes a member of the hunt group).\n\n- Unavailable: To voicemail, when the user has no app or device.\n\n- Unrecognized: Unable to determine the reason.\n\n- Unknown: Call forward by phone with no reason.\n\n- ExplicitIdxxx: Enterprise voice portal redirection to the user\u2019s home voice portal. The \u201cxxx\u201d portion is the digits collected from the caller, identifying the target mailbox (Extension or DN).\n\n- ImplicitId: Indicates an enterprise voice portal redirection to the user\u2019s home voice portal."
           },
           "Redirecting number": {
             "type": "string",
@@ -151845,7 +152164,7 @@
           "Related reason": {
             "type": "string",
             "example": "CallQueue",
-            "description": "Indicates a trigger that led to a change in the call presence. The trigger could be for this particular call or redirected via a different call. For example:\n\n- ConsultativeTransfer: While on a call, the call was transferred to another user by announcing it first. meaning the person was given a heads up or asked if they're interested in taking the call and then transferred.\n\n- CallForwardModeBased: Calls are forwarded using the mode-based management feature option.\n\n- CallForwardSelective: Call Forward as per the defined schedule. Might be based on factors like a specific time, specific callers or to a VM. It always takes precedence over Call Forwarding.\n\n- CallForwardAlways: Calls are unconditionally forwarded to a defined phone number or to VM.\n\n- CallForwardNoAnswer: The party was not available to take the call.\n\n- CallQueue: A call center call to an agent or a user (denotes a member of the call queue).\n\n- HuntGroup: A hunt group based call to an agent or a user (denotes a member of the hunt group).\n\n- CallPickup: The user part of a pickup group or pickup attempted by this user against a ringing call for a different user or extension.\n\n- CalllPark: An ongoing call was parked, assigned with a parked number (not the user’s phone number).\n\n- CallParkRetrieve: Call park retrieval attempt by the user, either for a different extension or against the user’s own extension.\n\n- Deflection: Indication that a call was redirected. Possible causes could be Blind transfer, Auto-attendant transfer, Transfer out of a Call center, etc.\n\n- FaxDeposit: Indicates a FAX was transmitted to the FAX service.\n\n- PushNotificationRetrieval: Push notification feature usage indication. Means that a push notification was sent to wake up the client and get ready to receive a call.\n\n- BargeIn: Indicates the user barged-in to someone else’s call.\n\n- VoiceXMLScriptTermination: Route Point feature usage indication.\n\n- AnywhereLocation: Indicates call origination towards the single number reach location.\n\n- AnywherePortal: Indicates call origination towards the “user” identified by the single number reach portal.\n\n- Unrecognized: Unable to determine the reason.\n\n- CallForwardBusy: The user willingly declined the call, or DND was enabled that then redirected the call to a defined phone number or voice mail.\n\n- CallForwardNotReachable: Hunt group redirection for an agent who is not reachable.\n\n- CallRetrieve: The user triggered the call retrieve option to pick up a call that was parked.\n\n- CallRecording: The user initiated the call recording service that triggered Start/Pause/Resume/Stop recording options.\n\n- DirectedCallPickup: Indicates this user belonged to a call pickup group who answered the call or answered when another member of the call pickup group in a location was busy.\n\n- Executive: The user has been configured using the Executive/Executive assistant service who is allowed to handle calls on someone else's behalf. Also known as Boss-admin.\n\n- ExecutiveAssistantInitiateCall: The user has been configured as an Executive assistant who placed or initiated the call on someone else’s (Boss admin's) behalf.\n\n- ExecutiveAssistantDivert: The user has been configured as an Executive assistant who had call forwarding enabled to a defined phone number.\n\n- ExecutiveForward: The Executive (Boss-admin) had a call forward setting enabled to a defined number. Generally triggered when an ExecutiveAssistant did not pick a call.\n\n- ExecutiveAssistantCallPush: The user has been configured as an Executive assistant who received a call and pushed that call out (using #63) to the Executive’s (Boss-admin's) number.\n\n- Remote Office: Indicates the call was made to reach the remote location of the user.\n\n- RoutePoint: Indicates an incoming and queued call to an agent (for incoming calls to the route point).\n\n- SequentialRing: Indicates this user is in the list of phone numbers, which are alerted sequentially upon receiving an incoming call that matches a set of criteria.\n\n- SimultaneousRingPersonal: Indicates this user was in the list of multiple destinations that are to ring simultaneously when any calls are received on their phone number (the first destination answered is connected).\n\n- CCMonitoringBI: The indication that a Call Queue supervisor invoked silent monitoring."
+            "description": "Indicates a trigger that led to a change in the call presence. The trigger could be for this particular call or redirected via a different call. For example:\n\n- ConsultativeTransfer: While on a call, the call was transferred to another user by announcing it first. meaning the person was given a heads up or asked if they're interested in taking the call and then transferred.\n\n- CallForwardModeBased: Calls are forwarded using the mode-based management feature option.\n\n- CallForwardSelective: Call Forward as per the defined schedule. Might be based on factors like a specific time, specific callers or to a VM. It always takes precedence over Call Forwarding.\n\n- CallForwardAlways: Calls are unconditionally forwarded to a defined phone number or to VM.\n\n- CallForwardNoAnswer: The party was not available to take the call.\n\n- CallQueue: A call center call to an agent or a user (denotes a member of the call queue).\n\n- HuntGroup: A hunt group based call to an agent or a user (denotes a member of the hunt group).\n\n- CallPickup: The user part of a pickup group or pickup attempted by this user against a ringing call for a different user or extension.\n\n- CalllPark: An ongoing call was parked, assigned with a parked number (not the user\u2019s phone number).\n\n- CallParkRetrieve: Call park retrieval attempt by the user, either for a different extension or against the user\u2019s own extension.\n\n- Deflection: Indication that a call was redirected. Possible causes could be Blind transfer, Auto-attendant transfer, Transfer out of a Call center, etc.\n\n- FaxDeposit: Indicates a FAX was transmitted to the FAX service.\n\n- PushNotificationRetrieval: Push notification feature usage indication. Means that a push notification was sent to wake up the client and get ready to receive a call.\n\n- BargeIn: Indicates the user barged-in to someone else\u2019s call.\n\n- VoiceXMLScriptTermination: Route Point feature usage indication.\n\n- AnywhereLocation: Indicates call origination towards the single number reach location.\n\n- AnywherePortal: Indicates call origination towards the \u201cuser\u201d identified by the single number reach portal.\n\n- Unrecognized: Unable to determine the reason.\n\n- CallForwardBusy: The user willingly declined the call, or DND was enabled that then redirected the call to a defined phone number or voice mail.\n\n- CallForwardNotReachable: Hunt group redirection for an agent who is not reachable.\n\n- CallRetrieve: The user triggered the call retrieve option to pick up a call that was parked.\n\n- CallRecording: The user initiated the call recording service that triggered Start/Pause/Resume/Stop recording options.\n\n- DirectedCallPickup: Indicates this user belonged to a call pickup group who answered the call or answered when another member of the call pickup group in a location was busy.\n\n- Executive: The user has been configured using the Executive/Executive assistant service who is allowed to handle calls on someone else's behalf. Also known as Boss-admin.\n\n- ExecutiveAssistantInitiateCall: The user has been configured as an Executive assistant who placed or initiated the call on someone else\u2019s (Boss admin's) behalf.\n\n- ExecutiveAssistantDivert: The user has been configured as an Executive assistant who had call forwarding enabled to a defined phone number.\n\n- ExecutiveForward: The Executive (Boss-admin) had a call forward setting enabled to a defined number. Generally triggered when an ExecutiveAssistant did not pick a call.\n\n- ExecutiveAssistantCallPush: The user has been configured as an Executive assistant who received a call and pushed that call out (using #63) to the Executive\u2019s (Boss-admin's) number.\n\n- Remote Office: Indicates the call was made to reach the remote location of the user.\n\n- RoutePoint: Indicates an incoming and queued call to an agent (for incoming calls to the route point).\n\n- SequentialRing: Indicates this user is in the list of phone numbers, which are alerted sequentially upon receiving an incoming call that matches a set of criteria.\n\n- SimultaneousRingPersonal: Indicates this user was in the list of multiple destinations that are to ring simultaneously when any calls are received on their phone number (the first destination answered is connected).\n\n- CCMonitoringBI: The indication that a Call Queue supervisor invoked silent monitoring."
           },
           "Releasing party": {
             "type": "string",
@@ -151955,7 +152274,7 @@
           "Original Called Party UUID": {
             "type": "string",
             "example": "e8e730a0-ee04-4df4-90a6-b7072aec9062",
-            "description": "When the call is redirected one or more times, this field represents the unique identifier of the first redirecting party. This might be a user, service, workspace, or virtual line that’s accountable for the CDRs. The field holds the value of the UUID contained in the Cisco Common Identity associated with a user, service, workspace, or virtual line."
+            "description": "When the call is redirected one or more times, this field represents the unique identifier of the first redirecting party. This might be a user, service, workspace, or virtual line that\u2019s accountable for the CDRs. The field holds the value of the UUID contained in the Cisco Common Identity associated with a user, service, workspace, or virtual line."
           },
           "Recall Type": {
             "type": "string",
@@ -151975,7 +152294,7 @@
           "Queue Type": {
             "type": "string",
             "example": "Customer Assist",
-            "description": "The field represents the type of call queue service.\n\nExample:\n\nQueue Type = Customer Assist, if it’s a customer assist based call queue\n\nQueue Type = Call Queue, if it’s a calling > feature based call queue"
+            "description": "The field represents the type of call queue service.\n\nExample:\n\nQueue Type = Customer Assist, if it\u2019s a customer assist based call queue\n\nQueue Type = Call Queue, if it\u2019s a calling > feature based call queue"
           },
           "Answered Elsewhere": {
             "type": "string",
@@ -151985,22 +152304,22 @@
           "Caller Reputation Score": {
             "type": "string",
             "example": "2.5",
-            "description": "This field contains the score received from the caller reputation provider. The score ranges from 0.0 to 5.0. If the provider doesn’t send a score, the system omits this field."
+            "description": "This field contains the score received from the caller reputation provider. The score ranges from 0.0 to 5.0. If the provider doesn\u2019t send a score, the system omits this field."
           },
           "Caller Reputation Service Result": {
             "type": "string",
             "example": "allowed",
-            "description": "This field records the outcome of the Caller Reputation Service and appears only in terminating CDRs. The field can contain the following values:\n\nallow — Set when the caller’s reputation score meets or exceeds the higher threshold, or if an error occurs while obtaining the reputation score from the provider.\n\ncaptcha-allow — Set when the caller’s reputation score falls between the lower and higher thresholds and the caller successfully completes the captcha challenge.\n\ncaptcha-block — Set when the caller’s reputation score falls between the lower and higher thresholds and the caller fails or abandons the captcha challenge.\n\nblock — Set when the caller’s reputation score is below the lower threshold."
+            "description": "This field records the outcome of the Caller Reputation Service and appears only in terminating CDRs. The field can contain the following values:\n\nallow \u2014 Set when the caller\u2019s reputation score meets or exceeds the higher threshold, or if an error occurs while obtaining the reputation score from the provider.\n\ncaptcha-allow \u2014 Set when the caller\u2019s reputation score falls between the lower and higher thresholds and the caller successfully completes the captcha challenge.\n\ncaptcha-block \u2014 Set when the caller\u2019s reputation score falls between the lower and higher thresholds and the caller fails or abandons the captcha challenge.\n\nblock \u2014 Set when the caller\u2019s reputation score is below the lower threshold."
           },
           "Caller Reputation Score Reason": {
             "type": "string",
             "example": "OK",
-            "description": "This field indicates the reason for the reputation score is assigned for a call. This field contains the reason value provided by the caller reputation provider in the call analysis request. If the score couldn’t be obtained from the provider due to error conditions, then the score reason specifies the particular error."
+            "description": "This field indicates the reason for the reputation score is assigned for a call. This field contains the reason value provided by the caller reputation provider in the call analysis request. If the score couldn\u2019t be obtained from the provider due to error conditions, then the score reason specifies the particular error."
           },
           "Interaction ID": {
             "type": "string",
             "example": "a98c732b-36ac-4d20-87b2-fec4e0a69209",
-            "description": "A unique identifier used to tie together multiple call patterns linked by a service interaction.\n\nExample for consult and transfer call flow— When a user places an active call on hold, initiates another call from the same app or device, and then transfers the original call, both calls share the same Interaction ID."
+            "description": "A unique identifier used to tie together multiple call patterns linked by a service interaction.\n\nExample for consult and transfer call flow\u2014 When a user places an active call on hold, initiates another call from the same app or device, and then transfers the original call, both calls share the same Interaction ID."
           },
           "WxCC consult merge status": {
             "type": "string",
@@ -154535,7 +154854,7 @@
           "preferredAnswerEndpointId": {
             "type": "string",
             "example": "Y2lzY29z...",
-            "description": "Person’s preferred answer endpoint.",
+            "description": "Person\u2019s preferred answer endpoint.",
             "nullable": true
           },
           "endpoints": {
@@ -156995,7 +157314,7 @@
           },
           "callsToNumbers": {
             "type": "array",
-            "description": "List of numbers for the executive that will match the criteria when called. This may include the executive’s primary number and/or extension, as well as secondary (alternate) numbers (and associated extensions). If the list is empty, any number or extension for the executive matches the criteria when called. If the list is not empty, only the specified numbers and their extensions match the criteria.",
+            "description": "List of numbers for the executive that will match the criteria when called. This may include the executive\u2019s primary number and/or extension, as well as secondary (alternate) numbers (and associated extensions). If the list is empty, any number or extension for the executive matches the criteria when called. If the list is not empty, only the specified numbers and their extensions match the criteria.",
             "items": {
               "type": "object",
               "description": "Executive phone number that will match the criteria when called.",
@@ -157064,12 +157383,12 @@
           "firstName": {
             "type": "string",
             "example": "John",
-            "description": "Unicode first name of the executive. Is null if not available or if the name is a single ‘.’ or ‘-’."
+            "description": "Unicode first name of the executive. Is null if not available or if the name is a single \u2018.\u2019 or \u2018-\u2019."
           },
           "lastName": {
             "type": "string",
             "example": "Doe",
-            "description": "Unicode last name of the executive. Is null if not available or if the name is a single ‘.’ or ‘-’."
+            "description": "Unicode last name of the executive. Is null if not available or if the name is a single \u2018.\u2019 or \u2018-\u2019."
           },
           "directNumber": {
             "type": "string",
@@ -161290,6 +161609,214 @@
             "example": "https://www.dubber.net/terms",
             "description": "Terms of Service URL returned if Terms of Service is not accepted."
           }
+        }
+      },
+      "GenerateTtsRequest": {
+        "type": "object",
+        "required": [
+          "voice",
+          "text",
+          "languageCode"
+        ],
+        "properties": {
+          "voice": {
+            "type": "string",
+            "description": "The voice ID used to generate the audio prompt. Use the List Text-to-Speech Voices API to retrieve available voices.",
+            "example": "veronica"
+          },
+          "text": {
+            "type": "string",
+            "description": "The text to convert to speech.",
+            "example": "Welcome to our service. Please hold while we connect you."
+          },
+          "languageCode": {
+            "type": "string",
+            "description": "The language code used to generate the audio prompt. Use the Read the List of Announcement Languages API to retrieve supported language codes.",
+            "example": "en_us"
+          }
+        },
+        "description": "Request payload for generating a text-to-speech audio prompt."
+      },
+      "GenerateTtsResponse": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the text-to-speech generation request. Use this ID to track status using the Get Text-to-Speech Generation Status API.",
+            "example": "Y2lzY29zcGFyazovL3VzL1RFWFRfVE9fU1BFRUNILzMyMDE2NGY0LWU1YTMtNDFmZi1hMzI2LTY3YzA5OGU0MWQxZA"
+          }
+        },
+        "example": {
+          "id": "Y2lzY29zcGFyazovL3VzL1RFWFRfVE9fU1BFRUNILzMyMDE2NGY0LWU1YTMtNDFmZi1hMzI2LTY3YzA5OGU0MWQxZA"
+        },
+        "description": "Response containing the ID of the text-to-speech generation request."
+      },
+      "TtsUsageResponse": {
+        "type": "object",
+        "required": [
+          "noOfApiCalls",
+          "maxAllowedApiCalls"
+        ],
+        "properties": {
+          "noOfApiCalls": {
+            "type": "integer",
+            "description": "The number of text-to-speech API calls made in the current time window.",
+            "example": 25
+          },
+          "maxAllowedApiCalls": {
+            "type": "integer",
+            "description": "The maximum number of text-to-speech API calls allowed in the current time window.",
+            "example": 150
+          },
+          "usageResetTimestamp": {
+            "type": "string",
+            "description": "The timestamp when the usage counter will reset. It will be returned when reaching the maximum allowed API calls in the time window.",
+            "example": "2024-01-01T00:00:00.000Z"
+          }
+        },
+        "example": {
+          "noOfApiCalls": 25,
+          "maxAllowedApiCalls": 150,
+          "usageResetTimestamp": "2024-01-01T00:00:00.000Z"
+        },
+        "description": "Response containing text-to-speech usage information."
+      },
+      "TtsStatusResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "text",
+          "voice",
+          "languageCode"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the text-to-speech generation request.",
+            "example": "Y2lzY29zcGFyazovL3VzL1RFWFRfVE9fU1BFRUNILzMyMDE2NGY0LWU1YTMtNDFmZi1hMzI2LTY3YzA5OGU0MWQxZA"
+          },
+          "voice": {
+            "type": "string",
+            "description": "The voice ID used to generate the audio prompt.",
+            "example": "veronica"
+          },
+          "text": {
+            "type": "string",
+            "description": "The input text used to generate the audio prompt.",
+            "example": "Welcome to our service. Please hold while we connect you."
+          },
+          "languageCode": {
+            "type": "string",
+            "description": "The language code used to generate the audio prompt.",
+            "example": "en_us"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_PROGRESS",
+              "SUCCESS",
+              "FAILURE"
+            ],
+            "description": "The status of the text-to-speech generation request.",
+            "example": "SUCCESS"
+          },
+          "promptUrl": {
+            "type": "string",
+            "description": "A URL to download the encrypted audio prompt. Only available when status is `SUCCESS`.",
+            "example": "https://wxc-int-media-file.ciscospark.com/b535b87e-0994-4387-ace1-56facfba9b75/tmp/af01164f-ed87-44d9-bc41-f63f26fb8663"
+          },
+          "kmsKeyUri": {
+            "type": "string",
+            "description": "The KMS key URI required to decrypt the prompt downloaded from `promptUrl`. Only available when status is `SUCCESS`.",
+            "example": "kms://kms-cisco.wbx2.com/keys/b56642f3-d597-420c-8a55-41aaa8c5b6e7"
+          },
+          "fileUri": {
+            "type": "string",
+            "description": "A file URI you can use when configuring an announcement. Only available when status is `SUCCESS`.",
+            "example": "cmf://customers/bf01164f-ed87-44d9-bc41-f63f26fb9663/media/tmp/af01164f-ed87-44d9-bc41-f63f26fb8663"
+          },
+          "errorMessage": {
+            "type": "string",
+            "description": "A detailed message describing why generation failed. Only present when status is `FAILURE`.",
+            "example": "Text exceeds maximum allowed length."
+          }
+        },
+        "example": {
+          "id": "Y2lzY29zcGFyazovL3VzL1RFWFRfVE9fU1BFRUNILzMyMDE2NGY0LWU1YTMtNDFmZi1hMzI2LTY3YzA5OGU0MWQxZA",
+          "voice": "veronica",
+          "text": "Welcome to our service. Please hold while we connect you.",
+          "languageCode": "en_us",
+          "status": "SUCCESS",
+          "promptUrl": "https://wxc-int-media-file.ciscospark.com/b535b87e-0994-4387-ace1-56facfba9b75/tmp/af01164f-ed87-44d9-bc41-f63f26fb8663",
+          "kmsKeyUri": "kms://kms-cisco.wbx2.com/keys/b56642f3-d597-420c-8a55-41aaa8c5b6e7",
+          "fileUri": "cmf://customers/bf01164f-ed87-44d9-bc41-f63f26fb9663/media/tmp/af01164f-ed87-44d9-bc41-f63f26fb8663"
+        },
+        "description": "Response containing text-to-speech generation status and file references."
+      },
+      "TtsVoicesResponse": {
+        "type": "object",
+        "required": [
+          "voices"
+        ],
+        "properties": {
+          "voices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TtsVoice"
+            },
+            "description": "Array of available text-to-speech voices.",
+            "example": [
+              {
+                "id": "veronica",
+                "label": "Veronica-Female"
+              },
+              {
+                "id": "calvin",
+                "label": "Calvin-Male"
+              }
+            ]
+          }
+        },
+        "example": {
+          "voices": [
+            {
+              "id": "veronica",
+              "label": "Veronica-Female"
+            },
+            {
+              "id": "calvin",
+              "label": "Calvin-Male"
+            }
+          ]
+        },
+        "description": "Response containing the list of supported text-to-speech voices."
+      },
+      "TtsVoice": {
+        "type": "object",
+        "required": [
+          "id",
+          "label"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The voice ID used to generate the audio prompt.",
+            "example": "veronica"
+          },
+          "label": {
+            "type": "string",
+            "description": "The voice label, including the voice name and gender.",
+            "example": "Veronica-Female"
+          }
+        },
+        "description": "Text-to-Speech voice metadata.",
+        "example": {
+          "id": "veronica",
+          "label": "Veronica-Female"
         }
       }
     },

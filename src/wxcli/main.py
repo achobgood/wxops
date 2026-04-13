@@ -207,6 +207,8 @@ from wxcli.commands.announcement_playlists import app as announcement_playlists_
 app.add_typer(announcement_playlists_app, name="announcement-playlists")
 from wxcli.commands.announcements import app as announcements_app
 app.add_typer(announcements_app, name="announcements")
+from wxcli.commands.text_to_speech import app as text_to_speech_app
+app.add_typer(text_to_speech_app, name="text-to-speech")
 from wxcli.commands.call_recording import app as call_recording_app
 app.add_typer(call_recording_app, name="call-recording")
 from wxcli.commands.cx_essentials import app as cx_essentials_app

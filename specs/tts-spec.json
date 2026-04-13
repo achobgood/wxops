@@ -1,0 +1,1739 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Beta Features: Announcement Repository with TTS",
+    "version": "1.0.0",
+    "description": "Features: Announcement Repository support reading and writing of Webex Calling Announcement Repository settings for a specific organization.\n\nViewing these read-only organization settings requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.\n\nModifying these organization settings requires a full administrator auth token with a scope of `spark-admin:telephony_config_write`.\n\nA partner administrator can retrieve or change settings in a customer's organization using the optional `orgId` query parameter."
+  },
+  "servers": [
+    {
+      "url": "https://webexapis.com/v1/"
+    }
+  ],
+  "paths": {
+    "/telephony/config/announcements": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "Link": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "announcements"
+                  ],
+                  "properties": {
+                    "announcements": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AnnouncementsListResponse"
+                      },
+                      "description": "Array of announcements."
+                    }
+                  }
+                },
+                "example": {
+                  "announcements": [
+                    {
+                      "id": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC8zMjAxNjRmNC1lNWEzLTQxZmYtYTMyNi02N2MwOThlNDFkMWQ",
+                      "name": "Public_Announcement",
+                      "fileName": "Sample_Greetings_file.wav",
+                      "fileSize": "356",
+                      "mediaFileType": "WAV",
+                      "lastUpdated": "2022-02-22 22:27:54",
+                      "level": "LOCATION",
+                      "location": {
+                        "id": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi81ZTk3MzFlNy1iOWQ0LTRmMWQtYjYyMi05NDgwMDhhMjkzMzM",
+                        "name": "RCDN"
+                      },
+                      "isTextToSpeech": true
+                    },
+                    {
+                      "id": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC8zMjAxNjRmNC1lNWEzLTQxZmYtYTMyNi02N2MwOThlNDFrMWY",
+                      "name": "General Announcement",
+                      "fileName": "General_Greetings_file.wav",
+                      "fileSize": "356",
+                      "mediaFileType": "WAV",
+                      "lastUpdated": "2022-02-22 22:27:54",
+                      "level": "ORGANIZATION",
+                      "isTextToSpeech": false
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "List Announcements",
+        "operationId": "listAnnouncements",
+        "description": "Fetch a list of binary announcement greetings at an organization as well as location level.\n\nAn admin can upload a file at an organization level. This file will be uploaded to the announcement repository.\n\nThis API requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "tags": [
+          "Features: Announcement Repository"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Get announcements in this organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locationId",
+            "in": "query",
+            "description": "Return the list of enterprise or Location announcement files. Without this parameter, the Enterprise level announcements are returned.",
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzMxMTYx",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "all",
+                "locations",
+                "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzMxMTYx"
+              ]
+            }
+          },
+          {
+            "name": "max",
+            "in": "query",
+            "description": "Limit the number of objects returned to this maximum count.",
+            "example": "5",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "description": "Start at the zero-based offset in the list of matching objects.",
+            "example": "0",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "description": "Sort the list according to fileName or fileSize. The default sort will be in Ascending order.",
+            "example": "fileName-desc",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fileName",
+            "in": "query",
+            "description": "Return the list of announcements with the given fileName.",
+            "example": "RegionalAnnouncement",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fileType",
+            "in": "query",
+            "description": "Return the list of announcement files for this fileType.",
+            "example": "audio",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mediaFileType",
+            "in": "query",
+            "description": "Return the list of announcement files for this mediaFileType.",
+            "example": "wav",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "description": "Return the list of announcement files for this announcement label.",
+            "example": "General Announcement",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "post": {
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnnouncementResponseWithId"
+                },
+                "example": {
+                  "id": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC8zMjAxNjRmNC1lNWEzLTQxZmYtYTMyNi02N2MwOThlNDFkMWQ"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Upload Organization Announcement",
+        "operationId": "uploadOrganizationAnnouncement",
+        "description": "Upload a binary file to the announcement repository at an organization level.\n\nAn admin can upload a file at an organization level. This file will be uploaded to the announcement repository.\n\nYour request will need to be a JSON request with `application/json` Content-Type, including the announcement name, file URI, file name, and text-to-speech flag.\n\nThis API requires a full administrator auth token with a scope of `spark-admin:telephony_config_write` .",
+        "tags": [
+          "Features: Announcement Repository"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Create an announcement in this organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnnouncementRequest"
+              },
+              "example": {
+                "name": "Public_Announcement",
+                "fileUri": "cmfs://customers/bf01164f-ed87-44d9-bc41-f63f26fb9663/media/tmp/af01164f-ed87-44d9-bc41-f63f26fb8663",
+                "fileName": "greeting.wav",
+                "isTextToSpeech": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/telephony/config/announcements/{announcementId}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnnouncementResponseWithPlaylist"
+                },
+                "example": {
+                  "id": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC8zMjAxNjRmNC1lNWEzLTQxZmYtYTMyNi02N2MwOThlNDFkMWQ",
+                  "name": "Public_Announcement",
+                  "fileName": "Sample_Greetings_file.wav",
+                  "fileSize": "356",
+                  "mediaFileType": "WAV",
+                  "lastUpdated": "2022-02-22 22:27:54Z",
+                  "featureReferenceCount": 1,
+                  "featureReferences": [
+                    {
+                      "id": "Y2lzY29zcGFyazovL3VzL0FVVE9fQVRURU5EQU5UL2J6QjJlRGd6Ym1GeU5rQm1iR1Y0TWk1amFYTmpieTVqYjIw",
+                      "name": "AUTO_ATTENDANT",
+                      "type": "WAV",
+                      "locationId": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzEyMzQ1",
+                      "locationName": "RCDN"
+                    }
+                  ],
+                  "playlists": [
+                    {
+                      "id": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC9iYzZjOTYwYi01ZDJjLTRiM2QtYjRlZC0wNWY1ZmFhMTJjZjA",
+                      "name": "testingAnnouncementPlaylist"
+                    },
+                    {
+                      "id": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC80MzA1ZTYyZS1hMmIxLTRlNzktODQxMy1lYWQwZDVlYjcwNjM",
+                      "name": "testingAnnouncementPlaylistDuplicateFiles"
+                    }
+                  ],
+                  "isTextToSpeech": true,
+                  "voice": "Joanna",
+                  "language": "en-US",
+                  "text": "Welcome to our service. Please hold while we connect you."
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get Organization Announcement Detail",
+        "operationId": "getOrganizationAnnouncementDetail",
+        "description": "Fetch details of a binary announcement greeting by its ID at an organization level.\n\nAn admin can upload a file at an organization level. This file will be uploaded to the announcement repository.\n\nThis API requires a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "tags": [
+          "Features: Announcement Repository"
+        ],
+        "parameters": [
+          {
+            "name": "announcementId",
+            "in": "path",
+            "description": "Unique identifier of an announcement.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC8zMjAxNjRmNC1lNWEzLTQxZmYtYTMyNi02N2MwOThlNDFkMWQ",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Get an announcement in this organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "put": {
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {},
+            "content": {}
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Modify Organization Announcement",
+        "operationId": "modifyOrganizationAnnouncement",
+        "description": "Modify an existing announcement greeting at a organization level.\n\nAn admin can upload a file or modify an existing file at an organization level. This file will be uploaded to the announcement repository.\n\nYour request will need to be a JSON request with `application/json` Content-Type, including the announcement name, file URI, file name, and text-to-speech flag.\n\nThis API requires a full administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "tags": [
+          "Features: Announcement Repository"
+        ],
+        "parameters": [
+          {
+            "name": "announcementId",
+            "in": "path",
+            "description": "Unique identifier of an announcement.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC8zMjAxNjRmNC1lNWEzLTQxZmYtYTMyNi02N2MwOThlNDFkMWQ",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Modify an announcement in this organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnnouncementRequest"
+              },
+              "example": {
+                "name": "Updated_Announcement",
+                "fileUri": "cmfs://customers/bf01164f-ed87-44d9-bc41-f63f26fb9663/media/tmp/af01164f-ed87-44d9-bc41-f63f26fb8663",
+                "fileName": "updated_greeting.wav",
+                "isTextToSpeech": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/telephony/config/locations/{locationId}/announcements": {
+      "post": {
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnnouncementResponseWithId"
+                },
+                "example": {
+                  "id": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC8zMjAxNjRmNC1lNWEzLTQxZmYtYTMyNi02N2MwOThlNDFkMWQ"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Upload Location Announcement",
+        "operationId": "uploadLocationAnnouncement",
+        "description": "Upload a binary file to the announcement repository at a location level.\n\nAn admin can upload a file at a location level. This file will be uploaded to the announcement repository.\n\nYour request will need to be a JSON request with `application/json` Content-Type, including the announcement name, file URI, file name, and text-to-speech flag.\n\nThis API requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write` .",
+        "tags": [
+          "Features: Announcement Repository"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "description": "Unique identifier of a location where an announcement is being created.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OL2U1MjQ0OGU5LTE1NjQtNDNlOS04YzY1LWMyYWMwNDY1ZWMwYw",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Create an announcement for location in this organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnnouncementRequest"
+              },
+              "example": {
+                "name": "Location_Announcement",
+                "fileUri": "cmfs://customers/bf01164f-ed87-44d9-bc41-f63f26fb9663/media/tmp/af01164f-ed87-44d9-bc41-f63f26fb8663",
+                "fileName": "location_greeting.wav",
+                "isTextToSpeech": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/telephony/config/locations/{locationId}/announcements/{announcementId}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnnouncementResponse"
+                },
+                "example": {
+                  "id": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC8zMjAxNjRmNC1lNWEzLTQxZmYtYTMyNi02N2MwOThlNDFkMWQ",
+                  "name": "Public_Announcement",
+                  "fileName": "Sample_Greetings_file.wav",
+                  "fileSize": "356",
+                  "mediaFileType": "WAV",
+                  "lastUpdated": "2022-02-22 22:27:54Z",
+                  "featureReferenceCount": 1,
+                  "featureReferences": [
+                    {
+                      "id": "Y2lzY29zcGFyazovL3VzL0FVVE9fQVRURU5EQU5UL2J6QjJlRGd6Ym1GeU5rQm1iR1Y0TWk1amFYTmpieTVqYjIw",
+                      "name": "AUTO_ATTENDANT",
+                      "type": "WAV",
+                      "locationId": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzEyMzQ1",
+                      "locationName": "RCDN"
+                    }
+                  ],
+                  "isTextToSpeech": true,
+                  "voice": "Joanna",
+                  "language": "en-US",
+                  "text": "Welcome to our service. Please hold while we connect you."
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get Location Announcement Detail",
+        "operationId": "getLocationAnnouncementDetail",
+        "description": "Fetch details of a binary announcement greeting by its ID at a location level.\n\nAn admin can upload a file at a location level. This file will be uploaded to the announcement repository.\n\nThis API requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "tags": [
+          "Features: Announcement Repository"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "description": "Unique identifier of a location where an announcement is being created.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OL2U1MjQ0OGU5LTE1NjQtNDNlOS04YzY1LWMyYWMwNDY1ZWMwYw",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "announcementId",
+            "in": "path",
+            "description": "Unique identifier of an announcement.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC8zMjAxNjRmNC1lNWEzLTQxZmYtYTMyNi02N2MwOThlNDFkMWQ",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Fetch an announcement for location in this organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "put": {
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {},
+            "content": {}
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Modify Location Announcement",
+        "operationId": "modifyLocationAnnouncement",
+        "description": "Modify an existing announcement greeting at a location level.\n\nAn admin can upload a file or modify an existing file at a location level. This file will be uploaded to the announcement repository.\n\nYour request will need to be a `multipart/form-data` request rather than JSON, using the `audio/wav` Content-Type.\n\nThis API requires a full administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "tags": [
+          "Features: Announcement Repository"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "description": "Unique identifier of a location where an announcement is being created.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OL2U1MjQ0OGU5LTE1NjQtNDNlOS04YzY1LWMyYWMwNDY1ZWMwYw",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "announcementId",
+            "in": "path",
+            "description": "Unique identifier of an announcement.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC8zMjAxNjRmNC1lNWEzLTQxZmYtYTMyNi02N2MwOThlNDFkMWQ",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Modify an announcement for location in this organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/telephony/config/textToSpeech/actions/generate/invoke": {
+      "post": {
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateTtsResponse"
+                },
+                "example": {
+                  "id": "Y2lzY29zcGFyazovL3VzL1RFWFRfVE9fU1BFRUNILzMyMDE2NGY0LWU1YTMtNDFmZi1hMzI2LTY3YzA5OGU0MWQxZA"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Generate a Text-to-Speech Prompt",
+        "operationId": "generateTextToSpeech",
+        "description": "Generate a text-to-speech prompt from the provided text, voice, and language.\n\nText-to-speech (TTS) efficiently generates prompts, greetings, and announcements by converting written text into synthesized audio using the specified voice. The generated audio functions like a recorded WAV file, eliminating the need for manual recording.\n\nThis API requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "tags": [
+          "Features: Announcement Repository"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Generate text-to-speech for this organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateTtsRequest"
+              },
+              "example": {
+                "voice": "veronica",
+                "text": "Welcome to our service. Please hold while we connect you.",
+                "languageCode": "en_us"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/telephony/config/textToSpeech/usage": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TtsUsageResponse"
+                },
+                "example": {
+                  "noOfApiCalls": 25,
+                  "maxAllowedApiCalls": 150,
+                  "usageResetTimestamp": "2026-01-01T00:00:00.000Z"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get Text-to-Speech Usage",
+        "operationId": "getTextToSpeechUsage",
+        "description": "Retrieve text-to-speech usage information, including the number of API calls made, the maximum allowed within the time window, and the timestamp indicating when the usage will reset.\n\nText-to-speech (TTS) efficiently generates prompts, greetings, and announcements by converting written text into synthesized audio using the specified voice. The generated audio functions like a recorded WAV file, eliminating the need for manual recording.\n\nThis API requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "tags": [
+          "Features: Announcement Repository"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Get text-to-speech usage for this organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/telephony/config/textToSpeech/{ttsId}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TtsStatusResponse"
+                },
+                "example": {
+                  "id": "Y2lzY29zcGFyazovL3VzL1RFWFRfVE9fU1BFRUNILzMyMDE2NGY0LWU1YTMtNDFmZi1hMzI2LTY3YzA5OGU0MWQxZA",
+                  "voice": "veronica",
+                  "text": "Welcome to our service. Please hold while we connect you.",
+                  "languageCode": "en_us",
+                  "status": "SUCCESS",
+                  "promptUrl": "https://wxc-int-media-file.ciscospark.com/b535b87e-0994-4387-ace1-56facfba9b75/tmp/af01164f-ed87-44d9-bc41-f63f26fb8663",
+                  "kmsKeyUri": "kms://kms-cisco.wbx2.com/keys/b56642f3-d597-420c-8a55-41aaa8c5b6e7",
+                  "fileUri": "cmf://customers/bf01164f-ed87-44d9-bc41-f63f26fb9663/media/tmp/af01164f-ed87-44d9-bc41-f63f26fb8663"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get Text-to-Speech Generation Status",
+        "operationId": "getTextToSpeechGenerationStatus",
+        "description": "Get the status of a text-to-speech generation request by its ID. If the status is SUCCESS, the response includes `promptUrl`, `kmsKeyUri`, and `fileUri` to preview or use the audio prompt.\n\nTo preview the audio prompt:\n\n1. Download the KMS key - use the Webex Node.js SDK and provide `kmsKeyUri` to download the key from KMS.\n\n2. Download the encrypted audio - The encrypted audio file content is stored in cloud and can be retrieved using `promptURL`.\n\n3. Decrypt the audio content - Use the jose library to decrypt the content downloaded from `promptUrl` using the downloaded key.\n\nText-to-speech (TTS) efficiently generates prompts, greetings, and announcements by converting written text into synthesized audio using the specified voice. The generated audio functions like a recorded WAV file, eliminating the need for manual recording.\n\nThis API requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "tags": [
+          "Features: Announcement Repository"
+        ],
+        "parameters": [
+          {
+            "name": "ttsId",
+            "in": "path",
+            "description": "Unique identifier of the text-to-speech generation request.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL1RFWFRfVE9fU1BFRUNILzMyMDE2NGY0LWU1YTMtNDFmZi1hMzI2LTY3YzA5OGU0MWQxZA",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Get text-to-speech status for this organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/telephony/config/textToSpeech/voices": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TtsVoicesResponse"
+                },
+                "example": {
+                  "voices": [
+                    {
+                      "id": "veronica",
+                      "label": "Veronica-Female"
+                    },
+                    {
+                      "id": "calvin",
+                      "label": "Calvin-Male"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "List Text-to-Speech Voices",
+        "operationId": "listTextToSpeechVoices",
+        "description": "Fetch a list of available text-to-speech voices. Use the returned voice ID in the generation request.\n\nText-to-speech (TTS) efficiently generates prompts, greetings, and announcements by converting written text into synthesized audio using the specified voice. The generated audio functions like a recorded WAV file, eliminating the need for manual recording.\n\nThis API requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "tags": [
+          "Features: Announcement Repository"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "List text-to-speech voices supported for this organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AnnouncementRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "fileUri",
+          "fileName",
+          "isTextToSpeech"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "Name of the announcement.",
+            "example": "Public_Announcement"
+          },
+          "fileUri": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "URI of the announcement file.",
+            "example": "cmfs://customers/bf01164f-ed87-44d9-bc41-f63f26fb9663/media/tmp/af01164f-ed87-44d9-bc41-f63f26fb8663"
+          },
+          "fileName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "description": "File name of the announcement.",
+            "example": "greeting.wav"
+          },
+          "isTextToSpeech": {
+            "type": "boolean",
+            "description": "Indicates whether the announcement is text-to-speech.",
+            "example": true
+          }
+        }
+      },
+      "AnnouncementResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "fileSize",
+          "mediaFileType",
+          "lastUpdated",
+          "featureReferenceCount"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC8zMjAxNjRmNC1lNWEzLTQxZmYtYTMyNi02N2MwOThlNDFkMWQ",
+            "description": "Unique identifier of the announcement."
+          },
+          "name": {
+            "type": "string",
+            "example": "Public_Announcement",
+            "description": "Name of the announcement."
+          },
+          "fileName": {
+            "type": "string",
+            "example": "Sample_Greetings_file.wav",
+            "description": "File name of the uploaded binary announcement greeting."
+          },
+          "fileSize": {
+            "type": "string",
+            "example": "356",
+            "description": "Size of the file in kilobytes."
+          },
+          "mediaFileType": {
+            "type": "string",
+            "example": "WAV",
+            "description": "Media file type of the announcement file."
+          },
+          "lastUpdated": {
+            "type": "string",
+            "example": "2023-06-13T18:39:53.651Z",
+            "description": "Last updated timestamp (in UTC format) of the announcement."
+          },
+          "featureReferenceCount": {
+            "type": "number",
+            "example": 1,
+            "description": "Reference count of the call features this announcement is assigned to."
+          },
+          "featureReferences": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FeatureReferenceObject"
+            },
+            "description": "Call features referenced by this announcement."
+          },
+          "isTextToSpeech": {
+            "type": "boolean",
+            "description": "Indicates whether the announcement is text-to-speech.",
+            "example": true
+          },
+          "voice": {
+            "type": "string",
+            "description": "Voice used for text-to-speech announcement.",
+            "example": "Joanna"
+          },
+          "language": {
+            "type": "string",
+            "description": "Language code for text-to-speech announcement.",
+            "example": "en-US"
+          },
+          "text": {
+            "type": "string",
+            "description": "Text content for text-to-speech announcement.",
+            "example": "Welcome to our service. Please hold while we connect you."
+          }
+        }
+      },
+      "AnnouncementResponseWithPlaylist": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "fileSize",
+          "mediaFileType",
+          "lastUpdated",
+          "featureReferenceCount"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC8zMjAxNjRmNC1lNWEzLTQxZmYtYTMyNi02N2MwOThlNDFkMWQ",
+            "description": "Unique identifier of the announcement."
+          },
+          "name": {
+            "type": "string",
+            "example": "Public_Announcement",
+            "description": "Name of the announcement."
+          },
+          "fileName": {
+            "type": "string",
+            "example": "Sample_Greetings_file.wav",
+            "description": "File name of the uploaded binary announcement greeting."
+          },
+          "fileSize": {
+            "type": "string",
+            "example": "356",
+            "description": "Size of the file in kilobytes."
+          },
+          "mediaFileType": {
+            "type": "string",
+            "example": "WAV",
+            "description": "Media file type of the announcement file."
+          },
+          "lastUpdated": {
+            "type": "string",
+            "example": "2023-06-13T18:39:53.651Z",
+            "description": "Last updated timestamp (in UTC format) of the announcement."
+          },
+          "featureReferenceCount": {
+            "type": "number",
+            "example": 1,
+            "description": "Reference count of the call features this announcement is assigned to."
+          },
+          "featureReferences": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FeatureReferenceObject"
+            },
+            "description": "Call features referenced by this announcement."
+          },
+          "playlists": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlaylistObject"
+            },
+            "description": "List of playlist available for selection."
+          },
+          "isTextToSpeech": {
+            "type": "boolean",
+            "description": "Indicates whether the announcement is text-to-speech.",
+            "example": true
+          },
+          "voice": {
+            "type": "string",
+            "description": "Voice used for text-to-speech announcement.",
+            "example": "Joanna"
+          },
+          "language": {
+            "type": "string",
+            "description": "Language code for text-to-speech announcement.",
+            "example": "en-US"
+          },
+          "text": {
+            "type": "string",
+            "description": "Text content for text-to-speech announcement.",
+            "example": "Welcome to our service. Please hold while we connect you."
+          }
+        }
+      },
+      "AnnouncementResponseWithId": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC8wOWJmNTQwYS05ZWE0LTRhMzktOWI3Mi0xN2Q2MTE0ZTVjMjE",
+            "description": "Unique identifier of the announcement."
+          }
+        }
+      },
+      "AnnouncementsListResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "fileSize",
+          "mediaFileType",
+          "lastUpdated",
+          "level",
+          "location"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC8zMjAxNjRmNC1lNWEzLTQxZmYtYTMyNi02N2MwOThlNDFkMWQ",
+            "description": "Unique identifier of the announcement."
+          },
+          "name": {
+            "type": "string",
+            "example": "Public_Announcement",
+            "description": "Name of the announcement."
+          },
+          "fileName": {
+            "type": "string",
+            "example": "Sample_Greetings_file.wav",
+            "description": "File name of the uploaded binary announcement greeting."
+          },
+          "fileSize": {
+            "type": "string",
+            "example": "356",
+            "description": "Size of the file in kilobytes."
+          },
+          "mediaFileType": {
+            "type": "string",
+            "example": "WAV",
+            "description": "Media file type of the announcement file."
+          },
+          "lastUpdated": {
+            "type": "string",
+            "example": "2023-06-13T18:39:53.651Z",
+            "description": "LastUpdated timestamp (in UTC format) of the announcement."
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "LOCATION",
+              "ORGANIZATION"
+            ],
+            "description": "The level at which this announcement exists."
+          },
+          "location": {
+            "$ref": "#/components/schemas/LocationObject",
+            "description": "The details of location at which this announcement exists."
+          },
+          "isTextToSpeech": {
+            "type": "boolean",
+            "description": "Indicates whether the announcement is text-to-speech.",
+            "example": true
+          }
+        }
+      },
+      "FeatureReferenceObject": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "type",
+          "locationId",
+          "locationName"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL0FVVE9fQVRURU5EQU5UL2QzVjBPWFIxWjJkM2FFQm1iR1Y0TWk1amFYTmpieTVqYjIw",
+            "description": "Unique identifier of the call feature referenced. The call Feature can be Auto Attendant, Call Queue or Music On hold."
+          },
+          "name": {
+            "type": "string",
+            "example": "Main Line AA - Test",
+            "description": "Name of the call feature referenced."
+          },
+          "type": {
+            "type": "string",
+            "example": "Auto Attendant",
+            "description": "Resource Type of the call feature."
+          },
+          "locationId": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi81ZTk3MzFlNy1iOWQ0LTRmMWQtYjYyMi05NDgwMDhhMjkzMzM",
+            "description": "Unique identifier of the location."
+          },
+          "locationName": {
+            "type": "string",
+            "example": "RCDN",
+            "description": "Location name of the announcement file."
+          }
+        }
+      },
+      "LocationObject": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi81ZTk3MzFlNy1iOWQ0LTRmMWQtYjYyMi05NDgwMDhhMjkzMzM",
+            "description": "Unique identifier of the location."
+          },
+          "name": {
+            "type": "string",
+            "example": "RCDN",
+            "description": "Name of the Location."
+          }
+        }
+      },
+      "GenerateTtsRequest": {
+        "type": "object",
+        "required": [
+          "voice",
+          "text",
+          "languageCode"
+        ],
+        "properties": {
+          "voice": {
+            "type": "string",
+            "description": "The voice ID used to generate the audio prompt. Use the List Text-to-Speech Voices API to retrieve available voices.",
+            "example": "veronica"
+          },
+          "text": {
+            "type": "string",
+            "description": "The text to convert to speech.",
+            "example": "Welcome to our service. Please hold while we connect you."
+          },
+          "languageCode": {
+            "type": "string",
+            "description": "The language code used to generate the audio prompt. Use the Read the List of Announcement Languages API to retrieve supported language codes.",
+            "example": "en_us"
+          }
+        },
+        "description": "Request payload for generating a text-to-speech audio prompt."
+      },
+      "GenerateTtsResponse": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the text-to-speech generation request. Use this ID to track status using the Get Text-to-Speech Generation Status API.",
+            "example": "Y2lzY29zcGFyazovL3VzL1RFWFRfVE9fU1BFRUNILzMyMDE2NGY0LWU1YTMtNDFmZi1hMzI2LTY3YzA5OGU0MWQxZA"
+          }
+        },
+        "example": {
+          "id": "Y2lzY29zcGFyazovL3VzL1RFWFRfVE9fU1BFRUNILzMyMDE2NGY0LWU1YTMtNDFmZi1hMzI2LTY3YzA5OGU0MWQxZA"
+        },
+        "description": "Response containing the ID of the text-to-speech generation request."
+      },
+      "TtsUsageResponse": {
+        "type": "object",
+        "required": [
+          "noOfApiCalls",
+          "maxAllowedApiCalls"
+        ],
+        "properties": {
+          "noOfApiCalls": {
+            "type": "integer",
+            "description": "The number of text-to-speech API calls made in the current time window.",
+            "example": 25
+          },
+          "maxAllowedApiCalls": {
+            "type": "integer",
+            "description": "The maximum number of text-to-speech API calls allowed in the current time window.",
+            "example": 150
+          },
+          "usageResetTimestamp": {
+            "type": "string",
+            "description": "The timestamp when the usage counter will reset. It will be returned when reaching the maximum allowed API calls in the time window.",
+            "example": "2024-01-01T00:00:00.000Z"
+          }
+        },
+        "example": {
+          "noOfApiCalls": 25,
+          "maxAllowedApiCalls": 150,
+          "usageResetTimestamp": "2024-01-01T00:00:00.000Z"
+        },
+        "description": "Response containing text-to-speech usage information."
+      },
+      "TtsStatusResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "text",
+          "voice",
+          "languageCode"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the text-to-speech generation request.",
+            "example": "Y2lzY29zcGFyazovL3VzL1RFWFRfVE9fU1BFRUNILzMyMDE2NGY0LWU1YTMtNDFmZi1hMzI2LTY3YzA5OGU0MWQxZA"
+          },
+          "voice": {
+            "type": "string",
+            "description": "The voice ID used to generate the audio prompt.",
+            "example": "veronica"
+          },
+          "text": {
+            "type": "string",
+            "description": "The input text used to generate the audio prompt.",
+            "example": "Welcome to our service. Please hold while we connect you."
+          },
+          "languageCode": {
+            "type": "string",
+            "description": "The language code used to generate the audio prompt.",
+            "example": "en_us"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_PROGRESS",
+              "SUCCESS",
+              "FAILURE"
+            ],
+            "description": "The status of the text-to-speech generation request.",
+            "example": "SUCCESS"
+          },
+          "promptUrl": {
+            "type": "string",
+            "description": "A URL to download the encrypted audio prompt. Only available when status is `SUCCESS`.",
+            "example": "https://wxc-int-media-file.ciscospark.com/b535b87e-0994-4387-ace1-56facfba9b75/tmp/af01164f-ed87-44d9-bc41-f63f26fb8663"
+          },
+          "kmsKeyUri": {
+            "type": "string",
+            "description": "The KMS key URI required to decrypt the prompt downloaded from `promptUrl`. Only available when status is `SUCCESS`.",
+            "example": "kms://kms-cisco.wbx2.com/keys/b56642f3-d597-420c-8a55-41aaa8c5b6e7"
+          },
+          "fileUri": {
+            "type": "string",
+            "description": "A file URI you can use when configuring an announcement. Only available when status is `SUCCESS`.",
+            "example": "cmf://customers/bf01164f-ed87-44d9-bc41-f63f26fb9663/media/tmp/af01164f-ed87-44d9-bc41-f63f26fb8663"
+          },
+          "errorMessage": {
+            "type": "string",
+            "description": "A detailed message describing why generation failed. Only present when status is `FAILURE`.",
+            "example": "Text exceeds maximum allowed length."
+          }
+        },
+        "example": {
+          "id": "Y2lzY29zcGFyazovL3VzL1RFWFRfVE9fU1BFRUNILzMyMDE2NGY0LWU1YTMtNDFmZi1hMzI2LTY3YzA5OGU0MWQxZA",
+          "voice": "veronica",
+          "text": "Welcome to our service. Please hold while we connect you.",
+          "languageCode": "en_us",
+          "status": "SUCCESS",
+          "promptUrl": "https://wxc-int-media-file.ciscospark.com/b535b87e-0994-4387-ace1-56facfba9b75/tmp/af01164f-ed87-44d9-bc41-f63f26fb8663",
+          "kmsKeyUri": "kms://kms-cisco.wbx2.com/keys/b56642f3-d597-420c-8a55-41aaa8c5b6e7",
+          "fileUri": "cmf://customers/bf01164f-ed87-44d9-bc41-f63f26fb9663/media/tmp/af01164f-ed87-44d9-bc41-f63f26fb8663"
+        },
+        "description": "Response containing text-to-speech generation status and file references."
+      },
+      "TtsVoicesResponse": {
+        "type": "object",
+        "required": [
+          "voices"
+        ],
+        "properties": {
+          "voices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TtsVoice"
+            },
+            "description": "Array of available text-to-speech voices.",
+            "example": [
+              {
+                "id": "veronica",
+                "label": "Veronica-Female"
+              },
+              {
+                "id": "calvin",
+                "label": "Calvin-Male"
+              }
+            ]
+          }
+        },
+        "example": {
+          "voices": [
+            {
+              "id": "veronica",
+              "label": "Veronica-Female"
+            },
+            {
+              "id": "calvin",
+              "label": "Calvin-Male"
+            }
+          ]
+        },
+        "description": "Response containing the list of supported text-to-speech voices."
+      },
+      "TtsVoice": {
+        "type": "object",
+        "required": [
+          "id",
+          "label"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The voice ID used to generate the audio prompt.",
+            "example": "veronica"
+          },
+          "label": {
+            "type": "string",
+            "description": "The voice label, including the voice name and gender.",
+            "example": "Veronica-Female"
+          }
+        },
+        "description": "Text-to-Speech voice metadata.",
+        "example": {
+          "id": "veronica",
+          "label": "Veronica-Female"
+        }
+      },
+      "PlaylistObject": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC9iYzZjOTYwYi01ZDJjLTRiM2QtYjRlZC0wNWY1ZmFhMTJjZjA",
+            "description": "A unique identifier for the playlist."
+          },
+          "name": {
+            "type": "string",
+            "example": "testingAnnouncementPlaylist",
+            "description": "Unique name for the playlist."
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearer-key": {
+        "type": "http",
+        "description": "e.g. Bearer YOUR_AUTHORIZATION_TOKEN",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "tags": [],
+  "security": [
+    {
+      "bearer-key": []
+    }
+  ]
+}
