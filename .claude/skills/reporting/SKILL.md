@@ -1773,12 +1773,41 @@ wxcli recording-report list-access-detail --recording-id RECORDING_ID -o json
 
 ## Step 7: Session Pattern — Pull Once, Query Many
 
-CDR pulls are slow (8+ sequential API calls for a multi-day window). This section prevents redundant pulls across follow-up questions in the same conversation.
+CDR pulls are slow due to the CDR API rate limit (1 request/minute) and the 12-hour max window per request. A 7-day pull requires 14 sequential requests = ~14 minutes. This section prevents redundant pulls and sets correct user expectations.
+
+### Rate limit reality
+
+The CDR Feed API (`analytics-calling.webexapis.com`) enforces **1 request per minute** per user token. The wxc_sdk handles 429 retries transparently, so each pull takes ~60 seconds regardless of data volume. Calculate expected pull time before starting:
+
+| Window | Pulls | Expected Time |
+|--------|-------|---------------|
+| ≤12h | 1 | ~1 min |
+| 12–24h | 2 | ~2 min |
+| 1–3 days | 2–6 | ~2–6 min |
+| 7 days | 14 | ~14 min |
+| 30 days | 60 | ~60 min — use Reports API instead |
+
+**For windows >24 hours:** Tell the user the expected pull time before starting. Example: "A 7-day CDR pull requires 14 API requests at ~1/minute = approximately 14 minutes. Proceed?"
+
+**For windows >7 days:** Recommend the Reports API (Detailed Call History template) instead — it's async but handles up to 30 days in a single request with no per-minute rate limit. Requires `analytics:read_all` scope and Pro Pack. If the org lacks Pro Pack, CDR Feed is the only option — warn about the wait time.
 
 ### Two-phase split
 
 1. **Pull phase** — requires `wxc-calling-builder` agent (wxcli hook blocks direct CLI calls). The caller (Claude's main context) spawns the builder agent with instructions to pull CDR data and save to `/tmp/cdr-session.json`. The builder agent handles multi-pull merge for windows >12h automatically. Once the file is written, the builder agent's job is done — do not keep it running.
 2. **Recipe phase** — runs directly via Bash, no agent spawn needed. `cat /tmp/cdr-session.json | python3.11 -c "..."` executes in ~2 seconds. The skill guides recipe selection; Claude executes inline.
+
+### Pull phase instructions for builder agent
+
+When spawning the builder agent for CDR pulls, include these instructions in the prompt:
+
+1. **Progress output:** After each window, print: `echo "✓ Window N/TOTAL: START → END (X records)" >&2`
+2. **Error handling:** Use this pattern for each pull to prevent 0-byte files on API errors:
+   ```bash
+   wxcli cdr list --start-time START --end-time END -o json > /tmp/cdr_wNN.json 2>/tmp/cdr_err.log
+   if [ ! -s /tmp/cdr_wNN.json ]; then echo "[]" > /tmp/cdr_wNN.json; fi
+   ```
+3. **Merge:** After all pulls complete, merge with Python and write `/tmp/cdr-session.json`.
+4. **Run foreground, not background:** CDR pulls take minutes. Run the builder agent in the foreground so its progress output streams to the user. Do NOT use `run_in_background`.
 
 ### Cache file format
 
@@ -1795,7 +1824,7 @@ On every CDR question:
 
 1. **Check** — does `/tmp/cdr-session.json` exist? Read `_meta.start`, `_meta.end`.
 2. **Cache hit** — requested window is within `_meta` boundaries → run recipe directly via Bash. No agent spawn.
-3. **Cache miss** — requested window extends beyond `_meta` boundaries, or file doesn't exist, or user says "refresh" → spawn `wxc-calling-builder` to re-pull. Builder overwrites the cache file with the new window.
+3. **Cache miss** — requested window extends beyond `_meta` boundaries, or file doesn't exist, or user says "refresh" → spawn `wxc-calling-builder` to re-pull (foreground). Builder overwrites the cache file with the new window.
 4. **Explicit refresh** — if the user says "refresh", "re-pull", or "new data", always re-pull regardless of cache state.
 
 ### Presentation Rules
@@ -1866,7 +1895,7 @@ For non-CDR results (Reports API, recordings), use:
 3. **30-day data retention.** Older data must come from Reports API (CSV).
 4. **Date format:** CDR uses ISO 8601 with milliseconds: `2026-04-10T14:00:00.000Z`. Reports API uses `YYYY-MM-DD`.
 5. **Regional endpoints.** CDR HTTP 451 means wrong region — response body has the correct URL.
-6. **Rate limits:** 1 request/minute + 10 pagination/minute per user token.
+6. **Rate limits:** CDR Feed enforces 1 request/minute per user token (+ 10 pagination/minute). A 7-day pull = 14 requests = ~14 minutes. Always tell the user the expected wait time before starting. For windows >7 days, recommend the Reports API instead.
 7. **Report quota: max 50.** Always delete reports after downloading.
 8. **Pro Pack required for Reports API.** CDR Feed does NOT require Pro Pack.
 9. **Template IDs are org-specific.** Never hardcode — discover at runtime.
