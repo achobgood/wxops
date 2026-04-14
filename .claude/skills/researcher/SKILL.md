@@ -60,9 +60,9 @@ Before any experiment, understand the problem. Ask these questions conversationa
 3. **Scope** — What files/areas can we modify?
 4. **Constraints** — What is off-limits?
    - If the artifact being improved is a **skill or agent prompt file**, also ask: *Does this artifact co-exist with reference documentation that agents also read?* If yes, capture the relationship:
-     - **Skill role**: workflow sequencing, gotcha prioritization, knowing *which* reference sections matter — not a replacement for reference docs
-     - **Reference doc role**: comprehensive API detail, exact method signatures, data models
-     - **Validation rule**: "Is this already in the reference doc?" is NOT a reason to skip adding something to the skill. The correct question is: *"Do agents reliably surface this without the skill explicitly teaching it?"* If agents improvise it from training knowledge or inconsistently include it, the skill should make it explicit — regardless of where else it is documented.
+     - **Skill role**: workflow sequencing, gotcha prioritization, pointing agents to the right reference sections — not a replacement for reference docs
+     - **Reference doc role**: comprehensive API detail, exact method signatures, data models — agents should read these directly
+     - **Validation rule**: Agents reading from reference docs is correct behavior — do not penalize it or try to duplicate reference content into the skill. The skill and reference docs work together. The correct question for deciding whether to add something to the skill is: *"Is this behavior reliably produced when an agent reads the skill and its referenced docs together?"* If yes, the system is working — leave it. Only add to the skill when behavior is inconsistent because it appears in **neither** the skill nor any reference doc the agent reads (pure training-knowledge improvisation).
 5. **Run command** — How do we execute one experiment? Single command or chain (entire chain must succeed). May be omitted for qualitative-only research.
 6. **Wall-clock budget per experiment** — Maximum time a single experiment run may take before being killed. Default: **5 minutes**.
 7. **Token Hygiene** — Incorporate ecosystem-specific ignore/rules files (for example, `.claudeignore`, `.cursorrules`, or other tool-specific config files) and helper scripts to save on token usage. If yes, then what agentic ecosystem are we using?
@@ -101,7 +101,11 @@ After confirmation:
 **THINK** — Before anything, read: `.lab/results.tsv`, `.lab/log.md` (last 5 entries if 20+), `.lab/branches.md`, `.lab/parking-lot.md`, and in-scope source files. Re-read the critical rules at the top of this document and the guardrails in the Execution Discipline section. Then write a `## THINK — before Experiment N` entry in `.lab/log.md` covering:
 1. **Convergence signals:** check against current state
 2. **Untested assumptions:** what am I assuming that I haven't tested? Have I tried the opposite of what's currently working? (e.g., if adding detail improved the score, what happens if I simplify instead?)
-   - **If the artifact is a skill/prompt:** before concluding a change is unnecessary because "it's already in the docs," verify that agents *reliably* surface the behavior without explicit instruction. If agents improvise it inconsistently or from training knowledge rather than a consistent source, the skill should make it explicit. "Already documented elsewhere" ≠ "skill doesn't need to teach it."
+   - **If the artifact is a skill/prompt:** distinguish three cases before deciding whether to add something to the skill:
+     1. **In skill + reference docs → agent reliable**: system working correctly. No change needed.
+     2. **In reference docs only → agent reliable**: also correct — agents are expected to read reference docs. No change needed.
+     3. **In neither skill nor reference docs → agent improvises inconsistently**: this is the gap. Add it to the skill.
+     Do not add reference doc content to the skill just because the agent surfaced it — that creates duplication and drift. Only act on case 3.
 3. **Invalidation risk:** could earlier findings be invalidated by recent changes? (e.g., after changing B, re-test assumptions made when only A was changed)
 4. **Next hypothesis:** what will I test and why
 
