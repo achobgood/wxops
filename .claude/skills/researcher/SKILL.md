@@ -58,11 +58,21 @@ Before any experiment, understand the problem. Ask these questions conversationa
    - **Secondary metrics** (optional): tracked for context, don't drive decisions unless primary is tied
    - For each: **name**, **measure command** (or "agent judgment"), **direction** (lower/higher is better)
 3. **Scope** — What files/areas can we modify?
+   - For this project, valid target artifacts are **skills** (`/.claude/skills/*/SKILL.md`), **reference docs** (`/docs/reference/*.md`), or **both together**. Either type can be the editable artifact in a research run. Choose based on where the gap lives:
+     - Gap is in **workflow sequencing, gotcha prioritization, or prerequisite ordering** → improve the **skill**
+     - Gap is in **API accuracy, missing data model fields, wrong method signatures, missing gotchas about API behavior** → improve the **reference doc**
+     - Gap surfaces in agent execution but the root cause is unclear → check both before deciding
+   - Scope can cover both a skill and its corresponding reference doc in a single experiment if the changes are tightly coupled.
+
 4. **Constraints** — What is off-limits?
-   - If the artifact being improved is a **skill or agent prompt file**, also ask: *Does this artifact co-exist with reference documentation that agents also read?* If yes, capture the relationship:
+   - **Skill/reference doc relationship** (applies whenever either is in scope):
      - **Skill role**: workflow sequencing, gotcha prioritization, pointing agents to the right reference sections — not a replacement for reference docs
-     - **Reference doc role**: comprehensive API detail, exact method signatures, data models — agents should read these directly
-     - **Validation rule**: Agents reading from reference docs is correct behavior — do not penalize it or try to duplicate reference content into the skill. The skill and reference docs work together. The correct question for deciding whether to add something to the skill is: *"Is this behavior reliably produced when an agent reads the skill and its referenced docs together?"* If yes, the system is working — leave it. Only add to the skill when behavior is inconsistent because it appears in **neither** the skill nor any reference doc the agent reads (pure training-knowledge improvisation).
+     - **Reference doc role**: comprehensive API detail, exact method signatures, data models — agents read these directly and that is correct behavior
+     - **Where to put a fix**: Use the three-case rule:
+       1. Gap is in **neither** skill nor any reference doc the agent reads (pure training-knowledge improvisation) → **add to the skill**
+       2. Gap is in the **reference doc** (wrong API detail, missing gotcha, stale method signature) → **fix the reference doc**
+       3. The skill needs to **point agents to** the right reference section more explicitly → **update the skill's Step 1 load instructions**
+     - Do not duplicate reference doc content into skills. Do not add API detail to skills. Agents reading from reference docs is correct — do not try to eliminate that dependency.
 5. **Run command** — How do we execute one experiment? Single command or chain (entire chain must succeed). May be omitted for qualitative-only research.
 6. **Wall-clock budget per experiment** — Maximum time a single experiment run may take before being killed. Default: **5 minutes**.
 7. **Token Hygiene** — Incorporate ecosystem-specific ignore/rules files (for example, `.claudeignore`, `.cursorrules`, or other tool-specific config files) and helper scripts to save on token usage. If yes, then what agentic ecosystem are we using?
@@ -101,11 +111,12 @@ After confirmation:
 **THINK** — Before anything, read: `.lab/results.tsv`, `.lab/log.md` (last 5 entries if 20+), `.lab/branches.md`, `.lab/parking-lot.md`, and in-scope source files. Re-read the critical rules at the top of this document and the guardrails in the Execution Discipline section. Then write a `## THINK — before Experiment N` entry in `.lab/log.md` covering:
 1. **Convergence signals:** check against current state
 2. **Untested assumptions:** what am I assuming that I haven't tested? Have I tried the opposite of what's currently working? (e.g., if adding detail improved the score, what happens if I simplify instead?)
-   - **If the artifact is a skill/prompt:** distinguish three cases before deciding whether to add something to the skill:
-     1. **In skill + reference docs → agent reliable**: system working correctly. No change needed.
-     2. **In reference docs only → agent reliable**: also correct — agents are expected to read reference docs. No change needed.
-     3. **In neither skill nor reference docs → agent improvises inconsistently**: this is the gap. Add it to the skill.
-     Do not add reference doc content to the skill just because the agent surfaced it — that creates duplication and drift. Only act on case 3.
+   - **If the artifact is a skill or reference doc:** before acting on a gap, identify where it belongs:
+     1. **Agent reliable when reading skill + reference docs together** → no change needed, system working
+     2. **Agent improvises inconsistently — gap is in neither skill nor reference doc** → add to the skill (workflow/gotcha gap)
+     3. **Agent produces wrong behavior traceable to a reference doc error** → fix the reference doc (API accuracy gap)
+     4. **Agent misses a reference section that would fix it** → update the skill's Step 1 load instructions to point to it
+     The key diagnostic: does the gap persist even when the agent reads the relevant reference doc? If yes, fix the reference doc. If the reference doc is correct but the agent doesn't reach the right section, fix the skill's load instructions. If neither doc covers it, add it to the skill.
 3. **Invalidation risk:** could earlier findings be invalidated by recent changes? (e.g., after changing B, re-test assumptions made when only A was changed)
 4. **Next hypothesis:** what will I test and why
 
