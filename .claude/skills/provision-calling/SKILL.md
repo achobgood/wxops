@@ -211,33 +211,43 @@ wxcli licenses-api update --person-id PERSON_ID --json-body '{
 
 ### Operation E: Bulk Provision
 
-For small batches (< 20 users), loop wxcli commands:
+**Before running:** confirm `firstName`, `lastName`, and `displayName` for each user with the requester. Do not derive names from email aliases.
+
+For small batches (< 20 users), pair each create with an immediate license assignment in a single loop:
 
 ```bash
-# Small batch: loop wxcli commands
-for email in user1@example.com user2@example.com user3@example.com; do
-  name=$(echo "$email" | cut -d@ -f1)
-  wxcli users create --json-body "{\"emails\":[\"$email\"],\"firstName\":\"$name\",\"lastName\":\"User\"}"
-  echo "Created: $email"
-done
-```
-
-For enabling calling on multiple existing users:
-
-```bash
-# Assign calling license to multiple users
 LOCATION_ID="<location_id>"
 LICENSE_ID="<calling_license_id>"
 EXT=1001
 
 for email in user1@example.com user2@example.com user3@example.com; do
-  # Create the user
-  wxcli users create --json-body "{\"emails\":[\"$email\"],\"displayName\":\"User $EXT\",\"firstName\":\"User\",\"lastName\":\"$EXT\"}"
-  echo "Created $email"
+  echo "=== Provisioning $email ==="
+
+  # Step 1: Create the user — capture the returned person ID
+  PERSON_ID=$(wxcli people create -o json \
+    --json-body "{\"emails\":[\"$email\"],\"firstName\":\"First\",\"lastName\":\"Last\",\"displayName\":\"First Last\"}" \
+    | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+  echo "Created: $email → $PERSON_ID"
+
+  # Step 2: Assign calling license with location and extension
+  wxcli licenses-api update --person-id "$PERSON_ID" --json-body "{
+    \"email\": \"$email\",
+    \"licenses\": [{
+      \"id\": \"$LICENSE_ID\",
+      \"operation\": \"add\",
+      \"properties\": {
+        \"locationId\": \"$LOCATION_ID\",
+        \"extension\": \"$EXT\"
+      }
+    }]
+  }"
+  echo "Enabled for calling: ext $EXT"
+
   EXT=$((EXT + 1))
 done
-# License assignment requires raw HTTP — see Operation D above
 ```
+
+**Note:** If `people create` returns 400, the user may still have been created. Check with `wxcli people list --email <email>` before retrying. If the user exists, skip the create and run only the `licenses-api update` step with the existing person ID.
 
 > **Raw HTTP fallback for bulk operations:** For large batches (20+ users), the async Python SDK pattern provides better performance with concurrent requests and automatic 429 retry handling. See `docs/reference/wxc-sdk-patterns.md` for the `AsWebexSimpleApi` async pattern with `concurrent_requests=10..40`.
 
