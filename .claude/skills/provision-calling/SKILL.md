@@ -84,6 +84,11 @@ wxcli users list --email target@example.com --output json
 wxcli users show PERSON_ID --output json
 # If location_id is set, user is already calling-enabled.
 # Ask user: update or abort?
+
+# 4. Verify email domain is provisioned in this org
+wxcli org-domains list
+# The user's email domain must appear here. If it does not, user creation will
+# fail with a domain authorization error. Resolve domain verification before proceeding.
 ```
 
 ### For phone number assignment:
@@ -161,9 +166,11 @@ wxcli location-settings create \
 
 ### Operation C: Create a New User
 
+**Before creating:** confirm the user's `firstName`, `lastName`, and `displayName` with the requester. Do not use email-derived placeholders (e.g., `jsmith`/`example`) — they produce incorrect directory entries and cannot be changed without a separate update call.
+
 ```bash
 wxcli users create \
-  --json-body '{"emails":["jsmith@example.com"],"firstName":"John","lastName":"Smith"}'
+  --json-body '{"emails":["jsmith@example.com"],"firstName":"John","lastName":"Smith","displayName":"John Smith"}'
 ```
 
 **Gotcha:** A POST that returns 400 may **still have created the person**. Always check with a GET before retrying:
@@ -304,7 +311,7 @@ Next steps:
 
 9. **License IDs are org-specific base64 strings** — Never hardcode them. Always retrieve via `wxcli licenses list`.
 
-10. **Extension values must NOT include the routing prefix** — Set extension to `1001`. The work_extension in the response will include the prefix (e.g., `8001001`), but when writing, omit it.
+10. **Extension values must NOT include the routing prefix** — Set extension to `1001`. The work_extension in the response will include the prefix (e.g., `8001001`), but when writing, omit it. To check for extension conflicts before assigning, run `wxcli numbers list --location-id LOCATION_ID` and scan the extension column.
 
 11. **Log all operations** — Print what you're about to do before each CLI command, and print the result after. This creates an audit trail for troubleshooting.
 
