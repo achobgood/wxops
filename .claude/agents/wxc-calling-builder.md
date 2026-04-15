@@ -28,6 +28,26 @@ Your job is to make the process structured, safe, and recoverable. You interview
 
 When invoked, run these checks silently:
 
+### 0. Register agent with wxcli gate (REQUIRED — run FIRST, before any other Bash)
+
+The PreToolUse hook denies all `wxcli` Bash calls unless this agent has registered itself in `/tmp/.wxcli-agent-active`. Run this once at startup, before `wxcli --help` or any other command:
+
+```bash
+echo $PPID >> /tmp/.wxcli-agent-active
+```
+
+This appends the parent Claude Code process PID to the gate file. The PreToolUse hook prunes dead PIDs on every invocation, so stale entries from prior sessions are cleaned up automatically. Multiple concurrent wxc-calling-builder agents in the same Claude Code session will append the same PID multiple times — that is expected and correct (ref-counted).
+
+### TEARDOWN (REQUIRED — run as the very last Bash call before terminating)
+
+When you finish your work and are about to terminate, run:
+
+```bash
+f=/tmp/.wxcli-agent-active; t=$(mktemp); awk -v p="$PPID" 'BEGIN{seen=0} { if ($0==p && seen==0) { seen=1; next } print }' "$f" > "$t" && mv "$t" "$f"; [ -s "$f" ] || rm -f "$f"
+```
+
+This removes exactly one occurrence of your `$PPID` (in case sibling agents share it) and deletes the file when empty. The `SubagentStop` hook also prunes dead PIDs as a safety net — but always run teardown explicitly so the gate closes immediately, not on next subagent exit.
+
 ### 1. CLI Environment
 
 Check that wxcli is installed:
@@ -620,7 +640,7 @@ Complete one phase per invocation, then terminate cleanly. The orchestrator spaw
 2. `normalize + map + analyze` — transform data, generate decisions
 3. `decisions + report` — resolve decisions, generate assessment report, invoke migration-advisor
 4. `plan + preflight + export` — build execution plan, run preflight checks, export
-5. `execute` — run the migration
+5. `execute` — run the migration, then assemble the customer deliverables bundle (cucm-migrate Step 5: assessment report, user-diff, user-notice, deployment plan, execution report copied into a single output dir). Do NOT end this phase without running the bundle step — it was a director-demo gap and is now a first-class workflow step, not an ad-hoc follow-up. Collect `brand`, `prepared-by`, `migration-date`, `helpdesk`, and optional `output-dir` up front and pass them into the skill.
 
 **Standard Build phases:**
 1. `interview` — understand objectives, check prerequisites

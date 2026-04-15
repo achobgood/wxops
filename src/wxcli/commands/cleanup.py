@@ -6,9 +6,18 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 
+import click
 import typer
 from rich.console import Console
 from wxc_sdk.rest import RestError
+
+# Location-delete retry tuning: after the initial 90s disable-calling
+# propagation wait, 17-location orgs have been observed to still 409 on
+# first attempt. 5 attempts × 60s = 5 min worst case per laggard location,
+# which fits under typical agent/bash tool timeouts and covers the trailing
+# edge of async disable-calling propagation without masking real failures.
+LOCATION_DELETE_MAX_ATTEMPTS = 5
+LOCATION_DELETE_RETRY_SLEEP = 60
 
 from wxcli.auth import get_api
 from wxcli.config import get_org_id
@@ -390,34 +399,99 @@ def disable_location_calling(
         )
 
 
+def _extract_blocker(err: str) -> str | None:
+    """Extract a blocking resource hint from a 409 error body if the API surfaces one."""
+    if not err:
+        return None
+    lowered = err.lower()
+    for kw in (
+        "device", "user", "workspace", "virtual line", "trunk",
+        "route group", "route list", "dial plan", "hunt group",
+        "call queue", "auto attendant", "number",
+    ):
+        if kw in lowered:
+            return kw
+    return None
+
+
 def delete_location(
     api,
     item: dict,
     org_id: str | None,
+    max_attempts: int = LOCATION_DELETE_MAX_ATTEMPTS,
+    retry_sleep: int = LOCATION_DELETE_RETRY_SLEEP,
 ) -> DeleteResult:
-    """Delete a location (must have calling disabled first)."""
+    """Delete a location (must have calling disabled first).
+
+    Retries up to ``max_attempts`` times with ``retry_sleep`` seconds between
+    attempts. The 90-second disable-calling propagation wait in the caller
+    often isn't enough on larger orgs — the backend may still 409 for several
+    minutes. Each attempt emits a stdout line via ``click.echo`` (flushed)
+    so an observing parent process sees liveness and never has to hand-roll
+    an external polling loop.
+    """
     location_id = item.get("id", "")
     name = item.get("name", "unnamed")
     url = f"{BASE}/locations/{location_id}"
     params = {}
     if org_id:
         params["orgId"] = org_id
+
+    last_error: str = ""
+    for attempt in range(1, max_attempts + 1):
+        try:
+            api.session.rest_delete(url, params=params)
+            click.echo(f"[location={name}] deleted", nl=True)
+            try:
+                click.get_text_stream("stdout").flush()
+            except Exception:
+                pass
+            return DeleteResult(
+                resource_type="Locations",
+                resource_id=location_id,
+                resource_name=name,
+                success=True,
+            )
+        except RestError as e:
+            last_error = str(e)
+            is_conflict = "409" in last_error or "conflict" in last_error.lower()
+            if attempt < max_attempts and is_conflict:
+                click.echo(
+                    f"[location={name}] attempt {attempt}/{max_attempts}: "
+                    f"409 — retrying in {retry_sleep}s",
+                    nl=True,
+                )
+                try:
+                    click.get_text_stream("stdout").flush()
+                except Exception:
+                    pass
+                time.sleep(retry_sleep)
+                continue
+            # Non-409 error, or exhausted attempts: stop retrying.
+            break
+
+    blocker = _extract_blocker(last_error)
+    if blocker:
+        final_msg = (
+            f"delete failed after {max_attempts} attempt(s); "
+            f"blocked by {blocker}: {last_error}"
+        )
+    else:
+        final_msg = (
+            f"delete failed after {max_attempts} attempt(s): {last_error}"
+        )
+    click.echo(f"[location={name}] {final_msg}", nl=True)
     try:
-        api.session.rest_delete(url, params=params)
-        return DeleteResult(
-            resource_type="Locations",
-            resource_id=location_id,
-            resource_name=name,
-            success=True,
-        )
-    except RestError as e:
-        return DeleteResult(
-            resource_type="Locations",
-            resource_id=location_id,
-            resource_name=name,
-            success=False,
-            error=str(e),
-        )
+        click.get_text_stream("stdout").flush()
+    except Exception:
+        pass
+    return DeleteResult(
+        resource_type="Locations",
+        resource_id=location_id,
+        resource_name=name,
+        success=False,
+        error=final_msg,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -493,10 +567,24 @@ def build_number_inventory(
     inventory: dict[str, list[str]] = {}
     for loc_id in location_ids:
         numbers = list_location_numbers(api, loc_id, org_id)
-        phone_nums = [
-            n["phoneNumber"] for n in numbers
-            if n.get("phoneNumber") and n.get("mainNumber") is not True
-        ]
+        phone_nums = []
+        ext_only = 0
+        for n in numbers:
+            # Extension-only records have no phoneNumber field — they are
+            # extension owners (person/workspace/virtual line), not PSTN
+            # number resources, and get released when the owner is deleted.
+            if not n.get("phoneNumber"):
+                ext_only += 1
+                continue
+            if n.get("mainNumber") is True:
+                continue
+            phone_nums.append(n["phoneNumber"])
+        if ext_only:
+            logger.info(
+                "location %s: skipped %d extension-only record(s) "
+                "(extension owners, not phone numbers)",
+                loc_id, ext_only,
+            )
         if phone_nums:
             inventory[loc_id] = phone_nums
     return inventory
@@ -766,18 +854,53 @@ def cleanup_run(
                 console.print("  Waiting 90s for backend propagation...")
                 time.sleep(90)
 
-            # Phase 3: attempt to delete ALL locations regardless of disable result
-            console.print("  Deleting locations...")
+            # Phase 3: attempt to delete ALL locations with bounded retry.
+            # Each delete_location call runs up to LOCATION_DELETE_MAX_ATTEMPTS
+            # attempts with LOCATION_DELETE_RETRY_SLEEP between retries, and
+            # emits its own per-attempt stdout lines (click.echo, flushed).
+            total_locs = len(loc_items)
+            layer_num = i + 1
+            console.print(
+                f"  Deleting locations (up to "
+                f"{LOCATION_DELETE_MAX_ATTEMPTS} attempts × "
+                f"{LOCATION_DELETE_RETRY_SLEEP}s per location)..."
+            )
+            console.print(
+                f"  Layer {layer_num} (location): 0/{total_locs} deleted, "
+                f"0 retrying, {total_locs} waiting"
+            )
+            deleted = 0
+            failed = 0
+            completed = 0
+            loc_results: list[DeleteResult] = []
             with ThreadPoolExecutor(max_workers=max_concurrent) as executor:
                 futures = {
                     executor.submit(delete_location, api, item, org_id): item
                     for item in loc_items
                 }
                 for future in as_completed(futures):
-                    all_results.append(future.result())
-            loc_ok = sum(1 for r in all_results if r.resource_type == "Locations" and r.success)
-            loc_fail = sum(1 for r in all_results if r.resource_type == "Locations" and not r.success)
-            console.print(f"  Done: {loc_ok} deleted, {loc_fail} failed")
+                    res = future.result()
+                    loc_results.append(res)
+                    all_results.append(res)
+                    completed += 1
+                    if res.success:
+                        deleted += 1
+                    else:
+                        failed += 1
+                    # The remaining in-flight futures are the ones still
+                    # looping through retry attempts; the rest are "waiting"
+                    # in the executor queue (only meaningful when
+                    # max_concurrent < total_locs).
+                    in_flight = min(
+                        max_concurrent, total_locs - completed,
+                    )
+                    waiting = max(0, total_locs - completed - in_flight)
+                    console.print(
+                        f"  Layer {layer_num} (location): "
+                        f"{deleted}/{total_locs} deleted, "
+                        f"{in_flight} retrying, {waiting} waiting"
+                    )
+            console.print(f"  Done: {deleted} deleted, {failed} failed")
             continue
 
         results = execute_layer(api, layer_keys, inventory, org_id, max_concurrent)

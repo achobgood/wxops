@@ -32,11 +32,9 @@ The pipeline looks up the CUCM model in a static replacement map and recommends 
 
 When the map returns `None` (unknown model), the rule returns `None` and the decision requires human input.
 
-### DEVICE_FIRMWARE_CONVERTIBLE
+### DEVICE_FIRMWARE_CONVERTIBLE (deprecated 2026-04-15)
 
-**Source:** `recommendation_rules.py` `recommend_device_firmware_convertible()`
-
-Always recommends `convert` (convert to native MPP firmware). If `has_srst` is true in context, appends a warning: "Survivable Gateway (SRST) is configured. Verify fallback behavior after conversion -- Webex devices use Webex Edge for survivability."
+Convertible phones no longer produce a decision. `DeviceMapper` classifies the model as `CONVERTIBLE` and the planner unconditionally emits a `create_activation_code` op — if a device is convertible, it converts. There is no operator choice and no skip path at the decision level; the recommendation rule and the `DecisionType` enum value are retained only for backward compatibility with project stores created before 2026-04-15. SRST-dependency concerns surface via the advisor narrative (see `dt-dev-001` below), not as a per-device decision.
 
 Key firmware distinction for replacements and conversions:
 - **MPP firmware** (68xx, 78xx, 88xx): Configured via Telephony Device Settings API (`device-settings` CLI group). Requires `apply-changes` after updates. <!-- Source: devices-core.md §5a -->
@@ -78,7 +76,7 @@ Webex Calling line key types are limited to: `PRIMARY_LINE`, `SHARED_LINE`, `MON
 ## Edge Cases & Exceptions
 
 ### 8845/8865 already on MPP firmware
-These models support Webex Calling firmware natively. If already on MPP firmware but registered to CUCM, they are `DEVICE_FIRMWARE_CONVERTIBLE`, not `DEVICE_INCOMPATIBLE`. The conversion is a re-registration, not a hardware replacement.
+These models support Webex Calling firmware natively. If already on MPP firmware but registered to CUCM, they are classified as `CONVERTIBLE` by `DeviceMapper` (not `INCOMPATIBLE`) and auto-convert at plan time — the "conversion" is a re-registration, not a hardware replacement. No decision is emitted; the planner emits a `create_activation_code` op directly.
 
 ### 9800-series phones (9811, 9821, 9841, 9851, 9861, 9871)
 Native MPP (PhoneOS/RoomOS-derived). No conversion or replacement needed. These use the Device Configurations API (RoomOS keys), not Telephony Device Settings. <!-- Source: devices-core.md §5a, line 1323 -->
@@ -234,8 +232,8 @@ Fires when `info_device_profile` objects exist in the store. CUCM Extension Mobi
 
 ### DT-DEV-001: Firmware conversion recommended but device has SRST and site has unreliable WAN
 
-- **Condition:** `DEVICE_FIRMWARE_CONVERTIBLE` recommends `convert` AND `has_srst=True` in context AND location has SRST-configured device pool
-- **Why the static rule is insufficient:** `recommend_device_firmware_convertible()` mentions SRST in the reasoning text but always returns `convert` regardless. It does not weigh WAN reliability, SRST dependency depth, or whether the site has an alternative survivability path.
+- **Condition:** Device is classified as `CONVERTIBLE` by `DeviceMapper` AND the CUCM device pool has SRST configured AND the site has an unreliable WAN. (As of 2026-04-15 there is no `DEVICE_FIRMWARE_CONVERTIBLE` decision — convertible devices auto-convert unconditionally. This dissent trigger now drives the advisor narrative, not a per-device decision override.)
+- **Why the auto-convert path is insufficient on its own:** Convertibility is a pure model check — it does not weigh WAN reliability, SRST dependency depth, or whether the site has an alternative survivability path. Those considerations belong in the advisor narrative rather than at the decision level.
 - **What the advisor should do:**
   1. Flag the SRST dependency explicitly
   2. Ask the admin about WAN reliability at this site

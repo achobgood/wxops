@@ -47,7 +47,7 @@ When launched with an analysis mode prompt:
    | DecisionType | KB Doc |
    |---|---|
    | FEATURE_APPROXIMATION | kb-feature-mapping.md |
-   | DEVICE_INCOMPATIBLE, DEVICE_FIRMWARE_CONVERTIBLE | kb-device-migration.md |
+   | DEVICE_INCOMPATIBLE | kb-device-migration.md |
    | CSS_ROUTING_MISMATCH, CALLING_PERMISSION_MISMATCH | kb-css-routing.md |
    | LOCATION_AMBIGUOUS | kb-location-design.md |
    | DN_AMBIGUOUS, EXTENSION_CONFLICT, DUPLICATE_USER, NUMBER_CONFLICT | kb-identity-numbering.md |

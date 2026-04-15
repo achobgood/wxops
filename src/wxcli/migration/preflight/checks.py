@@ -50,7 +50,7 @@ def check_licenses(store: MigrationStore, licenses: list[dict]) -> CheckResult:
     # needed count.
     row = store.conn.execute(
         "SELECT COUNT(*) AS cnt FROM plan_operations "
-        "WHERE resource_type = 'user' AND op_type = 'create'"
+        "WHERE resource_type = 'user' AND op_type = 'create' AND status != 'skipped'"
     ).fetchone()
     user_count = row["cnt"] if row else store.count_by_type("user")
     if user_count == 0:

@@ -218,10 +218,6 @@ def apply_auto_rules(store: MigrationStore, config: dict[str, Any]) -> int:
 
         {"auto_rules": [
             {"type": "DEVICE_INCOMPATIBLE", "choice": "skip"},
-            {"type": "DEVICE_FIRMWARE_CONVERTIBLE",
-             "match": {"cucm_model": ["7841", "7861"]},
-             "choice": "convert",
-             "reason": "Optional human-readable reason"},
             {"type": "DN_AMBIGUOUS",
              "match": {"dn_length_lte": 4},
              "choice": "extension_only"},

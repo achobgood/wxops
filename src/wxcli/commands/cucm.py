@@ -1055,6 +1055,7 @@ def plan(
             store,
             bulk_device_threshold=config.get("bulk_device_threshold", 100),
             skip_rebuild_phones=config.get("skip_rebuild_phones", False),
+            config=config,
         )
         console.print(f"  Expanded to {len(ops)} operations")
 

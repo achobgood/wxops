@@ -74,6 +74,11 @@ class DecisionType(str, Enum):
     EXTENSION_CONFLICT = "EXTENSION_CONFLICT"
     DN_AMBIGUOUS = "DN_AMBIGUOUS"
     DEVICE_INCOMPATIBLE = "DEVICE_INCOMPATIBLE"
+    # DEPRECATED 2026-04-15: convertibility is now a device classification
+    # (tier='convertible'), not an operator choice. The planner emits the
+    # create_activation_code op unconditionally for convertible devices.
+    # Enum retained so legacy stored projects still deserialize; no code
+    # path emits new decisions of this type.
     DEVICE_FIRMWARE_CONVERTIBLE = "DEVICE_FIRMWARE_CONVERTIBLE"
     SHARED_LINE_COMPLEX = "SHARED_LINE_COMPLEX"
     CSS_ROUTING_MISMATCH = "CSS_ROUTING_MISMATCH"
