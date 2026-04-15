@@ -1321,7 +1321,7 @@ done
 
 **Virtual Line ID type mismatch bug:** The Numbers API returns virtual line owners with `VIRTUAL_LINE`-encoded IDs, but `wxcli virtual-extensions delete` sends them to the `/virtualExtensions/` endpoint which expects `VIRTUAL_EXTENSION`-encoded IDs. This always fails with 400 "Wrong type of Webex ID provided". Workaround: use raw HTTP `DELETE /v1/telephony/config/virtualLines/{id}` with a bearer token. Discover VL IDs from `wxcli numbers list -o json` (owner field) — `wxcli virtual-extensions list` may return empty.
 
-**Location deletion cooldown:** Even after disabling calling and deleting all sub-resources, location DELETE may return 409 for minutes to hours. Options: wait with exponential backoff, accept existing locations on re-run (execution engine handles 409 auto-recovery), or poll with safeDeleteCheck.
+**Location deletion cooldown:** Even after disabling calling and deleting all sub-resources, location DELETE may return 409 for minutes to hours. Preferred recovery: **re-invoke `wxcli cleanup run` (it is idempotent and resumes from where it left off)** — do NOT write an inline Python/bash `time.sleep` polling loop inside a single Bash tool call. The Bash tool has a ~10-minute hard timeout and long loops die silently mid-wait, leaving partial state. If bespoke retry is required, split into **discrete Bash tool calls** (one per location per attempt) with the sleep **between** tool calls, cap total wall time at ≤3 minutes, and if 409s persist, report them and stop rather than looping. See `.claude/skills/teardown/SKILL.md` → "Rule: never hand-roll polling loops".
 
 **Trunk deletion requires no remaining references:** Error 27349 names the referencing dial plan in the message.
 

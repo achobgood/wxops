@@ -163,8 +163,18 @@ If `locations delete` returns 409 "being referenced", check these in order:
 4. **Virtual lines** — discoverable via `wxcli numbers list -o json` (owner.type == VIRTUAL_LINE), not always via `virtual-extensions list`
 5. **Workspaces** still assigned — workspaces API has no location filter, must filter client-side by `locationId` field
 6. **Operating modes** referencing deleted schedules
-7. **Calling still propagating** — even after `--calling-enabled false`, 409 may persist for minutes. Wait and retry.
+7. **Calling still propagating** — even after `--calling-enabled false`, 409 may persist for minutes. Wait and retry. **See "Rule: never hand-roll polling loops" below for how to retry safely — do NOT write an inline Python/bash sleep loop.**
 8. **Ghost/stale locations** — locations returning 404 on sub-resource queries may still be deletable. Attempt deletion regardless.
+
+### Rule: never hand-roll polling loops
+
+When a 409 persists after the built-in 90s wait (or any other "wait and retry" situation in teardown), follow these rules strictly. Violating them causes silent Bash-tool timeouts mid-loop and unrecoverable partial state.
+
+1. **Do NOT** write external Python or bash polling loops with `time.sleep` / `sleep` inside a single Bash tool call. The Bash tool has a ~10-minute hard timeout; long loops die silently with no useful output.
+2. **Do** re-invoke `wxcli cleanup run` (with the same `--scope` / flags). It is **idempotent** — safe to repeat — and resumes cleanup from wherever it left off. This is the preferred recovery path for 409s.
+3. If bespoke per-location retry is truly required, split it into **discrete Bash tool calls** — one call per location per attempt (or per round) — with a short `sleep` **between** tool calls, not inside them. Each call returns control to the parent before the next wait begins.
+4. Cap any necessary hand-written retry script at **≤3 minutes wall time**. Beyond that, exit the script and let the parent re-dispatch — do not stretch a single Bash call toward the 10-minute ceiling.
+5. If `cleanup run` exits with remaining 409s, **report them in the task summary and stop**. Do not loop silently. The operator (or parent agent) decides whether to re-invoke.
 
 ---
 

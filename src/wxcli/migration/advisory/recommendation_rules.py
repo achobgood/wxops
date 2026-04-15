@@ -24,7 +24,11 @@ _BASIC_FEATURES = {"musicOnHold", "doNotDisturb"}
 def recommend_device_firmware_convertible(
     context: dict[str, Any], options: list
 ) -> tuple[str, str] | None:
-    """Spec §5.3: Convertible device — always recommend convert."""
+    """DEPRECATED 2026-04-15: no new DEVICE_FIRMWARE_CONVERTIBLE decisions
+    are produced — convertibility is a model classification, not a choice.
+    Retained so legacy stored projects still render a recommendation.
+
+    Spec §5.3: Convertible device — always recommend convert."""
     model = context.get("cucm_model", "unknown")
     reasoning = f"Device model {model} supports Webex firmware conversion. Convert to native MPP."
     if context.get("has_srst"):

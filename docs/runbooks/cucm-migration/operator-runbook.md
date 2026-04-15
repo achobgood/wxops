@@ -701,12 +701,14 @@ Seven decision types are pre-resolved by `DEFAULT_AUTO_RULES` and never appear i
 | DecisionType | Auto-choice | Rationale |
 |---|---|---|
 | `DEVICE_INCOMPATIBLE` | skip | No migration path exists |
-| `DEVICE_FIRMWARE_CONVERTIBLE` | convert | Firmware flash is always safe |
 | `HOTDESK_DN_CONFLICT` | keep_primary | Primary DN wins by definition |
 | `FORWARDING_LOSSY` | accept_loss | CUCM-only variant, rarely configured |
 | `SNR_LOSSY` | accept_loss | Webex simplification is acceptable |
 | `BUTTON_UNMAPPABLE` | accept_loss | No Webex equivalent exists |
 | `CALLING_PERMISSION_MISMATCH` (0 users) | skip | Orphaned profile, no impact |
+| `MISSING_DATA` (on incompatible device) | skip | Device itself is being skipped anyway |
+
+`DEVICE_FIRMWARE_CONVERTIBLE` is **not** in this list. As of 2026-04-15 convertible phones auto-convert at plan time — convertibility is a model classification, not an operator choice, and no decision is emitted.
 
 Source: `src/wxcli/commands/cucm_config.py:17` — `DEFAULT_AUTO_RULES`. These rules can be removed or reconfigured per project; see [tuning-reference.md §Auto-Rule Reference](tuning-reference.md#auto-rule-reference).
 
@@ -819,7 +821,7 @@ Record at the end of decision review (Step 3):
 - **Pending decision counts at review start.** How many decisions were in each status: `PENDING` / `ADVISORY` / `MISSING_DATA` / `CONFLICT`.
 - **Review duration.** Wall-clock time from first `wxcli cucm decisions` to issuing `wxcli cucm export`.
 - **Bulk accept count vs individual review count.** How many decisions did you accept/reject in bulk (same decision type, same recommendation)? How many required individual inspection?
-- **Decision types that required the most time.** Which `decision_type` values caused the most discussion or lookup? (e.g., `DEVICE_FIRMWARE_CONVERTIBLE`, `HUNT_GROUP_MEMBER_LIMIT`, `CSS_PARTITION_DEPTH`).
+- **Decision types that required the most time.** Which `type` values (the field is named `type` in `wxcli cucm decisions -o json` output) caused the most discussion or lookup? (e.g., `FEATURE_APPROXIMATION`, `SHARED_LINE_COMPLEX`, `CSS_ROUTING_MISMATCH`).
 
 #### Advisory Firing Rates vs Perceived Value
 

@@ -26,9 +26,12 @@ logger = logging.getLogger(__name__)
 
 # Decision types where chosen_option="skip" means "don't expand this object".
 # (from phase-07-planning.md lines 26-27)
+#
+# Note: DEVICE_FIRMWARE_CONVERTIBLE is NOT in this set — as of 2026-04-15
+# convertibility is a model classification, not a decision, and convertible
+# devices always produce a create_activation_code op.
 _SKIP_DECISION_TYPES = {
     "DEVICE_INCOMPATIBLE",
-    "DEVICE_FIRMWARE_CONVERTIBLE",
     "EXTENSION_CONFLICT",
     "LOCATION_AMBIGUOUS",
     "MISSING_DATA",
@@ -480,15 +483,18 @@ _NON_WEBEX_DEVICE_MODELS = {
 
 
 def _expand_device(
-    obj: dict[str, Any], decisions: list[dict[str, Any]],
+    obj: dict[str, Any], decisions: list[dict[str, Any]], config: dict | None = None,
 ) -> list[MigrationOp]:
-    """Device → 1 op (CONVERTIBLE, convert) or 2 ops (NATIVE_MPP).
+    """Device → 1 op (CONVERTIBLE activation-code path) or 2 ops (MAC-based path).
 
     - NATIVE_MPP / default: create (MAC-based POST /devices) + configure_settings
-    - CONVERTIBLE + decision 'convert': single create_activation_code op,
-      no configure_settings (the phone auto-configures after registering)
-    - CONVERTIBLE + decision 'skip': caught by the generic skip path upstream
-    - CONVERTIBLE + unresolved / other: no ops (decision forces a no-op)
+    - CONVERTIBLE, default: single create_activation_code op, no configure_settings
+      (the phone auto-configures after registering). Emitted unconditionally —
+      convertibility is a model classification, not an operator choice.
+    - CONVERTIBLE, when config["convertible_provisioning"] == "mac" AND mac present:
+      same 2-op MAC path as NATIVE_MPP.  Use this when CUCM→MPP firmware
+      conversion will auto-register the device against Webex by MAC so that
+      no end-user activation step is needed.
     - webex_app / infrastructure / dect / non-Webex models: no ops
 
     Skip decisions handled generically in expand_to_operations.
@@ -508,17 +514,19 @@ def _expand_device(
         deps_create.append(_node_id(owner_cid, "create"))
 
     if obj.get("compatibility_tier") == "convertible":
-        choice = _decision_chosen(decisions, "DEVICE_FIRMWARE_CONVERTIBLE")
-        if choice != "convert":
-            # Only 'convert' resolves to an activation code op.
-            # 'skip' is caught by the generic skip path upstream; any
-            # other value (None / unresolved) produces no op.
-            return []
-        return [
-            _op(cid, "create_activation_code", "device",
-                f"Generate activation code for {name}",
-                depends_on=deps_create, batch=batch),
-        ]
+        # Check whether the operator wants MAC-based provisioning for convertibles.
+        # Requires config["convertible_provisioning"] == "mac" AND a MAC on the device.
+        use_mac = (
+            (config or {}).get("convertible_provisioning") == "mac"
+            and bool(obj.get("mac"))
+        )
+        if not use_mac:
+            return [
+                _op(cid, "create_activation_code", "device",
+                    f"Generate activation code for {name}",
+                    depends_on=deps_create, batch=batch),
+            ]
+        # Fall through to the MAC-based 2-op path below.
 
     return [
         _op(cid, "create", "device", f"Create device {name}",
@@ -1202,6 +1210,7 @@ def expand_to_operations(
     store: MigrationStore,
     bulk_device_threshold: int | None = None,
     skip_rebuild_phones: bool = False,
+    config: dict | None = None,
 ) -> list[MigrationOp]:
     """Expand each analyzed canonical object into its constituent API operations.
 
@@ -1209,8 +1218,8 @@ def expand_to_operations(
     are skipped — they have pending decisions that must be resolved first.
 
     Generic skip: any object with a resolved "skip" decision of type
-    DEVICE_INCOMPATIBLE, DEVICE_FIRMWARE_CONVERTIBLE, EXTENSION_CONFLICT,
-    or LOCATION_AMBIGUOUS is suppressed entirely (no ops produced).
+    DEVICE_INCOMPATIBLE, EXTENSION_CONFLICT, or LOCATION_AMBIGUOUS is
+    suppressed entirely (no ops produced).
 
     Special handling: SHARED_LINE_COMPLEX decisions are checked inside
     the shared_line expander (supports "virtual_line" option in addition
@@ -1222,6 +1231,8 @@ def expand_to_operations(
             meets or exceeds this value, replace per-device settings/layout/
             softkey ops with bulk submission ops via ``_optimize_for_bulk``.
             When ``None``, uses ``BULK_DEVICE_THRESHOLD_DEFAULT``.
+        config: Project config dict (from config.json). When present, consulted
+            by device expander for ``convertible_provisioning`` mode.
 
     (from 05-dependency-graph.md lines 38-75,
      phase-07-planning.md lines 26-27)
@@ -1267,7 +1278,11 @@ def expand_to_operations(
                 obj.location_id = loc_choice
                 store.upsert_object(obj)
 
-        ops = expander(obj_data, decisions)
+        # Device expander takes an optional config dict for convertible_provisioning mode.
+        if obj_type == "device":
+            ops = _expand_device(obj_data, decisions, config=config)
+        else:
+            ops = expander(obj_data, decisions)
         all_ops.extend(ops)
 
     logger.info(

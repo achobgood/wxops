@@ -33,9 +33,10 @@ DEFAULT_AUTO_RULES: list[dict[str, Any]] = [
     # Incompatible devices have no migration path — always skip
     {"type": "DEVICE_INCOMPATIBLE", "choice": "skip",
      "reason": "No MPP migration path exists for this device"},
-    # Convertible devices can always be firmware-flashed
-    {"type": "DEVICE_FIRMWARE_CONVERTIBLE", "choice": "convert",
-     "reason": "Device model can be firmware-converted to MPP"},
+    # NOTE: DEVICE_FIRMWARE_CONVERTIBLE was removed 2026-04-15. Convertibility
+    # is now a phone model classification, not an operator choice — the
+    # planner emits a create_activation_code op unconditionally for every
+    # convertible device.
     # Hotdesk DN conflicts — primary DN always wins
     {"type": "HOTDESK_DN_CONFLICT", "choice": "keep_primary",
      "reason": "Primary DN takes precedence over hotdesk conflict"},

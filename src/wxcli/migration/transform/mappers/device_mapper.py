@@ -14,7 +14,10 @@ Cross-ref reads:
 
 Decisions generated:
     DEVICE_INCOMPATIBLE          — phone model in Incompatible tier
-    DEVICE_FIRMWARE_CONVERTIBLE  — phone model in Firmware Convertible tier
+
+Convertible devices (``DeviceCompatibilityTier.CONVERTIBLE``) do NOT produce a
+decision. Convertibility is a model classification; the planner unconditionally
+emits a ``device:create_activation_code`` op for every convertible device.
 """
 
 from __future__ import annotations
@@ -213,33 +216,11 @@ class DeviceMapper(Mapper):
                 result.decisions.append(decision)
 
             elif compatibility_tier == DeviceCompatibilityTier.CONVERTIBLE:
-                decision = self._create_decision(
-                    store=store,
-                    decision_type=DecisionType.DEVICE_FIRMWARE_CONVERTIBLE,
-                    severity="MEDIUM",
-                    summary=(
-                        f"Device '{device_name}' (model: {model}) requires firmware "
-                        f"conversion from Enterprise to MPP"
-                    ),
-                    context={
-                        "device_id": device.canonical_id,
-                        "device_name": device_name,
-                        "model": model,
-                        "protocol": protocol,
-                        "compatibility_tier": compatibility_tier.value,
-                    },
-                    options=[
-                        accept_option(
-                            "Convert firmware — factory reset, load MPP firmware via TFTP/EDOS, "
-                            "then register to Webex via activation code"
-                        ),
-                        manual_option("Replace with native MPP phone (68xx series)"),
-                        skip_option("Migrate user without device"),
-                    ],
-                    affected_objects=[device.canonical_id],
-                )
-                store.save_decision(decision_to_store_dict(decision))
-                result.decisions.append(decision)
+                # No decision produced. Convertibility is a phone model
+                # classification, not an operator choice. The planner
+                # unconditionally emits a device:create_activation_code op
+                # for convertible devices.
+                pass
 
         return result
 
