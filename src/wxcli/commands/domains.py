@@ -3,20 +3,21 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
+from wxcli.config import get_org_id
 
 
-app = typer.Typer(help="Manage Webex Calling api-domain-management.")
+app = typer.Typer(help="Manage Webex Calling domains.")
 
 
 @app.command("get-domain-verification")
 def get_domain_verification(
-    org_id: str = typer.Argument(help="orgId"),
     domain: str = typer.Option(None, "--domain", help="A valid domain name."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Domain Verification Token."""
     api = get_api(debug=debug)
+    org_id = get_org_id() or api.people.me().org_id
     url = f"https://webexapis.com/identity/organizations/{org_id}/actions/getDomainVerificationToken"
     if json_body:
         body = json.loads(json_body)
@@ -40,6 +41,9 @@ def get_domain_verification(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -49,7 +53,6 @@ def get_domain_verification(
 
 @app.command("verify-domain")
 def verify_domain(
-    org_id: str = typer.Argument(help="orgId"),
     domain: str = typer.Option(None, "--domain", help="The domain name to be verified."),
     claim_domain: str = typer.Option(None, "--claim-domain", help="A boolean to specify whether the domain needs to be claimed."),
     reserve_domain: str = typer.Option(None, "--reserve-domain", help="For FedRAMP only: If true, add the domain to the FedRAMP res"),
@@ -58,6 +61,7 @@ def verify_domain(
 ):
     """Verify Domain."""
     api = get_api(debug=debug)
+    org_id = get_org_id() or api.people.me().org_id
     url = f"https://webexapis.com/identity/organizations/{org_id}/actions/verifyDomain"
     if json_body:
         body = json.loads(json_body)
@@ -85,6 +89,9 @@ def verify_domain(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -94,7 +101,6 @@ def verify_domain(
 
 @app.command("claim-domain")
 def claim_domain(
-    org_id: str = typer.Argument(help="orgId"),
     force_domain_claim: str = typer.Option(None, "--force-domain-claim", help="Indicate if the domain should be claimed when there are user"),
     claim_domain_only: str = typer.Option(None, "--claim-domain-only", help="Indicate to just claim the domain only without searching/mar"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
@@ -102,6 +108,7 @@ def claim_domain(
 ):
     """Claim Domain\n\nExample --json-body:\n  '{"data":[{"domain":"..."}],"forceDomainClaim":true,"claimDomainOnly":true}'."""
     api = get_api(debug=debug)
+    org_id = get_org_id() or api.people.me().org_id
     url = f"https://webexapis.com/identity/organizations/{org_id}/actions/claimDomain"
     if json_body:
         body = json.loads(json_body)
@@ -127,6 +134,9 @@ def claim_domain(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -136,7 +146,6 @@ def claim_domain(
 
 @app.command("unverify-domain")
 def unverify_domain(
-    org_id: str = typer.Argument(help="orgId"),
     domain: str = typer.Option(None, "--domain", help="Domain name to be verified."),
     remove_pending: str = typer.Option(None, "--remove-pending", help="Specify whether to remove pending domain. Default is false ("),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
@@ -144,6 +153,7 @@ def unverify_domain(
 ):
     """Unverify Domain."""
     api = get_api(debug=debug)
+    org_id = get_org_id() or api.people.me().org_id
     url = f"https://webexapis.com/identity/organizations/{org_id}/actions/unverifyDomain"
     if json_body:
         body = json.loads(json_body)
@@ -169,6 +179,9 @@ def unverify_domain(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -178,13 +191,13 @@ def unverify_domain(
 
 @app.command("unclaim-domain")
 def unclaim_domain(
-    org_id: str = typer.Argument(help="orgId"),
     domain: str = typer.Option(None, "--domain", help="A claimed domain."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Unclaim Domain."""
     api = get_api(debug=debug)
+    org_id = get_org_id() or api.people.me().org_id
     url = f"https://webexapis.com/identity/organizations/{org_id}/actions/unclaimDomain"
     if json_body:
         body = json.loads(json_body)
@@ -208,6 +221,9 @@ def unclaim_domain(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
