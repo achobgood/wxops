@@ -222,14 +222,18 @@ class TestWorkspaceAssignNumber:
         assert "Lobby Phone" in result.reason
 
     def test_noop_when_no_phone_number(self):
-        data = {"display_name": "Lobby Phone"}
+        data = {"canonical_id": "workspace:ws-1", "display_name": "Lobby Phone"}
         deps = {"workspace:ws-1": "wx-ws"}
         result = handle_workspace_assign_number(data, deps, {})
         # Workspace resolved but no number to assign — true no-op
         assert result == []
 
     def test_returns_call_when_both_present(self):
-        data = {"display_name": "Lobby Phone", "phone_number": "+15551234567"}
+        data = {
+            "canonical_id": "workspace:ws-1",
+            "display_name": "Lobby Phone",
+            "phone_number": "+15551234567",
+        }
         deps = {"workspace:ws-1": "wx-ws"}
         result = handle_workspace_assign_number(data, deps, {})
         assert not isinstance(result, SkippedResult)
@@ -438,3 +442,75 @@ class TestExecuteSingleOpRequireWebexId:
 
         assert result.success
         assert result.webex_id is None
+
+
+# ---------------------------------------------------------------------------
+# Finding #3 — run_batch_ops require_webex_id gate covers activation codes
+# ---------------------------------------------------------------------------
+
+
+class TestRunBatchOpsRequireWebexIdForActivationCode:
+    """Fix #3: ``run_batch_ops`` must gate both ``create`` AND
+    ``create_activation_code`` on the require_webex_id check. Convertible
+    phones use the activation-code path; a malformed/empty response body
+    would otherwise slip through and masquerade as success.
+    """
+
+    @pytest.mark.asyncio
+    async def test_run_batch_ops_sets_require_webex_id_for_activation_code(self):
+        """Single activation-code task with an empty 200 OK response body
+        must produce a FAILED OpResult carrying the ``no id/code`` error.
+        """
+        from wxcli.migration.execute.engine import run_batch_ops
+
+        url = f"{BASE}/devices/activationCode"
+        tasks = [{
+            "op": {
+                "node_id": "device:convertible1:create_activation_code",
+                "op_type": "create_activation_code",
+                "resource_type": "device",
+            },
+            "calls": [("POST", url, {"model": "Cisco 8851"})],
+        }]
+
+        with aioresponses() as m:
+            # Silent success: 200 OK, empty JSON object — no id, no code.
+            m.post(url, status=200, payload={})
+            async with aiohttp.ClientSession() as session:
+                sem = asyncio.Semaphore(5)
+                results = await run_batch_ops(session, tasks, sem, ctx={})
+
+        assert len(results) == 1
+        assert not results[0].success
+        # Error message is shaped by execute_single_op — see Fix #18.
+        assert "no id/code" in (results[0].error or "").lower()
+
+    @pytest.mark.asyncio
+    async def test_run_batch_ops_activation_code_succeeds_with_code(self):
+        """Same task shape but the response carries a ``code``: must succeed
+        and that code lands in webex_id (execute_single_op falls back to
+        ``code`` when ``id`` is absent)."""
+        from wxcli.migration.execute.engine import run_batch_ops
+
+        url = f"{BASE}/devices/activationCode"
+        tasks = [{
+            "op": {
+                "node_id": "device:convertible1:create_activation_code",
+                "op_type": "create_activation_code",
+                "resource_type": "device",
+            },
+            "calls": [("POST", url, {"model": "Cisco 8851"})],
+        }]
+
+        with aioresponses() as m:
+            m.post(url, status=200, payload={
+                "code": "ACT-ABCD1234",
+                "expiryTime": "2026-05-01T00:00:00Z",
+            })
+            async with aiohttp.ClientSession() as session:
+                sem = asyncio.Semaphore(5)
+                results = await run_batch_ops(session, tasks, sem, ctx={})
+
+        assert len(results) == 1
+        assert results[0].success
+        assert results[0].webex_id == "ACT-ABCD1234"
