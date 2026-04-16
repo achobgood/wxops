@@ -337,12 +337,12 @@ Next steps:
 
 1. **xAPI only works on RoomOS devices.** If the user asks to send an xAPI command to an MPP phone, stop and explain. MPP phones use `device-settings` (see `manage-devices` skill), not xAPI. RoomOS devices include Room, Board, and Desk series.
 
-2. **9800-series phones straddle both skills.** 9800-series phones (9811/9821/9841/9851/9861/9871) use this skill (device-platform) for RoomOS config keys, BUT they also support some telephony device-settings commands via the `manage-devices` skill:
+2. **9800-series phones straddle both skills.** 9800-series phones (9811/9821/9841/9851/9861/9871) use this skill (device-platform) for **PhoneOS** config keys, BUT they also support some telephony device-settings commands via the `manage-devices` skill. **IMPORTANT: 9800-series runs PhoneOS, not RoomOS. PhoneOS is RoomOS-derived but is a distinct OS — Room/Board/Desk series run RoomOS; 9800-series runs PhoneOS. The Device Configurations API surface is shared, but the schemas differ. Do not call 9800-series "RoomOS devices".**
    - **Line Key Templates** -- model string is `"Cisco 98xx"` (no `"DMS"` prefix; older MPP phones use `"DMS Cisco 88xx"` format)
    - **Device member management** -- add/remove lines on ports
    - **Person-level device settings** -- limited fields like compression
    
-   Rule of thumb: RoomOS config keys (software settings, UI, audio, video) -> this skill. Line key templates, device members, telephony device settings -> `manage-devices` skill.
+   Rule of thumb: PhoneOS config keys on 9800-series or RoomOS config keys on Room/Board/Desk (software settings, UI, audio, video, line labels, wallpaper) -> this skill. Line key templates, device members, telephony device settings -> `manage-devices` skill.
 
 3. **Always get a device ID first.** All 3 APIs require a device ID. The user may not have one -- guide them through `wxcli devices list` to find it. For workspace personalization, also get the workspace ID via `wxcli workspaces list`.
 

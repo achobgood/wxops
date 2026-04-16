@@ -38,13 +38,14 @@ Convertible phones no longer produce a decision. `DeviceMapper` classifies the m
 
 Key firmware distinction for replacements and conversions:
 - **MPP firmware** (68xx, 78xx, 88xx): Configured via Telephony Device Settings API (`device-settings` CLI group). Requires `apply-changes` after updates. <!-- Source: devices-core.md §5a -->
-- **RoomOS / PhoneOS** (9800-series, Room/Board/Desk): Configured via Device Configurations API (`device-configurations` CLI group). Uses RoomOS key-value pairs, JSON Patch updates, auto-applies on resync. <!-- Source: devices-core.md §5a -->
-- **9800-series straddles both worlds.** They are `productType: phone` but run PhoneOS (RoomOS-derived). Device-level telephony settings (`GET /telephony/config/devices/{id}/settings`) returns 404 on 9800-series — treating all phones as `device-settings` targets will fail. However, 9800-series phones DO share some telephony infrastructure with MPP:
+- **PhoneOS** (9800-series): Configured via Device Configurations API (`device-configurations` CLI group). Uses PhoneOS key-value pairs (e.g., `Phone.LineKeyLabel`, `Lines.Line[N].CallFeatureSettings.*`, `User.Screen.CustomWallpaper.CustomWallpaperDownloadURL[N]`), JSON Patch updates, auto-applies on resync. **PhoneOS is RoomOS-derived but distinct — do not call 9800-series devices "RoomOS devices".** <!-- Source: devices-core.md §5a -->
+- **RoomOS** (Room/Board/Desk series): Same Device Configurations API surface, distinct schema (e.g., `Audio.Ultrasound.*`, `Conference.MaxReceiveCallRate`). <!-- Source: devices-core.md §5a -->
+- **9800-series straddles both worlds.** They are `productType: phone` but run PhoneOS (not RoomOS). Device-level telephony settings (`GET /telephony/config/devices/{id}/settings`) returns 404 on 9800-series — treating all phones as `device-settings` targets will fail. However, 9800-series phones DO share some telephony infrastructure with MPP:
   - **Line Key Templates** — fully supported. Model string is `"Cisco 98xx"` (not `"DMS Cisco 98xx"` like MPP phones).
   - **Person-level device settings** — returns limited fields (e.g., compression). Not a full device-settings response.
-  - **Device Configurations** (RoomOS keys) — confirmed working for per-device config via JSON Patch.
+  - **Device Configurations** (PhoneOS keys) — confirmed working for per-device config via JSON Patch.
   - **Device member management** — standard telephony device member APIs work normally.
-  The key insight: 9800-series uses RoomOS config keys for device configuration BUT participates in telephony features like line key templates and person-level settings. Migration code must not assume "RoomOS = no telephony API surface". <!-- Source: devices-core.md line 1329; devices-platform.md; live testing 2026-04-15 -->
+  The key insight: 9800-series uses PhoneOS config keys for device configuration BUT participates in telephony features like line key templates and person-level settings. Migration code must not assume "PhoneOS = no telephony API surface", and must not conflate PhoneOS with RoomOS. <!-- Source: devices-core.md line 1329; devices-platform.md; live testing 2026-04-15 -->
 
 ### HOTDESK_DN_CONFLICT
 

@@ -85,7 +85,7 @@ Capture the `location_id` for the target location.
 
 2. Check the `product` field in the response. **Route based on model family and operation type:**
    - **9800-series** (product contains "9811", "9821", "9841", "9851", "9861", or "9871"):
-     - **Device-level settings** (`show-settings-devices`, `update-settings-devices`): These 404 on 9800-series. **Redirect to the `device-platform` skill** for RoomOS config keys (ringtone, standby, display, wallpaper, etc.).
+     - **Device-level settings** (`show-settings-devices`, `update-settings-devices`): These 404 on 9800-series. **Redirect to the `device-platform` skill** for PhoneOS config keys (ringtone, standby, display, wallpaper, line labels, etc.). NOTE: 9800-series runs PhoneOS, NOT RoomOS. PhoneOS is RoomOS-derived but distinct — do not call these "RoomOS keys" or call 9800 devices "RoomOS devices".
      - **Line Key Templates** (create, list, show, update, delete, apply): **Stay in this skill.** Works with model `"Cisco 98xx"`.
      - **Device member management** (list members, update members/ports): **Stay in this skill.** Works normally.
      - **Person-level device settings** (`show-settings-devices-3`): **Stay in this skill.** Works (limited fields).
