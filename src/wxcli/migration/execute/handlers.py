@@ -50,6 +50,38 @@ def _resolve_location(data: dict, deps: dict) -> str | None:
     return deps.get(loc_cid)
 
 
+# PhoneOS phones (9800-series + 8875) require the non-DMS model form
+# ("Cisco 9841") in device-create and activation-code payloads. All other
+# phones use the classic "DMS Cisco {model}" form.
+# Kept in sync with src/wxcli/migration/transform/mappers/device_mapper.py
+# (`_CLOUD_SURFACE_SUBSTRINGS`). Duplicated here so handlers.py stays
+# dependency-free on the transform layer.
+_PHONEOS_MODEL_SUBSTRINGS = {"9811", "9821", "9841", "9851", "9861", "9871", "8875"}
+
+
+def _normalize_device_model(model: str) -> str:
+    """Normalize a canonical device model string for the Webex devices API.
+
+    PhoneOS phones (9800-series + 8875) must NOT carry the "DMS " prefix —
+    the device-create and activation-code APIs reject it with
+    "Device model is not supported." All other phones require the "DMS "
+    prefix. The " IP Phone " token is always collapsed because CUCM models
+    may arrive as "Cisco IP Phone 8851" while Webex expects "Cisco 8851".
+    """
+    # Always collapse " IP Phone " first so downstream checks see the
+    # concise form ("Cisco 9841" vs "Cisco IP Phone 9841").
+    model = model.replace(" IP Phone ", " ")
+    is_phoneos = any(s in model for s in _PHONEOS_MODEL_SUBSTRINGS)
+    if is_phoneos:
+        # Strip any pre-existing "DMS " prefix — PhoneOS rejects it.
+        if model.startswith("DMS "):
+            model = model[len("DMS "):]
+    else:
+        if not model.startswith("DMS "):
+            model = f"DMS {model}"
+    return model
+
+
 def _resolve_location_from_deps(deps: dict) -> str | None:
     """Fallback: find a location webex_id in resolved_deps by prefix.
     Used when the canonical model doesn't have a location_id field."""
@@ -429,8 +461,11 @@ def handle_device_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
     body: dict[str, Any] = {}
     if data.get("mac"):
         body["mac"] = data["mac"]
-    if data.get("model"):
-        body["model"] = data["model"]
+    model = data.get("model")
+    if model:
+        # PhoneOS phones (9800-series + 8875) reject the "DMS " prefix;
+        # all other phones require it. See _normalize_device_model.
+        body["model"] = _normalize_device_model(model)
     # Resolve owner: person or workspace
     owner_cid = data.get("owner_canonical_id")
     if owner_cid:
@@ -461,14 +496,12 @@ def handle_device_create_activation_code(
 
     model = data.get("model")
     if model:
-        if not model.startswith("DMS "):
-            model = f"DMS {model}"
         # CanonicalDevice.model may arrive as either "Cisco 8851" or
         # "Cisco IP Phone 8851" (both are recognized as convertible in
         # cross_reference._CONVERTIBLE_PATTERNS). The Webex activation
-        # code API expects the concise form, so collapse " IP Phone ".
-        model = model.replace(" IP Phone ", " ")
-        body["model"] = model
+        # code API expects the concise form and rejects the "DMS " prefix
+        # on PhoneOS models — see _normalize_device_model.
+        body["model"] = _normalize_device_model(model)
 
     owner_cid = data.get("owner_canonical_id")
     if owner_cid:
@@ -681,6 +714,12 @@ def handle_voicemail_group_create(data: dict, deps: dict, ctx: dict) -> HandlerR
 # Tier 5: Settings configuration
 # ---------------------------------------------------------------------------
 
+# Features that require read-before-write: the API rejects partial bodies
+# because it proxies to a backend that needs all fields present.
+# For these features, the handler emits GET (read current) then PUT (merge + overwrite).
+_READ_BEFORE_WRITE_FEATURES = {"callRecording"}
+
+
 def handle_user_configure_settings(data: dict, deps: dict, ctx: dict) -> HandlerResult:
     person_wid = None
     for cid, wid in deps.items():
@@ -693,7 +732,12 @@ def handle_user_configure_settings(data: dict, deps: dict, ctx: dict) -> Handler
     calls = []
     for feature_name, feature_body in settings.items():
         url = _url(f"/people/{person_wid}/features/{feature_name}", ctx)
-        calls.append(("PUT", url, feature_body))
+        if feature_name in _READ_BEFORE_WRITE_FEATURES:
+            # Read current state first, then merge our overrides on top
+            calls.append(("GET", url, None))
+            calls.append(("PUT", url, {**feature_body, "_merge_from_previous": True}))
+        else:
+            calls.append(("PUT", url, feature_body))
     return calls
 
 

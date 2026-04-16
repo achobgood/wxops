@@ -79,6 +79,16 @@ Webex Calling line key types are limited to: `PRIMARY_LINE`, `SHARED_LINE`, `MON
 
 ---
 
+### Webex per-user device limit: 5 (hard)
+
+Webex Calling enforces a **maximum of 5 devices per user**, counting hardware phones (MPP/PhoneOS) and soft clients (Webex App desktop, mobile, tablet, browser) combined. The cap is server-enforced and has no org-level override.
+
+- **Surfaces at execution time** as HTTP 400 from `POST /devices` or `POST /devices/activationCode` with body `"Phones cannot be added to this user"`.
+- **CUCM delta:** CUCM's default per-user device cap is 50+, so users with many associated devices (desk phone + backup desk phone + Jabber + mobile + EM profile + tablet + ...) will not fit 1:1. Migration must choose which 5 to carry over.
+- **Recommended CUCM→Webex device-selection priority:** (1) primary desk phone, (2) backup/secondary desk phone, (3) softphone (Jabber → Webex App), (4) mobile client, (5) other (tablet, browser, second softphone). Drop extras as `DEVICE_INCOMPATIBLE` with `accept_loss` or `skip`.
+- **Orphan devices count against the quota.** Devices left behind by a failed prior migration run still occupy slots — run device cleanup (or `wxcli cleanup`) before retrying a user whose first attempt partially succeeded.
+- **Reference:** `docs/reference/devices-core.md` Gotcha #12 for the exact 400 message and endpoint coverage.
+
 ## Edge Cases & Exceptions
 
 ### 8845/8865 already on MPP firmware

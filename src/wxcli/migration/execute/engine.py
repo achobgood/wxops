@@ -25,6 +25,12 @@ logger = logging.getLogger(__name__)
 BASE = "https://webexapis.com/v1"
 MAX_RETRIES = 5
 
+# Sentinel key: when present in a call's body dict, the engine deep-merges
+# the previous call's response body into this body before sending.
+# The sentinel key itself is stripped before the request is made.
+# Usage: handler emits [("GET", url, None), ("PUT", url, {**overrides, "_merge_from_previous": True})]
+MERGE_FROM_PREVIOUS = "_merge_from_previous"
+
 
 async def poll_job_until_complete(
     session: aiohttp.ClientSession,
@@ -152,6 +158,10 @@ async def execute_single_op(
     last_body = {}
 
     for method, url, body in calls:
+        # Read-before-write: merge previous response into this body if requested
+        if isinstance(body, dict) and body.pop(MERGE_FROM_PREVIOUS, None):
+            body = {**last_body, **body}
+
         for attempt in range(max_retries):
             try:
                 async with semaphore:
