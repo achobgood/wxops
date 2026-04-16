@@ -40,7 +40,7 @@ Operations run in tier order. Within a tier, all operations in the same (batch, 
 Every handler in `handlers.py` is a pure function with this signature:
 
 ```python
-HandlerResult = list[tuple[str, str, dict | None]]  # [(method, url, body), ...]
+HandlerResult = list[tuple[str, str, dict | None]] | SkippedResult
 
 def handle_foo_bar(data: dict, deps: dict, ctx: dict) -> HandlerResult:
     ...
@@ -49,9 +49,25 @@ def handle_foo_bar(data: dict, deps: dict, ctx: dict) -> HandlerResult:
 - `data` — canonical object dict from the store (object's full JSON)
 - `deps` — `{canonical_id: webex_id}` for all completed dependency operations
 - `ctx` — session context: `{"orgId": "...", "CALLING_LICENSE_ID": "...", ...}`
-- Returns a list of `(method, url, body)` tuples executed sequentially by the engine
-- **Return `[]`** = no-op. The engine marks the operation completed without making any API call. Use this for guard clauses (missing deps, nothing to configure).
+- Returns one of:
+  - **`list[tuple[str, str, dict | None]]`** — API calls to execute sequentially by the engine
+  - **`[]`** — legitimate no-op (feature disabled by design, no config needed). Engine marks op `completed` with no API call.
+  - **`skipped(reason)`** — required upstream dependency not resolved. Engine marks op `skipped` with `error_message=reason` and cascades to dependents. Use when a webex_id from `deps` is missing where one was expected.
 - `_url(path, ctx)` — always use this instead of building URLs manually. It injects `?orgId=...` automatically when ctx has orgId.
+
+### When to return `[]` vs `skipped(reason)`
+
+| Scenario | Return |
+|---|---|
+| `if not feature.enabled: ...` | `[]` |
+| `if not settings: ...` (empty optional config) | `[]` |
+| `if not deps.get(upstream_cid): ...` | `skipped(f"{upstream_cid} not resolved")` |
+| `if not _resolve_location(data, deps): ...` | `skipped(f"location not resolved for {name}")` |
+| MOH / announcement placeholders (Phase A) | `[]` with explicit comment — do not convert |
+
+The runtime (`runtime.py`) and engine both intercept `SkippedResult`:
+- `engine.py::run_batch_ops` calls `update_op_status(..., 'skipped', error_message=reason)` and cascades skip to dependents (see Fix #10).
+- `engine.py::_run_per_device_fallback` treats a handler returning `SkippedResult` during bulk fallback as a per-device failure, recording the reason without iterating the sentinel (see Finding #8).
 
 ### Resolving dependencies
 
@@ -64,8 +80,15 @@ person_wid = deps.get(data.get("user_canonical_id", ""))
 # Prefix search (when the canonical_id isn't in data)
 loc_wid = next((wid for cid, wid in deps.items() if cid.startswith("location:")), None)
 
-# Silently omit unresolved members (partial resolution is valid)
-members = [{"id": deps[cid]} for cid in member_cids if cid in deps]
+# Silently omit unresolved members (partial resolution is valid, but log a warning):
+resolved_members = [{"id": deps[cid]} for cid in member_cids if cid in deps]
+unresolved = [cid for cid in member_cids if cid not in deps]
+if unresolved:
+    logger.warning(
+        "Handler X: %d of %d members unresolved: %s",
+        len(unresolved), len(member_cids), unresolved,
+    )
+# If ALL members unresolved AND members are required, return skipped(...) instead.
 ```
 
 ---
@@ -193,7 +216,7 @@ migration work (see "Tier 5 — Settings" above for `enable_hoteling_guest` and
 `planner.py:expand_to_operations(store)` reads all `status='analyzed'` objects and calls the matching `_EXPANDERS[obj_type](obj_data, decisions)` function. Returns `list[MigrationOp]`.
 
 **Skip logic (two kinds):**
-1. **Generic skip** — any object with a `_SKIP_DECISION_TYPES` decision resolved as "skip" is suppressed entirely. Types: `DEVICE_INCOMPATIBLE`, `DEVICE_FIRMWARE_CONVERTIBLE`, `EXTENSION_CONFLICT`, `LOCATION_AMBIGUOUS`, `MISSING_DATA`, `WORKSPACE_LICENSE_TIER`, `DUPLICATE_USER`, `VOICEMAIL_INCOMPATIBLE`.
+1. **Generic skip** — any object with a `_SKIP_DECISION_TYPES` decision resolved as "skip" is suppressed entirely. Types: `DEVICE_INCOMPATIBLE`, `EXTENSION_CONFLICT`, `LOCATION_AMBIGUOUS`, `MISSING_DATA`, `WORKSPACE_LICENSE_TIER`, `DUPLICATE_USER`, `VOICEMAIL_INCOMPATIBLE`. (`DEVICE_FIRMWARE_CONVERTIBLE` was removed 2026-04-15 — convertible devices auto-convert and always emit a `create_activation_code` op.)
 2. **Per-expander skip** — individual expanders have their own skip logic (e.g., `_expand_call_forwarding` returns `[]` if all forwarding types disabled; `_expand_line_key_template` returns `[]` if `phones_using == 0`; `_expand_softkey_config` returns `[]` if `is_psk_target=False`).
 
 **Data-only types** (no operations produced): `line` (consumed by user:create), `voicemail_profile` (consumed by user:configure_voicemail).
@@ -260,6 +283,7 @@ migration work (see "Tier 5 — Settings" above for `enable_hoteling_guest` and
 
 ## Key Gotchas
 
+- **`SkippedResult` sentinel + `skipped(reason)` helper** — `handlers.py` exports both. `SkippedResult(reason=...)` is a frozen dataclass returned in place of a `[(method, url, body)]` list when a required upstream dep is missing. `skipped(reason)` is the one-liner factory. The engine detects the sentinel via `isinstance(calls, SkippedResult)` and routes the op to `update_op_status(..., 'skipped', error_message=reason)` so the operator can see cascades separately from genuine FAILED ops. Never return `SkippedResult` from a no-op — return `[]` instead (legitimate no-ops don't block dependents from running).
 - **`_url()` always handles orgId** — never build query strings manually in handlers.
 - **Picking owner from deps**: `owner_canonical_id` prefix determines `personId` vs `workspaceId` in device:create. Use `cid.startswith("user:")` / `"workspace:"`.
 - **Pickup group + paging group agents** — these APIs take plain string arrays, not `[{"id": ...}]`. Hunt group and call queue take the object format.
@@ -279,7 +303,7 @@ migration work (see "Tier 5 — Settings" above for `enable_hoteling_guest` and
 - **`operating_mode` — `sameHoursDaily` format** — Canonical stores `{startTime, endTime}`, but the API requires `{mondayToFriday: {enabled, allDayEnabled, startTime?, endTime?}, saturdayToSunday: ...}`. The handler converts automatically.
 - **`operating_mode` — `differentHoursDaily` format** — Canonical stores `{day_0: {startTime, endTime}, ...}` (numeric keys). API uses `{monday: {enabled, allDayEnabled, startTime?, endTime?}, ...}` (day names). The handler maps `day_N` → day name.
 - **`operating_mode` — 409 auto-recovery** — If an operating mode with the same name already exists, the engine searches by name and uses the existing ID.
-- **`device:create_activation_code` vs `device:create`** — firmware-convertible phones (7800/8800-series eligible for E2M conversion) take the activation-code path instead of MAC-based creation. The planner picks between the two based on `compatibility_tier == "convertible"` + the `DEVICE_FIRMWARE_CONVERTIBLE` decision produced by `DeviceCompatibilityAnalyzer`: `"convert"` → activation code op; `"skip"` → no op (caught by the generic skip path upstream); unresolved / anything else → no op. The activation code string lands in `plan_operations.webex_id` because the engine falls back to `resp_body.get("code")` when no `id` is present. Model strings arriving as `"Cisco IP Phone 8851"` are collapsed to `"DMS Cisco 8851"` in the handler (the verbose form is recognized by the convertibility classifier but rejected by the Webex activation code API). Expiry is not persisted (no `result_body` column); regenerating expired codes is future work.
+- **`device:create_activation_code` vs `device:create`** — firmware-convertible phones (7800/8800-series eligible for E2M conversion) take the activation-code path instead of MAC-based creation. As of 2026-04-15, the planner picks between the two purely on `compatibility_tier == "convertible"` — convertible devices unconditionally emit a `create_activation_code` op with no decision gating, no option, and no skip path (if a device is convertible, it converts). The `DEVICE_FIRMWARE_CONVERTIBLE` decision type is retained in the enum for backward compatibility with pre-2026-04-15 project stores, but no code path emits it for new runs. The activation code string lands in `plan_operations.webex_id` because the engine falls back to `resp_body.get("code")` when no `id` is present. Model strings arriving as `"Cisco IP Phone 8851"` are collapsed to `"DMS Cisco 8851"` in the handler (the verbose form is recognized by the convertibility classifier but rejected by the Webex activation code API). Expiry is not persisted (no `result_body` column); regenerating expired codes is future work.
 
 ---
 
@@ -322,3 +346,27 @@ one-job-per-org constraint.
 Government. If you're migrating a FedRAMP tenant, set
 `bulk_device_threshold` to 999999 or delete the `bulk_rebuild_phones`
 ops manually from the plan before execution.
+
+---
+
+## History — Wave 1 primitive locations (archaeology note)
+
+The silent-failure-hardening Wave 1 primitives — the `SkippedResult`
+sentinel + `skipped()` helper in `handlers.py`, the engine bulk-job
+critical fixes (#4, #6, #19), and the `JobErrorFetchFailed` exception —
+were landed in commit **`85c2f12`** ("feat(planner): thread-safe skip
+report + needs_decision visibility"), **not** in the commit whose
+message advertises them (`50f5724`, "feat(execute): add SKIPPED op
+status + sentinel + bulk-job critical fixes (#4, #6, #19)"). The
+`50f5724` commit in fact contains only the Wave 1 test file —
+`tests/migration/execute/test_silent_failure_wave1.py`. The diff
+reality and the commit message drifted during concurrent planner work.
+
+If you're bisecting / blame-walking Wave 1 primitives, look at
+**`85c2f12`** for the actual source changes. This note exists so the
+history is retrievable without a forensic pass — the `50f5724` commit
+message cannot be rewritten without an interactive rebase of 8
+subsequent commits, which was judged too risky on an active research
+branch. See Finding #9 in
+`docs/superpowers/specs/2026-04-16-silent-failure-hardening-design.md`
+for the full rationale.

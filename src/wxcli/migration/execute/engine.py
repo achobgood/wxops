@@ -16,14 +16,30 @@ from typing import Any
 
 import aiohttp
 
-from wxcli.migration.execute.handlers import HANDLER_REGISTRY
+from wxcli.migration.execute.handlers import HANDLER_REGISTRY, SkippedResult
 from wxcli.migration.execute.runtime import get_next_batch, update_op_status
 from wxcli.migration.store import MigrationStore
+
+
+class JobErrorFetchFailed(Exception):
+    """Raised when the bulk job errors endpoint cannot be read.
+
+    Distinguishes a legitimately-empty errors list (200 response with empty
+    ``items``) from a fetch failure (non-200 or network error). Callers must
+    treat the fetch failure as "we don't know which devices failed" and
+    escalate to a total failure rather than silently assume zero errors.
+    """
 
 logger = logging.getLogger(__name__)
 
 BASE = "https://webexapis.com/v1"
 MAX_RETRIES = 5
+
+# Sentinel key: when present in a call's body dict, the engine deep-merges
+# the previous call's response body into this body before sending.
+# The sentinel key itself is stripped before the request is made.
+# Usage: handler emits [("GET", url, None), ("PUT", url, {**overrides, "_merge_from_previous": True})]
+MERGE_FROM_PREVIOUS = "_merge_from_previous"
 
 
 async def poll_job_until_complete(
@@ -82,8 +98,10 @@ async def fetch_job_errors(
 
     GET /v1/telephony/config/jobs/devices/{jobType}/{jobId}/errors
 
-    Returns ``[]`` on empty or non-200 response so callers can treat it
-    as a best-effort lookup.
+    Returns the parsed ``items`` list on a 200 response (empty list if the
+    payload carries no items). Raises ``JobErrorFetchFailed`` on any
+    non-200 status or network exception so the caller can distinguish
+    "no errors reported" from "we couldn't ask". Fix #6.
     """
     from urllib.parse import urlencode
 
@@ -96,12 +114,16 @@ async def fetch_job_errors(
     try:
         async with session.get(url) as resp:
             if resp.status != 200:
-                logger.warning("fetch_job_errors %s -> %d", job_id[:16], resp.status)
-                return []
+                raise JobErrorFetchFailed(
+                    f"fetch_job_errors {job_id[:16]} -> HTTP {resp.status}"
+                )
             body = await resp.json()
+    except JobErrorFetchFailed:
+        raise
     except Exception as e:
-        logger.warning("fetch_job_errors %s raised: %s", job_id[:16], e)
-        return []
+        raise JobErrorFetchFailed(
+            f"fetch_job_errors {job_id[:16]} raised: {e}"
+        ) from e
 
     if not isinstance(body, dict):
         return []
@@ -141,17 +163,28 @@ async def execute_single_op(
     calls: list[tuple[str, str, dict | None]],
     semaphore: asyncio.Semaphore,
     max_retries: int = MAX_RETRIES,
+    require_webex_id: bool = False,
 ) -> OpResult:
     """Execute one operation's API call(s) with rate limiting and retry.
 
     For multi-call operations (e.g., user:configure_settings), calls are
     executed sequentially. The operation fails if any sub-call fails.
     The webex_id comes from the first call's response (the create).
+
+    When ``require_webex_id`` is True (Fix #18 — create ops), a success
+    response with no ``id`` / ``code`` in the body is treated as FAILED
+    instead of silently succeeding. Some backends return 200/204 without a
+    body on server-side hiccups — the resource may not exist and we'd have
+    no way to reference it in later ops.
     """
     webex_id = None
     last_body = {}
 
     for method, url, body in calls:
+        # Read-before-write: merge previous response into this body if requested
+        if isinstance(body, dict) and body.pop(MERGE_FROM_PREVIOUS, None):
+            body = {**last_body, **body}
+
         for attempt in range(max_retries):
             try:
                 async with semaphore:
@@ -200,10 +233,52 @@ async def execute_single_op(
                 error="Max retries exceeded (429)", body={},
             )
 
+    # Fix #18: create ops must return a usable identifier. A silent success
+    # with no id means the downstream planner has no webex_id to record, and
+    # any dependent op will fail to resolve this create's output. Surface it
+    # as a FAILED op instead of silently completing.
+    if require_webex_id and not webex_id:
+        return OpResult(
+            node_id=node_id, status=500,
+            error="create succeeded but response contained no id/code",
+            body=last_body,
+        )
+
     return OpResult(
         node_id=node_id, status=200,
         webex_id=webex_id, body=last_body,
     )
+
+
+# Webex bulk job IDs are base64-encoded URN strings (typically 60-120 chars).
+# We enforce a floor of 10 characters — this catches the spec's obvious
+# garbage cases ("x", "", whitespace) *and* any plausible truncation /
+# off-by-one parsing bug. 10 is deliberately conservative vs. the real 60+
+# length: enough to rule out any 1-9 char typo while staying well under the
+# real minimum so test fixtures that use mock IDs just need to use
+# realistic-looking strings (which is cheap to do).
+_MIN_JOB_ID_LEN = 10
+
+
+def _validate_job_id(job_id: str | None) -> None:
+    """Fix #8: raise ``ValueError`` for missing/malformed bulk job IDs.
+
+    Webex returns base64-encoded URN job IDs. A submit response with an
+    empty, None, single-char, or whitespace ``id`` field points to either an
+    upstream backend bug or a parsing error — polling such an ID would 404
+    endlessly. Fail fast with a clear error so the operator knows the submit
+    response was bogus and the bulk op is FAILED rather than silently stuck
+    mid-poll.
+    """
+    if job_id is None or not isinstance(job_id, str):
+        raise ValueError(f"job_id is missing or not a string: {job_id!r}")
+    if not job_id.strip():
+        raise ValueError(f"job_id is empty / whitespace: {job_id!r}")
+    if len(job_id) < _MIN_JOB_ID_LEN:
+        raise ValueError(
+            f"job_id {job_id!r} is implausibly short "
+            f"(<{_MIN_JOB_ID_LEN} chars); refusing to poll"
+        )
 
 
 async def execute_bulk_op(
@@ -269,6 +344,19 @@ async def execute_bulk_op(
             body=submit_body or {},
         )
 
+    # Fix #8: validate the job ID *before* polling. A non-empty but malformed
+    # id (e.g. truncated, single-char) would otherwise pass the `if not job_id`
+    # check above and then fail mid-poll with a confusing 404. Surface as a
+    # FAILED OpResult with the offending value attached for diagnostics.
+    try:
+        _validate_job_id(job_id)
+    except ValueError as e:
+        return OpResult(
+            node_id=node_id, status=500,
+            error=f"Bulk submit returned malformed job_id: {e}",
+            body=submit_body or {},
+        )
+
     # Poll to completion
     try:
         final = await poll_job_until_complete(
@@ -291,9 +379,41 @@ async def execute_bulk_op(
     # Partial-failure check.
     updated = final.get("updatedCount", 0)
     expected = 0
+    excluded_unresolved = 0
     if fallback_context:
         expected = len(fallback_context.get("covered_devices", []))
-    if not fallback_context or updated >= expected:
+        # Fix #5/#7 companion: devices the upstream create never produced.
+        # `_build_fallback_context` already logged each one at WARN.
+        excluded_unresolved = fallback_context.get("excluded_unresolved_count", 0)
+
+    # Fix #19: when no fallback_context is configured we used to return
+    # success unconditionally. That silently accepted 0-update jobs. Now
+    # treat (fallback_context is None AND updated == 0) as a hard failure;
+    # when updated > 0 we keep the legacy success path (no way to verify
+    # `expected` without context, but SOMETHING worked).
+    if fallback_context is None:
+        if updated == 0:
+            return OpResult(
+                node_id=node_id, status=500,
+                error=(
+                    f"Bulk job {job_id}: updated 0 devices and no fallback "
+                    "configured; cannot verify success"
+                ),
+                body=final,
+            )
+        return OpResult(
+            node_id=node_id, status=200, webex_id=job_id, body=final,
+        )
+
+    if updated >= expected:
+        # Fix #7: even on the all-bulk-succeeded path, log a summary that
+        # accounts for the silently-excluded devices so the operator never
+        # has to guess whether anything was dropped.
+        logger.info(
+            "Bulk job %s summary: bulk_updated=%d/%d, fallback_attempted=0, "
+            "fallback_recovered=0, excluded_unresolved=%d",
+            job_id[:16], updated, expected, excluded_unresolved,
+        )
         return OpResult(
             node_id=node_id, status=200, webex_id=job_id, body=final,
         )
@@ -312,22 +432,61 @@ async def execute_bulk_op(
         )
         return OpResult(
             node_id=node_id, status=500,
-            error=f"Bulk job {job_id} partial failure with no error items",
+            error=(
+                f"Bulk job {job_id} partial failure with no error items "
+                f"(excluded_unresolved={excluded_unresolved})"
+            ),
             body=final,
         )
 
     fallback_ok, fallback_error = await _run_per_device_fallback(
         session, failed_ids, fallback_context, semaphore,
     )
+    # Fix #4: even on fallback_ok we must verify we actually attempted every
+    # missing device. If the errors endpoint returned an incomplete list,
+    # some devices are still unaccounted for and the op must be reported
+    # FAILED, not COMPLETED.
+    attempted = len(failed_ids)
+    missing = (expected - updated) - attempted
+    fallback_recovered = attempted if fallback_ok else 0
+    # Fix #7: summary log fires on EVERY exit path of the fallback branch so
+    # bulk_updated, fallback_attempted, fallback_recovered, and the count of
+    # devices excluded by `_build_fallback_context` are always visible to
+    # the operator. Logged before the early-return so we capture it on
+    # both COMPLETED and FAILED outcomes.
+    logger.info(
+        "Bulk job %s summary: bulk_updated=%d/%d, fallback_attempted=%d, "
+        "fallback_recovered=%d, excluded_unresolved=%d",
+        job_id[:16], updated, expected, attempted,
+        fallback_recovered, excluded_unresolved,
+    )
     if fallback_ok:
+        if missing > 0:
+            logger.warning(
+                "Bulk job %s: fallback recovered %d but %d device(s) never attempted",
+                job_id[:16], attempted, missing,
+            )
+            return OpResult(
+                node_id=node_id, status=500,
+                error=(
+                    f"Bulk {job_id}: partial failure — {updated} succeeded in bulk, "
+                    f"{attempted} recovered via fallback, but {missing} device(s) "
+                    f"still unaccounted for "
+                    f"(excluded_unresolved={excluded_unresolved})"
+                ),
+                body=final,
+            )
         logger.info("Bulk job %s: fallback recovered all %d failed devices",
-                    job_id[:16], len(failed_ids))
+                    job_id[:16], attempted)
         return OpResult(
             node_id=node_id, status=200, webex_id=job_id, body=final,
         )
     return OpResult(
         node_id=node_id, status=500,
-        error=f"Bulk {job_id}: fallback failed — {fallback_error}",
+        error=(
+            f"Bulk {job_id}: fallback failed — {fallback_error} "
+            f"(excluded_unresolved={excluded_unresolved})"
+        ),
         body=final,
     )
 
@@ -341,9 +500,20 @@ async def _resolve_failed_devices(
 ) -> list[str]:
     """Return the list of webex device IDs that failed in the bulk job.
 
-    Reads the errors endpoint and pulls itemId for each failed row.
+    Reads the errors endpoint and pulls itemId for each failed row. If the
+    errors endpoint itself can't be read (HTTP non-200 or network failure),
+    returns ``[]`` and logs a WARNING. ``execute_bulk_op`` already treats
+    an empty ``failed_ids`` list as a total failure, so this preserves the
+    safe behavior. Fix #6.
     """
-    items = await fetch_job_errors(session, job_type, job_id, ctx)
+    try:
+        items = await fetch_job_errors(session, job_type, job_id, ctx)
+    except JobErrorFetchFailed:
+        logger.warning(
+            "Cannot fetch job errors for %s — treating partial bulk failure as total failure",
+            job_id[:16],
+        )
+        return []
     return [i["itemId"] for i in items if i.get("itemId")]
 
 
@@ -361,6 +531,13 @@ async def _run_per_device_fallback(
     handler can resolve the device. If the handler still returns no calls
     (e.g. because the settings dict is empty but present), a direct PUT
     to the device settings endpoint is issued using the record's data.
+
+    Fix #7: aggregate errors instead of fail-fast. A single bad device
+    should not mask the fate of the rest — we collect unresolved and
+    per-device failures, log a WARNING summary after the loop, and
+    return a compacted error string listing the first few failures plus
+    totals. Fix #8: handler may return ``SkippedResult`` — treat that as
+    a per-device failure (not a bare TypeError on iteration).
     """
     handler_key = fallback_context.get("fallback_handler_key")
     handler = HANDLER_REGISTRY.get(handler_key) if handler_key else None
@@ -371,13 +548,23 @@ async def _run_per_device_fallback(
     deps = fallback_context.get("deps", {})
     ctx = fallback_context.get("ctx", {})
 
+    unresolved: list[str] = []
+    per_device_errors: list[tuple[str, str]] = []
+
     for wid in failed_webex_ids:
         record = covered.get(wid)
         if not record:
-            return False, f"Failed device {wid} not in covered_devices"
+            unresolved.append(wid)
+            continue
         # Augment deps with the device's own webex_id so handler can resolve it.
         per_device_deps = {**deps, record["canonical_id"]: record["webex_id"]}
         calls = handler(record.get("data", {}), per_device_deps, ctx)
+        # Fix #8: a handler that returns SkippedResult is truthy but not
+        # iterable — unwrap it as a per-device failure with the reason so
+        # the `for method, url, body in calls` loop never sees it.
+        if isinstance(calls, SkippedResult):
+            per_device_errors.append((wid, f"skipped: {calls.reason}"))
+            continue
         if not calls:
             # Handler returned no-op. Issue a direct settings PUT using the
             # record's data (supports both "device_settings" and "settings" keys).
@@ -389,13 +576,37 @@ async def _run_per_device_fallback(
                 continue  # truly nothing to apply → treat as success
             url = f"{BASE}/telephony/config/devices/{wid}/settings"
             calls = [("PUT", url, settings)]
+        call_failed = False
         for method, url, body in calls:
             async with semaphore:
                 async with session.request(method, url, json=body) as resp:
                     if resp.status >= 400:
                         text = await resp.text()
-                        return False, f"{wid} fallback {resp.status}: {text[:200]}"
-    return True, None
+                        per_device_errors.append(
+                            (wid, f"fallback {resp.status}: {text[:200]}")
+                        )
+                        call_failed = True
+                        break
+        if call_failed:
+            continue
+
+    # Fix #7: emit a single WARNING summary after the loop so the operator
+    # sees every unresolved / failed device in one line, not one exception
+    # per case. Only fires when there's something to report.
+    if unresolved or per_device_errors:
+        logger.warning(
+            "Fallback summary: %d unresolved devices %s, %d per-device failures",
+            len(unresolved), unresolved, len(per_device_errors),
+        )
+
+    if not unresolved and not per_device_errors:
+        return True, None
+    # Compact error: list the first 3 per-device errors plus totals for the
+    # operator-facing OpResult.error. Unresolved count makes it in too.
+    head = per_device_errors[:3]
+    return False, (
+        f"unresolved={len(unresolved)}, failed={len(per_device_errors)}: {head}"
+    )
 
 
 async def _try_find_existing(
@@ -505,6 +716,13 @@ def _build_fallback_context(op: dict, ctx: dict) -> dict | None:
     Returns None if the op's payload lacks ``covered_canonical_ids`` or
     ``fallback_handler_key`` — e.g. for ``bulk_rebuild_phones`` which has
     no per-device fallback path.
+
+    Fix #5: when a covered_cid has no resolved webex_id (because its upstream
+    create op failed/skipped or hasn't run yet), the device cannot participate
+    in either the bulk submit or the per-device fallback. We log a WARNING
+    per-cid and surface the count via ``excluded_unresolved_count`` so callers
+    (and the operator-facing summary log in ``execute_bulk_op``) can account
+    for every device that was silently dropped from the fallback path.
     """
     data = op.get("data", {})
     covered_cids = data.get("covered_canonical_ids")
@@ -516,10 +734,18 @@ def _build_fallback_context(op: dict, ctx: dict) -> dict | None:
     store = ctx.get("store")
 
     covered_devices = []
+    excluded: list[str] = []
     for cid in covered_cids:
         webex_id = resolved_deps.get(cid)
         if not webex_id:
-            continue  # device not created yet or failed — can't fall back
+            # Fix #5: surface the silent drop so it lands in the logs and in
+            # the returned context, instead of a bare `continue`.
+            logger.warning(
+                "Bulk fallback: device %s not yet created, excluding from fallback",
+                cid,
+            )
+            excluded.append(cid)
+            continue
         device_data = {}
         if store:
             obj = store.get_object(cid)
@@ -536,6 +762,8 @@ def _build_fallback_context(op: dict, ctx: dict) -> dict | None:
         "covered_devices": covered_devices,
         "deps": resolved_deps,
         "ctx": ctx,
+        "excluded_unresolved_count": len(excluded),
+        "excluded_canonical_ids": excluded,
     }
 
 
@@ -574,7 +802,21 @@ async def run_batch_ops(
     # Kick off parallel ops
     if parallel_indexed:
         parallel_coros = [
-            execute_single_op(session, t["op"]["node_id"], t["calls"], semaphore)
+            execute_single_op(
+                session,
+                t["op"]["node_id"],
+                t["calls"],
+                semaphore,
+                # Fix #18: require a returned id/code for create ops so a
+                # silent "200 OK with empty body" cannot masquerade as a
+                # successful resource creation. Fix #3: also gate
+                # ``create_activation_code`` ops — convertible phones use
+                # this op_type and fall back to the response's ``code``
+                # field as the webex_id (see execute_single_op).
+                require_webex_id=(
+                    t["op"].get("op_type") in ("create", "create_activation_code")
+                ),
+            )
             for _, t in parallel_indexed
         ]
         parallel_results = await asyncio.gather(*parallel_coros, return_exceptions=True)
@@ -657,6 +899,16 @@ async def execute_all_batches(
                     continue
 
                 calls = handler(op["data"], op["resolved_deps"], ctx)
+                if isinstance(calls, SkippedResult):
+                    # Handler declared a hard-prerequisite miss — record as
+                    # 'skipped' so the report separates these from FAILED ops
+                    # and cascades skip to dependents just like a failure.
+                    update_op_status(
+                        store, op["node_id"], "skipped",
+                        error_message=calls.reason,
+                    )
+                    summary["skipped"] += 1
+                    continue
                 if not calls:
                     # No-op (e.g., empty workspace assign_number)
                     update_op_status(store, op["node_id"], "completed")

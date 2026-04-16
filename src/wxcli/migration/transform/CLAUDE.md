@@ -82,7 +82,7 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 |----------|---------------|
 | `ExtensionConflictAnalyzer` | `EXTENSION_CONFLICT` |
 | `DNAmbiguityAnalyzer` | `DN_AMBIGUITY` |
-| `DeviceCompatibilityAnalyzer` | `DEVICE_INCOMPATIBLE`, `DEVICE_FIRMWARE_CONVERTIBLE`, `DEVICE_WEBEX_APP` (INFO — transitions to Webex App, no device migration) (DECT-tier devices skipped) |
+| `DeviceCompatibilityAnalyzer` | `DEVICE_INCOMPATIBLE`, `DEVICE_WEBEX_APP` (INFO — transitions to Webex App, no device migration) (DECT-tier devices skipped; CONVERTIBLE-tier devices auto-convert at plan time — no decision emitted as of 2026-04-15) |
 | `SharedLineAnalyzer` | `SHARED_LINE_COMPLEX` |
 | `CSSRoutingAnalyzer` | `CSS_ROUTING_COMPLEX` |
 | `CSSPermissionAnalyzer` | `CALLING_PERMISSION` |

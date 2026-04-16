@@ -136,12 +136,14 @@ async def test_execute_bulk_op_submits_then_polls():
     import asyncio
 
     submit_url = f"{BASE}/telephony/config/jobs/devices/callDeviceSettings"
-    poll_url = f"{submit_url}/JOB_XYZ"
+    # Realistic 30+ char URN-shaped id (Webex returns base64-encoded URNs).
+    long_id = "Y2lzY29zcGFyazovL3VzL0pPQi9YWVpfMTExMQ"
+    poll_url = f"{submit_url}/{long_id}"
     calls = [("POST", submit_url, {"locationId": "LOC"})]
 
     with aioresponses() as m:
         m.post(submit_url, status=202, payload={
-            "id": "JOB_XYZ",
+            "id": long_id,
             "latestExecutionStatus": "STARTED",
             "percentageComplete": 5,
         })
@@ -165,7 +167,7 @@ async def test_execute_bulk_op_submits_then_polls():
 
     assert result.success
     assert result.status == 200
-    assert result.webex_id == "JOB_XYZ"
+    assert result.webex_id == long_id
     assert result.body.get("updatedCount") == 100
 
 
@@ -176,11 +178,13 @@ async def test_execute_bulk_op_failed_exit_marks_failed():
     import asyncio
 
     submit_url = f"{BASE}/telephony/config/jobs/devices/rebuildPhones"
-    poll_url = f"{submit_url}/JOB_REB"
+    # Realistic 30+ char URN-shaped id.
+    long_id = "Y2lzY29zcGFyazovL3VzL0pPQi9SRUJfMzMzMw"
+    poll_url = f"{submit_url}/{long_id}"
     calls = [("POST", submit_url, {"locationId": "LOC"})]
 
     with aioresponses() as m:
-        m.post(submit_url, status=202, payload={"id": "JOB_REB"})
+        m.post(submit_url, status=202, payload={"id": long_id})
         m.get(poll_url, status=200, payload={
             "latestExecutionExitCode": "FAILED",
             "percentageComplete": 30,

@@ -11,6 +11,7 @@ execute the actual commands.
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime, timezone
 from typing import Any
 
@@ -147,10 +148,21 @@ def update_op_status(
 ) -> None:
     """Update operation status in the DB.
 
-    On completion: sets webex_id, completed_at, clears error_message.
-    Also updates the canonical object's webex_id field in the objects table.
-    On failure: sets error_message, increments attempts.
-    On skip: sets status to 'skipped', cascades to dependent ops.
+    Accepted ``status`` values mirror ``models.OpStatus``:
+    ``pending`` / ``in_progress`` / ``completed`` / ``skipped`` / ``failed``.
+
+    On completion: sets webex_id, completed_at, clears error_message. Also
+    updates the canonical object's webex_id field in the objects table, and
+    undoes any prior cascade-skip from this node (so dependents that were
+    skipped because THIS op previously failed can now run on retry).
+    On failure: sets error_message, increments attempts, cascade-skips
+    dependents via hard edges.
+    On skip: sets status to 'skipped', stores the reason in error_message,
+    and cascade-skips dependents via hard edges (same as failure). Engines
+    should pass ``error_message=<reason>`` so the execution report can
+    explain why each op was skipped. The ``SkippedResult`` sentinel
+    returned by handlers is the canonical producer of this path.
+    On in_progress: just flips the status (no error/timestamp updates).
     """
     conn = store.conn
 
@@ -185,8 +197,16 @@ def update_op_status(
                WHERE node_id = ?""",
             (status, error_message, _now(), node_id),
         )
-        # Cascade: skip all hard dependents since this op failed
-        _cascade_skip(conn, node_id, reason_prefix="Dependency failed")
+        # Cascade: skip all hard dependents since this op failed.
+        # The reason_prefix is the full error_message written to each
+        # descendant, naming the ROOT failed op so downstream consumers
+        # (execution report, cascade_groups grouping) can trace every
+        # cascade-skipped op back to a single root cause.
+        _cascade_skip(
+            conn,
+            node_id,
+            reason_prefix=f"Cascade skip: dependency {node_id} FAILED",
+        )
     elif status == "skipped":
         conn.execute(
             """UPDATE plan_operations
@@ -194,8 +214,13 @@ def update_op_status(
                WHERE node_id = ?""",
             (status, error_message, node_id),
         )
-        # Cascade: mark all dependent ops as skipped
-        _cascade_skip(conn, node_id, reason_prefix="Dependency skipped")
+        # Cascade: mark all dependent ops as skipped, referencing the
+        # ROOT skipped op so every descendant can be grouped under it.
+        _cascade_skip(
+            conn,
+            node_id,
+            reason_prefix=f"Cascade skip: dependency {node_id} SKIPPED",
+        )
     elif status == "in_progress":
         conn.execute(
             "UPDATE plan_operations SET status = ? WHERE node_id = ?",
@@ -207,11 +232,24 @@ def update_op_status(
     conn.commit()
 
 
-def _cascade_skip(conn, node_id: str, reason_prefix: str = "Dependency skipped") -> None:
+def _cascade_skip(
+    conn,
+    node_id: str,
+    reason_prefix: str = "Cascade skip: dependency <unknown> SKIPPED",
+) -> None:
     """Recursively skip all ops that depend on the given node via hard edges.
 
     SOFT deps are excluded — skipping a user should NOT cascade-skip
     a hunt group that has the user as a SOFT agent dependency.
+
+    Every descendant at every level receives the SAME ``reason_prefix`` as
+    its ``error_message``. The caller (``update_op_status``) builds the
+    prefix once to name the ROOT failed/skipped op (e.g.
+    ``"Cascade skip: dependency create_hg_sales FAILED"``), so a 3-level
+    chain A → B → C all produce error_messages referencing A. Downstream
+    consumers — the execution report and ``get_execution_progress()``'s
+    ``cascade_groups`` — parse the prefix to group every cascade-skipped
+    op under its single root cause instead of under its immediate parent.
     """
     dependents = conn.execute(
         """SELECT pe.to_node FROM plan_edges pe
@@ -229,9 +267,10 @@ def _cascade_skip(conn, node_id: str, reason_prefix: str = "Dependency skipped")
                SET status = 'skipped',
                    error_message = ?
                WHERE node_id = ? AND status IN ('pending', 'in_progress')""",
-            (f"{reason_prefix}: {node_id}", dep_node),
+            (reason_prefix, dep_node),
         )
-        # Recurse
+        # Recurse — pass the SAME reason_prefix so all descendants
+        # reference the root failure, not the intermediate dep_node.
         _cascade_skip(conn, dep_node, reason_prefix=reason_prefix)
 
 
@@ -240,24 +279,25 @@ def _undo_cascade_skip(conn, node_id: str) -> None:
 
     When a failed op is retried and succeeds, its cascade-skipped dependents
     should be reset to pending so they can execute in the next batch.
-    """
-    skipped = conn.execute(
-        """SELECT po.node_id FROM plan_operations po
-           WHERE po.status = 'skipped'
-             AND po.error_message LIKE ?""",
-        (f"Dependency failed: {node_id}",),
-    ).fetchall()
 
-    for row in skipped:
-        dep_node = row["node_id"]
-        conn.execute(
-            """UPDATE plan_operations
-               SET status = 'pending', error_message = NULL
-               WHERE node_id = ? AND status = 'skipped'""",
-            (dep_node,),
-        )
-        # Recurse: this dep might have cascade-skipped its own dependents
-        _undo_cascade_skip(conn, dep_node)
+    After the Wave 3B cascade-labeling change, every descendant at every
+    depth carries an ``error_message`` that names the ROOT failed op — not
+    an intermediate ancestor. So a single exact-match query against the
+    root's failure marker is sufficient to reset the entire subtree; no
+    recursion is needed.
+
+    Only the FAILED variant is undone — SKIPPED ops do not transition
+    back to success via ``update_op_status`` in normal flow (the
+    cucm-migrate skill flow re-creates plan state rather than reversing
+    an explicit skip), so undoing a SKIPPED cascade is out of scope.
+    """
+    marker = f"Cascade skip: dependency {node_id} FAILED"
+    conn.execute(
+        """UPDATE plan_operations
+           SET status = 'pending', error_message = NULL
+           WHERE status = 'skipped' AND error_message = ?""",
+        (marker,),
+    )
 
 
 def get_completed_ops_for_rollback(
@@ -409,6 +449,11 @@ def dry_run_all_batches(store: MigrationStore) -> dict[str, Any]:
     }
 
 
+_CASCADE_MSG_RE = re.compile(
+    r"^Cascade skip: dependency (?P<root>.+) (?P<status>FAILED|SKIPPED)$"
+)
+
+
 def get_execution_progress(store: MigrationStore) -> dict[str, Any]:
     """Return execution progress summary.
 
@@ -422,7 +467,21 @@ def get_execution_progress(store: MigrationStore) -> dict[str, Any]:
         "by_resource_type": {"location": {"completed": N, "pending": M, ...}, ...},
         "last_error": {"node_id": str, "error": str} | None,
         "last_completed": {"node_id": str, "description": str} | None,
+        "cascade_groups": {
+            root_node_id: {
+                "root_status": "failed" | "skipped",
+                "descendants": [node_id, ...],
+            },
+            ...
+        },
     }
+
+    The ``cascade_groups`` section parses the cascade-skip error_message
+    format emitted by ``_cascade_skip`` (``"Cascade skip: dependency
+    {root} FAILED"`` or ``... SKIPPED``) and groups every cascade-skipped
+    op under the single root cause it traces back to. Directly-skipped
+    ops (SkippedResult from a handler, not cascaded) are NOT included —
+    they carry a handler-supplied reason, not the cascade marker.
     """
     conn = store.conn
 
@@ -483,5 +542,30 @@ def get_execution_progress(store: MigrationStore) -> dict[str, Any]:
         if comp_row
         else None
     )
+
+    # Cascade groups: parse the cascade-skip error_message format to group
+    # every cascade-skipped op under its single root cause.
+    cascade_rows = conn.execute(
+        """SELECT node_id, error_message
+           FROM plan_operations
+           WHERE status = 'skipped'
+             AND error_message LIKE 'Cascade skip: dependency %'
+           ORDER BY node_id"""
+    ).fetchall()
+
+    cascade_groups: dict[str, dict[str, Any]] = {}
+    for row in cascade_rows:
+        match = _CASCADE_MSG_RE.match(row["error_message"] or "")
+        if not match:
+            continue
+        root = match.group("root")
+        root_status = match.group("status").lower()  # "failed" | "skipped"
+        group = cascade_groups.setdefault(
+            root,
+            {"root_status": root_status, "descendants": []},
+        )
+        group["descendants"].append(row["node_id"])
+
+    progress["cascade_groups"] = cascade_groups
 
     return progress

@@ -76,7 +76,7 @@ CUCM_STATE_TO_PSK_STATE: dict[str, str | None] = {
 }
 
 # 9800/8875 model number substrings that indicate PSK capability
-_PSK_MODEL_NUMBERS = {"9811", "9821", "9841", "9851", "9861", "9871", "8875"}
+from wxcli.migration.phone_models import PHONEOS_MODEL_NUMBERS as _PSK_MODEL_NUMBERS
 
 
 def _is_psk_capable_model(model: str | None) -> bool:

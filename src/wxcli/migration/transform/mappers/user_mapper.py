@@ -58,6 +58,7 @@ class UserMapper(Mapper):
         self,
         create_method: str = "people_api",
         include_phoneless_users: bool = False,
+        use_device_dn_as_extension: bool = True,
     ) -> None:
         """
         Args:
@@ -65,9 +66,12 @@ class UserMapper(Mapper):
                 (from 03b-transform-mappers.md §2: execution strategy note)
             include_phoneless_users: If True, map users without phones.
                 (from 03b-transform-mappers.md §2: edge case — users with no phone)
+            use_device_dn_as_extension: If True, fall back to device line 1 DN
+                when primaryExtension is not set on the user record.
         """
         self.create_method = create_method
         self.include_phoneless_users = include_phoneless_users
+        self.use_device_dn_as_extension = use_device_dn_as_extension
 
     def map(self, store: MigrationStore) -> MapperResult:
         """Read normalized CUCM users and produce CanonicalUser objects."""
@@ -160,6 +164,40 @@ class UserMapper(Mapper):
                 parts = dn_id.split(":", 2)
                 if len(parts) >= 2:
                     extension = parts[1]
+
+            # --- Device line 1 DN fallback ---
+            # When CUCM has no primaryExtension set on the user record,
+            # fall back to the DN on line 1 (ordinal 0) of the user's first device.
+            if extension is None and self.use_device_dn_as_extension and device_refs:
+                # Collect ALL line-1 DN candidates across devices so we can warn
+                # on genuine multi-device conflicts. We still pick the first
+                # candidate (legacy selection behaviour) — the warning just
+                # surfaces ambiguity for operator review.
+                line1_candidates: list[str] = []
+                for dev_id in device_refs:
+                    dn_xrefs = store.get_cross_refs(
+                        from_id=dev_id, relationship="device_has_dn"
+                    )
+                    for xref in dn_xrefs:
+                        if xref.get("ordinal") == 0:
+                            dn_target = xref["to_id"]
+                            # DN IDs are formatted as "dn:pattern:partition"
+                            dn_parts = dn_target.split(":", 2)
+                            if len(dn_parts) >= 2:
+                                line1_candidates.append(dn_parts[1])
+                            break
+                if line1_candidates:
+                    extension = line1_candidates[0]
+                    distinct = sorted(set(line1_candidates))
+                    if len(distinct) > 1:
+                        logger.warning(
+                            "Multiple devices report different line-1 DNs for %s: "
+                            "candidates=%s picked=%s (legacy selection: first device). "
+                            "Operator should verify the correct primary extension.",
+                            user_id,
+                            distinct,
+                            extension,
+                        )
 
             # --- Build display name ---
             first_name = user_data.get("first_name")

@@ -729,7 +729,7 @@ def update_device_settings(
 )
 ```
 
-Lists/updates MPP and ATA device-level settings. DECT devices are not supported. After updating, call `apply_changes()` to push to the device.
+Lists/updates MPP and ATA device-level settings. DECT devices are not supported. **9800-series phones (9811-9871) return 404** on these device-level settings endpoints — use Device Configurations (PhoneOS keys) for per-device config instead. However, 9800-series phones DO support person-level device settings (see below) — the response returns limited fields (e.g., `compression`). After updating, call `apply_changes()` to push to the device.
 
 **Example:**
 
@@ -1319,13 +1319,19 @@ Before attempting to read or change device-level settings, determine which API s
 | MPP 78xx (7811, 7821, 7832, 7841, 7861) | `phone` | Telephony Device Settings | `device-settings` |
 | MPP 88xx (8811, 8841, 8845, 8851, 8861, 8865) | `phone` | Telephony Device Settings | `device-settings` |
 | ATA 191/192 | `phone` | Telephony Device Settings | `device-settings` |
-| **9800-series (9811, 9821, 9841, 9851, 9861, 9871)** | **`phone`** | **Device Configurations (RoomOS keys)** | **`device-configurations`** |
+| **9800-series (9811, 9821, 9841, 9851, 9861, 9871)** | **`phone`** | **Device Configurations (PhoneOS keys)** | **`device-configurations`** |
 | Room series (Room Kit, Room Bar, etc.) | `roomdesk` | Device Configurations (RoomOS keys) | `device-configurations` |
 | Board series (Board 55, Board Pro, etc.) | `roomdesk` | Device Configurations (RoomOS keys) | `device-configurations` |
 | Desk series (Desk, Desk Pro, Desk Mini) | `roomdesk` | Device Configurations (RoomOS keys) | `device-configurations` |
 | 3rd-party SIP | `phone` | None | CRUD only (`devices`) |
 
-**The 9800-series is the exception that breaks assumptions.** They are `productType: phone` but run PhoneOS (RoomOS-derived) and use RoomOS config keys, not the telephony device settings model. Treating all phones as `device-settings` targets will fail on 9800-series devices.
+**The 9800-series is the exception that breaks assumptions.** They are `productType: phone` but run PhoneOS (RoomOS-derived, but distinct — do not call it RoomOS) and use PhoneOS config keys, not the telephony device settings model. Treating all phones as `device-settings` targets will fail on 9800-series devices. Note: PhoneOS shares the Device Configurations API surface with RoomOS but uses its own schema (e.g., `Phone.LineKeyLabel`, `Phone.LineKeySecondaryLabel`, `Lines.Line[N].CallFeatureSettings.*`, `User.Screen.CustomWallpaper.CustomWallpaperDownloadURL[N]`).
+
+**9800-series nuances:**
+- **Per-device config:** Device Configurations (PhoneOS keys) via `device-configurations` -- CONFIRMED working. Do not conflate with RoomOS; schemas differ.
+- **Line Key Templates:** 9800-series DOES support Line Key Templates (model string `"Cisco 9861"` etc.) via the same `device-settings` LKT endpoints as MPP. This is the one `device-settings` feature that works for 9800-series.
+- **Device-level settings:** `show-settings-devices` returns **404** for 9800-series -- CONFIRMED.
+- **Person-level device settings:** `get-person-device-settings` works but returns **limited fields** (e.g., `compression`) -- CONFIRMED.
 
 #### Programmatic detection
 
@@ -1620,7 +1626,7 @@ templates = result.get("lineKeyTemplates", [])
 # Create
 body = {
     "templateName": "Standard Layout",
-    "deviceModel": "DMS Cisco 8845",
+    "deviceModel": "DMS Cisco 8845",  # MPP: "DMS Cisco XXXX"; 9800-series: "Cisco 98XX" (no "DMS" prefix)
     "lineKeys": [
         {"lineKeyIndex": 1, "lineKeyType": "PRIMARY_LINE"},
         {"lineKeyIndex": 2, "lineKeyType": "MONITOR"},
@@ -1629,6 +1635,18 @@ body = {
 }
 result = api.session.rest_post(f"{BASE}/telephony/config/devices/lineKeyTemplates", json=body)
 template_id = result.get("id")
+
+# 9800-series example — note no "DMS" prefix in model string
+body_9800 = {
+    "templateName": "9861 Standard Layout",
+    "deviceModel": "Cisco 9861",
+    "lineKeys": [
+        {"lineKeyIndex": 1, "lineKeyType": "PRIMARY_LINE"},
+        {"lineKeyIndex": 2, "lineKeyType": "MONITOR"},
+        {"lineKeyIndex": 3, "lineKeyType": "OPEN"}
+    ]
+}
+result = api.session.rest_post(f"{BASE}/telephony/config/devices/lineKeyTemplates", json=body_9800)
 
 # Get details
 result = api.session.rest_get(f"{BASE}/telephony/config/devices/lineKeyTemplates/{template_id}")
@@ -1766,6 +1784,11 @@ result = api.session.rest_get(f"{BASE}/telephony/config/devices/dectNetworks/sup
 7. **No auto-pagination.** Pass `max=1000` on list endpoints. The `rest_get` method does not auto-paginate like SDK generator methods do.
 8. **CTI Route Point protocol varies by device pool.** CTI Route Points require SCCP protocol on some device pools — SIP protocol assignment fails with "Device Protocol not valid" error. When creating CTI Route Points via AXL, try SCCP first if SIP fails, or verify the device pool's supported protocols before assignment.
 9. **Org/location device settings PUT affects all matching devices on next sync. No rollback.** The PUT to `/telephony/config/locations/{id}/devices/settings` immediately queues the settings for all devices at that location. There is no way to preview or roll back.
+10. **9800-series model string format differs from older MPP.** Older MPP phones use `"DMS Cisco 8845"` (with "DMS" prefix); 9800-series phones use `"Cisco 9861"` (no "DMS" prefix). Using the wrong format for Line Key Templates or device creation will fail. Check `list-supported-devices` output for the exact `model` string.
+12. **`device-settings update` members array requires `lineWeight` and `primaryOwner` on every entry — not shown in `--help`.** When updating device members via `wxcli device-settings update`, every member object in the `members` array must include `lineWeight` (int, number of lines for this member) and `primaryOwner` (bool). Omitting either field returns a 400 error. Neither field appears in the CLI `--help` output or the JSON body example. Surfaced during live testing 2026-04-15.
+
+13. **9800-series device settings are split across API surfaces.** Device-level settings (`show-settings-devices`) returns 404. Per-device config uses Device Configurations with **PhoneOS** keys — NOT RoomOS; 9800-series runs PhoneOS, which is RoomOS-derived but distinct. Person-level device settings (`get-person-device-settings`) works but returns limited fields (e.g., `compression`). Line Key Templates work normally via the `device-settings` LKT endpoints. Features that older docs describe as "MPP-only" (background images/wallpaper, line labels) also work on 9800-series via PhoneOS config keys (`User.Screen.CustomWallpaper.CustomWallpaperDownloadURL[N]`, `Phone.LineKeyLabel`, `Phone.LineKeySecondaryLabel`) — they just use a different API path. This makes 9800-series the only phone family that spans three API surfaces.
+12. **Maximum 5 devices per user.** Webex Calling enforces a hard cap of 5 devices per user across hardware phones (MPP/PhoneOS) and soft clients combined. Attempting to add a 6th device returns HTTP 400 with body message `"Phones cannot be added to this user"`. Applies to both `POST /devices` (MAC-based creation) and `POST /devices/activationCode` (activation-code flow). The limit is server-enforced and not configurable — no org-level override exists. Orphan devices left over from failed provisioning/migration runs still count against the quota; clean them up before retrying.
 
 ---
 

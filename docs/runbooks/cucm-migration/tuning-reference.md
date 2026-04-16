@@ -230,17 +230,6 @@ In every "NOT" case, prefer a per-decision override via `wxcli cucm decide <deci
 **When to remove:** If the customer has already ordered replacement hardware and you want each incompatible device to surface in decision review so you can manually attach the replacement model ID, remove this rule and resolve each decision explicitly. Also remove it in assessment-only runs where the count of incompatible devices IS the deliverable — an auto-resolved decision can vanish from some summary views.
 **See also:** `dt-dev-001`
 
-### default-rule-device-firmware-convertible
-
-**Rule:**
-```json
-{"type": "DEVICE_FIRMWARE_CONVERTIBLE", "choice": "convert"}
-```
-**What it does:** Every decision of type `DEVICE_FIRMWARE_CONVERTIBLE` (a CUCM phone running enterprise firmware that also ships an MPP or PhoneOS load — classic 88xx, 78xx in convertible SKUs, 9800-series in native MPP mode) is resolved to `convert`, meaning the pipeline will plan a firmware conversion instead of a hardware swap.
-**Why safe as default:** Firmware-convertible is a property of the hardware SKU, not a judgment call. The `DeviceCompatibilityAnalyzer` only emits this decision for models where the conversion path is known, supported, and documented by Cisco. The alternative choice (`replace`) is strictly more expensive and disruptive, and there is no deployment scenario where replacing a convertible phone with the same model is the right answer.
-**When to remove:** Remove this rule when the customer's refresh cycle already lined up with the migration and they are buying new MPP hardware anyway — in that case, each device should be resolved to `replace` so the cutover plan ships the new phones instead of preserving the old chassis. Also remove it when firmware management is centralized on a partner-supplied config server that the customer does not control (rare) and you need the firmware step to be explicit and reviewable.
-**See also:** `dt-dev-002`
-
 ### default-rule-hotdesk-dn-conflict
 
 **Rule:**
@@ -317,7 +306,7 @@ In every "NOT" case, prefer a per-decision override via `wxcli cucm decide <deci
 
 ### Non-Auto-Ruled DecisionTypes
 
-The 8 default auto-rules above are the *only* `DecisionType` values that the pipeline resolves on its own. Every other type — 14 in total when you count `CALLING_PERMISSION_MISMATCH` (whose default rule narrowly matches `assigned_users_count == 0` and so leaves the populated case unresolved) — flows into the human decision-review queue with no shortcut. The absence of an auto-rule on these types is intentional, not an omission. Each one falls into one of three buckets: the decision requires *judgment too high* for a declarative match (the right answer depends on customer-specific tradeoffs the pipeline cannot see), the decision's *context is too variable* to capture in a single rule without burying real signals, or there is *no safe single answer* — multiple valid choices exist and silently picking one would violate operator trust. The table below enumerates all 14, classifies each, and forward-links to the canonical decision-guide entry for the producer logic and recommendation algorithm.
+The 7 default auto-rules above are the *only* `DecisionType` values that the pipeline resolves on its own. Every other type — 14 in total when you count `CALLING_PERMISSION_MISMATCH` (whose default rule narrowly matches `assigned_users_count == 0` and so leaves the populated case unresolved) — flows into the human decision-review queue with no shortcut. The absence of an auto-rule on these types is intentional, not an omission. Each one falls into one of three buckets: the decision requires *judgment too high* for a declarative match (the right answer depends on customer-specific tradeoffs the pipeline cannot see), the decision's *context is too variable* to capture in a single rule without burying real signals, or there is *no safe single answer* — multiple valid choices exist and silently picking one would violate operator trust. The table below enumerates all 14, classifies each, and forward-links to the canonical decision-guide entry for the producer logic and recommendation algorithm.
 
 | DecisionType | Reason not auto-ruled | Notes |
 |---|---|---|
@@ -597,8 +586,7 @@ This is the *baseline* recipe — it documents what the defaults assume. If your
 **Auto-rules to add or remove:** the 7 defaults — no additions, no removals. All of them are relevant at SMB scale and none of them hide signal the operator needs to see at this size.
 
 **Decisions to expect:**
-- `DEVICE_FIRMWARE_CONVERTIBLE`: auto-resolved to `convert` for every convertible-SKU phone (typically the full device fleet).
-- `DEVICE_INCOMPATIBLE`: 0–2 stragglers if any — auto-resolved to `skip`.
+- `DEVICE_INCOMPATIBLE`: 0–2 stragglers if any — auto-resolved to `skip`. (Convertible devices — 88xx/78xx/9800-series — auto-convert unconditionally and never produce a decision.)
 - `BUTTON_UNMAPPABLE`: 0–10 per phone if button templates use service URLs — auto-resolved to `accept_loss`.
 - `SNR_LOSSY`: 0–3 for users with CUCM Single Number Reach — auto-resolved to `accept_loss`.
 - `LOCATION_AMBIGUOUS`: 1–2 decisions if CUCM has a stray device pool for infrastructure (CTI manager, CUBE) — needs manual resolution.
@@ -614,7 +602,7 @@ This is the *baseline* recipe — it documents what the defaults assume. If your
 - Leave a voicemail for a migrated user and confirm delivery + email notification.
 - Confirm the hunt list (if present) rings the expected agents in the expected order.
 
-**See also:** [`dt-dev-001`](decision-guide.md#device-incompatible) · [`dt-dev-002`](decision-guide.md#device-firmware-convertible) · [`dt-dev-003`](decision-guide.md#button-unmappable) · [`dt-user-002`](decision-guide.md#snr-lossy) · [`dt-loc-001`](decision-guide.md#location-ambiguous) · [`location-consolidation`](decision-guide.md#location-consolidation) · [`restriction-css-consolidation`](decision-guide.md#restriction-css-consolidation)
+**See also:** [`dt-dev-001`](decision-guide.md#device-incompatible) · [`dt-dev-003`](decision-guide.md#button-unmappable) · [`dt-user-002`](decision-guide.md#snr-lossy) · [`dt-loc-001`](decision-guide.md#location-ambiguous) · [`location-consolidation`](decision-guide.md#location-consolidation) · [`restriction-css-consolidation`](decision-guide.md#restriction-css-consolidation)
 
 ### Recipe 2: Hunt-list / call-queue heavy migration
 

@@ -3,9 +3,19 @@ name: cucm-migrate
 description: |
   Execute a CUCM-to-Webex migration using DB-driven skill delegation. Generates an
   assessment report first (complexity score, environment inventory, analog gateway review,
-  effort bands), then walks through decision review, and executes migration operations
-  by delegating to domain skills (provision-calling, configure-features, etc.).
+  effort bands), then walks through decision review, executes migration operations
+  by delegating to domain skills (provision-calling, configure-features, etc.), and
+  finally assembles a customer deliverables bundle (assessment report, user diff,
+  user notice, deployment plan, execution report) into a single output directory.
   Use after running the CUCM analysis pipeline (wxcli cucm discover/normalize/map/analyze).
+
+  Workflow steps:
+    1. Load, verify, assess (assessment report + decision review)
+    2. Auth + preflight
+    3. Present summary + get approval
+    4. Execute via skill delegation (4c: Emergency Call Notification / Kari's Law)
+    5. Generate Customer Deliverables Bundle (idempotent; runnable standalone)
+    6. Report results (execution status)
 allowed-tools: Read, Grep, Glob, Bash, Skill, Agent
 argument-hint: [project name]
 ---
@@ -224,11 +234,12 @@ Accept all advisory recommendations? [Y/n] Or review individually? [r]
 Present remaining (non-advisory) decisions in three groups:
 
 **Group 1: Auto-apply (matched by `auto_rules` config)** — applied via `--apply-auto`.
-By default this covers 8 rule types: incompatible devices, convertible devices,
-hotdesk DN conflicts, lossy forwarding, lossy SNR, unmappable buttons, orphaned
-permission profiles (`assigned_users_count == 0`), and missing data on devices
-that are already incompatible. Custom rules in `<project>/config.json` extend
-this set. Edits to `config.json` are picked up the next time `--apply-auto`
+By default this covers 7 rule types: incompatible devices, hotdesk DN conflicts,
+lossy forwarding, lossy SNR, unmappable buttons, orphaned permission profiles
+(`assigned_users_count == 0`), and missing data on devices that are already
+incompatible. (Convertible devices are not in this list — they auto-convert
+unconditionally at plan time with no decision emitted.) Custom rules in
+`<project>/config.json` extend this set. Edits to `config.json` are picked up the next time `--apply-auto`
 runs — no need to re-run `analyze` first.
 
 **Group 2: Recommended** — decisions where `recommendation` is set.
@@ -306,6 +317,10 @@ Do NOT silently skip decisions that cascade into blocked downstream operations.
    ```bash
    wxcli cucm plan -p <project> && wxcli cucm export -p <project>
    ```
+
+## Known Webex platform limits
+
+- Max 5 devices per user (hardware + soft clients). CUCM users with 6+ devices require explicit selection during decision review — see [kb-device-migration.md](../../../docs/knowledge-base/migration/kb-device-migration.md).
 
 ## Step 2: Auth + Preflight — [MANDATORY, NOT SKIPPABLE]
 
@@ -423,7 +438,7 @@ execution — only for failure diagnosis afterward.
 4. Check results:
    wxcli cucm execution-status -o json
 
-5. IF all completed → proceed to Step 5 (report)
+5. IF all completed → proceed to Step 5 (deliverables bundle) then Step 6 (report)
 
 6. IF failures exist:
    Show failure summary to admin.
@@ -648,7 +663,106 @@ Notification not configured. Kari's Law compliance requires this; set manually
 via Control Hub → Calling → Service Settings → Emergency Call Notification
 before cutover." Proceed to Step 5 regardless.
 
-## Step 5: Report Results
+## Step 5: Generate Customer Deliverables Bundle
+
+Assemble every customer-facing artifact the SE needs to hand over in a single
+directory. This step is **idempotent** — re-running it overwrites prior copies.
+Operators mid-migration can invoke this skill fresh and jump straight here.
+
+### 5a. Collect parameters up front (one prompt, not drip-fed)
+
+Before running any commands, gather the four required inputs. Check
+`~/.wxcli/migrations/<project>/config.json` first; if any of these are already
+present, show them as defaults. Accept them in a single batch from the
+operator / parent agent (e.g., the wxc-calling-builder agent may pass them in
+the spawn prompt — honor those rather than re-prompting):
+
+| Param | Used by | Example |
+|---|---|---|
+| `brand` | report, user-notice | "Acme Corp" |
+| `prepared-by` | report | "Adam Hobgood, Cisco SE" |
+| `migration-date` | user-notice | "April 22, 2026" |
+| `helpdesk` | user-notice | "helpdesk@acme.com / x5555" |
+| `output-dir` | copy target (default: `docs/demo/YYYY-MM-DD-<project-slug>/`) | `docs/demo/2026-04-22-acme/` |
+
+Present the collected values and ask "Proceed? [Y/n]" before running commands.
+
+### 5b. Generate artifacts (fail loudly on any error)
+
+Run in order. If any command is missing or errors, **stop and surface the
+error to the operator** — do not silently skip.
+
+```bash
+# 1. Assessment report (complexity, inventory, effort bands)
+wxcli cucm report \
+  --brand "<brand>" \
+  --prepared-by "<prepared-by>" \
+  -p <project>
+# → ~/.wxcli/migrations/<project>/assessment-report.html
+
+# 2. Per-user migration diff (CUCM vs Webex, per user)
+wxcli cucm user-diff -p <project>
+# → ~/.wxcli/migrations/<project>/user-diff.html   (default format: html)
+
+# 3. User-facing migration notice (communication email/portal copy)
+wxcli cucm user-notice \
+  --brand "<brand>" \
+  --migration-date "<migration-date>" \
+  --helpdesk "<helpdesk>" \
+  --prepared-by "<prepared-by>" \
+  -p <project>
+# → ~/.wxcli/migrations/<project>/user-notice.html
+
+# 4. Deployment plan (generate if not already present; safe to re-run)
+wxcli cucm export --format deployment-plan -p <project>
+# → ~/.wxcli/migrations/<project>/exports/deployment-plan.md
+```
+
+**Flag support confirmed via `--help`:**
+- `report` — `--brand` (required), `--prepared-by` (required), `-p` project
+- `user-diff` — `-p` project, `--format html|csv` (default html), no brand/prepared-by flags
+- `user-notice` — `--brand`, `--migration-date`, `--helpdesk` all required; `--prepared-by` optional; `-p` project
+- `export` — `--format deployment-plan` (default), `-p` project
+
+### 5c. Collect the Step 6 execution report
+
+The auto-generated execution report from Step 6 (`docs/plans/YYYY-MM-DD-cucm-migration-report.md`)
+is part of the bundle. If Step 6 has already run (normal end-to-end flow), copy
+its output into the bundle. If you're running Step 5 standalone before Step 6,
+note "execution report will be added after Step 6 completes" in the summary and
+come back to copy it.
+
+### 5d. Copy everything into the output directory
+
+```bash
+mkdir -p <output-dir>
+cp ~/.wxcli/migrations/<project>/assessment-report.html       <output-dir>/
+cp ~/.wxcli/migrations/<project>/user-diff.html               <output-dir>/
+cp ~/.wxcli/migrations/<project>/user-notice.html             <output-dir>/
+cp ~/.wxcli/migrations/<project>/exports/deployment-plan.md   <output-dir>/
+# If Step 6 report exists:
+cp docs/plans/<YYYY-MM-DD>-cucm-migration-report.md           <output-dir>/ 2>/dev/null || true
+```
+
+Overwrite silently — operators re-run migrations and expect the latest copy.
+
+### 5e. Return the bundle manifest
+
+In your final task summary, print the exact absolute paths so stakeholders can
+be pointed at them without hunting:
+
+```
+=== Customer Deliverables Bundle ===
+Output directory: <absolute-output-dir>
+
+  assessment-report.html         — complexity score, inventory, effort bands
+  user-diff.html                 — per-user CUCM→Webex diff
+  user-notice.html               — user-facing migration communication
+  deployment-plan.md             — human-readable migration plan
+  <YYYY-MM-DD>-cucm-migration-report.md  — execution results (after Step 6)
+```
+
+## Step 6: Report Results
 
 ```bash
 wxcli cucm execution-status -o json
@@ -703,4 +817,4 @@ Simplified — no markdown plan to re-parse:
 
 1. `wxcli cucm execution-status -o json` → see what's done
 2. `wxcli cucm next-batch -o json` → see what's next
-3. Resume from Step 4b
+3. Resume from Step 4b. If execution already shows 0 pending / 0 failed, jump to Step 5 (deliverables bundle) — it is idempotent and safe to re-run standalone.

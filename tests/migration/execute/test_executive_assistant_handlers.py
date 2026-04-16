@@ -21,6 +21,7 @@ import pytest
 from wxcli.migration.execute import API_CALL_ESTIMATES, TIER_ASSIGNMENTS
 from wxcli.migration.execute.handlers import (
     HANDLER_REGISTRY,
+    SkippedResult,
     handle_assistant_configure_settings,
     handle_assistant_type_assign,
     handle_executive_assign_assistants,
@@ -108,15 +109,18 @@ class TestHandleExecutiveTypeAssign:
         _, url, _ = result[0]
         assert "orgId=org-123" in url
 
-    def test_no_op_when_executive_not_resolved(self):
+    def test_skipped_when_executive_not_resolved(self):
+        """Wave 2C: missing-dep returns SkippedResult, not []."""
         data = {"executive_canonical_id": "user:missing@example.com"}
         result = handle_executive_type_assign(data, {}, CTX)
-        assert result == []
+        assert isinstance(result, SkippedResult)
+        assert "not resolved" in result.reason
 
-    def test_no_op_when_no_executive_canonical_id(self):
+    def test_skipped_when_no_executive_canonical_id(self):
+        """Wave 2C: no exec canonical_id at all also means unresolved."""
         data = {}
         result = handle_executive_type_assign(data, DEPS, CTX)
-        assert result == []
+        assert isinstance(result, SkippedResult)
 
 
 # ---------------------------------------------------------------------------
@@ -151,12 +155,17 @@ class TestHandleAssistantTypeAssign:
         assert "asst-webex-id" in person_ids
         assert "asst-webex-id-alice" in person_ids
 
-    def test_skips_unresolved_assistants(self):
+    def test_all_unresolved_assistants_returns_skipped(self):
+        """Wave 2C: if assistant_cids were specified but NONE resolved,
+        this is a missing-dep scenario (upstream user creates failed) —
+        surface as SkippedResult rather than silent []."""
         data = {"assistant_canonical_ids": ["user:gone@example.com"]}
         result = handle_assistant_type_assign(data, DEPS, CTX)
-        assert result == []
+        assert isinstance(result, SkippedResult)
+        assert "resolved" in result.reason
 
     def test_no_op_when_no_assistants(self):
+        """Empty assistant_cids list = true no-op (nothing to configure)."""
         data = {"assistant_canonical_ids": []}
         result = handle_assistant_type_assign(data, DEPS, CTX)
         assert result == []
@@ -211,21 +220,25 @@ class TestHandleExecutiveAssignAssistants:
         _, _, body = result[0]
         assert len(body["assistants"]) == 2
 
-    def test_no_op_when_executive_not_resolved(self):
+    def test_skipped_when_executive_not_resolved(self):
+        """Wave 2C: missing exec webex_id returns SkippedResult."""
         data = {
             "executive_canonical_id": "user:missing@example.com",
             "assistant_canonical_ids": ["user:jdoe@example.com"],
         }
         result = handle_executive_assign_assistants(data, {}, CTX)
-        assert result == []
+        assert isinstance(result, SkippedResult)
+        assert "not resolved" in result.reason
 
-    def test_no_op_when_no_assistants_resolved(self):
+    def test_skipped_when_no_assistants_resolved(self):
+        """Wave 2C: if assistants were expected but NONE resolved, skipped."""
         data = {
             "executive_canonical_id": "user:jsmith@example.com",
             "assistant_canonical_ids": ["user:gone@example.com"],
         }
         result = handle_executive_assign_assistants(data, DEPS, CTX)
-        assert result == []
+        assert isinstance(result, SkippedResult)
+        assert "resolved" in result.reason
 
     def test_skips_unresolved_assistants_in_body(self):
         data = {
@@ -281,10 +294,11 @@ class TestHandleExecutiveConfigureAlert:
         assert "clidNameMode" in body
         assert "clidPhoneNumberMode" in body
 
-    def test_no_op_when_executive_not_resolved(self):
+    def test_skipped_when_executive_not_resolved(self):
+        """Wave 2C: missing exec webex_id returns SkippedResult."""
         data = {"executive_canonical_id": "user:missing@example.com"}
         result = handle_executive_configure_alert(data, {}, CTX)
-        assert result == []
+        assert isinstance(result, SkippedResult)
 
 
 # ---------------------------------------------------------------------------
@@ -349,13 +363,14 @@ class TestHandleExecutiveConfigureFiltering:
         _, _, body = result[0]
         assert body["filterType"] == "ALL_CALLS"
 
-    def test_no_op_when_executive_not_resolved(self):
+    def test_skipped_when_executive_not_resolved(self):
+        """Wave 2C: missing exec webex_id returns SkippedResult."""
         data = {
             "executive_canonical_id": "user:missing@example.com",
             "filter_enabled": True,
         }
         result = handle_executive_configure_filtering(data, {}, CTX)
-        assert result == []
+        assert isinstance(result, SkippedResult)
 
 
 # ---------------------------------------------------------------------------
@@ -386,13 +401,14 @@ class TestHandleExecutiveConfigureScreening:
         result = handle_executive_configure_screening(data, DEPS, CTX)
         assert result == []
 
-    def test_no_op_when_executive_not_resolved(self):
+    def test_skipped_when_executive_not_resolved(self):
+        """Wave 2C: missing exec webex_id returns SkippedResult."""
         data = {
             "executive_canonical_id": "user:missing@example.com",
             "screening_enabled": True,
         }
         result = handle_executive_configure_screening(data, {}, CTX)
-        assert result == []
+        assert isinstance(result, SkippedResult)
 
 
 # ---------------------------------------------------------------------------
@@ -438,15 +454,18 @@ class TestHandleAssistantConfigureSettings:
         result = handle_assistant_configure_settings(data, DEPS, CTX)
         assert len(result) == 2
 
-    def test_skips_unresolved_assistants(self):
+    def test_skipped_when_all_assistants_unresolved(self):
+        """Wave 2C: if assistant_cids specified but NONE resolved, skipped."""
         data = {
             "executive_canonical_id": "user:jsmith@example.com",
             "assistant_canonical_ids": ["user:gone@example.com"],
         }
         result = handle_assistant_configure_settings(data, DEPS, CTX)
-        assert result == []
+        assert isinstance(result, SkippedResult)
+        assert "resolved" in result.reason
 
     def test_no_op_when_no_assistants(self):
+        """Empty assistant_cids list = true no-op."""
         data = {
             "executive_canonical_id": "user:jsmith@example.com",
             "assistant_canonical_ids": [],

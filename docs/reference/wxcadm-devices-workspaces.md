@@ -296,7 +296,7 @@ Add a configured line (shared line appearance, primary line, etc.) to the device
 DeviceMemberList.add(
     members: Person | Workspace | VirtualLine | list,
     line_type: str = 'shared',         # "primary" or "shared"
-    line_label: Optional[str] = None,  # MPP only
+    line_label: Optional[str] = None,  # MPP only via this API; 9800-series uses Phone.LineKeyLabel PhoneOS config key instead
     hotline_enabled: bool = False,
     hotline_destination: Optional[str] = None,
     allow_call_decline: bool = False
@@ -355,7 +355,7 @@ Represents a single configured line on a device.
 | `hotline_enabled` | `bool` | Hotline status |
 | `hotline_destination` | `str\|None` | Hotline destination number |
 | `call_decline_all` | `bool` | Decline-all-devices behavior |
-| `line_label` | `str\|None` | Custom line label (MPP only) |
+| `line_label` | `str\|None` | Custom line label (MPP only via this API — 9800-series uses `Phone.LineKeyLabel` / `Phone.LineKeySecondaryLabel` PhoneOS config keys via `device-configurations` instead) |
 | `first_name` | `str\|None` | Member first name |
 | `last_name` | `str\|None` | Member last name |
 | `phone_number` | `str\|None` | Member phone number |

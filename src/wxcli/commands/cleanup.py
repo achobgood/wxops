@@ -6,9 +6,23 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 
+import click
 import typer
 from rich.console import Console
 from wxc_sdk.rest import RestError
+
+# Location-delete retry tuning: after the initial 90s disable-calling
+# propagation wait, 17-location orgs have been observed to still 409 on
+# first attempt. 5 attempts × 60s = 5 min worst case per laggard location,
+# which fits under typical agent/bash tool timeouts and covers the trailing
+# edge of async disable-calling propagation without masking real failures.
+LOCATION_DELETE_MAX_ATTEMPTS = 5
+LOCATION_DELETE_RETRY_SLEEP = 60
+
+# Signature of the CCP-integrated PSTN backend gate. When a delete fails with
+# this error code, the org uses Cisco Calling Plan and the resource is managed
+# by the Webex backend — no API action on our side can unblock it.
+CCP_INTEGRATED_ERROR_CODE = "ERR.V.TRM.TMN60004"
 
 from wxcli.auth import get_api
 from wxcli.config import get_org_id
@@ -284,6 +298,11 @@ class DeleteResult:
     resource_name: str
     success: bool
     error: str | None = None
+    # True when a failure was classified as a CCP-integrated PSTN backend
+    # gate (e.g. Webex async-releasing trunk references). These aren't real
+    # failures the operator can act on — the final summary reports them
+    # separately and the process exits 0.
+    ccp_blocked: bool = False
 
 
 def delete_resource(
@@ -390,34 +409,232 @@ def disable_location_calling(
         )
 
 
+def _is_ccp_integrated_error(err: str) -> bool:
+    """True if an error message carries the CCP-integrated PSTN signature.
+
+    Webex returns ``ERR.V.TRM.TMN60004`` (or a variant message referencing
+    "non-integrated CCP") whenever an API caller tries to delete a resource
+    whose lifecycle is owned by the Cisco Calling Plan backend. This signature
+    has been observed for number deletes; it can also bleed into downstream
+    409s on location delete when the backend is still releasing internal
+    trunk references asynchronously.
+    """
+    if not err:
+        return False
+    if CCP_INTEGRATED_ERROR_CODE in err:
+        return True
+    lowered = err.lower()
+    return "non-integrated ccp" in lowered
+
+
+def _is_ccp_backend_gate(
+    err: str, local_dependencies_clear: bool,
+) -> bool:
+    """Classify a 409 on location delete as a CCP backend-cleanup gate.
+
+    The gate fires when either:
+      * the explicit CCP error code appears in the body, OR
+      * the message says "being referenced" AND a prior pre-check has
+        confirmed no local-visible dependencies remain.
+
+    When the gate fires there is nothing the caller can do to speed things
+    up — Webex's internal PSTN backend is async-releasing trunk references
+    and typically takes 1-4 hours in dCloud/CCP orgs.
+    """
+    if not err:
+        return False
+    if _is_ccp_integrated_error(err):
+        return True
+    lowered = err.lower()
+    if local_dependencies_clear and "being referenced" in lowered:
+        return True
+    return False
+
+
+def _location_has_local_dependencies(
+    api, location_id: str, org_id: str | None,
+) -> bool:
+    """Probe for visible dependencies at a location.
+
+    Returns True if any users, workspaces, devices, features (AA/CQ/HG/paging/
+    parks/pickups), trunks, or route groups still resolve at the location.
+    When False, a 409 "being referenced" is almost certainly a backend gate
+    rather than a real blocker.
+    """
+    probes: list[tuple[str, dict]] = [
+        ("/people", {"locationId": location_id}),
+        ("/workspaces", {"locationId": location_id}),
+        ("/devices", {"locationId": location_id}),
+        ("/telephony/config/huntGroups", {"locationId": location_id}),
+        ("/telephony/config/autoAttendants", {"locationId": location_id}),
+        ("/telephony/config/queues", {"locationId": location_id}),
+        ("/telephony/config/paging", {"locationId": location_id}),
+        (f"/telephony/config/locations/{location_id}/callParks", {}),
+        (f"/telephony/config/locations/{location_id}/callPickups", {}),
+        ("/telephony/config/premisePstn/trunks", {"locationId": location_id}),
+        ("/telephony/config/premisePstn/routeGroups", {}),
+    ]
+    params_base: dict = {}
+    if org_id:
+        params_base["orgId"] = org_id
+    for path, extra in probes:
+        params = {**params_base, **extra}
+        try:
+            result = api.session.rest_get(f"{BASE}{path}", params=params)
+        except Exception:
+            # Probe failures shouldn't mask the gate; treat as "clear".
+            continue
+        if not isinstance(result, dict):
+            continue
+        for values in result.values():
+            if isinstance(values, list) and values:
+                # Route groups have no locationId filter — only count them
+                # if at least one references this location.
+                if path.endswith("/routeGroups"):
+                    if any(
+                        rg.get("location", {}).get("id") == location_id
+                        for rg in values
+                    ):
+                        return True
+                    continue
+                return True
+    return False
+
+
+def _extract_blocker(err: str) -> str | None:
+    """Extract a blocking resource hint from a 409 error body if the API surfaces one."""
+    if not err:
+        return None
+    lowered = err.lower()
+    for kw in (
+        "device", "user", "workspace", "virtual line", "trunk",
+        "route group", "route list", "dial plan", "hunt group",
+        "call queue", "auto attendant", "number",
+    ):
+        if kw in lowered:
+            return kw
+    return None
+
+
 def delete_location(
     api,
     item: dict,
     org_id: str | None,
+    max_attempts: int = LOCATION_DELETE_MAX_ATTEMPTS,
+    retry_sleep: int = LOCATION_DELETE_RETRY_SLEEP,
 ) -> DeleteResult:
-    """Delete a location (must have calling disabled first)."""
+    """Delete a location (must have calling disabled first).
+
+    Retries up to ``max_attempts`` times with ``retry_sleep`` seconds between
+    attempts. The 90-second disable-calling propagation wait in the caller
+    often isn't enough on larger orgs — the backend may still 409 for several
+    minutes. Each attempt emits a stdout line via ``click.echo`` (flushed)
+    so an observing parent process sees liveness and never has to hand-roll
+    an external polling loop.
+    """
     location_id = item.get("id", "")
     name = item.get("name", "unnamed")
     url = f"{BASE}/locations/{location_id}"
     params = {}
     if org_id:
         params["orgId"] = org_id
-    try:
-        api.session.rest_delete(url, params=params)
-        return DeleteResult(
-            resource_type="Locations",
-            resource_id=location_id,
-            resource_name=name,
-            success=True,
+
+    last_error: str = ""
+    ccp_blocked = False
+    for attempt in range(1, max_attempts + 1):
+        try:
+            api.session.rest_delete(url, params=params)
+            click.echo(f"[location={name}] deleted", nl=True)
+            try:
+                click.get_text_stream("stdout").flush()
+            except Exception:
+                logger.debug("stdout flush failed — parent may lose liveness signal")
+            return DeleteResult(
+                resource_type="Locations",
+                resource_id=location_id,
+                resource_name=name,
+                success=True,
+            )
+        except RestError as e:
+            last_error = str(e)
+            is_conflict = "409" in last_error or "conflict" in last_error.lower()
+
+            # CCP backend-gate short-circuit: retrying this is pointless —
+            # only the Webex backend can clear it, on the order of hours.
+            # The explicit error code is a hard signal on its own; the
+            # "being referenced" path requires confirming no local-visible
+            # deps remain before we call it a gate.
+            explicit_ccp = _is_ccp_integrated_error(last_error)
+            if explicit_ccp:
+                ccp_blocked = True
+                break
+            if is_conflict and "being referenced" in last_error.lower():
+                local_clear = not _location_has_local_dependencies(
+                    api, location_id, org_id,
+                )
+                if _is_ccp_backend_gate(last_error, local_clear):
+                    ccp_blocked = True
+                    break
+
+            if attempt < max_attempts and is_conflict:
+                click.echo(
+                    f"[location={name}] attempt {attempt}/{max_attempts}: "
+                    f"409 — retrying in {retry_sleep}s",
+                    nl=True,
+                )
+                try:
+                    click.get_text_stream("stdout").flush()
+                except Exception:
+                    logger.debug("stdout flush failed — parent may lose liveness signal")
+                time.sleep(retry_sleep)
+                continue
+            # Non-409 error, or exhausted attempts: stop retrying.
+            break
+
+    if ccp_blocked:
+        final_msg = (
+            f"[location={name}] blocked by CCP-integrated PSTN backend "
+            f"cleanup — Webex backend has not yet released internal trunk "
+            f"references. This typically clears in 1-4 hours for dCloud/CCP "
+            f"orgs. Re-run `wxcli cleanup run` later (it is idempotent) to "
+            f"retry. No action you can take to speed this up."
         )
-    except RestError as e:
+        click.echo(final_msg, nl=True)
+        try:
+            click.get_text_stream("stdout").flush()
+        except Exception:
+            logger.debug("stdout flush failed — parent may lose liveness signal")
         return DeleteResult(
             resource_type="Locations",
             resource_id=location_id,
             resource_name=name,
             success=False,
-            error=str(e),
+            error=final_msg,
+            ccp_blocked=True,
         )
+
+    blocker = _extract_blocker(last_error)
+    if blocker:
+        final_msg = (
+            f"delete failed after {max_attempts} attempt(s); "
+            f"blocked by {blocker}: {last_error}"
+        )
+    else:
+        final_msg = (
+            f"delete failed after {max_attempts} attempt(s): {last_error}"
+        )
+    click.echo(f"[location={name}] {final_msg}", nl=True)
+    try:
+        click.get_text_stream("stdout").flush()
+    except Exception:
+        logger.debug("stdout flush failed — parent may lose liveness signal")
+    return DeleteResult(
+        resource_type="Locations",
+        resource_id=location_id,
+        resource_name=name,
+        success=False,
+        error=final_msg,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -450,18 +667,30 @@ def delete_location_numbers(
     phone_numbers: list[str],
     org_id: str | None,
 ) -> list[DeleteResult]:
-    """Delete phone numbers from a location in batches of 5 (API limit)."""
+    """Delete phone numbers from a location in batches of 5 (API limit).
+
+    If 3 consecutive batch deletes fail at the same location (Issue #14),
+    stop iterating for that location and surface a warning. Any remaining
+    batches are marked as failures with a short "aborted" marker so the
+    final summary reflects what wasn't attempted.
+    """
     results: list[DeleteResult] = []
     url = f"{BASE}/telephony/config/locations/{location_id}/numbers"
     params = {}
     if org_id:
         params["orgId"] = org_id
 
+    CONSECUTIVE_FAILURE_LIMIT = 3
+    consecutive_failures = 0
+    aborted_at: int | None = None
+
     # API allows max 5 numbers per request
-    for i in range(0, len(phone_numbers), 5):
+    total = len(phone_numbers)
+    for i in range(0, total, 5):
         batch = phone_numbers[i:i + 5]
         try:
             api.session.rest_delete(url, params=params, json={"phoneNumbers": batch})
+            consecutive_failures = 0
             for num in batch:
                 results.append(DeleteResult(
                     resource_type="Numbers",
@@ -470,14 +699,61 @@ def delete_location_numbers(
                     success=True,
                 ))
         except RestError as e:
+            err_str = str(e)
+            # CCP-integrated PSTN: number lifecycle is managed via the PSTN
+            # portal, not the API. Log and skip — don't treat as a failure.
+            if _is_ccp_integrated_error(err_str):
+                consecutive_failures = 0
+                for num in batch:
+                    click.echo(
+                        f"[number={num}] skipped — CCP-integrated, "
+                        f"managed via PSTN portal",
+                        nl=True,
+                    )
+                    try:
+                        click.get_text_stream("stdout").flush()
+                    except Exception:
+                        logger.debug("stdout flush failed — parent may lose liveness signal")
+                    results.append(DeleteResult(
+                        resource_type="Numbers",
+                        resource_id=num,
+                        resource_name=num,
+                        success=True,
+                        error=None,
+                        ccp_blocked=True,
+                    ))
+                continue
+            consecutive_failures += 1
             for num in batch:
                 results.append(DeleteResult(
                     resource_type="Numbers",
                     resource_id=num,
                     resource_name=num,
                     success=False,
-                    error=str(e),
+                    error=err_str,
                 ))
+            if consecutive_failures >= CONSECUTIVE_FAILURE_LIMIT:
+                aborted_at = i + len(batch)
+                click.secho(
+                    f"⚠️  Location {location_id[:12]}...: "
+                    f"{CONSECUTIVE_FAILURE_LIMIT} consecutive number-delete "
+                    f"batch failures — aborting number cleanup for this "
+                    f"location",
+                    fg="yellow",
+                    err=False,
+                )
+                break
+
+    if aborted_at is not None:
+        for num in phone_numbers[aborted_at:]:
+            results.append(DeleteResult(
+                resource_type="Numbers",
+                resource_id=num,
+                resource_name=num,
+                success=False,
+                error="aborted: 3 consecutive batch failures at this location",
+            ))
+
     return results
 
 
@@ -485,18 +761,53 @@ def build_number_inventory(
     api,
     location_ids: list[str],
     org_id: str | None,
+    skipped_ext_only: list[str] | None = None,
 ) -> dict[str, list[str]]:
     """Build a map of location_id -> [phone_numbers] for cleanup.
 
     Returns only locations that have numbers to remove.
+
+    If ``skipped_ext_only`` is provided, each extension-only record encountered
+    is appended to it as a "loc_id: owner" entry so the caller can list the
+    skips in the dry-run/summary output (Issue #1).
     """
     inventory: dict[str, list[str]] = {}
     for loc_id in location_ids:
         numbers = list_location_numbers(api, loc_id, org_id)
-        phone_nums = [
-            n["phoneNumber"] for n in numbers
-            if n.get("phoneNumber") and n.get("mainNumber") is not True
-        ]
+        phone_nums = []
+        ext_only = 0
+        for n in numbers:
+            # Extension-only records have no phoneNumber field — they are
+            # extension owners (person/workspace/virtual line), not PSTN
+            # number resources, and get released when the owner is deleted.
+            if not n.get("phoneNumber"):
+                ext_only += 1
+                if skipped_ext_only is not None:
+                    owner = n.get("owner") or {}
+                    # Best-effort human label: displayName → firstName/lastName
+                    # → owner id → extension.
+                    label = (
+                        owner.get("displayName")
+                        or " ".join(
+                            part for part in (
+                                owner.get("firstName"), owner.get("lastName"),
+                            ) if part
+                        ).strip()
+                        or owner.get("id")
+                        or n.get("extension")
+                        or "(unknown)"
+                    )
+                    skipped_ext_only.append(f"{loc_id[:12]}...: {label}")
+                continue
+            if n.get("mainNumber") is True:
+                continue
+            phone_nums.append(n["phoneNumber"])
+        if ext_only:
+            logger.info(
+                "location %s: skipped %d extension-only record(s) "
+                "(extension owners, not phone numbers)",
+                loc_id, ext_only,
+            )
         if phone_nums:
             inventory[loc_id] = phone_nums
     return inventory
@@ -537,8 +848,15 @@ def format_dry_run(inventory: dict[str, list[dict]]) -> str:
 
 def _resolve_location_ids(
     api, scope: str | None, org_id: str | None,
+    unresolved: list[str] | None = None,
 ) -> list[str] | None:
-    """Resolve --scope names/IDs to location IDs. Returns None for all."""
+    """Resolve --scope names/IDs to location IDs. Returns None for all.
+
+    If ``unresolved`` is provided, any scope tokens that don't match a
+    location name or ID are appended to it (Issue #2). The caller is
+    responsible for surfacing them in the output before the deletion
+    summary so the operator has a chance to Ctrl+C.
+    """
     if not scope:
         return None
 
@@ -562,10 +880,15 @@ def _resolve_location_ids(
         elif r in name_map:
             resolved.append(name_map[r])
         else:
-            console.print(f"[yellow]Warning: Location '{r}' not found, skipping[/yellow]")
+            if unresolved is not None:
+                unresolved.append(r)
 
     if not resolved:
         console.print("[red]No valid locations found for the given scope.[/red]")
+        if unresolved:
+            console.print(
+                f"[yellow]Unresolved names: {', '.join(unresolved)}[/yellow]"
+            )
         raise typer.Exit(1)
 
     return resolved
@@ -627,7 +950,21 @@ def cleanup_run(
 
     # Resolve location scope
     console.print("[bold]Resolving scope...[/bold]")
-    location_ids = _resolve_location_ids(api, scope, org_id)
+    unresolved_scope: list[str] = []
+    location_ids = _resolve_location_ids(
+        api, scope, org_id, unresolved=unresolved_scope,
+    )
+
+    # Issue #2: surface unresolved --scope tokens BEFORE inventory/deletion
+    # so the operator has a chance to Ctrl+C rather than finding them buried
+    # in scrollback after cleanup runs.
+    if unresolved_scope:
+        click.secho(
+            f"⚠️  Unresolved location names (will be ignored): "
+            f"{', '.join(unresolved_scope)}",
+            fg="yellow",
+            err=False,
+        )
 
     if location_ids:
         console.print(f"  Scoped to {len(location_ids)} location(s)")
@@ -673,16 +1010,34 @@ def cleanup_run(
 
         inventory["users"] = [u for u in inventory["users"] if not _user_matches_excluded(u)]
         filtered = before - len(inventory["users"])
-        if filtered:
-            console.print(f"  Excluded {filtered} users matching domains: {', '.join(sorted(excluded))}")
+        # Issue #3: always print the exclusion notice when the flag is set so
+        # the operator sees which domains are being kept and how many users
+        # that covers — even when zero matched (e.g. a typo in the domain list).
+        click.echo(
+            f"Excluding users from domains: {', '.join(sorted(excluded))} "
+            f"({filtered} user{'s' if filtered != 1 else ''} excluded)"
+        )
         if not inventory["users"]:
             del inventory["users"]
+    elif exclude_user_domains:
+        # Flag set but no users to filter (e.g. --include-users not passed,
+        # or inventory produced zero users). Still surface it so the operator
+        # doesn't wonder whether the flag was honored.
+        excluded = {d.strip().lower() for d in exclude_user_domains.split(",")}
+        click.echo(
+            f"Excluding users from domains: {', '.join(sorted(excluded))} "
+            f"(0 users excluded)"
+        )
 
     # Build number inventory for locations (needed for Layer 12)
     number_inventory: dict[str, list[str]] = {}
+    skipped_ext_only: list[str] = []
     if include_locations:
         console.print("[bold]Checking for phone numbers on locations...[/bold]")
-        number_inventory = build_number_inventory(api, all_location_ids, org_id)
+        number_inventory = build_number_inventory(
+            api, all_location_ids, org_id,
+            skipped_ext_only=skipped_ext_only,
+        )
         total_nums = sum(len(v) for v in number_inventory.values())
         if total_nums:
             console.print(f"  Found {total_nums} number(s) across {len(number_inventory)} location(s)")
@@ -692,6 +1047,17 @@ def cleanup_run(
                 for loc_id, nums in number_inventory.items()
                 for num in nums
             ]
+
+    # Issue #1: surface extension-only records that were intentionally skipped
+    # (extension owners, not PSTN numbers — they get released when the owner
+    # is deleted). Print BEFORE the deletion summary/dry-run so the operator
+    # can see them in the same pane where the totals live.
+    if skipped_ext_only:
+        click.echo(
+            f"\nSkipped {len(skipped_ext_only)} extension-only record(s):"
+        )
+        for entry in skipped_ext_only:
+            click.echo(f"  - {entry}")
 
     if not inventory:
         console.print("[green]Nothing to delete — org is clean.[/green]")
@@ -745,6 +1111,8 @@ def cleanup_run(
         # Special handling for locations: disable calling first, then wait, then delete
         if "locations" in layer_keys and "locations" in inventory:
             loc_items = inventory["locations"]
+            # Map location_id -> name for failure messages (Issue #11).
+            loc_names = {item["id"]: item.get("name", item["id"]) for item in loc_items}
             # Phase 1: disable calling (best-effort — may already be off)
             console.print("  Disabling calling on locations...")
             disable_results = []
@@ -759,25 +1127,100 @@ def cleanup_run(
                     disable_results.append(future.result())
 
             disabled_ok = [r for r in disable_results if r.success]
+            disabled_failed = [r for r in disable_results if not r.success]
             console.print(f"  Disabled calling on {len(disabled_ok)}/{len(loc_items)} locations")
 
-            # Phase 2: wait only if any disables actually succeeded
-            if disabled_ok:
+            # Partition the inventory into two delete cohorts by disable outcome
+            # (Issue #11 / Finding #6). Locations where disable failed do NOT
+            # pay the 90-second propagation wait — they proceed to delete
+            # immediately. Locations where disable succeeded wait 90s (the
+            # calling-subsystem propagation window) before the delete phase.
+            succeeded_ids = {r.resource_id for r in disabled_ok}
+            items_disable_ok = [it for it in loc_items if it["id"] in succeeded_ids]
+            items_disable_failed = [
+                it for it in loc_items if it["id"] not in succeeded_ids
+            ]
+
+            # Issue #11: surface each disable failure explicitly. Delete will
+            # still be attempted (likely 409), but the existing
+            # delete_location error-handling catches that and the caller
+            # can re-run cleanup idempotently.
+            for r in disabled_failed:
+                name = loc_names.get(r.resource_id, r.resource_id)
+                click.secho(
+                    f"⚠️  Location {name}: disable calling failed — "
+                    f"skipping 90s wait; will attempt delete anyway",
+                    fg="yellow",
+                    err=False,
+                )
+
+            total_locs = len(loc_items)
+            layer_num = i + 1
+            console.print(
+                f"  Deleting locations (up to "
+                f"{LOCATION_DELETE_MAX_ATTEMPTS} attempts × "
+                f"{LOCATION_DELETE_RETRY_SLEEP}s per location)..."
+            )
+            console.print(
+                f"  Layer {layer_num} (location): 0/{total_locs} deleted, "
+                f"0 retrying, {total_locs} waiting"
+            )
+
+            deleted = 0
+            failed = 0
+            completed = 0
+            loc_results: list[DeleteResult] = []
+
+            def _delete_cohort(cohort_items: list[dict]) -> None:
+                nonlocal deleted, failed, completed
+                if not cohort_items:
+                    return
+                with ThreadPoolExecutor(max_workers=max_concurrent) as executor:
+                    futures = {
+                        executor.submit(delete_location, api, item, org_id): item
+                        for item in cohort_items
+                    }
+                    for future in as_completed(futures):
+                        res = future.result()
+                        loc_results.append(res)
+                        all_results.append(res)
+                        completed += 1
+                        if res.success:
+                            deleted += 1
+                        else:
+                            failed += 1
+                        # The remaining in-flight futures are the ones still
+                        # looping through retry attempts; the rest are
+                        # "waiting" in the executor queue (only meaningful
+                        # when max_concurrent < total_locs).
+                        in_flight = min(
+                            max_concurrent, total_locs - completed,
+                        )
+                        waiting = max(0, total_locs - completed - in_flight)
+                        console.print(
+                            f"  Layer {layer_num} (location): "
+                            f"{deleted}/{total_locs} deleted, "
+                            f"{in_flight} retrying, {waiting} waiting"
+                        )
+
+            # Phase 3a: delete locations where disable FAILED — no 90s wait.
+            # These are expected to 409 on delete (calling still attached),
+            # but we try anyway so a re-run after the operator fixes the
+            # root cause can skip straight to success.
+            _delete_cohort(items_disable_failed)
+
+            # Phase 2 (deferred): wait 90s only if any disables actually
+            # succeeded. When every disable failed, the 90s wait buys nothing.
+            # The wait happens BETWEEN cohorts so the failed-disable locations
+            # don't pay the penalty.
+            if items_disable_ok:
                 console.print("  Waiting 90s for backend propagation...")
                 time.sleep(90)
 
-            # Phase 3: attempt to delete ALL locations regardless of disable result
-            console.print("  Deleting locations...")
-            with ThreadPoolExecutor(max_workers=max_concurrent) as executor:
-                futures = {
-                    executor.submit(delete_location, api, item, org_id): item
-                    for item in loc_items
-                }
-                for future in as_completed(futures):
-                    all_results.append(future.result())
-            loc_ok = sum(1 for r in all_results if r.resource_type == "Locations" and r.success)
-            loc_fail = sum(1 for r in all_results if r.resource_type == "Locations" and not r.success)
-            console.print(f"  Done: {loc_ok} deleted, {loc_fail} failed")
+            # Phase 3b: delete locations where disable SUCCEEDED — after wait.
+            _delete_cohort(items_disable_ok)
+
+            console.print(f"  Done: {deleted} deleted, {failed} failed")
             continue
 
         results = execute_layer(api, layer_keys, inventory, org_id, max_concurrent)
@@ -793,17 +1236,35 @@ def cleanup_run(
 def format_results_summary(results: list[DeleteResult]) -> str:
     """Format a summary of deletion results."""
     successes = [r for r in results if r.success]
-    failures = [r for r in results if not r.success]
+    real_failures = [r for r in results if not r.success and not r.ccp_blocked]
+    ccp_blocked = [r for r in results if r.ccp_blocked]
+    ccp_blocked_locations = [
+        r for r in ccp_blocked if r.resource_type == "Locations"
+    ]
 
     lines = ["", "=== Cleanup Results ===", ""]
     lines.append(f"  Deleted:  {len(successes)}")
-    lines.append(f"  Failed:   {len(failures)}")
+    lines.append(f"  Failed:   {len(real_failures)}")
+    if ccp_blocked:
+        lines.append(f"  CCP-blocked: {len(ccp_blocked)}")
 
-    if failures:
+    if real_failures:
         lines.append("")
         lines.append("  Failures:")
-        for f in failures:
+        for f in real_failures:
             lines.append(f"    - {f.resource_type} {f.resource_name} ({f.resource_id}): {f.error}")
+
+    if ccp_blocked_locations:
+        lines.append("")
+        lines.append(
+            f"  NOTE: {len(ccp_blocked_locations)} location(s) blocked by "
+            f"CCP backend — retry in a few hours:"
+        )
+        for r in ccp_blocked_locations:
+            lines.append(f"    - {r.resource_name} ({r.resource_id})")
+        lines.append(
+            "  Re-run `wxcli cleanup run` later; the command is idempotent."
+        )
 
     lines.append("")
     return "\n".join(lines)
