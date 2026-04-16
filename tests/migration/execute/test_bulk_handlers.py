@@ -133,15 +133,20 @@ class TestBulkDynamicSettingsSubmit:
         assert body["tags"][0]["action"] == "SET"
         assert body["tags"][1]["action"] == "CLEAR"
 
-    def test_org_wide_uses_empty_location_string(self):
+    def test_missing_location_returns_skipped(self):
+        """Wave 2C: bulk dynamic-settings without a resolvable location is a
+        missing-dep scenario (the job payload would be rejected with an empty
+        locationId), so surface as SkippedResult rather than silently submit a
+        malformed POST."""
+        from wxcli.migration.execute.handlers import SkippedResult
         data = {
             "location_canonical_id": "",
             "tags": [{"familyOrModelDisplayName": "Cisco 9861",
                       "tag": "%FOO%", "action": "CLEAR"}],
         }
-        calls = handle_bulk_dynamic_settings_submit(data, {}, {})
-        _, _, body = calls[0]
-        assert body["locationId"] == ""
+        result = handle_bulk_dynamic_settings_submit(data, {}, {})
+        assert isinstance(result, SkippedResult)
+        assert "not resolved" in result.reason
 
 
 from wxcli.migration.execute.handlers import handle_bulk_rebuild_phones_submit
