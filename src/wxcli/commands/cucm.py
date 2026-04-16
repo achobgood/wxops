@@ -2213,9 +2213,12 @@ def mark_failed(
 
         if skip:
             update_op_status(store, node_id, "skipped", error_message=error)
-            # Count all transitively cascaded ops (direct + indirect)
+            # Count all transitively cascaded ops (direct + indirect).
+            # Wave 3B uses a root-referencing error_message format —
+            # "Cascade skip: dependency <root> FAILED|SKIPPED".
             skipped_count = store.conn.execute(
-                "SELECT COUNT(*) as cnt FROM plan_operations WHERE status = 'skipped' AND error_message LIKE 'Dependency %'",
+                "SELECT COUNT(*) as cnt FROM plan_operations "
+                "WHERE status = 'skipped' AND error_message LIKE 'Cascade skip: dependency %'",
             ).fetchone()["cnt"]
             console.print(f"[yellow]Skipped:[/yellow] {node_id} ({error})")
             if skipped_count:
@@ -2293,6 +2296,24 @@ def execution_status(
         if progress.get("last_completed"):
             comp = progress["last_completed"]
             console.print(f"[green]Last completed:[/green] {comp['node_id']}: {comp['description']}")
+
+        # Cascade groups — group cascade-skipped ops under their root cause.
+        cascade_groups = progress.get("cascade_groups") or {}
+        if cascade_groups:
+            console.print(
+                f"\n[bold]Cascade Groups:[/bold] "
+                f"{len(cascade_groups)} root cause(s) produced cascade-skips"
+            )
+            for root, info in sorted(cascade_groups.items()):
+                status = info.get("root_status", "unknown")
+                descendants = info.get("descendants", [])
+                color = "red" if status == "failed" else "yellow"
+                console.print(
+                    f"  [{color}]{root}[/{color}] ({status}) "
+                    f"→ cascade-skipped {len(descendants)} op(s)"
+                )
+                for dep in descendants:
+                    console.print(f"      - {dep}")
     finally:
         store.close()
 
