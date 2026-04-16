@@ -80,6 +80,7 @@ class TestLocationCreate:
 class TestLocationEnableCalling:
     def test_basic(self):
         data = {
+            "canonical_id": "location:hq",
             "name": "HQ Office",
             "time_zone": "America/New_York",
             "preferred_language": "en_US",
@@ -232,7 +233,7 @@ class TestWorkspaceCreate:
 
 class TestWorkspaceAssignNumber:
     def test_with_did(self):
-        data = {"phone_number": "+15559998888"}
+        data = {"canonical_id": "workspace:lobby", "phone_number": "+15559998888"}
         deps = {"workspace:lobby": "wx-ws-aaa"}
         result = handle_workspace_assign_number(data, deps, {})
         assert len(result) == 1
@@ -242,7 +243,7 @@ class TestWorkspaceAssignNumber:
         assert body["phoneNumbers"][0]["value"] == "+15559998888"
 
     def test_no_phone_number_returns_empty(self):
-        data = {}
+        data = {"canonical_id": "workspace:lobby"}
         deps = {"workspace:lobby": "wx-ws-aaa"}
         result = handle_workspace_assign_number(data, deps, {})
         assert result == []
@@ -438,6 +439,17 @@ class TestDeviceCreate:
         assert not body["model"].startswith("DMS ")
         assert body["mac"] == "AABBCC000099"
         assert body["personId"] == "wx-person-testuser-id"
+
+
+class TestNormalizeDeviceModel:
+    """Unit tests for the _normalize_device_model helper."""
+
+    def test_normalize_empty_model_returns_empty(self):
+        """Empty input must short-circuit — not fall through to the
+        classic-MPP branch and produce the invalid string 'DMS '."""
+        from wxcli.migration.execute.handlers import _normalize_device_model
+
+        assert _normalize_device_model("") == ""
 
 
 class TestDeviceCreateActivationCode:
@@ -799,6 +811,7 @@ class TestPagingGroupCreate:
 class TestUserConfigureSettings:
     def test_returns_multiple_calls(self):
         data = {
+            "canonical_id": "user:alice",
             "call_settings": {
                 "callForwarding": {"always": {"enabled": False}},
                 "callerId": {"externalCallerIdNamePolicy": "DIRECT_LINE"},
@@ -813,7 +826,7 @@ class TestUserConfigureSettings:
             assert "wx-alice" in url
 
     def test_no_settings_returns_empty(self):
-        data = {"call_settings": {}}
+        data = {"canonical_id": "user:alice", "call_settings": {}}
         deps = {"user:alice": "wx-alice"}
         result = handle_user_configure_settings(data, deps, {})
         assert result == []
@@ -831,7 +844,10 @@ class TestUserConfigureSettings:
         assert isinstance(result, SkippedResult)
 
     def test_feature_in_url(self):
-        data = {"call_settings": {"doNotDisturb": {"enabled": True}}}
+        data = {
+            "canonical_id": "user:alice",
+            "call_settings": {"doNotDisturb": {"enabled": True}},
+        }
         deps = {"user:alice": "wx-alice"}
         result = handle_user_configure_settings(data, deps, {})
         assert len(result) == 1
@@ -841,6 +857,7 @@ class TestUserConfigureSettings:
     def test_call_recording_emits_get_then_put(self):
         """callRecording uses read-before-write: GET current, then PUT with merge sentinel."""
         data = {
+            "canonical_id": "user:alice",
             "call_settings": {
                 "callRecording": {"enabled": True, "record": "Always"},
             },
@@ -864,6 +881,7 @@ class TestUserConfigureSettings:
     def test_call_recording_mixed_with_other_features(self):
         """callRecording GET+PUT coexists with other features' plain PUTs."""
         data = {
+            "canonical_id": "user:alice",
             "call_settings": {
                 "doNotDisturb": {"enabled": True},
                 "callRecording": {"enabled": True, "record": "Always"},
@@ -881,6 +899,7 @@ class TestUserConfigureSettings:
     def test_non_recording_features_single_put(self):
         """Non-callRecording features still produce a single PUT each."""
         data = {
+            "canonical_id": "user:alice",
             "call_settings": {
                 "callForwarding": {"always": {"enabled": False}},
                 "callerId": {"externalCallerIdNamePolicy": "DIRECT_LINE"},
@@ -893,11 +912,34 @@ class TestUserConfigureSettings:
             assert method == "PUT"
             assert "_merge_from_previous" not in (body or {})
 
+    def test_picks_correct_user_among_multiple_deps(self):
+        """Regression: with multiple user:* entries in deps, the handler must
+        resolve by data['canonical_id'] (this op's target), not by scan-first.
+        Before the fix, the loop picked the first user:* in dict-iteration
+        order and silently PUT bob's settings on alice — especially dangerous
+        now that callRecording does GET + merge + PUT."""
+        data = {
+            "canonical_id": "user:bob",
+            "call_settings": {"doNotDisturb": {"enabled": True}},
+        }
+        # alice is inserted first on purpose — on CPython's insertion-ordered
+        # dicts this guarantees the old scan-first code path would have
+        # picked wx-alice. The canonical_id-based resolution picks wx-bob.
+        deps = {"user:alice": "wx-alice", "user:bob": "wx-bob"}
+        result = handle_user_configure_settings(data, deps, {})
+        assert len(result) == 1
+        _, url, _ = result[0]
+        assert "wx-bob" in url
+        assert "wx-alice" not in url
+
 
 class TestUserConfigureVoicemail:
     def test_basic(self):
         from wxcli.migration.execute.handlers import handle_user_configure_voicemail
-        data = {"voicemail": {"enabled": True, "sendAllCalls": {"enabled": False}}}
+        data = {
+            "canonical_id": "user:alice",
+            "voicemail": {"enabled": True, "sendAllCalls": {"enabled": False}},
+        }
         deps = {"user:alice": "wx-alice"}
         result = handle_user_configure_voicemail(data, deps, {})
         assert len(result) == 1
@@ -916,11 +958,27 @@ class TestUserConfigureVoicemail:
         result = handle_user_configure_voicemail(data, {}, {})
         assert isinstance(result, SkippedResult)
 
+    def test_picks_correct_user_among_multiple_deps(self):
+        """Same regression as TestUserConfigureSettings — multiple user:*
+        deps must route to the canonical_id target, not scan-first."""
+        from wxcli.migration.execute.handlers import handle_user_configure_voicemail
+
+        data = {"canonical_id": "user:bob", "voicemail": {"enabled": True}}
+        deps = {"user:alice": "wx-alice", "user:bob": "wx-bob"}
+        result = handle_user_configure_voicemail(data, deps, {})
+        assert len(result) == 1
+        _, url, _ = result[0]
+        assert "wx-bob" in url
+        assert "wx-alice" not in url
+
 
 class TestDeviceConfigureSettings:
     def test_basic(self):
         from wxcli.migration.execute.handlers import handle_device_configure_settings
-        data = {"device_settings": {"allowThirdPartyControl": True}}
+        data = {
+            "canonical_id": "device:d1",
+            "device_settings": {"allowThirdPartyControl": True},
+        }
         deps = {"device:d1": "wx-dev-111"}
         result = handle_device_configure_settings(data, deps, {})
         assert len(result) == 1
@@ -931,7 +989,7 @@ class TestDeviceConfigureSettings:
 
     def test_no_settings_returns_empty(self):
         from wxcli.migration.execute.handlers import handle_device_configure_settings
-        data = {"device_settings": {}}
+        data = {"canonical_id": "device:d1", "device_settings": {}}
         deps = {"device:d1": "wx-dev-111"}
         result = handle_device_configure_settings(data, deps, {})
         assert result == []
@@ -941,7 +999,10 @@ class TestDeviceConfigureSettings:
             SkippedResult,
             handle_device_configure_settings,
         )
-        data = {"device_settings": {"allowThirdPartyControl": True}}
+        data = {
+            "canonical_id": "device:d1",
+            "device_settings": {"allowThirdPartyControl": True},
+        }
         result = handle_device_configure_settings(data, {}, {})
         assert isinstance(result, SkippedResult)
         assert "device" in result.reason
@@ -950,7 +1011,10 @@ class TestDeviceConfigureSettings:
 class TestWorkspaceConfigureSettings:
     def test_basic(self):
         from wxcli.migration.execute.handlers import handle_workspace_configure_settings
-        data = {"call_settings": {"callForwarding": {"always": {"enabled": False}}}}
+        data = {
+            "canonical_id": "workspace:lobby",
+            "call_settings": {"callForwarding": {"always": {"enabled": False}}},
+        }
         deps = {"workspace:lobby": "wx-ws-aaa"}
         result = handle_workspace_configure_settings(data, deps, {})
         assert len(result) == 1
@@ -961,7 +1025,7 @@ class TestWorkspaceConfigureSettings:
 
     def test_no_settings_returns_empty(self):
         from wxcli.migration.execute.handlers import handle_workspace_configure_settings
-        data = {"call_settings": {}}
+        data = {"canonical_id": "workspace:lobby", "call_settings": {}}
         deps = {"workspace:lobby": "wx-ws-aaa"}
         result = handle_workspace_configure_settings(data, deps, {})
         assert result == []
@@ -1123,7 +1187,10 @@ class TestVirtualLineCreate:
 
 class TestVirtualLineConfigure:
     def test_basic(self):
-        data = {"settings": {"callerIdName": "Shared Line"}}
+        data = {
+            "canonical_id": "virtual_line:vl1",
+            "settings": {"callerIdName": "Shared Line"},
+        }
         deps = {"virtual_line:vl1": "wx-vl-aaa"}
         result = handle_virtual_line_configure(data, deps, {})
         assert len(result) == 1
@@ -1133,14 +1200,14 @@ class TestVirtualLineConfigure:
         assert "/virtualLines/" in url
 
     def test_no_settings_returns_empty(self):
-        data = {"settings": {}}
+        data = {"canonical_id": "virtual_line:vl1", "settings": {}}
         deps = {"virtual_line:vl1": "wx-vl-aaa"}
         result = handle_virtual_line_configure(data, deps, {})
         assert result == []
 
     def test_no_dep_returns_skipped(self):
         from wxcli.migration.execute.handlers import SkippedResult
-        data = {"settings": {"callerIdName": "VL"}}
+        data = {"canonical_id": "virtual_line:vl1", "settings": {"callerIdName": "VL"}}
         result = handle_virtual_line_configure(data, {}, {})
         assert isinstance(result, SkippedResult)
         assert "virtual" in result.reason.lower()

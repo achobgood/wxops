@@ -19,29 +19,8 @@ from wxcli.migration.transform.analyzers import Analyzer, Decision
 
 logger = logging.getLogger(__name__)
 
-# Phone model → max line key count (same source as ButtonTemplateMapper)
-_MODEL_LINE_KEY_COUNTS: dict[str, int] = {
-    "7821": 2,
-    "7841": 4,
-    "7861": 16,
-    "8841": 10,
-    "8845": 10,
-    "8851": 10,
-    "8861": 10,
-    "8865": 10,
-    "9811": 2,
-    "9821": 2,
-    "9841": 4,
-    "9851": 10,
-    "9861": 16,
-    "9871": 32,
-    "6821": 2,
-    "6841": 4,
-    "6851": 12,
-    "6861": 16,
-    "6871": 10,
-    "8875": 10,
-}
+# Phone model → max line key count — imported from the single source of truth
+from wxcli.migration.phone_models import MODEL_LINE_KEY_COUNTS as _MODEL_LINE_KEY_COUNTS
 
 # Models that support KEM expansion modules
 _KEM_SUPPORTED_MODELS: set[str] = {

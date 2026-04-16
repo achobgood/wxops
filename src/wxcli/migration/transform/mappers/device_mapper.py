@@ -47,7 +47,7 @@ logger = logging.getLogger(__name__)
 
 # PhoneOS phones: 9800-series + 8875 use cloud deviceId ("cloud" surface).
 # Classic MPP (6800-series, 7800-series, 8800-series) use callingDeviceId ("telephony").
-_CLOUD_SURFACE_SUBSTRINGS = {"9811", "9821", "9841", "9851", "9861", "9871", "8875"}
+from wxcli.migration.phone_models import PHONEOS_MODEL_NUMBERS as _CLOUD_SURFACE_SUBSTRINGS
 
 
 class DeviceMapper(Mapper):

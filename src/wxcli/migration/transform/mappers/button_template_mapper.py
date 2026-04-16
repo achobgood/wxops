@@ -54,13 +54,7 @@ CUCM_BUTTON_TO_WEBEX: dict[str, str | None] = {
 }
 
 # Max line key count per phone model (buttons beyond this are KEM keys)
-_MODEL_LINE_KEY_COUNTS: dict[str, int] = {
-    "7821": 2, "7841": 4, "7861": 16,
-    "8811": 10, "8832": 0, "8841": 10, "8845": 10, "8851": 10, "8861": 10, "8865": 10,
-    "8875": 10,
-    "9811": 2, "9821": 2, "9841": 4, "9851": 10, "9861": 16, "9871": 32,
-    "6821": 2, "6841": 4, "6851": 12, "6861": 16, "6871": 10,
-}
+from wxcli.migration.phone_models import MODEL_LINE_KEY_COUNTS as _MODEL_LINE_KEY_COUNTS
 
 # Regex to extract 4-digit model number from base template name
 _MODEL_RE = re.compile(r"(\d{4})")
