@@ -3,14 +3,14 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
+from wxcli.config import get_org_id
 
 
-app = typer.Typer(help="Manage Webex Calling organization-contacts.")
+app = typer.Typer(help="Manage Webex Calling org-contacts.")
 
 
 @app.command("create")
 def create(
-    org_id: str = typer.Argument(help="orgId"),
     schemas: str = typer.Option(None, "--schemas", help="(required) \"urn:cisco:codev:identity:contact:core:1.0\"."),
     display_name: str = typer.Option(None, "--display-name", help="The full name of the contact."),
     first_name: str = typer.Option(None, "--first-name", help="The first name of the contact."),
@@ -22,10 +22,12 @@ def create(
     primary_contact_method: str = typer.Option(None, "--primary-contact-method", help="Choices: SIPADDRESS, EMAIL, PHONE, IMS"),
     source: str = typer.Option(None, "--source", help="(required) Choices: CH, Webex4Broadworks"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create a Contact\n\nExample --json-body:\n  '{"schemas":"...","displayName":"...","firstName":"...","lastName":"...","companyName":"...","title":"..."}'."""
     api = get_api(debug=debug)
+    org_id = get_org_id() or api.people.me().org_id
     url = f"https://webexapis.com/v1/contacts/organizations/{org_id}/contacts"
     if json_body:
         body = json.loads(json_body)
@@ -71,10 +73,15 @@ def create(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "contactId" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "contactId" in result:
         typer.echo(f"Created: {result['contactId']}")
     elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
@@ -87,13 +94,13 @@ def create(
 
 @app.command("show")
 def show(
-    org_id: str = typer.Argument(help="orgId"),
     contact_id: str = typer.Argument(help="contactId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get a Contact."""
     api = get_api(debug=debug)
+    org_id = get_org_id() or api.people.me().org_id
     url = f"https://webexapis.com/v1/contacts/organizations/{org_id}/contacts/{contact_id}"
     try:
         result = api.session.rest_get(url)
@@ -111,6 +118,9 @@ def show(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -128,7 +138,6 @@ def show(
 
 @app.command("update")
 def update(
-    org_id: str = typer.Argument(help="orgId"),
     contact_id: str = typer.Argument(help="contactId"),
     schemas: str = typer.Option(None, "--schemas", help="\"urn:cisco:codev:identity:contact:core:1.0\"."),
     display_name: str = typer.Option(None, "--display-name", help="The full name of the contact."),
@@ -145,6 +154,7 @@ def update(
 ):
     """Update a Contact\n\nExample --json-body:\n  '{"schemas":"...","displayName":"...","firstName":"...","lastName":"...","companyName":"...","title":"..."}'."""
     api = get_api(debug=debug)
+    org_id = get_org_id() or api.people.me().org_id
     url = f"https://webexapis.com/v1/contacts/organizations/{org_id}/contacts/{contact_id}"
     if json_body:
         body = json.loads(json_body)
@@ -186,6 +196,9 @@ def update(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -195,7 +208,6 @@ def update(
 
 @app.command("delete")
 def delete(
-    org_id: str = typer.Argument(help="orgId"),
     contact_id: str = typer.Argument(help="contactId"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
@@ -204,6 +216,7 @@ def delete(
     if not force:
         typer.confirm(f"Delete {contact_id}?", abort=True)
     api = get_api(debug=debug)
+    org_id = get_org_id() or api.people.me().org_id
     url = f"https://webexapis.com/v1/contacts/organizations/{org_id}/contacts/{contact_id}"
     try:
         api.session.rest_delete(url)
@@ -221,6 +234,9 @@ def delete(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -230,27 +246,27 @@ def delete(
 
 @app.command("list")
 def cmd_list(
-    org_id: str = typer.Argument(help="orgId"),
     keyword: str = typer.Option(None, "--keyword", help="List contacts with a keyword."),
     source: str = typer.Option(None, "--source", help="List contacts with source."),
-    limit: str = typer.Option(None, "--limit", help="Limit the maximum number of contact in the response."),
     group_ids: str = typer.Option(None, "--group-ids", help="Filter contacts based on groups."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Contacts."""
     api = get_api(debug=debug)
+    org_id = get_org_id() or api.people.me().org_id
     url = f"https://webexapis.com/v1/contacts/organizations/{org_id}/contacts/search"
     params = {}
     if keyword is not None:
         params["keyword"] = keyword
     if source is not None:
         params["source"] = source
-    if limit is not None:
-        params["limit"] = limit
     if group_ids is not None:
         params["groupIds"] = group_ids
+    if limit > 0:
+        params["limit"] = limit
     if offset > 0:
         params["start"] = offset
     try:
@@ -269,6 +285,9 @@ def cmd_list(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -277,19 +296,20 @@ def cmd_list(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=0)
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
 @app.command("create-bulk")
 def create_bulk(
-    org_id: str = typer.Argument(help="orgId"),
     schemas: str = typer.Option(None, "--schemas", help="(required) \"urn:cisco:codev:identity:contact:core:1.0\"."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Bulk Create or Update Contacts\n\nExample --json-body:\n  '{"schemas":"...","contacts":[{"contactId":"...","displayName":"...","firstName":"...","lastName":"...","companyName":"...","title":"..."}]}'."""
     api = get_api(debug=debug)
+    org_id = get_org_id() or api.people.me().org_id
     url = f"https://webexapis.com/v1/contacts/organizations/{org_id}/contacts/bulk"
     if json_body:
         body = json.loads(json_body)
@@ -317,10 +337,15 @@ def create_bulk(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -331,13 +356,14 @@ def create_bulk(
 
 @app.command("create-delete")
 def create_delete(
-    org_id: str = typer.Argument(help="orgId"),
     schemas: str = typer.Option(None, "--schemas", help="(required) \"urn:cisco:codev:identity:contact:core:1.0\"."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Bulk Delete Contacts\n\nExample --json-body:\n  '{"schemas":"...","objectIds":["..."]}'."""
     api = get_api(debug=debug)
+    org_id = get_org_id() or api.people.me().org_id
     url = f"https://webexapis.com/v1/contacts/organizations/{org_id}/contacts/bulk/delete"
     if json_body:
         body = json.loads(json_body)
@@ -365,10 +391,15 @@ def create_delete(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")

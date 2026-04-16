@@ -6,7 +6,7 @@ from wxcli.output import print_table, print_json
 from wxcli.config import get_org_id
 
 
-app = typer.Typer(help="Manage Webex Calling device-call-settings-with-device-dynamic-settings.")
+app = typer.Typer(help="Manage Webex Calling device-dynamic-settings.")
 
 
 @app.command("list")
@@ -14,7 +14,7 @@ def cmd_list(
     allow_configure_layout_enabled: str = typer.Option(None, "--allow-configure-layout-enabled", help="List supported devices that allow the user to configure the"),
     type_param: str = typer.Option(None, "--type", help="List supported devices of a specific type. To excluded devic"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -34,7 +34,14 @@ def cmd_list(
     if org_id is not None:
         params["orgId"] = org_id
     try:
-        result = api.session.rest_get(url, params=params)
+        if limit > 0:
+            result = api.session.rest_get(url, params=params)
+            result = result or {}
+            items = result.get("upgradeChannelList", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+        else:
+            if "max" not in params:
+                params["max"] = 1000
+            items = list(api.session.follow_pagination(url=url, params=params, item_key="upgradeChannelList"))
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -49,11 +56,12 @@ def cmd_list(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    result = result or []
-    items = result.get("upgradeChannelList", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -66,7 +74,7 @@ def list_settings_groups(
     family_or_model_display_name: str = typer.Option(None, "--family-or-model-display-name", help="Device family or model display name to filter the `settingsG"),
     include_settings_type: str = typer.Option(None, "--include-settings-type", help="Choices: TABS, GROUPS, ALL"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -101,6 +109,9 @@ def list_settings_groups(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -148,6 +159,9 @@ def get_customer_device(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -191,6 +205,9 @@ def get_location_device(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -231,6 +248,9 @@ def get_device_dynamic(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -271,6 +291,9 @@ def update(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -280,10 +303,8 @@ def update(
 
 @app.command("list-dynamic-device-settings")
 def list_dynamic_device_settings(
-    start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of jobs. Default"),
-    max: str = typer.Option(None, "--max", help="Limit the number of jobs returned to this maximum count. Def"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -291,10 +312,6 @@ def list_dynamic_device_settings(
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/jobs/devices/dynamicDeviceSettings"
     params = {}
-    if start is not None:
-        params["start"] = start
-    if max is not None:
-        params["max"] = max
     if limit > 0:
         params["max"] = limit
     if offset > 0:
@@ -318,6 +335,9 @@ def list_dynamic_device_settings(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -334,6 +354,7 @@ def list_dynamic_device_settings(
 def create(
     location_id: str = typer.Option(None, "--location-id", help="If present, the requested settings will be updated to device"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update Device Dynamic Settings Across Organization or Location\n\nExample --json-body:\n  '{"locationId":"...","tags":[{"familyOrModelDisplayName":"...","tag":"...","action":"...","value":"..."}]}'."""
@@ -365,10 +386,15 @@ def create(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -402,6 +428,9 @@ def show(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -420,10 +449,8 @@ def show(
 @app.command("list-errors")
 def list_errors(
     job_id: str = typer.Argument(help="jobId"),
-    start: str = typer.Option(None, "--start", help="Specifies the offset from the first result that you want to"),
-    max: str = typer.Option(None, "--max", help="Specifies the maximum number of records that you want to fet"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -431,10 +458,6 @@ def list_errors(
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/jobs/devices/dynamicDeviceSettings/{job_id}/errors"
     params = {}
-    if start is not None:
-        params["start"] = start
-    if max is not None:
-        params["max"] = max
     if limit > 0:
         params["max"] = limit
     if offset > 0:
@@ -458,6 +481,9 @@ def list_errors(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)

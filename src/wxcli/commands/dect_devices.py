@@ -6,7 +6,7 @@ from wxcli.output import print_table, print_json
 from wxcli.config import get_org_id
 
 
-app = typer.Typer(help="Manage Webex Calling dect-devices-settings.")
+app = typer.Typer(help="Manage Webex Calling dect-devices.")
 
 
 @app.command("create")
@@ -18,6 +18,7 @@ def create(
     default_access_code_enabled: bool = typer.Option(None, "--default-access-code-enabled/--no-default-access-code-enabled", help="(required) If set to true, need to provide a default access code that w"),
     default_access_code: str = typer.Option(None, "--default-access-code", help="(required) If `defaultAccessCodeEnabled` is set to true, then provide a"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create a DECT Network."""
@@ -61,10 +62,15 @@ def create(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "dectNetworkId" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "dectNetworkId" in result:
         typer.echo(f"Created: {result['dectNetworkId']}")
     elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
@@ -115,6 +121,9 @@ def cmd_list(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -157,6 +166,9 @@ def show(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -218,6 +230,9 @@ def update(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -257,6 +272,9 @@ def delete(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -300,6 +318,9 @@ def list_base_stations(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -317,6 +338,7 @@ def create_base_stations(
     location_id: str = typer.Argument(help="locationId"),
     dect_network_id: str = typer.Argument(help="dectNetworkId"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create Multiple Base Stations\n\nExample --json-body:\n  '{"baseStationMacs":["..."]}'."""
@@ -346,10 +368,15 @@ def create_base_stations(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "baseStations" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "baseStations" in result:
         typer.echo(f"Created: {result['baseStations']}")
     elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
@@ -392,6 +419,9 @@ def delete_base_stations_dect_networks(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -430,6 +460,9 @@ def show_base_stations(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -478,6 +511,9 @@ def delete_base_stations_dect_networks_1(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -527,6 +563,9 @@ def list_handsets(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -547,6 +586,7 @@ def create_handsets(
     line2_member_id: str = typer.Option(None, "--line2-member-id", help="ID of the member on line2 of the handset. Members can be PEO"),
     custom_display_name: str = typer.Option(None, "--custom-display-name", help="(required) Custom display name on the handset. Min and max length suppo"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Add a Handset to a DECT Network."""
@@ -586,10 +626,15 @@ def create_handsets(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -629,6 +674,9 @@ def show_handsets(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -688,6 +736,9 @@ def update_handsets(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -728,6 +779,9 @@ def delete_handsets_dect_networks(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -767,6 +821,9 @@ def delete_handsets_dect_networks_1(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -779,6 +836,7 @@ def create_bulk(
     location_id: str = typer.Argument(help="locationId"),
     dect_network_id: str = typer.Argument(help="dectNetworkId"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Add a List of Handsets to a DECT Network\n\nExample --json-body:\n  '{"items":[{"line1MemberId":"...","line2MemberId":"...","customDisplayName":"..."}]}'."""
@@ -808,10 +866,15 @@ def create_bulk(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "items" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "items" in result:
         typer.echo(f"Created: {result['items']}")
     elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
@@ -857,6 +920,9 @@ def list_dect_networks_people(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -904,6 +970,9 @@ def list_dect_networks_workspaces(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -918,8 +987,6 @@ def list_dect_networks_workspaces(
 
 @app.command("list-available-members")
 def list_available_members(
-    start: str = typer.Option(None, "--start", help="Specifies the offset from the first result that you want to"),
-    max: str = typer.Option(None, "--max", help="Specifies the maximum number of records that you want to fet"),
     member_name: str = typer.Option(None, "--member-name", help="Search (Contains) numbers based on member name."),
     phone_number: str = typer.Option(None, "--phone-number", help="Search (Contains) based on number."),
     extension: str = typer.Option(None, "--extension", help="Search (Contains) based on extension."),
@@ -936,10 +1003,6 @@ def list_available_members(
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/devices/availableMembers"
     params = {}
-    if start is not None:
-        params["start"] = start
-    if max is not None:
-        params["max"] = max
     if member_name is not None:
         params["memberName"] = member_name
     if phone_number is not None:
@@ -977,6 +1040,9 @@ def list_available_members(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -1023,6 +1089,9 @@ def generate_and_enable(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -1060,6 +1129,9 @@ def show_serviceability_password(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -1112,6 +1184,9 @@ def update_serviceability_password(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)

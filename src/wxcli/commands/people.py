@@ -17,7 +17,6 @@ def cmd_list(
     roles: str = typer.Option(None, "--roles", help="List of roleIds separated by commas."),
     calling_data: str = typer.Option(None, "--calling-data", help="Include Webex Calling user details in the response."),
     location_id: str = typer.Option(None, "--location-id", help="List people present in this location."),
-    max: str = typer.Option(None, "--max", help="Limit the maximum number of people in the response. If `call"),
     exclude_status: str = typer.Option(None, "--exclude-status", help="Omit people status/availability to enhance query performance"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
@@ -40,8 +39,6 @@ def cmd_list(
         params["callingData"] = calling_data
     if location_id is not None:
         params["locationId"] = location_id
-    if max is not None:
-        params["max"] = max
     if exclude_status is not None:
         params["excludeStatus"] = exclude_status
     if limit > 0:
@@ -72,6 +69,9 @@ def cmd_list(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -151,6 +151,9 @@ def create(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -194,6 +197,9 @@ def show(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -287,6 +293,9 @@ def update(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -321,6 +330,9 @@ def delete(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -356,6 +368,9 @@ def show_me(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)

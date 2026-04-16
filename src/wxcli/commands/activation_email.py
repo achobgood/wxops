@@ -3,19 +3,21 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
+from wxcli.config import get_org_id
 
 
-app = typer.Typer(help="Manage Webex Calling send-activation-email.")
+app = typer.Typer(help="Manage Webex Calling activation-email.")
 
 
 @app.command("create")
 def create(
-    org_id: str = typer.Argument(help="orgId"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Initiate Bulk Activation Email Resend Job."""
     api = get_api(debug=debug)
+    org_id = get_org_id() or api.people.me().org_id
     url = f"https://webexapis.com/identity/organizations/{org_id}/jobs/sendActivationEmails"
     if json_body:
         body = json.loads(json_body)
@@ -37,10 +39,15 @@ def create(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -51,7 +58,6 @@ def create(
 
 @app.command("list")
 def cmd_list(
-    org_id: str = typer.Argument(help="orgId"),
     job_id: str = typer.Argument(help="jobId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
@@ -60,6 +66,7 @@ def cmd_list(
 ):
     """Get Bulk Activation Email Resend Job Status."""
     api = get_api(debug=debug)
+    org_id = get_org_id() or api.people.me().org_id
     url = f"https://webexapis.com/identity/organizations/{org_id}/jobs/sendActivationEmails/{job_id}/status"
     params = {}
     if limit > 0:
@@ -82,6 +89,9 @@ def cmd_list(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -96,9 +106,7 @@ def cmd_list(
 
 @app.command("list-errors")
 def list_errors(
-    org_id: str = typer.Argument(help="orgId"),
     job_id: str = typer.Argument(help="jobId"),
-    max: str = typer.Option(None, "--max", help="Limit the maximum number of errors in the response."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -106,10 +114,9 @@ def list_errors(
 ):
     """Get Bulk Activation Email Resend Job Errors."""
     api = get_api(debug=debug)
+    org_id = get_org_id() or api.people.me().org_id
     url = f"https://webexapis.com/identity/organizations/{org_id}/jobs/sendActivationEmails/{job_id}/errors"
     params = {}
-    if max is not None:
-        params["max"] = max
     if limit > 0:
         params["max"] = limit
     if offset > 0:
@@ -135,6 +142,9 @@ def list_errors(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)

@@ -10,13 +10,12 @@ app = typer.Typer(help="Manage Webex Calling recording-report.")
 
 @app.command("list")
 def cmd_list(
-    max: str = typer.Option(None, "--max", help="Maximum number of recording audit report summaries to return"),
     from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for recording audit repor"),
     to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for recording audit report"),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only u"),
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site which the API lists recording audit re"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -24,8 +23,6 @@ def cmd_list(
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/recordingReport/accessSummary"
     params = {}
-    if max is not None:
-        params["max"] = max
     if from_param is not None:
         params["from"] = from_param
     if to is not None:
@@ -39,7 +36,12 @@ def cmd_list(
     if offset > 0:
         params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        if limit > 0:
+            result = api.session.rest_get(url, params=params)
+            result = result or {}
+            items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+        else:
+            items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -54,11 +56,12 @@ def cmd_list(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -70,9 +73,8 @@ def cmd_list(
 def list_access_detail(
     recording_id: str = typer.Option(..., "--recording-id", help="A unique identifier for the recording."),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only u"),
-    max: str = typer.Option(None, "--max", help="Maximum number of recording audit report details to return i"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -84,14 +86,17 @@ def list_access_detail(
         params["recordingId"] = recording_id
     if host_email is not None:
         params["hostEmail"] = host_email
-    if max is not None:
-        params["max"] = max
     if limit > 0:
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        if limit > 0:
+            result = api.session.rest_get(url, params=params)
+            result = result or {}
+            items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+        else:
+            items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -106,11 +111,12 @@ def list_access_detail(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -120,12 +126,11 @@ def list_access_detail(
 
 @app.command("list-meeting-archive-summaries")
 def list_meeting_archive_summaries(
-    max: str = typer.Option(None, "--max", help="Maximum number of meeting archive summaries to return in a s"),
     from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for meeting archive summa"),
     to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for meeting archive summari"),
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site which the API lists meeting archive su"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=use API default)"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -133,8 +138,6 @@ def list_meeting_archive_summaries(
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/recordingReport/meetingArchiveSummaries"
     params = {}
-    if max is not None:
-        params["max"] = max
     if from_param is not None:
         params["from"] = from_param
     if to is not None:
@@ -146,7 +149,12 @@ def list_meeting_archive_summaries(
     if offset > 0:
         params["start"] = offset
     try:
-        result = api.session.rest_get(url, params=params)
+        if limit > 0:
+            result = api.session.rest_get(url, params=params)
+            result = result or {}
+            items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+        else:
+            items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -161,11 +169,12 @@ def list_meeting_archive_summaries(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -198,6 +207,9 @@ def show(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)

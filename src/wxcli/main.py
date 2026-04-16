@@ -178,6 +178,8 @@ from wxcli.commands.conference import app as conference_app
 app.add_typer(conference_app, name="conference")
 from wxcli.commands.recordings import app as recordings_app
 app.add_typer(recordings_app, name="recordings")
+from wxcli.commands.admin_recordings import app as admin_recordings_app
+app.add_typer(admin_recordings_app, name="admin-recordings")
 from wxcli.commands.dect_devices import app as dect_devices_app
 app.add_typer(dect_devices_app, name="dect-devices")
 from wxcli.commands.device_settings import app as device_settings_app
