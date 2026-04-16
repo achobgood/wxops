@@ -256,41 +256,59 @@ def _open_store(project_dir: Path):
 def _render_skip_summary(report) -> None:
     """Render the planner skip roll-up to the console.
 
-    Mirrors ``planner._log_skip_summary`` but formats for human reading via
-    Rich. Called after ``expand_to_operations`` returns (or raises). Silent
-    if the report has no entries. Loud yellow/red when unresolved skips
-    are present so the DEVICE_FIRMWARE_CONVERTIBLE class of bug surfaces
-    immediately on the CLI.
+    Mirrors ``planner._log_skip_summary`` + ``_log_needs_decision_summary``
+    but formats for human reading via Rich. Called after
+    ``expand_to_operations`` returns (or raises). Silent if both the report
+    has no entries AND there are no needs_decision entities. Loud yellow/red
+    when unresolved skips are present so the DEVICE_FIRMWARE_CONVERTIBLE
+    class of bug surfaces immediately on the CLI.
     """
-    if not report.entries:
-        return
+    # Entities skipped during expansion (entries) and entities held back
+    # at needs_decision (never reach expansion) are two disjoint sets —
+    # render each independently so the operator sees both.
+    if report.entries:
+        # Group by (reason_or_decision_type, decision_state)
+        groups: dict[tuple[str, str], int] = {}
+        unresolved_keys: set[str] = set()
+        for e in report.entries:
+            key = e.decision_type or e.reason
+            state = e.decision_state or "no_decision"
+            groups[(key, state)] = groups.get((key, state), 0) + 1
+            if state in ("stale", "pending"):
+                unresolved_keys.add(key)
 
-    # Group by (reason_or_decision_type, decision_state)
-    groups: dict[tuple[str, str], int] = {}
-    unresolved_keys: set[str] = set()
-    for e in report.entries:
-        key = e.decision_type or e.reason
-        state = e.decision_state or "no_decision"
-        groups[(key, state)] = groups.get((key, state), 0) + 1
-        if state in ("stale", "pending"):
-            unresolved_keys.add(key)
+        color = "red" if report.has_unresolved_skips else "yellow"
+        total = len(report.entries)
+        console.print(
+            f"\n[{color}]Planner skipped {total} entities:[/{color}]"
+        )
+        for (key, state), cnt in sorted(groups.items()):
+            if state == "no_decision":
+                state_note = "expander short-circuit"
+            else:
+                state_note = f"decision={state}"
+            marker = "⚠" if state in ("stale", "pending") else "·"
+            console.print(f"  {marker} {key}: {cnt} skipped ({state_note})")
+        if report.has_unresolved_skips:
+            console.print(
+                "  [yellow]Review with:[/yellow] "
+                "wxcli cucm decisions --type <type> -p <project>"
+            )
 
-    color = "red" if report.has_unresolved_skips else "yellow"
-    total = len(report.entries)
-    console.print(
-        f"\n[{color}]Planner skipped {total} entities:[/{color}]"
-    )
-    for (key, state), cnt in sorted(groups.items()):
-        if state == "no_decision":
-            state_note = "expander short-circuit"
-        else:
-            state_note = f"decision={state}"
-        marker = "⚠" if state in ("stale", "pending") else "·"
-        console.print(f"  {marker} {key}: {cnt} skipped ({state_note})")
-    if report.has_unresolved_skips:
+    # Entities at status='needs_decision' — held back awaiting operator
+    # input, never reach the expansion loop. Surface them so operators
+    # know the plan doesn't cover them.
+    needs = getattr(report, "needs_decision_counts", None) or {}
+    if needs:
+        total = sum(needs.values())
+        console.print(
+            f"\n[yellow]{total} entities held back awaiting your decision:[/yellow]"
+        )
+        for dtype, cnt in sorted(needs.items()):
+            console.print(f"  {dtype}: {cnt} entities")
         console.print(
             "  [yellow]Review with:[/yellow] "
-            "wxcli cucm decisions --type <type> -p <project>"
+            "wxcli cucm decisions --status pending -p <project>"
         )
 
 

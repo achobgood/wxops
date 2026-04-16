@@ -18,6 +18,7 @@ Silent-skip visibility (2026-04-15):
 
 from __future__ import annotations
 
+import contextvars
 import logging
 import os
 from dataclasses import dataclass, field
@@ -59,8 +60,16 @@ class PlannerSkipReport:
     by-reason roll-up. ``has_unresolved_skips`` flips True when any entry has
     decision_state in {stale, pending} — the ``--fail-on-unresolved`` gate
     keys off this flag.
+
+    ``needs_decision_counts`` is populated by ``expand_to_operations`` at the
+    end of a run. Entities with ``status='needs_decision'`` never reach
+    expansion (they have pending operator input) so they never appear in
+    ``entries``; the summary is needed separately so operators can see what
+    the plan is holding back. Keyed by ``DecisionType``, value is the count of
+    distinct entities held back by at least one pending decision of that type.
     """
     entries: list[PlannerSkipEntry] = field(default_factory=list)
+    needs_decision_counts: dict[str, int] = field(default_factory=dict)
 
     def record(
         self,
@@ -139,22 +148,38 @@ class PlannerUnresolvedError(RuntimeError):
     """Raised when fail-on-unresolved is enabled and unresolved skips were recorded."""
 
 
-# Module-level current report. Set by ``expand_to_operations`` while it runs
+# Per-task current report. Set by ``expand_to_operations`` while it runs
 # and cleared on exit. Expanders call ``_current_report()`` to access it;
 # callers should NOT set this directly. This keeps the expander signatures
 # small while still capturing every silent-skip site loudly.
-_MODULE_REPORT: PlannerSkipReport | None = None
+#
+# Backed by ``contextvars.ContextVar`` so concurrent planner runs (threads or
+# asyncio tasks) see their own report, not a neighbor's. ``_set_current_report``
+# returns the ``Token`` from ``set()`` so the caller can reset the variable to
+# its prior value on exit — critical for correctness under nested / concurrent
+# calls (reassigning to ``None`` would clobber an outer scope's report).
+_CURRENT_REPORT: contextvars.ContextVar[PlannerSkipReport | None] = (
+    contextvars.ContextVar("planner_current_report", default=None)
+)
 
 
 def _current_report() -> PlannerSkipReport | None:
     """Return the active planner skip report (or None if the planner is not running)."""
-    return _MODULE_REPORT
+    return _CURRENT_REPORT.get()
 
 
-def _set_current_report(report: PlannerSkipReport | None) -> None:
-    """Set the module-level current planner skip report."""
-    global _MODULE_REPORT
-    _MODULE_REPORT = report
+def _set_current_report(
+    report: PlannerSkipReport | None,
+) -> contextvars.Token[PlannerSkipReport | None]:
+    """Set the active planner skip report for the current context.
+
+    Returns a ``contextvars.Token`` that the caller should pass to
+    ``_CURRENT_REPORT.reset(token)`` once expansion is complete. Using the
+    token-based reset correctly restores the prior value under nested
+    expand_to_operations() calls, instead of unconditionally nuking the
+    ContextVar to ``None``.
+    """
+    return _CURRENT_REPORT.set(report)
 
 # Decision types where chosen_option="skip" means "don't expand this object".
 # (from phase-07-planning.md lines 26-27)
@@ -236,6 +261,46 @@ def _build_pending_decisions_index(store: MigrationStore) -> dict[str, list[dict
         for cid in context.get("_affected_objects", []):
             index.setdefault(cid, []).append(d)
     return index
+
+
+def _count_needs_decision_by_type(store: MigrationStore) -> dict[str, int]:
+    """Count entities at status='needs_decision' grouped by DecisionType.
+
+    Entities at ``needs_decision`` never reach expansion — they're held back
+    waiting for operator input. The aggregate skip summary would otherwise
+    hide them because no ``PlannerSkipEntry`` is ever recorded.
+
+    Each entity is counted once per pending decision type that references it
+    in ``context._affected_objects``. An entity held back by decisions of two
+    different types increments both buckets.
+
+    Returns a ``{decision_type: count}`` dict; empty dict if no entities are
+    at ``needs_decision``.
+    """
+    needs_decision_objects = store.query_by_status("needs_decision")
+    if not needs_decision_objects:
+        return {}
+    held_back_ids = {o.canonical_id for o in needs_decision_objects}
+
+    counts: dict[str, int] = {}
+    # One entity held by two pending decisions of the same type still counts
+    # as one in that bucket.
+    seen: dict[str, set[str]] = {}
+    for d in store.get_all_decisions():
+        if d.get("chosen_option") is not None:
+            continue
+        dtype = d.get("type")
+        if not dtype:
+            continue
+        affected = d.get("context", {}).get("_affected_objects", [])
+        for cid in affected:
+            if cid not in held_back_ids:
+                continue
+            if cid in seen.setdefault(dtype, set()):
+                continue
+            seen[dtype].add(cid)
+            counts[dtype] = counts.get(dtype, 0) + 1
+    return counts
 
 
 def _find_skip_decision(decisions: list[dict[str, Any]]) -> dict[str, Any] | None:
@@ -1623,9 +1688,12 @@ def expand_to_operations(
 
     # Install the skip report for the duration of this call so expanders
     # can call _current_report() without threading it through every kwarg.
+    # ContextVar.set() returns a Token that we pass to reset() in finally —
+    # this restores the prior context value (supports nested calls / threads /
+    # asyncio tasks without clobbering).
     if report is None:
         report = PlannerSkipReport()
-    _set_current_report(report)
+    _ctx_token = _set_current_report(report)
 
     analyzed_objects = store.query_by_status("analyzed")
     all_ops: list[MigrationOp] = []
@@ -1762,7 +1830,14 @@ def expand_to_operations(
             skipped_by_decision,
         )
 
+        # Entities at status='needs_decision' never reach expansion above,
+        # so they don't appear in ``report.entries``. Attach a separate
+        # count-by-decision-type summary so operators can see what's held
+        # back awaiting their input.
+        report.needs_decision_counts = _count_needs_decision_by_type(store)
+
         _log_skip_summary(report)
+        _log_needs_decision_summary(report)
 
         # Post-expansion bulk optimization pass.
         if bulk_device_threshold is None:
@@ -1783,7 +1858,7 @@ def expand_to_operations(
 
         return all_ops
     finally:
-        _set_current_report(None)
+        _CURRENT_REPORT.reset(_ctx_token)
 
 
 def _log_skip_summary(report: PlannerSkipReport) -> None:
@@ -1816,3 +1891,32 @@ def _log_skip_summary(report: PlannerSkipReport) -> None:
             "  Review unresolved decisions with: "
             "wxcli cucm decisions --type <type> -p <project>"
         )
+
+
+def _log_needs_decision_summary(report: PlannerSkipReport) -> None:
+    """Log entities held back at status='needs_decision' by decision type.
+
+    These entities don't appear in ``_log_skip_summary`` because they never
+    reach the planner's expansion loop — they're held back waiting for
+    operator input. This surfaces them so operators know the plan isn't
+    the full picture.
+
+    Silent if ``report.needs_decision_counts`` is empty.
+
+    Example output::
+
+        17 entities held back awaiting your decision:
+          DEVICE_LABEL_CONFLICT: 12 entities
+          USER_EXTENSION_CONFLICT: 5 entities
+          Review with: wxcli cucm decisions --status pending -p <project>
+    """
+    counts = report.needs_decision_counts
+    if not counts:
+        return
+    total = sum(counts.values())
+    logger.warning("%d entities held back awaiting your decision:", total)
+    for dtype, cnt in sorted(counts.items()):
+        logger.warning("  %s: %d entities", dtype, cnt)
+    logger.warning(
+        "  Review with: wxcli cucm decisions --status pending -p <project>"
+    )

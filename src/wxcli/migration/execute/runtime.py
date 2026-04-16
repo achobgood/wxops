@@ -147,10 +147,21 @@ def update_op_status(
 ) -> None:
     """Update operation status in the DB.
 
-    On completion: sets webex_id, completed_at, clears error_message.
-    Also updates the canonical object's webex_id field in the objects table.
-    On failure: sets error_message, increments attempts.
-    On skip: sets status to 'skipped', cascades to dependent ops.
+    Accepted ``status`` values mirror ``models.OpStatus``:
+    ``pending`` / ``in_progress`` / ``completed`` / ``skipped`` / ``failed``.
+
+    On completion: sets webex_id, completed_at, clears error_message. Also
+    updates the canonical object's webex_id field in the objects table, and
+    undoes any prior cascade-skip from this node (so dependents that were
+    skipped because THIS op previously failed can now run on retry).
+    On failure: sets error_message, increments attempts, cascade-skips
+    dependents via hard edges.
+    On skip: sets status to 'skipped', stores the reason in error_message,
+    and cascade-skips dependents via hard edges (same as failure). Engines
+    should pass ``error_message=<reason>`` so the execution report can
+    explain why each op was skipped. The ``SkippedResult`` sentinel
+    returned by handlers is the canonical producer of this path.
+    On in_progress: just flips the status (no error/timestamp updates).
     """
     conn = store.conn
 

@@ -44,6 +44,21 @@ class MigrationStatus(str, Enum):
     STALE = "stale"                # (from 07-idempotency-resumability.md line 179)
 
 
+class OpStatus(str, Enum):
+    """Canonical execution-op status (plan_operations.status).
+
+    Mirrors the existing raw-string literals used across runtime.py, engine.py,
+    and store queries — this enum is the single source of truth going forward.
+    Existing raw-string call sites do not need migration because the string
+    values are identical; only new code should reference ``OpStatus.X.value``.
+    """
+    PENDING     = "pending"
+    IN_PROGRESS = "in_progress"
+    COMPLETED   = "completed"
+    SKIPPED     = "skipped"
+    FAILED      = "failed"
+
+
 class LineClassification(str, Enum):
     """DN classification result from E.164 normalization algorithm.
     (from 03b-transform-mappers.md, line_mapper E.164 algorithm lines 208-211)

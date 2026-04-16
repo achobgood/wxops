@@ -16,12 +16,35 @@ Handlers are pure functions — no IO, no side effects, fully testable.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlencode
 
 BASE = "https://webexapis.com/v1"
 
-HandlerResult = list[tuple[str, str, dict | None]]
+
+@dataclass(frozen=True)
+class SkippedResult:
+    """Sentinel returned by handlers when a required dependency is missing.
+
+    Engine intercepts this and calls ``update_op_status(..., 'skipped',
+    error_message=reason)`` instead of marking the op completed. Use when a
+    hard prerequisite (e.g., upstream Webex ID not resolved) is missing. For
+    legitimate no-ops ("feature disabled", "nothing to configure") keep
+    returning ``[]`` — the engine marks those completed.
+    """
+    reason: str
+
+
+def skipped(reason: str) -> "SkippedResult":
+    """Return a SkippedResult sentinel with the given reason."""
+    return SkippedResult(reason=reason)
+
+
+# Handlers may return either a list of API calls or a SkippedResult sentinel.
+# Wave 2 will migrate individual guard-clause sites from ``return []`` to
+# ``return skipped(...)`` where the ``[]`` truly means "dependency missing".
+HandlerResult = list[tuple[str, str, dict | None]] | SkippedResult
 
 
 def _url(path: str, ctx: dict, query: dict | None = None) -> str:
