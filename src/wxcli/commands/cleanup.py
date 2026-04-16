@@ -19,6 +19,11 @@ from wxc_sdk.rest import RestError
 LOCATION_DELETE_MAX_ATTEMPTS = 5
 LOCATION_DELETE_RETRY_SLEEP = 60
 
+# Signature of the CCP-integrated PSTN backend gate. When a delete fails with
+# this error code, the org uses Cisco Calling Plan and the resource is managed
+# by the Webex backend — no API action on our side can unblock it.
+CCP_INTEGRATED_ERROR_CODE = "ERR.V.TRM.TMN60004"
+
 from wxcli.auth import get_api
 from wxcli.config import get_org_id
 
@@ -293,6 +298,11 @@ class DeleteResult:
     resource_name: str
     success: bool
     error: str | None = None
+    # True when a failure was classified as a CCP-integrated PSTN backend
+    # gate (e.g. Webex async-releasing trunk references). These aren't real
+    # failures the operator can act on — the final summary reports them
+    # separately and the process exits 0.
+    ccp_blocked: bool = False
 
 
 def delete_resource(
@@ -399,6 +409,98 @@ def disable_location_calling(
         )
 
 
+def _is_ccp_integrated_error(err: str) -> bool:
+    """True if an error message carries the CCP-integrated PSTN signature.
+
+    Webex returns ``ERR.V.TRM.TMN60004`` (or a variant message referencing
+    "non-integrated CCP") whenever an API caller tries to delete a resource
+    whose lifecycle is owned by the Cisco Calling Plan backend. This signature
+    has been observed for number deletes; it can also bleed into downstream
+    409s on location delete when the backend is still releasing internal
+    trunk references asynchronously.
+    """
+    if not err:
+        return False
+    if CCP_INTEGRATED_ERROR_CODE in err:
+        return True
+    lowered = err.lower()
+    return "non-integrated ccp" in lowered
+
+
+def _is_ccp_backend_gate(
+    err: str, local_dependencies_clear: bool,
+) -> bool:
+    """Classify a 409 on location delete as a CCP backend-cleanup gate.
+
+    The gate fires when either:
+      * the explicit CCP error code appears in the body, OR
+      * the message says "being referenced" AND a prior pre-check has
+        confirmed no local-visible dependencies remain.
+
+    When the gate fires there is nothing the caller can do to speed things
+    up — Webex's internal PSTN backend is async-releasing trunk references
+    and typically takes 1-4 hours in dCloud/CCP orgs.
+    """
+    if not err:
+        return False
+    if _is_ccp_integrated_error(err):
+        return True
+    lowered = err.lower()
+    if local_dependencies_clear and "being referenced" in lowered:
+        return True
+    return False
+
+
+def _location_has_local_dependencies(
+    api, location_id: str, org_id: str | None,
+) -> bool:
+    """Probe for visible dependencies at a location.
+
+    Returns True if any users, workspaces, devices, features (AA/CQ/HG/paging/
+    parks/pickups), trunks, or route groups still resolve at the location.
+    When False, a 409 "being referenced" is almost certainly a backend gate
+    rather than a real blocker.
+    """
+    probes: list[tuple[str, dict]] = [
+        ("/people", {"locationId": location_id}),
+        ("/workspaces", {"locationId": location_id}),
+        ("/devices", {"locationId": location_id}),
+        ("/telephony/config/huntGroups", {"locationId": location_id}),
+        ("/telephony/config/autoAttendants", {"locationId": location_id}),
+        ("/telephony/config/queues", {"locationId": location_id}),
+        ("/telephony/config/paging", {"locationId": location_id}),
+        (f"/telephony/config/locations/{location_id}/callParks", {}),
+        (f"/telephony/config/locations/{location_id}/callPickups", {}),
+        ("/telephony/config/premisePstn/trunks", {"locationId": location_id}),
+        ("/telephony/config/premisePstn/routeGroups", {}),
+    ]
+    params_base: dict = {}
+    if org_id:
+        params_base["orgId"] = org_id
+    for path, extra in probes:
+        params = {**params_base, **extra}
+        try:
+            result = api.session.rest_get(f"{BASE}{path}", params=params)
+        except Exception:
+            # Probe failures shouldn't mask the gate; treat as "clear".
+            continue
+        if not isinstance(result, dict):
+            continue
+        for values in result.values():
+            if isinstance(values, list) and values:
+                # Route groups have no locationId filter — only count them
+                # if at least one references this location.
+                if path.endswith("/routeGroups"):
+                    if any(
+                        rg.get("location", {}).get("id") == location_id
+                        for rg in values
+                    ):
+                        return True
+                    continue
+                return True
+    return False
+
+
 def _extract_blocker(err: str) -> str | None:
     """Extract a blocking resource hint from a 409 error body if the API surfaces one."""
     if not err:
@@ -438,6 +540,7 @@ def delete_location(
         params["orgId"] = org_id
 
     last_error: str = ""
+    ccp_blocked = False
     for attempt in range(1, max_attempts + 1):
         try:
             api.session.rest_delete(url, params=params)
@@ -455,6 +558,24 @@ def delete_location(
         except RestError as e:
             last_error = str(e)
             is_conflict = "409" in last_error or "conflict" in last_error.lower()
+
+            # CCP backend-gate short-circuit: retrying this is pointless —
+            # only the Webex backend can clear it, on the order of hours.
+            # The explicit error code is a hard signal on its own; the
+            # "being referenced" path requires confirming no local-visible
+            # deps remain before we call it a gate.
+            explicit_ccp = _is_ccp_integrated_error(last_error)
+            if explicit_ccp:
+                ccp_blocked = True
+                break
+            if is_conflict and "being referenced" in last_error.lower():
+                local_clear = not _location_has_local_dependencies(
+                    api, location_id, org_id,
+                )
+                if _is_ccp_backend_gate(last_error, local_clear):
+                    ccp_blocked = True
+                    break
+
             if attempt < max_attempts and is_conflict:
                 click.echo(
                     f"[location={name}] attempt {attempt}/{max_attempts}: "
@@ -469,6 +590,28 @@ def delete_location(
                 continue
             # Non-409 error, or exhausted attempts: stop retrying.
             break
+
+    if ccp_blocked:
+        final_msg = (
+            f"[location={name}] blocked by CCP-integrated PSTN backend "
+            f"cleanup — Webex backend has not yet released internal trunk "
+            f"references. This typically clears in 1-4 hours for dCloud/CCP "
+            f"orgs. Re-run `wxcli cleanup run` later (it is idempotent) to "
+            f"retry. No action you can take to speed this up."
+        )
+        click.echo(final_msg, nl=True)
+        try:
+            click.get_text_stream("stdout").flush()
+        except Exception:
+            pass
+        return DeleteResult(
+            resource_type="Locations",
+            resource_id=location_id,
+            resource_name=name,
+            success=False,
+            error=final_msg,
+            ccp_blocked=True,
+        )
 
     blocker = _extract_blocker(last_error)
     if blocker:
@@ -544,13 +687,36 @@ def delete_location_numbers(
                     success=True,
                 ))
         except RestError as e:
+            err_str = str(e)
+            # CCP-integrated PSTN: number lifecycle is managed via the PSTN
+            # portal, not the API. Log and skip — don't treat as a failure.
+            if _is_ccp_integrated_error(err_str):
+                for num in batch:
+                    click.echo(
+                        f"[number={num}] skipped — CCP-integrated, "
+                        f"managed via PSTN portal",
+                        nl=True,
+                    )
+                    try:
+                        click.get_text_stream("stdout").flush()
+                    except Exception:
+                        pass
+                    results.append(DeleteResult(
+                        resource_type="Numbers",
+                        resource_id=num,
+                        resource_name=num,
+                        success=True,
+                        error=None,
+                        ccp_blocked=True,
+                    ))
+                continue
             for num in batch:
                 results.append(DeleteResult(
                     resource_type="Numbers",
                     resource_id=num,
                     resource_name=num,
                     success=False,
-                    error=str(e),
+                    error=err_str,
                 ))
     return results
 
@@ -916,17 +1082,35 @@ def cleanup_run(
 def format_results_summary(results: list[DeleteResult]) -> str:
     """Format a summary of deletion results."""
     successes = [r for r in results if r.success]
-    failures = [r for r in results if not r.success]
+    real_failures = [r for r in results if not r.success and not r.ccp_blocked]
+    ccp_blocked = [r for r in results if r.ccp_blocked]
+    ccp_blocked_locations = [
+        r for r in ccp_blocked if r.resource_type == "Locations"
+    ]
 
     lines = ["", "=== Cleanup Results ===", ""]
     lines.append(f"  Deleted:  {len(successes)}")
-    lines.append(f"  Failed:   {len(failures)}")
+    lines.append(f"  Failed:   {len(real_failures)}")
+    if ccp_blocked:
+        lines.append(f"  CCP-blocked: {len(ccp_blocked)}")
 
-    if failures:
+    if real_failures:
         lines.append("")
         lines.append("  Failures:")
-        for f in failures:
+        for f in real_failures:
             lines.append(f"    - {f.resource_type} {f.resource_name} ({f.resource_id}): {f.error}")
+
+    if ccp_blocked_locations:
+        lines.append("")
+        lines.append(
+            f"  NOTE: {len(ccp_blocked_locations)} location(s) blocked by "
+            f"CCP backend — retry in a few hours:"
+        )
+        for r in ccp_blocked_locations:
+            lines.append(f"    - {r.resource_name} ({r.resource_id})")
+        lines.append(
+            "  Re-run `wxcli cleanup run` later; the command is idempotent."
+        )
 
     lines.append("")
     return "\n".join(lines)

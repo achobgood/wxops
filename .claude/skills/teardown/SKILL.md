@@ -176,6 +176,15 @@ When a 409 persists after the built-in 90s wait (or any other "wait and retry" s
 4. Cap any necessary hand-written retry script at **≤3 minutes wall time**. Beyond that, exit the script and let the parent re-dispatch — do not stretch a single Bash call toward the 10-minute ceiling.
 5. If `cleanup run` exits with remaining 409s, **report them in the task summary and stop**. Do not loop silently. The operator (or parent agent) decides whether to re-invoke.
 
+### Gotcha: CCP-integrated PSTN backend gate (dCloud / Cisco Calling Plan orgs)
+
+When the target org uses **Cisco Calling Plan** (CCP-integrated PSTN), number deletion fails with `ERR.V.TRM.TMN60004` ("DELETE number is supported only for non-integrated CCP") — these numbers are managed via the PSTN portal, not the API. After trunk/route-group/feature/user teardown, **location delete then 409s with "being referenced"** for hours even though there are no locally visible dependencies. Webex's internal PSTN backend is async-releasing trunk references and typically clears in **1-4 hours** in dCloud/CCP orgs. No API action can speed this up.
+
+`wxcli cleanup run` now detects this signature and short-circuits:
+- **Number delete:** skipped with a `[number=<ext/e164>] skipped — CCP-integrated, managed via PSTN portal` log line, not counted as a failure.
+- **Location delete:** if the 409 error body contains `ERR.V.TRM.TMN60004` OR the message says "being referenced" while a pre-check confirms no local-visible dependencies remain (no users/workspaces/devices/features/trunks/route groups), the retry loop exits immediately with `[location=<name>] blocked by CCP-integrated PSTN backend cleanup — Webex backend has not yet released internal trunk references. This typically clears in 1-4 hours for dCloud/CCP orgs. Re-run wxcli cleanup run later (it is idempotent) to retry. No action you can take to speed this up.`
+- **Final summary** reports a `CCP-blocked: N` count plus a "retry in a few hours" footer. Process still exits 0 — operator should re-invoke `wxcli cleanup run` later.
+
 ---
 
 ## Critical Rules

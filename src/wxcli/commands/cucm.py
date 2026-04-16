@@ -253,6 +253,47 @@ def _open_store(project_dir: Path):
     return MigrationStore(db_path)
 
 
+def _render_skip_summary(report) -> None:
+    """Render the planner skip roll-up to the console.
+
+    Mirrors ``planner._log_skip_summary`` but formats for human reading via
+    Rich. Called after ``expand_to_operations`` returns (or raises). Silent
+    if the report has no entries. Loud yellow/red when unresolved skips
+    are present so the DEVICE_FIRMWARE_CONVERTIBLE class of bug surfaces
+    immediately on the CLI.
+    """
+    if not report.entries:
+        return
+
+    # Group by (reason_or_decision_type, decision_state)
+    groups: dict[tuple[str, str], int] = {}
+    unresolved_keys: set[str] = set()
+    for e in report.entries:
+        key = e.decision_type or e.reason
+        state = e.decision_state or "no_decision"
+        groups[(key, state)] = groups.get((key, state), 0) + 1
+        if state in ("stale", "pending"):
+            unresolved_keys.add(key)
+
+    color = "red" if report.has_unresolved_skips else "yellow"
+    total = len(report.entries)
+    console.print(
+        f"\n[{color}]Planner skipped {total} entities:[/{color}]"
+    )
+    for (key, state), cnt in sorted(groups.items()):
+        if state == "no_decision":
+            state_note = "expander short-circuit"
+        else:
+            state_note = f"decision={state}"
+        marker = "⚠" if state in ("stale", "pending") else "·"
+        console.print(f"  {marker} {key}: {cnt} skipped ({state_note})")
+    if report.has_unresolved_skips:
+        console.print(
+            "  [yellow]Review with:[/yellow] "
+            "wxcli cucm decisions --type <type> -p <project>"
+        )
+
+
 def _prompt_for_wsdl(host: str, version: str | None) -> str | None:
     """Guide the user through downloading the AXL WSDL and return the path.
 
@@ -1026,6 +1067,15 @@ def analyze(
 @app.command()
 def plan(
     project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
+    fail_on_unresolved: bool = typer.Option(
+        False,
+        "--fail-on-unresolved",
+        help=(
+            "Exit non-zero if any entity is dropped from the plan due to a stale "
+            "or pending decision. Default: WARN and continue. Also honored via "
+            "the WXCLI_PLAN_FAIL_ON_UNRESOLVED=1 environment variable."
+        ),
+    ),
 ):
     """Expand objects to operations, build dependency DAG, partition into batches."""
     project_dir = _resolve_project_dir(project)
@@ -1043,7 +1093,11 @@ def plan(
         detect_and_break_cycles,
         validate_tiers,
     )
-    from wxcli.migration.execute.planner import expand_to_operations
+    from wxcli.migration.execute.planner import (
+        PlannerSkipReport,
+        PlannerUnresolvedError,
+        expand_to_operations,
+    )
 
     store = _open_store(project_dir)
     t0 = time.time()
@@ -1051,13 +1105,22 @@ def plan(
     try:
         # Step 1: Expand to operations
         config = load_config(project_dir)
-        ops = expand_to_operations(
-            store,
-            bulk_device_threshold=config.get("bulk_device_threshold", 100),
-            skip_rebuild_phones=config.get("skip_rebuild_phones", False),
-            config=config,
-        )
+        skip_report = PlannerSkipReport()
+        try:
+            ops = expand_to_operations(
+                store,
+                bulk_device_threshold=config.get("bulk_device_threshold", 100),
+                skip_rebuild_phones=config.get("skip_rebuild_phones", False),
+                config=config,
+                report=skip_report,
+                fail_on_unresolved=fail_on_unresolved,
+            )
+        except PlannerUnresolvedError as err:
+            console.print(f"[red]Planning aborted:[/red] {err}")
+            _render_skip_summary(skip_report)
+            raise typer.Exit(2)
         console.print(f"  Expanded to {len(ops)} operations")
+        _render_skip_summary(skip_report)
 
         # Step 2: Build dependency graph
         G = build_dependency_graph(ops, store)

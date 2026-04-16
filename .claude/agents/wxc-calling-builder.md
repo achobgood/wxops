@@ -36,17 +36,7 @@ The PreToolUse hook denies all `wxcli` Bash calls unless this agent has register
 echo $PPID >> /tmp/.wxcli-agent-active
 ```
 
-This appends the parent Claude Code process PID to the gate file. The PreToolUse hook prunes dead PIDs on every invocation, so stale entries from prior sessions are cleaned up automatically. Multiple concurrent wxc-calling-builder agents in the same Claude Code session will append the same PID multiple times — that is expected and correct (ref-counted).
-
-### TEARDOWN (REQUIRED — run as the very last Bash call before terminating)
-
-When you finish your work and are about to terminate, run:
-
-```bash
-f=/tmp/.wxcli-agent-active; t=$(mktemp); awk -v p="$PPID" 'BEGIN{seen=0} { if ($0==p && seen==0) { seen=1; next } print }' "$f" > "$t" && mv "$t" "$f"; [ -s "$f" ] || rm -f "$f"
-```
-
-This removes exactly one occurrence of your `$PPID` (in case sibling agents share it) and deletes the file when empty. The `SubagentStop` hook also prunes dead PIDs as a safety net — but always run teardown explicitly so the gate closes immediately, not on next subagent exit.
+This appends the parent Claude Code process PID to the gate file. Multiple concurrent wxc-calling-builder agents in the same Claude Code session will append the same PID multiple times — that is expected and correct (ref-counted). The `SubagentStop` hook automatically removes one entry on every subagent exit, so no explicit teardown is required — do not run a teardown block yourself (it will over-decrement and lock out sibling agents).
 
 ### 1. CLI Environment
 

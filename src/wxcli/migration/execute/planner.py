@@ -6,11 +6,21 @@ objects at status 'analyzed' (all decisions resolved). Objects at
 'needs_decision' are skipped.
 
 (from 05-dependency-graph.md — expand_to_operations lines 38-75)
+
+Silent-skip visibility (2026-04-15):
+  Every short-circuit path that drops a canonical entity from plan_operations
+  must emit a ``logger.warning`` and record into ``PlannerSkipReport``. The
+  aggregate summary is logged at the end of ``expand_to_operations`` so
+  operators can see the full roll-up of skipped entities. This guards
+  against the ``DEVICE_FIRMWARE_CONVERTIBLE`` class of bug where a stale
+  decision silently dropped 611 convertible phones from the plan.
 """
 
 from __future__ import annotations
 
 import logging
+import os
+from dataclasses import dataclass, field
 from typing import Any
 
 from wxcli.migration.execute import (
@@ -23,6 +33,128 @@ from wxcli.migration.execute import (
 from wxcli.migration.store import MigrationStore
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Silent-skip visibility (2026-04-15)
+# ---------------------------------------------------------------------------
+
+@dataclass
+class PlannerSkipEntry:
+    """One skip event — identifies the entity, reason, and consequence."""
+    canonical_id: str
+    entity_type: str
+    reason: str                       # short machine-readable reason code
+    decision_type: str | None = None  # DecisionType if skip was decision-gated
+    decision_state: str | None = None # "stale" | "pending" | "skip" | "virtual_line" | None
+    consequence: str = ""             # human-readable consequence (one sentence)
+
+
+@dataclass
+class PlannerSkipReport:
+    """Aggregate report of all entities skipped by the planner.
+
+    Populated by ``expand_to_operations`` and every per-expander short-circuit.
+    Callers inspect ``entries`` for the full list and ``counts`` for a
+    by-reason roll-up. ``has_unresolved_skips`` flips True when any entry has
+    decision_state in {stale, pending} — the ``--fail-on-unresolved`` gate
+    keys off this flag.
+    """
+    entries: list[PlannerSkipEntry] = field(default_factory=list)
+
+    def record(
+        self,
+        canonical_id: str,
+        entity_type: str,
+        reason: str,
+        consequence: str,
+        decision_type: str | None = None,
+        decision_state: str | None = None,
+    ) -> None:
+        self.entries.append(PlannerSkipEntry(
+            canonical_id=canonical_id,
+            entity_type=entity_type,
+            reason=reason,
+            decision_type=decision_type,
+            decision_state=decision_state,
+            consequence=consequence,
+        ))
+
+    @property
+    def counts(self) -> dict[str, int]:
+        """Group count by ``reason`` (or decision_type when decision-gated)."""
+        out: dict[str, int] = {}
+        for e in self.entries:
+            key = e.decision_type or e.reason
+            out[key] = out.get(key, 0) + 1
+        return out
+
+    @property
+    def has_unresolved_skips(self) -> bool:
+        """True if any entry was caused by a stale or pending decision."""
+        return any(
+            e.decision_state in ("stale", "pending")
+            for e in self.entries
+        )
+
+    def unresolved_entries(self) -> list[PlannerSkipEntry]:
+        """Entries whose skip was caused by an unresolved (stale/pending) decision."""
+        return [e for e in self.entries if e.decision_state in ("stale", "pending")]
+
+
+def _warn_skip(
+    report: PlannerSkipReport,
+    canonical_id: str,
+    entity_type: str,
+    reason: str,
+    consequence: str,
+    decision_type: str | None = None,
+    decision_state: str | None = None,
+) -> None:
+    """Emit a WARN and record into the report.
+
+    Keeping WARN + record in one helper ensures every silent-skip site has
+    identical observability (log + report entry).
+    """
+    tag = decision_type or reason
+    logger.warning(
+        "Planner skip: %s %s (reason=%s%s) — %s",
+        entity_type,
+        canonical_id,
+        tag,
+        f", state={decision_state}" if decision_state else "",
+        consequence,
+    )
+    report.record(
+        canonical_id=canonical_id,
+        entity_type=entity_type,
+        reason=reason,
+        consequence=consequence,
+        decision_type=decision_type,
+        decision_state=decision_state,
+    )
+
+
+class PlannerUnresolvedError(RuntimeError):
+    """Raised when fail-on-unresolved is enabled and unresolved skips were recorded."""
+
+
+# Module-level current report. Set by ``expand_to_operations`` while it runs
+# and cleared on exit. Expanders call ``_current_report()`` to access it;
+# callers should NOT set this directly. This keeps the expander signatures
+# small while still capturing every silent-skip site loudly.
+_MODULE_REPORT: PlannerSkipReport | None = None
+
+
+def _current_report() -> PlannerSkipReport | None:
+    """Return the active planner skip report (or None if the planner is not running)."""
+    return _MODULE_REPORT
+
+
+def _set_current_report(report: PlannerSkipReport | None) -> None:
+    """Set the module-level current planner skip report."""
+    global _MODULE_REPORT
+    _MODULE_REPORT = report
 
 # Decision types where chosen_option="skip" means "don't expand this object".
 # (from phase-07-planning.md lines 26-27)
@@ -60,6 +192,58 @@ def _build_decisions_index(store: MigrationStore) -> dict[str, list[dict[str, An
         for cid in context.get("_affected_objects", []):
             index.setdefault(cid, []).append(d)
     return index
+
+
+def _build_stale_decisions_index(store: MigrationStore) -> dict[str, list[dict[str, Any]]]:
+    """Build a canonical_id → stale decisions index.
+
+    Stale decisions (``chosen_option='__stale__'``) are normally invisible to
+    the planner. If an analyzed object has a stale decision attached, that
+    often means an upstream analyzer changed output between runs but the
+    object still carries a decision state the planner cannot interpret. The
+    ``DEVICE_FIRMWARE_CONVERTIBLE`` bug (2026-04-15) lived here — 611 devices
+    had stale decisions, the planner dropped them without logging.
+
+    Callers use this index to emit WARN events when a stale decision is
+    present alongside an analyzed object so the skip is loud, not silent.
+    """
+    all_decisions = store.get_all_decisions()
+    index: dict[str, list[dict[str, Any]]] = {}
+    for d in all_decisions:
+        if d.get("chosen_option") != "__stale__":
+            continue
+        context = d.get("context", {})
+        for cid in context.get("_affected_objects", []):
+            index.setdefault(cid, []).append(d)
+    return index
+
+
+def _build_pending_decisions_index(store: MigrationStore) -> dict[str, list[dict[str, Any]]]:
+    """Build a canonical_id → pending (unresolved) decisions index.
+
+    A pending decision has ``chosen_option is None``. The planner only
+    expands objects at ``status='analyzed'`` and pending decisions should
+    have pushed the object to ``status='needs_decision'``, but the planner
+    still checks so any drift (e.g. analyzer emitted non-blocking decision
+    but marked blocking, or status-update bug) is caught loudly.
+    """
+    all_decisions = store.get_all_decisions()
+    index: dict[str, list[dict[str, Any]]] = {}
+    for d in all_decisions:
+        if d.get("chosen_option") is not None:
+            continue
+        context = d.get("context", {})
+        for cid in context.get("_affected_objects", []):
+            index.setdefault(cid, []).append(d)
+    return index
+
+
+def _find_skip_decision(decisions: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Return the first decision in _SKIP_DECISION_TYPES resolved as 'skip'."""
+    for d in decisions:
+        if d.get("type") in _SKIP_DECISION_TYPES and d.get("chosen_option") == "skip":
+            return d
+    return None
 
 
 def _any_skip_decision(decisions: list[dict[str, Any]]) -> bool:
@@ -483,7 +667,9 @@ _NON_WEBEX_DEVICE_MODELS = {
 
 
 def _expand_device(
-    obj: dict[str, Any], decisions: list[dict[str, Any]], config: dict | None = None,
+    obj: dict[str, Any],
+    decisions: list[dict[str, Any]],
+    config: dict | None = None,
 ) -> list[MigrationOp]:
     """Device → 1 op (CONVERTIBLE activation-code path) or 2 ops (MAC-based path).
 
@@ -502,7 +688,28 @@ def _expand_device(
     """
     cid = obj["canonical_id"]
     # Skip devices with non-Webex models (CSF soft phones, analog, ATA)
-    if obj.get("compatibility_tier") in ("webex_app", "infrastructure", "dect") or obj.get("model") in _NON_WEBEX_DEVICE_MODELS:
+    tier = obj.get("compatibility_tier")
+    model = obj.get("model")
+    if tier in ("webex_app", "infrastructure", "dect") or model in _NON_WEBEX_DEVICE_MODELS:
+        report = _current_report()
+        reason = (
+            f"compatibility_tier={tier}" if tier in ("webex_app", "infrastructure", "dect")
+            else f"non_webex_model={model}"
+        )
+        logger.info(
+            "Planner skip (expected): device %s (%s) — no plan ops produced",
+            cid, reason,
+        )
+        if report is not None:
+            report.record(
+                canonical_id=cid,
+                entity_type="device",
+                reason=reason,
+                consequence=(
+                    "device will not be provisioned to Webex "
+                    f"(model/tier classified as {reason})"
+                ),
+            )
         return []
     name = obj.get("display_name") or obj.get("mac") or cid
     owner_cid = obj.get("owner_canonical_id")
@@ -563,6 +770,18 @@ def _expand_calling_permission(obj: dict[str, Any]) -> list[MigrationOp]:
     cid = obj["canonical_id"]
     assigned_users = obj.get("assigned_users", [])
     if not assigned_users:
+        report = _current_report()
+        if report is not None:
+            _warn_skip(
+                report,
+                canonical_id=cid,
+                entity_type="calling_permission",
+                reason="no_assigned_users",
+                consequence=(
+                    "calling permission will not be assigned "
+                    "(assigned_users list is empty — no user will inherit this permission)"
+                ),
+            )
         return []
 
     api_calls = len(assigned_users)
@@ -718,18 +937,43 @@ def _expand_voicemail_group(obj: dict[str, Any]) -> list[MigrationOp]:
     )]
 
 
-def _expand_shared_line(obj: dict[str, Any], decisions: list[dict[str, Any]]) -> list[MigrationOp]:
+def _expand_shared_line(
+    obj: dict[str, Any],
+    decisions: list[dict[str, Any]],
+) -> list[MigrationOp]:
     """Shared line → 1 op: configure (tier 6).
     Decision SHARED_LINE_COMPLEX can change expansion:
       - 'virtual_line' → creates a virtual line instead (handled via virtual_line object)
       - 'skip' → no operations
     """
     choice = _decision_chosen(decisions, "SHARED_LINE_COMPLEX")
+    cid = obj["canonical_id"]
+    report = _current_report()
     if choice == "skip":
+        if report is not None:
+            _warn_skip(
+                report,
+                canonical_id=cid,
+                entity_type="shared_line",
+                reason="shared_line_complex_skip",
+                decision_type="SHARED_LINE_COMPLEX",
+                decision_state="skip",
+                consequence=(
+                    "shared line appearances will not be configured "
+                    "(operator chose 'skip' for SHARED_LINE_COMPLEX)"
+                ),
+            )
         return []
     if choice == "virtual_line":
         # Virtual line creation handled by the CanonicalVirtualLine object
         # that was created during analysis. No shared_line ops needed.
+        # This is NOT a silent skip — a CanonicalVirtualLine was emitted by
+        # the analyzer, so ops still land in the plan via _expand_virtual_line.
+        # We note it as informational only.
+        logger.info(
+            "Planner: shared_line %s → virtual_line substitution "
+            "(ops produced via CanonicalVirtualLine)", cid,
+        )
         return []
 
     cid = obj["canonical_id"]
@@ -759,9 +1003,21 @@ def _expand_line_key_template(obj: dict[str, Any]) -> list[MigrationOp]:
     """Line key template → 1 op: create (tier 1, org-wide).
     Skip if phones_using == 0 (dead template — nothing will reference it).
     """
-    if obj.get("phones_using", 0) == 0:
-        return []
     cid = obj["canonical_id"]
+    if obj.get("phones_using", 0) == 0:
+        report = _current_report()
+        if report is not None:
+            _warn_skip(
+                report,
+                canonical_id=cid,
+                entity_type="line_key_template",
+                reason="dead_template_zero_phones",
+                consequence=(
+                    "line key template will not be created "
+                    "(phones_using=0 — no device references this template)"
+                ),
+            )
+        return []
     name = obj.get("name") or cid
     return [_op(cid, "create", "line_key_template", f"Create line key template {name}")]
 
@@ -771,13 +1027,29 @@ def _expand_call_forwarding(obj: dict[str, Any]) -> list[MigrationOp]:
     Skip if all forwarding types are disabled.
     batch=None — the batch partitioner assigns unassigned ops as org-wide.
     """
+    cid = obj["canonical_id"]
     if not any([
         obj.get("always_enabled"),
         obj.get("busy_enabled"),
         obj.get("no_answer_enabled"),
     ]):
+        # Expected no-op: forwarding object exists but all types disabled.
+        # INFO only — no entity would be created for empty forwarding state.
+        report = _current_report()
+        logger.info(
+            "Planner skip (expected): call_forwarding %s — all forwarding "
+            "types disabled, no configure op needed", cid,
+        )
+        if report is not None:
+            report.record(
+                canonical_id=cid,
+                entity_type="call_forwarding",
+                reason="all_forwarding_disabled",
+                consequence=(
+                    "no forwarding ops emitted (all always/busy/no_answer disabled)"
+                ),
+            )
         return []
-    cid = obj["canonical_id"]
     user_cid = obj.get("user_canonical_id")
     deps = [_node_id(user_cid, "create")] if user_cid else []
     return [_op(cid, "configure", "call_forwarding",
@@ -814,9 +1086,21 @@ def _expand_single_number_reach(obj: dict[str, Any]) -> list[MigrationOp]:
     """Single Number Reach → 0-1 ops: configure (tier 5).
     Skip if no numbers.
     """
-    if not obj.get("numbers"):
-        return []
     cid = obj["canonical_id"]
+    if not obj.get("numbers"):
+        report = _current_report()
+        if report is not None:
+            _warn_skip(
+                report,
+                canonical_id=cid,
+                entity_type="single_number_reach",
+                reason="no_numbers",
+                consequence=(
+                    "SNR will not be configured for user "
+                    "(numbers list is empty on the canonical object)"
+                ),
+            )
+        return []
     user_cid = obj.get("user_canonical_id")
     deps = [_node_id(user_cid, "create")] if user_cid else []
     return [_op(cid, "configure", "single_number_reach",
@@ -829,9 +1113,21 @@ def _expand_monitoring_list(obj: dict[str, Any]) -> list[MigrationOp]:
     Skip if no monitored_members.
     batch=None — the batch partitioner assigns unassigned ops as org-wide.
     """
-    if not obj.get("monitored_members"):
-        return []
     cid = obj["canonical_id"]
+    if not obj.get("monitored_members"):
+        report = _current_report()
+        if report is not None:
+            _warn_skip(
+                report,
+                canonical_id=cid,
+                entity_type="monitoring_list",
+                reason="no_monitored_members",
+                consequence=(
+                    "BLF/monitoring list will not be configured "
+                    "(no resolved monitored_members on the canonical object)"
+                ),
+            )
+        return []
     user_cid = obj.get("user_canonical_id")
     deps = [_node_id(user_cid, "create")] if user_cid else []
     for m in obj.get("monitored_members", []):
@@ -848,11 +1144,23 @@ def _expand_device_layout(obj: dict[str, Any]) -> list[MigrationOp]:
     Skip if no resolved_line_keys and no template referenced.
     batch=None — the batch partitioner assigns unassigned ops as org-wide.
     """
+    cid = obj["canonical_id"]
     resolved_keys = obj.get("resolved_line_keys", [])
     template_cid = obj.get("template_canonical_id")
     if not resolved_keys and not template_cid:
+        report = _current_report()
+        if report is not None:
+            _warn_skip(
+                report,
+                canonical_id=cid,
+                entity_type="device_layout",
+                reason="no_layout_content",
+                consequence=(
+                    "device layout will not be configured "
+                    "(no resolved_line_keys and no template_canonical_id)"
+                ),
+            )
         return []
-    cid = obj["canonical_id"]
     deps = []
     device_cid = obj.get("device_canonical_id")
     if device_cid:
@@ -877,23 +1185,65 @@ def _expand_softkey_config(obj: dict[str, Any]) -> list[MigrationOp]:
     Template-level objects (is_psk_target=False) are report-only.
     batch=None — the batch partitioner assigns unassigned ops as org-wide.
     """
+    cid = obj["canonical_id"]
+    report = _current_report()
     if not obj.get("is_psk_target"):
+        # Template-level objects are deliberately report-only; INFO only.
+        logger.info(
+            "Planner skip (expected): softkey_config %s — template-level "
+            "(is_psk_target=False, report-only)", cid,
+        )
+        if report is not None:
+            report.record(
+                canonical_id=cid,
+                entity_type="softkey_config",
+                reason="template_level_report_only",
+                consequence=(
+                    "no PSK ops emitted (template-level softkey config is "
+                    "report-only, not per-device)"
+                ),
+            )
         return []
     device_cid = obj.get("device_canonical_id")
     if not device_cid:
+        if report is not None:
+            _warn_skip(
+                report,
+                canonical_id=cid,
+                entity_type="softkey_config",
+                reason="no_device_canonical_id",
+                consequence=(
+                    "PSK softkeys will not be configured "
+                    "(is_psk_target=True but device_canonical_id missing)"
+                ),
+            )
         return []
-    cid = obj["canonical_id"]
     return [_op(cid, "configure", "softkey_config",
                 f"Configure PSK softkeys for {cid}",
                 depends_on=[_node_id(device_cid, "create")])]
 
 
-def _expand_device_settings_template(obj: dict[str, Any], decisions: list) -> list[MigrationOp]:
+def _expand_device_settings_template(
+    obj: dict[str, Any], decisions: list,
+) -> list[MigrationOp]:
     """device_settings_template → location settings + per-device overrides."""
     cid = obj["canonical_id"]
     settings = obj.get("settings") or {}
     phones_using = obj.get("phones_using", 0)
     if not settings or phones_using == 0:
+        report = _current_report()
+        if report is not None:
+            reason = "no_settings" if not settings else "zero_phones_using"
+            _warn_skip(
+                report,
+                canonical_id=cid,
+                entity_type="device_settings_template",
+                reason=reason,
+                consequence=(
+                    "device settings template will not be applied "
+                    f"({reason} — nothing to apply or no phones to apply it to)"
+                ),
+            )
         return []
 
     family = obj.get("model_family", "unknown")
@@ -1113,6 +1463,18 @@ def _expand_executive_assistant(obj: dict[str, Any]) -> list[MigrationOp]:
     asst_cids = obj.get("assistant_canonical_ids") or []
 
     if not exec_cid and not asst_cids:
+        report = _current_report()
+        if report is not None:
+            _warn_skip(
+                report,
+                canonical_id=cid,
+                entity_type="executive_assistant",
+                reason="no_exec_no_assistants",
+                consequence=(
+                    "exec/assistant pairing skipped (both executive and "
+                    "assistant lists are empty)"
+                ),
+            )
         return []
 
     # Build dependencies for type-assignment ops
@@ -1211,6 +1573,8 @@ def expand_to_operations(
     bulk_device_threshold: int | None = None,
     skip_rebuild_phones: bool = False,
     config: dict | None = None,
+    report: PlannerSkipReport | None = None,
+    fail_on_unresolved: bool | None = None,
 ) -> list[MigrationOp]:
     """Expand each analyzed canonical object into its constituent API operations.
 
@@ -1225,6 +1589,13 @@ def expand_to_operations(
     the shared_line expander (supports "virtual_line" option in addition
     to "skip").
 
+    Silent-skip visibility (2026-04-15): every short-circuit path emits a
+    ``logger.warning`` AND records a ``PlannerSkipEntry`` into ``report`` (or
+    a local report, if ``report`` is None). The aggregate summary is logged
+    before returning. This guards against the ``DEVICE_FIRMWARE_CONVERTIBLE``
+    class of bug where a stale decision silently excluded entities from the
+    plan.
+
     Args:
         store: The migration store to read analyzed objects from.
         bulk_device_threshold: When the number of unique devices being created
@@ -1233,71 +1604,215 @@ def expand_to_operations(
             When ``None``, uses ``BULK_DEVICE_THRESHOLD_DEFAULT``.
         config: Project config dict (from config.json). When present, consulted
             by device expander for ``convertible_provisioning`` mode.
+        report: Optional caller-supplied ``PlannerSkipReport``. When omitted,
+            a local report is created; callers that want to inspect the
+            roll-up pass one in and read it after the call returns.
+        fail_on_unresolved: When True, raise ``PlannerUnresolvedError`` at
+            the end of expansion if any entity was skipped due to a stale
+            or pending decision. When ``None`` (default), consults the
+            ``WXCLI_PLAN_FAIL_ON_UNRESOLVED`` environment variable (any
+            truthy string enables the gate).
 
     (from 05-dependency-graph.md lines 38-75,
      phase-07-planning.md lines 26-27)
     """
+    # Resolve fail_on_unresolved from env if caller left it unset.
+    if fail_on_unresolved is None:
+        env = os.environ.get("WXCLI_PLAN_FAIL_ON_UNRESOLVED", "").strip().lower()
+        fail_on_unresolved = env in ("1", "true", "yes", "on")
+
+    # Install the skip report for the duration of this call so expanders
+    # can call _current_report() without threading it through every kwarg.
+    if report is None:
+        report = PlannerSkipReport()
+    _set_current_report(report)
+
     analyzed_objects = store.query_by_status("analyzed")
     all_ops: list[MigrationOp] = []
     skipped_data_only = 0
     skipped_by_decision = 0
 
-    # Build decisions index once (avoids O(objects * decisions) repeated queries)
+    # Build decision indexes once (avoids O(objects * decisions) repeated queries)
     decisions_index = _build_decisions_index(store)
+    stale_index = _build_stale_decisions_index(store)
+    pending_index = _build_pending_decisions_index(store)
 
-    for obj in analyzed_objects:
-        obj_data = obj.model_dump()
-        cid = obj_data["canonical_id"]
-        # Derive object_type from canonical_id prefix (e.g., "user:0001" → "user")
-        obj_type = cid.split(":")[0] if ":" in cid else "unknown"
+    try:
+        for obj in analyzed_objects:
+            obj_data = obj.model_dump()
+            cid = obj_data["canonical_id"]
+            # Derive object_type from canonical_id prefix (e.g., "user:0001" → "user")
+            obj_type = cid.split(":")[0] if ":" in cid else "unknown"
 
-        # Data-only types don't produce operations
-        if obj_type in _DATA_ONLY_TYPES:
-            skipped_data_only += 1
-            continue
+            # Data-only types don't produce operations — log per-object so
+            # operators can see exactly which lines / voicemail profiles / etc.
+            # were consumed elsewhere vs. dropped by accident.
+            if obj_type in _DATA_ONLY_TYPES:
+                skipped_data_only += 1
+                logger.debug(
+                    "Planner skip (expected): %s %s — data-only type (%s)",
+                    obj_type, cid, _DATA_ONLY_TYPES[obj_type],
+                )
+                report.record(
+                    canonical_id=cid,
+                    entity_type=obj_type,
+                    reason="data_only_type",
+                    consequence=_DATA_ONLY_TYPES[obj_type],
+                )
+                continue
 
-        expander = _EXPANDERS.get(obj_type)
-        if expander is None:
-            logger.warning("No expansion pattern for object type '%s' (id=%s)", obj_type, cid)
-            continue
+            expander = _EXPANDERS.get(obj_type)
+            if expander is None:
+                # Unknown expander — loud WARN, record so summary shows it.
+                _warn_skip(
+                    report,
+                    canonical_id=cid,
+                    entity_type=obj_type,
+                    reason="no_expander_registered",
+                    consequence=(
+                        f"no planner expansion pattern for type '{obj_type}' — "
+                        "entity will NOT be provisioned (add to _EXPANDERS)"
+                    ),
+                )
+                continue
 
-        decisions = decisions_index.get(cid, [])
+            # Stale decisions on an analyzed object are the DEVICE_FIRMWARE_CONVERTIBLE
+            # bug pattern — analyzer rewrote fingerprints, the old decision got
+            # stale-marked, and the planner previously dropped the entity without
+            # logging. Detect and WARN so this class of bug is loud going forward.
+            stale_decisions = stale_index.get(cid, [])
+            for sd in stale_decisions:
+                _warn_skip(
+                    report,
+                    canonical_id=cid,
+                    entity_type=obj_type,
+                    reason="stale_decision_attached",
+                    decision_type=sd.get("type"),
+                    decision_state="stale",
+                    consequence=(
+                        f"{obj_type} has a stale {sd.get('type')} decision — "
+                        "re-running analyze may have invalidated this decision; "
+                        "inspect with `wxcli cucm decisions` and re-resolve if needed"
+                    ),
+                )
 
-        # Generic skip: any _SKIP_DECISION_TYPES resolved as "skip" → suppress object
-        if _any_skip_decision(decisions):
-            skipped_by_decision += 1
-            continue
+            # Pending decisions on an analyzed object indicate a status-update
+            # bug (the object should be at 'needs_decision', not 'analyzed').
+            # WARN loudly so this drift is caught.
+            pending_decisions = pending_index.get(cid, [])
+            for pd in pending_decisions:
+                _warn_skip(
+                    report,
+                    canonical_id=cid,
+                    entity_type=obj_type,
+                    reason="pending_decision_on_analyzed_object",
+                    decision_type=pd.get("type"),
+                    decision_state="pending",
+                    consequence=(
+                        f"{obj_type} is status=analyzed but has a pending "
+                        f"{pd.get('type')} decision — fix analyzer status logic "
+                        "and re-run `wxcli cucm plan`"
+                    ),
+                )
 
-        # Patch location_id from resolved LOCATION_AMBIGUOUS decision
-        # (e.g., trunk with no device pool where user picked a location)
-        loc_choice = _decision_chosen(decisions, "LOCATION_AMBIGUOUS")
-        if loc_choice and loc_choice != "skip" and not obj_data.get("location_id"):
-            obj_data["location_id"] = loc_choice
-            # Persist the patched location_id back to the store object
-            if hasattr(obj, "location_id"):
-                obj.location_id = loc_choice
-                store.upsert_object(obj)
+            decisions = decisions_index.get(cid, [])
 
-        # Device expander takes an optional config dict for convertible_provisioning mode.
-        if obj_type == "device":
-            ops = _expand_device(obj_data, decisions, config=config)
-        else:
-            ops = expander(obj_data, decisions)
-        all_ops.extend(ops)
+            # Generic skip: any _SKIP_DECISION_TYPES resolved as "skip" → suppress object
+            skip_decision = _find_skip_decision(decisions)
+            if skip_decision is not None:
+                skipped_by_decision += 1
+                _warn_skip(
+                    report,
+                    canonical_id=cid,
+                    entity_type=obj_type,
+                    reason="decision_skip",
+                    decision_type=skip_decision.get("type"),
+                    decision_state="skip",
+                    consequence=(
+                        f"{obj_type} will not be provisioned to Webex "
+                        f"(operator chose 'skip' for {skip_decision.get('type')})"
+                    ),
+                )
+                continue
 
-    logger.info(
-        "Expanded %d analyzed objects into %d operations "
-        "(%d data-only skipped, %d skipped by decision)",
-        len(analyzed_objects) - skipped_data_only - skipped_by_decision,
-        len(all_ops),
-        skipped_data_only,
-        skipped_by_decision,
-    )
+            # Patch location_id from resolved LOCATION_AMBIGUOUS decision
+            # (e.g., trunk with no device pool where user picked a location)
+            loc_choice = _decision_chosen(decisions, "LOCATION_AMBIGUOUS")
+            if loc_choice and loc_choice != "skip" and not obj_data.get("location_id"):
+                obj_data["location_id"] = loc_choice
+                # Persist the patched location_id back to the store object
+                if hasattr(obj, "location_id"):
+                    obj.location_id = loc_choice
+                    store.upsert_object(obj)
 
-    # Post-expansion bulk optimization pass.
-    if bulk_device_threshold is None:
-        bulk_device_threshold = BULK_DEVICE_THRESHOLD_DEFAULT
-    all_ops = _optimize_for_bulk(all_ops, store, bulk_device_threshold,
-                                 skip_rebuild_phones=skip_rebuild_phones)
+            # Device expander takes an optional config dict for convertible_provisioning mode.
+            if obj_type == "device":
+                ops = _expand_device(obj_data, decisions, config=config)
+            else:
+                ops = expander(obj_data, decisions)
+            all_ops.extend(ops)
 
-    return all_ops
+        # ---- Aggregate summary ----
+        logger.info(
+            "Expanded %d analyzed objects into %d operations "
+            "(%d data-only skipped, %d skipped by decision)",
+            len(analyzed_objects) - skipped_data_only - skipped_by_decision,
+            len(all_ops),
+            skipped_data_only,
+            skipped_by_decision,
+        )
+
+        _log_skip_summary(report)
+
+        # Post-expansion bulk optimization pass.
+        if bulk_device_threshold is None:
+            bulk_device_threshold = BULK_DEVICE_THRESHOLD_DEFAULT
+        all_ops = _optimize_for_bulk(all_ops, store, bulk_device_threshold,
+                                     skip_rebuild_phones=skip_rebuild_phones)
+
+        # Loud-fail gate: raise if requested and any unresolved skips occurred.
+        if fail_on_unresolved and report.has_unresolved_skips:
+            unresolved = report.unresolved_entries()
+            types = sorted({e.decision_type or e.reason for e in unresolved})
+            raise PlannerUnresolvedError(
+                f"Planner aborted: {len(unresolved)} entities skipped due to "
+                f"unresolved decisions ({', '.join(types)}). "
+                "Re-run `wxcli cucm decisions` to resolve, or rerun `wxcli cucm plan` "
+                "without `--fail-on-unresolved` to accept the skips."
+            )
+
+        return all_ops
+    finally:
+        _set_current_report(None)
+
+
+def _log_skip_summary(report: PlannerSkipReport) -> None:
+    """Log an aggregate roll-up of every planner skip.
+
+    Example output::
+
+        Planner skipped 23 entities due to unresolved decisions:
+          DEVICE_INCOMPATIBLE: 15 skipped (decision=skip)
+          USER_EXTENSION_CONFLICT: 5 unresolved (decision=stale)
+          HUNT_GROUP_MISSING_OWNER: 3 unresolved (decision=pending)
+        Review with: wxcli cucm decisions --type <type> -p <project>
+    """
+    if not report.entries:
+        return
+
+    total = len(report.entries)
+    logger.warning("Planner skipped %d entities total:", total)
+    # Group by (reason_or_decision_type, decision_state)
+    groups: dict[tuple[str, str], int] = {}
+    for e in report.entries:
+        key = (e.decision_type or e.reason, e.decision_state or "no_decision")
+        groups[key] = groups.get(key, 0) + 1
+    # Emit groups in deterministic, caller-friendly order
+    for (key, state), cnt in sorted(groups.items()):
+        state_note = f"decision={state}" if state != "no_decision" else "expander short-circuit"
+        logger.warning("  %s: %d skipped (%s)", key, cnt, state_note)
+    if report.has_unresolved_skips:
+        logger.warning(
+            "  Review unresolved decisions with: "
+            "wxcli cucm decisions --type <type> -p <project>"
+        )
