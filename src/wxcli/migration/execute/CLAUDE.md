@@ -40,7 +40,7 @@ Operations run in tier order. Within a tier, all operations in the same (batch, 
 Every handler in `handlers.py` is a pure function with this signature:
 
 ```python
-HandlerResult = list[tuple[str, str, dict | None]]  # [(method, url, body), ...]
+HandlerResult = list[tuple[str, str, dict | None]] | SkippedResult
 
 def handle_foo_bar(data: dict, deps: dict, ctx: dict) -> HandlerResult:
     ...
@@ -49,9 +49,25 @@ def handle_foo_bar(data: dict, deps: dict, ctx: dict) -> HandlerResult:
 - `data` — canonical object dict from the store (object's full JSON)
 - `deps` — `{canonical_id: webex_id}` for all completed dependency operations
 - `ctx` — session context: `{"orgId": "...", "CALLING_LICENSE_ID": "...", ...}`
-- Returns a list of `(method, url, body)` tuples executed sequentially by the engine
-- **Return `[]`** = no-op. The engine marks the operation completed without making any API call. Use this for guard clauses (missing deps, nothing to configure).
+- Returns one of:
+  - **`list[tuple[str, str, dict | None]]`** — API calls to execute sequentially by the engine
+  - **`[]`** — legitimate no-op (feature disabled by design, no config needed). Engine marks op `completed` with no API call.
+  - **`skipped(reason)`** — required upstream dependency not resolved. Engine marks op `skipped` with `error_message=reason` and cascades to dependents. Use when a webex_id from `deps` is missing where one was expected.
 - `_url(path, ctx)` — always use this instead of building URLs manually. It injects `?orgId=...` automatically when ctx has orgId.
+
+### When to return `[]` vs `skipped(reason)`
+
+| Scenario | Return |
+|---|---|
+| `if not feature.enabled: ...` | `[]` |
+| `if not settings: ...` (empty optional config) | `[]` |
+| `if not deps.get(upstream_cid): ...` | `skipped(f"{upstream_cid} not resolved")` |
+| `if not _resolve_location(data, deps): ...` | `skipped(f"location not resolved for {name}")` |
+| MOH / announcement placeholders (Phase A) | `[]` with explicit comment — do not convert |
+
+The runtime (`runtime.py`) and engine both intercept `SkippedResult`:
+- `engine.py::run_batch_ops` calls `update_op_status(..., 'skipped', error_message=reason)` and cascades skip to dependents (see Fix #10).
+- `engine.py::_run_per_device_fallback` treats a handler returning `SkippedResult` during bulk fallback as a per-device failure, recording the reason without iterating the sentinel (see Finding #8).
 
 ### Resolving dependencies
 
@@ -64,8 +80,15 @@ person_wid = deps.get(data.get("user_canonical_id", ""))
 # Prefix search (when the canonical_id isn't in data)
 loc_wid = next((wid for cid, wid in deps.items() if cid.startswith("location:")), None)
 
-# Silently omit unresolved members (partial resolution is valid)
-members = [{"id": deps[cid]} for cid in member_cids if cid in deps]
+# Silently omit unresolved members (partial resolution is valid, but log a warning):
+resolved_members = [{"id": deps[cid]} for cid in member_cids if cid in deps]
+unresolved = [cid for cid in member_cids if cid not in deps]
+if unresolved:
+    logger.warning(
+        "Handler X: %d of %d members unresolved: %s",
+        len(unresolved), len(member_cids), unresolved,
+    )
+# If ALL members unresolved AND members are required, return skipped(...) instead.
 ```
 
 ---
@@ -260,6 +283,7 @@ migration work (see "Tier 5 — Settings" above for `enable_hoteling_guest` and
 
 ## Key Gotchas
 
+- **`SkippedResult` sentinel + `skipped(reason)` helper** — `handlers.py` exports both. `SkippedResult(reason=...)` is a frozen dataclass returned in place of a `[(method, url, body)]` list when a required upstream dep is missing. `skipped(reason)` is the one-liner factory. The engine detects the sentinel via `isinstance(calls, SkippedResult)` and routes the op to `update_op_status(..., 'skipped', error_message=reason)` so the operator can see cascades separately from genuine FAILED ops. Never return `SkippedResult` from a no-op — return `[]` instead (legitimate no-ops don't block dependents from running).
 - **`_url()` always handles orgId** — never build query strings manually in handlers.
 - **Picking owner from deps**: `owner_canonical_id` prefix determines `personId` vs `workspaceId` in device:create. Use `cid.startswith("user:")` / `"workspace:"`.
 - **Pickup group + paging group agents** — these APIs take plain string arrays, not `[{"id": ...}]`. Hunt group and call queue take the object format.
