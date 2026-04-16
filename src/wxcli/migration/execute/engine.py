@@ -163,12 +163,19 @@ async def execute_single_op(
     calls: list[tuple[str, str, dict | None]],
     semaphore: asyncio.Semaphore,
     max_retries: int = MAX_RETRIES,
+    require_webex_id: bool = False,
 ) -> OpResult:
     """Execute one operation's API call(s) with rate limiting and retry.
 
     For multi-call operations (e.g., user:configure_settings), calls are
     executed sequentially. The operation fails if any sub-call fails.
     The webex_id comes from the first call's response (the create).
+
+    When ``require_webex_id`` is True (Fix #18 — create ops), a success
+    response with no ``id`` / ``code`` in the body is treated as FAILED
+    instead of silently succeeding. Some backends return 200/204 without a
+    body on server-side hiccups — the resource may not exist and we'd have
+    no way to reference it in later ops.
     """
     webex_id = None
     last_body = {}
@@ -225,6 +232,17 @@ async def execute_single_op(
                 node_id=node_id, status=429,
                 error="Max retries exceeded (429)", body={},
             )
+
+    # Fix #18: create ops must return a usable identifier. A silent success
+    # with no id means the downstream planner has no webex_id to record, and
+    # any dependent op will fail to resolve this create's output. Surface it
+    # as a FAILED op instead of silently completing.
+    if require_webex_id and not webex_id:
+        return OpResult(
+            node_id=node_id, status=500,
+            error="create succeeded but response contained no id/code",
+            body=last_body,
+        )
 
     return OpResult(
         node_id=node_id, status=200,
@@ -651,7 +669,16 @@ async def run_batch_ops(
     # Kick off parallel ops
     if parallel_indexed:
         parallel_coros = [
-            execute_single_op(session, t["op"]["node_id"], t["calls"], semaphore)
+            execute_single_op(
+                session,
+                t["op"]["node_id"],
+                t["calls"],
+                semaphore,
+                # Fix #18: require a returned id/code for create ops so a
+                # silent "200 OK with empty body" cannot masquerade as a
+                # successful resource creation.
+                require_webex_id=(t["op"].get("op_type") == "create"),
+            )
             for _, t in parallel_indexed
         ]
         parallel_results = await asyncio.gather(*parallel_coros, return_exceptions=True)
