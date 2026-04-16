@@ -251,14 +251,13 @@ async def execute_single_op(
 
 
 # Webex bulk job IDs are base64-encoded URN strings (typically 60-120 chars).
-# We only flag obvious garbage here — truly malformed values like "x", "",
-# or whitespace. The spec's intent is to catch the case where Webex returns
-# a non-empty-but-non-routable ``id``, not to enforce length parity with the
-# real ID format (existing test fixtures use 6-8 char mock IDs and a strict
-# length floor would force a sweep of unrelated tests). 3-char floor is the
-# happy compromise: catches the spec's example ("x") and any 1-2-char typo,
-# without breaking established test scaffolding.
-_MIN_JOB_ID_LEN = 3
+# We enforce a floor of 10 characters — this catches the spec's obvious
+# garbage cases ("x", "", whitespace) *and* any plausible truncation /
+# off-by-one parsing bug. 10 is deliberately conservative vs. the real 60+
+# length: enough to rule out any 1-9 char typo while staying well under the
+# real minimum so test fixtures that use mock IDs just need to use
+# realistic-looking strings (which is cheap to do).
+_MIN_JOB_ID_LEN = 10
 
 
 def _validate_job_id(job_id: str | None) -> None:
