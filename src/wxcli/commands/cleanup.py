@@ -667,18 +667,30 @@ def delete_location_numbers(
     phone_numbers: list[str],
     org_id: str | None,
 ) -> list[DeleteResult]:
-    """Delete phone numbers from a location in batches of 5 (API limit)."""
+    """Delete phone numbers from a location in batches of 5 (API limit).
+
+    If 3 consecutive batch deletes fail at the same location (Issue #14),
+    stop iterating for that location and surface a warning. Any remaining
+    batches are marked as failures with a short "aborted" marker so the
+    final summary reflects what wasn't attempted.
+    """
     results: list[DeleteResult] = []
     url = f"{BASE}/telephony/config/locations/{location_id}/numbers"
     params = {}
     if org_id:
         params["orgId"] = org_id
 
+    CONSECUTIVE_FAILURE_LIMIT = 3
+    consecutive_failures = 0
+    aborted_at: int | None = None
+
     # API allows max 5 numbers per request
-    for i in range(0, len(phone_numbers), 5):
+    total = len(phone_numbers)
+    for i in range(0, total, 5):
         batch = phone_numbers[i:i + 5]
         try:
             api.session.rest_delete(url, params=params, json={"phoneNumbers": batch})
+            consecutive_failures = 0
             for num in batch:
                 results.append(DeleteResult(
                     resource_type="Numbers",
@@ -691,6 +703,7 @@ def delete_location_numbers(
             # CCP-integrated PSTN: number lifecycle is managed via the PSTN
             # portal, not the API. Log and skip — don't treat as a failure.
             if _is_ccp_integrated_error(err_str):
+                consecutive_failures = 0
                 for num in batch:
                     click.echo(
                         f"[number={num}] skipped — CCP-integrated, "
@@ -710,6 +723,7 @@ def delete_location_numbers(
                         ccp_blocked=True,
                     ))
                 continue
+            consecutive_failures += 1
             for num in batch:
                 results.append(DeleteResult(
                     resource_type="Numbers",
@@ -718,6 +732,28 @@ def delete_location_numbers(
                     success=False,
                     error=err_str,
                 ))
+            if consecutive_failures >= CONSECUTIVE_FAILURE_LIMIT:
+                aborted_at = i + len(batch)
+                click.secho(
+                    f"⚠️  Location {location_id[:12]}...: "
+                    f"{CONSECUTIVE_FAILURE_LIMIT} consecutive number-delete "
+                    f"batch failures — aborting number cleanup for this "
+                    f"location",
+                    fg="yellow",
+                    err=False,
+                )
+                break
+
+    if aborted_at is not None:
+        for num in phone_numbers[aborted_at:]:
+            results.append(DeleteResult(
+                resource_type="Numbers",
+                resource_id=num,
+                resource_name=num,
+                success=False,
+                error="aborted: 3 consecutive batch failures at this location",
+            ))
+
     return results
 
 
@@ -725,10 +761,15 @@ def build_number_inventory(
     api,
     location_ids: list[str],
     org_id: str | None,
+    skipped_ext_only: list[str] | None = None,
 ) -> dict[str, list[str]]:
     """Build a map of location_id -> [phone_numbers] for cleanup.
 
     Returns only locations that have numbers to remove.
+
+    If ``skipped_ext_only`` is provided, each extension-only record encountered
+    is appended to it as a "loc_id: owner" entry so the caller can list the
+    skips in the dry-run/summary output (Issue #1).
     """
     inventory: dict[str, list[str]] = {}
     for loc_id in location_ids:
@@ -741,6 +782,22 @@ def build_number_inventory(
             # number resources, and get released when the owner is deleted.
             if not n.get("phoneNumber"):
                 ext_only += 1
+                if skipped_ext_only is not None:
+                    owner = n.get("owner") or {}
+                    # Best-effort human label: displayName → firstName/lastName
+                    # → owner id → extension.
+                    label = (
+                        owner.get("displayName")
+                        or " ".join(
+                            part for part in (
+                                owner.get("firstName"), owner.get("lastName"),
+                            ) if part
+                        ).strip()
+                        or owner.get("id")
+                        or n.get("extension")
+                        or "(unknown)"
+                    )
+                    skipped_ext_only.append(f"{loc_id[:12]}...: {label}")
                 continue
             if n.get("mainNumber") is True:
                 continue
@@ -791,8 +848,15 @@ def format_dry_run(inventory: dict[str, list[dict]]) -> str:
 
 def _resolve_location_ids(
     api, scope: str | None, org_id: str | None,
+    unresolved: list[str] | None = None,
 ) -> list[str] | None:
-    """Resolve --scope names/IDs to location IDs. Returns None for all."""
+    """Resolve --scope names/IDs to location IDs. Returns None for all.
+
+    If ``unresolved`` is provided, any scope tokens that don't match a
+    location name or ID are appended to it (Issue #2). The caller is
+    responsible for surfacing them in the output before the deletion
+    summary so the operator has a chance to Ctrl+C.
+    """
     if not scope:
         return None
 
@@ -816,10 +880,15 @@ def _resolve_location_ids(
         elif r in name_map:
             resolved.append(name_map[r])
         else:
-            console.print(f"[yellow]Warning: Location '{r}' not found, skipping[/yellow]")
+            if unresolved is not None:
+                unresolved.append(r)
 
     if not resolved:
         console.print("[red]No valid locations found for the given scope.[/red]")
+        if unresolved:
+            console.print(
+                f"[yellow]Unresolved names: {', '.join(unresolved)}[/yellow]"
+            )
         raise typer.Exit(1)
 
     return resolved
@@ -881,7 +950,21 @@ def cleanup_run(
 
     # Resolve location scope
     console.print("[bold]Resolving scope...[/bold]")
-    location_ids = _resolve_location_ids(api, scope, org_id)
+    unresolved_scope: list[str] = []
+    location_ids = _resolve_location_ids(
+        api, scope, org_id, unresolved=unresolved_scope,
+    )
+
+    # Issue #2: surface unresolved --scope tokens BEFORE inventory/deletion
+    # so the operator has a chance to Ctrl+C rather than finding them buried
+    # in scrollback after cleanup runs.
+    if unresolved_scope:
+        click.secho(
+            f"⚠️  Unresolved location names (will be ignored): "
+            f"{', '.join(unresolved_scope)}",
+            fg="yellow",
+            err=False,
+        )
 
     if location_ids:
         console.print(f"  Scoped to {len(location_ids)} location(s)")
@@ -927,16 +1010,34 @@ def cleanup_run(
 
         inventory["users"] = [u for u in inventory["users"] if not _user_matches_excluded(u)]
         filtered = before - len(inventory["users"])
-        if filtered:
-            console.print(f"  Excluded {filtered} users matching domains: {', '.join(sorted(excluded))}")
+        # Issue #3: always print the exclusion notice when the flag is set so
+        # the operator sees which domains are being kept and how many users
+        # that covers — even when zero matched (e.g. a typo in the domain list).
+        click.echo(
+            f"Excluding users from domains: {', '.join(sorted(excluded))} "
+            f"({filtered} user{'s' if filtered != 1 else ''} excluded)"
+        )
         if not inventory["users"]:
             del inventory["users"]
+    elif exclude_user_domains:
+        # Flag set but no users to filter (e.g. --include-users not passed,
+        # or inventory produced zero users). Still surface it so the operator
+        # doesn't wonder whether the flag was honored.
+        excluded = {d.strip().lower() for d in exclude_user_domains.split(",")}
+        click.echo(
+            f"Excluding users from domains: {', '.join(sorted(excluded))} "
+            f"(0 users excluded)"
+        )
 
     # Build number inventory for locations (needed for Layer 12)
     number_inventory: dict[str, list[str]] = {}
+    skipped_ext_only: list[str] = []
     if include_locations:
         console.print("[bold]Checking for phone numbers on locations...[/bold]")
-        number_inventory = build_number_inventory(api, all_location_ids, org_id)
+        number_inventory = build_number_inventory(
+            api, all_location_ids, org_id,
+            skipped_ext_only=skipped_ext_only,
+        )
         total_nums = sum(len(v) for v in number_inventory.values())
         if total_nums:
             console.print(f"  Found {total_nums} number(s) across {len(number_inventory)} location(s)")
@@ -946,6 +1047,17 @@ def cleanup_run(
                 for loc_id, nums in number_inventory.items()
                 for num in nums
             ]
+
+    # Issue #1: surface extension-only records that were intentionally skipped
+    # (extension owners, not PSTN numbers — they get released when the owner
+    # is deleted). Print BEFORE the deletion summary/dry-run so the operator
+    # can see them in the same pane where the totals live.
+    if skipped_ext_only:
+        click.echo(
+            f"\nSkipped {len(skipped_ext_only)} extension-only record(s):"
+        )
+        for entry in skipped_ext_only:
+            click.echo(f"  - {entry}")
 
     if not inventory:
         console.print("[green]Nothing to delete — org is clean.[/green]")
@@ -999,6 +1111,8 @@ def cleanup_run(
         # Special handling for locations: disable calling first, then wait, then delete
         if "locations" in layer_keys and "locations" in inventory:
             loc_items = inventory["locations"]
+            # Map location_id -> name for failure messages (Issue #11).
+            loc_names = {item["id"]: item.get("name", item["id"]) for item in loc_items}
             # Phase 1: disable calling (best-effort — may already be off)
             console.print("  Disabling calling on locations...")
             disable_results = []
@@ -1013,9 +1127,27 @@ def cleanup_run(
                     disable_results.append(future.result())
 
             disabled_ok = [r for r in disable_results if r.success]
+            disabled_failed = [r for r in disable_results if not r.success]
             console.print(f"  Disabled calling on {len(disabled_ok)}/{len(loc_items)} locations")
 
-            # Phase 2: wait only if any disables actually succeeded
+            # Issue #11: surface each disable failure explicitly so the 90s
+            # wait below isn't falsely credited with covering these. Delete
+            # will still be attempted (likely 409), but the existing
+            # delete_location error-handling catches that and the caller
+            # can re-run cleanup idempotently.
+            for r in disabled_failed:
+                name = loc_names.get(r.resource_id, r.resource_id)
+                click.secho(
+                    f"⚠️  Location {name}: disable calling failed — "
+                    f"skipping 90s wait; will attempt delete anyway",
+                    fg="yellow",
+                    err=False,
+                )
+
+            # Phase 2: wait only if any disables actually succeeded. When
+            # every disable failed, the 90s wait buys nothing — skip it so
+            # the operator doesn't burn 90s waiting on state that never
+            # changed (Issue #11).
             if disabled_ok:
                 console.print("  Waiting 90s for backend propagation...")
                 time.sleep(90)
