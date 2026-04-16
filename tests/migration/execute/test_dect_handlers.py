@@ -106,12 +106,16 @@ class TestHandleDectNetworkCreate:
         assert body["defaultAccessCodeEnabled"] is False
         assert body["defaultAccessCode"] is None
 
-    def test_missing_location_returns_empty(self):
+    def test_missing_location_returns_skipped(self):
+        """Wave 2C: missing location is a missing-dep, not a no-op."""
+        from wxcli.migration.execute.handlers import SkippedResult
         data = {**BASE_DATA, "location_id": None, "location_canonical_id": None}
         calls = handle_dect_network_create(data, {}, CTX)
-        assert calls == []
+        assert isinstance(calls, SkippedResult)
+        assert "location" in calls.reason
 
     def test_missing_name_returns_empty(self):
+        """Missing name is a true no-op (data integrity, not missing dep)."""
         data = {**BASE_DATA, "network_name": None, "display_name": None}
         calls = handle_dect_network_create(data, self._deps(), CTX)
         assert calls == []
@@ -151,15 +155,19 @@ class TestHandleDectBaseStationCreate:
         assert f"orgId={ORG_WID}" in url
         assert body["baseStationMacs"] == ["AABBCCDDEEFF", "112233445566"]
 
-    def test_missing_location_returns_empty(self):
+    def test_missing_location_returns_skipped(self):
+        """Wave 2C: missing location is a missing-dep."""
+        from wxcli.migration.execute.handlers import SkippedResult
         data = {**BASE_DATA, "location_id": None, "location_canonical_id": None}
         calls = handle_dect_base_station_create(data, {NET_CID: NET_WID}, CTX)
-        assert calls == []
+        assert isinstance(calls, SkippedResult)
 
-    def test_missing_network_webex_id_returns_empty(self):
-        """If the dect_network:create op hasn't completed, network wid is absent."""
+    def test_missing_network_webex_id_returns_skipped(self):
+        """Wave 2C: if dect_network:create op hasn't completed, missing-dep."""
+        from wxcli.migration.execute.handlers import SkippedResult
         calls = handle_dect_base_station_create(BASE_DATA, {LOC_CID: LOC_WID}, CTX)
-        assert calls == []
+        assert isinstance(calls, SkippedResult)
+        assert "DECT network" in calls.reason
 
     def test_no_base_stations_returns_empty(self):
         data = {**BASE_DATA, "base_stations": []}
@@ -288,14 +296,19 @@ class TestHandleDectHandsetAssign:
         calls = handle_dect_handset_assign(data, {LOC_CID: LOC_WID, NET_CID: NET_WID}, CTX)
         assert calls == []
 
-    def test_missing_location_returns_empty(self):
+    def test_missing_location_returns_skipped(self):
+        """Wave 2C: missing location is missing-dep."""
+        from wxcli.migration.execute.handlers import SkippedResult
         data = {**BASE_DATA, "location_id": None, "location_canonical_id": None}
         calls = handle_dect_handset_assign(data, {NET_CID: NET_WID}, CTX)
-        assert calls == []
+        assert isinstance(calls, SkippedResult)
 
-    def test_missing_network_wid_returns_empty(self):
+    def test_missing_network_wid_returns_skipped(self):
+        """Wave 2C: missing dect network webex_id is missing-dep."""
+        from wxcli.migration.execute.handlers import SkippedResult
         calls = handle_dect_handset_assign(BASE_DATA, {LOC_CID: LOC_WID}, CTX)
-        assert calls == []
+        assert isinstance(calls, SkippedResult)
+        assert "DECT network" in calls.reason
 
     def test_line2_not_resolved_excluded_from_item(self):
         """If line2_canonical_id is set but not resolved, omit line2MemberId."""

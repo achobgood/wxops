@@ -74,8 +74,12 @@ class TestHuntGroupConfigureForwarding:
         )
         assert result == []
 
-    def test_missing_webex_id_returns_empty(self):
+    def test_missing_webex_id_returns_skipped(self):
+        """Wave 2C: missing hunt_group webex_id now returns SkippedResult,
+        not [] — so the op lands in status='skipped' and cascade-skips
+        dependents instead of silently looking completed."""
         from wxcli.migration.execute.handlers import (
+            SkippedResult,
             handle_hunt_group_configure_forwarding,
         )
         data = _hg_data(forward_always_enabled=True,
@@ -83,7 +87,8 @@ class TestHuntGroupConfigureForwarding:
         # No Webex ID for the feature
         deps = {"location:loc1": "WEBEX_LOC_1"}
         result = handle_hunt_group_configure_forwarding(data, deps, CTX)
-        assert result == []
+        assert isinstance(result, SkippedResult)
+        assert "not created" in result.reason
 
     def test_always_forwarding_builds_put(self):
         from wxcli.migration.execute.handlers import (
