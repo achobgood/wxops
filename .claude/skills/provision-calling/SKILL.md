@@ -162,7 +162,7 @@ wxcli location-settings create \
 
 **Important:** `announcement_language` must be lowercase (`en_us` not `en_US`) or the API rejects with "Invalid Language Code".
 
-**Warning:** Once calling is enabled on a location, it **cannot be disabled via API**. Calling-enabled locations can only be deleted from Control Hub, not via the API (returns 409 Conflict).
+**Warning:** Do not promise an API-based "disable calling" step during teardown. Use CLI/API to clear visible blockers first, but final delete of a calling-enabled location may still require Control Hub if the backend continues to hold the telephony reference.
 
 ### Operation C: Create a New User
 
@@ -313,7 +313,7 @@ Next steps:
 
 5. **`announcement_language` returns None from details** — Always set it explicitly before calling `enable_for_calling`, even if it was set during creation.
 
-6. **Calling CAN be disabled via API** — `wxcli location-call-settings update-location-calling LOCATION_ID --calling-enabled false`. After disabling, wait 90+ seconds before attempting DELETE. Even then, 409 may persist for minutes to hours — see Operation F Step 2b. Do NOT assume Control Hub is required.
+6. **Do not promise API disable-calling on locations** — the older `wxcli location-call-settings update-location-calling ...` guidance is stale in this repo. For teardown, use CLI/API to remove visible blockers, run `wxcli location-settings safe-delete-check LOCATION_ID`, retry delete, and warn that final removal of a calling-enabled location may still require Control Hub.
 
 7. **Phone numbers must be in location inventory first** — Before assigning a DID to a user, add it via `wxcli numbers create LOCATION_ID`.
 

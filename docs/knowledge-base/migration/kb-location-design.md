@@ -164,13 +164,12 @@ Address validation: always call `lookup_for_location` before `add_to_location` t
 
 ### Location Deletion
 
-Location deletion requires disabling calling first + 90s propagation wait. The sequence: <!-- Source: provisioning.md gotcha, line 1286-1295; CLAUDE.md cleanup section -->
+Location deletion is not a guaranteed public-API teardown path for calling-enabled locations. The practical sequence: <!-- Source: provisioning.md location deletion section; CLAUDE.md cleanup section -->
 1. Delete all location-scoped resources (virtual lines, call parks, hunt groups, call queues, schedules, trunks, devices, workspaces, users)
-2. Disable calling: `wxcli location-call-settings update-location-calling LOCATION_ID --calling-enabled false`
-3. Wait 90+ seconds for backend propagation
-4. Delete the location: `wxcli locations delete --force LOCATION_ID`
+2. Run `wxcli location-settings safe-delete-check LOCATION_ID` to confirm visible blockers are gone
+3. Delete the location: `wxcli locations delete --force LOCATION_ID`
 
-Even after waiting, delete may return 409 for minutes to hours. Re-run cleanup to retry. <!-- Source: provisioning.md line 1295 -->
+If delete still returns 409 after blockers are cleared, the telephony backend may still hold the calling-enabled location. Finish the delete in Control Hub if needed. <!-- Source: provisioning.md location deletion section -->
 
 ### Per-Location Limits
 
