@@ -44,6 +44,21 @@ class MigrationStatus(str, Enum):
     STALE = "stale"                # (from 07-idempotency-resumability.md line 179)
 
 
+class OpStatus(str, Enum):
+    """Canonical execution-op status (plan_operations.status).
+
+    Mirrors the existing raw-string literals used across runtime.py, engine.py,
+    and store queries — this enum is the single source of truth going forward.
+    Existing raw-string call sites do not need migration because the string
+    values are identical; only new code should reference ``OpStatus.X.value``.
+    """
+    PENDING     = "pending"
+    IN_PROGRESS = "in_progress"
+    COMPLETED   = "completed"
+    SKIPPED     = "skipped"
+    FAILED      = "failed"
+
+
 class LineClassification(str, Enum):
     """DN classification result from E.164 normalization algorithm.
     (from 03b-transform-mappers.md, line_mapper E.164 algorithm lines 208-211)
@@ -74,6 +89,11 @@ class DecisionType(str, Enum):
     EXTENSION_CONFLICT = "EXTENSION_CONFLICT"
     DN_AMBIGUOUS = "DN_AMBIGUOUS"
     DEVICE_INCOMPATIBLE = "DEVICE_INCOMPATIBLE"
+    # DEPRECATED 2026-04-15: convertibility is now a device classification
+    # (tier='convertible'), not an operator choice. The planner emits the
+    # create_activation_code op unconditionally for convertible devices.
+    # Enum retained so legacy stored projects still deserialize; no code
+    # path emits new decisions of this type.
     DEVICE_FIRMWARE_CONVERTIBLE = "DEVICE_FIRMWARE_CONVERTIBLE"
     SHARED_LINE_COMPLEX = "SHARED_LINE_COMPLEX"
     CSS_ROUTING_MISMATCH = "CSS_ROUTING_MISMATCH"

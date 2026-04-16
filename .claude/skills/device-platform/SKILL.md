@@ -337,17 +337,24 @@ Next steps:
 
 1. **xAPI only works on RoomOS devices.** If the user asks to send an xAPI command to an MPP phone, stop and explain. MPP phones use `device-settings` (see `manage-devices` skill), not xAPI. RoomOS devices include Room, Board, and Desk series.
 
-2. **Always get a device ID first.** All 3 APIs require a device ID. The user may not have one -- guide them through `wxcli devices list` to find it. For workspace personalization, also get the workspace ID via `wxcli workspaces list`.
+2. **9800-series phones straddle both skills.** 9800-series phones (9811/9821/9841/9851/9861/9871) use this skill (device-platform) for **PhoneOS** config keys, BUT they also support some telephony device-settings commands via the `manage-devices` skill. **IMPORTANT: 9800-series runs PhoneOS, not RoomOS. PhoneOS is RoomOS-derived but is a distinct OS — Room/Board/Desk series run RoomOS; 9800-series runs PhoneOS. The Device Configurations API surface is shared, but the schemas differ. Do not call 9800-series "RoomOS devices".**
+   - **Line Key Templates** -- model string is `"Cisco 98xx"` (no `"DMS"` prefix; older MPP phones use `"DMS Cisco 88xx"` format)
+   - **Device member management** -- add/remove lines on ports
+   - **Person-level device settings** -- limited fields like compression
+   
+   Rule of thumb: PhoneOS config keys on 9800-series or RoomOS config keys on Room/Board/Desk (software settings, UI, audio, video, line labels, wallpaper) -> this skill. Line key templates, device members, telephony device settings -> `manage-devices` skill.
 
-3. **Workspace personalization is async.** After creating a personalization request, always poll with `wxcli workspace-personalization show WORKSPACE_ID` until the task completes. Do not tell the user it is done until `success: true` is returned. Typical completion time is ~30 seconds.
+3. **Always get a device ID first.** All 3 APIs require a device ID. The user may not have one -- guide them through `wxcli devices list` to find it. For workspace personalization, also get the workspace ID via `wxcli workspaces list`.
 
-4. **Device must be online for xAPI.** xAPI commands fail silently or with unhelpful errors on offline devices. Always check reachability first with a status query (`wxcli xapi show --device-id DEVICE_ID --name "SystemUnit.State.System"`).
+4. **Workspace personalization is async.** After creating a personalization request, always poll with `wxcli workspace-personalization show WORKSPACE_ID` until the task completes. Do not tell the user it is done until `success: true` is returned. Typical completion time is ~30 seconds.
 
-5. **Configuration update PATCH content type.** The API uses `application/json-patch+json`, not `application/json`. The CLI handles this automatically. If the user falls back to raw HTTP (curl), they must set the `Content-Type` header correctly.
+5. **Device must be online for xAPI.** xAPI commands fail silently or with unhelpful errors on offline devices. Always check reachability first with a status query (`wxcli xapi show --device-id DEVICE_ID --name "SystemUnit.State.System"`).
 
-6. **Do not enumerate xAPI commands.** The xAPI namespace is huge. Ask the user what they want to DO, then look up the specific command name. Point them to https://roomos.cisco.com/xapi for the full command reference.
+6. **Configuration update PATCH content type.** The API uses `application/json-patch+json`, not `application/json`. The CLI handles this automatically. If the user falls back to raw HTTP (curl), they must set the `Content-Type` header correctly.
 
-7. **Scope mismatch between device-configurations and xAPI.** Device configurations use admin scopes (`spark-admin:devices_read`/`spark-admin:devices_write`). xAPI uses user-level scopes (`spark:xapi_statuses`/`spark:xapi_commands`). A token may have one set but not the other. Diagnose scope issues early in Step 2.
+7. **Do not enumerate xAPI commands.** The xAPI namespace is huge. Ask the user what they want to DO, then look up the specific command name. Point them to https://roomos.cisco.com/xapi for the full command reference.
+
+8. **Scope mismatch between device-configurations and xAPI.** Device configurations use admin scopes (`spark-admin:devices_read`/`spark-admin:devices_write`). xAPI uses user-level scopes (`spark:xapi_statuses`/`spark:xapi_commands`). A token may have one set but not the other. Diagnose scope issues early in Step 2.
 
 ---
 

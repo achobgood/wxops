@@ -1,6 +1,6 @@
 # Device Migration: Migration Knowledge Base
 
-> **Audience:** Migration advisor agent (Opus) and cold-context Claude sessions looking up dissent triggers, decision context, and Webex constraints for device replacement, firmware conversion, and MPP-vs-RoomOS decisions.
+> **Audience:** Migration advisor agent (Opus) and cold-context Claude sessions looking up dissent triggers, decision context, and Webex constraints for device replacement, firmware conversion, and MPP-vs-PhoneOS decisions.
 > **Reading mode:** Reference. Grep by `DT-DEV-NNN` ID for dissent triggers, OR read `## Decision Framework` end-to-end when the migration-advisor agent loads this doc during analysis.
 > **See also:** [Operator Runbook](../../runbooks/cucm-migration/operator-runbook.md) · [Decision Guide](../../runbooks/cucm-migration/decision-guide.md) · [Tuning Reference](../../runbooks/cucm-migration/tuning-reference.md)
 
@@ -17,31 +17,35 @@ The pipeline looks up the CUCM model in a static replacement map and recommends 
 | CUCM Model | Recommended Replacement | Notes |
 |------------|------------------------|-------|
 | **79xx series** | | |
-| 7811 | 9841 | Same desk form factor, single-screen. 9841 is RoomOS (device configuration templates, not telephony device settings). |
-| 7821 | 9841 | 2-line phone. 9841 supports more lines, same price tier. RoomOS firmware. |
+| 7811 | 9841 | Same desk form factor, single-screen. 9841 runs PhoneOS (device configuration templates, not telephony device settings). |
+| 7821 | 9841 | 2-line phone. 9841 supports more lines, same price tier. PhoneOS firmware. |
 | 7832 | Conference room device | Conference phone. Consider Webex Room device for both calling and meetings. |
-| 7905, 7906, 7911, 7912 | 8845 or 9851 | Legacy SCCP/SIP. 8845 = MPP firmware; 9851 = RoomOS (larger screen). Different day-2 config models. |
+| 7905, 7906, 7911, 7912 | 8845 or 9851 | Legacy SCCP/SIP. 8845 = MPP firmware; 9851 = PhoneOS (larger screen). Different day-2 config models. |
 | 7940, 7941, 7942, 7945 | 8845 or 9851 | Same as above. |
 | 7960, 7961, 7962, 7965 | 8845 or 9851 | Same as above. |
 | 7970, 7971, 7975 | 8845 or 9851 | Same as above. |
 | **69xx series** | | |
-| 6901, 6911, 6921, 6941, 6945, 6961 | 8841 or 9841 | No Webex firmware. 8841 = MPP (same line count); 9841 = RoomOS. |
+| 6901, 6911, 6921, 6941, 6945, 6961 | 8841 or 9841 | No Webex firmware. 8841 = MPP (same line count); 9841 = PhoneOS. |
 | **ATA** | | |
 | ATA 190 / ATA190 | ATA 192 | Analog adapter. ATA 192 supports Webex Calling. |
 | ATA 191 / ATA191 | ATA 192 | Analog adapter. ATA 192 supports Webex Calling. |
 
 When the map returns `None` (unknown model), the rule returns `None` and the decision requires human input.
 
-### DEVICE_FIRMWARE_CONVERTIBLE
+### DEVICE_FIRMWARE_CONVERTIBLE (deprecated 2026-04-15)
 
-**Source:** `recommendation_rules.py` `recommend_device_firmware_convertible()`
-
-Always recommends `convert` (convert to native MPP firmware). If `has_srst` is true in context, appends a warning: "Survivable Gateway (SRST) is configured. Verify fallback behavior after conversion -- Webex devices use Webex Edge for survivability."
+Convertible phones no longer produce a decision. `DeviceMapper` classifies the model as `CONVERTIBLE` and the planner unconditionally emits a `create_activation_code` op — if a device is convertible, it converts. There is no operator choice and no skip path at the decision level; the recommendation rule and the `DecisionType` enum value are retained only for backward compatibility with project stores created before 2026-04-15. SRST-dependency concerns surface via the advisor narrative (see `dt-dev-001` below), not as a per-device decision.
 
 Key firmware distinction for replacements and conversions:
 - **MPP firmware** (68xx, 78xx, 88xx): Configured via Telephony Device Settings API (`device-settings` CLI group). Requires `apply-changes` after updates. <!-- Source: devices-core.md §5a -->
-- **RoomOS / PhoneOS** (9800-series, Room/Board/Desk): Configured via Device Configurations API (`device-configurations` CLI group). Uses RoomOS key-value pairs, JSON Patch updates, auto-applies on resync. <!-- Source: devices-core.md §5a -->
-- **9800-series is the exception that breaks assumptions.** They are `productType: phone` but run PhoneOS (RoomOS-derived). Treating all phones as `device-settings` targets will fail on 9800-series. <!-- Source: devices-core.md line 1329 -->
+- **PhoneOS** (9800-series): Configured via Device Configurations API (`device-configurations` CLI group). Uses PhoneOS key-value pairs (e.g., `Phone.LineKeyLabel`, `Lines.Line[N].CallFeatureSettings.*`, `User.Screen.CustomWallpaper.CustomWallpaperDownloadURL[N]`), JSON Patch updates, auto-applies on resync. **PhoneOS is RoomOS-derived but distinct — do not call 9800-series devices "RoomOS devices".** <!-- Source: devices-core.md §5a -->
+- **RoomOS** (Room/Board/Desk series): Same Device Configurations API surface, distinct schema (e.g., `Audio.Ultrasound.*`, `Conference.MaxReceiveCallRate`). <!-- Source: devices-core.md §5a -->
+- **9800-series straddles both worlds.** They are `productType: phone` but run PhoneOS (not RoomOS). Device-level telephony settings (`GET /telephony/config/devices/{id}/settings`) returns 404 on 9800-series — treating all phones as `device-settings` targets will fail. However, 9800-series phones DO share some telephony infrastructure with MPP:
+  - **Line Key Templates** — fully supported. Model string is `"Cisco 98xx"` (not `"DMS Cisco 98xx"` like MPP phones).
+  - **Person-level device settings** — returns limited fields (e.g., compression). Not a full device-settings response.
+  - **Device Configurations** (PhoneOS keys) — confirmed working for per-device config via JSON Patch.
+  - **Device member management** — standard telephony device member APIs work normally.
+  The key insight: 9800-series uses PhoneOS config keys for device configuration BUT participates in telephony features like line key templates and person-level settings. Migration code must not assume "PhoneOS = no telephony API surface", and must not conflate PhoneOS with RoomOS. <!-- Source: devices-core.md line 1329; devices-platform.md; live testing 2026-04-15 -->
 
 ### HOTDESK_DN_CONFLICT
 
@@ -75,13 +79,23 @@ Webex Calling line key types are limited to: `PRIMARY_LINE`, `SHARED_LINE`, `MON
 
 ---
 
+### Webex per-user device limit: 5 (hard)
+
+Webex Calling enforces a **maximum of 5 devices per user**, counting hardware phones (MPP/PhoneOS) and soft clients (Webex App desktop, mobile, tablet, browser) combined. The cap is server-enforced and has no org-level override.
+
+- **Surfaces at execution time** as HTTP 400 from `POST /devices` or `POST /devices/activationCode` with body `"Phones cannot be added to this user"`.
+- **CUCM delta:** CUCM's default per-user device cap is 50+, so users with many associated devices (desk phone + backup desk phone + Jabber + mobile + EM profile + tablet + ...) will not fit 1:1. Migration must choose which 5 to carry over.
+- **Recommended CUCM→Webex device-selection priority:** (1) primary desk phone, (2) backup/secondary desk phone, (3) softphone (Jabber → Webex App), (4) mobile client, (5) other (tablet, browser, second softphone). Drop extras as `DEVICE_INCOMPATIBLE` with `accept_loss` or `skip`.
+- **Orphan devices count against the quota.** Devices left behind by a failed prior migration run still occupy slots — run device cleanup (or `wxcli cleanup`) before retrying a user whose first attempt partially succeeded.
+- **Reference:** `docs/reference/devices-core.md` Gotcha #12 for the exact 400 message and endpoint coverage.
+
 ## Edge Cases & Exceptions
 
 ### 8845/8865 already on MPP firmware
-These models support Webex Calling firmware natively. If already on MPP firmware but registered to CUCM, they are `DEVICE_FIRMWARE_CONVERTIBLE`, not `DEVICE_INCOMPATIBLE`. The conversion is a re-registration, not a hardware replacement.
+These models support Webex Calling firmware natively. If already on MPP firmware but registered to CUCM, they are classified as `CONVERTIBLE` by `DeviceMapper` (not `INCOMPATIBLE`) and auto-convert at plan time — the "conversion" is a re-registration, not a hardware replacement. No decision is emitted; the planner emits a `create_activation_code` op directly.
 
 ### 9800-series phones (9811, 9821, 9841, 9851, 9861, 9871)
-Native MPP (PhoneOS/RoomOS-derived). No conversion or replacement needed. These use the Device Configurations API (RoomOS keys), not Telephony Device Settings. <!-- Source: devices-core.md §5a, line 1323 -->
+Native PhoneOS (RoomOS-derived, but distinct). No conversion or replacement needed. These use the Device Configurations API (PhoneOS keys), not Telephony Device Settings. <!-- Source: devices-core.md §5a, line 1323 -->
 
 ### DECT networks
 
@@ -160,7 +174,7 @@ Webex line key count depends on model. The `SupportedDevice` catalog includes `n
 
 | Pattern | CUCM Device | Webex Target | License | Notes |
 |---------|------------|-------------|---------|-------|
-| Hallway phone | 7811/7821 | Workspace + 9841 | Webex Calling Basic | Common area, no user assignment. 9841 is RoomOS. |
+| Hallway phone | 7811/7821 | Workspace + 9841 | Webex Calling Basic | Common area, no user assignment. 9841 runs PhoneOS. |
 | Executive suite | 8865 + 3 sidecars | 9871 + KEM modules | Professional | KEM types: `KEM_14_KEYS`, `KEM_18_KEYS`, `KEM_20_KEYS`. Max modules per model from `kem_module_count` in supported devices catalog. <!-- Source: devices-core.md §3.2 --> |
 | Factory floor | 7925/7926 wireless | No direct equivalent | -- | CUCM wireless phones have no Webex hardware equivalent. Webex App on mobile is the nearest substitute.  |
 | Conference room | 7832/8832 | Webex Room device or 9800 | Workspace | RoomOS device provides both calling and meetings capability. |
@@ -197,8 +211,8 @@ Activation code flow:
 5. Adding a device to a workspace with calling type `none` or `thirdPartySipCalling` resets calling to `freeCalling`.
 <!-- Source: devices-core.md §1.3 activation_code() method, §1.5 CLI examples -->
 
-### MPP vs RoomOS config model differences
-| Aspect | MPP (68xx/78xx/88xx) | RoomOS (9800/Room/Board/Desk) |
+### MPP vs PhoneOS/RoomOS config model differences
+| Aspect | MPP (68xx/78xx/88xx) | PhoneOS (9800-series) / RoomOS (Room/Board/Desk) |
 |--------|---------------------|-------------------------------|
 | Config API | Telephony Device Settings | Device Configurations (key-value) |
 | CLI group | `device-settings` | `device-configurations` |
@@ -234,8 +248,8 @@ Fires when `info_device_profile` objects exist in the store. CUCM Extension Mobi
 
 ### DT-DEV-001: Firmware conversion recommended but device has SRST and site has unreliable WAN
 
-- **Condition:** `DEVICE_FIRMWARE_CONVERTIBLE` recommends `convert` AND `has_srst=True` in context AND location has SRST-configured device pool
-- **Why the static rule is insufficient:** `recommend_device_firmware_convertible()` mentions SRST in the reasoning text but always returns `convert` regardless. It does not weigh WAN reliability, SRST dependency depth, or whether the site has an alternative survivability path.
+- **Condition:** Device is classified as `CONVERTIBLE` by `DeviceMapper` AND the CUCM device pool has SRST configured AND the site has an unreliable WAN. (As of 2026-04-15 there is no `DEVICE_FIRMWARE_CONVERTIBLE` decision — convertible devices auto-convert unconditionally. This dissent trigger now drives the advisor narrative, not a per-device decision override.)
+- **Why the auto-convert path is insufficient on its own:** Convertibility is a pure model check — it does not weigh WAN reliability, SRST dependency depth, or whether the site has an alternative survivability path. Those considerations belong in the advisor narrative rather than at the decision level.
 - **What the advisor should do:**
   1. Flag the SRST dependency explicitly
   2. Ask the admin about WAN reliability at this site

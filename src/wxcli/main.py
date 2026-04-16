@@ -51,14 +51,13 @@ def whoami(
             exp_dt = datetime.fromisoformat(expires)
             now = datetime.now(timezone.utc)
             remaining = exp_dt - now
-            hours = int(remaining.total_seconds() // 3600)
-            minutes = int((remaining.total_seconds() % 3600) // 60)
-            if remaining.total_seconds() <= 0:
-                typer.echo("Token: EXPIRED — run 'wxcli configure'", err=True)
-            elif hours < 2:
-                typer.echo(f"Token: expires in {hours}h {minutes}m — consider refreshing soon")
-            else:
-                typer.echo(f"Token: expires in {hours}h {minutes}m")
+            if remaining.total_seconds() > 0:
+                hours = int(remaining.total_seconds() // 3600)
+                minutes = int((remaining.total_seconds() % 3600) // 60)
+                if hours < 2:
+                    typer.echo(f"Token: expires in {hours}h {minutes}m — consider refreshing soon")
+                else:
+                    typer.echo(f"Token: expires in {hours}h {minutes}m")
         except ValueError:
             pass
 

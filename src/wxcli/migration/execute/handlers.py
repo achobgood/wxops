@@ -16,12 +16,43 @@ Handlers are pure functions — no IO, no side effects, fully testable.
 
 from __future__ import annotations
 
+import logging
+from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlencode
 
+from wxcli.migration.phone_models import (
+    PHONEOS_LINE_KEY_COUNTS,
+    PHONEOS_MODEL_NUMBERS,
+)
+
+logger = logging.getLogger(__name__)
+
 BASE = "https://webexapis.com/v1"
 
-HandlerResult = list[tuple[str, str, dict | None]]
+
+@dataclass(frozen=True)
+class SkippedResult:
+    """Sentinel returned by handlers when a required dependency is missing.
+
+    Engine intercepts this and calls ``update_op_status(..., 'skipped',
+    error_message=reason)`` instead of marking the op completed. Use when a
+    hard prerequisite (e.g., upstream Webex ID not resolved) is missing. For
+    legitimate no-ops ("feature disabled", "nothing to configure") keep
+    returning ``[]`` — the engine marks those completed.
+    """
+    reason: str
+
+
+def skipped(reason: str) -> "SkippedResult":
+    """Return a SkippedResult sentinel with the given reason."""
+    return SkippedResult(reason=reason)
+
+
+# Handlers may return either a list of API calls or a SkippedResult sentinel.
+# Wave 2 will migrate individual guard-clause sites from ``return []`` to
+# ``return skipped(...)`` where the ``[]`` truly means "dependency missing".
+HandlerResult = list[tuple[str, str, dict | None]] | SkippedResult
 
 
 def _url(path: str, ctx: dict, query: dict | None = None) -> str:
@@ -50,6 +81,39 @@ def _resolve_location(data: dict, deps: dict) -> str | None:
     return deps.get(loc_cid)
 
 
+# PhoneOS model membership comes from ``wxcli.migration.phone_models`` —
+# single source of truth shared with device_mapper / softkey_mapper /
+# button_template_mapper / layout_overflow.
+
+
+def _normalize_device_model(model: str) -> str:
+    """Normalize a canonical device model string for the Webex devices API.
+
+    PhoneOS phones (9800-series + 8875) must NOT carry the "DMS " prefix —
+    the device-create and activation-code APIs reject it with
+    "Device model is not supported." All other phones require the "DMS "
+    prefix. The " IP Phone " token is always collapsed because CUCM models
+    may arrive as "Cisco IP Phone 8851" while Webex expects "Cisco 8851".
+    """
+    # Defensive early-return: callers generally guard with ``if model:`` but
+    # an empty string used to fall through to the classic-MPP branch and
+    # return "DMS ", which is invalid.
+    if not model:
+        return model
+    # Always collapse " IP Phone " first so downstream checks see the
+    # concise form ("Cisco 9841" vs "Cisco IP Phone 9841").
+    model = model.replace(" IP Phone ", " ")
+    is_phoneos = any(s in model for s in PHONEOS_MODEL_NUMBERS)
+    if is_phoneos:
+        # Strip any pre-existing "DMS " prefix — PhoneOS rejects it.
+        if model.startswith("DMS "):
+            model = model[len("DMS "):]
+    else:
+        if not model.startswith("DMS "):
+            model = f"DMS {model}"
+    return model
+
+
 def _resolve_location_from_deps(deps: dict) -> str | None:
     """Fallback: find a location webex_id in resolved_deps by prefix.
     Used when the canonical model doesn't have a location_id field."""
@@ -59,14 +123,34 @@ def _resolve_location_from_deps(deps: dict) -> str | None:
     return None
 
 
-def _resolve_agents(data: dict, deps: dict, field: str = "agents") -> list[dict]:
-    """Resolve agent canonical IDs to Webex person IDs (object format for HG/CQ)."""
-    agents = []
+def _resolve_agents(
+    data: dict, deps: dict, field: str = "agents"
+) -> tuple[list[dict], list[str]]:
+    """Resolve agent canonical IDs to Webex person IDs (object format for HG/CQ).
+
+    Returns a tuple ``(resolved, skipped)``:
+
+    * ``resolved`` — list of ``{"id": webex_id}`` dicts for agents whose canonical
+      IDs successfully resolved in ``deps``.
+    * ``skipped`` — list of canonical IDs that FAILED to resolve. Callers should
+      log a warning for each skipped agent and, where possible, record them in
+      the op metadata.
+
+    Per spec resolved decision #3, hunt groups/call queues proceed with partial
+    membership when some agents don't resolve — the alternative (no HG at all)
+    routes calls to nobody. The operator can add missing members post-migration.
+
+    Wave 3 will wire full op metadata recording; today we log-only.
+    """
+    agents: list[dict] = []
+    skipped_agents: list[str] = []
     for cid in data.get(field, []):
         wid = deps.get(cid)
         if wid:
             agents.append({"id": wid})
-    return agents
+        else:
+            skipped_agents.append(cid)
+    return agents, skipped_agents
 
 
 def _resolve_agent_ids(data: dict, deps: dict, field: str = "agents") -> list[str]:
@@ -117,12 +201,13 @@ def handle_location_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
 
 
 def handle_location_enable_calling(data: dict, deps: dict, ctx: dict) -> HandlerResult:
-    # Find the location webex_id from resolved_deps
-    loc_wid = None
-    for cid, wid in deps.items():
-        if cid.startswith("location:") and wid:
-            loc_wid = wid
-            break
+    # Resolve this op's own location by canonical_id rather than scanning
+    # deps for the first "location:" prefix. Runtime injects ALL completed
+    # location ops into resolved_deps (see runtime.py:get_next_batch), so
+    # the scan would pick whichever location happens to be first in dict
+    # iteration order — not necessarily this op's own location.
+    loc_cid = data.get("canonical_id")
+    loc_wid = deps.get(loc_cid) if loc_cid else None
     body: dict[str, Any] = {
         "id": loc_wid,
         "name": data.get("name"),
@@ -190,7 +275,10 @@ def handle_route_list_create(data: dict, deps: dict, ctx: dict) -> HandlerResult
     rg_cid = data.get("route_group_id", "")
     rg_wid = deps.get(rg_cid)
     if not rg_wid:
-        return []  # Route group not yet created
+        return skipped(
+            f"route group {rg_cid!r} not resolved for route list "
+            f"{data.get('name')!r}"
+        )
     body: dict[str, Any] = {
         "name": data.get("name"),
         "locationId": loc_wid,
@@ -203,10 +291,12 @@ def handle_route_list_configure_numbers(data: dict, deps: dict, ctx: dict) -> Ha
     rl_cid = data.get("canonical_id", "")
     rl_wid = deps.get(rl_cid)
     if not rl_wid:
-        return []
+        return skipped(
+            f"route list {rl_cid!r} not resolved — cannot configure numbers"
+        )
     numbers = data.get("numbers", [])
     if not numbers:
-        return []
+        return []  # true no-op: no numbers to configure
     body: dict[str, Any] = {
         "numbers": [{"number": n, "action": "ADD"} for n in numbers],
     }
@@ -282,12 +372,11 @@ def handle_line_key_template_create(data: dict, deps: dict, ctx: dict) -> Handle
     # Also track the max physical line key count for PhoneOS phones so we can
     # split overflow indices from line_keys into kem_keys (mapper puts all button
     # indices into line_keys regardless of phone key count).
-    _PHONEOS_LINE_KEY_MAX: dict[str, int] = {
-        "9811": 2, "9821": 2, "9841": 4, "9851": 10,
-        "9861": 10, "9871": 10, "8875": 12,
-    }
+    #
+    # Counts come from ``wxcli.migration.phone_models.PHONEOS_LINE_KEY_COUNTS``
+    # — shared with button_template_mapper and layout_overflow.
     phoneos_max: int | None = None
-    for phoneos_model, max_lk in _PHONEOS_LINE_KEY_MAX.items():
+    for phoneos_model, max_lk in PHONEOS_LINE_KEY_COUNTS.items():
         if device_model == f"DMS Cisco {phoneos_model}":
             device_model = f"Cisco {phoneos_model}"
             phoneos_max = max_lk
@@ -413,14 +502,19 @@ def handle_workspace_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
 
 
 def handle_workspace_assign_number(data: dict, deps: dict, ctx: dict) -> HandlerResult:
-    # Find workspace webex_id from resolved deps
-    ws_wid = None
-    for cid, wid in deps.items():
-        if cid.startswith("workspace:") and wid:
-            ws_wid = wid
-            break
-    if not ws_wid or not data.get("phone_number"):
-        return []  # No-op if no DID to assign
+    # Resolve target workspace by this op's own canonical_id rather than
+    # scanning deps for the first "workspace:" prefix. Multiple workspaces
+    # in deps (edge case, but possible via cross-object rules) would cause
+    # the scan to misaddress the PUT and assign the number to the wrong ws.
+    ws_cid = data.get("canonical_id")
+    ws_wid = deps.get(ws_cid) if ws_cid else None
+    if not ws_wid:
+        return skipped(
+            f"workspace not resolved for assign_number "
+            f"(display_name={data.get('display_name')!r})"
+        )
+    if not data.get("phone_number"):
+        return []  # true no-op: no DID configured to assign
     body: dict[str, Any] = {"phoneNumbers": [{"type": "work", "value": data["phone_number"]}]}
     return [("PUT", _url(f"/workspaces/{ws_wid}", ctx), body)]
 
@@ -429,8 +523,11 @@ def handle_device_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
     body: dict[str, Any] = {}
     if data.get("mac"):
         body["mac"] = data["mac"]
-    if data.get("model"):
-        body["model"] = data["model"]
+    model = data.get("model")
+    if model:
+        # PhoneOS phones (9800-series + 8875) reject the "DMS " prefix;
+        # all other phones require it. See _normalize_device_model.
+        body["model"] = _normalize_device_model(model)
     # Resolve owner: person or workspace
     owner_cid = data.get("owner_canonical_id")
     if owner_cid:
@@ -461,14 +558,12 @@ def handle_device_create_activation_code(
 
     model = data.get("model")
     if model:
-        if not model.startswith("DMS "):
-            model = f"DMS {model}"
         # CanonicalDevice.model may arrive as either "Cisco 8851" or
         # "Cisco IP Phone 8851" (both are recognized as convertible in
         # cross_reference._CONVERTIBLE_PATTERNS). The Webex activation
-        # code API expects the concise form, so collapse " IP Phone ".
-        model = model.replace(" IP Phone ", " ")
-        body["model"] = model
+        # code API expects the concise form and rejects the "DMS " prefix
+        # on PhoneOS models — see _normalize_device_model.
+        body["model"] = _normalize_device_model(model)
 
     owner_cid = data.get("owner_canonical_id")
     if owner_cid:
@@ -515,7 +610,19 @@ def handle_translation_pattern_create(data: dict, deps: dict, ctx: dict) -> Hand
 
 def handle_hunt_group_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
     loc_wid = _resolve_location(data, deps)
-    agents = _resolve_agents(data, deps, "agents")
+    agents, skipped_agents = _resolve_agents(data, deps, "agents")
+    # Per spec resolved decision #3: create the hunt group with partial
+    # membership when some agents don't resolve. Log a WARNING for each
+    # skipped agent so the operator can reconcile post-migration.
+    # Wave 3 will add full op-metadata recording; today this is log-only.
+    if skipped_agents:
+        hg_name = data.get("name", "<unnamed>")
+        for cid in skipped_agents:
+            logger.warning(
+                "hunt_group '%s': agent %s not resolved — excluded from create "
+                "(add manually post-migration)",
+                hg_name, cid,
+            )
     body: dict[str, Any] = {
         "name": data.get("name"),
         "extension": data.get("extension"),
@@ -535,7 +642,19 @@ def handle_hunt_group_create(data: dict, deps: dict, ctx: dict) -> HandlerResult
 
 def handle_call_queue_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
     loc_wid = _resolve_location(data, deps)
-    agents = _resolve_agents(data, deps, "agents")
+    agents, skipped_agents = _resolve_agents(data, deps, "agents")
+    # Per spec resolved decision #3: call queues proceed with partial
+    # membership when some agents fail to resolve. Log a WARNING for each
+    # so the operator can reconcile post-migration.
+    # Wave 3 will add full op-metadata recording; today this is log-only.
+    if skipped_agents:
+        cq_name = data.get("name", "<unnamed>")
+        for cid in skipped_agents:
+            logger.warning(
+                "call_queue '%s': agent %s not resolved — excluded from create "
+                "(add manually post-migration)",
+                cq_name, cid,
+            )
     body: dict[str, Any] = {
         "name": data.get("name"),
         "extension": data.get("extension"),
@@ -639,10 +758,13 @@ def handle_voicemail_group_create(data: dict, deps: dict, ctx: dict) -> HandlerR
     """
     loc_wid = _resolve_location(data, deps) or _resolve_location_from_deps(deps)
     if not loc_wid:
-        return []
+        return skipped(
+            f"location not resolved for voicemail_group "
+            f"{data.get('name')!r}"
+        )
 
     if not data.get("extension"):
-        return []
+        return []  # true no-op: no extension configured, cannot create VM group
 
     body: dict[str, Any] = {
         "name": data.get("name"),
@@ -681,30 +803,49 @@ def handle_voicemail_group_create(data: dict, deps: dict, ctx: dict) -> HandlerR
 # Tier 5: Settings configuration
 # ---------------------------------------------------------------------------
 
+# Features that require read-before-write: the API rejects partial bodies
+# because it proxies to a backend that needs all fields present.
+# For these features, the handler emits GET (read current) then PUT (merge + overwrite).
+_READ_BEFORE_WRITE_FEATURES = {"callRecording"}
+
+
 def handle_user_configure_settings(data: dict, deps: dict, ctx: dict) -> HandlerResult:
-    person_wid = None
-    for cid, wid in deps.items():
-        if cid.startswith("user:") and wid:
-            person_wid = wid
-            break
+    # Resolve the target user by this op's own canonical_id rather than
+    # scanning deps for the first "user:" prefix. In dep graphs where more
+    # than one user is resolved (e.g., monitoring, shared lines), the scan
+    # could pick the wrong user and silently rewrite settings on them —
+    # especially risky now that callRecording does GET + merge + PUT.
+    user_cid = data.get("canonical_id")
+    person_wid = deps.get(user_cid) if user_cid else None
     if not person_wid:
-        return []
+        return skipped(
+            f"user not resolved for configure_settings "
+            f"(canonical_id={user_cid!r})"
+        )
     settings = data.get("call_settings", {})
     calls = []
     for feature_name, feature_body in settings.items():
         url = _url(f"/people/{person_wid}/features/{feature_name}", ctx)
-        calls.append(("PUT", url, feature_body))
+        if feature_name in _READ_BEFORE_WRITE_FEATURES:
+            # Read current state first, then merge our overrides on top
+            calls.append(("GET", url, None))
+            calls.append(("PUT", url, {**feature_body, "_merge_from_previous": True}))
+        else:
+            calls.append(("PUT", url, feature_body))
     return calls
 
 
 def handle_user_configure_voicemail(data: dict, deps: dict, ctx: dict) -> HandlerResult:
-    person_wid = None
-    for cid, wid in deps.items():
-        if cid.startswith("user:") and wid:
-            person_wid = wid
-            break
+    # Same rationale as handle_user_configure_settings — resolve target
+    # user by this op's canonical_id, not by scanning deps. Writing to the
+    # wrong user's voicemail settings would be silently destructive.
+    user_cid = data.get("canonical_id")
+    person_wid = deps.get(user_cid) if user_cid else None
     if not person_wid:
-        return []
+        return skipped(
+            f"user not resolved for configure_voicemail "
+            f"(canonical_id={user_cid!r})"
+        )
     vm_data = data.get("voicemail") or data.get("voicemail_settings") or {}
     return [("PUT", _url(f"/telephony/config/people/{person_wid}/voicemail", ctx), vm_data)]
 
@@ -718,7 +859,7 @@ def handle_ecbn_config_configure(data: dict, deps: dict, ctx: dict) -> HandlerRe
     entity_cid = data.get("entity_canonical_id", "")
     entity_wid = deps.get(entity_cid)
     if not entity_wid:
-        return []
+        return skipped(f"ECBN target {entity_cid!r} ({entity_type}) not resolved")
 
     path_map = {
         "user": "people",
@@ -727,7 +868,7 @@ def handle_ecbn_config_configure(data: dict, deps: dict, ctx: dict) -> HandlerRe
     }
     path_segment = path_map.get(entity_type)
     if not path_segment:
-        return []
+        return skipped(f"ECBN entity_type {entity_type!r} not supported")
 
     selection = data.get("ecbn_selection", "")
     body: dict[str, Any] = {"selected": selection}
@@ -735,7 +876,7 @@ def handle_ecbn_config_configure(data: dict, deps: dict, ctx: dict) -> HandlerRe
         member_cid = data.get("location_member_canonical_id", "")
         member_wid = deps.get(member_cid)
         if not member_wid:
-            return []
+            return skipped(f"ECBN location_member {member_cid!r} not resolved")
         body["locationMemberId"] = member_wid
 
     url = _url(
@@ -746,13 +887,13 @@ def handle_ecbn_config_configure(data: dict, deps: dict, ctx: dict) -> HandlerRe
 
 
 def handle_device_configure_settings(data: dict, deps: dict, ctx: dict) -> HandlerResult:
-    device_wid = None
-    for cid, wid in deps.items():
-        if cid.startswith("device:") and wid:
-            device_wid = wid
-            break
+    # Resolve target device by this op's own canonical_id rather than
+    # scanning deps for the first "device:" prefix (same class of bug as
+    # handle_user_configure_settings: wrong device → silent mis-config).
+    device_cid = data.get("canonical_id")
+    device_wid = deps.get(device_cid) if device_cid else None
     if not device_wid:
-        return []
+        return skipped("device:configure_settings — device not resolved from deps")
     settings = data.get("device_settings", {})
     if not settings:
         return []
@@ -760,13 +901,12 @@ def handle_device_configure_settings(data: dict, deps: dict, ctx: dict) -> Handl
 
 
 def handle_workspace_configure_settings(data: dict, deps: dict, ctx: dict) -> HandlerResult:
-    ws_wid = None
-    for cid, wid in deps.items():
-        if cid.startswith("workspace:") and wid:
-            ws_wid = wid
-            break
+    # Resolve target workspace by this op's own canonical_id (see
+    # handle_user_configure_settings for full rationale).
+    ws_cid = data.get("canonical_id")
+    ws_wid = deps.get(ws_cid) if ws_cid else None
     if not ws_wid:
-        return []
+        return skipped("workspace:configure_settings — workspace not resolved from deps")
     # Workspace settings use /telephony/config/workspaces/{id}/ path family
     # (NOT /workspaces/{id}/features/ — that's a different API surface)
     settings = data.get("call_settings", {})
@@ -801,9 +941,10 @@ def handle_calling_permission_assign(data: dict, deps: dict, ctx: dict) -> Handl
 # ---------------------------------------------------------------------------
 
 def handle_call_forwarding_configure(data: dict, deps: dict, ctx: dict) -> HandlerResult:
-    person_wid = deps.get(data.get("user_canonical_id", ""))
+    user_cid = data.get("user_canonical_id", "")
+    person_wid = deps.get(user_cid)
     if not person_wid:
-        return []
+        return skipped(f"call_forwarding: user {user_cid!r} not resolved")
     # Only generate if at least one forwarding type is enabled
     if not any([data.get("always_enabled"), data.get("busy_enabled"), data.get("no_answer_enabled")]):
         return []
@@ -846,9 +987,10 @@ def handle_snr_configure(data: dict, deps: dict, ctx: dict) -> HandlerResult:
     Produces 1 PUT (enable SNR) + 1 POST per number.
     (from tier2-enterprise-expansion.md §4)
     """
-    person_wid = deps.get(data.get("user_canonical_id", ""))
+    user_cid = data.get("user_canonical_id", "")
+    person_wid = deps.get(user_cid)
     if not person_wid:
-        return []
+        return skipped(f"single_number_reach: user {user_cid!r} not resolved")
     numbers = data.get("numbers") or []
     if not numbers:
         return []
@@ -893,17 +1035,36 @@ def handle_snr_configure(data: dict, deps: dict, ctx: dict) -> HandlerResult:
 # ---------------------------------------------------------------------------
 
 def handle_monitoring_list_configure(data: dict, deps: dict, ctx: dict) -> HandlerResult:
-    person_wid = deps.get(data.get("user_canonical_id", ""))
+    user_cid = data.get("user_canonical_id", "")
+    person_wid = deps.get(user_cid)
     if not person_wid:
-        return []
-    members = []
+        return skipped(f"monitoring_list: user {user_cid!r} not resolved")
+    members: list[dict[str, Any]] = []
+    unresolved: list[str] = []
+    total_count = 0
     for m in data.get("monitored_members", []):
         target_cid = m.get("target_canonical_id")
         if not target_cid:
             continue
+        total_count += 1
         wid = deps.get(target_cid)
         if wid:
             members.append({"id": wid})
+        else:
+            unresolved.append(target_cid)
+    if total_count and not members:
+        list_name = data.get("name") or user_cid
+        return skipped(
+            f"monitoring list {list_name!r}: all {total_count} members unresolved",
+        )
+    if unresolved:
+        logger.warning(
+            "Monitoring list for %s: %d of %d members unresolved: %s",
+            person_wid,
+            len(unresolved),
+            total_count,
+            unresolved,
+        )
     if not members:
         return []
     body: dict[str, Any] = {
@@ -920,9 +1081,10 @@ def handle_monitoring_list_configure(data: dict, deps: dict, ctx: dict) -> Handl
 
 def handle_receptionist_config_configure(data: dict, deps: dict, ctx: dict) -> HandlerResult:
     """Enable receptionist client + create location contact directory."""
-    person_wid = deps.get(data.get("user_canonical_id", ""))
+    user_cid = data.get("user_canonical_id", "")
+    person_wid = deps.get(user_cid)
     if not person_wid:
-        return []
+        return skipped(f"receptionist_config: user {user_cid!r} not resolved")
     members = []
     for cid in data.get("monitored_members", []):
         wid = deps.get(cid)
@@ -959,7 +1121,7 @@ def handle_device_layout_configure(data: dict, deps: dict, ctx: dict) -> Handler
     device_cid = data.get("device_canonical_id")
     device_wid = deps.get(device_cid) if device_cid else None
     if not device_wid:
-        return []
+        return skipped(f"device_layout: device {device_cid!r} not resolved")
 
     results: HandlerResult = []
 
@@ -1044,7 +1206,7 @@ def handle_softkey_config_configure(data: dict, deps: dict, ctx: dict) -> Handle
     device_cid = data.get("device_canonical_id")
     device_wid = deps.get(device_cid) if device_cid else None
     if not device_wid:
-        return []
+        return skipped(f"softkey_config: device {device_cid!r} not resolved")
 
     settings = []
     for m in data.get("psk_mappings", []):
@@ -1091,7 +1253,11 @@ def handle_shared_line_configure(data: dict, deps: dict, ctx: dict) -> HandlerRe
             resolved_owners.append((cid, wid))
 
     if len(resolved_owners) < 2:
-        return []  # Need at least 2 owners for a shared line
+        # Need at least 2 owners for a shared line (issue #17).
+        return skipped(
+            f"shared line requires 2+ resolved owners; "
+            f"only {len(resolved_owners)} of {len(owner_cids)} resolved",
+        )
 
     calls = []
 
@@ -1137,13 +1303,15 @@ def handle_virtual_line_create(data: dict, deps: dict, ctx: dict) -> HandlerResu
 
 
 def handle_virtual_line_configure(data: dict, deps: dict, ctx: dict) -> HandlerResult:
-    vl_wid = None
-    for cid, wid in deps.items():
-        if cid.startswith("virtual_line:") and wid:
-            vl_wid = wid
-            break
+    # Resolve target virtual line by this op's own canonical_id (see
+    # handle_user_configure_settings for full rationale).
+    vl_cid = data.get("canonical_id")
+    vl_wid = deps.get(vl_cid) if vl_cid else None
     if not vl_wid:
-        return []
+        return skipped(
+            f"virtual_line:configure — virtual line "
+            f"{data.get('display_name') or data.get('canonical_id')!r} not resolved from deps",
+        )
     # Virtual line settings — pass through whatever canonical data has
     settings = data.get("settings", {})
     if not settings:
@@ -1161,10 +1329,16 @@ def handle_device_settings_template_apply_location_settings(
     """Apply device settings at location level."""
     loc_cid = data.get("location_canonical_id")
     if not loc_cid:
-        return []
+        return skipped(
+            "device_settings_template:apply_location_settings — "
+            "location_canonical_id missing from template data",
+        )
     loc_wid = deps.get(loc_cid)
     if not loc_wid:
-        return []
+        return skipped(
+            f"device_settings_template:apply_location_settings — "
+            f"location {loc_cid!r} not resolved",
+        )
     settings = data.get("settings") or {}
     if not settings:
         return []
@@ -1179,10 +1353,16 @@ def handle_device_settings_template_apply_device_override(
     override = data.get("override") or {}
     device_cid = override.get("device_canonical_id")
     if not device_cid:
-        return []
+        return skipped(
+            "device_settings_template:apply_device_override — "
+            "device_canonical_id missing from override data",
+        )
     device_wid = deps.get(device_cid)
     if not device_wid:
-        return []
+        return skipped(
+            f"device_settings_template:apply_device_override — "
+            f"device {device_cid!r} not resolved",
+        )
     settings = override.get("settings") or {}
     if not settings:
         return []
@@ -1201,7 +1381,7 @@ def handle_hoteling_guest_enable(data: dict, deps: dict, ctx: dict) -> HandlerRe
     user_cid = data.get("user_canonical_id")
     person_wid = deps.get(user_cid) if user_cid else None
     if not person_wid:
-        return []
+        return skipped(f"hoteling_guest_enable: user {user_cid!r} not resolved")
     return [("PUT", _url(f"/people/{person_wid}/features/hoteling", ctx), {"enabled": True})]
 
 
@@ -1213,9 +1393,12 @@ def handle_hoteling_host_configure(data: dict, deps: dict, ctx: dict) -> Handler
     user_cid = data.get("user_canonical_id")
     person_wid = deps.get(user_cid) if user_cid else None
     if not person_wid:
-        return []
+        return skipped(f"hoteling_host_configure: user {user_cid!r} not resolved")
     if not any(deps.get(cid) for cid in host_cids):
-        return []
+        return skipped(
+            f"hoteling_host_configure: none of {len(host_cids)} host devices "
+            f"resolved ({host_cids!r})",
+        )
     auto_minutes = data.get("auto_logout_minutes", 0)
     hoteling_body: dict[str, Any] = {"enabled": True}
     if auto_minutes > 0:
@@ -1236,7 +1419,9 @@ def handle_location_hotdesking_enable(data: dict, deps: dict, ctx: dict) -> Hand
     loc_cid = state.get("location_canonical_id")
     loc_wid = deps.get(loc_cid) if loc_cid else None
     if not loc_wid:
-        return []
+        return skipped(
+            f"location_hotdesking_enable: location {loc_cid!r} not resolved",
+        )
     return [(
         "PUT",
         _url(f"/telephony/config/locations/{loc_wid}/features/hotDesking", ctx),
@@ -1254,8 +1439,16 @@ def handle_hunt_group_configure_forwarding(
 ) -> HandlerResult:
     hg_wid = _find_webex_id(data, deps)
     loc_wid = _resolve_location(data, deps)
-    if not hg_wid or not loc_wid:
-        return []
+    if not hg_wid:
+        return skipped(
+            f"hunt group {data.get('name')!r} not created — "
+            "cannot configure forwarding"
+        )
+    if not loc_wid:
+        return skipped(
+            f"hunt group {data.get('name')!r}: location not resolved — "
+            "cannot configure forwarding"
+        )
     cf: dict[str, Any] = {}
     if data.get("forward_always_enabled") and data.get("forward_always_destination"):
         cf["always"] = {
@@ -1294,8 +1487,16 @@ def handle_call_queue_configure_forwarding(
 ) -> HandlerResult:
     cq_wid = _find_webex_id(data, deps)
     loc_wid = _resolve_location(data, deps)
-    if not cq_wid or not loc_wid:
-        return []
+    if not cq_wid:
+        return skipped(
+            f"call queue {data.get('name')!r} not created — "
+            "cannot configure forwarding"
+        )
+    if not loc_wid:
+        return skipped(
+            f"call queue {data.get('name')!r}: location not resolved — "
+            "cannot configure forwarding"
+        )
     cf: dict[str, Any] = {}
     always_dest = (
         data.get("forward_always_destination")
@@ -1323,8 +1524,16 @@ def handle_call_queue_configure_holiday_service(
 ) -> HandlerResult:
     cq_wid = _find_webex_id(data, deps)
     loc_wid = _resolve_location(data, deps)
-    if not cq_wid or not loc_wid:
-        return []
+    if not cq_wid:
+        return skipped(
+            f"call queue {data.get('name')!r} not created — "
+            "cannot configure holiday service"
+        )
+    if not loc_wid:
+        return skipped(
+            f"call queue {data.get('name')!r}: location not resolved — "
+            "cannot configure holiday service"
+        )
     if not data.get("holiday_service_enabled"):
         return []
     body: dict[str, Any] = {
@@ -1349,8 +1558,16 @@ def handle_call_queue_configure_night_service(
 ) -> HandlerResult:
     cq_wid = _find_webex_id(data, deps)
     loc_wid = _resolve_location(data, deps)
-    if not cq_wid or not loc_wid:
-        return []
+    if not cq_wid:
+        return skipped(
+            f"call queue {data.get('name')!r} not created — "
+            "cannot configure night service"
+        )
+    if not loc_wid:
+        return skipped(
+            f"call queue {data.get('name')!r}: location not resolved — "
+            "cannot configure night service"
+        )
     if not data.get("night_service_enabled"):
         return []
     body: dict[str, Any] = {
@@ -1378,8 +1595,16 @@ def handle_call_queue_configure_stranded_calls(
 ) -> HandlerResult:
     cq_wid = _find_webex_id(data, deps)
     loc_wid = _resolve_location(data, deps)
-    if not cq_wid or not loc_wid:
-        return []
+    if not cq_wid:
+        return skipped(
+            f"call queue {data.get('name')!r} not created — "
+            "cannot configure stranded calls"
+        )
+    if not loc_wid:
+        return skipped(
+            f"call queue {data.get('name')!r}: location not resolved — "
+            "cannot configure stranded calls"
+        )
     if not data.get("no_agent_destination"):
         return []
     body: dict[str, Any] = {
@@ -1398,8 +1623,16 @@ def handle_auto_attendant_configure_forwarding(
 ) -> HandlerResult:
     aa_wid = _find_webex_id(data, deps)
     loc_wid = _resolve_location(data, deps) or _resolve_location_from_deps(deps)
-    if not aa_wid or not loc_wid:
-        return []
+    if not aa_wid:
+        return skipped(
+            f"auto attendant {data.get('name')!r} not created — "
+            "cannot configure forwarding"
+        )
+    if not loc_wid:
+        return skipped(
+            f"auto attendant {data.get('name')!r}: location not resolved — "
+            "cannot configure forwarding"
+        )
     if not (data.get("forward_always_enabled") and data.get("forward_always_destination")):
         return []
     body = {
@@ -1436,6 +1669,10 @@ def handle_bulk_device_settings_submit(
     """
     loc_cid = data.get("location_canonical_id", "")
     loc_wid = deps.get(loc_cid) or _resolve_location_from_deps(deps)
+    if not loc_wid:
+        return skipped(
+            f"bulk_device_settings:submit — location {loc_cid!r} not resolved"
+        )
     body: dict[str, Any] = {
         "locationId": loc_wid,
         "locationCustomizationsEnabled": True,
@@ -1454,6 +1691,11 @@ def handle_bulk_line_key_template_submit(
     """
     template_cid = data.get("template_canonical_id", "")
     template_wid = deps.get(template_cid)
+    if not template_wid:
+        return skipped(
+            f"bulk_line_key_template:submit — line key template "
+            f"{template_cid!r} not created"
+        )
     loc_wids = [
         deps[cid]
         for cid in data.get("location_canonical_ids", [])
@@ -1478,6 +1720,10 @@ def handle_bulk_dynamic_settings_submit(
     """
     loc_cid = data.get("location_canonical_id", "")
     loc_wid = deps.get(loc_cid, "") if loc_cid else ""
+    if not loc_wid:
+        return skipped(
+            f"bulk_dynamic_settings:submit — location {loc_cid!r} not resolved"
+        )
     body: dict[str, Any] = {
         "locationId": loc_wid,
         "tags": data.get("tags", []),
@@ -1495,6 +1741,10 @@ def handle_bulk_rebuild_phones_submit(
     """
     loc_cid = data.get("location_canonical_id", "")
     loc_wid = deps.get(loc_cid) or _resolve_location_from_deps(deps)
+    if not loc_wid:
+        return skipped(
+            f"bulk_rebuild_phones:submit — location {loc_cid!r} not resolved"
+        )
     body: dict[str, Any] = {"locationId": loc_wid}
     return [("POST", _url("/telephony/config/jobs/devices/rebuildPhones", ctx), body)]
 
@@ -1548,7 +1798,10 @@ def handle_executive_type_assign(data: dict, deps: dict, ctx: dict) -> HandlerRe
     exec_cid = data.get("executive_canonical_id")
     person_wid = deps.get(exec_cid) if exec_cid else None
     if not person_wid:
-        return []
+        return skipped(
+            f"executive user {exec_cid!r} not resolved — "
+            "cannot set EXECUTIVE type"
+        )
     return [(
         "PUT",
         _url(f"/people/{person_wid}/features/executiveAssistant", ctx),
@@ -1563,8 +1816,10 @@ def handle_assistant_type_assign(data: dict, deps: dict, ctx: dict) -> HandlerRe
     Scope: spark-admin:people_write
     (spec §3a)
     """
-    calls: HandlerResult = []
-    for asst_cid in data.get("assistant_canonical_ids", []):
+    asst_cids = list(data.get("assistant_canonical_ids", []))
+    calls: list[tuple[str, str, dict | None]] = []
+    unresolved: list[str] = []
+    for asst_cid in asst_cids:
         person_wid = deps.get(asst_cid)
         if person_wid:
             calls.append((
@@ -1572,6 +1827,17 @@ def handle_assistant_type_assign(data: dict, deps: dict, ctx: dict) -> HandlerRe
                 _url(f"/people/{person_wid}/features/executiveAssistant", ctx),
                 {"type": "EXECUTIVE_ASSISTANT"},
             ))
+        else:
+            unresolved.append(asst_cid)
+    # If assistant_cids were specified but NONE resolved, this is a missing-dep
+    # scenario (all assistant user-creates failed/skipped). Surface it as SKIPPED
+    # so the op doesn't silently look completed. An empty assistant_cids list is
+    # a true no-op (nothing to configure) — keep returning [].
+    if asst_cids and not calls:
+        return skipped(
+            f"assistant_type_assign: none of the {len(unresolved)} assistant(s) "
+            f"resolved ({unresolved!r})"
+        )
     return calls
 
 
@@ -1585,13 +1851,29 @@ def handle_executive_assign_assistants(data: dict, deps: dict, ctx: dict) -> Han
     exec_cid = data.get("executive_canonical_id")
     person_wid = deps.get(exec_cid) if exec_cid else None
     if not person_wid:
-        return []
+        return skipped(
+            f"executive user {exec_cid!r} not resolved — "
+            "cannot assign assistants"
+        )
+    asst_cids = list(data.get("assistant_canonical_ids", []))
     assistants = []
-    for asst_cid in data.get("assistant_canonical_ids", []):
+    unresolved: list[str] = []
+    for asst_cid in asst_cids:
         asst_wid = deps.get(asst_cid)
         if asst_wid:
             assistants.append({"id": asst_wid, "optInEnabled": True})
+        else:
+            unresolved.append(asst_cid)
     if not assistants:
+        # assistant_cids were specified (or empty). Either way, zero resolved
+        # assistants means we have nothing to pair. If the plan expected at
+        # least one, surface SKIPPED with the unresolved list so this doesn't
+        # look silently completed.
+        if asst_cids:
+            return skipped(
+                f"executive_assign_assistants: none of the {len(unresolved)} "
+                f"assistant(s) resolved ({unresolved!r})"
+            )
         return []
     body: dict[str, Any] = {
         "allowOptInEnabled": True,
@@ -1614,7 +1896,10 @@ def handle_executive_configure_alert(data: dict, deps: dict, ctx: dict) -> Handl
     exec_cid = data.get("executive_canonical_id")
     person_wid = deps.get(exec_cid) if exec_cid else None
     if not person_wid:
-        return []
+        return skipped(
+            f"executive user {exec_cid!r} not resolved — "
+            "cannot configure alert settings"
+        )
     alerting_mode = data.get("alerting_mode", "SIMULTANEOUS")
     body: dict[str, Any] = {
         "alertingMode": alerting_mode,
@@ -1642,7 +1927,10 @@ def handle_executive_configure_filtering(data: dict, deps: dict, ctx: dict) -> H
     exec_cid = data.get("executive_canonical_id")
     person_wid = deps.get(exec_cid) if exec_cid else None
     if not person_wid:
-        return []
+        return skipped(
+            f"executive user {exec_cid!r} not resolved — "
+            "cannot configure call filtering"
+        )
     if not data.get("filter_enabled"):
         return []
     # Map CUCM filter types to Webex filter types
@@ -1674,7 +1962,10 @@ def handle_executive_configure_screening(data: dict, deps: dict, ctx: dict) -> H
     exec_cid = data.get("executive_canonical_id")
     person_wid = deps.get(exec_cid) if exec_cid else None
     if not person_wid:
-        return []
+        return skipped(
+            f"executive user {exec_cid!r} not resolved — "
+            "cannot configure call screening"
+        )
     if not data.get("screening_enabled"):
         return []
     body: dict[str, Any] = {
@@ -1698,10 +1989,13 @@ def handle_assistant_configure_settings(data: dict, deps: dict, ctx: dict) -> Ha
     exec_cid = data.get("executive_canonical_id")
     exec_wid = deps.get(exec_cid) if exec_cid else None
 
-    calls: HandlerResult = []
-    for asst_cid in data.get("assistant_canonical_ids", []):
+    asst_cids = list(data.get("assistant_canonical_ids", []))
+    calls: list[tuple[str, str, dict | None]] = []
+    unresolved: list[str] = []
+    for asst_cid in asst_cids:
         asst_wid = deps.get(asst_cid)
         if not asst_wid:
+            unresolved.append(asst_cid)
             continue
         body: dict[str, Any] = {
             "forwardFilteredCallsEnabled": False,
@@ -1713,6 +2007,14 @@ def handle_assistant_configure_settings(data: dict, deps: dict, ctx: dict) -> Ha
             _url(f"/telephony/config/people/{asst_wid}/executive/assistant", ctx),
             body,
         ))
+    # If assistant_cids were specified but NONE resolved, surface SKIPPED so
+    # the op doesn't silently look completed. An empty assistant_cids list is
+    # a true no-op (nothing to configure).
+    if asst_cids and not calls:
+        return skipped(
+            f"assistant_configure_settings: none of the {len(unresolved)} "
+            f"assistant(s) resolved ({unresolved!r})"
+        )
     return calls
 
 
@@ -1730,7 +2032,10 @@ def handle_dect_network_create(data: dict, deps: dict, ctx: dict) -> HandlerResu
     """
     loc_wid = _resolve_location(data, deps) or _resolve_location_from_deps(deps)
     if not loc_wid:
-        return []
+        return skipped(
+            f"DECT network {data.get('network_name') or data.get('display_name')!r}: "
+            "location not resolved — cannot create"
+        )
 
     name = data.get("network_name") or data.get("display_name")
     if not name:
@@ -1756,12 +2061,18 @@ def handle_dect_base_station_create(data: dict, deps: dict, ctx: dict) -> Handle
     """
     loc_wid = _resolve_location(data, deps) or _resolve_location_from_deps(deps)
     if not loc_wid:
-        return []
+        return skipped(
+            f"DECT base stations for {data.get('canonical_id')!r}: "
+            "location not resolved"
+        )
 
     cid = data.get("canonical_id", "")
     dect_network_wid = deps.get(cid)
     if not dect_network_wid:
-        return []
+        return skipped(
+            f"DECT network {cid!r} not created — "
+            "cannot register base stations"
+        )
 
     # MACs come from base_stations list — each entry has a 'mac' field
     base_stations = data.get("base_stations") or []
@@ -1789,12 +2100,18 @@ def handle_dect_handset_assign(data: dict, deps: dict, ctx: dict) -> HandlerResu
     """
     loc_wid = _resolve_location(data, deps) or _resolve_location_from_deps(deps)
     if not loc_wid:
-        return []
+        return skipped(
+            f"DECT handsets for {data.get('canonical_id')!r}: "
+            "location not resolved"
+        )
 
     cid = data.get("canonical_id", "")
     dect_network_wid = deps.get(cid)
     if not dect_network_wid:
-        return []
+        return skipped(
+            f"DECT network {cid!r} not created — "
+            "cannot assign handsets"
+        )
 
     handset_assignments = data.get("handset_assignments") or []
     items: list[dict[str, Any]] = []

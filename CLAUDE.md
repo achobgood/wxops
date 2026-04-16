@@ -39,6 +39,27 @@ fresh agent invocation — do not resume agents via `SendMessage` for multi-phas
 4. Agent completes decisions + report, writes session-state, terminates
 5. Continue pattern through plan → execute
 
+### Agent Orchestration — Long-Running Work & Silence Detection
+
+Added 2026-04-15 after an org-cleanup subagent died mid-Phase-2 when its Python polling loop exceeded Bash's 10-min timeout. Parent sent two `SendMessage` pings that received no response because the subagent's tool call was still in flight and then terminated; the agent loop never got a chance to resume and handle the messages. Root cause recovery required spawning a fresh agent to verify org state and finish the job. This protocol **complements** — does not replace — the phase-per-invocation rule above.
+
+#### For subagents running long-running work (>2 min expected)
+
+1. **Never wrap long-running polling in a single Bash call.** The Bash tool has a ~10-min hard timeout; if the tool call runs longer, stdout buffering hides progress and the subagent dies silently when the kernel kills the process. The agent loop never resumes to produce a final message, so the parent sees silence.
+2. **Split into discrete tool calls.** One Bash call per polling round (not 20 rounds in one call). Between rounds, the agent loop can emit progress messages.
+3. **Use `run_in_background: true` on Bash** for genuinely long-running commands (e.g., `wxcli cucm execute` that runs >5 min); monitor the task output file (but do not `tail`/Read large JSONL transcripts — use targeted line ranges only).
+4. **Emit progress explicitly.** At minimum every 60s, the subagent should produce a visible message (text output, not a tool call) so observers see aliveness.
+
+#### For parent agents when a subagent goes silent
+
+1. **Wait up to 5 min** of silence before investigating — normal operations can have gaps.
+2. **After 5 min silence, read the subagent's transcript directly** at `~/.claude/projects/<project-hash>/subagents/agent-<id>.jsonl`. Check:
+   - Last entry type: `tool_use` with no paired `tool_result` → subagent is blocked in a tool call (likely Bash timeout pending).
+   - Last entry is `assistant` text → subagent thinking, give it more time.
+3. **Do NOT use `SendMessage` to ping a subagent blocked in a tool call.** `SendMessage` cannot interrupt an in-flight tool call; the message queues to a dead mailbox.
+4. **If the subagent is dead** (transcript ends on unpaired `tool_use`), spawn a fresh agent to continue the work from current state. Do not wait longer.
+5. **Check external state** via a fresh diagnostic agent (e.g., "run `wxcli locations list`") rather than trusting the dead subagent's last self-reported state.
+
 ## File Map
 
 ### Agent & Skills
@@ -54,7 +75,7 @@ fresh agent invocation — do not resume agents via `SendMessage` for multi-phas
 | `.claude/skills/manage-call-settings/` | Skill: configure person/workspace call settings |
 | `.claude/skills/configure-routing/` | Skill: configure routing (trunks, dial plans, PSTN) |
 | `.claude/skills/manage-devices/` | Skill: manage devices (phones, DECT, workspaces) |
-| `.claude/skills/device-platform/` | Skill: manage RoomOS device configs, workspace personalization, xAPI; also 9800-series phones (9811/9821/9841/9851/9861/9871) |
+| `.claude/skills/device-platform/` | Skill: manage PhoneOS/RoomOS device configs, workspace personalization, xAPI; 9800-series phones (9811/9821/9841/9851/9861/9871) use PhoneOS (not RoomOS) |
 | `.claude/skills/call-control/` | Skill: real-time call control, webhooks, XSI |
 | `.claude/skills/reporting/` | Skill: CDR query engine (75 recipes + composition guide), report templates, recordings |
 | `.claude/skills/reporting-cc/` | Skill: Contact Center analytics (queue stats, agent stats, EWT, summaries) |
@@ -154,7 +175,7 @@ Structured knowledge base read by the `migration-advisor` agent (Opus) during CU
 | Path | Purpose |
 |------|---------|
 | `docs/knowledge-base/migration/kb-css-routing.md` | CSS/partition ordering, dial plan decomposition, calling permissions |
-| `docs/knowledge-base/migration/kb-device-migration.md` | Device replacement paths, firmware conversion, MPP vs RoomOS |
+| `docs/knowledge-base/migration/kb-device-migration.md` | Device replacement paths, firmware conversion, MPP vs PhoneOS/RoomOS |
 | `docs/knowledge-base/migration/kb-trunk-pstn.md` | Trunk topology, LGW vs CCPP, CPN transformation chains |
 | `docs/knowledge-base/migration/kb-feature-mapping.md` | Hunt Group vs Call Queue depth, AA mapping, shared line semantics |
 | `docs/knowledge-base/migration/kb-user-settings.md` | Call forwarding, voicemail, calling permissions, workspace licensing |

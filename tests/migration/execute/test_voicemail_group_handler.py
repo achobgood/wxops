@@ -54,7 +54,10 @@ class TestHandleVoicemailGroupCreate:
         assert body["transferToNumber"] == {"enabled": False}
         assert body["emailCopyOfMessage"] == {"enabled": False}
 
-    def test_missing_location_returns_empty(self):
+    def test_missing_location_returns_skipped(self):
+        """Wave 2A: missing location webex_id is a hard prerequisite miss."""
+        from wxcli.migration.execute.handlers import SkippedResult
+
         data = {
             "canonical_id": "voicemail_group:Orphan",
             "name": "Orphan",
@@ -64,7 +67,9 @@ class TestHandleVoicemailGroupCreate:
         deps = {}
         ctx = {"orgId": "Y2lzY286Lzk5OQ"}
 
-        assert handle_voicemail_group_create(data, deps, ctx) == []
+        result = handle_voicemail_group_create(data, deps, ctx)
+        assert isinstance(result, SkippedResult)
+        assert "Orphan" in result.reason
 
     def test_missing_extension_returns_empty(self):
         data = {

@@ -315,10 +315,29 @@ class MigrationStore:
             ).fetchall()
         return [self._deserialize(r["object_type"], r["data"]) for r in rows]
 
+    # Synthetic bulk-op placeholder types stored in the objects table as FK anchors.
+    # These have minimal JSON (no canonical_id/provenance) and cannot be deserialized
+    # as MigrationObject subclasses.  The planner handles them via _optimize_for_bulk()
+    # after expand_to_operations(), so they must be excluded from query_by_status().
+    _BULK_PLACEHOLDER_TYPES: frozenset[str] = frozenset({
+        "bulk_device_settings",
+        "bulk_line_key_template",
+        "bulk_rebuild_phones",
+        "bulk_dynamic_settings",
+    })
+
     def query_by_status(self, status: str) -> list[MigrationObject]:
-        """Query all objects with a given status."""
+        """Query all objects with a given status.
+
+        Excludes synthetic bulk-op placeholder rows (_BULK_PLACEHOLDER_TYPES)
+        which are stored in the objects table as FK anchors but do not
+        deserialize as MigrationObject subclasses.
+        """
+        placeholders = ",".join("?" * len(self._BULK_PLACEHOLDER_TYPES))
         rows = self.conn.execute(
-            "SELECT object_type, data FROM objects WHERE status = ?", (status,)
+            f"SELECT canonical_id, object_type, data FROM objects "
+            f"WHERE status = ? AND object_type NOT IN ({placeholders})",
+            (status, *self._BULK_PLACEHOLDER_TYPES),
         ).fetchall()
         return [self._deserialize(r["object_type"], r["data"]) for r in rows]
 

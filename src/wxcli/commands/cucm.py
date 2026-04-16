@@ -253,6 +253,65 @@ def _open_store(project_dir: Path):
     return MigrationStore(db_path)
 
 
+def _render_skip_summary(report) -> None:
+    """Render the planner skip roll-up to the console.
+
+    Mirrors ``planner._log_skip_summary`` + ``_log_needs_decision_summary``
+    but formats for human reading via Rich. Called after
+    ``expand_to_operations`` returns (or raises). Silent if both the report
+    has no entries AND there are no needs_decision entities. Loud yellow/red
+    when unresolved skips are present so the DEVICE_FIRMWARE_CONVERTIBLE
+    class of bug surfaces immediately on the CLI.
+    """
+    # Entities skipped during expansion (entries) and entities held back
+    # at needs_decision (never reach expansion) are two disjoint sets —
+    # render each independently so the operator sees both.
+    if report.entries:
+        # Group by (reason_or_decision_type, decision_state)
+        groups: dict[tuple[str, str], int] = {}
+        unresolved_keys: set[str] = set()
+        for e in report.entries:
+            key = e.decision_type or e.reason
+            state = e.decision_state or "no_decision"
+            groups[(key, state)] = groups.get((key, state), 0) + 1
+            if state in ("stale", "pending"):
+                unresolved_keys.add(key)
+
+        color = "red" if report.has_unresolved_skips else "yellow"
+        total = len(report.entries)
+        console.print(
+            f"\n[{color}]Planner skipped {total} entities:[/{color}]"
+        )
+        for (key, state), cnt in sorted(groups.items()):
+            if state == "no_decision":
+                state_note = "expander short-circuit"
+            else:
+                state_note = f"decision={state}"
+            marker = "⚠" if state in ("stale", "pending") else "·"
+            console.print(f"  {marker} {key}: {cnt} skipped ({state_note})")
+        if report.has_unresolved_skips:
+            console.print(
+                "  [yellow]Review with:[/yellow] "
+                "wxcli cucm decisions --type <type> -p <project>"
+            )
+
+    # Entities at status='needs_decision' — held back awaiting operator
+    # input, never reach the expansion loop. Surface them so operators
+    # know the plan doesn't cover them.
+    needs = getattr(report, "needs_decision_counts", None) or {}
+    if needs:
+        total = sum(needs.values())
+        console.print(
+            f"\n[yellow]{total} entities held back awaiting your decision:[/yellow]"
+        )
+        for dtype, cnt in sorted(needs.items()):
+            console.print(f"  {dtype}: {cnt} entities")
+        console.print(
+            "  [yellow]Review with:[/yellow] "
+            "wxcli cucm decisions --status pending -p <project>"
+        )
+
+
 def _prompt_for_wsdl(host: str, version: str | None) -> str | None:
     """Guide the user through downloading the AXL WSDL and return the path.
 
@@ -1026,6 +1085,15 @@ def analyze(
 @app.command()
 def plan(
     project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
+    fail_on_unresolved: bool = typer.Option(
+        False,
+        "--fail-on-unresolved",
+        help=(
+            "Exit non-zero if any entity is dropped from the plan due to a stale "
+            "or pending decision. Default: WARN and continue. Also honored via "
+            "the WXCLI_PLAN_FAIL_ON_UNRESOLVED=1 environment variable."
+        ),
+    ),
 ):
     """Expand objects to operations, build dependency DAG, partition into batches."""
     project_dir = _resolve_project_dir(project)
@@ -1043,7 +1111,11 @@ def plan(
         detect_and_break_cycles,
         validate_tiers,
     )
-    from wxcli.migration.execute.planner import expand_to_operations
+    from wxcli.migration.execute.planner import (
+        PlannerSkipReport,
+        PlannerUnresolvedError,
+        expand_to_operations,
+    )
 
     store = _open_store(project_dir)
     t0 = time.time()
@@ -1051,12 +1123,22 @@ def plan(
     try:
         # Step 1: Expand to operations
         config = load_config(project_dir)
-        ops = expand_to_operations(
-            store,
-            bulk_device_threshold=config.get("bulk_device_threshold", 100),
-            skip_rebuild_phones=config.get("skip_rebuild_phones", False),
-        )
+        skip_report = PlannerSkipReport()
+        try:
+            ops = expand_to_operations(
+                store,
+                bulk_device_threshold=config.get("bulk_device_threshold", 100),
+                skip_rebuild_phones=config.get("skip_rebuild_phones", False),
+                config=config,
+                report=skip_report,
+                fail_on_unresolved=fail_on_unresolved,
+            )
+        except PlannerUnresolvedError as err:
+            console.print(f"[red]Planning aborted:[/red] {err}")
+            _render_skip_summary(skip_report)
+            raise typer.Exit(2)
         console.print(f"  Expanded to {len(ops)} operations")
+        _render_skip_summary(skip_report)
 
         # Step 2: Build dependency graph
         G = build_dependency_graph(ops, store)
@@ -2131,9 +2213,12 @@ def mark_failed(
 
         if skip:
             update_op_status(store, node_id, "skipped", error_message=error)
-            # Count all transitively cascaded ops (direct + indirect)
+            # Count all transitively cascaded ops (direct + indirect).
+            # Wave 3B uses a root-referencing error_message format —
+            # "Cascade skip: dependency <root> FAILED|SKIPPED".
             skipped_count = store.conn.execute(
-                "SELECT COUNT(*) as cnt FROM plan_operations WHERE status = 'skipped' AND error_message LIKE 'Dependency %'",
+                "SELECT COUNT(*) as cnt FROM plan_operations "
+                "WHERE status = 'skipped' AND error_message LIKE 'Cascade skip: dependency %'",
             ).fetchone()["cnt"]
             console.print(f"[yellow]Skipped:[/yellow] {node_id} ({error})")
             if skipped_count:
@@ -2211,6 +2296,24 @@ def execution_status(
         if progress.get("last_completed"):
             comp = progress["last_completed"]
             console.print(f"[green]Last completed:[/green] {comp['node_id']}: {comp['description']}")
+
+        # Cascade groups — group cascade-skipped ops under their root cause.
+        cascade_groups = progress.get("cascade_groups") or {}
+        if cascade_groups:
+            console.print(
+                f"\n[bold]Cascade Groups:[/bold] "
+                f"{len(cascade_groups)} root cause(s) produced cascade-skips"
+            )
+            for root, info in sorted(cascade_groups.items()):
+                status = info.get("root_status", "unknown")
+                descendants = info.get("descendants", [])
+                color = "red" if status == "failed" else "yellow"
+                console.print(
+                    f"  [{color}]{root}[/{color}] ({status}) "
+                    f"→ cascade-skipped {len(descendants)} op(s)"
+                )
+                for dep in descendants:
+                    console.print(f"      - {dep}")
     finally:
         store.close()
 

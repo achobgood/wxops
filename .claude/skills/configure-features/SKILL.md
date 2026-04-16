@@ -55,7 +55,7 @@ Ask the user which feature they want to create. Present this decision matrix if 
 
 Before creating any feature, verify these exist:
 
-### 4a. Location exists
+### 4a. Location exists and is calling-enabled
 
 All features are location-scoped. Confirm the target location:
 
@@ -63,13 +63,15 @@ All features are location-scoped. Confirm the target location:
 wxcli locations list --output json
 ```
 
-Scan the output for the target location name and capture the `location_id`. For details on a specific location:
+Scan the output for the target location name and capture the `location_id`. Then confirm calling is enabled on it — calling features cannot be created at a location where calling is disabled:
 
 ```bash
-wxcli locations show LOCATION_ID
+wxcli location-settings list-1
 ```
 
-If no location matches, the user must create one first (see provisioning skill).
+The target location must appear in this output. If it does not, calling is not enabled there — run the provision-calling skill to enable it before proceeding.
+
+If no location matches the name at all, the user must create one first (see provision-calling skill).
 
 ### 4b. Users/agents exist (for features that need members)
 
@@ -589,7 +591,13 @@ Next steps:
 13. **AA create: menus are auto-populated by the CLI.** The CLI provides default menus (key 0 = EXIT, extension dialing enabled) so the create command succeeds. Customize menus via `wxcli auto-attendant update` after creation.
 14. **CQ update uses partial objects.** The CLI `update` command avoids the `callingLineIdPolicy=CUSTOM` 400 error by sending only changed fields.
 15. **VM Group SDK bug is handled by the CLI.** The `wxcli location-voicemail create` command works around the `by_alias=True` bug internally.
-16. **Location-scoped deletes take LOCATION_ID as the FIRST argument** — `wxcli hunt-group delete --force LOCATION_ID HG_ID`, not `wxcli hunt-group delete --force HG_ID`. This applies to all location-scoped features: hunt-group, auto-attendant, call-queue, paging-group, call-park, call-pickup, location-voicemail, location-schedules.
+16. **Before deleting, check for cross-feature references.** Some features are referenced by others and deleting them silently breaks the dependent feature:
+    - Hunt Groups may be referenced by Call Park recall configuration. Check: `wxcli call-park list LOCATION_ID -o json` and inspect `recall.huntGroupId`.
+    - Auto Attendants may be referenced by Call Queues (overflow destination) or other AAs (key-press routing). Check overflow settings on any CQ at the location.
+    - Call Queues may be referenced by AAs as overflow targets.
+    Run the relevant checks before executing any delete.
+
+17. **Location-scoped deletes take LOCATION_ID as the FIRST argument** — `wxcli hunt-group delete --force LOCATION_ID HG_ID`, not `wxcli hunt-group delete --force HG_ID`. This applies to all location-scoped features: hunt-group, auto-attendant, call-queue, paging-group, call-park, call-pickup, location-voicemail, location-schedules.
 17. **Always use `--force` for programmatic deletes** — Without `--force`, delete commands prompt `[y/N]` which blocks non-interactive execution.
 18. **Agent/member format differs by feature type.** Hunt Groups and Call Queues take `agents` as `[{"id": "person_id"}]` (array of objects). Call Pickups take `agents` as `["person_id"]` (plain string array). Paging Groups take `targets`/`originators` as plain string arrays. Using the wrong format returns 400 "Invalid field value". Always check `docs/reference/call-features-additional.md` if unsure.
 19. **Call Parks and Call Pickups require location for listing.** `wxcli call-park list` and `wxcli call-pickup list` without a location argument return empty. Must pass `LOCATION_ID` as first positional arg: `wxcli call-park list LOCATION_ID -o json`.
