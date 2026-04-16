@@ -169,6 +169,11 @@ class UserMapper(Mapper):
             # When CUCM has no primaryExtension set on the user record,
             # fall back to the DN on line 1 (ordinal 0) of the user's first device.
             if extension is None and self.use_device_dn_as_extension and device_refs:
+                # Collect ALL line-1 DN candidates across devices so we can warn
+                # on genuine multi-device conflicts. We still pick the first
+                # candidate (legacy selection behaviour) — the warning just
+                # surfaces ambiguity for operator review.
+                line1_candidates: list[str] = []
                 for dev_id in device_refs:
                     dn_xrefs = store.get_cross_refs(
                         from_id=dev_id, relationship="device_has_dn"
@@ -179,10 +184,20 @@ class UserMapper(Mapper):
                             # DN IDs are formatted as "dn:pattern:partition"
                             dn_parts = dn_target.split(":", 2)
                             if len(dn_parts) >= 2:
-                                extension = dn_parts[1]
+                                line1_candidates.append(dn_parts[1])
                             break
-                    if extension is not None:
-                        break
+                if line1_candidates:
+                    extension = line1_candidates[0]
+                    distinct = sorted(set(line1_candidates))
+                    if len(distinct) > 1:
+                        logger.warning(
+                            "Multiple devices report different line-1 DNs for %s: "
+                            "candidates=%s picked=%s (legacy selection: first device). "
+                            "Operator should verify the correct primary extension.",
+                            user_id,
+                            distinct,
+                            extension,
+                        )
 
             # --- Build display name ---
             first_name = user_data.get("first_name")

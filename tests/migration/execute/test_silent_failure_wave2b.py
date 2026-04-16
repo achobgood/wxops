@@ -99,13 +99,19 @@ class TestEcbnConfigConfigure:
 
 class TestDeviceConfigureSettings:
     def test_missing_device_skipped(self):
-        data = {"device_settings": {"allowThirdPartyControl": True}}
+        data = {
+            "canonical_id": "device:d1",
+            "device_settings": {"allowThirdPartyControl": True},
+        }
         result = handle_device_configure_settings(data, {}, {})
         assert isinstance(result, SkippedResult)
         assert "device" in result.reason
 
     def test_resolved_returns_put(self):
-        data = {"device_settings": {"allowThirdPartyControl": True}}
+        data = {
+            "canonical_id": "device:d1",
+            "device_settings": {"allowThirdPartyControl": True},
+        }
         deps = {"device:d1": "wx-dev-111"}
         result = handle_device_configure_settings(data, deps, {})
         assert isinstance(result, list) and len(result) == 1
@@ -118,13 +124,19 @@ class TestDeviceConfigureSettings:
 
 class TestWorkspaceConfigureSettings:
     def test_missing_workspace_skipped(self):
-        data = {"call_settings": {"doNotDisturb": {"enabled": True}}}
+        data = {
+            "canonical_id": "workspace:w1",
+            "call_settings": {"doNotDisturb": {"enabled": True}},
+        }
         result = handle_workspace_configure_settings(data, {}, {})
         assert isinstance(result, SkippedResult)
         assert "workspace" in result.reason
 
     def test_resolved_returns_put(self):
-        data = {"call_settings": {"doNotDisturb": {"enabled": True}}}
+        data = {
+            "canonical_id": "workspace:w1",
+            "call_settings": {"doNotDisturb": {"enabled": True}},
+        }
         deps = {"workspace:w1": "wx-ws-xyz"}
         result = handle_workspace_configure_settings(data, deps, {})
         assert isinstance(result, list) and len(result) == 1
@@ -395,7 +407,10 @@ class TestVirtualLineConfigure:
         assert "Sales VL" in result.reason or "virtual_line:sales" in result.reason
 
     def test_resolved_returns_put(self):
-        data = {"settings": {"callerIdName": "VL"}}
+        data = {
+            "canonical_id": "virtual_line:vl1",
+            "settings": {"callerIdName": "VL"},
+        }
         deps = {"virtual_line:vl1": "wx-vl-aaa"}
         result = handle_virtual_line_configure(data, deps, {})
         assert isinstance(result, list) and len(result) == 1

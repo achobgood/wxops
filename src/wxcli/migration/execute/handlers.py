@@ -21,6 +21,11 @@ from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlencode
 
+from wxcli.migration.phone_models import (
+    PHONEOS_LINE_KEY_COUNTS,
+    PHONEOS_MODEL_NUMBERS,
+)
+
 logger = logging.getLogger(__name__)
 
 BASE = "https://webexapis.com/v1"
@@ -76,13 +81,9 @@ def _resolve_location(data: dict, deps: dict) -> str | None:
     return deps.get(loc_cid)
 
 
-# PhoneOS phones (9800-series + 8875) require the non-DMS model form
-# ("Cisco 9841") in device-create and activation-code payloads. All other
-# phones use the classic "DMS Cisco {model}" form.
-# Kept in sync with src/wxcli/migration/transform/mappers/device_mapper.py
-# (`_CLOUD_SURFACE_SUBSTRINGS`). Duplicated here so handlers.py stays
-# dependency-free on the transform layer.
-_PHONEOS_MODEL_SUBSTRINGS = {"9811", "9821", "9841", "9851", "9861", "9871", "8875"}
+# PhoneOS model membership comes from ``wxcli.migration.phone_models`` —
+# single source of truth shared with device_mapper / softkey_mapper /
+# button_template_mapper / layout_overflow.
 
 
 def _normalize_device_model(model: str) -> str:
@@ -94,10 +95,15 @@ def _normalize_device_model(model: str) -> str:
     prefix. The " IP Phone " token is always collapsed because CUCM models
     may arrive as "Cisco IP Phone 8851" while Webex expects "Cisco 8851".
     """
+    # Defensive early-return: callers generally guard with ``if model:`` but
+    # an empty string used to fall through to the classic-MPP branch and
+    # return "DMS ", which is invalid.
+    if not model:
+        return model
     # Always collapse " IP Phone " first so downstream checks see the
     # concise form ("Cisco 9841" vs "Cisco IP Phone 9841").
     model = model.replace(" IP Phone ", " ")
-    is_phoneos = any(s in model for s in _PHONEOS_MODEL_SUBSTRINGS)
+    is_phoneos = any(s in model for s in PHONEOS_MODEL_NUMBERS)
     if is_phoneos:
         # Strip any pre-existing "DMS " prefix — PhoneOS rejects it.
         if model.startswith("DMS "):
@@ -195,12 +201,13 @@ def handle_location_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
 
 
 def handle_location_enable_calling(data: dict, deps: dict, ctx: dict) -> HandlerResult:
-    # Find the location webex_id from resolved_deps
-    loc_wid = None
-    for cid, wid in deps.items():
-        if cid.startswith("location:") and wid:
-            loc_wid = wid
-            break
+    # Resolve this op's own location by canonical_id rather than scanning
+    # deps for the first "location:" prefix. Runtime injects ALL completed
+    # location ops into resolved_deps (see runtime.py:get_next_batch), so
+    # the scan would pick whichever location happens to be first in dict
+    # iteration order — not necessarily this op's own location.
+    loc_cid = data.get("canonical_id")
+    loc_wid = deps.get(loc_cid) if loc_cid else None
     body: dict[str, Any] = {
         "id": loc_wid,
         "name": data.get("name"),
@@ -366,16 +373,10 @@ def handle_line_key_template_create(data: dict, deps: dict, ctx: dict) -> Handle
     # split overflow indices from line_keys into kem_keys (mapper puts all button
     # indices into line_keys regardless of phone key count).
     #
-    # Source of truth: transform/mappers/button_template_mapper.py:_MODEL_LINE_KEY_COUNTS
-    # (also mirrored in transform/analyzers/layout_overflow.py:_MODEL_LINE_KEY_COUNTS).
-    # Duplicated here rather than imported to keep handlers.py free of transform-layer
-    # imports. If you edit these values, update all three locations.
-    _PHONEOS_LINE_KEY_MAX: dict[str, int] = {
-        "9811": 2, "9821": 2, "9841": 4, "9851": 10,
-        "9861": 16, "9871": 32, "8875": 10,
-    }
+    # Counts come from ``wxcli.migration.phone_models.PHONEOS_LINE_KEY_COUNTS``
+    # — shared with button_template_mapper and layout_overflow.
     phoneos_max: int | None = None
-    for phoneos_model, max_lk in _PHONEOS_LINE_KEY_MAX.items():
+    for phoneos_model, max_lk in PHONEOS_LINE_KEY_COUNTS.items():
         if device_model == f"DMS Cisco {phoneos_model}":
             device_model = f"Cisco {phoneos_model}"
             phoneos_max = max_lk
@@ -501,12 +502,12 @@ def handle_workspace_create(data: dict, deps: dict, ctx: dict) -> HandlerResult:
 
 
 def handle_workspace_assign_number(data: dict, deps: dict, ctx: dict) -> HandlerResult:
-    # Find workspace webex_id from resolved deps
-    ws_wid = None
-    for cid, wid in deps.items():
-        if cid.startswith("workspace:") and wid:
-            ws_wid = wid
-            break
+    # Resolve target workspace by this op's own canonical_id rather than
+    # scanning deps for the first "workspace:" prefix. Multiple workspaces
+    # in deps (edge case, but possible via cross-object rules) would cause
+    # the scan to misaddress the PUT and assign the number to the wrong ws.
+    ws_cid = data.get("canonical_id")
+    ws_wid = deps.get(ws_cid) if ws_cid else None
     if not ws_wid:
         return skipped(
             f"workspace not resolved for assign_number "
@@ -809,15 +810,17 @@ _READ_BEFORE_WRITE_FEATURES = {"callRecording"}
 
 
 def handle_user_configure_settings(data: dict, deps: dict, ctx: dict) -> HandlerResult:
-    person_wid = None
-    for cid, wid in deps.items():
-        if cid.startswith("user:") and wid:
-            person_wid = wid
-            break
+    # Resolve the target user by this op's own canonical_id rather than
+    # scanning deps for the first "user:" prefix. In dep graphs where more
+    # than one user is resolved (e.g., monitoring, shared lines), the scan
+    # could pick the wrong user and silently rewrite settings on them —
+    # especially risky now that callRecording does GET + merge + PUT.
+    user_cid = data.get("canonical_id")
+    person_wid = deps.get(user_cid) if user_cid else None
     if not person_wid:
         return skipped(
             f"user not resolved for configure_settings "
-            f"(canonical_id={data.get('canonical_id')!r})"
+            f"(canonical_id={user_cid!r})"
         )
     settings = data.get("call_settings", {})
     calls = []
@@ -833,15 +836,15 @@ def handle_user_configure_settings(data: dict, deps: dict, ctx: dict) -> Handler
 
 
 def handle_user_configure_voicemail(data: dict, deps: dict, ctx: dict) -> HandlerResult:
-    person_wid = None
-    for cid, wid in deps.items():
-        if cid.startswith("user:") and wid:
-            person_wid = wid
-            break
+    # Same rationale as handle_user_configure_settings — resolve target
+    # user by this op's canonical_id, not by scanning deps. Writing to the
+    # wrong user's voicemail settings would be silently destructive.
+    user_cid = data.get("canonical_id")
+    person_wid = deps.get(user_cid) if user_cid else None
     if not person_wid:
         return skipped(
             f"user not resolved for configure_voicemail "
-            f"(canonical_id={data.get('canonical_id')!r})"
+            f"(canonical_id={user_cid!r})"
         )
     vm_data = data.get("voicemail") or data.get("voicemail_settings") or {}
     return [("PUT", _url(f"/telephony/config/people/{person_wid}/voicemail", ctx), vm_data)]
@@ -884,11 +887,11 @@ def handle_ecbn_config_configure(data: dict, deps: dict, ctx: dict) -> HandlerRe
 
 
 def handle_device_configure_settings(data: dict, deps: dict, ctx: dict) -> HandlerResult:
-    device_wid = None
-    for cid, wid in deps.items():
-        if cid.startswith("device:") and wid:
-            device_wid = wid
-            break
+    # Resolve target device by this op's own canonical_id rather than
+    # scanning deps for the first "device:" prefix (same class of bug as
+    # handle_user_configure_settings: wrong device → silent mis-config).
+    device_cid = data.get("canonical_id")
+    device_wid = deps.get(device_cid) if device_cid else None
     if not device_wid:
         return skipped("device:configure_settings — device not resolved from deps")
     settings = data.get("device_settings", {})
@@ -898,11 +901,10 @@ def handle_device_configure_settings(data: dict, deps: dict, ctx: dict) -> Handl
 
 
 def handle_workspace_configure_settings(data: dict, deps: dict, ctx: dict) -> HandlerResult:
-    ws_wid = None
-    for cid, wid in deps.items():
-        if cid.startswith("workspace:") and wid:
-            ws_wid = wid
-            break
+    # Resolve target workspace by this op's own canonical_id (see
+    # handle_user_configure_settings for full rationale).
+    ws_cid = data.get("canonical_id")
+    ws_wid = deps.get(ws_cid) if ws_cid else None
     if not ws_wid:
         return skipped("workspace:configure_settings — workspace not resolved from deps")
     # Workspace settings use /telephony/config/workspaces/{id}/ path family
@@ -1301,11 +1303,10 @@ def handle_virtual_line_create(data: dict, deps: dict, ctx: dict) -> HandlerResu
 
 
 def handle_virtual_line_configure(data: dict, deps: dict, ctx: dict) -> HandlerResult:
-    vl_wid = None
-    for cid, wid in deps.items():
-        if cid.startswith("virtual_line:") and wid:
-            vl_wid = wid
-            break
+    # Resolve target virtual line by this op's own canonical_id (see
+    # handle_user_configure_settings for full rationale).
+    vl_cid = data.get("canonical_id")
+    vl_wid = deps.get(vl_cid) if vl_cid else None
     if not vl_wid:
         return skipped(
             f"virtual_line:configure — virtual line "

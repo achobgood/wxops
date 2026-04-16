@@ -17,7 +17,10 @@ class TestWorkspaceConfigureSettingsHandler:
         /workspaces/{id}/features/{name} path — that path returns 404
         for doNotDisturb and voicemail, breaking the migration silently.
         """
-        data = {"call_settings": {"doNotDisturb": {"enabled": True}}}
+        data = {
+            "canonical_id": "workspace:conf-3a",
+            "call_settings": {"doNotDisturb": {"enabled": True}},
+        }
         deps = {"workspace:conf-3a": "WS_WEBEX_ID_12345"}
         calls = handle_workspace_configure_settings(data, deps, _ctx())
 
@@ -31,10 +34,11 @@ class TestWorkspaceConfigureSettingsHandler:
     def test_multiple_settings_produce_multiple_puts(self):
         """Each key in call_settings becomes one PUT call."""
         data = {
+            "canonical_id": "workspace:lobby-1",
             "call_settings": {
                 "doNotDisturb": {"enabled": False, "ringSplashEnabled": False},
                 "voicemail": {"enabled": False},
-            }
+            },
         }
         deps = {"workspace:lobby-1": "WS_ABC"}
         calls = handle_workspace_configure_settings(data, deps, _ctx())
@@ -47,13 +51,16 @@ class TestWorkspaceConfigureSettingsHandler:
 
     def test_empty_settings_returns_empty_list(self):
         """No call_settings → no API calls (engine marks op completed as a no-op)."""
-        data = {"call_settings": {}}
+        data = {"canonical_id": "workspace:conf-x", "call_settings": {}}
         deps = {"workspace:conf-x": "WS_X"}
         assert handle_workspace_configure_settings(data, deps, _ctx()) == []
 
     def test_missing_workspace_dep_returns_skipped(self):
         """If deps don't contain a workspace:* entry, return skipped (missing dep)."""
-        data = {"call_settings": {"doNotDisturb": {"enabled": True}}}
+        data = {
+            "canonical_id": "workspace:conf-3a",
+            "call_settings": {"doNotDisturb": {"enabled": True}},
+        }
         deps = {"user:jsmith": "PERSON_ID"}
         result = handle_workspace_configure_settings(data, deps, _ctx())
         assert isinstance(result, SkippedResult)
