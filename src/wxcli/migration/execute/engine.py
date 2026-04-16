@@ -769,8 +769,13 @@ async def run_batch_ops(
                 semaphore,
                 # Fix #18: require a returned id/code for create ops so a
                 # silent "200 OK with empty body" cannot masquerade as a
-                # successful resource creation.
-                require_webex_id=(t["op"].get("op_type") == "create"),
+                # successful resource creation. Fix #3: also gate
+                # ``create_activation_code`` ops — convertible phones use
+                # this op_type and fall back to the response's ``code``
+                # field as the webex_id (see execute_single_op).
+                require_webex_id=(
+                    t["op"].get("op_type") in ("create", "create_activation_code")
+                ),
             )
             for _, t in parallel_indexed
         ]
