@@ -680,11 +680,6 @@ cli_name_overrides:
   "Flow": "cc-flow"
   "Notification": "cc-notification"
   "Search": "cc-search"
-
-"Features: Operating Modes":
-  make_optional:
-    list:
-      - limitToLocationId
   "Features: Single Number Reach": "single-number-reach"
   "Features: Virtual Extensions": "virtual-extensions"
   "Location Call Settings:  Schedules": "location-schedules"
@@ -734,3 +729,10 @@ cli_name_overrides:
   "Attachment Actions": "attachment-actions"
   "ECM folder linking": "ecm"
   "Team Memberships": "team-memberships"
+
+# Tag-level override for Operating Modes (was merged into cli_name_overrides above by
+# accident when the blank line separator was removed; kept here as its own block).
+"Features: Operating Modes":
+  make_optional:
+    list:
+      - limitToLocationId
