@@ -1130,9 +1130,19 @@ def cleanup_run(
             disabled_failed = [r for r in disable_results if not r.success]
             console.print(f"  Disabled calling on {len(disabled_ok)}/{len(loc_items)} locations")
 
-            # Issue #11: surface each disable failure explicitly so the 90s
-            # wait below isn't falsely credited with covering these. Delete
-            # will still be attempted (likely 409), but the existing
+            # Partition the inventory into two delete cohorts by disable outcome
+            # (Issue #11 / Finding #6). Locations where disable failed do NOT
+            # pay the 90-second propagation wait — they proceed to delete
+            # immediately. Locations where disable succeeded wait 90s (the
+            # calling-subsystem propagation window) before the delete phase.
+            succeeded_ids = {r.resource_id for r in disabled_ok}
+            items_disable_ok = [it for it in loc_items if it["id"] in succeeded_ids]
+            items_disable_failed = [
+                it for it in loc_items if it["id"] not in succeeded_ids
+            ]
+
+            # Issue #11: surface each disable failure explicitly. Delete will
+            # still be attempted (likely 409), but the existing
             # delete_location error-handling catches that and the caller
             # can re-run cleanup idempotently.
             for r in disabled_failed:
@@ -1144,18 +1154,6 @@ def cleanup_run(
                     err=False,
                 )
 
-            # Phase 2: wait only if any disables actually succeeded. When
-            # every disable failed, the 90s wait buys nothing — skip it so
-            # the operator doesn't burn 90s waiting on state that never
-            # changed (Issue #11).
-            if disabled_ok:
-                console.print("  Waiting 90s for backend propagation...")
-                time.sleep(90)
-
-            # Phase 3: attempt to delete ALL locations with bounded retry.
-            # Each delete_location call runs up to LOCATION_DELETE_MAX_ATTEMPTS
-            # attempts with LOCATION_DELETE_RETRY_SLEEP between retries, and
-            # emits its own per-attempt stdout lines (click.echo, flushed).
             total_locs = len(loc_items)
             layer_num = i + 1
             console.print(
@@ -1167,37 +1165,61 @@ def cleanup_run(
                 f"  Layer {layer_num} (location): 0/{total_locs} deleted, "
                 f"0 retrying, {total_locs} waiting"
             )
+
             deleted = 0
             failed = 0
             completed = 0
             loc_results: list[DeleteResult] = []
-            with ThreadPoolExecutor(max_workers=max_concurrent) as executor:
-                futures = {
-                    executor.submit(delete_location, api, item, org_id): item
-                    for item in loc_items
-                }
-                for future in as_completed(futures):
-                    res = future.result()
-                    loc_results.append(res)
-                    all_results.append(res)
-                    completed += 1
-                    if res.success:
-                        deleted += 1
-                    else:
-                        failed += 1
-                    # The remaining in-flight futures are the ones still
-                    # looping through retry attempts; the rest are "waiting"
-                    # in the executor queue (only meaningful when
-                    # max_concurrent < total_locs).
-                    in_flight = min(
-                        max_concurrent, total_locs - completed,
-                    )
-                    waiting = max(0, total_locs - completed - in_flight)
-                    console.print(
-                        f"  Layer {layer_num} (location): "
-                        f"{deleted}/{total_locs} deleted, "
-                        f"{in_flight} retrying, {waiting} waiting"
-                    )
+
+            def _delete_cohort(cohort_items: list[dict]) -> None:
+                nonlocal deleted, failed, completed
+                if not cohort_items:
+                    return
+                with ThreadPoolExecutor(max_workers=max_concurrent) as executor:
+                    futures = {
+                        executor.submit(delete_location, api, item, org_id): item
+                        for item in cohort_items
+                    }
+                    for future in as_completed(futures):
+                        res = future.result()
+                        loc_results.append(res)
+                        all_results.append(res)
+                        completed += 1
+                        if res.success:
+                            deleted += 1
+                        else:
+                            failed += 1
+                        # The remaining in-flight futures are the ones still
+                        # looping through retry attempts; the rest are
+                        # "waiting" in the executor queue (only meaningful
+                        # when max_concurrent < total_locs).
+                        in_flight = min(
+                            max_concurrent, total_locs - completed,
+                        )
+                        waiting = max(0, total_locs - completed - in_flight)
+                        console.print(
+                            f"  Layer {layer_num} (location): "
+                            f"{deleted}/{total_locs} deleted, "
+                            f"{in_flight} retrying, {waiting} waiting"
+                        )
+
+            # Phase 3a: delete locations where disable FAILED — no 90s wait.
+            # These are expected to 409 on delete (calling still attached),
+            # but we try anyway so a re-run after the operator fixes the
+            # root cause can skip straight to success.
+            _delete_cohort(items_disable_failed)
+
+            # Phase 2 (deferred): wait 90s only if any disables actually
+            # succeeded. When every disable failed, the 90s wait buys nothing.
+            # The wait happens BETWEEN cohorts so the failed-disable locations
+            # don't pay the penalty.
+            if items_disable_ok:
+                console.print("  Waiting 90s for backend propagation...")
+                time.sleep(90)
+
+            # Phase 3b: delete locations where disable SUCCEEDED — after wait.
+            _delete_cohort(items_disable_ok)
+
             console.print(f"  Done: {deleted} deleted, {failed} failed")
             continue
 
