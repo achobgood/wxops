@@ -21,6 +21,7 @@ from wxcli.migration.preflight import (
     _run_wxcli,
 )
 from wxcli.migration.preflight.checks import (
+    check_bulk_device_job_support,
     check_duplicate_users,
     check_e911_readiness,
     check_feature_entitlements,
@@ -104,6 +105,12 @@ class PreflightRunner:
         if _needs("features"):
             existing_features = self._count_existing_features()
 
+        # Build bulk-job probe only when the plan contains bulk ops
+        # (avoids initialising a WebexSimpleApi session otherwise).
+        probe_fn = None
+        if _needs("bulk-job-support"):
+            probe_fn = self._build_bulk_job_probe()
+
         # Run checks
         all_checks = {
             "licenses": lambda: check_licenses(store, licenses),
@@ -115,6 +122,7 @@ class PreflightRunner:
             "users": lambda: self._run_duplicate_check(store, people),
             "rate-limit": lambda: check_rate_limit_budget(store, self.config),
             "e911-readiness": lambda: check_e911_readiness(store),
+            "bulk-job-support": lambda: check_bulk_device_job_support(store, probe_fn),
         }
 
         results: list[CheckResult] = []
@@ -183,6 +191,44 @@ class PreflightRunner:
         except PreflightError:
             return []
 
+    def _build_bulk_job_probe(self):
+        """Return a zero-arg callable that probes the bulk device job endpoint.
+
+        Returns ``None`` if auth is unavailable — the check then SKIPs.
+        On invocation the callable returns ``(status_code, error_message)``.
+        Uses ``WebexSimpleApi`` so auth/orgId injection matches the rest of
+        the CLI.
+        (Wave 4, Issue #9)
+        """
+        try:
+            from wxcli.auth import get_api
+        except Exception:
+            return None
+
+        try:
+            api = get_api()
+        except SystemExit:
+            # get_api raises typer.Exit when no token is configured
+            return None
+        except Exception:
+            return None
+
+        def _probe() -> tuple[int, str]:
+            import requests
+
+            url = api.session.ep("telephony/config/jobs/devices/callDeviceSettings")
+            params: dict[str, str] = {"max": "1"}
+            org_id = self.config.get("orgId") if isinstance(self.config, dict) else None
+            if org_id:
+                params["orgId"] = org_id
+            try:
+                resp = api.session.get(url, params=params)
+            except requests.RequestException as exc:
+                return 0, str(exc)
+            return resp.status_code, getattr(resp, "text", "") or ""
+
+        return _probe
+
     def _count_existing_features(self) -> dict[str, int]:
         """Count existing features in the Webex org."""
         counts = {}
@@ -216,6 +262,7 @@ class PreflightRunner:
             ("users", "Duplicate users", f"{store.count_by_type('user')} users to check against Webex"),
             ("rate-limit", "Rate limit budget", "API call estimate from plan_operations"),
             ("e911-readiness", "E911 readiness", f"{store.count_by_type('user')} users ECBN candidate check"),
+            ("bulk-job-support", "Bulk device job support", "Probe for FedRAMP bulk device job support"),
         ]
 
         results = []
