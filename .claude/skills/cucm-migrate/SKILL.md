@@ -318,6 +318,10 @@ Do NOT silently skip decisions that cascade into blocked downstream operations.
    wxcli cucm plan -p <project> && wxcli cucm export -p <project>
    ```
 
+## Known Webex platform limits
+
+- Max 5 devices per user (hardware + soft clients). CUCM users with 6+ devices require explicit selection during decision review — see [kb-device-migration.md](../../../docs/knowledge-base/migration/kb-device-migration.md).
+
 ## Step 2: Auth + Preflight — [MANDATORY, NOT SKIPPABLE]
 
 ### 2a. Verify auth token and expiry

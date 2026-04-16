@@ -732,6 +732,7 @@ Next steps:
 17. **DECT network create response uses `dectNetworkId`, not `id`.** The CLI handles this, but if using raw HTTP, parse the correct key.
 18. **DECT is not supported for Webex for Government (FedRAMP).**
 19. **Workspace call settings mirror person call settings.** Use `wxcli workspace-settings` with the workspace ID. The sub-API is the same as person settings but workspace-scoped.
+20. **Maximum 5 devices per user (hardware + soft clients).** `POST /devices` and `POST /devices/activationCode` return HTTP 400 `"Phones cannot be added to this user"` on the 6th device. Server-enforced, not configurable. Orphan devices from prior failed attempts count against the cap — delete stale devices before retrying. See `docs/reference/devices-core.md` Gotcha #12.
 
 ---
 
