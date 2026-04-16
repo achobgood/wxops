@@ -191,8 +191,25 @@ The fix is mechanical but must be applied carefully. The key is distinguishing:
 
 ---
 
-## Open questions for next session
+## Resolved decisions
 
-1. Should `SKIPPED` ops be retryable (like `FAILED`) or terminal? Current assumption: terminal (if a dep was missing, retrying won't help unless the dep is manually created).
-2. Should the execution report show a SKIPPED section in the summary, or merge SKIPPED with FAILED? Recommendation: separate section — they mean different things operationally.
-3. For `_resolve_agents()` (#15) — should a hunt group with 1 of 3 agents missing be SKIPPED entirely, or created with partial membership? Recommendation: created with partial membership + WARNING in op metadata. Don't block creation over a partial member list.
+**1. SKIPPED ops are retryable (same as FAILED)**
+
+SKIPPED means "my upstream dependency wasn't there when I ran." If the plan is re-run after fixing the root failure, the dependency will now exist and the SKIPPED op should attempt to run. Treating SKIPPED as terminal would permanently block all descendants even after the upstream is fixed. On retry, the op re-checks its dependency — if resolved, it runs; if still missing, it skips again.
+
+**2. Separate SKIPPED section in the execution report**
+
+FAILED and SKIPPED mean different things operationally:
+- FAILED = "I tried, something went wrong — investigate"
+- SKIPPED = "I never tried because upstream failed — fix the root cause and re-run"
+
+Merging them inflates the failure count and hides root causes. The report should show:
+```
+completed: 47
+skipped:   12  (cascade from: create_hg "Sales Support", create_device "Jane Doe")
+failed:     3  (root causes — see details below)
+```
+
+**3. Hunt group with partial agents: create with partial membership + WARNING**
+
+The alternative to a hunt group with 2/3 agents is no hunt group — calls route to nobody. In a production cutover, a slightly incomplete group is far better than no group. Create it, record a WARNING in the op metadata ("Hunt group 'Sales' created with 2/3 agents — user@corp.com not resolved"), and let the operator add the missing member post-migration. Do not block creation over a partial member list.
