@@ -1,5 +1,8 @@
 """Regression tests for handle_workspace_configure_settings."""
-from wxcli.migration.execute.handlers import handle_workspace_configure_settings
+from wxcli.migration.execute.handlers import (
+    SkippedResult,
+    handle_workspace_configure_settings,
+)
 
 
 def _ctx() -> dict:
@@ -48,8 +51,10 @@ class TestWorkspaceConfigureSettingsHandler:
         deps = {"workspace:conf-x": "WS_X"}
         assert handle_workspace_configure_settings(data, deps, _ctx()) == []
 
-    def test_missing_workspace_dep_returns_empty(self):
-        """If deps don't contain a workspace:* entry, handler is a no-op."""
+    def test_missing_workspace_dep_returns_skipped(self):
+        """If deps don't contain a workspace:* entry, return skipped (missing dep)."""
         data = {"call_settings": {"doNotDisturb": {"enabled": True}}}
         deps = {"user:jsmith": "PERSON_ID"}
-        assert handle_workspace_configure_settings(data, deps, _ctx()) == []
+        result = handle_workspace_configure_settings(data, deps, _ctx())
+        assert isinstance(result, SkippedResult)
+        assert "workspace" in result.reason
