@@ -16,9 +16,19 @@ from typing import Any
 
 import aiohttp
 
-from wxcli.migration.execute.handlers import HANDLER_REGISTRY
+from wxcli.migration.execute.handlers import HANDLER_REGISTRY, SkippedResult
 from wxcli.migration.execute.runtime import get_next_batch, update_op_status
 from wxcli.migration.store import MigrationStore
+
+
+class JobErrorFetchFailed(Exception):
+    """Raised when the bulk job errors endpoint cannot be read.
+
+    Distinguishes a legitimately-empty errors list (200 response with empty
+    ``items``) from a fetch failure (non-200 or network error). Callers must
+    treat the fetch failure as "we don't know which devices failed" and
+    escalate to a total failure rather than silently assume zero errors.
+    """
 
 logger = logging.getLogger(__name__)
 
@@ -88,8 +98,10 @@ async def fetch_job_errors(
 
     GET /v1/telephony/config/jobs/devices/{jobType}/{jobId}/errors
 
-    Returns ``[]`` on empty or non-200 response so callers can treat it
-    as a best-effort lookup.
+    Returns the parsed ``items`` list on a 200 response (empty list if the
+    payload carries no items). Raises ``JobErrorFetchFailed`` on any
+    non-200 status or network exception so the caller can distinguish
+    "no errors reported" from "we couldn't ask". Fix #6.
     """
     from urllib.parse import urlencode
 
@@ -102,12 +114,16 @@ async def fetch_job_errors(
     try:
         async with session.get(url) as resp:
             if resp.status != 200:
-                logger.warning("fetch_job_errors %s -> %d", job_id[:16], resp.status)
-                return []
+                raise JobErrorFetchFailed(
+                    f"fetch_job_errors {job_id[:16]} -> HTTP {resp.status}"
+                )
             body = await resp.json()
+    except JobErrorFetchFailed:
+        raise
     except Exception as e:
-        logger.warning("fetch_job_errors %s raised: %s", job_id[:16], e)
-        return []
+        raise JobErrorFetchFailed(
+            f"fetch_job_errors {job_id[:16]} raised: {e}"
+        ) from e
 
     if not isinstance(body, dict):
         return []
@@ -303,7 +319,27 @@ async def execute_bulk_op(
     expected = 0
     if fallback_context:
         expected = len(fallback_context.get("covered_devices", []))
-    if not fallback_context or updated >= expected:
+
+    # Fix #19: when no fallback_context is configured we used to return
+    # success unconditionally. That silently accepted 0-update jobs. Now
+    # treat (fallback_context is None AND updated == 0) as a hard failure;
+    # when updated > 0 we keep the legacy success path (no way to verify
+    # `expected` without context, but SOMETHING worked).
+    if fallback_context is None:
+        if updated == 0:
+            return OpResult(
+                node_id=node_id, status=500,
+                error=(
+                    f"Bulk job {job_id}: updated 0 devices and no fallback "
+                    "configured; cannot verify success"
+                ),
+                body=final,
+            )
+        return OpResult(
+            node_id=node_id, status=200, webex_id=job_id, body=final,
+        )
+
+    if updated >= expected:
         return OpResult(
             node_id=node_id, status=200, webex_id=job_id, body=final,
         )
@@ -329,9 +365,29 @@ async def execute_bulk_op(
     fallback_ok, fallback_error = await _run_per_device_fallback(
         session, failed_ids, fallback_context, semaphore,
     )
+    # Fix #4: even on fallback_ok we must verify we actually attempted every
+    # missing device. If the errors endpoint returned an incomplete list,
+    # some devices are still unaccounted for and the op must be reported
+    # FAILED, not COMPLETED.
+    attempted = len(failed_ids)
+    missing = (expected - updated) - attempted
     if fallback_ok:
+        if missing > 0:
+            logger.warning(
+                "Bulk job %s: fallback recovered %d but %d device(s) never attempted",
+                job_id[:16], attempted, missing,
+            )
+            return OpResult(
+                node_id=node_id, status=500,
+                error=(
+                    f"Bulk {job_id}: partial failure — {updated} succeeded in bulk, "
+                    f"{attempted} recovered via fallback, but {missing} device(s) "
+                    "still unaccounted for"
+                ),
+                body=final,
+            )
         logger.info("Bulk job %s: fallback recovered all %d failed devices",
-                    job_id[:16], len(failed_ids))
+                    job_id[:16], attempted)
         return OpResult(
             node_id=node_id, status=200, webex_id=job_id, body=final,
         )
@@ -351,9 +407,20 @@ async def _resolve_failed_devices(
 ) -> list[str]:
     """Return the list of webex device IDs that failed in the bulk job.
 
-    Reads the errors endpoint and pulls itemId for each failed row.
+    Reads the errors endpoint and pulls itemId for each failed row. If the
+    errors endpoint itself can't be read (HTTP non-200 or network failure),
+    returns ``[]`` and logs a WARNING. ``execute_bulk_op`` already treats
+    an empty ``failed_ids`` list as a total failure, so this preserves the
+    safe behavior. Fix #6.
     """
-    items = await fetch_job_errors(session, job_type, job_id, ctx)
+    try:
+        items = await fetch_job_errors(session, job_type, job_id, ctx)
+    except JobErrorFetchFailed:
+        logger.warning(
+            "Cannot fetch job errors for %s — treating partial bulk failure as total failure",
+            job_id[:16],
+        )
+        return []
     return [i["itemId"] for i in items if i.get("itemId")]
 
 
@@ -667,6 +734,16 @@ async def execute_all_batches(
                     continue
 
                 calls = handler(op["data"], op["resolved_deps"], ctx)
+                if isinstance(calls, SkippedResult):
+                    # Handler declared a hard-prerequisite miss — record as
+                    # 'skipped' so the report separates these from FAILED ops
+                    # and cascades skip to dependents just like a failure.
+                    update_op_status(
+                        store, op["node_id"], "skipped",
+                        error_message=calls.reason,
+                    )
+                    summary["skipped"] += 1
+                    continue
                 if not calls:
                     # No-op (e.g., empty workspace assign_number)
                     update_op_status(store, op["node_id"], "completed")
