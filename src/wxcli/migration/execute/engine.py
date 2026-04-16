@@ -250,6 +250,38 @@ async def execute_single_op(
     )
 
 
+# Webex bulk job IDs are base64-encoded URN strings (typically 60-120 chars).
+# We only flag obvious garbage here — truly malformed values like "x", "",
+# or whitespace. The spec's intent is to catch the case where Webex returns
+# a non-empty-but-non-routable ``id``, not to enforce length parity with the
+# real ID format (existing test fixtures use 6-8 char mock IDs and a strict
+# length floor would force a sweep of unrelated tests). 3-char floor is the
+# happy compromise: catches the spec's example ("x") and any 1-2-char typo,
+# without breaking established test scaffolding.
+_MIN_JOB_ID_LEN = 3
+
+
+def _validate_job_id(job_id: str | None) -> None:
+    """Fix #8: raise ``ValueError`` for missing/malformed bulk job IDs.
+
+    Webex returns base64-encoded URN job IDs. A submit response with an
+    empty, None, single-char, or whitespace ``id`` field points to either an
+    upstream backend bug or a parsing error — polling such an ID would 404
+    endlessly. Fail fast with a clear error so the operator knows the submit
+    response was bogus and the bulk op is FAILED rather than silently stuck
+    mid-poll.
+    """
+    if job_id is None or not isinstance(job_id, str):
+        raise ValueError(f"job_id is missing or not a string: {job_id!r}")
+    if not job_id.strip():
+        raise ValueError(f"job_id is empty / whitespace: {job_id!r}")
+    if len(job_id) < _MIN_JOB_ID_LEN:
+        raise ValueError(
+            f"job_id {job_id!r} is implausibly short "
+            f"(<{_MIN_JOB_ID_LEN} chars); refusing to poll"
+        )
+
+
 async def execute_bulk_op(
     session: aiohttp.ClientSession,
     node_id: str,
@@ -313,6 +345,19 @@ async def execute_bulk_op(
             body=submit_body or {},
         )
 
+    # Fix #8: validate the job ID *before* polling. A non-empty but malformed
+    # id (e.g. truncated, single-char) would otherwise pass the `if not job_id`
+    # check above and then fail mid-poll with a confusing 404. Surface as a
+    # FAILED OpResult with the offending value attached for diagnostics.
+    try:
+        _validate_job_id(job_id)
+    except ValueError as e:
+        return OpResult(
+            node_id=node_id, status=500,
+            error=f"Bulk submit returned malformed job_id: {e}",
+            body=submit_body or {},
+        )
+
     # Poll to completion
     try:
         final = await poll_job_until_complete(
@@ -335,8 +380,12 @@ async def execute_bulk_op(
     # Partial-failure check.
     updated = final.get("updatedCount", 0)
     expected = 0
+    excluded_unresolved = 0
     if fallback_context:
         expected = len(fallback_context.get("covered_devices", []))
+        # Fix #5/#7 companion: devices the upstream create never produced.
+        # `_build_fallback_context` already logged each one at WARN.
+        excluded_unresolved = fallback_context.get("excluded_unresolved_count", 0)
 
     # Fix #19: when no fallback_context is configured we used to return
     # success unconditionally. That silently accepted 0-update jobs. Now
@@ -358,6 +407,14 @@ async def execute_bulk_op(
         )
 
     if updated >= expected:
+        # Fix #7: even on the all-bulk-succeeded path, log a summary that
+        # accounts for the silently-excluded devices so the operator never
+        # has to guess whether anything was dropped.
+        logger.info(
+            "Bulk job %s summary: bulk_updated=%d/%d, fallback_attempted=0, "
+            "fallback_recovered=0, excluded_unresolved=%d",
+            job_id[:16], updated, expected, excluded_unresolved,
+        )
         return OpResult(
             node_id=node_id, status=200, webex_id=job_id, body=final,
         )
@@ -376,7 +433,10 @@ async def execute_bulk_op(
         )
         return OpResult(
             node_id=node_id, status=500,
-            error=f"Bulk job {job_id} partial failure with no error items",
+            error=(
+                f"Bulk job {job_id} partial failure with no error items "
+                f"(excluded_unresolved={excluded_unresolved})"
+            ),
             body=final,
         )
 
@@ -389,6 +449,18 @@ async def execute_bulk_op(
     # FAILED, not COMPLETED.
     attempted = len(failed_ids)
     missing = (expected - updated) - attempted
+    fallback_recovered = attempted if fallback_ok else 0
+    # Fix #7: summary log fires on EVERY exit path of the fallback branch so
+    # bulk_updated, fallback_attempted, fallback_recovered, and the count of
+    # devices excluded by `_build_fallback_context` are always visible to
+    # the operator. Logged before the early-return so we capture it on
+    # both COMPLETED and FAILED outcomes.
+    logger.info(
+        "Bulk job %s summary: bulk_updated=%d/%d, fallback_attempted=%d, "
+        "fallback_recovered=%d, excluded_unresolved=%d",
+        job_id[:16], updated, expected, attempted,
+        fallback_recovered, excluded_unresolved,
+    )
     if fallback_ok:
         if missing > 0:
             logger.warning(
@@ -400,7 +472,8 @@ async def execute_bulk_op(
                 error=(
                     f"Bulk {job_id}: partial failure — {updated} succeeded in bulk, "
                     f"{attempted} recovered via fallback, but {missing} device(s) "
-                    "still unaccounted for"
+                    f"still unaccounted for "
+                    f"(excluded_unresolved={excluded_unresolved})"
                 ),
                 body=final,
             )
@@ -411,7 +484,10 @@ async def execute_bulk_op(
         )
     return OpResult(
         node_id=node_id, status=500,
-        error=f"Bulk {job_id}: fallback failed — {fallback_error}",
+        error=(
+            f"Bulk {job_id}: fallback failed — {fallback_error} "
+            f"(excluded_unresolved={excluded_unresolved})"
+        ),
         body=final,
     )
 
@@ -600,6 +676,13 @@ def _build_fallback_context(op: dict, ctx: dict) -> dict | None:
     Returns None if the op's payload lacks ``covered_canonical_ids`` or
     ``fallback_handler_key`` — e.g. for ``bulk_rebuild_phones`` which has
     no per-device fallback path.
+
+    Fix #5: when a covered_cid has no resolved webex_id (because its upstream
+    create op failed/skipped or hasn't run yet), the device cannot participate
+    in either the bulk submit or the per-device fallback. We log a WARNING
+    per-cid and surface the count via ``excluded_unresolved_count`` so callers
+    (and the operator-facing summary log in ``execute_bulk_op``) can account
+    for every device that was silently dropped from the fallback path.
     """
     data = op.get("data", {})
     covered_cids = data.get("covered_canonical_ids")
@@ -611,10 +694,18 @@ def _build_fallback_context(op: dict, ctx: dict) -> dict | None:
     store = ctx.get("store")
 
     covered_devices = []
+    excluded: list[str] = []
     for cid in covered_cids:
         webex_id = resolved_deps.get(cid)
         if not webex_id:
-            continue  # device not created yet or failed — can't fall back
+            # Fix #5: surface the silent drop so it lands in the logs and in
+            # the returned context, instead of a bare `continue`.
+            logger.warning(
+                "Bulk fallback: device %s not yet created, excluding from fallback",
+                cid,
+            )
+            excluded.append(cid)
+            continue
         device_data = {}
         if store:
             obj = store.get_object(cid)
@@ -631,6 +722,8 @@ def _build_fallback_context(op: dict, ctx: dict) -> dict | None:
         "covered_devices": covered_devices,
         "deps": resolved_deps,
         "ctx": ctx,
+        "excluded_unresolved_count": len(excluded),
+        "excluded_canonical_ids": excluded,
     }
 
 

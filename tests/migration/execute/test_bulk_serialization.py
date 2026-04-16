@@ -81,7 +81,8 @@ async def test_run_batch_ops_preserves_input_order(monkeypatch):
     order so callers can zip(tasks, results) safely."""
     from wxcli.migration.execute.engine import run_batch_ops, OpResult
 
-    async def fake_single(session, node_id, calls, semaphore):
+    async def fake_single(session, node_id, calls, semaphore, **kwargs):
+        # **kwargs absorbs require_webex_id added by Wave 2A (Fix #18).
         return OpResult(node_id=node_id, status=200, webex_id=f"wid-{node_id}", body={})
 
     async def fake_bulk(session, node_id, resource_type, calls, semaphore,
