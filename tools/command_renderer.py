@@ -25,6 +25,12 @@ V2_MODULES = {
     "configure",
 }
 
+# Spec-declared paging param names that are suppressed on list commands in
+# favor of the generator's unified --limit/--offset flags. The renderer maps
+# --limit to whichever of {limit, max} the endpoint uses (preferring spec-
+# declared "limit" when present) and --offset to {offset, start}.
+_SUPPRESS_SPEC_PAGING_NAMES = {"max", "start", "offset", "limit"}
+
 
 def folder_name_to_module(folder_name: str) -> tuple[str, str]:
     cleaned = re.sub(r"^Features:\s*", "", folder_name).strip()
@@ -203,7 +209,13 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
         param = _path_var_to_param(var)
         params.append(f'    {param}: str = typer.Argument(help="{var}"),')
 
+    # Render only non-paging query params as CLI options. Spec-declared paging
+    # names (max, start, offset, limit) are suppressed here — the unified
+    # --limit/--offset flags below take their place and map into params under
+    # whichever spec name the endpoint uses.
     for qp in ep.query_params:
+        if qp.name in _SUPPRESS_SPEC_PAGING_NAMES:
+            continue
         param = _safe_param_name(qp.python_name)
         help_text = _enum_help(qp)
         if qp.required:
@@ -211,14 +223,22 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
         else:
             params.append(f'    {param}: str = typer.Option(None, "--{qp.python_name}", help="{help_text}"),')
 
-    # Track query param names to avoid duplicating generic pagination params
-    query_param_names = {_safe_param_name(qp.python_name) for qp in ep.query_params}
+    # Determine which spec paging names the endpoint declares, so --limit and
+    # --offset map into the right params key. Prefer spec-declared "limit"/
+    # "offset" when present; otherwise fall back to "max"/"start" (the Webex
+    # default naming used by most cloud-calling list endpoints).
+    spec_param_names = {qp.name for qp in ep.query_params}
+    has_spec_max = "max" in spec_param_names
+    has_spec_limit = "limit" in spec_param_names
+    has_spec_start = "start" in spec_param_names
+    has_spec_offset = "offset" in spec_param_names
+
+    limit_param_key = "limit" if has_spec_limit else "max"
+    offset_param_key = "offset" if has_spec_offset else "start"
 
     params.append('    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),')
-    if "limit" not in query_param_names:
-        params.append('    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),')
-    if "offset" not in query_param_names:
-        params.append('    offset: int = typer.Option(0, "--offset", help="Start offset"),')
+    params.append('    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),')
+    params.append('    offset: int = typer.Option(0, "--offset", help="Start offset"),')
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
     url_expr = _render_url_expr(ep.url_path, ep.path_vars)
@@ -226,12 +246,12 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
     param_build = []
     param_build.append("    params = {}")
     for qp in ep.query_params:
+        if qp.name in _SUPPRESS_SPEC_PAGING_NAMES:
+            continue
         param = _safe_param_name(qp.python_name)
         param_build.append(f'    if {param} is not None:\n        params["{qp.name}"] = {param}')
-    if "limit" not in query_param_names:
-        param_build.append('    if limit > 0:\n        params["max"] = limit')
-    if "offset" not in query_param_names:
-        param_build.append('    if offset > 0:\n        params["start"] = offset')
+    param_build.append(f'    if limit > 0:\n        params["{limit_param_key}"] = limit')
+    param_build.append(f'    if offset > 0:\n        params["{offset_param_key}"] = offset')
 
     list_key = ep.response_list_key or "items"
 
@@ -246,18 +266,16 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
         else:
             col_str = '[("ID", "id"), ("Name", "name")]'
 
-    # Check if endpoint defines its own 'max' query param (varying API limits: 500, 1000, etc.)
-    has_spec_max = any(qp.name == "max" for qp in ep.query_params)
-
     if ep.paginates:
-        # Paginating endpoint: use follow_pagination for complete results
-        # When limit is 0 (default), paginate all pages
-        # When limit > 0, request that many per page and stop after one page (backward compat)
-        if has_spec_max:
-            # Endpoint has its own max param — don't override, let API use its default page size
+        # Paginating endpoint: use follow_pagination for complete results when
+        # --limit=0 (the default). When --limit>0, fall back to a single
+        # rest_get with the limit already encoded in params[limit_param_key]
+        # (set up above in param_build).
+        if has_spec_max or has_spec_limit:
+            # Endpoint has its own paging param — don't override page size.
             max_inject = []
         else:
-            # Endpoint has no max param — inject max=1000 for efficiency
+            # No spec paging param — inject max=1000 per page for efficiency.
             max_inject = [
                 f'            if "max" not in params:',
                 f'                params["max"] = 1000',
@@ -296,7 +314,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
             '    if output == "json":',
             "        print_json(items)",
             "    else:",
-            f"        print_table(items, columns={col_str}, limit={'limit' if 'limit' not in query_param_names else '0'})",
+            f"        print_table(items, columns={col_str}, limit=limit)",
         ]
     else:
         lines = [
@@ -317,7 +335,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
             '    if output == "json":',
             "        print_json(items)",
             "    else:",
-            f"        print_table(items, columns={col_str}, limit={'limit' if 'limit' not in query_param_names else '0'})",
+            f"        print_table(items, columns={col_str}, limit=limit)",
         ]
     return "\n".join(lines)
 
