@@ -1,6 +1,6 @@
 # Device Migration: Migration Knowledge Base
 
-> **Audience:** Migration advisor agent (Opus) and cold-context Claude sessions looking up dissent triggers, decision context, and Webex constraints for device replacement, firmware conversion, and MPP-vs-RoomOS decisions.
+> **Audience:** Migration advisor agent (Opus) and cold-context Claude sessions looking up dissent triggers, decision context, and Webex constraints for device replacement, firmware conversion, and MPP-vs-PhoneOS decisions.
 > **Reading mode:** Reference. Grep by `DT-DEV-NNN` ID for dissent triggers, OR read `## Decision Framework` end-to-end when the migration-advisor agent loads this doc during analysis.
 > **See also:** [Operator Runbook](../../runbooks/cucm-migration/operator-runbook.md) · [Decision Guide](../../runbooks/cucm-migration/decision-guide.md) · [Tuning Reference](../../runbooks/cucm-migration/tuning-reference.md)
 
@@ -17,15 +17,15 @@ The pipeline looks up the CUCM model in a static replacement map and recommends 
 | CUCM Model | Recommended Replacement | Notes |
 |------------|------------------------|-------|
 | **79xx series** | | |
-| 7811 | 9841 | Same desk form factor, single-screen. 9841 is RoomOS (device configuration templates, not telephony device settings). |
-| 7821 | 9841 | 2-line phone. 9841 supports more lines, same price tier. RoomOS firmware. |
+| 7811 | 9841 | Same desk form factor, single-screen. 9841 runs PhoneOS (device configuration templates, not telephony device settings). |
+| 7821 | 9841 | 2-line phone. 9841 supports more lines, same price tier. PhoneOS firmware. |
 | 7832 | Conference room device | Conference phone. Consider Webex Room device for both calling and meetings. |
-| 7905, 7906, 7911, 7912 | 8845 or 9851 | Legacy SCCP/SIP. 8845 = MPP firmware; 9851 = RoomOS (larger screen). Different day-2 config models. |
+| 7905, 7906, 7911, 7912 | 8845 or 9851 | Legacy SCCP/SIP. 8845 = MPP firmware; 9851 = PhoneOS (larger screen). Different day-2 config models. |
 | 7940, 7941, 7942, 7945 | 8845 or 9851 | Same as above. |
 | 7960, 7961, 7962, 7965 | 8845 or 9851 | Same as above. |
 | 7970, 7971, 7975 | 8845 or 9851 | Same as above. |
 | **69xx series** | | |
-| 6901, 6911, 6921, 6941, 6945, 6961 | 8841 or 9841 | No Webex firmware. 8841 = MPP (same line count); 9841 = RoomOS. |
+| 6901, 6911, 6921, 6941, 6945, 6961 | 8841 or 9841 | No Webex firmware. 8841 = MPP (same line count); 9841 = PhoneOS. |
 | **ATA** | | |
 | ATA 190 / ATA190 | ATA 192 | Analog adapter. ATA 192 supports Webex Calling. |
 | ATA 191 / ATA191 | ATA 192 | Analog adapter. ATA 192 supports Webex Calling. |
@@ -85,7 +85,7 @@ Webex Calling line key types are limited to: `PRIMARY_LINE`, `SHARED_LINE`, `MON
 These models support Webex Calling firmware natively. If already on MPP firmware but registered to CUCM, they are classified as `CONVERTIBLE` by `DeviceMapper` (not `INCOMPATIBLE`) and auto-convert at plan time — the "conversion" is a re-registration, not a hardware replacement. No decision is emitted; the planner emits a `create_activation_code` op directly.
 
 ### 9800-series phones (9811, 9821, 9841, 9851, 9861, 9871)
-Native MPP (PhoneOS/RoomOS-derived). No conversion or replacement needed. These use the Device Configurations API (RoomOS keys), not Telephony Device Settings. <!-- Source: devices-core.md §5a, line 1323 -->
+Native PhoneOS (RoomOS-derived, but distinct). No conversion or replacement needed. These use the Device Configurations API (PhoneOS keys), not Telephony Device Settings. <!-- Source: devices-core.md §5a, line 1323 -->
 
 ### DECT networks
 
@@ -164,7 +164,7 @@ Webex line key count depends on model. The `SupportedDevice` catalog includes `n
 
 | Pattern | CUCM Device | Webex Target | License | Notes |
 |---------|------------|-------------|---------|-------|
-| Hallway phone | 7811/7821 | Workspace + 9841 | Webex Calling Basic | Common area, no user assignment. 9841 is RoomOS. |
+| Hallway phone | 7811/7821 | Workspace + 9841 | Webex Calling Basic | Common area, no user assignment. 9841 runs PhoneOS. |
 | Executive suite | 8865 + 3 sidecars | 9871 + KEM modules | Professional | KEM types: `KEM_14_KEYS`, `KEM_18_KEYS`, `KEM_20_KEYS`. Max modules per model from `kem_module_count` in supported devices catalog. <!-- Source: devices-core.md §3.2 --> |
 | Factory floor | 7925/7926 wireless | No direct equivalent | -- | CUCM wireless phones have no Webex hardware equivalent. Webex App on mobile is the nearest substitute.  |
 | Conference room | 7832/8832 | Webex Room device or 9800 | Workspace | RoomOS device provides both calling and meetings capability. |
@@ -201,8 +201,8 @@ Activation code flow:
 5. Adding a device to a workspace with calling type `none` or `thirdPartySipCalling` resets calling to `freeCalling`.
 <!-- Source: devices-core.md §1.3 activation_code() method, §1.5 CLI examples -->
 
-### MPP vs RoomOS config model differences
-| Aspect | MPP (68xx/78xx/88xx) | RoomOS (9800/Room/Board/Desk) |
+### MPP vs PhoneOS/RoomOS config model differences
+| Aspect | MPP (68xx/78xx/88xx) | PhoneOS (9800-series) / RoomOS (Room/Board/Desk) |
 |--------|---------------------|-------------------------------|
 | Config API | Telephony Device Settings | Device Configurations (key-value) |
 | CLI group | `device-settings` | `device-configurations` |
