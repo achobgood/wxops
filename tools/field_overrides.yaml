@@ -537,19 +537,44 @@
 omit_query_params: []
 auto_inject_from_config: ["orgId", "orgid"]
 
-# Tags to skip entirely (glob patterns matched against OpenAPI tag names)
+# Tags to skip entirely (glob patterns matched against OpenAPI tag names).
+#
+# Two shapes are supported:
+#   - flat list (legacy) — applies to every spec
+#   - mapping with ``_global`` + per-spec-filename keys — canonical routing
+#
+# When a tag appears in multiple specs with identical endpoints (e.g. People
+# appears in calling + admin + messaging + meetings), list that tag under the
+# OTHER specs so the canonical spec is the only one that renders the file.
+# This guarantees that `generate_commands.py --all` against every spec yields
+# a deterministic set of files without overwrites, and that generator fixes
+# (pagination, etc.) propagate to every target file.
+#
+# Canonical assignments (2026-04-15):
+#   - People, Reports, Recording Report, Partner Reports/Templates,
+#     Device Call Settings, Device Call Settings With Device Dynamic Settings,
+#     Hot Desk                 -> webex-cloud-calling.json
+#   - Devices, Workspaces      -> webex-device.json
 skip_tags:
-  - "Beta *"
-  # Cross-spec overlaps (identical endpoints already generated from calling spec)
-  - "Partner Reports/Templates"
-  - "Recording Report"
-  - "Reports"
-  - "People"
-  - "Devices"
-  - "Device Call Settings"
-  - "Device Call Settings With Device Dynamic Settings"
-  - "Hot Desk"
-  - "Workspaces"
+  _global:
+    - "Beta *"
+  webex-cloud-calling.json:
+    - "Devices"          # canonical: webex-device.json
+    - "Workspaces"       # canonical: webex-device.json
+  webex-admin.json:
+    - "People"           # canonical: webex-cloud-calling.json
+    - "Reports"          # canonical: webex-cloud-calling.json
+    - "Recording Report" # canonical: webex-cloud-calling.json
+    - "Partner Reports/Templates"  # canonical: webex-cloud-calling.json
+  webex-device.json:
+    - "Device Call Settings"                                      # canonical: webex-cloud-calling.json
+    - "Device Call Settings With Device Dynamic Settings"         # canonical: webex-cloud-calling.json
+    - "Hot Desk"                                                  # canonical: webex-cloud-calling.json
+  webex-messaging.json:
+    - "People"           # canonical: webex-cloud-calling.json
+  webex-meetings.json:
+    - "People"           # canonical: webex-cloud-calling.json
+    - "Recording Report" # canonical: webex-cloud-calling.json
 
 # Merge split tags into a single CLI group
 tag_merge:
