@@ -5027,7 +5027,7 @@
         },
         "summary": "Get Device Layout by Device ID",
         "operationId": "getDeviceLayoutByDeviceId",
-        "description": "Get layout information of a device by device ID in an organization.\n\nDevice layout customizes a user’s programmable line keys (PLK) on the phone and any attached Key Expansion Modules (KEM) with the existing configured line members and the user’s monitoring list.\n\nThis API requires a full or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "description": "Get layout information of a device by device ID in an organization.\n\nDevice layout customizes a user\u2019s programmable line keys (PLK) on the phone and any attached Key Expansion Modules (KEM) with the existing configured line members and the user\u2019s monitoring list.\n\nThis API requires a full or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Device Call Settings"
         ],
@@ -5108,7 +5108,7 @@
         },
         "summary": "Modify Device Layout by Device ID",
         "operationId": "modifyDeviceLayoutByDeviceId",
-        "description": "Modify the layout of a device by device ID in an organization.\n\nDevice layout customizes a user’s programmable line keys (PLK) on the phone and any attached Key Expansion Modules (KEM) with the existing configured line members and the user’s monitoring list.\n\nThis API requires a full or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "description": "Modify the layout of a device by device ID in an organization.\n\nDevice layout customizes a user\u2019s programmable line keys (PLK) on the phone and any attached Key Expansion Modules (KEM) with the existing configured line members and the user\u2019s monitoring list.\n\nThis API requires a full or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Device Call Settings"
         ],
@@ -10989,7 +10989,13 @@
         "responses": {
           "200": {
             "description": "OK",
-            "headers": {},
+            "headers": {
+              "Link": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -19507,7 +19513,7 @@
               "presenting",
               "unknown"
             ],
-            "description": "The current presence status of the person. This will only be returned for people within your organization or an organization you manage. Presence information will not be shown if the authenticated user has [disabled status sharing](https://help.webex.com/nkzs6wl/). Presence status is different from Control Hub's \"Last Service Access Time\" which indicates the last time an oAuth token was issued for this user.\n * `active` - Active within the last 10 minutes.\n * `call` - The user is in a call.\n * `DoNotDisturb` - The user has manually set their status to \"Do Not Disturb\".\n * `inactive` - Last activity occurred more than 10 minutes ago.\n * `meeting` - The user is in a meeting.\n * `OutOfOffice` - The user or a Hybrid Calendar service has indicated that they are \"Out of Office\".\n * `pending` - The user has never logged in; a status cannot be determined.\n * `presenting` - The user is sharing content.\n * `unknown` - The user’s status could not be determined.\n"
+            "description": "The current presence status of the person. This will only be returned for people within your organization or an organization you manage. Presence information will not be shown if the authenticated user has [disabled status sharing](https://help.webex.com/nkzs6wl/). Presence status is different from Control Hub's \"Last Service Access Time\" which indicates the last time an oAuth token was issued for this user.\n * `active` - Active within the last 10 minutes.\n * `call` - The user is in a call.\n * `DoNotDisturb` - The user has manually set their status to \"Do Not Disturb\".\n * `inactive` - Last activity occurred more than 10 minutes ago.\n * `meeting` - The user is in a meeting.\n * `OutOfOffice` - The user or a Hybrid Calendar service has indicated that they are \"Out of Office\".\n * `pending` - The user has never logged in; a status cannot be determined.\n * `presenting` - The user is sharing content.\n * `unknown` - The user\u2019s status could not be determined.\n"
           },
           "invitePending": {
             "type": "string",
