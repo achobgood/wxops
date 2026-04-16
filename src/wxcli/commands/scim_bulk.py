@@ -3,20 +3,22 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
+from wxcli.config import get_org_id
 
 
-app = typer.Typer(help="Manage Webex Calling bulk-manage-scim-2-users-and-groups.")
+app = typer.Typer(help="Manage Webex Calling scim-bulk.")
 
 
 @app.command("create")
 def create(
-    org_id: str = typer.Argument(help="orgId"),
     fail_on_errors: str = typer.Option(None, "--fail-on-errors", help="(required) An integer specifying the maximum number of errors that the"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """User bulk API\n\nExample --json-body:\n  '{"schemas":["..."],"failOnErrors":0,"operations":[{"method":"...","path":"...","data":"...","bulkId":"..."}]}'."""
     api = get_api(debug=debug)
+    org_id = get_org_id() or api.people.me().org_id
     url = f"https://webexapis.com/identity/scim/{org_id}/v2/Bulk"
     if json_body:
         body = json.loads(json_body)
@@ -44,10 +46,15 @@ def create(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")

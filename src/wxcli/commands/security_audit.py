@@ -6,7 +6,7 @@ from wxcli.output import print_table, print_json
 from wxcli.config import get_org_id
 
 
-app = typer.Typer(help="Manage Webex Calling security-audit-events.")
+app = typer.Typer(help="Manage Webex Calling security-audit.")
 
 
 @app.command("list")
@@ -14,7 +14,6 @@ def cmd_list(
     start_time: str = typer.Option(..., "--start-time", help="List events which occurred after a specific date and time."),
     end_time: str = typer.Option(..., "--end-time", help="List events which occurred before a specific date and time."),
     actor_id: str = typer.Option(None, "--actor-id", help="List events performed by this person, by ID."),
-    max: str = typer.Option(None, "--max", help="Limit the maximum number of events in the response. The maxi"),
     event_categories: str = typer.Option(None, "--event-categories", help="List events, by event categories."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
@@ -31,8 +30,6 @@ def cmd_list(
         params["endTime"] = end_time
     if actor_id is not None:
         params["actorId"] = actor_id
-    if max is not None:
-        params["max"] = max
     if event_categories is not None:
         params["eventCategories"] = event_categories
     if limit > 0:
@@ -58,6 +55,9 @@ def cmd_list(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
