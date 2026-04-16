@@ -548,7 +548,7 @@ def delete_location(
             try:
                 click.get_text_stream("stdout").flush()
             except Exception:
-                pass
+                logger.debug("stdout flush failed — parent may lose liveness signal")
             return DeleteResult(
                 resource_type="Locations",
                 resource_id=location_id,
@@ -585,7 +585,7 @@ def delete_location(
                 try:
                     click.get_text_stream("stdout").flush()
                 except Exception:
-                    pass
+                    logger.debug("stdout flush failed — parent may lose liveness signal")
                 time.sleep(retry_sleep)
                 continue
             # Non-409 error, or exhausted attempts: stop retrying.
@@ -603,7 +603,7 @@ def delete_location(
         try:
             click.get_text_stream("stdout").flush()
         except Exception:
-            pass
+            logger.debug("stdout flush failed — parent may lose liveness signal")
         return DeleteResult(
             resource_type="Locations",
             resource_id=location_id,
@@ -627,7 +627,7 @@ def delete_location(
     try:
         click.get_text_stream("stdout").flush()
     except Exception:
-        pass
+        logger.debug("stdout flush failed — parent may lose liveness signal")
     return DeleteResult(
         resource_type="Locations",
         resource_id=location_id,
@@ -713,7 +713,7 @@ def delete_location_numbers(
                     try:
                         click.get_text_stream("stdout").flush()
                     except Exception:
-                        pass
+                        logger.debug("stdout flush failed — parent may lose liveness signal")
                     results.append(DeleteResult(
                         resource_type="Numbers",
                         resource_id=num,
