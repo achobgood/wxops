@@ -112749,7 +112749,13 @@
         "responses": {
           "200": {
             "description": "OK",
-            "headers": {},
+            "headers": {
+              "Link": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
