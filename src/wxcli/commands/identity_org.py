@@ -3,19 +3,20 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
+from wxcli.config import get_org_id
 
 
-app = typer.Typer(help="Manage Webex Calling identity-organization.")
+app = typer.Typer(help="Manage Webex Calling identity-org.")
 
 
 @app.command("show")
 def show(
-    org_id: str = typer.Argument(help="orgId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get an organization."""
     api = get_api(debug=debug)
+    org_id = get_org_id() or api.people.me().org_id
     url = f"https://webexapis.com/identity/organizations/{org_id}"
     try:
         result = api.session.rest_get(url)
@@ -33,6 +34,9 @@ def show(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -50,7 +54,6 @@ def show(
 
 @app.command("update")
 def update(
-    org_id: str = typer.Argument(help="orgId"),
     display_name: str = typer.Option(None, "--display-name", help="New full name of the organization."),
     preferred_language: str = typer.Option(None, "--preferred-language", help="It is the default preferredLanguage for user creation in thi"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -58,6 +61,7 @@ def update(
 ):
     """Update an organization\n\nExample --json-body:\n  '{"schemas":["..."],"displayName":"...","preferredLanguage":"..."}'."""
     api = get_api(debug=debug)
+    org_id = get_org_id() or api.people.me().org_id
     url = f"https://webexapis.com/identity/organizations/{org_id}"
     if json_body:
         body = json.loads(json_body)
@@ -83,6 +87,9 @@ def update(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -92,13 +99,13 @@ def update(
 
 @app.command("generate-otp")
 def generate_otp(
-    org_id: str = typer.Argument(help="orgId"),
     user_id: str = typer.Argument(help="userId"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Generate OTP."""
     api = get_api(debug=debug)
+    org_id = get_org_id() or api.people.me().org_id
     url = f"https://webexapis.com/identity/organizations/{org_id}/users/{user_id}/actions/generateOtp"
     if json_body:
         body = json.loads(json_body)
@@ -120,6 +127,9 @@ def generate_otp(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)

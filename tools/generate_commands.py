@@ -36,6 +36,32 @@ def should_skip_tag(tag: str, skip_patterns: list[str]) -> bool:
     return False
 
 
+def resolve_skip_patterns(raw: list | dict | None, spec_filename: str) -> list[str]:
+    """Merge global skip patterns with per-spec skip patterns for the current spec.
+
+    ``skip_tags`` in field_overrides.yaml supports two shapes:
+
+    1. A flat list (legacy) — patterns apply to every spec.
+    2. A mapping with optional ``_global`` key + per-spec-filename keys
+       (e.g. ``webex-admin.json``) — each spec only skips the union of
+       ``_global`` patterns and its own list. Tags canonical to a given
+       spec should NOT appear in that spec's list but SHOULD appear in
+       every other spec's list that also exposes them.
+
+    ``spec_filename`` is matched by basename (``Path(spec).name``).
+    """
+    if raw is None:
+        return []
+    if isinstance(raw, list):
+        return list(raw)
+    if isinstance(raw, dict):
+        patterns: list[str] = list(raw.get("_global", []) or [])
+        per_spec = raw.get(spec_filename) or []
+        patterns.extend(per_spec)
+        return patterns
+    raise TypeError(f"skip_tags must be list or dict, got {type(raw).__name__}")
+
+
 def generate_tag(
     tag_name: str,
     spec: dict,
@@ -138,7 +164,9 @@ def main():
 
     # Get unique tags (after merging)
     all_tags = get_tags(spec)
-    skip_patterns = overrides.get("skip_tags", [])
+    skip_patterns = resolve_skip_patterns(
+        overrides.get("skip_tags"), Path(args.spec).name
+    )
 
     if list_tags:
         for i, t in enumerate(all_tags):

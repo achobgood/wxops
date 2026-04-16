@@ -15,7 +15,6 @@ def cmd_list(
     actor_id: str = typer.Option(None, "--actor-id", help="List events performed by this person, by person ID."),
     from_param: str = typer.Option(None, "--from", help="List events which occurred after a specific date and time."),
     to: str = typer.Option(None, "--to", help="List events that occurred before a specific date and time. I"),
-    max: str = typer.Option(None, "--max", help="Limit the maximum number of events in the response. Value mu"),
     service_type: str = typer.Option(None, "--service-type", help="Choices: calling"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
@@ -36,8 +35,6 @@ def cmd_list(
         params["from"] = from_param
     if to is not None:
         params["to"] = to
-    if max is not None:
-        params["max"] = max
     if service_type is not None:
         params["serviceType"] = service_type
     if limit > 0:
@@ -65,6 +62,9 @@ def cmd_list(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -100,6 +100,9 @@ def show(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)

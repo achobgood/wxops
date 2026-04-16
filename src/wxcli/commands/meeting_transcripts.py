@@ -5,14 +5,13 @@ from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 
 
-app = typer.Typer(help="Manage Webex Calling transcripts.")
+app = typer.Typer(help="Manage Webex Meetings meeting-transcripts.")
 
 
 @app.command("list")
 def cmd_list(
     from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for transcripts to return"),
     to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for List transcripts to ret"),
-    max: str = typer.Option(None, "--max", help="Maximum number of transcripts to return in a single page. `m"),
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site from which the API lists transcripts."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
@@ -27,8 +26,6 @@ def cmd_list(
         params["from"] = from_param
     if to is not None:
         params["to"] = to
-    if max is not None:
-        params["max"] = max
     if site_url is not None:
         params["siteUrl"] = site_url
     if limit > 0:
@@ -51,6 +48,9 @@ def cmd_list(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -101,6 +101,9 @@ def list_download(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -115,7 +118,6 @@ def list_download(
 
 @app.command("list-meeting-transcripts")
 def list_meeting_transcripts(
-    max: str = typer.Option(None, "--max", help="Maximum number of transcripts to return in a single page. `m"),
     from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for transcripts to return"),
     to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for List transcripts to ret"),
     meeting_id: str = typer.Option(None, "--meeting-id", help="Unique identifier for the [meeting instance](/docs/meetings#"),
@@ -130,8 +132,6 @@ def list_meeting_transcripts(
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetingTranscripts"
     params = {}
-    if max is not None:
-        params["max"] = max
     if from_param is not None:
         params["from"] = from_param
     if to is not None:
@@ -162,6 +162,9 @@ def list_meeting_transcripts(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -177,7 +180,6 @@ def list_meeting_transcripts(
 @app.command("list-snippets")
 def list_snippets(
     transcript_id: str = typer.Argument(help="transcriptId"),
-    max: str = typer.Option(None, "--max", help="Maximum snippet items to be returned for this query, to supp"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -187,8 +189,6 @@ def list_snippets(
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetingTranscripts/{transcript_id}/snippets"
     params = {}
-    if max is not None:
-        params["max"] = max
     if limit > 0:
         params["max"] = limit
     if offset > 0:
@@ -209,6 +209,9 @@ def list_snippets(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -247,6 +250,9 @@ def show(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -298,6 +304,9 @@ def update(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -332,6 +341,9 @@ def delete(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)

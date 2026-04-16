@@ -3,14 +3,14 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
+from wxcli.config import get_org_id
 
 
-app = typer.Typer(help="Manage Webex Calling scim-2-groups.")
+app = typer.Typer(help="Manage Webex Calling scim-groups.")
 
 
 @app.command("list")
 def cmd_list(
-    org_id: str = typer.Argument(help="orgId"),
     filter_param: str = typer.Option(None, "--filter", help="The url encoded filter. The example content is 'displayName"),
     attributes: str = typer.Option(None, "--attributes", help="The attributes to return."),
     excluded_attributes: str = typer.Option(None, "--excluded-attributes", help="Attributes to be excluded from the return."),
@@ -27,6 +27,7 @@ def cmd_list(
 ):
     """Search groups."""
     api = get_api(debug=debug)
+    org_id = get_org_id() or api.people.me().org_id
     url = f"https://webexapis.com/identity/scim/{org_id}/v2/Groups"
     params = {}
     if filter_param is not None:
@@ -67,6 +68,9 @@ def cmd_list(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -81,14 +85,15 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    org_id: str = typer.Argument(help="orgId"),
     display_name: str = typer.Option(None, "--display-name", help="(required) A human-readable name for the Group."),
     external_id: str = typer.Option(None, "--external-id", help="An identifier for the resource as defined by the provisionin"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create a group\n\nExample --json-body:\n  '{"schemas":["..."],"displayName":"...","externalId":"...","members":[{"value":"...","type":"..."}],"urn:scim:schemas:extension:cisco:webexidentity:2.0:Group":{"usage":"...","owners":["..."],"inheritances":["..."],"managedBy":["..."]}}'."""
     api = get_api(debug=debug)
+    org_id = get_org_id() or api.people.me().org_id
     url = f"https://webexapis.com/identity/scim/{org_id}/v2/Groups"
     if json_body:
         body = json.loads(json_body)
@@ -118,10 +123,15 @@ def create(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    if isinstance(result, dict) and "id" in result:
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
         typer.echo(f"Created: {result['id']}")
     elif not result or result == {}:
         typer.echo("Created.")
@@ -132,7 +142,6 @@ def create(
 
 @app.command("show")
 def show(
-    org_id: str = typer.Argument(help="orgId"),
     group_id: str = typer.Argument(help="groupId"),
     excluded_attributes: str = typer.Option(None, "--excluded-attributes", help="Attributes to be excluded from the return."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
@@ -140,6 +149,7 @@ def show(
 ):
     """Get a group."""
     api = get_api(debug=debug)
+    org_id = get_org_id() or api.people.me().org_id
     url = f"https://webexapis.com/identity/scim/{org_id}/v2/Groups/{group_id}"
     params = {}
     if excluded_attributes is not None:
@@ -160,6 +170,9 @@ def show(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -177,7 +190,6 @@ def show(
 
 @app.command("update")
 def update(
-    org_id: str = typer.Argument(help="orgId"),
     group_id: str = typer.Argument(help="groupId"),
     display_name: str = typer.Option(None, "--display-name", help="A human-readable name for the group."),
     external_id: str = typer.Option(None, "--external-id", help="An identifier for the resource as defined by the provisionin"),
@@ -186,6 +198,7 @@ def update(
 ):
     """Update a group with PUT\n\nExample --json-body:\n  '{"schemas":["..."],"displayName":"...","externalId":"...","members":[{"value":"...","type":"..."}],"urn:scim:schemas:extension:cisco:webexidentity:2.0:Group":{"usage":"...","owners":["..."],"inheritances":["..."],"managedBy":["..."]}}'."""
     api = get_api(debug=debug)
+    org_id = get_org_id() or api.people.me().org_id
     url = f"https://webexapis.com/identity/scim/{org_id}/v2/Groups/{group_id}"
     if json_body:
         body = json.loads(json_body)
@@ -211,6 +224,9 @@ def update(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -220,13 +236,13 @@ def update(
 
 @app.command("update-groups")
 def update_groups(
-    org_id: str = typer.Argument(help="orgId"),
     group_id: str = typer.Argument(help="groupId"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update a group with PATCH\n\nExample --json-body:\n  '{"schemas":["..."],"Operations":[{"op":"...","path":"...","value":"..."}]}'."""
     api = get_api(debug=debug)
+    org_id = get_org_id() or api.people.me().org_id
     url = f"https://webexapis.com/identity/scim/{org_id}/v2/Groups/{group_id}"
     if json_body:
         body = json.loads(json_body)
@@ -248,6 +264,9 @@ def update_groups(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -257,7 +276,6 @@ def update_groups(
 
 @app.command("delete")
 def delete(
-    org_id: str = typer.Argument(help="orgId"),
     group_id: str = typer.Argument(help="groupId"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
@@ -266,6 +284,7 @@ def delete(
     if not force:
         typer.confirm(f"Delete {group_id}?", abort=True)
     api = get_api(debug=debug)
+    org_id = get_org_id() or api.people.me().org_id
     url = f"https://webexapis.com/identity/scim/{org_id}/v2/Groups/{group_id}"
     try:
         api.session.rest_delete(url)
@@ -283,6 +302,9 @@ def delete(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)

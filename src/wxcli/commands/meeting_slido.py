@@ -5,14 +5,13 @@ from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 
 
-app = typer.Typer(help="Manage Webex Calling slido-secure-premium.")
+app = typer.Typer(help="Manage Webex Meetings meeting-slido.")
 
 
 @app.command("list")
 def cmd_list(
     session_org_id: str = typer.Option(None, "--session-org-id", help="Webex organization UUID."),
     session_id: str = typer.Option(None, "--session-id", help="Webex meeting instance ID (`{meetingSeriesId}_I_{conferenceI"),
-    start: str = typer.Option(None, "--start", help="Pagination token. Returned in the response body as the `next"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -26,8 +25,6 @@ def cmd_list(
         params["sessionOrgId"] = session_org_id
     if session_id is not None:
         params["sessionId"] = session_id
-    if start is not None:
-        params["start"] = start
     if limit > 0:
         params["max"] = limit
     if offset > 0:
@@ -48,6 +45,9 @@ def cmd_list(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
