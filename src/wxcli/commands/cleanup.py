@@ -11,11 +11,11 @@ import typer
 from rich.console import Console
 from wxc_sdk.rest import RestError
 
-# Location-delete retry tuning: after the initial 90s disable-calling
+# Location-delete retry tuning: after the initial 90s calling-detach
 # propagation wait, 17-location orgs have been observed to still 409 on
 # first attempt. 5 attempts × 60s = 5 min worst case per laggard location,
 # which fits under typical agent/bash tool timeouts and covers the trailing
-# edge of async disable-calling propagation without masking real failures.
+# edge of async calling-config propagation without masking real failures.
 LOCATION_DELETE_MAX_ATTEMPTS = 5
 LOCATION_DELETE_RETRY_SLEEP = 60
 
@@ -192,10 +192,10 @@ DELETION_LAYERS: list[list[str]] = [
     ["operating_modes", "schedules"],    # Layer 7: were referenced by AAs
     ["virtual_lines"],                   # Layer 8
     ["devices"],                         # Layer 9
-    ["workspaces"],                      # Layer 10: must delete before disable-calling
+    ["workspaces"],                      # Layer 10: must delete before location detach attempt
     ["users"],                           # Layer 11: opt-in via --include-users
     ["numbers"],                         # Layer 12: remove numbers before location deletion
-    ["locations"],                       # Layer 13: disable calling first, then delete
+    ["locations"],                       # Layer 13: attempt calling detach first, then delete
 ]
 
 
@@ -386,7 +386,13 @@ def disable_location_calling(
     location_id: str,
     org_id: str | None,
 ) -> DeleteResult:
-    """Disable Webex Calling on a location (prerequisite to deletion)."""
+    """Best-effort telephony detach before location deletion.
+
+    The DELETE against ``/telephony/config/locations/{id}`` is useful in
+    practice, but it is not a reliable public contract for disabling calling
+    on a location. Success here only means the request completed; location
+    delete can still fail on visible or backend-held dependencies.
+    """
     url = f"{BASE}/telephony/config/locations/{location_id}"
     params = {}
     if org_id:
@@ -430,75 +436,189 @@ def _is_ccp_integrated_error(err: str) -> bool:
 def _is_ccp_backend_gate(
     err: str, local_dependencies_clear: bool,
 ) -> bool:
-    """Classify a 409 on location delete as a CCP backend-cleanup gate.
+    """Classify a location delete failure as the explicit CCP backend gate.
 
-    The gate fires when either:
-      * the explicit CCP error code appears in the body, OR
-      * the message says "being referenced" AND a prior pre-check has
-        confirmed no local-visible dependencies remain.
-
-    When the gate fires there is nothing the caller can do to speed things
-    up — Webex's internal PSTN backend is async-releasing trunk references
-    and typically takes 1-4 hours in dCloud/CCP orgs.
+    Generic 409 "being referenced" errors are not sufficient evidence on
+    their own. In practice they also occur when visible location blockers
+    remain, such as preserved users, phone numbers, or voice portal state.
+    Treat only the explicit CCP signature as authoritative.
     """
     if not err:
         return False
-    if _is_ccp_integrated_error(err):
-        return True
-    lowered = err.lower()
-    if local_dependencies_clear and "being referenced" in lowered:
-        return True
-    return False
+    return _is_ccp_integrated_error(err)
+
+
+def _location_blockers(
+    api, location_id: str, org_id: str | None,
+) -> list[str]:
+    """Probe for visible dependencies at a location.
+
+    Returns a human-readable list of blockers still visible on the location.
+    This is best-effort and intentionally biased toward surfacing concrete
+    local blockers rather than inferring backend state from missing evidence.
+    """
+    probe_order = [
+        "users",
+        "workspaces",
+        "devices",
+        "hunt groups",
+        "auto attendants",
+        "call queues",
+        "paging groups",
+        "call parks",
+        "call pickups",
+        "trunks",
+        "route groups",
+        "numbers",
+        "voice portal",
+    ]
+    probes: list[tuple[str, dict, str]] = [
+        ("/people", {"locationId": location_id, "callingData": "true"}, "users"),
+        ("/workspaces", {"locationId": location_id}, "workspaces"),
+        ("/devices", {"locationId": location_id}, "devices"),
+        ("/telephony/config/huntGroups", {"locationId": location_id}, "hunt groups"),
+        ("/telephony/config/autoAttendants", {"locationId": location_id}, "auto attendants"),
+        ("/telephony/config/queues", {"locationId": location_id}, "call queues"),
+        ("/telephony/config/paging", {"locationId": location_id}, "paging groups"),
+        (f"/telephony/config/locations/{location_id}/callParks", {}, "call parks"),
+        (f"/telephony/config/locations/{location_id}/callPickups", {}, "call pickups"),
+        ("/telephony/config/premisePstn/trunks", {"locationId": location_id}, "trunks"),
+        ("/telephony/config/premisePstn/routeGroups", {}, "route groups"),
+    ]
+    blocker_details: dict[str, list[str]] = {}
+    params_base: dict = {}
+    if org_id:
+        params_base["orgId"] = org_id
+
+    def _record(label: str, detail: str | None = None) -> None:
+        blocker_details.setdefault(label, [])
+        if detail and detail not in blocker_details[label]:
+            blocker_details[label].append(detail)
+
+    def _has_real_items(path: str, values: list[dict]) -> bool:
+        """Return True only when a list contains actual resources.
+
+        Some APIs return sentinel rows such as
+        ``{"errors": {"peopleListLocationId": ...}}`` instead of an empty
+        list when a location filter matches nothing. These should not be
+        interpreted as visible blockers.
+        """
+        if path.endswith("/people"):
+            return any(isinstance(item, dict) and item.get("id") for item in values)
+        return bool(values)
+
+    def _item_identifier(item: dict, prefer_email: bool = False) -> str | None:
+        if not isinstance(item, dict):
+            return None
+        parts: list[str] = []
+        if prefer_email and item.get("emails"):
+            email = item["emails"][0]
+            if isinstance(email, str) and email:
+                parts.append(email)
+        name = item.get("displayName") or item.get("name")
+        if isinstance(name, str) and name:
+            parts.append(name)
+        item_id = item.get("id")
+        if isinstance(item_id, str) and item_id:
+            parts.append(item_id)
+        return " / ".join(parts[:3]) if parts else None
+
+    def _collect_details(path: str, values: list[dict], label: str) -> None:
+        items = [item for item in values if isinstance(item, dict)]
+        if path.endswith("/people"):
+            real_people = [item for item in items if item.get("id")]
+            for person in real_people[:3]:
+                _record(label, _item_identifier(person, prefer_email=True))
+            if real_people:
+                _record(label)
+            return
+        if path.endswith("/routeGroups"):
+            matched = [
+                rg for rg in items
+                if (rg.get("location") or {}).get("id") == location_id
+            ]
+            for route_group in matched[:3]:
+                _record(label, _item_identifier(route_group))
+            if matched:
+                _record(label)
+            return
+        for value in items[:3]:
+            _record(label, _item_identifier(value))
+        if items:
+            _record(label)
+
+    for path, extra, label in probes:
+        params = {**params_base, **extra}
+        try:
+            result = api.session.rest_get(f"{BASE}{path}", params=params)
+        except Exception:
+            continue
+        if not isinstance(result, dict):
+            continue
+        for values in result.values():
+            if isinstance(values, list) and _has_real_items(path, values):
+                _collect_details(path, values, label)
+                break
+
+    try:
+        numbers = api.session.rest_get(
+            f"{BASE}/telephony/config/numbers",
+            params={**params_base, "locationId": location_id},
+        )
+        phone_numbers = numbers.get("phoneNumbers", []) if isinstance(numbers, dict) else []
+        if phone_numbers:
+            _record("numbers")
+            for number in phone_numbers[:5]:
+                number_label = (
+                    number.get("phoneNumber")
+                    or number.get("extension")
+                    or number.get("esn")
+                    or number.get("id")
+                )
+                owner = number.get("owner") or {}
+                owner_type = owner.get("type")
+                if owner_type == "VOICE_MESSAGING":
+                    detail = f"{number_label} (voice portal)" if number_label else "voice portal number"
+                    _record("voice portal", detail)
+                elif number_label:
+                    _record("numbers", number_label)
+    except Exception:
+        pass
+
+    try:
+        voice_portal = api.session.rest_get(
+            f"{BASE}/telephony/config/locations/{location_id}/voicePortal",
+            params=params_base,
+        )
+        if isinstance(voice_portal, dict) and voice_portal.get("id"):
+            vp_name = voice_portal.get("name")
+            vp_id = voice_portal.get("id")
+            detail = " / ".join(part for part in (vp_name, vp_id) if part)
+            _record("voice portal", detail or None)
+    except Exception:
+        pass
+
+    def _format_details(label: str, details: list[str]) -> str:
+        if label == "users":
+            prefix = "preserved users"
+        else:
+            prefix = label
+        if details:
+            return f"{prefix} [{', '.join(details)}]"
+        return prefix
+
+    return [
+        _format_details(label, blocker_details[label])
+        for label in probe_order
+        if label in blocker_details
+    ]
 
 
 def _location_has_local_dependencies(
     api, location_id: str, org_id: str | None,
 ) -> bool:
-    """Probe for visible dependencies at a location.
-
-    Returns True if any users, workspaces, devices, features (AA/CQ/HG/paging/
-    parks/pickups), trunks, or route groups still resolve at the location.
-    When False, a 409 "being referenced" is almost certainly a backend gate
-    rather than a real blocker.
-    """
-    probes: list[tuple[str, dict]] = [
-        ("/people", {"locationId": location_id}),
-        ("/workspaces", {"locationId": location_id}),
-        ("/devices", {"locationId": location_id}),
-        ("/telephony/config/huntGroups", {"locationId": location_id}),
-        ("/telephony/config/autoAttendants", {"locationId": location_id}),
-        ("/telephony/config/queues", {"locationId": location_id}),
-        ("/telephony/config/paging", {"locationId": location_id}),
-        (f"/telephony/config/locations/{location_id}/callParks", {}),
-        (f"/telephony/config/locations/{location_id}/callPickups", {}),
-        ("/telephony/config/premisePstn/trunks", {"locationId": location_id}),
-        ("/telephony/config/premisePstn/routeGroups", {}),
-    ]
-    params_base: dict = {}
-    if org_id:
-        params_base["orgId"] = org_id
-    for path, extra in probes:
-        params = {**params_base, **extra}
-        try:
-            result = api.session.rest_get(f"{BASE}{path}", params=params)
-        except Exception:
-            # Probe failures shouldn't mask the gate; treat as "clear".
-            continue
-        if not isinstance(result, dict):
-            continue
-        for values in result.values():
-            if isinstance(values, list) and values:
-                # Route groups have no locationId filter — only count them
-                # if at least one references this location.
-                if path.endswith("/routeGroups"):
-                    if any(
-                        rg.get("location", {}).get("id") == location_id
-                        for rg in values
-                    ):
-                        return True
-                    continue
-                return True
-    return False
+    """Backward-compatible boolean wrapper over the blocker probe."""
+    return bool(_location_blockers(api, location_id, org_id))
 
 
 def _extract_blocker(err: str) -> str | None:
@@ -523,10 +643,10 @@ def delete_location(
     max_attempts: int = LOCATION_DELETE_MAX_ATTEMPTS,
     retry_sleep: int = LOCATION_DELETE_RETRY_SLEEP,
 ) -> DeleteResult:
-    """Delete a location (must have calling disabled first).
+    """Delete a location after the best-effort telephony detach attempt.
 
     Retries up to ``max_attempts`` times with ``retry_sleep`` seconds between
-    attempts. The 90-second disable-calling propagation wait in the caller
+    attempts. The 90-second caller-side propagation wait after the detach
     often isn't enough on larger orgs — the backend may still 409 for several
     minutes. Each attempt emits a stdout line via ``click.echo`` (flushed)
     so an observing parent process sees liveness and never has to hand-roll
@@ -559,22 +679,12 @@ def delete_location(
             last_error = str(e)
             is_conflict = "409" in last_error or "conflict" in last_error.lower()
 
-            # CCP backend-gate short-circuit: retrying this is pointless —
-            # only the Webex backend can clear it, on the order of hours.
-            # The explicit error code is a hard signal on its own; the
-            # "being referenced" path requires confirming no local-visible
-            # deps remain before we call it a gate.
-            explicit_ccp = _is_ccp_integrated_error(last_error)
-            if explicit_ccp:
+            # Only the explicit CCP signature is authoritative enough to
+            # short-circuit retries. Generic "being referenced" conflicts can
+            # still be caused by visible blockers we should surface normally.
+            if _is_ccp_backend_gate(last_error, local_dependencies_clear=False):
                 ccp_blocked = True
                 break
-            if is_conflict and "being referenced" in last_error.lower():
-                local_clear = not _location_has_local_dependencies(
-                    api, location_id, org_id,
-                )
-                if _is_ccp_backend_gate(last_error, local_clear):
-                    ccp_blocked = True
-                    break
 
             if attempt < max_attempts and is_conflict:
                 click.echo(
@@ -613,8 +723,14 @@ def delete_location(
             ccp_blocked=True,
         )
 
+    blockers = _location_blockers(api, location_id, org_id)
     blocker = _extract_blocker(last_error)
-    if blocker:
+    if blockers:
+        final_msg = (
+            f"delete failed after {max_attempts} attempt(s); "
+            f"visible blockers: {', '.join(blockers)}; {last_error}"
+        )
+    elif blocker:
         final_msg = (
             f"delete failed after {max_attempts} attempt(s); "
             f"blocked by {blocker}: {last_error}"
@@ -1108,13 +1224,16 @@ def cleanup_run(
                 console.print(f"    {ok} removed, {fail} failed")
             continue
 
-        # Special handling for locations: disable calling first, then wait, then delete
+        # Special handling for locations: best-effort telephony detach first,
+        # then wait, then delete.
         if "locations" in layer_keys and "locations" in inventory:
             loc_items = inventory["locations"]
             # Map location_id -> name for failure messages (Issue #11).
             loc_names = {item["id"]: item.get("name", item["id"]) for item in loc_items}
-            # Phase 1: disable calling (best-effort — may already be off)
-            console.print("  Disabling calling on locations...")
+            # Phase 1: best-effort telephony detach. This endpoint is not a
+            # reliable public disable-calling contract, so avoid overstating
+            # what success means in operator-facing output.
+            console.print("  Attempting telephony detach on locations...")
             disable_results = []
             with ThreadPoolExecutor(max_workers=max_concurrent) as executor:
                 futures = {
@@ -1128,27 +1247,31 @@ def cleanup_run(
 
             disabled_ok = [r for r in disable_results if r.success]
             disabled_failed = [r for r in disable_results if not r.success]
-            console.print(f"  Disabled calling on {len(disabled_ok)}/{len(loc_items)} locations")
+            console.print(
+                f"  Telephony detach request accepted for "
+                f"{len(disabled_ok)}/{len(loc_items)} locations"
+            )
 
             # Partition the inventory into two delete cohorts by disable outcome
-            # (Issue #11 / Finding #6). Locations where disable failed do NOT
+            # (Issue #11 / Finding #6). Locations where the detach request
+            # failed do NOT
             # pay the 90-second propagation wait — they proceed to delete
-            # immediately. Locations where disable succeeded wait 90s (the
-            # calling-subsystem propagation window) before the delete phase.
+            # immediately. Locations where it succeeded wait 90s (the calling
+            # subsystem propagation window) before the delete phase.
             succeeded_ids = {r.resource_id for r in disabled_ok}
             items_disable_ok = [it for it in loc_items if it["id"] in succeeded_ids]
             items_disable_failed = [
                 it for it in loc_items if it["id"] not in succeeded_ids
             ]
 
-            # Issue #11: surface each disable failure explicitly. Delete will
+            # Issue #11: surface each detach-request failure explicitly. Delete will
             # still be attempted (likely 409), but the existing
             # delete_location error-handling catches that and the caller
             # can re-run cleanup idempotently.
             for r in disabled_failed:
                 name = loc_names.get(r.resource_id, r.resource_id)
                 click.secho(
-                    f"⚠️  Location {name}: disable calling failed — "
+                    f"⚠️  Location {name}: telephony detach request failed — "
                     f"skipping 90s wait; will attempt delete anyway",
                     fg="yellow",
                     err=False,

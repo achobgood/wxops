@@ -523,7 +523,7 @@ Delete in the order returned (reverse tier: features → devices → users → r
 | dial_plan | `wxcli call-routing delete <webex_id> --force` | Remove patterns first |
 | route_group | `wxcli call-routing delete-route-groups <webex_id> --force` | Remove from dial plans first |
 | trunk | `wxcli call-routing delete-trunks <webex_id> --force` | Remove from route groups first |
-| location | `wxcli locations delete <webex_id> --force` | Disable calling first: `wxcli location-call-settings update-location-calling <webex_id> --calling-enabled false` then wait 90s+ |
+| location | `wxcli locations delete <webex_id> --force` | Clear blockers first with CLI/API, then retry. Final delete of a calling-enabled location may still require Control Hub. |
 
 **IMPORTANT:**
 - Before deleting locations, verify all users/devices/features at that location are already deleted.
