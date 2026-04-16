@@ -826,12 +826,28 @@ def check_bulk_device_job_support(
     once ``bulk_device_threshold`` is crossed, so without this preflight the
     operator only discovers incompatibility at execution time.
 
+    Behavior on FAIL (Finding #11 clarification): the check **does NOT**
+    auto-reshape the plan by deleting the bulk ops and re-emitting per-device
+    ops. The spec (Group 6, Issue #9) says:
+        "If not supported, the planner should emit per-device ops instead."
+    We chose a simpler / safer interpretation: fail loudly with the
+    operator-actionable remedy baked into the error message
+    (``set bulk_device_threshold=999999 in config.json to disable bulk
+    ops``). Auto-reshaping the plan mid-preflight was deemed too invasive —
+    the operator may want to investigate *why* the bulk endpoint is
+    unavailable (FedRAMP? token scope? partner token pointing at wrong org?)
+    before mechanically falling back to the per-device path, which at 1000+
+    devices can take hours. Failing closed with a one-line remedy preserves
+    operator choice.
+
     Args:
         store: Migration store with plan_operations populated.
         probe_fn: Zero-arg callable that probes a bulk job list endpoint and
             returns ``(status_code, error_message)``. When ``None`` the check
             cannot verify and returns SKIP. The runner wires this via the
-            authenticated ``WebexSimpleApi`` session.
+            authenticated ``WebexSimpleApi`` session (see
+            ``runner._build_bulk_job_probe`` for the subprocess-vs-direct-HTTP
+            decision).
     """
     row = store.conn.execute(
         "SELECT COUNT(*) AS cnt FROM plan_operations "
