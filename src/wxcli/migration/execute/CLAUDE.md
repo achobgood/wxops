@@ -346,3 +346,27 @@ one-job-per-org constraint.
 Government. If you're migrating a FedRAMP tenant, set
 `bulk_device_threshold` to 999999 or delete the `bulk_rebuild_phones`
 ops manually from the plan before execution.
+
+---
+
+## History — Wave 1 primitive locations (archaeology note)
+
+The silent-failure-hardening Wave 1 primitives — the `SkippedResult`
+sentinel + `skipped()` helper in `handlers.py`, the engine bulk-job
+critical fixes (#4, #6, #19), and the `JobErrorFetchFailed` exception —
+were landed in commit **`85c2f12`** ("feat(planner): thread-safe skip
+report + needs_decision visibility"), **not** in the commit whose
+message advertises them (`50f5724`, "feat(execute): add SKIPPED op
+status + sentinel + bulk-job critical fixes (#4, #6, #19)"). The
+`50f5724` commit in fact contains only the Wave 1 test file —
+`tests/migration/execute/test_silent_failure_wave1.py`. The diff
+reality and the commit message drifted during concurrent planner work.
+
+If you're bisecting / blame-walking Wave 1 primitives, look at
+**`85c2f12`** for the actual source changes. This note exists so the
+history is retrievable without a forensic pass — the `50f5724` commit
+message cannot be rewritten without an interactive rebase of 8
+subsequent commits, which was judged too risky on an active research
+branch. See Finding #9 in
+`docs/superpowers/specs/2026-04-16-silent-failure-hardening-design.md`
+for the full rationale.
