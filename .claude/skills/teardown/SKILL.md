@@ -37,11 +37,11 @@ wxcli cleanup run --all --include-users --exclude-user-domains "wbx.ai,corp.com"
 wxcli cleanup run --scope "GlobalTech*" --max-concurrent 10 --force
 ```
 
-`wxcli cleanup` handles the full dependency DAG automatically: inventories all resources, deletes in the correct 13-layer order (including phone number removal before location deletion), parallelizes within each layer, and waits for async operations like disable-calling propagation.
+`wxcli cleanup` handles the full dependency DAG automatically: inventories all resources, deletes in the correct 13-layer order (including phone number removal before location deletion), and parallelizes within each layer.
 
 **Key behaviors:**
 - **Phone numbers** are removed automatically before location deletion (batched in groups of 5, main numbers skipped). Numbers assigned to a location block location deletion with 409.
-- **Disable-calling is best-effort** — if calling is already off (or was never enabled), deletion still proceeds. Ghost/stale locations are also attempted.
+- **Location delete warning** — public API cleanup can remove dependencies, but final delete of a calling-enabled location may still require Control Hub. Do not promise that `wxcli cleanup` can disable calling on the location via API.
 - **`--exclude-user-domains`** filters users by email domain — useful for keeping admin accounts while deleting migration-created users.
 
 **Always dry-run first** for any scope larger than a single location.
@@ -144,12 +144,11 @@ wxcli numbers list --location-id $LOC -o json
 
 #### Layer 7: Locations
 ```bash
-# Disable calling first — this is ASYNC and best-effort
-# If calling is already off, this will fail — that's OK, proceed to delete
-wxcli location-call-settings update-location-calling $LOC --calling-enabled false
-# Wait 90+ seconds for backend propagation (skip if disable failed = already off)
-sleep 90
-# Then delete — attempt regardless of disable result
+# Public API teardown can remove blockers, but the final disable/delete of a
+# calling-enabled location may still require Control Hub.
+# First inspect blockers:
+wxcli location-settings safe-delete-check $LOC
+# Then attempt delete:
 wxcli locations delete --force $LOC
 ```
 
@@ -163,7 +162,7 @@ If `locations delete` returns 409 "being referenced", check these in order:
 4. **Virtual lines** — discoverable via `wxcli numbers list -o json` (owner.type == VIRTUAL_LINE), not always via `virtual-extensions list`
 5. **Workspaces** still assigned — workspaces API has no location filter, must filter client-side by `locationId` field
 6. **Operating modes** referencing deleted schedules
-7. **Calling still propagating** — even after `--calling-enabled false`, 409 may persist for minutes. Wait and retry. **See "Rule: never hand-roll polling loops" below for how to retry safely — do NOT write an inline Python/bash sleep loop.**
+7. **Calling-enabled location still held by telephony backend** — even after visible dependencies are gone, public API delete may still 409. Use `wxcli location-settings safe-delete-check $LOC`, then finish in Control Hub if the location remains calling-enabled.
 8. **Ghost/stale locations** — locations returning 404 on sub-resource queries may still be deletable. Attempt deletion regardless.
 
 ### Rule: never hand-roll polling loops
@@ -180,10 +179,9 @@ When a 409 persists after the built-in 90s wait (or any other "wait and retry" s
 
 When the target org uses **Cisco Calling Plan** (CCP-integrated PSTN), number deletion fails with `ERR.V.TRM.TMN60004` ("DELETE number is supported only for non-integrated CCP") — these numbers are managed via the PSTN portal, not the API. After trunk/route-group/feature/user teardown, **location delete then 409s with "being referenced"** for hours even though there are no locally visible dependencies. Webex's internal PSTN backend is async-releasing trunk references and typically clears in **1-4 hours** in dCloud/CCP orgs. No API action can speed this up.
 
-`wxcli cleanup run` now detects this signature and short-circuits:
+`wxcli cleanup run` now detects the explicit number-delete signature and short-circuits those number removals:
 - **Number delete:** skipped with a `[number=<ext/e164>] skipped — CCP-integrated, managed via PSTN portal` log line, not counted as a failure.
-- **Location delete:** if the 409 error body contains `ERR.V.TRM.TMN60004` OR the message says "being referenced" while a pre-check confirms no local-visible dependencies remain (no users/workspaces/devices/features/trunks/route groups), the retry loop exits immediately with `[location=<name>] blocked by CCP-integrated PSTN backend cleanup — Webex backend has not yet released internal trunk references. This typically clears in 1-4 hours for dCloud/CCP orgs. Re-run wxcli cleanup run later (it is idempotent) to retry. No action you can take to speed this up.`
-- **Final summary** reports a `CCP-blocked: N` count plus a "retry in a few hours" footer. Process still exits 0 — operator should re-invoke `wxcli cleanup run` later.
+- **Location delete:** do **not** infer CCP solely from a generic `409 "being referenced"` response. Generic 409s can also mean preserved users, voice portal state, or the fact that the location is still calling-enabled and must be finished in Control Hub.
 
 ---
 
@@ -193,6 +191,6 @@ When the target org uses **Cisco Calling Plan** (CCP-integrated PSTN), number de
 2. **Location-scoped feature deletes take LOCATION_ID FIRST** — `wxcli hunt-group delete --force LOCATION_ID HG_ID`, not `HG_ID LOCATION_ID`
 3. **Routing delete commands use PLURAL names** — `delete-route-groups` not `delete-route-group`, `delete-trunks` not `delete-trunk`
 4. **Workspaces block location deletion** — delete all workspaces at a location BEFORE running disable-calling
-5. **Disable-calling is async** — poll with `wxcli location-settings show-errors <JOB_ID>` until complete, minimum 90 seconds
+5. **Do not promise API disable-calling** — use CLI/API to remove visible blockers, but warn that final delete of a calling-enabled location may still require Control Hub
 6. **Enumerate before deleting** — never start deleting without a full inventory; hidden resources (CX queues, call parks, workspaces) will block location delete
 7. **Multi-location teardown** — repeat the procedure per location, or use `wxcli cleanup run --scope "Loc1,Loc2"` for automation

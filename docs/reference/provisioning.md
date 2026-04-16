@@ -1270,15 +1270,28 @@ If `POST /v1/people?callingData=false` fails with 400 (e.g., "Calling flag not s
 
 Number port-in requests, LOA submission, porting status tracking, and new number ordering from Cisco Calling Plan are all done through the Control Hub UI or via Cisco's PTS (PSTN Technical Support) team. The Numbers API (`wxcli numbers`) only manages numbers *after* they are ported in or provisioned — it cannot initiate a port.
 
-### Location deletion requires calling disable with cooldown
+### Location deletion via API is unreliable for calling-enabled locations
 
-Locations with Webex Calling enabled cannot be deleted directly (409 Conflict). The deletion sequence is:
-1. Delete all location-scoped resources (virtual lines, call parks, hunt groups, call queues, schedules, trunks, devices, workspaces, users)
-2. Disable calling: `wxcli location-call-settings update-location-calling LOCATION_ID --calling-enabled false`
-3. Wait 90+ seconds for the backend to propagate the change
-4. Delete the location: `wxcli locations delete --force LOCATION_ID`
+Locations with Webex Calling enabled cannot be deleted directly via the public
+API (`409 Conflict: Location is being referenced`). The older guidance to
+"disable calling first" via a `wxcli location-call-settings update-location-calling`
+command is stale for this repo:
 
-Even after waiting, the delete may return 409 "Location is being referenced" for **minutes to hours**. The execution engine's 409 auto-recovery handles this on re-run.
+- that command does **not** exist in the current CLI
+- the public API does **not** expose a reliable "disable calling on location"
+  operation for general teardown workflows
+
+What you *can* do with CLI/API:
+1. Delete all location-scoped resources first (virtual lines, call parks, hunt groups, call queues, schedules, trunks, devices, workspaces, users)
+2. Run `wxcli location-settings safe-delete-check LOCATION_ID` to inspect visible blockers
+3. Retry `wxcli locations delete --force LOCATION_ID`
+
+What may still require Control Hub:
+- final disable/delete of a calling-enabled location, even after all visible
+  dependencies have been removed via API
+
+Practical operator rule: use CLI/API to clear dependencies, but warn the user
+that the final location removal may still need to be completed in Control Hub.
 
 ---
 
@@ -1305,7 +1318,7 @@ When tearing down resources programmatically (e.g., cleaning up after a stress t
 | 13 | Workspaces | `wxcli workspaces delete --force {id}` | |
 | 14 | Users | `wxcli users delete --force {id}` | |
 | 15 | Schedules | `wxcli location-schedules delete --force {locationId} {type} {scheduleId}` | |
-| 16 | Locations | `wxcli locations delete --force {id}` | Must disable calling first; see above |
+| 16 | Locations | `wxcli locations delete --force {id}` | Clear blockers first; final delete of a calling-enabled location may still require Control Hub |
 
 ### Key Behaviors
 
