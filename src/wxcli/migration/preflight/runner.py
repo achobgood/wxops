@@ -198,6 +198,18 @@ class PreflightRunner:
         On invocation the callable returns ``(status_code, error_message)``.
         Uses ``WebexSimpleApi`` so auth/orgId injection matches the rest of
         the CLI.
+
+        Design note (Finding #11): this preflight module's convention is
+        **subprocess, not import** — checks normally shell out to ``wxcli``
+        via ``_run_wxcli`` to reuse the CLI's auth, pagination, and error
+        handling (see the module CLAUDE.md). This probe deliberately deviates
+        and calls ``api.session.get`` directly because there is no equivalent
+        ``wxcli`` subcommand that lists bulk device jobs — generating one
+        just to satisfy the convention would be overkill for a single
+        read-only probe. If ``wxcli`` ever gains a
+        ``bulk-device-jobs list --job-type callDeviceSettings --max 1``
+        command, this probe should be re-routed through ``_run_wxcli`` to
+        restore convention parity.
         (Wave 4, Issue #9)
         """
         try:
