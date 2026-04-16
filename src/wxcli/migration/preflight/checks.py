@@ -10,7 +10,7 @@ live Webex org state queried via wxcli CLI commands (subprocess).
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, Callable
 
 from wxcli.migration.models import DecisionType
 from wxcli.migration.preflight import (
@@ -804,4 +804,92 @@ def check_e911_readiness(store: MigrationStore) -> CheckResult:
         status=CheckStatus.PASS,
         detail=f"{ok_count} users have resolvable ECBN candidates",
         data={"ok_count": ok_count},
+    )
+
+
+# ---------------------------------------------------------------------------
+# Check 10: Bulk Device Job Support (Issue #9, Wave 4)
+# (from docs/superpowers/specs/2026-04-16-silent-failure-hardening-design.md
+#  Group 6, Issue #9)
+# ---------------------------------------------------------------------------
+
+
+def check_bulk_device_job_support(
+    store: MigrationStore,
+    probe_fn: Callable[[], tuple[int, str]] | None = None,
+) -> CheckResult:
+    """Verify the Webex org supports bulk device job endpoints.
+
+    Webex for Government (FedRAMP) tenants do not support bulk device job
+    endpoints (e.g. ``rebuildPhones``); calls return 404 or 403. The planner's
+    ``_optimize_for_bulk()`` pass replaces per-device ops with bulk job ops
+    once ``bulk_device_threshold`` is crossed, so without this preflight the
+    operator only discovers incompatibility at execution time.
+
+    Args:
+        store: Migration store with plan_operations populated.
+        probe_fn: Zero-arg callable that probes a bulk job list endpoint and
+            returns ``(status_code, error_message)``. When ``None`` the check
+            cannot verify and returns SKIP. The runner wires this via the
+            authenticated ``WebexSimpleApi`` session.
+    """
+    row = store.conn.execute(
+        "SELECT COUNT(*) AS cnt FROM plan_operations "
+        "WHERE resource_type LIKE 'bulk\\_%%' ESCAPE '\\'"
+    ).fetchone()
+    bulk_op_count = row["cnt"] if row else 0
+
+    if bulk_op_count == 0:
+        return CheckResult(
+            name="Bulk device job support",
+            status=CheckStatus.SKIP,
+            detail="No bulk device job ops in plan (per-device path will be used)",
+        )
+
+    if probe_fn is None:
+        return CheckResult(
+            name="Bulk device job support",
+            status=CheckStatus.SKIP,
+            detail=f"{bulk_op_count} bulk op(s) in plan; probe not available (skipped)",
+        )
+
+    try:
+        status, err = probe_fn()
+    except Exception as exc:  # noqa: BLE001 — probe is best-effort
+        return CheckResult(
+            name="Bulk device job support",
+            status=CheckStatus.WARN,
+            detail=f"Bulk device job probe failed: {exc}",
+            issues=[PreflightIssue("BULK_JOB_PROBE_ERROR", str(exc))],
+            data={"bulk_op_count": bulk_op_count},
+        )
+
+    if status == 200:
+        return CheckResult(
+            name="Bulk device job support",
+            status=CheckStatus.PASS,
+            detail=f"Bulk device jobs supported ({bulk_op_count} bulk op(s) in plan)",
+            data={"bulk_op_count": bulk_op_count},
+        )
+
+    if status in (403, 404):
+        msg = (
+            f"Bulk device jobs not supported for this org (HTTP {status}) — "
+            f"set bulk_device_threshold=999999 in config.json to disable bulk ops"
+        )
+        return CheckResult(
+            name="Bulk device job support",
+            status=CheckStatus.FAIL,
+            detail=msg,
+            issues=[PreflightIssue("BULK_JOB_UNSUPPORTED", msg)],
+            data={"bulk_op_count": bulk_op_count, "probe_status": status},
+        )
+
+    return CheckResult(
+        name="Bulk device job support",
+        status=CheckStatus.WARN,
+        detail=f"Bulk device job probe returned HTTP {status}: {err}",
+        issues=[PreflightIssue("BULK_JOB_PROBE_UNEXPECTED",
+                               f"HTTP {status}: {err}")],
+        data={"bulk_op_count": bulk_op_count, "probe_status": status},
     )
