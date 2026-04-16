@@ -83,12 +83,16 @@ Capture the `location_id` for the target location.
    wxcli devices list --mac MAC_ADDRESS --output json
    ```
 
-2. Check the `product` field in the response. **Route based on model family:**
-   - **9800-series** (product contains "9811", "9821", "9841", "9851", "9861", or "9871"): This device uses RoomOS config keys. **Redirect to the `device-platform` skill** with context: "This is a 9800-series phone that uses `device-configurations` (RoomOS config keys), not `device-settings`."
-   - **Room, Board, Desk series**: Same — redirect to `device-platform` skill.
+2. Check the `product` field in the response. **Route based on model family and operation type:**
+   - **9800-series** (product contains "9811", "9821", "9841", "9851", "9861", or "9871"):
+     - **Device-level settings** (`show-settings-devices`, `update-settings-devices`): These 404 on 9800-series. **Redirect to the `device-platform` skill** for RoomOS config keys (ringtone, standby, display, wallpaper, etc.).
+     - **Line Key Templates** (create, list, show, update, delete, apply): **Stay in this skill.** Works with model `"Cisco 98xx"`.
+     - **Device member management** (list members, update members/ports): **Stay in this skill.** Works normally.
+     - **Person-level device settings** (`show-settings-devices-3`): **Stay in this skill.** Works (limited fields).
+   - **Room, Board, Desk series**: Redirect to `device-platform` skill for all configuration.
    - **MPP 68xx, 78xx, 88xx, ATA**: Continue with `device-settings` commands in this skill.
 
-**Why this matters:** The 9800-series phones are `productType: phone` but run PhoneOS (RoomOS-derived). Calling `device-settings` on them returns 400 "device type does not support settings through Webex Calling." The agent must check the model BEFORE attempting settings operations.
+**Why this matters:** The 9800-series phones are `productType: phone` but run PhoneOS (RoomOS-derived). Only device-level settings endpoints (`show-settings-devices`, `update-settings-devices`) fail on 9800-series with 404. Line key templates, member management, and person-level settings work fine through the telephony config API. Do not blanket-redirect all 9800-series operations — route by operation type.
 
 See `docs/reference/devices-core.md` Section 5a (Device Settings API Router) for the full routing table.
 

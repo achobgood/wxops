@@ -729,7 +729,7 @@ def update_device_settings(
 )
 ```
 
-Lists/updates MPP and ATA device-level settings. DECT devices are not supported. After updating, call `apply_changes()` to push to the device.
+Lists/updates MPP and ATA device-level settings. DECT devices are not supported. **9800-series phones (9811-9871) return 404** on these device-level settings endpoints — use Device Configurations (RoomOS keys) for per-device config instead. However, 9800-series phones DO support person-level device settings (see below) — the response returns limited fields (e.g., `compression`). After updating, call `apply_changes()` to push to the device.
 
 **Example:**
 
@@ -1327,6 +1327,12 @@ Before attempting to read or change device-level settings, determine which API s
 
 **The 9800-series is the exception that breaks assumptions.** They are `productType: phone` but run PhoneOS (RoomOS-derived) and use RoomOS config keys, not the telephony device settings model. Treating all phones as `device-settings` targets will fail on 9800-series devices.
 
+**9800-series nuances:**
+- **Per-device config:** Device Configurations (RoomOS keys) via `device-configurations` -- CONFIRMED working.
+- **Line Key Templates:** 9800-series DOES support Line Key Templates (model string `"Cisco 9861"` etc.) via the same `device-settings` LKT endpoints as MPP. This is the one `device-settings` feature that works for 9800-series.
+- **Device-level settings:** `show-settings-devices` returns **404** for 9800-series -- CONFIRMED.
+- **Person-level device settings:** `get-person-device-settings` works but returns **limited fields** (e.g., `compression`) -- CONFIRMED.
+
 #### Programmatic detection
 
 If the model is unknown or you want to be safe, query the telephony device details and check the `deviceSettingsConfigurationModelId` field:
@@ -1620,7 +1626,7 @@ templates = result.get("lineKeyTemplates", [])
 # Create
 body = {
     "templateName": "Standard Layout",
-    "deviceModel": "DMS Cisco 8845",
+    "deviceModel": "DMS Cisco 8845",  # MPP: "DMS Cisco XXXX"; 9800-series: "Cisco 98XX" (no "DMS" prefix)
     "lineKeys": [
         {"lineKeyIndex": 1, "lineKeyType": "PRIMARY_LINE"},
         {"lineKeyIndex": 2, "lineKeyType": "MONITOR"},
@@ -1629,6 +1635,18 @@ body = {
 }
 result = api.session.rest_post(f"{BASE}/telephony/config/devices/lineKeyTemplates", json=body)
 template_id = result.get("id")
+
+# 9800-series example — note no "DMS" prefix in model string
+body_9800 = {
+    "templateName": "9861 Standard Layout",
+    "deviceModel": "Cisco 9861",
+    "lineKeys": [
+        {"lineKeyIndex": 1, "lineKeyType": "PRIMARY_LINE"},
+        {"lineKeyIndex": 2, "lineKeyType": "MONITOR"},
+        {"lineKeyIndex": 3, "lineKeyType": "OPEN"}
+    ]
+}
+result = api.session.rest_post(f"{BASE}/telephony/config/devices/lineKeyTemplates", json=body_9800)
 
 # Get details
 result = api.session.rest_get(f"{BASE}/telephony/config/devices/lineKeyTemplates/{template_id}")
@@ -1766,6 +1784,8 @@ result = api.session.rest_get(f"{BASE}/telephony/config/devices/dectNetworks/sup
 7. **No auto-pagination.** Pass `max=1000` on list endpoints. The `rest_get` method does not auto-paginate like SDK generator methods do.
 8. **CTI Route Point protocol varies by device pool.** CTI Route Points require SCCP protocol on some device pools — SIP protocol assignment fails with "Device Protocol not valid" error. When creating CTI Route Points via AXL, try SCCP first if SIP fails, or verify the device pool's supported protocols before assignment.
 9. **Org/location device settings PUT affects all matching devices on next sync. No rollback.** The PUT to `/telephony/config/locations/{id}/devices/settings` immediately queues the settings for all devices at that location. There is no way to preview or roll back.
+10. **9800-series model string format differs from older MPP.** Older MPP phones use `"DMS Cisco 8845"` (with "DMS" prefix); 9800-series phones use `"Cisco 9861"` (no "DMS" prefix). Using the wrong format for Line Key Templates or device creation will fail. Check `list-supported-devices` output for the exact `model` string.
+11. **9800-series device settings are split across API surfaces.** Device-level settings (`show-settings-devices`) returns 404. Per-device config uses Device Configurations (RoomOS keys). Person-level device settings (`get-person-device-settings`) works but returns limited fields (e.g., `compression`). Line Key Templates work normally via the `device-settings` LKT endpoints. This makes 9800-series the only phone family that spans three API surfaces.
 
 ---
 
