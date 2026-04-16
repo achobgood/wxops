@@ -531,6 +531,13 @@ async def _run_per_device_fallback(
     handler can resolve the device. If the handler still returns no calls
     (e.g. because the settings dict is empty but present), a direct PUT
     to the device settings endpoint is issued using the record's data.
+
+    Fix #7: aggregate errors instead of fail-fast. A single bad device
+    should not mask the fate of the rest — we collect unresolved and
+    per-device failures, log a WARNING summary after the loop, and
+    return a compacted error string listing the first few failures plus
+    totals. Fix #8: handler may return ``SkippedResult`` — treat that as
+    a per-device failure (not a bare TypeError on iteration).
     """
     handler_key = fallback_context.get("fallback_handler_key")
     handler = HANDLER_REGISTRY.get(handler_key) if handler_key else None
@@ -541,13 +548,23 @@ async def _run_per_device_fallback(
     deps = fallback_context.get("deps", {})
     ctx = fallback_context.get("ctx", {})
 
+    unresolved: list[str] = []
+    per_device_errors: list[tuple[str, str]] = []
+
     for wid in failed_webex_ids:
         record = covered.get(wid)
         if not record:
-            return False, f"Failed device {wid} not in covered_devices"
+            unresolved.append(wid)
+            continue
         # Augment deps with the device's own webex_id so handler can resolve it.
         per_device_deps = {**deps, record["canonical_id"]: record["webex_id"]}
         calls = handler(record.get("data", {}), per_device_deps, ctx)
+        # Fix #8: a handler that returns SkippedResult is truthy but not
+        # iterable — unwrap it as a per-device failure with the reason so
+        # the `for method, url, body in calls` loop never sees it.
+        if isinstance(calls, SkippedResult):
+            per_device_errors.append((wid, f"skipped: {calls.reason}"))
+            continue
         if not calls:
             # Handler returned no-op. Issue a direct settings PUT using the
             # record's data (supports both "device_settings" and "settings" keys).
@@ -559,13 +576,37 @@ async def _run_per_device_fallback(
                 continue  # truly nothing to apply → treat as success
             url = f"{BASE}/telephony/config/devices/{wid}/settings"
             calls = [("PUT", url, settings)]
+        call_failed = False
         for method, url, body in calls:
             async with semaphore:
                 async with session.request(method, url, json=body) as resp:
                     if resp.status >= 400:
                         text = await resp.text()
-                        return False, f"{wid} fallback {resp.status}: {text[:200]}"
-    return True, None
+                        per_device_errors.append(
+                            (wid, f"fallback {resp.status}: {text[:200]}")
+                        )
+                        call_failed = True
+                        break
+        if call_failed:
+            continue
+
+    # Fix #7: emit a single WARNING summary after the loop so the operator
+    # sees every unresolved / failed device in one line, not one exception
+    # per case. Only fires when there's something to report.
+    if unresolved or per_device_errors:
+        logger.warning(
+            "Fallback summary: %d unresolved devices %s, %d per-device failures",
+            len(unresolved), unresolved, len(per_device_errors),
+        )
+
+    if not unresolved and not per_device_errors:
+        return True, None
+    # Compact error: list the first 3 per-device errors plus totals for the
+    # operator-facing OpResult.error. Unresolved count makes it in too.
+    head = per_device_errors[:3]
+    return False, (
+        f"unresolved={len(unresolved)}, failed={len(per_device_errors)}: {head}"
+    )
 
 
 async def _try_find_existing(

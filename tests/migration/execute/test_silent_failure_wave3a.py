@@ -314,8 +314,9 @@ class TestValidateJobId:
             _validate_job_id(12345)  # type: ignore[arg-type]
 
     def test_plausible_id_accepted(self):
-        # 3+ chars is enough to pass; long realistic URN also passes.
-        _validate_job_id("JOB")
+        # 10+ chars is the enforced floor (Fix #4). Anything shorter is
+        # treated as a truncation / parse bug. Long realistic URNs pass.
+        _validate_job_id("JOB_OK_0123")  # 11 chars, above the floor
         _validate_job_id("Y2lzY29zcGFyazovL3VzL0pPQi8xMjM0NQ==")
 
 
@@ -383,3 +384,145 @@ class TestExecuteBulkOpMalformedJobId:
         assert not result.success
         assert result.status == 500
         assert "malformed job_id" in (result.error or "")
+
+
+# ---------------------------------------------------------------------------
+# Finding #7 + #8 — _run_per_device_fallback aggregates errors & handles
+# SkippedResult instead of raising TypeError.
+# ---------------------------------------------------------------------------
+
+
+class TestRunPerDeviceFallbackSkippedResult:
+    """Fix #8: a fallback handler can legitimately return ``SkippedResult``
+    when a required upstream dep is missing. Previously that sentinel — a
+    truthy, non-iterable frozen dataclass — would raise ``TypeError`` on
+    the ``for method, url, body in calls`` loop. Fix must detect and record
+    it as a per-device failure with the reason, without the loop ever
+    seeing it.
+    """
+
+    @pytest.mark.asyncio
+    async def test_skipped_result_recorded_as_failure_not_raised(self):
+        """Handler returns ``SkippedResult`` for the failed device. Fallback
+        must return ``(False, "...skipped: dep X missing...")`` rather than
+        bubble a TypeError from attempting to iterate the sentinel."""
+        from wxcli.migration.execute.engine import _run_per_device_fallback
+        from wxcli.migration.execute.handlers import (
+            HANDLER_REGISTRY,
+            SkippedResult,
+        )
+
+        sentinel_key = ("__test__", "skipped_always")
+
+        def _always_skipped(data, deps, ctx):
+            return SkippedResult(reason="dep X missing")
+
+        HANDLER_REGISTRY[sentinel_key] = _always_skipped
+        try:
+            fallback_ctx = {
+                "fallback_handler_key": sentinel_key,
+                "covered_devices": [
+                    {"canonical_id": "device:d1",
+                     "webex_id": "DEV1",
+                     "data": {"settings": {}}},
+                ],
+                "deps": {},
+                "ctx": {},
+            }
+
+            import aiohttp
+
+            async with aiohttp.ClientSession() as session:
+                sem = asyncio.Semaphore(5)
+                ok, err = await _run_per_device_fallback(
+                    session, ["DEV1"], fallback_ctx, sem,
+                )
+        finally:
+            HANDLER_REGISTRY.pop(sentinel_key, None)
+
+        assert ok is False
+        assert err is not None
+        # Error message surfaces the SkippedResult reason. The exact shape
+        # is "unresolved=0, failed=1: [('DEV1', 'skipped: dep X missing')]"
+        # but we just assert the key bits.
+        assert "dep X missing" in err
+        assert "skipped" in err.lower()
+        assert "DEV1" in err
+
+
+class TestRunPerDeviceFallbackAggregation:
+    """Fix #7: collect all unresolved + per-device failures and emit one
+    WARN summary, instead of returning on the first missing device."""
+
+    @pytest.mark.asyncio
+    async def test_unresolved_and_errors_aggregated_not_fail_fast(self, caplog):
+        """Three devices in failed_webex_ids: one unresolved (not in
+        covered), one returning 400 from the PUT, one succeeding. Old
+        behavior was to return False on the first unresolved case. New
+        behavior collects both the unresolved id and the 400-failure,
+        emits ONE WARN summary after the loop, and returns a compacted
+        error string with counts."""
+        import logging
+
+        from wxcli.migration.execute.engine import _run_per_device_fallback
+
+        fallback_ctx = {
+            "fallback_handler_key": ("device", "configure_settings"),
+            "covered_devices": [
+                # Only DEV2 and DEV3 are covered; DEV1 is unresolved.
+                # Both records must have a canonical_id that's keyed in
+                # per_device_deps (the engine auto-augments with that one
+                # entry) so the handle_device_configure_settings handler
+                # can resolve the device and return real calls.
+                {"canonical_id": "device:d2",
+                 "webex_id": "DEV2",
+                 "data": {
+                     "canonical_id": "device:d2",
+                     "device_settings": {"allowThirdPartyControl": True},
+                 }},
+                {"canonical_id": "device:d3",
+                 "webex_id": "DEV3",
+                 "data": {
+                     "canonical_id": "device:d3",
+                     "device_settings": {"allowThirdPartyControl": True},
+                 }},
+            ],
+            "deps": {},
+            "ctx": {},
+        }
+
+        import aiohttp
+
+        with aioresponses() as m:
+            # DEV2 → 400 (per-device failure).
+            m.put(f"{BASE}/telephony/config/devices/DEV2/settings",
+                  status=400, payload={"message": "boom"})
+            # DEV3 → 204 (success).
+            m.put(f"{BASE}/telephony/config/devices/DEV3/settings", status=204)
+
+            async with aiohttp.ClientSession() as session:
+                sem = asyncio.Semaphore(5)
+                with caplog.at_level(logging.WARNING,
+                                      logger="wxcli.migration.execute.engine"):
+                    ok, err = await _run_per_device_fallback(
+                        session, ["DEV1", "DEV2", "DEV3"], fallback_ctx, sem,
+                    )
+
+        # Aggregated result: not ok, error cites unresolved=1 and failed=1.
+        assert ok is False
+        assert err is not None
+        assert "unresolved=1" in err
+        assert "failed=1" in err
+        assert "DEV2" in err  # the 400 failure is in the first-3 head.
+        # A single WARN summary fired, naming the unresolved DEV1 and
+        # the per-device failure count.
+        summaries = [
+            r.message for r in caplog.records
+            if r.levelno == logging.WARNING and "Fallback summary" in r.message
+        ]
+        assert len(summaries) == 1, (
+            f"expected exactly one WARN summary, got: {summaries}"
+        )
+        assert "1 unresolved" in summaries[0]
+        assert "DEV1" in summaries[0]
+        assert "1 per-device failure" in summaries[0]
