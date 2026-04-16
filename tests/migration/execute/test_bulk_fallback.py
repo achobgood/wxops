@@ -61,7 +61,7 @@ async def test_partial_failure_runs_per_device_fallback():
     covered = [
         {"canonical_id": f"device:d{i}",
          "webex_id": f"DEV{i}",
-         "data": {"id": f"DEV{i}", "settings": {}}}
+         "data": {"canonical_id": f"device:d{i}", "id": f"DEV{i}", "settings": {}}}
         for i in range(10)
     ]
     fallback_ctx = {
@@ -109,13 +109,14 @@ async def test_partial_failure_runs_per_device_fallback():
 @pytest.mark.asyncio
 async def test_partial_failure_fallback_itself_fails():
     submit_url = f"{BASE}/telephony/config/jobs/devices/callDeviceSettings"
-    poll_url = f"{submit_url}/JOB_BAD"
+    poll_url = f"{submit_url}/Y2lzY29zcGFyazovL3VzL0pPQi9CQURfNDQ0NDQ0"
     errors_url = f"{poll_url}/errors"
     calls = [("POST", submit_url, {"locationId": "LOC"})]
 
     covered = [
         {"canonical_id": "device:d1",
-         "webex_id": "DEV1", "data": {"id": "DEV1", "settings": {}}},
+         "webex_id": "DEV1",
+         "data": {"canonical_id": "device:d1", "id": "DEV1", "settings": {}}},
     ]
     fallback_ctx = {
         "fallback_handler_key": ("device", "configure_settings"),
@@ -124,7 +125,7 @@ async def test_partial_failure_fallback_itself_fails():
     }
 
     with aioresponses() as m:
-        m.post(submit_url, status=202, payload={"id": "JOB_BAD"})
+        m.post(submit_url, status=202, payload={"id": "Y2lzY29zcGFyazovL3VzL0pPQi9CQURfNDQ0NDQ0"})
         m.get(poll_url, status=200, payload={
             "latestExecutionExitCode": "COMPLETED",
             "percentageComplete": 100,

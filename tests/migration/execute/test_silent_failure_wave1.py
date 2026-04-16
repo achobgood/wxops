@@ -341,13 +341,13 @@ class TestBulkZeroUpdateNoFallback:
     @pytest.mark.asyncio
     async def test_zero_update_without_fallback_context_is_failure(self):
         submit_url = f"{BASE}/telephony/config/jobs/devices/callDeviceSettings"
-        poll_url = f"{submit_url}/JOB_ZERO"
+        poll_url = f"{submit_url}/Y2lzY29zcGFyazovL3VzL0pPQi9aRVJPXzExMTExMTE"
         calls = [("POST", submit_url, {"locationId": "LOC"})]
 
         import aiohttp
 
         with aioresponses() as m:
-            m.post(submit_url, status=202, payload={"id": "JOB_ZERO"})
+            m.post(submit_url, status=202, payload={"id": "Y2lzY29zcGFyazovL3VzL0pPQi9aRVJPXzExMTExMTE"})
             m.get(poll_url, status=200, payload={
                 "latestExecutionExitCode": "COMPLETED",
                 "percentageComplete": 100,
@@ -376,13 +376,13 @@ class TestBulkZeroUpdateNoFallback:
     async def test_nonzero_update_without_fallback_context_still_succeeds(self):
         """Legacy behavior: updated > 0 with no context stays success (can't verify expected)."""
         submit_url = f"{BASE}/telephony/config/jobs/devices/callDeviceSettings"
-        poll_url = f"{submit_url}/JOB_NZ"
+        poll_url = f"{submit_url}/Y2lzY29zcGFyazovL3VzL0pPQi9OWl8yMjIyMjIyMg"
         calls = [("POST", submit_url, {"locationId": "LOC"})]
 
         import aiohttp
 
         with aioresponses() as m:
-            m.post(submit_url, status=202, payload={"id": "JOB_NZ"})
+            m.post(submit_url, status=202, payload={"id": "Y2lzY29zcGFyazovL3VzL0pPQi9OWl8yMjIyMjIyMg"})
             m.get(poll_url, status=200, payload={
                 "latestExecutionExitCode": "COMPLETED",
                 "percentageComplete": 100,
@@ -425,7 +425,7 @@ class TestBulkPartialIncompleteErrorEndpoint:
         covered = [
             {"canonical_id": f"device:d{i}",
              "webex_id": f"DEV{i}",
-             "data": {"id": f"DEV{i}", "settings": {}}}
+             "data": {"canonical_id": f"device:d{i}", "id": f"DEV{i}", "settings": {}}}
             for i in range(10)
         ]
         fallback_ctx = {
@@ -488,7 +488,7 @@ class TestBulkPartialIncompleteErrorEndpoint:
         covered = [
             {"canonical_id": f"device:d{i}",
              "webex_id": f"DEV{i}",
-             "data": {"id": f"DEV{i}", "settings": {}}}
+             "data": {"canonical_id": f"device:d{i}", "id": f"DEV{i}", "settings": {}}}
             for i in range(5)
         ]
         fallback_ctx = {
