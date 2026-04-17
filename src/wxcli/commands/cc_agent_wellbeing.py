@@ -1,6 +1,6 @@
 import json
 import typer
-from wxc_sdk.rest import RestError
+from wxcli.errors import WebexError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 from wxcli.config import get_org_id, get_cc_base_url
@@ -22,7 +22,7 @@ def show(
     url = f"{cc_base_url}/organization/{orgid}/agent-burnout/{id}"
     try:
         result = api.session.rest_get(url)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -89,7 +89,7 @@ def update(
             body["organizationId"] = organization_id
     try:
         result = api.session.rest_put(url, json=body)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -144,7 +144,7 @@ def cmd_list(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -204,7 +204,7 @@ def create(
             body["secret"] = secret
     try:
         result = api.session.rest_post(url, json=body)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -263,7 +263,7 @@ def create_action(
             body["agentId"] = agent_id
     try:
         result = api.session.rest_post(url, json=body)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)

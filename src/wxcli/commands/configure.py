@@ -1,14 +1,13 @@
 import typer
 from datetime import datetime, timedelta, timezone
 
-from wxc_sdk import WebexSimpleApi
-
+from wxcli.auth import WebexApi, WebexSession
 from wxcli.config import DEFAULT_CONFIG_PATH, load_config, save_config, save_org
 
 app = typer.Typer(help="Configure authentication.")
 
 
-def _detect_and_select_org(api: WebexSimpleApi) -> tuple[str | None, str | None]:
+def _detect_and_select_org(api: WebexApi) -> tuple[str | None, str | None]:
     """Detect multi-org token and prompt for org selection. Returns (org_id, org_name)."""
     try:
         result = api.session.rest_get("https://webexapis.com/v1/organizations")
@@ -43,8 +42,8 @@ def configure():
 
     typer.echo("Validating token...")
     try:
-        api = WebexSimpleApi(tokens=token)
-        me = api.people.me()
+        api = WebexApi(WebexSession(token))
+        me = api.session.rest_get("https://webexapis.com/v1/people/me")
     except Exception as e:
         typer.echo(f"Error: Invalid token — {e}", err=True)
         raise typer.Exit(1)
@@ -58,8 +57,11 @@ def configure():
     profile["expires_at"] = expires_at
     save_config(config)
 
-    typer.echo(f"Authenticated: {me.display_name} ({me.emails[0]})")
-    typer.echo(f"Org: {me.org_id}")
+    display_name = me.get("displayName", "")
+    email = (me.get("emails") or ["unknown"])[0]
+    org_id = me.get("orgId", "")
+    typer.echo(f"Authenticated: {display_name} ({email})")
+    typer.echo(f"Org: {org_id}")
 
     # Multi-org detection
     org_id, org_name = _detect_and_select_org(api)

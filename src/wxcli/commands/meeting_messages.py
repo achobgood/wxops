@@ -1,6 +1,6 @@
 import json
 import typer
-from wxc_sdk.rest import RestError
+from wxcli.errors import WebexError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 
@@ -21,7 +21,7 @@ def delete(
     url = f"https://webexapis.com/v1/meeting/messages/{meeting_message_id}"
     try:
         api.session.rest_delete(url)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
