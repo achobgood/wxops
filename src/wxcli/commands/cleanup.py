@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 import click
 import typer
 from rich.console import Console
-from wxc_sdk.rest import RestError
+from wxcli.errors import WebexError
 
 # Location-delete retry tuning: after the initial 90s calling-detach
 # propagation wait, 17-location orgs have been observed to still 409 on
@@ -236,7 +236,7 @@ def list_resources(
                 for item in items:
                     item.setdefault("locationId", loc_id)
                 all_items.extend(items)
-            except RestError as e:
+            except WebexError as e:
                 logger.warning("Failed to list %s in location %s: %s", rt.name, loc_id, e)
         return all_items
 
@@ -246,7 +246,7 @@ def list_resources(
         items = list(api.session.follow_pagination(
             url=url, params=params, item_key=rt.item_key,
         ))
-    except RestError as e:
+    except WebexError as e:
         logger.warning("Failed to list %s: %s", rt.name, e)
         return []
 
@@ -405,7 +405,7 @@ def disable_location_calling(
             resource_name=f"disable-calling:{location_id}",
             success=True,
         )
-    except RestError as e:
+    except WebexError as e:
         return DeleteResult(
             resource_type="Location Calling",
             resource_id=location_id,
@@ -675,7 +675,7 @@ def delete_location(
                 resource_name=name,
                 success=True,
             )
-        except RestError as e:
+        except WebexError as e:
             last_error = str(e)
             is_conflict = "409" in last_error or "conflict" in last_error.lower()
 
@@ -772,7 +772,7 @@ def list_location_numbers(
         if isinstance(result, dict):
             return result.get("phoneNumbers", [])
         return result if isinstance(result, list) else []
-    except RestError as e:
+    except WebexError as e:
         logger.warning("Failed to list numbers for location %s: %s", location_id, e)
         return []
 
@@ -814,7 +814,7 @@ def delete_location_numbers(
                     resource_name=num,
                     success=True,
                 ))
-        except RestError as e:
+        except WebexError as e:
             err_str = str(e)
             # CCP-integrated PSTN: number lifecycle is managed via the PSTN
             # portal, not the API. Log and skip — don't treat as a failure.
