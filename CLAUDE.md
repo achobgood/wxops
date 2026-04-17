@@ -249,7 +249,7 @@ Periodic gap reports live in `docs/reports/postman-spec-sync-YYYY-MM-DD.md`. Run
 
 Offline alternative (no MCP needed — export the Postman collection first):
 ```
-python3.11 tools/postman_spec_diff.py \
+python3.14 tools/postman_spec_diff.py \
     --spec specs/webex-cloud-calling.json \
     --postman exported-calling.json \
     --skip-tags tools/field_overrides.yaml
@@ -340,18 +340,18 @@ See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for fu
 - **Never create new hand-written command files** unless adding functionality that the generator cannot produce (e.g., multi-step workflows, file downloads). 3 legacy hand-written files remain (`locations.py`, `numbers.py`, `licenses.py`) — these are a known drift risk that miss generator improvements. `users.py` was retired and replaced with an alias to the generated `people` command group. `converged_recordings_export.py` is a deliberate hand-written extension that registers `download` and `export` commands onto the generated `converged_recordings` group via a `register(app)` pattern. For simple CRUD commands, use the generator. If a generated command needs custom behavior, use `field_overrides.yaml`.
 - **`auto_inject_from_config`** — `field_overrides.yaml` supports an `auto_inject_from_config: ["orgId"]` key per endpoint. Parameters listed here are omitted from `--help` and injected automatically from the saved config at runtime. This replaces the older `omit_query_params` approach for `orgId`.
 - **Spec files:** 7 OpenAPI 3.0 specs in `specs/` (`webex-cloud-calling.json`, `webex-admin.json`, `webex-device.json`, `webex-messaging.json`, `webex-meetings.json`, `webex-contact-center.json`, `webex-wholesale.json`)
-- Regenerate one tag: `PYTHONPATH=. python3.11 tools/generate_commands.py --spec specs/webex-cloud-calling.json --tag "Tag Name"`
-- Regenerate one spec (all tags): `PYTHONPATH=. python3.11 tools/generate_commands.py --spec specs/webex-cloud-calling.json --all`
+- Regenerate one tag: `PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-cloud-calling.json --tag "Tag Name"`
+- Regenerate one spec (all tags): `PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-cloud-calling.json --all`
 - Regenerate all specs:
   ```
-  PYTHONPATH=. python3.11 tools/generate_commands.py --spec specs/webex-cloud-calling.json --all
-  PYTHONPATH=. python3.11 tools/generate_commands.py --spec specs/webex-admin.json --all
-  PYTHONPATH=. python3.11 tools/generate_commands.py --spec specs/webex-device.json --all
-  PYTHONPATH=. python3.11 tools/generate_commands.py --spec specs/webex-messaging.json --all
-  PYTHONPATH=. python3.11 tools/generate_commands.py --spec specs/webex-meetings.json --all
-  PYTHONPATH=. python3.11 tools/generate_commands.py --spec specs/webex-contact-center.json --all
+  PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-cloud-calling.json --all
+  PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-admin.json --all
+  PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-device.json --all
+  PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-messaging.json --all
+  PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-meetings.json --all
+  PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-contact-center.json --all
   ```
-- Reinstall after regen: `pip3.11 install -e . -q`
+- Reinstall after regen: `pip3.14 install -e . -q`
 
 ### Templates, Examples & Plans
 

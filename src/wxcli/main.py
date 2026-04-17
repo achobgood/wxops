@@ -2,7 +2,7 @@ import typer
 from datetime import datetime, timezone
 
 from wxcli import __version__
-from wxcli.auth import get_api, resolve_token
+from wxcli.auth import get_api, resolve_token, WebexApi, WebexSession
 from wxcli.config import get_expires_at, get_org_id, get_org_name, save_org
 
 app = typer.Typer(
@@ -31,17 +31,20 @@ def whoami(
 ):
     """Show current authenticated user and org."""
     api = get_api(debug=debug)
-    me = api.people.me()
+    me = api.session.rest_get("https://webexapis.com/v1/people/me")
 
-    typer.echo(f"User:  {me.display_name} ({me.emails[0]})")
-    typer.echo(f"Org:   {me.org_id}")
+    display_name = me.get("displayName", "")
+    email = (me.get("emails") or ["unknown"])[0]
+    org_id = me.get("orgId", "")
+    typer.echo(f"User:  {display_name} ({email})")
+    typer.echo(f"Org:   {org_id}")
 
     target_org_id = get_org_id()
     target_org_name = get_org_name()
     if target_org_id:
         typer.echo(f"Target: {target_org_id}  ({target_org_name})")
 
-    roles = getattr(me, "roles", None)
+    roles = me.get("roles")
     if roles:
         typer.echo(f"Roles: {', '.join(roles)}")
 
@@ -68,14 +71,12 @@ def switch_org(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Switch target organization for partner multi-org tokens."""
-    from wxc_sdk import WebexSimpleApi
-
     token = resolve_token()
     if not token:
         typer.echo("Error: No token found. Run 'wxcli configure' first.", err=True)
         raise typer.Exit(1)
 
-    api = WebexSimpleApi(tokens=token)
+    api = WebexApi(WebexSession(token))
 
     if org_id:
         # Direct switch — resolve org name

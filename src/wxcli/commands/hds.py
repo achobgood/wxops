@@ -1,6 +1,6 @@
 import json
 import typer
-from wxc_sdk.rest import RestError
+from wxcli.errors import WebexError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 
@@ -19,7 +19,7 @@ def show(
     url = f"https://webexapis.com/v1/hds/organizations/{organization_id}"
     try:
         result = api.session.rest_get(url)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -62,7 +62,7 @@ def show_clusters(
     url = f"https://webexapis.com/v1/hds/clusters/{cluster_id}"
     try:
         result = api.session.rest_get(url)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -105,7 +105,7 @@ def show_nodes(
     url = f"https://webexapis.com/v1/hds/nodes/{node_id}"
     try:
         result = api.session.rest_get(url)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -155,7 +155,7 @@ def cmd_list(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -202,7 +202,7 @@ def list_multi_tenant(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -252,7 +252,7 @@ def list_network_test(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -305,7 +305,7 @@ def list_availability(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)

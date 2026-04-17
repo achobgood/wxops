@@ -1,6 +1,6 @@
 import json
 import typer
-from wxc_sdk.rest import RestError
+from wxcli.errors import WebexError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 from wxcli.config import get_org_id, get_cc_base_url
@@ -43,7 +43,7 @@ def cmd_list(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -113,7 +113,7 @@ def create(
             body["id"] = id_param
     try:
         result = api.session.rest_post(url, json=body)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -161,7 +161,7 @@ def create_bulk(
         body = {}
     try:
         result = api.session.rest_post(url, json=body)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -217,7 +217,7 @@ def list_bulk_export(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -267,7 +267,7 @@ def create_purge_inactive_entities(
         body = {}
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -311,7 +311,7 @@ def show(
     url = f"{cc_base_url}/organization/{orgid}/skill/{id}"
     try:
         result = api.session.rest_get(url)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -384,7 +384,7 @@ def update(
             body["id"] = id_param
     try:
         result = api.session.rest_put(url, json=body)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -423,7 +423,7 @@ def delete(
     url = f"{cc_base_url}/organization/{orgid}/skill/{id}"
     try:
         api.session.rest_delete(url)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -476,7 +476,7 @@ def list_incoming_references(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -542,7 +542,7 @@ def list_skill(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)

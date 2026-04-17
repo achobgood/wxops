@@ -1,9 +1,12 @@
 """Centralized error handler for wxcli commands."""
-from wxc_sdk.rest import RestError
 import typer
 
 
-def handle_rest_error(e: RestError) -> None:
+class WebexError(Exception):
+    pass
+
+
+def handle_rest_error(e: WebexError) -> None:
     """Centralized error handler with actionable tips."""
     err = str(e)
     if "25008" in err:

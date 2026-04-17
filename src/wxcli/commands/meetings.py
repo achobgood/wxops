@@ -1,6 +1,6 @@
 import json
 import typer
-from wxc_sdk.rest import RestError
+from wxcli.errors import WebexError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 
@@ -23,7 +23,7 @@ def show(
         params["hostEmail"] = host_email
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -81,7 +81,7 @@ def cmd_list(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -124,7 +124,7 @@ def show_controls(
         params["meetingId"] = meeting_id
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -183,7 +183,7 @@ def update(
             body["recordingPaused"] = recording_paused
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -230,7 +230,7 @@ def list_session_types(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -277,7 +277,7 @@ def show_session_types(
         params["siteUrl"] = site_url
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -333,7 +333,7 @@ def list_registration(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -425,7 +425,7 @@ def update_registration(
             body["requireJobTitle"] = require_job_title
     try:
         result = api.session.rest_put(url, json=body)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -462,7 +462,7 @@ def delete(
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/registration"
     try:
         api.session.rest_delete(url)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -519,7 +519,7 @@ def list_registrants(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -613,7 +613,7 @@ def create(
             body["sendEmail"] = send_email
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -662,7 +662,7 @@ def create_reassign_host(
             body["hostEmail"] = host_email
     try:
         result = api.session.rest_post(url, json=body)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -781,7 +781,7 @@ def list_meetings(
             items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
             items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -934,7 +934,7 @@ def create_meetings(
             body["automaticLockMinutes"] = automatic_lock_minutes
     try:
         result = api.session.rest_post(url, json=body)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -988,7 +988,7 @@ def create_bulk_insert(
         body = {}
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1038,7 +1038,7 @@ def create_end(
             body["reason"] = reason
     try:
         result = api.session.rest_post(url, json=body)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1088,7 +1088,7 @@ def show_registrants(
         params["hostEmail"] = host_email
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1147,7 +1147,7 @@ def create_registrants(
             body["sendEmail"] = send_email
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1199,7 +1199,7 @@ def delete_registrants(
         params["hostEmail"] = host_email
     try:
         api.session.rest_delete(url, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1249,7 +1249,7 @@ def create_reject(
             body["sendEmail"] = send_email
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1306,7 +1306,7 @@ def create_cancel(
             body["sendEmail"] = send_email
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1372,7 +1372,7 @@ def create_query(
             body["orderType"] = order_type
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1429,7 +1429,7 @@ def create_bulk_delete(
             body["sendEmail"] = send_email
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1493,7 +1493,7 @@ def list_meetings_admin(
             if "max" not in params:
                 params["max"] = 1000
             items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1541,7 +1541,7 @@ def list_interpreters(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1604,7 +1604,7 @@ def create_interpreters(
             body["sendEmail"] = send_email
     try:
         result = api.session.rest_post(url, json=body)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1653,7 +1653,7 @@ def list_breakout_sessions(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1703,7 +1703,7 @@ def update_breakout_sessions(
             body["sendEmail"] = send_email
     try:
         result = api.session.rest_put(url, json=body)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1744,7 +1744,7 @@ def delete_breakout_sessions(
         params["sendEmail"] = send_email
     try:
         api.session.rest_delete(url, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1786,7 +1786,7 @@ def show_meetings(
         params["hostEmail"] = host_email
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1929,7 +1929,7 @@ def update_meetings(
             body["automaticLockMinutes"] = automatic_lock_minutes
     try:
         result = api.session.rest_put(url, json=body)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -2064,7 +2064,7 @@ def update_meetings_1(
             body["automaticLockMinutes"] = automatic_lock_minutes
     try:
         result = api.session.rest_patch(url, json=body)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -2108,7 +2108,7 @@ def delete_meetings(
         params["sendEmail"] = send_email
     try:
         api.session.rest_delete(url, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -2150,7 +2150,7 @@ def list_survey(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -2197,7 +2197,7 @@ def update_simultaneous_interpretation(
             body["enabled"] = enabled
     try:
         result = api.session.rest_put(url, json=body)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -2236,7 +2236,7 @@ def show_meetings_admin(
         params["current"] = current
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -2294,7 +2294,7 @@ def create_approve(
             body["sendEmail"] = send_email
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -2349,7 +2349,7 @@ def list_survey_results(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -2413,7 +2413,7 @@ def list_templates(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -2467,7 +2467,7 @@ def create_survey_links(
             body["meetingStartTimeTo"] = meeting_start_time_to
     try:
         result = api.session.rest_post(url, json=body)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -2549,7 +2549,7 @@ def create_join(
             body["expirationMinutes"] = expiration_minutes
     try:
         result = api.session.rest_post(url, json=body)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -2598,7 +2598,7 @@ def list_invitation_sources(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -2649,7 +2649,7 @@ def create_invitation_sources(
             body["personId"] = person_id
     try:
         result = api.session.rest_post(url, json=body)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -2696,7 +2696,7 @@ def show_interpreters(
         params["hostEmail"] = host_email
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -2762,7 +2762,7 @@ def update_interpreters(
             body["sendEmail"] = send_email
     try:
         result = api.session.rest_put(url, json=body)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -2807,7 +2807,7 @@ def delete_interpreters(
         params["sendEmail"] = send_email
     try:
         api.session.rest_delete(url, params=params)
-    except RestError as e:
+    except WebexError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
