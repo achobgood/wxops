@@ -9,7 +9,7 @@ from pathlib import Path
 import requests
 import typer
 from rich.console import Console
-from wxc_sdk.rest import RestError
+from wxcli.errors import WebexError
 
 from wxcli.auth import get_api
 from wxcli.errors import handle_rest_error
@@ -111,7 +111,7 @@ def register(app: typer.Typer) -> None:
 
         try:
             result = download_recording_artifacts(api, recording_id, out_path, include_audio)
-        except RestError as e:
+        except WebexError as e:
             handle_rest_error(e)
             return  # unreachable — handle_rest_error always raises
         except Exception as e:
@@ -179,7 +179,7 @@ def register(app: typer.Typer) -> None:
             recordings = list(api.session.follow_pagination(url=list_url, params=params, item_key="items"))
             if limit > 0:
                 recordings = recordings[:limit]
-        except RestError as e:
+        except WebexError as e:
             handle_rest_error(e)
             return
 
@@ -279,7 +279,7 @@ def register(app: typer.Typer) -> None:
                     if dl_result.audio_path:
                         audio_count += 1
 
-                except RestError as e:
+                except WebexError as e:
                     logger.warning("Failed to export recording %s: %s", rec_id, e)
                     failed_ids.append(rec_id)
                 except Exception as e:
