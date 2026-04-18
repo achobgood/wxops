@@ -56,27 +56,44 @@ Note: 4 blocks (always, busy, noAnswer, businessContinuity). selectiveForward is
 ### Workspace hoteling
 ```bash
 wxcli device-settings update-devices-workspaces WORKSPACE_ID --enabled  # Enable workspace hoteling host
-wxcli user-settings update-hoteling PERSON_ID --json-body '{"enabled": true}'  # Person hoteling (simple toggle)
+wxcli user-settings update-hoteling PERSON_ID --json-body '{"enabled": true}'  # Person hoteling guest (simple toggle)
 ```
+- Workspace hoteling host requires **Professional** workspace license (Basic returns 405).
+- Supports `--limit-guest-use` + `--guest-hours-limit N` for time-limited guest sessions.
+- Guest users must ALSO have person-level hoteling enabled (`user-settings update-hoteling`) to sign in.
 
 ### Receptionist client
 ```bash
 wxcli user-settings list-reception PERSON_ID -o json
 wxcli user-settings update-reception PERSON_ID --json-body '{"receptionEnabled": true, "monitoredMembers": ["ID1", "ID2"]}'
 ```
-API path is `/features/reception` (NOT `/features/receptionist`). `receptionEnabled` must be `true` if members set.
+- API path is `/features/reception` (NOT `/features/receptionist`). Person-level only — no workspace equivalent.
+- `receptionEnabled` must be `true` if `monitoredMembers` is non-empty.
+- Max 50 monitored members. Members can be person or workspace IDs.
 
 ### SimRing (USER-ONLY — no admin endpoint, use SNR instead)
 ```bash
 wxcli single-number-reach list-single-number-reach PERSON_ID -o json
 wxcli single-number-reach create PERSON_ID --phone-number "+15551234567" --enabled --name "Mobile"
 ```
+- **Why not SimRing directly:** The `/people/{id}/settings/simultaneousRing` admin path returns 404. SimRing exists ONLY at `/people/me/settings/simultaneousRing` (user-level OAuth). No admin can configure it for another user.
+- SNR achieves the same result (desk + mobile ring simultaneously) and is admin-configurable.
+- SNR uses `telephony_config_read/write` scopes (not `people_read/write`).
 
-### Executive-assistant pairing
+### Executive-assistant pairing (3-step process)
 ```bash
+# Step 1: Assign roles
 wxcli user-settings update-executive-assistant EXEC_ID --json-body '{"type": "EXECUTIVE"}'
 wxcli user-settings update-executive-assistant ASST_ID --json-body '{"type": "EXECUTIVE_ASSISTANT"}'
+# Step 2: Link the assistant to the executive
+wxcli user-settings update-assigned-assistants EXEC_ID --json-body '{"assistantIds": ["ASST_ID"]}'
+# Step 3: Verify both sides
+wxcli user-settings show-executive-assistant EXEC_ID -o json
+wxcli user-settings list-assigned-assistants EXEC_ID -o json
 ```
+- Both users require **Professional** Calling license (Basic does not support exec-asst).
+- Type assignment uses `people_write` scope; assigned-assistants linkage uses `telephony_config_write` scope.
+- Rollback: set both to `--type UNASSIGNED` (auto-unlinks).
 
 ### Command group mapping (do NOT guess — use this table)
 | Setting domain | wxcli group | NOT this group |
