@@ -19,12 +19,85 @@ argument-hint: [person-email-or-workspace-name]
 
 If you cannot answer both, you skipped reading this skill. Go back and read it.
 
-## Step 1: Load references
+## Quick Recipes — Use These Exact Commands
 
-1. Read `docs/reference/person-call-settings-handling.md` for call handling settings (forwarding, call waiting, DND, sim ring, sequential ring, SNR, selective accept/forward/reject, priority alert)
-2. Read `docs/reference/person-call-settings-media.md` for voicemail, caller ID, privacy, barge, recording, intercept, monitoring, push-to-talk, music on hold
-3. Read `docs/reference/person-call-settings-permissions.md` for incoming/outgoing permissions, feature access codes, executive/assistant
-4. Read `docs/reference/person-call-settings-behavior.md` for calling behavior, app services, shared line, hoteling, receptionist, numbers, preferred answer, MS Teams, mode management, personal assistant, ECBN
+**These are the authoritative command names. Use them exactly as shown. Do NOT construct command names from reference doc terminology.**
+
+### Recording setup (3-level prerequisite chain)
+```bash
+wxcli call-recording show -o json                          # 1. Org-level recording vendor
+wxcli call-recording list-vendors -o json                  # 2. Per-location vendor assignment
+wxcli user-settings show-call-recording PERSON_ID -o json  # 3. Person recording
+wxcli user-settings update-call-recording PERSON_ID --json-body '{"enabled": true, "record": "Always"}'
+```
+
+### Voicemail transcription (location-scoped — affects ALL users at location)
+```bash
+wxcli location-voicemail show LOCATION_ID -o json          # Location voicemail policy
+wxcli location-voicemail update LOCATION_ID --json-body '{"voiceMessageTranscriptionEnabled": true}'
+wxcli user-settings update-voicemail PERSON_ID --json-body '{"enabled": true, "emailCopyOfMessage": {"enabled": true, "emailId": "user@example.com"}}'
+```
+
+### Call forwarding (PUT replaces entire object — read first, carry ALL blocks)
+```bash
+wxcli user-settings show-call-forwarding PERSON_ID -o json
+wxcli user-settings update-call-forwarding PERSON_ID --json-body '{
+  "always": {"enabled": false},
+  "busy": {"enabled": true, "destination": "+15551234567", "destinationVoicemailEnabled": false},
+  "noAnswer": {"enabled": false, "numberOfRings": 3},
+  "businessContinuity": {"enabled": false}
+}'
+```
+Note: 4 blocks (always, busy, noAnswer, businessContinuity). selectiveForward is a SEPARATE API.
+
+### Workspace hoteling
+```bash
+wxcli device-settings update-devices-workspaces WORKSPACE_ID --enabled  # Enable workspace hoteling host
+wxcli user-settings update-hoteling PERSON_ID --json-body '{"enabled": true}'  # Person hoteling (simple toggle)
+```
+
+### Receptionist client
+```bash
+wxcli user-settings list-reception PERSON_ID -o json
+wxcli user-settings update-reception PERSON_ID --json-body '{"receptionEnabled": true, "monitoredMembers": ["ID1", "ID2"]}'
+```
+API path is `/features/reception` (NOT `/features/receptionist`). `receptionEnabled` must be `true` if members set.
+
+### SimRing (USER-ONLY — no admin endpoint, use SNR instead)
+```bash
+wxcli single-number-reach list-single-number-reach PERSON_ID -o json
+wxcli single-number-reach create PERSON_ID --phone-number "+15551234567" --enabled --name "Mobile"
+```
+
+### Executive-assistant pairing
+```bash
+wxcli user-settings update-executive-assistant EXEC_ID --json-body '{"type": "EXECUTIVE"}'
+wxcli user-settings update-executive-assistant ASST_ID --json-body '{"type": "EXECUTIVE_ASSISTANT"}'
+```
+
+### Command group mapping (do NOT guess — use this table)
+| Setting domain | wxcli group | NOT this group |
+|---------------|-------------|----------------|
+| Org call recording | `call-recording` | ~~location-call-settings~~ |
+| Location voicemail | `location-voicemail` | ~~location-call-settings~~ |
+| Person settings | `user-settings` | — |
+| Workspace settings | `workspace-settings` | — |
+| Workspace hoteling | `device-settings` | ~~workspace-settings~~ |
+
+---
+
+## Step 1: Load references (only what you need)
+
+Load ONLY the reference docs relevant to the user's specific request. Do NOT load all 4 by default.
+
+| If the request involves... | Load this doc |
+|---------------------------|---------------|
+| Forwarding, DND, call waiting, sim ring, SNR | `docs/reference/person-call-settings-handling.md` |
+| Voicemail, caller ID, recording, intercept, monitoring | `docs/reference/person-call-settings-media.md` |
+| Permissions, executive/assistant, feature access | `docs/reference/person-call-settings-permissions.md` |
+| Hoteling, receptionist, calling behavior, numbers | `docs/reference/person-call-settings-behavior.md` |
+
+**For recording + voicemail scenarios:** Load `person-call-settings-media.md` only. The location-level recording commands are in the Quick Recipes above — you do NOT need to load any location-call-settings docs.
 
 ## Step 2: Verify auth token
 
@@ -212,8 +285,8 @@ Present the user with the settings categories. Ask which settings they want to r
 |---------|-------------------|---------------------|-------|
 | Calling Behavior | `show-calling-behavior` | `update-calling-behavior` | Which Webex telephony app handles calls |
 | App Services | `show` | `update` | Client platforms (browser, desktop, tablet, mobile) and ring behavior |
-| Hoteling | `show-hoteling` | `update-hoteling` | Simple on/off; workspace-level API has more options |
-| Receptionist Client | `list-reception` | `update-reception` | Monitored members list; enabled must be True if members are set |
+| Hoteling | `show-hoteling` | `update-hoteling` | Person-level only. **Workspace hoteling:** use `wxcli device-settings update-devices-workspaces WORKSPACE_ID --enabled` |
+| Receptionist Client | `list-reception` | `update-reception` | `receptionEnabled` must be `true` if members set. Path: `/features/reception` (NOT receptionist) |
 | Numbers | `list-numbers` | — | Primary + alternate numbers; distinctive ring patterns |
 | Preferred Answer Endpoint | — | — | Which device/app answers by default (SDK only for now) |
 | MS Teams | — | — | HIDE_WEBEX_APP, PRESENCE_SYNC (SDK only for now) |
@@ -292,19 +365,16 @@ wxcli user-settings show-barge-in PERSON_ID --output json
 
 ### 4b. Check for location-level dependencies
 
-Before configuring these settings, verify location-level prerequisites are met. **Run the verification command before attempting the person-level setting.**
+Use the exact commands from the Quick Recipes section. Key prerequisites:
 
-| Setting | Location Prerequisite | Verification |
-|---------|----------------------|-------------|
-| Music on Hold | `moh_location_enabled` must be `true` at location level | `wxcli location-settings show LOCATION_ID -o json` — check for MoH field |
-| Call Recording | Org must have recording vendor configured | `wxcli call-recording show -o json` — if empty/error, recording vendor not configured |
-| Call Intercept | Location-level intercept settings serve as defaults | `wxcli location-settings show LOCATION_ID -o json` |
-| Voicemail | Location-level voicemail policies (transcription, expiry) govern person-level behavior | `wxcli location-voicemail show LOCATION_ID -o json` |
+| Setting | Verify command | Fix command |
+|---------|----------------|-------------|
+| Call Recording (org) | `wxcli call-recording show -o json` | `wxcli call-recording update --json-body '{...}'` |
+| Call Recording (location vendor) | `wxcli call-recording list-vendors -o json` | `wxcli call-recording update-vendor-call-recording LOC_ID --json-body '{...}'` |
+| Voicemail transcription | `wxcli location-voicemail show LOC_ID -o json` | `wxcli location-voicemail update LOC_ID --json-body '{...}'` |
+| Music on Hold | No wxcli command — use Control Hub or SDK | — |
 
-**If the prerequisite isn't met:**
-- **MoH:** Enable at location level first (SDK or Control Hub — no wxcli command yet)
-- **Recording:** Configure org-level recording vendor via `wxcli call-recording` or Control Hub
-- **Voicemail:** Location policies apply automatically; configure via `wxcli location-voicemail update`
+**Do NOT use `location-call-settings` for recording or voicemail.** That group handles dial patterns only.
 
 ### 4c. Verify scope coverage
 
@@ -351,18 +421,17 @@ wxcli user-settings update-do-not-disturb PERSON_ID --json-body '{"enabled": tru
 #### Pattern: Complex nested settings (read first, modify fields, write back)
 
 ```bash
-# 1. Read current forwarding
+# 1. Read current forwarding — capture ALL 4 blocks
 wxcli user-settings show-call-forwarding PERSON_ID --output json
-# 2. Modify and write back — enable always-forward to a destination
+# 2. PUT replaces entire object — include ALL blocks, modify only target
 wxcli user-settings update-call-forwarding PERSON_ID --json-body '{
-  "callForwarding": {
-    "always": {
-      "enabled": true,
-      "destination": "+15551234567"
-    }
-  }
+  "always": {"enabled": false},
+  "busy": {"enabled": true, "destination": "+15551234567", "destinationVoicemailEnabled": false},
+  "noAnswer": {"enabled": false, "numberOfRings": 3},
+  "businessContinuity": {"enabled": false}
 }'
 ```
+Forwarding has 4 blocks: always, busy, noAnswer, businessContinuity. selectiveForward is a SEPARATE API.
 
 #### Pattern: Voicemail configuration
 
