@@ -739,6 +739,28 @@ Next steps:
 18. **DECT is not supported for Webex for Government (FedRAMP).**
 19. **Workspace call settings mirror person call settings.** Use `wxcli workspace-settings` with the workspace ID. The sub-API is the same as person settings but workspace-scoped.
 20. **Maximum 5 devices per user (hardware + soft clients).** `POST /devices` and `POST /devices/activationCode` return HTTP 400 `"Phones cannot be added to this user"` on the 6th device. Server-enforced, not configurable. Orphan devices from prior failed attempts count against the cap — delete stale devices before retrying. See `docs/reference/devices-core.md` Gotcha #12.
+21. **Model string format differs by phone family.** Classic MPP phones use `"DMS Cisco 8845"` (with DMS prefix). 9800-series phones use `"Cisco 9861"` (no DMS prefix). Using the wrong format for device creation or line key templates will fail. Check `wxcli device-settings list-supported-devices-dects --output json` for exact model strings.
+22. **DECT display name character limits.** Network `displayName` is max 11 characters. Handset `customDisplayName` is 1-16 characters. Exceeding limits returns 400.
+23. **DECT access code must be unique within the location.** If two DECT networks at the same location share an access code, handsets may register with the wrong network.
+
+---
+
+## Registered CLI Groups (this skill only)
+
+These are the **exact group names** registered in `wxcli`. Do not use any other group names:
+
+| CLI Group | Source File | Commands |
+|-----------|-----------|----------|
+| `wxcli devices` | `devices.py` | list, create, show, update, delete, create-activation-code |
+| `wxcli device-settings` | `device_settings.py` | 46 commands (members, LKT, layout, settings, hoteling, validation, background images, jobs) |
+| `wxcli dect-devices` | `dect_devices.py` | 23 commands (networks, base stations, handsets, bulk, associations, serviceability) |
+| `wxcli workspaces` | `workspaces.py` | list, create, show, update, delete, show-capabilities |
+| `wxcli workspace-settings` | `workspace_settings.py` | 60+ commands (call settings, monitoring, permissions, voicemail, recording) |
+| `wxcli device-configurations` | `device_configurations.py` | show, update (PhoneOS/RoomOS config keys) |
+| `wxcli hot-desk` | `hot_desk.py` | list, delete |
+| `wxcli hot-desking-portal` | `hot_desking_portal.py` | show, update, show-guest, update-guest |
+
+**NOT registered:** `user-call-settings` (file exists but not wired into CLI). Use `wxcli device-settings update-hoteling` for person-level hoteling.
 
 ---
 
