@@ -14,7 +14,7 @@ argument-hint: [routing-component]
 # Configure Call Routing Workflow
 
 **Checkpoint — do NOT proceed until you can answer these:**
-1. What is the creation dependency chain for routing? (Answer: Trunk → Route Group → Route List → Dial Plan. Create in this order, delete in reverse.)
+1. What is the creation dependency chain for routing? (Answer: Trunk → Route Group → then Dial Plan AND Route List in parallel. Each dial plan has ONE route target, so different patterns routing to different trunks/groups need separate dial plans.)
 2. Do routing delete commands use singular or plural names? (Answer: plural — `delete-route-groups`, `delete-trunks`, `delete-route-lists`.)
 
 If you cannot answer both, you skipped reading this skill. Go back and read it.
@@ -118,22 +118,25 @@ Routing components have hard dependencies. You **must** create them in this orde
    |
 2: Route Group (optional -- bundles trunks for failover)
    |
-3: Dial Plan (pattern matching -> trunk or route group)
+   +---> 3a: Dial Plan (pattern matching -> trunk or route group)
    |
-4: Translation Pattern (optional -- digit rewrite before routing)
+   +---> 3b: Route List (optional -- for Dedicated Instance cloud PSTN)
    |
-5: PSTN Connection (points a location to trunk or route group)
+4: PSTN Connection (points a location to trunk or route group)
    |
-6: Route List (optional -- for Dedicated Instance cloud PSTN)
+5: Translation Pattern (independent -- digit rewrite before outbound routing)
    |
-7: Test Call Routing (validate the configuration)
+6: Test Call Routing (validate the configuration)
 ```
 
 **Why this order matters:**
 - A Dial Plan requires an existing trunk or route group as its route choice -- you cannot create a dial plan without one.
 - A Route Group requires existing trunk(s) -- you cannot create a route group without trunks.
 - A Route List requires an existing route group.
+- Dial Plans and Route Lists are parallel branches from Route Group -- neither depends on the other.
 - PSTN Connection points to either a trunk or route group -- they must exist first.
+- Translation Patterns have no dependencies -- they can be created at any point.
+- **Each dial plan has exactly one route target** (one trunk or one route group). To route different patterns to different targets, create separate dial plans.
 
 **Deletion order (reverse):**
 
@@ -566,7 +569,7 @@ Next steps:
 
 ## Critical Rules
 
-1. **Strict dependency order.** Create Trunk -> Route Group -> Dial Plan -> PSTN Connection. Reversing the order will fail because each component references the one before it.
+1. **Strict dependency order.** Create Trunk → Route Group → then Dial Plan and Route List (parallel) → PSTN Connection. Reversing the order will fail because each component references the one before it.
 2. **Always show the deployment plan** (Step 5) and wait for user confirmation before executing. Routing changes can affect live calls immediately.
 3. **Dial plans require an existing trunk or route group.** You cannot create a standalone dial plan without a route choice.
 4. **Trunk type, location, and device type are immutable after creation.** To change any of these, delete and recreate the trunk.
