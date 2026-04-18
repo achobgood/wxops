@@ -24,8 +24,8 @@ If you cannot answer all three, you skipped reading this skill. Go back and read
 # Dry-run first — shows what would be deleted
 wxcli cleanup run --scope "Location Name" --dry-run
 
-# Delete all resources at specific locations
-wxcli cleanup run --scope "DP-HQ-Phones,DP-Branch-Phones" --include-users --force
+# Delete all resources at specific locations (--include-users is ORG-WIDE — always pair with --exclude-user-domains)
+wxcli cleanup run --scope "DP-HQ-Phones,DP-Branch-Phones" --include-users --exclude-user-domains "wbx.ai" --force
 
 # Delete everything in the org
 wxcli cleanup run --all --include-users --include-locations --force
@@ -42,7 +42,7 @@ wxcli cleanup run --scope "GlobalTech*" --max-concurrent 10 --force
 **Key behaviors:**
 - **Phone numbers** are removed automatically before location deletion (batched in groups of 5, main numbers skipped). Numbers assigned to a location block location deletion with 409.
 - **Location deletion cannot be completed via API.** The public API cannot disable Webex Calling on a location — the telephony detach endpoint returns 404 in most orgs. `wxcli cleanup --include-locations` will remove all resources AT the location (features, routing, devices, users, numbers) but the location itself will remain calling-enabled and 409 on delete. **The operator must finish location deletion in Control Hub** (Locations → select location → disable Webex Calling → delete). Always tell the user this upfront when `--include-locations` is requested.
-- **`--exclude-user-domains`** filters users by email domain — useful for keeping admin accounts while deleting migration-created users.
+- **`--include-users` is ORG-WIDE, not location-scoped.** Even with `--scope "SomeLocation"`, `--include-users` will delete ALL users across the entire org — including admin accounts. **Always pair with `--exclude-user-domains`** to protect admin and service accounts (e.g., `--exclude-user-domains "wbx.ai,company.com"`). Failing to do this WILL delete your org admins.
 
 **Always dry-run first** for any scope larger than a single location.
 
