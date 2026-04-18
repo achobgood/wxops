@@ -27,6 +27,9 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
 - `validate-a-list` has NO `--macs` flag and NO `--output` flag — use `--json-body '{"macs":["..."]}'` (always outputs JSON)
 - `create-base-stations` has NO `--base-station-macs` flag — use `--json-body '{"baseStationMacs":["..."]}'`
 - Person-level hoteling is `wxcli device-settings update-hoteling` — NOT `wxcli user-call-settings` (that group does not exist in the CLI; the registered group is `user-settings`)
+- Hoteling read/write split: UPDATE is `device-settings update-hoteling`, but READ/VERIFY is `user-settings show-hoteling` — different groups! There is no `show-hoteling` in `device-settings`.
+- LKT delete is `wxcli device-settings delete TEMPLATE_ID` — NOT `delete-line-key-templates` (that command doesn't exist)
+- `create-apply-line-key-template` has named flags `--action` and `--template-id` — prefer these over `--json-body` for simple applies
 
 ## Step 2: Verify auth token
 
@@ -562,11 +565,8 @@ wxcli device-settings create --json-body '{
 # Preview how many devices would be affected
 wxcli device-settings preview-apply-line TEMPLATE_ID --output json
 
-# Apply template to devices
-wxcli device-settings create-apply-line-key-template --json-body '{
-  "action": "APPLY_TEMPLATE",
-  "templateId": "TEMPLATE_ID"
-}'
+# Apply template to devices (has named flags — simpler than --json-body)
+wxcli device-settings create-apply-line-key-template --action APPLY_TEMPLATE --template-id TEMPLATE_ID
 
 # Check apply job status
 wxcli device-settings list-apply-line-key-template --output json
@@ -635,7 +635,9 @@ When creating a workspace, set `hotdeskingStatus` to `on`. For hot-desk-only wor
 
 **Person side: enable hoteling:**
 
-Use `wxcli device-settings update-hoteling PERSON_ID --json-body '{"hoteling":{"enabled":true}}'` to enable hoteling on a person's profile. **Do NOT use `wxcli user-call-settings`** — that CLI group does not exist (the file exists in source but is not registered). The registered group for person call settings is `wxcli user-settings`, but for hoteling specifically, `wxcli device-settings update-hoteling` is the correct command.
+Use `wxcli device-settings update-hoteling PERSON_ID --json-body '{"hoteling":{"enabled":true}}'` to enable hoteling on a person's profile. **Do NOT use `wxcli user-call-settings`** — that CLI group does not exist (the file exists in source but is not registered).
+
+**Hoteling read/write asymmetry:** The update command is `wxcli device-settings update-hoteling`, but the read/verify command is `wxcli user-settings show-hoteling PERSON_ID` — they are in different CLI groups. There is no `show-hoteling` in `device-settings`.
 
 **Manage hot desk sessions:**
 
