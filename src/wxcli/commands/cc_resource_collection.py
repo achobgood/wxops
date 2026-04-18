@@ -1,6 +1,6 @@
 import json
 import typer
-from wxcli.errors import WebexError
+from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 from wxcli.config import get_org_id, get_cc_base_url
@@ -21,7 +21,7 @@ def create(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Resource Collection\n\nExample --json-body:\n  '{"name":"...","version":"...","organizationId":"...","resources":[{"name":"...","accessLevel":"...","ids":"..."}],"description":"...","resourceCount":"..."}'."""
+    """Create a new Resource Collection\n\nExample --json-body:\n  '{"name":"...","version":"...","organizationId":"...","resources":[{"name":"...","accessLevel":"...","ids":"..."}],"description":"...","resourceCount":"...","id":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -44,7 +44,7 @@ def create(
             body["id"] = id_param
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -91,7 +91,7 @@ def update(
         body = {}
     try:
         result = api.session.rest_patch(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -138,7 +138,7 @@ def create_update_resource(
             body["resourceId"] = resource_id
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -182,7 +182,7 @@ def show(
     url = f"{cc_base_url}/organization/{orgid}/resource-collection/{id}"
     try:
         result = api.session.rest_get(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -226,7 +226,7 @@ def update_resource_collection(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Resource Collection by ID\n\nExample --json-body:\n  '{"name":"...","version":"...","organizationId":"...","resources":[{"name":"...","accessLevel":"...","ids":"..."}],"description":"...","resourceCount":"..."}'."""
+    """Update specific Resource Collection by ID\n\nExample --json-body:\n  '{"name":"...","version":"...","organizationId":"...","resources":[{"name":"...","accessLevel":"...","ids":"..."}],"description":"...","resourceCount":"...","id":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -249,7 +249,7 @@ def update_resource_collection(
             body["id"] = id_param
     try:
         result = api.session.rest_put(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -288,7 +288,7 @@ def delete(
     url = f"{cc_base_url}/organization/{orgid}/resource-collection/{id}"
     try:
         api.session.rest_delete(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -346,7 +346,7 @@ def cmd_list(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -404,7 +404,7 @@ def list_incoming_references(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)

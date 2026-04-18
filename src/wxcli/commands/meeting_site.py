@@ -1,6 +1,6 @@
 import json
 import typer
-from wxcli.errors import WebexError
+from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 
@@ -22,7 +22,7 @@ def show(
         params["siteUrl"] = site_url
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -59,7 +59,7 @@ def update(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Meeting Common Settings Configuration\n\nExample --json-body:\n  '{"siteOptions":{"allowCustomPersonalRoomURL":"..."},"defaultSchedulerOptions":{"VoIP":"...","telephonySupport":"...","joinTeleconfNotPress1":"...","entryAndExitTone":"...","tollFree":"..."},"securityOptions":{"audioBeforeHost":"...","firstAttendeeAsPresenter":"...","unlistAllMeetings":"...","requireLoginBeforeAccess":"...","allowMobileScreenCapture":"...","requireStrongPassword":"..."},"scheduleMeetingOptions":{"emailReminders":"..."}}'."""
+    """Update Meeting Common Settings Configuration\n\nExample --json-body:\n  '{"siteOptions":{"allowCustomPersonalRoomURL":"..."},"defaultSchedulerOptions":{"VoIP":"...","telephonySupport":"...","joinTeleconfNotPress1":"...","entryAndExitTone":"...","tollFree":"..."},"securityOptions":{"audioBeforeHost":"...","firstAttendeeAsPresenter":"...","unlistAllMeetings":"...","requireLoginBeforeAccess":"...","allowMobileScreenCapture":"...","requireStrongPassword":"...","passwordCriteria":{"minNumeric":"...","minAlpha":"...","minSpecial":"...","minLength":"...","disallowList":"...","disallowValues":"...","disallowDynamicWebText":"...","mixedCase":"..."},"joinBeforeHost":"..."},"scheduleMeetingOptions":{"emailReminders":"..."}}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/admin/meeting/config/commonSettings"
     if json_body:
@@ -68,7 +68,7 @@ def update(
         body = {}
     try:
         result = api.session.rest_patch(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)

@@ -1,6 +1,6 @@
 import json
 import typer
-from wxcli.errors import WebexError
+from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 from wxcli.config import get_cc_base_url
@@ -26,7 +26,7 @@ def update(
         body = {}
     try:
         result = api.session.rest_patch(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -64,7 +64,7 @@ def show(
     url = f"{cc_base_url}/api/progressive-profile-view/workspace-id/{workspace_id}/person-id/{person_id}/template-name/{template_name}"
     try:
         result = api.session.rest_get(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -108,7 +108,7 @@ def show_workspace_id_api(
     url = f"{cc_base_url}/admin/v1/api/workspace/workspace-id/{workspace_id}"
     try:
         result = api.session.rest_get(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -162,7 +162,7 @@ def update_workspace_id(
             body["description"] = description
     try:
         result = api.session.rest_put(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -200,7 +200,7 @@ def delete(
     url = f"{cc_base_url}/admin/v1/api/workspace/workspace-id/{workspace_id}"
     try:
         api.session.rest_delete(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -237,7 +237,7 @@ def show_template_id_workspace_id(
     url = f"{cc_base_url}/admin/v1/api/profile-view-template/workspace-id/{workspace_id}/template-id/{template_id}"
     try:
         result = api.session.rest_get(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -277,7 +277,7 @@ def update_template_id(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update existing ProfileViewTemplate\n\nExample --json-body:\n  '{"attributes":[{"version":"...","rules":"...","widgetAttributes":"...","limit":"...","metaDataType":"...","metaData":"..."}],"name":"..."}'."""
+    """Update existing ProfileViewTemplate\n\nExample --json-body:\n  '{"attributes":[{"version":"...","rules":"...","widgetAttributes":"...","limit":"...","metaDataType":"...","metaData":"...","lookBackDurationType":"...","lookBackPeriod":"..."}],"name":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/admin/v1/api/profile-view-template/workspace-id/{workspace_id}/template-id/{template_id}"
@@ -289,7 +289,7 @@ def update_template_id(
             body["name"] = name
     try:
         result = api.session.rest_put(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -328,7 +328,7 @@ def delete_template_id(
     url = f"{cc_base_url}/admin/v1/api/profile-view-template/workspace-id/{workspace_id}/template-id/{template_id}"
     try:
         api.session.rest_delete(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -369,7 +369,7 @@ def update_person_id_workspace_id(
         body = {}
     try:
         result = api.session.rest_patch(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -408,7 +408,7 @@ def delete_person_id(
     url = f"{cc_base_url}/admin/v1/api/person/workspace-id/{workspace_id}/person-id/{person_id}"
     try:
         api.session.rest_delete(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -449,7 +449,7 @@ def update_person_id_workspace_id_1(
         body = {}
     try:
         result = api.session.rest_patch(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -485,7 +485,7 @@ def show_workspace_id_wxcc_subscription(
     url = f"{cc_base_url}/admin/v1/api/wxcc-subscription/workspace-id/{workspace_id}"
     try:
         result = api.session.rest_get(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -534,7 +534,7 @@ def create(
         body = {}
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -579,7 +579,7 @@ def delete_workspace_id(
     url = f"{cc_base_url}/admin/v1/api/wxcc-subscription/workspace-id/{workspace_id}"
     try:
         api.session.rest_delete(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -636,7 +636,7 @@ def cmd_list(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -691,7 +691,7 @@ def create_workspace(
             body["description"] = description
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -750,7 +750,7 @@ def show_workspace_id_profile_view_template(
         params["pageSize"] = page_size
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -790,7 +790,7 @@ def create_workspace_id_profile_view_template(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Template\n\nExample --json-body:\n  '{"attributes":[{"version":"...","rules":"...","widgetAttributes":"...","limit":"...","metaDataType":"...","metaData":"..."}],"name":"..."}'."""
+    """Create Template\n\nExample --json-body:\n  '{"attributes":[{"version":"...","rules":"...","widgetAttributes":"...","limit":"...","metaDataType":"...","metaData":"...","lookBackDurationType":"...","lookBackPeriod":"..."}],"name":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/admin/v1/api/profile-view-template/workspace-id/{workspace_id}"
@@ -802,7 +802,7 @@ def create_workspace_id_profile_view_template(
             body["name"] = name
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -864,7 +864,7 @@ def show_workspace_id_person(
         params["pageSize"] = page_size
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -919,7 +919,7 @@ def create_workspace_id_person(
             body["lastName"] = last_name
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -963,7 +963,7 @@ def show_template_name_workspace_id(
     url = f"{cc_base_url}/admin/v1/api/profile-view-template/workspace-id/{workspace_id}/template-name/{template_name}"
     try:
         result = api.session.rest_get(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1021,7 +1021,7 @@ def show_aliases(
         params["pageSize"] = page_size
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1066,7 +1066,7 @@ def show_template_id_workspace_id_1(
     url = f"{cc_base_url}/admin/v1/api/journey-actions/workspace-id/{workspace_id}/template-id/{template_id}"
     try:
         result = api.session.rest_get(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1125,7 +1125,7 @@ def create_template_id(
             body["cooldownPeriodInMinutes"] = cooldown_period_in_minutes
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1170,7 +1170,7 @@ def show_action_name(
     url = f"{cc_base_url}/admin/v1/api/journey-actions/workspace-id/{workspace_id}/template-id/{template_id}/action-name/{action_name}"
     try:
         result = api.session.rest_get(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1216,7 +1216,7 @@ def show_template_name_person_id(
     url = f"{cc_base_url}/admin/v1/api/progressive-profile-view/workspace-id/{workspace_id}/person-id/{person_id}/template-name/{template_name}"
     try:
         result = api.session.rest_get(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1282,7 +1282,7 @@ def show_workspace_id_events(
         params["pageSize"] = page_size
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1328,7 +1328,7 @@ def show_template_id_identity(
     url = f"{cc_base_url}/api/progressive-profile-view/stream/workspace-id/{workspace_id}/identity/{identity}/template-id/{template_id}"
     try:
         result = api.session.rest_get(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1377,7 +1377,7 @@ def update_person_id_workspace_id_2(
         body = {}
     try:
         result = api.session.rest_patch(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1415,7 +1415,7 @@ def show_action_id(
     url = f"{cc_base_url}/admin/v1/api/journey-actions/workspace-id/{workspace_id}/template-id/{template_id}/action-id/{action_id}"
     try:
         result = api.session.rest_get(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1474,7 +1474,7 @@ def update_action_id(
             body["cooldownPeriodInMinutes"] = cooldown_period_in_minutes
     try:
         result = api.session.rest_put(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1514,7 +1514,7 @@ def delete_action_id(
     url = f"{cc_base_url}/admin/v1/api/journey-actions/workspace-id/{workspace_id}/template-id/{template_id}/action-id/{action_id}"
     try:
         api.session.rest_delete(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1563,7 +1563,7 @@ def show_workspace_id_journey_actions(
         params["pageSize"] = page_size
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1618,7 +1618,7 @@ def create_workspace_id_merge_identities(
             body["lastName"] = last_name
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1667,7 +1667,7 @@ def create_primary_person_id(
         body = {}
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1712,7 +1712,7 @@ def show_template_id_person_id(
     url = f"{cc_base_url}/api/progressive-profile-view/workspace-id/{workspace_id}/person-id/{person_id}/template-id/{template_id}"
     try:
         result = api.session.rest_get(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1758,7 +1758,7 @@ def show_template_name_identity(
     url = f"{cc_base_url}/api/progressive-profile-view/workspace-id/{workspace_id}/identity/{identity}/template-name/{template_name}"
     try:
         result = api.session.rest_get(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1804,7 +1804,7 @@ def show_template_id_identity_1(
     url = f"{cc_base_url}/api/progressive-profile-view/workspace-id/{workspace_id}/identity/{identity}/template-id/{template_id}"
     try:
         result = api.session.rest_get(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1850,7 +1850,7 @@ def show_template_name_identity_1(
     url = f"{cc_base_url}/api/progressive-profile-view/stream/workspace-id/{workspace_id}/identity/{identity}/template-name/{template_name}"
     try:
         result = api.session.rest_get(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1902,7 +1902,7 @@ def show_identity(
         params["data"] = data
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1950,7 +1950,7 @@ def create_event(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Journey Event Posting\n\nExample --json-body:\n  '{"source":"...","identity":"...","id":"...","datacontenttype":"...","identitytype":"...","specversion":"..."}'."""
+    """Journey Event Posting\n\nExample --json-body:\n  '{"source":"...","identity":"...","id":"...","datacontenttype":"...","identitytype":"...","specversion":"...","previousidentity":"...","time":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/publish/v1/api/event"
@@ -1981,7 +1981,7 @@ def create_event(
             body["type"] = type_param
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)

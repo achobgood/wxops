@@ -1,6 +1,6 @@
 import json
 import typer
-from wxcli.errors import WebexError
+from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 from wxcli.config import get_org_id
@@ -24,7 +24,7 @@ def show(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -78,7 +78,7 @@ def update(
             body["voicemailTranscriptionEnabled"] = voicemail_transcription_enabled
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -117,7 +117,7 @@ def show_voice_portal(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -162,7 +162,7 @@ def update_voice_portal(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update VoicePortal\n\nExample --json-body:\n  '{"name":"...","languageCode":"...","extension":"...","phoneNumber":"...","firstName":"...","lastName":"..."}'."""
+    """Update VoicePortal\n\nExample --json-body:\n  '{"name":"...","languageCode":"...","extension":"...","phoneNumber":"...","firstName":"...","lastName":"...","passcode":{"newPasscode":"...","confirmPasscode":"..."},"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."}}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/voicePortal"
     params = {}
@@ -189,7 +189,7 @@ def update_voice_portal(
             body["dialByName"] = dial_by_name
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -228,7 +228,7 @@ def show_passcode_rules(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -289,7 +289,7 @@ def cmd_list(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -334,7 +334,7 @@ def show_voicemail_groups(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -384,7 +384,7 @@ def update_voicemail_groups(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Location Voicemail Group\n\nExample --json-body:\n  '{"name":"...","phoneNumber":"...","extension":0,"firstName":"...","lastName":"...","enabled":true}'."""
+    """Modify Location Voicemail Group\n\nExample --json-body:\n  '{"name":"...","phoneNumber":"...","extension":0,"firstName":"...","lastName":"...","enabled":true,"passcode":0,"languageCode":"..."}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/voicemailGroups/{voicemail_group_id}"
     params = {}
@@ -419,7 +419,7 @@ def update_voicemail_groups(
             body["dialByName"] = dial_by_name
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -461,7 +461,7 @@ def delete(
         params["orgId"] = org_id
     try:
         api.session.rest_delete(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -500,7 +500,7 @@ def create(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Voicemail Group for a Location\n\nExample --json-body:\n  '{"name":"...","phoneNumber":"...","extension":0,"firstName":"...","lastName":"...","passcode":0}'."""
+    """Create a new Voicemail Group for a Location\n\nExample --json-body:\n  '{"name":"...","extension":0,"passcode":0,"languageCode":"...","messageStorage":{"storageType":"INTERNAL","externalEmail":"..."},"notifications":{"enabled":true,"destination":"..."},"faxMessage":{"enabled":true,"phoneNumber":"...","extension":0},"transferToNumber":{"enabled":true,"destination":"..."}}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/voicemailGroups"
     params = {}
@@ -533,7 +533,7 @@ def create(
             raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -588,7 +588,7 @@ def list_available_numbers_fax_message(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -641,7 +641,7 @@ def list_available_numbers_voicemail_groups(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -694,7 +694,7 @@ def list_available_numbers_voice_portal(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)

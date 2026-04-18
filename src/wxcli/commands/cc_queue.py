@@ -1,6 +1,6 @@
 import json
 import typer
-from wxcli.errors import WebexError
+from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 from wxcli.config import get_org_id, get_cc_base_url
@@ -26,7 +26,7 @@ def create(
         body = {}
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -73,7 +73,7 @@ def update(
         body = {}
     try:
         result = api.session.rest_patch(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -125,7 +125,7 @@ def cmd_list(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -167,7 +167,7 @@ def show(
     url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/by-skill-profile-id/{id}"
     try:
         result = api.session.rest_get(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -222,7 +222,7 @@ def create_fetch_manually_assignable_queues(
             body["agentId"] = agent_id
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -282,7 +282,7 @@ def list_incoming_references(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -354,7 +354,7 @@ def list_contact_service_queue_v2(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -425,7 +425,7 @@ def create_contact_service_queue_v2(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Contact Service Queue\n\nExample --json-body:\n  '{"channelType":"...","checkAgentAvailability":"...","controlFlowScriptUrl":"...","defaultMusicInQueueMediaFileId":"...","ivrRequeueUrl":"...","maxActiveContacts":"..."}'."""
+    """Create a new Contact Service Queue\n\nExample --json-body:\n  '{"channelType":"...","checkAgentAvailability":"...","controlFlowScriptUrl":"...","defaultMusicInQueueMediaFileId":"...","ivrRequeueUrl":"...","maxActiveContacts":"...","maxTimeInQueue":"...","monitoringPermitted":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -508,7 +508,7 @@ def create_contact_service_queue_v2(
             body["socialChannelType"] = social_channel_type
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -568,7 +568,7 @@ def list_agent_based_queues(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -626,7 +626,7 @@ def list_skill_based_queues(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -684,7 +684,7 @@ def list_team_based_queues(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -730,7 +730,7 @@ def show_contact_service_queue_v2(
         params["agentsUpdatedInfo"] = agents_updated_info
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -804,7 +804,7 @@ def update_contact_service_queue_v2(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Contact Service Queue by ID\n\nExample --json-body:\n  '{"channelType":"...","checkAgentAvailability":"...","controlFlowScriptUrl":"...","defaultMusicInQueueMediaFileId":"...","ivrRequeueUrl":"...","maxActiveContacts":"..."}'."""
+    """Update specific Contact Service Queue by ID\n\nExample --json-body:\n  '{"channelType":"...","checkAgentAvailability":"...","controlFlowScriptUrl":"...","defaultMusicInQueueMediaFileId":"...","ivrRequeueUrl":"...","maxActiveContacts":"...","maxTimeInQueue":"...","monitoringPermitted":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -887,7 +887,7 @@ def update_contact_service_queue_v2(
             body["socialChannelType"] = social_channel_type
     try:
         result = api.session.rest_put(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -929,7 +929,7 @@ def create_reassign_agents(
         body = {}
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -981,7 +981,7 @@ def create_purge_inactive_entities(
         body = {}
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1029,7 +1029,7 @@ def show_contact_service_queue_organization(
         params["agentsUpdatedInfo"] = agents_updated_info
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1103,7 +1103,7 @@ def update_contact_service_queue_organization(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Contact Service Queue by ID\n\nExample --json-body:\n  '{"channelType":"...","checkAgentAvailability":"...","controlFlowScriptUrl":"...","defaultMusicInQueueMediaFileId":"...","ivrRequeueUrl":"...","maxActiveContacts":"..."}'."""
+    """Update specific Contact Service Queue by ID\n\nExample --json-body:\n  '{"channelType":"...","checkAgentAvailability":"...","controlFlowScriptUrl":"...","defaultMusicInQueueMediaFileId":"...","ivrRequeueUrl":"...","maxActiveContacts":"...","maxTimeInQueue":"...","monitoringPermitted":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -1186,7 +1186,7 @@ def update_contact_service_queue_organization(
             body["socialChannelType"] = social_channel_type
     try:
         result = api.session.rest_put(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1225,7 +1225,7 @@ def delete(
     url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/{id}"
     try:
         api.session.rest_delete(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1292,7 +1292,7 @@ def list_contact_service_queue_v3(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1338,7 +1338,7 @@ def create_bulk(
         body = {}
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1386,7 +1386,7 @@ def create_delete_reference(
         body = {}
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1454,7 +1454,7 @@ def list_contact_service_queue_organization(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1525,7 +1525,7 @@ def create_contact_service_queue_organization(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Contact Service Queue\n\nExample --json-body:\n  '{"channelType":"...","checkAgentAvailability":"...","controlFlowScriptUrl":"...","defaultMusicInQueueMediaFileId":"...","ivrRequeueUrl":"...","maxActiveContacts":"..."}'."""
+    """Create a new Contact Service Queue\n\nExample --json-body:\n  '{"channelType":"...","checkAgentAvailability":"...","controlFlowScriptUrl":"...","defaultMusicInQueueMediaFileId":"...","ivrRequeueUrl":"...","maxActiveContacts":"...","maxTimeInQueue":"...","monitoringPermitted":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -1608,7 +1608,7 @@ def create_contact_service_queue_organization(
             body["socialChannelType"] = social_channel_type
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)

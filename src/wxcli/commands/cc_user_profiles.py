@@ -1,6 +1,6 @@
 import json
 import typer
-from wxcli.errors import WebexError
+from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 from wxcli.config import get_org_id, get_cc_base_url
@@ -30,7 +30,7 @@ def create(
         body = {}
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -74,7 +74,7 @@ def show(
     url = f"{cc_base_url}/organization/{orgid}/user-profile/{id}"
     try:
         result = api.session.rest_get(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -125,7 +125,7 @@ def update(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific User Profile by ID\n\nExample --json-body:\n  '{"teams":["..."],"active":"...","description":"...","accessAllEntryPoints":"...","accessAllModules":"...","accessAllQueues":"..."}'."""
+    """Update specific User Profile by ID\n\nExample --json-body:\n  '{"teams":["..."],"active":"...","description":"...","accessAllEntryPoints":"...","accessAllModules":"...","accessAllQueues":"...","accessAllSites":"...","accessAllTeams":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -162,7 +162,7 @@ def update(
             body["version"] = version
     try:
         result = api.session.rest_put(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -201,7 +201,7 @@ def delete(
     url = f"{cc_base_url}/organization/{orgid}/user-profile/{id}"
     try:
         api.session.rest_delete(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -254,7 +254,7 @@ def cmd_list(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -320,7 +320,7 @@ def list_user_profile_v2(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -383,7 +383,7 @@ def list_user_profile_v3(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -429,7 +429,7 @@ def create_user_profile(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new User Profile\n\nExample --json-body:\n  '{"resourceCollections":[{"name":"...","version":"...","organizationId":"...","resources":"...","description":"...","resourceCount":"..."}],"version":"...","id":"...","profileType":"...","systemDefault":"...","nonViewableFolderIds":["..."]}'."""
+    """Create a new User Profile\n\nExample --json-body:\n  '{"resourceCollections":[{"name":"...","version":"...","organizationId":"...","resources":"...","description":"...","resourceCount":"...","id":"..."}],"version":"...","id":"...","profileType":"...","systemDefault":"...","nonViewableFolderIds":["..."],"viewableFolderIds":["..."],"description":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -462,7 +462,7 @@ def create_user_profile(
             body["defaultResourceCollectionId"] = default_resource_collection_id
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -510,7 +510,7 @@ def create_bulk_user_profile(
         body = {}
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -558,7 +558,7 @@ def show_user_profile(
         params["includeNames"] = include_names
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -607,7 +607,7 @@ def update_user_profile(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific User Profile by ID\n\nExample --json-body:\n  '{"resourceCollections":[{"name":"...","version":"...","organizationId":"...","resources":"...","description":"...","resourceCount":"..."}],"version":"...","id":"...","profileType":"...","systemDefault":"...","nonViewableFolderIds":["..."]}'."""
+    """Update specific User Profile by ID\n\nExample --json-body:\n  '{"resourceCollections":[{"name":"...","version":"...","organizationId":"...","resources":"...","description":"...","resourceCount":"...","id":"..."}],"version":"...","id":"...","profileType":"...","systemDefault":"...","nonViewableFolderIds":["..."],"viewableFolderIds":["..."],"description":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -640,7 +640,7 @@ def update_user_profile(
             body["defaultResourceCollectionId"] = default_resource_collection_id
     try:
         result = api.session.rest_put(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -679,7 +679,7 @@ def delete_user_profile(
     url = f"{cc_base_url}/organization/{orgid}/v3/user-profile/{id}"
     try:
         api.session.rest_delete(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -726,7 +726,7 @@ def list_acl(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -780,7 +780,7 @@ def list_bulk_export_user_profile(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -826,7 +826,7 @@ def create_bulk_user_profile_1(
         body = {}
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -885,7 +885,7 @@ def list_user_profile_organization(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -939,7 +939,7 @@ def list_bulk_export_user_profile_1(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
