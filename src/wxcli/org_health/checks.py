@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import Counter
 from typing import Any, Callable
 
 from wxcli.org_health.models import Finding
@@ -173,7 +174,6 @@ def check_offline_devices(data: dict[str, Any]) -> list[Finding]:
 
 @check("device_health")
 def check_device_limit_users(data: dict[str, Any]) -> list[Finding]:
-    from collections import Counter
     device_counts = Counter(
         d.get("personId") for d in data.get("devices", []) if d.get("personId")
     )

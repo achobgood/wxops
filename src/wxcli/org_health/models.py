@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, asdict
 
 
 @dataclass
@@ -40,9 +40,7 @@ class CategoryScore:
         )
 
     def to_dict(self) -> dict:
-        d = asdict(self)
-        d["findings"] = [f.to_dict() for f in self.findings]
-        return d
+        return asdict(self)
 
 
 @dataclass
