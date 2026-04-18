@@ -185,7 +185,10 @@ def _category_section(cat: CategoryScore) -> str:
     if chart_items:
         parts.append(horizontal_bar_chart(chart_items))
 
-    sorted_findings = sorted(cat.findings, key=lambda f: SEVERITY_ORDER.index(f.severity))
+    sorted_findings = sorted(
+        cat.findings,
+        key=lambda f: SEVERITY_ORDER.index(f.severity) if f.severity in SEVERITY_ORDER else len(SEVERITY_ORDER),
+    )
     for finding in sorted_findings:
         parts.append(_render_finding(finding))
 

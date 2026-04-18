@@ -1,9 +1,5 @@
 # tests/org_health/test_report.py
-import json
-import subprocess
-import sys
 import pytest
-from pathlib import Path
 
 from wxcli.org_health.models import Finding, CategoryScore, HealthResult, OrgStats
 from wxcli.org_health.report import generate_report
