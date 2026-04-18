@@ -16,8 +16,11 @@ argument-hint: [person-email-or-workspace-name]
 **Checkpoint — do NOT proceed until you can answer these:**
 1. What are the two path families for person call settings, and which is newer? (Answer: `/people/{id}/features/{feature}` is classic; `/telephony/config/people/{id}/{feature}` is newer. Some setting names differ between them.)
 2. What happens when you use `/telephony/config/workspaces/{id}/` settings on a Basic-licensed workspace? (Answer: 405 "Invalid Professional Place" — only `musicOnHold` and `doNotDisturb` work on Basic. Use `/workspaces/{id}/features/` path for Basic workspaces.)
+3. What wxcli command group handles org/location call recording? (Answer: `call-recording`, NOT `location-call-settings`. Run `wxcli call-recording --help` to confirm.)
 
-If you cannot answer both, you skipped reading this skill. Go back and read it.
+If you cannot answer all three, you skipped reading this skill. Go back and read it.
+
+**MANDATORY: Before including ANY wxcli command in your plan, verify it exists.** Run `wxcli <group> --help` to confirm the command group exists and list its commands. If you cannot run `--help` (e.g., plan-only mode), use ONLY commands listed in the Quick Recipes section below. Do NOT construct command names from reference doc titles or API concepts — the CLI group names often differ from the API concept names (e.g., location recording config uses `wxcli call-recording`, NOT `wxcli location-call-settings`).
 
 ## Quick Recipes — Use These Exact Commands
 
