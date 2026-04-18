@@ -24,7 +24,7 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
 3. Read `docs/reference/devices-workspaces.md` for workspace creation, workspace device assignment, workspace call settings
 
 **Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags. Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests. Common traps:
-- `validate-a-list` has NO `--macs` flag — use `--json-body '{"macs":["..."]}'`
+- `validate-a-list` has NO `--macs` flag and NO `--output` flag — use `--json-body '{"macs":["..."]}'` (always outputs JSON)
 - `create-base-stations` has NO `--base-station-macs` flag — use `--json-body '{"baseStationMacs":["..."]}'`
 - Person-level hoteling is `wxcli device-settings update-hoteling` — NOT `wxcli user-call-settings` (that group does not exist in the CLI; the registered group is `user-settings`)
 
@@ -239,7 +239,7 @@ Collect from user:
 
 ```bash
 # Validate MAC first (no --macs flag; use --json-body)
-wxcli device-settings validate-a-list --json-body '{"macs":["AABBCCDDEEFF"]}' --output json
+wxcli device-settings validate-a-list --json-body '{"macs":["AABBCCDDEEFF"]}'
 
 # Create the device
 wxcli devices create --mac AABBCCDDEEFF --workspace-id WORKSPACE_ID --model "DMS Cisco 8845"
