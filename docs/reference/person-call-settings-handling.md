@@ -1390,5 +1390,5 @@ Some feature/selector combinations are remapped to different URL bases. For pers
 
 ## See Also
 
-- **[Location Call Settings — Core](location-call-settings-core.md)** — Location-level call forwarding, call intercept, and ECBN settings that serve as defaults for person-level overrides
+- **[Location Call Settings — Core](location-calling-core.md)** — Location-level call forwarding, call intercept, and ECBN settings that serve as defaults for person-level overrides
 - **[self-service-call-settings.md](self-service-call-settings.md)** -- User-level `/people/me/` endpoints for self-service call settings, including 6 user-only settings with no admin path.

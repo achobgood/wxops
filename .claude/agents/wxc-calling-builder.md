@@ -799,9 +799,9 @@ docs/reference/person-call-settings-behavior.md     — calling behavior, app se
 
 ### Location Call Settings
 ```
-docs/reference/location-call-settings-core.md       — enablement, internal dialing, voicemail policies, voice portal
-docs/reference/location-call-settings-media.md      — announcements, playlists, schedules, access codes
-docs/reference/location-call-settings-advanced.md   — call recording, caller reputation, conference, supervisor, operating modes
+docs/reference/location-calling-core.md       — enablement, internal dialing, voicemail policies, voice portal
+docs/reference/location-calling-media.md      — announcements, playlists, schedules, access codes
+docs/reference/location-recording-advanced.md   — call recording, caller reputation, conference, supervisor, operating modes
 ```
 
 ### Call Routing (dial plans, trunks, route groups, PSTN)
