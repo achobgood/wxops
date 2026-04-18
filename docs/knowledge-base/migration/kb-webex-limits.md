@@ -63,7 +63,7 @@ Platform constraints should override a static recommendation when:
 | Virtual lines per org | Not explicitly documented as a hard limit | API paginates at max=1000; LIMIT_EXCEEDED validation status exists in the VirtualExtensionValidationStatus enum, indicating an org-level cap exists but its value is not published in reference docs | virtual-lines.md (line 846) |
 | Virtual extension range patterns | 100 per request | Bulk operations capped per API call | virtual-lines.md (line 726, 753) |
 | Location name length (calling-enabled) | 80 characters | General API allows 256, but calling features enforce 80 | provisioning.md (line 627, 807) |
-| Extension length | 2-6 digits (unknown extension routing) | Internal dialing routes unknown extensions of this length to premises PBX | location-call-settings-core.md (line 260) |
+| Extension length | 2-6 digits (unknown extension routing) | Internal dialing routes unknown extensions of this length to premises PBX | location-calling-core.md (line 260) |
 
 ### Devices
 

@@ -935,4 +935,4 @@ def enable_email_copy(self, email: str) -> VoicemailGroup  # shortcut for update
 ## See Also
 
 - [provisioning.md](provisioning.md) — wxc_sdk location provisioning patterns (creation, calling enablement, number assignment)
-- [location-call-settings-core.md](location-call-settings-core.md) — wxc_sdk location-level call settings (caller ID, voicemail, music on hold, outgoing permissions)
+- [location-calling-core.md](location-calling-core.md) — wxc_sdk location-level call settings (caller ID, voicemail, music on hold, outgoing permissions)
