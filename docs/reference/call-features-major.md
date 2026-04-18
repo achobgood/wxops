@@ -130,7 +130,7 @@ AutoAttendant.create(name="Main Menu",
 
 - `list_announcement_files(location_id, auto_attendant_id, org_id=None) -> list[AnnAudioFile]`
 - `delete_announcement_file(location_id, auto_attendant_id, file_name, org_id=None)`
-- **Upload is supported via the Announcement Repository API** (`POST /telephony/config/announcements` or `POST /telephony/config/locations/{locationId}/announcements` with multipart/form-data). See [location-call-settings-media.md](location-call-settings-media.md) section 1.
+- **Upload is supported via the Announcement Repository API** (`POST /telephony/config/announcements` or `POST /telephony/config/locations/{locationId}/announcements` with multipart/form-data). See [location-calling-media.md](location-calling-media.md) section 1.
 
 ### Forwarding
 
@@ -564,7 +564,7 @@ Temporarily diverts all incoming calls to a destination. Calls already in the qu
 
 `Announcement` model: `name` (alias: `fileName`), `size` (alias: `fileSize`)
 
-**Upload is supported via the Announcement Repository API** (`POST /telephony/config/announcements` or `POST /telephony/config/locations/{locationId}/announcements` with multipart/form-data). See [location-call-settings-media.md](location-call-settings-media.md) section 1.
+**Upload is supported via the Announcement Repository API** (`POST /telephony/config/announcements` or `POST /telephony/config/locations/{locationId}/announcements` with multipart/form-data). See [location-calling-media.md](location-calling-media.md) section 1.
 
 ### Phone Number/Extension Assignment
 
@@ -1236,7 +1236,7 @@ When creating/updating, only `agent_id` is required. Set `weight` or `skill_leve
 
 ### Auto Attendant Specific
 
-8. **Audio files** -- custom greetings require announcement audio files uploaded via the Announcement Repository API (`POST /telephony/config/announcements` with multipart/form-data). See [location-call-settings-media.md](location-call-settings-media.md) section 1 for upload details. WAV and WMA formats supported.
+8. **Audio files** -- custom greetings require announcement audio files uploaded via the Announcement Repository API (`POST /telephony/config/announcements` with multipart/form-data). See [location-calling-media.md](location-calling-media.md) section 1 for upload details. WAV and WMA formats supported.
 9. **FedRAMP** -- `directLineCallerIdName`, `customName`, and `dialByName` are not available in Webex for Government. Use `firstName`/`lastName` instead. See [authentication.md → FedRAMP](authentication.md#webex-for-government-fedramp) for all FedRAMP restrictions.
 
 ### Auto Attendant API Gotchas
@@ -1291,7 +1291,7 @@ When creating/updating, only `agent_id` is required. Set `weight` or `skill_leve
 
 5. **Selective forwarding rule IDs change on name update.** Across all three features, renaming a selective forwarding rule changes its ID. The update response returns the new ID — capture it if you need to reference the rule again.
 
-6. **Audio file upload IS supported via API.** Use the Announcement Repository API (`POST /telephony/config/announcements` or `POST /telephony/config/locations/{locationId}/announcements`) with multipart/form-data encoding. Supports WAV and WMA formats. See [location-call-settings-media.md](location-call-settings-media.md) section 1 for full upload details and examples.
+6. **Audio file upload IS supported via API.** Use the Announcement Repository API (`POST /telephony/config/announcements` or `POST /telephony/config/locations/{locationId}/announcements`) with multipart/form-data encoding. Supports WAV and WMA formats. See [location-calling-media.md](location-calling-media.md) section 1 for full upload details and examples.
 
 ---
 
@@ -1300,7 +1300,7 @@ When creating/updating, only `agent_id` is required. Set `weight` or `skill_leve
 - [Provisioning Reference](provisioning.md) -- creating locations and users (prerequisites for all features in this doc)
 - [Additional Call Features](call-features-additional.md) -- Paging Groups, Call Park, Call Pickup, Voicemail Groups, and Customer Assist (Call Park recall uses Hunt Groups; Voicemail Groups can serve as overflow destinations for CQ/HG)
 - [Call Routing & PSTN](call-routing.md) -- dial plans, trunks, and route lists (AA/CQ/HG phone numbers participate in the call routing chain)
-- [Location Call Settings: Media](location-call-settings-media.md) -- schedule management (business hours and holiday schedules used by AA menus and CQ/HG policies)
+- [Location Call Settings: Media](location-calling-media.md) -- schedule management (business hours and holiday schedules used by AA menus and CQ/HG policies)
 
 ## Migration Notes — CUCM Forwarding & Night Service
 

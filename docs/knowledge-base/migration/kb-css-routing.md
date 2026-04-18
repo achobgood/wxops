@@ -88,7 +88,7 @@ The `detect_globalized_vs_localized` pattern (advisory_patterns.py line 995) cla
 ### The "9 for outside line" pattern
 
 CUCM deployments commonly use a `9.` prefix for outside line access. This appears as translation patterns that strip the leading 9 (matching `9.XXXX`, replacing with `XXXX`). The `translation_pattern_elimination` pattern catches these via the `_PREFIX_STRIP_RE` regex (`^\d+\.`). In Webex, configure the location's `outside_dial_digit` setting to `9` and Webex handles the stripping natively -- no translation pattern needed.
-<!-- Source: advisory_patterns.py line 117, location-call-settings-core.md Internal Dialing section -->
+<!-- Source: advisory_patterns.py line 117, location-calling-core.md Internal Dialing section -->
 
 ### Multi-site CUCM with per-site CSS/partition sets
 
@@ -240,4 +240,4 @@ required for MEDIUM severity.
 |---|-------|----------|--------|---------|
 | 1 | Dial plans are org-wide | Yes | `call-routing.md` line 55, line 128 | "Dial Plans are configured globally (org-wide, not per-location)" confirmed twice. |
 | 2 | Route groups max 10 trunks | Yes | `call-routing.md` line 58, line 820 | "A Route Group bundles up to 10 trunks (from different locations)" confirmed twice. |
-| 3 | Calling permissions are per-location | Expanded | `person-call-settings-permissions.md` line 136; `location-call-settings-media.md` line 594 | Calling permissions exist at person, workspace, location, AND virtual line levels — not just per-location. Doc updated to reflect full scope. |
+| 3 | Calling permissions are per-location | Expanded | `person-call-settings-permissions.md` line 136; `location-calling-media.md` line 594 | Calling permissions exist at person, workspace, location, AND virtual line levels — not just per-location. Doc updated to reflect full scope. |

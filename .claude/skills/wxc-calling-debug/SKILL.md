@@ -38,7 +38,7 @@ Load the reference docs relevant to the reported symptom. Do NOT load all docs â
 | Provisioning (users, locations, licenses) | `docs/reference/provisioning.md` |
 | Call features (AA, CQ, HG, paging) | `docs/reference/call-features-major.md`, `docs/reference/call-features-additional.md` |
 | Person call settings | `docs/reference/person-call-settings-*.md` (pick the relevant one: handling, media, permissions, behavior) |
-| Location call settings | `docs/reference/location-call-settings-*.md` (pick: core, media, advanced) |
+| Location call settings | `docs/reference/location-calling-core.md`, `location-calling-media.md`, `location-recording-advanced.md` |
 | Routing (trunks, dial plans, PSTN) | `docs/reference/call-routing.md` |
 | Devices | `docs/reference/devices-core.md`, `docs/reference/devices-workspaces.md` |
 | Call control (dial, hold, transfer) | `docs/reference/call-control.md` |

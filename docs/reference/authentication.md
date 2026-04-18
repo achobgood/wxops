@@ -902,9 +902,9 @@ These features/APIs are **not supported** in FedRAMP deployments:
 | Feature | Reference Doc | Notes |
 |---------|---------------|-------|
 | DECT Devices | [devices-dect.md](devices-dect.md) | Entire DECT API excluded |
-| Announcements & Playlists | [location-call-settings-media.md](location-call-settings-media.md) | Upload and playlist APIs excluded |
-| Call Recording (location-level) | [location-call-settings-advanced.md](location-call-settings-advanced.md) | Recording vendor config excluded |
-| Caller Reputation | [location-call-settings-advanced.md](location-call-settings-advanced.md) | Provider config excluded |
+| Announcements & Playlists | [location-calling-media.md](location-calling-media.md) | Upload and playlist APIs excluded |
+| Call Recording (location-level) | [location-recording-advanced.md](location-recording-advanced.md) | Recording vendor config excluded |
+| Caller Reputation | [location-recording-advanced.md](location-recording-advanced.md) | Provider config excluded |
 | Operating Modes | [call-features-additional.md](call-features-additional.md) | Mode management excluded |
 | Hot Desking | [devices-dect.md](devices-dect.md) | Hot desk portal excluded |
 | AA `directLineCallerIdName` | [call-features-major.md](call-features-major.md) | Use `firstName`/`lastName` instead |

@@ -139,11 +139,11 @@ Optional: `address2`, `latitude`, `longitude`, `notes`.
 
 ### Calling Enablement
 
-Calling must be enabled per-location via `api.telephony.location.enable_for_calling()`. The `announcement_language` field is required and must be lowercase (`en_us`, not `en_US`). <!-- Source: provisioning.md line 665, location-call-settings-core.md line 109-124 -->
+Calling must be enabled per-location via `api.telephony.location.enable_for_calling()`. The `announcement_language` field is required and must be lowercase (`en_us`, not `en_US`). <!-- Source: provisioning.md line 665, location-calling-core.md line 109-124 -->
 
 ### Internal Dialing
 
-Configured per-location via `api.telephony.location.internal_dialing`. Controls: <!-- Source: location-call-settings-core.md line 256-299 -->
+Configured per-location via `api.telephony.location.internal_dialing`. Controls: <!-- Source: location-calling-core.md line 256-299 -->
 - `enable_unknown_extension_route_policy` -- route unknown extensions (2-6 digits) to a premises PBX via trunk/route group
 - `unknown_extension_route_identity` -- the destination trunk or route group
 - Location-level `routing_prefix` -- prefix for inter-location calls with same extension
@@ -174,7 +174,7 @@ If delete still returns 409 after blockers are cleared, the telephony backend ma
 ### Per-Location Limits
 
 - Location name: max 80 characters (calling-enabled) <!-- Source: provisioning.md line 627 -->
-- `user_limit`: max people at location (read-only field in `TelephonyLocation`) <!-- Source: location-call-settings-core.md line 79 -->
+- `user_limit`: max people at location (read-only field in `TelephonyLocation`) <!-- Source: location-calling-core.md line 79 -->
 - Auto attendants per location: 100
 
 ## Dissent Triggers
@@ -225,7 +225,7 @@ A single phone at a location without a validated emergency address means a 911 c
 
 **Condition:** `detect_media_resource_scope_removal` (`advisory_patterns.py:430`) fires because one or more device pools reference a Media Resource Group List — AND the migration includes more than one Webex location destination — AND custom MoH audio was in use on the CUCM MOH server(s) being decommissioned.
 
-**Why the static rule misses this:** The `detect_media_resource_scope_removal` pattern fires `INFO` and correctly tells the operator to drop MRGLs, conference bridges, and transcoders from scope. The advisory detail (`advisory_patterns.py:458-461`) mentions "verify that Webex's default MOH audio meets your requirements (custom MOH can be uploaded per location via `wxcli announcements`)." However, this is a single-sentence action item buried in an INFO finding about scope removal. It does not flag that Webex MoH is configured independently per location (`api.telephony.location.moh`, `location-call-settings-core.md` lines 386-444), and it does not flag the voicemail PSTN access dependency (Unity Connection routes voicemail-retrieval calls through the CUCM dial plan; after cutover, those calls route through Webex). When multiple locations each had distinct custom MoH audio on the CUCM server, each Webex location must be configured individually — the scope-removal finding gives no guidance on that scope of work.
+**Why the static rule misses this:** The `detect_media_resource_scope_removal` pattern fires `INFO` and correctly tells the operator to drop MRGLs, conference bridges, and transcoders from scope. The advisory detail (`advisory_patterns.py:458-461`) mentions "verify that Webex's default MOH audio meets your requirements (custom MOH can be uploaded per location via `wxcli announcements`)." However, this is a single-sentence action item buried in an INFO finding about scope removal. It does not flag that Webex MoH is configured independently per location (`api.telephony.location.moh`, `location-calling-core.md` lines 386-444), and it does not flag the voicemail PSTN access dependency (Unity Connection routes voicemail-retrieval calls through the CUCM dial plan; after cutover, those calls route through Webex). When multiple locations each had distinct custom MoH audio on the CUCM server, each Webex location must be configured individually — the scope-removal finding gives no guidance on that scope of work.
 
 **Advisor should:** When `detect_media_resource_scope_removal` fires AND the migration has more than one location, escalate severity from INFO to MEDIUM and add two explicit action items:
 1. For each Webex location, check whether the source CUCM device pool had a custom MOH audio file on the MRGL's MOH server. If yes, upload the audio to that Webex location via `wxcli announcements upload` and configure it with `wxcli location-settings update-music-on-hold --greeting CUSTOM`. Do this before cutover — the default system greeting plays immediately after the location is created.
@@ -233,7 +233,7 @@ A single phone at a location without a validated emergency address means a 911 c
 
 **Signals to look for:** More than one location in the migration plan AND any device pool's MRGL name contains "MOH" or "MusicOnHold". Also: any voicemail pilot object whose `pre_migration_state` references the same server as an MRGL component (indicates Unity Connection and MOH server are co-located).
 
-**Confidence:** MEDIUM — the MoH upload requirement is grounded in `location-call-settings-core.md` lines 386-444 (`LocationMoHApi`, `SYSTEM`/`CUSTOM` enum, `wxcli location-settings update-music-on-hold`). The voicemail cutover dependency is inferred from the architecture (Unity Connection PSTN routing through CUCM dial plan) but not explicitly documented in a reference doc.
+**Confidence:** MEDIUM — the MoH upload requirement is grounded in `location-calling-core.md` lines 386-444 (`LocationMoHApi`, `SYSTEM`/`CUSTOM` enum, `wxcli location-settings update-music-on-hold`). The voicemail cutover dependency is inferred from the architecture (Unity Connection PSTN routing through CUCM dial plan) but not explicitly documented in a reference doc.
 
 ---
 

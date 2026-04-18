@@ -70,7 +70,7 @@ CUCM forwarding → Webex mapping:
 <!-- Source: devices-workspaces.md gotcha #10 endpoint access matrix -->
 
 - **Recording-enabled users where recording was enabled org-wide but never used.** The advisory pattern `recording_enabled_users` scans CUCM phone lines for `recordingFlag` != "Call Recording Disabled". It cannot distinguish org-wide policy from intentional per-user enablement. Webex requires a separate recording license + location-level vendor configuration + person-level recording settings.
-<!-- Source: advisory_patterns.py detect_recording_enabled_users(); location-call-settings-advanced.md sec 1 -->
+<!-- Source: advisory_patterns.py detect_recording_enabled_users(); location-recording-advanced.md sec 1 -->
 
 - **SNR users who customized answerTooSoon/answerTooLate timers.** These timer controls are CUCM-specific. Webex SNR has no timer fields -- only `answerConfirmationEnabled` (boolean). The `detect_snr_configured_users` pattern flags all remote destination profiles as needing manual setup but doesn't distinguish customized timers from defaults.
 <!-- Source: recommendation_rules.py recommend_snr_lossy(); person-call-settings-handling.md sec 6 (SingleNumberReachNumber model) -->
@@ -90,7 +90,7 @@ CUCM forwarding → Webex mapping:
 <!-- Source: person-call-settings-behavior.md (hoteling section) -->
 
 - **"recording compliance"**: All users recording-enabled in CUCM. In Webex: configure at location level first (vendor, compliance announcements, storage), then enable per-person recording settings. Requires separate call recording license.
-<!-- Source: location-call-settings-advanced.md sec 1; advisory_patterns.py detect_recording_enabled_users() -->
+<!-- Source: location-recording-advanced.md sec 1; advisory_patterns.py detect_recording_enabled_users() -->
 
 - **"VM to email"**: Unity Connection VM-to-email maps to Webex `emailCopyOfMessage.enabled` with the user's email address. Webex sends the voicemail audio file as an email attachment.
 <!-- Source: person-call-settings-media.md sec 1 (VoicemailSettings model) -->
@@ -122,7 +122,7 @@ CUCM forwarding → Webex mapping:
 <!-- Source: devices-workspaces.md gotcha #10 (verified via live API 2026-03-19, matrix completed 2026-03-27); CLAUDE.md known issue #6 -->
 
 - **Recording requires separate license + location-level config.** Org-level recording must be enabled, a vendor must be selected (or Webex Recording Platform), and compliance announcement settings configured at the location level. Only then can person-level `callRecording` be enabled.
-<!-- Source: location-call-settings-advanced.md sec 1; person-call-settings-media.md sec 7 -->
+<!-- Source: location-recording-advanced.md sec 1; person-call-settings-media.md sec 7 -->
 
 - **Max 35 shared line appearances.** Webex shared lines support up to 35 appearances per DN.
 
