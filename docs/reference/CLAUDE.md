@@ -5,7 +5,7 @@
 ## Doc Families
 
 - **Person call settings** (5): `person-call-settings-{handling,media,permissions,behavior}.md`, `self-service-call-settings.md`
-- **Location call settings** (3): `location-call-settings-{core,media,advanced}.md`
+- **Location call settings** (3): `location-call-settings-{core,media}.md`, `location-recording-advanced.md`
 - **Devices** (4): `devices-{core,dect,workspaces,platform}.md`
 - **wxcadm** (8): `wxcadm-{core,person,locations,features,devices-workspaces,xsi-realtime,routing,advanced}.md`
 - **Admin** (7): `admin-{org-management,identity-scim,licensing,audit-security,hybrid,partner,apps-data}.md`

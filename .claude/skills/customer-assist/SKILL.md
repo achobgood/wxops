@@ -19,7 +19,7 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
 ## Step 1: Load references
 
 1. Read `docs/reference/call-features-additional.md` — Customer Assist data models, screen pop, wrap-up reasons, queue recording, available agents
-2. Read `docs/reference/location-call-settings-advanced.md` — Supervisors data models, API methods, key behaviors
+2. Read `docs/reference/location-recording-advanced.md` — Supervisors data models, API methods, key behaviors
 
 ## Step 2: Verify auth token
 

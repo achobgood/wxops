@@ -1,5 +1,8 @@
 <!-- Updated by playbook session 2026-03-18 -->
-# Location Call Settings -- Recording, Supervisor, Guest Calling, Conference & Misc
+# Location Recording, Supervisor, Guest Calling, Conference & Misc
+
+**CLI group:** `wxcli call-recording` (org-level recording vendor, compliance, per-location vendor assignment)
+**NOT:** `wxcli location-call-settings` (that group handles dial patterns for premise PSTN — completely different domain)
 
 ## Sources
 

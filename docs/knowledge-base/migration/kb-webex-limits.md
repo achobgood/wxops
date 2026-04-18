@@ -182,9 +182,9 @@ Six person call settings exist **only** at `/telephony/config/people/me/settings
 
 ### Recording
 
-- Location-level recording vendor configuration must be set before per-user recording works (location-call-settings-advanced.md, line 33-50)
+- Location-level recording vendor configuration must be set before per-user recording works (location-recording-advanced.md, line 33-50)
 - Per-user recording has modes: Always, Never, On Demand with User Initiated Start (person-call-settings-media.md, line 998-999)
-- Recording compliance announcement is location-level (location-call-settings-advanced.md, line 74)
+- Recording compliance announcement is location-level (location-recording-advanced.md, line 74)
 - Queue call recording is a separate Customer Assist feature requiring CX Essentials license (call-features-additional.md, line 60-61)
 
 ## Dissent Triggers

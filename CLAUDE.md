@@ -107,7 +107,7 @@ Added 2026-04-15 after an org-cleanup subagent died mid-Phase-2 when its Python 
 | `docs/reference/self-service-call-settings.md` | User self-service call settings (/people/me/ endpoints) |
 | `docs/reference/location-call-settings-core.md` | Location enablement, internal dialing, voicemail policies, voice portal |
 | `docs/reference/location-call-settings-media.md` | Announcements, playlists, schedules, access codes |
-| `docs/reference/location-call-settings-advanced.md` | Call recording, caller reputation, conference, supervisor, operating modes |
+| `docs/reference/location-recording-advanced.md` | Call recording, caller reputation, conference, supervisor, operating modes |
 | `docs/reference/call-routing.md` | Dial plans, trunks, route groups, route lists, translation patterns, PSTN |
 | `docs/reference/devices-core.md` | Device CRUD, activation, device configurations, telephony devices |
 | `docs/reference/devices-dect.md` | DECT networks, base stations, handsets, hotdesking |
