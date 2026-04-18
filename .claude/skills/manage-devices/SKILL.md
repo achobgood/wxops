@@ -17,11 +17,16 @@ argument-hint: [device-operation]
 
 If you cannot answer both, you skipped reading this skill. Go back and read it.
 
-## Step 1: Load references
+## Step 1: Load references and verify commands
 
 1. Read `docs/reference/devices-core.md` for device CRUD, activation codes, MAC provisioning, line key templates, device settings
 2. Read `docs/reference/devices-dect.md` for DECT networks, base stations, handsets, hot desking
 3. Read `docs/reference/devices-workspaces.md` for workspace creation, workspace device assignment, workspace call settings
+
+**Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags. Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests. Common traps:
+- `validate-a-list` has NO `--macs` flag — use `--json-body '{"macs":["..."]}'`
+- `create-base-stations` has NO `--base-station-macs` flag — use `--json-body '{"baseStationMacs":["..."]}'`
+- Person-level hoteling is `wxcli device-settings update-hoteling` — NOT `wxcli user-call-settings` (that group does not exist in the CLI; the registered group is `user-settings`)
 
 ## Step 2: Verify auth token
 
@@ -233,8 +238,8 @@ Collect from user:
 | Password | Only for 3rd-party | SIP password for non-Cisco devices |
 
 ```bash
-# Validate MAC first
-wxcli device-settings validate-a-list --macs AABBCCDDEEFF --output json
+# Validate MAC first (no --macs flag; use --json-body)
+wxcli device-settings validate-a-list --json-body '{"macs":["AABBCCDDEEFF"]}' --output json
 
 # Create the device
 wxcli devices create --mac AABBCCDDEEFF --workspace-id WORKSPACE_ID --model "DMS Cisco 8845"
@@ -325,9 +330,9 @@ wxcli dect-devices show LOCATION_ID DECT_NETWORK_ID --output json
 Base stations require MAC addresses from the physical DECT base station hardware.
 
 ```bash
-# Create base station(s) by MAC
+# Create base station(s) by MAC (no --base-station-macs flag; use --json-body)
 wxcli dect-devices create-base-stations LOCATION_ID DECT_NETWORK_ID \
-  --base-station-macs AABBCCDDEEFF
+  --json-body '{"baseStationMacs":["AABBCCDDEEFF"]}'
 
 # List base stations
 wxcli dect-devices list-base-stations LOCATION_ID DECT_NETWORK_ID --output json
@@ -497,10 +502,11 @@ wxcli device-settings list DEVICE_ID --output json
 wxcli device-settings list-available-members DEVICE_ID --output json
 
 # Update members (add shared line appearance)
+# IMPORTANT: every member entry MUST include lineWeight and primaryOwner — omitting either returns 400
 wxcli device-settings update DEVICE_ID --json-body '{
   "members": [
-    {"id": "PRIMARY_PERSON_ID", "port": 1, "lineType": "PRIMARY", "primaryOwner": true},
-    {"id": "SHARED_PERSON_ID", "port": 2, "lineType": "SHARED_LINE", "primaryOwner": false}
+    {"id": "PRIMARY_PERSON_ID", "port": 1, "lineType": "PRIMARY", "primaryOwner": true, "lineWeight": 1},
+    {"id": "SHARED_PERSON_ID", "port": 2, "lineType": "SHARED_LINE", "primaryOwner": false, "lineWeight": 1}
   ]
 }'
 
@@ -614,7 +620,7 @@ wxcli device-settings delete-background-images --json-body '{
 **MAC address validation:**
 
 ```bash
-wxcli device-settings validate-a-list --macs AABBCCDDEEFF,112233445566 --output json
+wxcli device-settings validate-a-list --json-body '{"macs":["AABBCCDDEEFF","112233445566"]}' --output json
 ```
 
 States: `AVAILABLE`, `UNAVAILABLE`, `DUPLICATE_IN_LIST`, `INVALID`
@@ -629,7 +635,7 @@ When creating a workspace, set `hotdeskingStatus` to `on`. For hot-desk-only wor
 
 **Person side: enable hoteling:**
 
-Use `wxcli device-settings update-hoteling` to enable hoteling on a person's profile so they can sign into hot desk workspaces.
+Use `wxcli device-settings update-hoteling PERSON_ID --json-body '{"hoteling":{"enabled":true}}'` to enable hoteling on a person's profile. **Do NOT use `wxcli user-call-settings`** — that CLI group does not exist (the file exists in source but is not registered). The registered group for person call settings is `wxcli user-settings`, but for hoteling specifically, `wxcli device-settings update-hoteling` is the correct command.
 
 **Manage hot desk sessions:**
 
