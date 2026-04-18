@@ -24,7 +24,7 @@ If you cannot answer all three, you skipped reading this skill. Go back and read
 # Dry-run first — shows what would be deleted
 wxcli cleanup run --scope "Location Name" --dry-run
 
-# Delete all resources at specific locations (--include-users is ORG-WIDE — always pair with --exclude-user-domains)
+# Delete all resources at specific locations (--include-users deletes users at scoped locations)
 wxcli cleanup run --scope "DP-HQ-Phones,DP-Branch-Phones" --include-users --exclude-user-domains "wbx.ai" --force
 
 # Delete everything in the org
