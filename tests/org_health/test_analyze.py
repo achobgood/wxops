@@ -1,7 +1,6 @@
 import json
 import subprocess
 import sys
-import pytest
 from pathlib import Path
 
 from wxcli.org_health.analyze import run_analysis
@@ -89,7 +88,7 @@ class TestAnalyzeCLI:
             capture_output=True, text=True,
         )
         assert result.returncode == 1
-        assert "Missing" in result.stderr or "manifest" in result.stderr.lower()
+        assert "manifest" in result.stderr.lower()
 
     def test_cli_creates_output_dir(self, collected_dir, tmp_path):
         results_dir = tmp_path / "deeply" / "nested" / "results"
@@ -125,7 +124,7 @@ class TestEdgeCases:
             k for k, v in result.categories.items()
             if v.high_count + v.medium_count + v.low_count + v.info_count > 0
         ]
-        assert len(categories_with_findings) >= 3
+        assert len(categories_with_findings) == 3
 
     def test_location_count_derived_from_data(self, collected_dir):
         users = [
