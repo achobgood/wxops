@@ -90,6 +90,7 @@ Added 2026-04-15 after an org-cleanup subagent died mid-Phase-2 when its Python 
 | `.claude/skills/video-mesh/` | Skill: Video Mesh monitoring and threshold configuration |
 | `.claude/skills/contact-center/` | Skill: CC provisioning (agents, queues, flows, campaigns) |
 | `.claude/skills/cucm-migrate/` | Skill: execute CUCM-to-Webex migration from exported deployment plan |
+| `.claude/skills/query-live/` | Skill: read-only natural language queries against live Webex Calling state |
 
 ### Reference Docs — wxc_sdk (Official Cisco SDK)
 
