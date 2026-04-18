@@ -89,6 +89,7 @@ Added 2026-04-15 after an org-cleanup subagent died mid-Phase-2 when its Python 
 | `.claude/skills/manage-meetings/` | Skill: schedule, manage, query meetings + content |
 | `.claude/skills/video-mesh/` | Skill: Video Mesh monitoring and threshold configuration |
 | `.claude/skills/contact-center/` | Skill: CC provisioning (agents, queues, flows, campaigns) |
+| `.claude/skills/org-health/` | Skill: org health assessment — collect, analyze 18 checks, HTML report |
 | `.claude/skills/cucm-migrate/` | Skill: execute CUCM-to-Webex migration from exported deployment plan |
 | `.claude/skills/query-live/` | Skill: read-only natural language queries against live Webex Calling state |
 
@@ -213,6 +214,22 @@ Operator-facing reference docs for the CUCM-to-Webex migration tool. Written for
 | `specs/webex-contact-center.json` | OpenAPI 3.0 spec — contact center APIs (48 groups, 431 commands) |
 | `src/wxcli/commands/cleanup.py` | Batch cleanup: inventory + parallel layered deletion |
 | `src/wxcli/commands/converged_recordings_export.py` | Hand-written download/export for converged recordings (registered into generated group) |
+
+### Org Health Assessment
+
+Live Webex Calling org audit at `src/wxcli/org_health/`. Deterministic Python checks against collected JSON — no LLM analysis. Reuses the migration report's CSS design system and chart functions. **76 tests passing.**
+
+| Path | Purpose |
+|------|---------|
+| `src/wxcli/org_health/models.py` | Finding, CategoryScore, HealthResult, OrgStats dataclasses |
+| `src/wxcli/org_health/collector.py` | Load manifest, validate collection, load collected JSON |
+| `src/wxcli/org_health/checks.py` | 18 check functions + `@check()` decorator registry across 4 categories |
+| `src/wxcli/org_health/analyze.py` | `__main__` entry: load → check → write `results.json` |
+| `src/wxcli/org_health/report.py` | `__main__` entry: read results → generate self-contained HTML report |
+
+**To run:** Builder agent → "audit my org" → `org-health` skill orchestrates 3 phases (collect via wxcli → analyze via `python3.14 -m wxcli.org_health.analyze` → report via `python3.14 -m wxcli.org_health.report`).
+
+**Check categories:** Security Posture (4), Routing Hygiene (3), Feature Utilization (6), Device Health (5).
 
 ### CUCM→Webex Migration Tool (All 11 phases complete)
 

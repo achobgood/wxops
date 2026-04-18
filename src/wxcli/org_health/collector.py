@@ -33,6 +33,8 @@ def load_manifest(collected_dir: Path) -> dict:
 
 def validate_collection(collected_dir: Path) -> list[str]:
     errors = []
+    if not (collected_dir / "manifest.json").exists():
+        errors.append("Missing required file: manifest.json")
     for filename in REQUIRED_FILES:
         if not (collected_dir / filename).exists():
             errors.append(f"Missing required file: {filename}")
