@@ -71,13 +71,14 @@ wxcli user-settings update-reception PERSON_ID --json-body '{"receptionEnabled":
 - `receptionEnabled` must be `true` if `monitoredMembers` is non-empty.
 - Max 50 monitored members. Members can be person or workspace IDs.
 
-### SimRing (USER-ONLY — no admin endpoint, use SNR instead)
+### SimRing for persons (USER-ONLY — no admin endpoint, use SNR instead)
 ```bash
 wxcli single-number-reach list-single-number-reach PERSON_ID -o json
 wxcli single-number-reach create PERSON_ID --phone-number "+15551234567" --enabled --name "Mobile"
 ```
-- **Why not SimRing directly:** The `/people/{id}/settings/simultaneousRing` admin path returns 404. SimRing exists ONLY at `/people/me/settings/simultaneousRing` (user-level OAuth). No admin can configure it for another user.
-- SNR achieves the same result (desk + mobile ring simultaneously) and is admin-configurable.
+- **Why not person SimRing directly:** The `/people/{id}/settings/simultaneousRing` admin path returns 404. Person SimRing exists ONLY at `/people/me/settings/simultaneousRing` (user-level OAuth). No admin can configure it for another person.
+- **Workspace SimRing IS admin-configurable:** `wxcli workspace-settings list-simultaneous-ring WORKSPACE_ID` and `update-simultaneous-ring` exist. If the target is a workspace (not a person), use those instead of SNR.
+- For persons, SNR achieves the same result (desk + mobile ring simultaneously) and is admin-configurable.
 - SNR uses `telephony_config_read/write` scopes (not `people_read/write`).
 
 ### Executive-assistant pairing (3-step process)
