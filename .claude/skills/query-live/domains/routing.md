@@ -49,6 +49,9 @@ Show response includes: `name`, `routeType` (ROUTE_LIST or ROUTE_GROUP), `routeI
 ### Translation Patterns
 ```bash
 wxcli call-routing list-translation-patterns -o json
+wxcli call-routing list-translation-patterns --name "Emergency" -o json
+wxcli call-routing list-translation-patterns --matching-pattern "+1911" -o json
+wxcli call-routing show-translation-patterns-call-routing TRANSLATION_ID -o json
 ```
 
 ### PSTN Connection
@@ -58,9 +61,9 @@ wxcli pstn list LOCATION_ID -o json
 
 ### Test Call Routing
 ```bash
-wxcli call-routing test-call-routing -o json
+wxcli call-routing test-call-routing --originator-id PERSON_ID --originator-type PEOPLE --destination "+15125551234" -o json
 ```
-Tests how a dialed number would be routed. Useful for "what happens if I dial...?" questions.
+Tests how a dialed number would be routed. Useful for "what happens if I dial...?" questions. `--originator-type` accepts `PEOPLE` or `TRUNK`. This is a POST but does not modify state — it's a read-only simulation.
 
 ## Join Patterns
 
@@ -117,5 +120,5 @@ US Domestic Dial Plan:
 1. **All commands are under `call-routing`.** Do NOT use `wxcli trunk`, `wxcli route-group`, etc. — those groups don't exist. Use `wxcli call-routing list-trunks`, `wxcli call-routing show-trunks`, etc.
 2. **Dial plan show includes patterns inline.** No separate "list patterns" command needed — they're in the show response.
 3. **Route groups reference trunks by ID.** To show trunk names in a route group view, you need to cross-reference with the trunk list.
-4. **Translation patterns have limited filtering.** The list command returns all patterns; filter client-side.
+4. **Translation patterns support `--name` and `--matching-pattern` server-side filters.** For other criteria, filter client-side. The show command has a generator-artifact suffix: `show-translation-patterns-call-routing` (not `show-translation-patterns`).
 5. **PSTN list is location-scoped.** Must pass a location ID. For org-wide PSTN view, enumerate all locations.
