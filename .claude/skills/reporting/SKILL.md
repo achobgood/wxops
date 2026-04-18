@@ -507,6 +507,25 @@ for loc, s in sorted(stats.items(), key=lambda x: x[1]['answered']/max(x[1]['tot
 "
 ```
 
+**Recipe 16b — Inbound answer rate for a specific location**
+Question: "What percentage of inbound calls to [Location] were answered vs missed?"
+Note: Filter TERMINATING legs only (inbound = calls delivered to your org). Pass location name via --locations flag at pull time. For windows >12 hours (e.g., yesterday = 2 pulls), merge results before running this recipe.
+# Output: Metric | Value
+```bash
+wxcli cdr list --start-time START --end-time END --locations "Location Name" -o json | python3.11 -c "
+import json, sys
+data = json.load(sys.stdin)
+inbound = [r for r in data if r.get('Direction') == 'TERMINATING']
+answered = [r for r in inbound if r.get('Answer indicator') == 'Yes']
+missed = [r for r in inbound if r.get('Answer indicator') == 'No']
+total = len(inbound)
+print(f'Inbound calls: {total}')
+print(f'Answered: {len(answered)} ({len(answered)/total*100:.1f}%)' if total else 'No data')
+print(f'Missed:   {len(missed)} ({len(missed)/total*100:.1f}%)' if total else '')
+"
+```
+Note: If the window exceeds 12 hours (e.g., "yesterday" = 24h), issue 2 sequential CDR pulls and concatenate the JSON arrays before piping to Python. See the multi-pull merge pattern in Step 6a.
+
 ### Category 3: Hold & Wait Time
 
 **Recipe 17 — Average hold time**
