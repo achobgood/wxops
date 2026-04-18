@@ -1,6 +1,6 @@
 import json
 import typer
-from wxcli.errors import WebexError
+from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 from wxcli.config import get_org_id
@@ -41,7 +41,7 @@ def cmd_list(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -85,7 +85,7 @@ def show(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -124,7 +124,7 @@ def update(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify an Operating Mode\n\nExample --json-body:\n  '{"name":"...","sameHoursDaily":{"mondayToFriday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"saturdayToSunday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."}},"differentHoursDaily":{"sunday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"monday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"tuesday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"wednesday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"thursday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"friday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."}},"holidays":[{"name":"...","allDayEnabled":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"..."}],"callForwarding":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}}'."""
+    """Modify an Operating Mode\n\nExample --json-body:\n  '{"name":"...","sameHoursDaily":{"mondayToFriday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"saturdayToSunday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."}},"differentHoursDaily":{"sunday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"monday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"tuesday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"wednesday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"thursday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"friday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"saturday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."}},"holidays":[{"name":"...","allDayEnabled":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","recurrence":"..."}],"callForwarding":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/operatingModes/{mode_id}"
     params = {}
@@ -139,7 +139,7 @@ def update(
             body["name"] = name
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -180,7 +180,7 @@ def delete(
         params["orgId"] = org_id
     try:
         api.session.rest_delete(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -214,7 +214,7 @@ def create(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create an Operating Mode\n\nExample --json-body:\n  '{"name":"...","type":"SAME_HOURS_DAILY","level":"ORGANIZATION","locationId":"...","sameHoursDaily":{"mondayToFriday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"saturdayToSunday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."}},"differentHoursDaily":{"sunday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"monday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"tuesday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"wednesday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"thursday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"friday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."}}}'."""
+    """Create an Operating Mode\n\nExample --json-body:\n  '{"name":"...","type":"SAME_HOURS_DAILY","level":"ORGANIZATION","callForwarding":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"locationId":"...","sameHoursDaily":{"mondayToFriday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"saturdayToSunday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."}},"differentHoursDaily":{"sunday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"monday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"tuesday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"wednesday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"thursday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"friday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"saturday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."}},"holidays":[{"name":"...","allDayEnabled":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","recurrence":"..."}]}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/operatingModes/"
     params = {}
@@ -239,7 +239,7 @@ def create(
             raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -286,7 +286,7 @@ def show_holidays(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -331,7 +331,7 @@ def update_holidays(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify an Operating Mode Holiday\n\nExample --json-body:\n  '{"name":"...","allDayEnabled":true,"startDate":"...","endDate":"...","startTime":"...","endTime":"..."}'."""
+    """Modify an Operating Mode Holiday\n\nExample --json-body:\n  '{"name":"...","allDayEnabled":true,"startDate":"...","endDate":"...","startTime":"...","endTime":"...","recurrence":{"recurYearlyByDate":{"dayOfMonth":"...","month":"..."},"recurYearlyByDay":{"day":"...","week":"...","month":"..."}}}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/operatingModes/{mode_id}/holidays/{holiday_id}"
     params = {}
@@ -356,7 +356,7 @@ def update_holidays(
             body["endTime"] = end_time
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -398,7 +398,7 @@ def delete_holidays(
         params["orgId"] = org_id
     try:
         api.session.rest_delete(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -435,7 +435,7 @@ def create_holidays(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create an Operating Mode Holiday\n\nExample --json-body:\n  '{"name":"...","allDayEnabled":true,"startDate":"...","endDate":"...","startTime":"...","endTime":"..."}'."""
+    """Create an Operating Mode Holiday\n\nExample --json-body:\n  '{"name":"...","allDayEnabled":true,"startDate":"...","endDate":"...","startTime":"...","endTime":"...","recurrence":{"recurYearlyByDate":{"dayOfMonth":"...","month":"..."},"recurYearlyByDay":{"day":"...","week":"...","month":"..."}}}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/operatingModes/{mode_id}/holidays"
     params = {}
@@ -464,7 +464,7 @@ def create_holidays(
             raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -516,7 +516,7 @@ def list_available_operating_modes(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -575,7 +575,7 @@ def list_available_numbers(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)

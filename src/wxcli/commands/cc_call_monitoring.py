@@ -1,6 +1,6 @@
 import json
 import typer
-from wxcli.errors import WebexError
+from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 from wxcli.config import get_cc_base_url
@@ -26,7 +26,7 @@ def create(
         body = {}
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -75,7 +75,7 @@ def cmd_list(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -118,7 +118,7 @@ def delete(
     url = f"{cc_base_url}/monitor/{request_id}"
     try:
         api.session.rest_delete(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -153,7 +153,7 @@ def create_monitor(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Monitoring Request\n\nExample --json-body:\n  '{"monitorType":"...","invisibleMode":"...","teams":["..."],"trackingId":"...","taskId":"...","id":"..."}'."""
+    """Create Monitoring Request\n\nExample --json-body:\n  '{"monitorType":"...","invisibleMode":"...","teams":["..."],"trackingId":"...","taskId":"...","id":"...","agents":["..."],"sites":["..."]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/monitor"
@@ -173,7 +173,7 @@ def create_monitor(
             body["id"] = id_param
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -221,7 +221,7 @@ def create_barge_in(
         body = {}
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -269,7 +269,7 @@ def create_end(
         body = {}
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -317,7 +317,7 @@ def create_hold(
         body = {}
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)

@@ -1,6 +1,6 @@
 import json
 import typer
-from wxcli.errors import WebexError
+from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 from wxcli.config import get_cc_base_url
@@ -25,7 +25,7 @@ def update(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Campaign Request\n\nExample --json-body:\n  '{"dialingListFetchURL":"...","outdialANI":"...","reservationPercentage":"...","previewActionsDisabled":["..."],"previewOfferTimeoutAutoAction":"...","previewOfferTimeout":"..."}'."""
+    """Update Campaign Request\n\nExample --json-body:\n  '{"dialingListFetchURL":"...","outdialANI":"...","reservationPercentage":"...","previewActionsDisabled":["..."],"previewOfferTimeoutAutoAction":"...","previewOfferTimeout":"...","dialingRate":"...","maxDialingRate":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/dialer/campaign/{campaign_id}"
@@ -55,7 +55,7 @@ def update(
             body["noAnswerRingLimit"] = no_answer_ring_limit
     try:
         result = api.session.rest_put(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -93,7 +93,7 @@ def delete(
     url = f"{cc_base_url}/dialer/campaign/{campaign_id}"
     try:
         api.session.rest_delete(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -142,7 +142,7 @@ def create(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Start Campaign Request\n\nExample --json-body:\n  '{"dialingListFetchURL":"...","outdialANI":"...","predictiveCorrectionPace":"...","predictiveGain":"...","reservationPercentage":"...","callProgressAnalysisParams":{"minSilencePeriod":"...","analysisPeriod":"...","minimumValidSpeech":"...","maxTimeAnalysis":"...","maxTermToneAnalysis":"...","terminatingToneDetect":"..."}}'."""
+    """Start Campaign Request\n\nExample --json-body:\n  '{"dialingListFetchURL":"...","outdialANI":"...","predictiveCorrectionPace":"...","predictiveGain":"...","reservationPercentage":"...","callProgressAnalysisParams":{"minSilencePeriod":"...","analysisPeriod":"...","minimumValidSpeech":"...","maxTimeAnalysis":"...","maxTermToneAnalysis":"...","terminatingToneDetect":"...","cpaEnabled":"...","amdEnabled":"..."},"entryPointId":"...","ivrPorts":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/dialer/campaign"
@@ -190,7 +190,7 @@ def create(
             body["noAnswerRingLimit"] = no_answer_ring_limit
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)

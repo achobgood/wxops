@@ -1,6 +1,6 @@
 import json
 import typer
-from wxcli.errors import WebexError
+from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 from wxcli.config import get_org_id
@@ -30,7 +30,7 @@ def cmd_list(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -65,7 +65,7 @@ def update(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Members on the device\n\nExample --json-body:\n  '{"members":[{"port":"...","id":"...","t38FaxCompressionEnabled":"...","primaryOwner":"...","lineType":"...","lineWeight":"..."}]}'."""
+    """Update Members on the device\n\nExample --json-body:\n  '{"members":[{"port":"...","id":"...","primaryOwner":"...","lineType":"...","lineWeight":"...","hotlineEnabled":"...","hotlineDestination":"...","allowCallDeclineEnabled":"..."}]}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/devices/{device_id}/members"
     params = {}
@@ -78,7 +78,7 @@ def update(
         body = {}
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -141,7 +141,7 @@ def list_available_members(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -200,7 +200,7 @@ def show(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -267,7 +267,7 @@ def show_count_available_members(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -318,7 +318,7 @@ def apply_changes_for(
         body = {}
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -360,7 +360,7 @@ def show_settings_devices(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -400,7 +400,7 @@ def update_settings_devices(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update device settings\n\nExample --json-body:\n  '{"customizations":{"ata":{"audioCodecPriority":"...","ataDtmfMode":"...","ataDtmfMethod":"...","cdpEnabled":"...","lldpEnabled":"...","qosEnabled":"..."},"mpp":{"pnacEnabled":"...","audioCodecPriority":"...","backlightTimer":"...","background":"...","displayNameFormat":"...","cdpEnabled":"..."},"wifi":{"audioCodecPriority":"...","ldap":"...","webAccess":"...","phoneSecurityPwd":"..."}},"customEnabled":true}'."""
+    """Update device settings\n\nExample --json-body:\n  '{"customizations":{"ata":{"audioCodecPriority":"...","ataDtmfMode":"...","ataDtmfMethod":"...","cdpEnabled":"...","lldpEnabled":"...","qosEnabled":"...","vlan":"...","webAccessEnabled":"..."},"mpp":{"pnacEnabled":"...","audioCodecPriority":"...","backlightTimer":"...","background":"...","cdpEnabled":"...","defaultLoggingLevel":"...","dndServicesEnabled":"...","acd":"..."},"wifi":{"audioCodecPriority":"...","ldap":"...","webAccess":"...","phoneSecurityPwd":"..."}},"customEnabled":true}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/devices/{device_id}/settings"
     params = {}
@@ -417,7 +417,7 @@ def update_settings_devices(
             body["customEnabled"] = custom_enabled
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -456,7 +456,7 @@ def show_settings_devices_1(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -503,7 +503,7 @@ def show_devices(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -557,7 +557,7 @@ def update_devices_config(
             body["sipPassword"] = sip_password
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -602,7 +602,7 @@ def list_devices_people(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -650,7 +650,7 @@ def update_hoteling(
         body = {}
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -695,7 +695,7 @@ def list_devices_workspaces(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -752,7 +752,7 @@ def update_devices_workspaces(
             body["guestHoursLimit"] = guest_hours_limit
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -790,7 +790,7 @@ def show_settings_devices_2(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -842,7 +842,7 @@ def list_line_key_templates(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -880,7 +880,7 @@ def create(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Line Key Template\n\nExample --json-body:\n  '{"templateName":"...","deviceModel":"...","userReorderEnabled":true,"lineKeys":[{"lineKeyIndex":"...","lineKeyType":"...","lineKeyLabel":"...","lineKeyValue":"...","sharedLineIndex":"..."}]}'."""
+    """Create a Line Key Template\n\nExample --json-body:\n  '{"templateName":"...","deviceModel":"...","lineKeys":[{"lineKeyIndex":"...","lineKeyType":"...","sharedLineIndex":"...","lineKeyLabel":"...","lineKeyValue":"..."}],"userReorderEnabled":true}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/devices/lineKeyTemplates"
     params = {}
@@ -903,7 +903,7 @@ def create(
             raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -949,7 +949,7 @@ def show_line_key_templates(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -988,7 +988,7 @@ def update_line_key_templates(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify a Line Key Template\n\nExample --json-body:\n  '{"userReorderEnabled":true,"lineKeys":[{"lineKeyIndex":"...","lineKeyType":"...","lineKeyLabel":"...","lineKeyValue":"...","sharedLineIndex":"..."}]}'."""
+    """Modify a Line Key Template\n\nExample --json-body:\n  '{"lineKeys":[{"lineKeyIndex":"...","lineKeyType":"...","sharedLineIndex":"...","lineKeyLabel":"...","lineKeyValue":"..."}],"userReorderEnabled":true}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/devices/lineKeyTemplates/{template_id}"
     params = {}
@@ -1003,7 +1003,7 @@ def update_line_key_templates(
             body["userReorderEnabled"] = user_reorder_enabled
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1044,7 +1044,7 @@ def delete(
         params["orgId"] = org_id
     try:
         api.session.rest_delete(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1076,7 +1076,7 @@ def preview_apply_line(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Preview Apply Line Key Template\n\nExample --json-body:\n  '{"action":"APPLY_TEMPLATE","templateId":"...","locationIds":["..."],"excludeDevicesWithCustomLayout":true,"includeDeviceTags":["..."],"excludeDeviceTags":["..."]}'."""
+    """Preview Apply Line Key Template\n\nExample --json-body:\n  '{"action":"APPLY_TEMPLATE","templateId":"...","locationIds":["..."],"excludeDevicesWithCustomLayout":true,"includeDeviceTags":["..."],"excludeDeviceTags":["..."],"advisoryTypes":{"moreSharedAppearancesEnabled":true,"fewSharedAppearancesEnabled":true,"moreMonitorAppearancesEnabled":true,"moreCPEAppearancesEnabled":true,"moreModeManagementAppearancesEnabled":true}}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/devices/actions/previewApplyLineKeyTemplate/invoke"
     params = {}
@@ -1095,7 +1095,7 @@ def preview_apply_line(
             body["excludeDevicesWithCustomLayout"] = exclude_devices_with_custom_layout
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1139,7 +1139,7 @@ def list_apply_line_key_template(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1177,7 +1177,7 @@ def create_apply_line_key_template(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Apply a Line Key Template\n\nExample --json-body:\n  '{"action":"APPLY_TEMPLATE","templateId":"...","locationIds":["..."],"excludeDevicesWithCustomLayout":true,"includeDeviceTags":["..."],"excludeDeviceTags":["..."]}'."""
+    """Apply a Line Key Template\n\nExample --json-body:\n  '{"action":"APPLY_TEMPLATE","templateId":"...","locationIds":["..."],"excludeDevicesWithCustomLayout":true,"includeDeviceTags":["..."],"excludeDeviceTags":["..."],"advisoryTypes":{"moreSharedAppearancesEnabled":true,"fewSharedAppearancesEnabled":true,"moreMonitorAppearancesEnabled":true,"moreCPEAppearancesEnabled":true,"moreModeManagementAppearancesEnabled":true}}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/jobs/devices/applyLineKeyTemplate"
     params = {}
@@ -1200,7 +1200,7 @@ def create_apply_line_key_template(
             raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1246,7 +1246,7 @@ def show_apply_line_key_template(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1293,7 +1293,7 @@ def show_errors(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1352,7 +1352,7 @@ def list_supported_devices_dects(
             if "max" not in params:
                 params["max"] = 1000
             items = list(api.session.follow_pagination(url=url, params=params, item_key="devices"))
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1406,7 +1406,7 @@ def list_supported_devices_dect_networks(
             if "max" not in params:
                 params["max"] = 1000
             items = list(api.session.follow_pagination(url=url, params=params, item_key="devices"))
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1451,7 +1451,7 @@ def validate_a_list(
         body = {}
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1500,7 +1500,7 @@ def list_call_device_settings(
             items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
             items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1535,7 +1535,7 @@ def create_call_device_settings(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Change Device Settings Across Organization Or Location Job\n\nExample --json-body:\n  '{"locationId":"...","locationCustomizationsEnabled":true,"customizations":{"ata":{"audioCodecPriority":"...","ataDtmfMode":"...","ataDtmfMethod":"...","cdpEnabled":"...","lldpEnabled":"...","qosEnabled":"..."},"dect":{"audioCodecPriority":"...","cdpEnabled":"...","dect6825HandsetEmergencyNumber":"...","lldpEnabled":"...","multicast":"...","qosEnabled":"..."},"mpp":{"pnacEnabled":"...","audioCodecPriority":"...","backlightTimer":"...","background":"...","displayNameFormat":"...","cdpEnabled":"..."},"wifi":{"audioCodecPriority":"...","ldap":"...","webAccess":"...","phoneSecurityPwd":"..."}}}'."""
+    """Change Device Settings Across Organization Or Location Job\n\nExample --json-body:\n  '{"locationId":"...","locationCustomizationsEnabled":true,"customizations":{"ata":{"audioCodecPriority":"...","ataDtmfMode":"...","ataDtmfMethod":"...","cdpEnabled":"...","lldpEnabled":"...","qosEnabled":"...","vlan":"...","webAccessEnabled":"..."},"dect":{"audioCodecPriority":"...","cdpEnabled":"...","dect6825HandsetEmergencyNumber":"...","lldpEnabled":"...","multicast":"...","qosEnabled":"...","vlan":"...","webAccessEnabled":"..."},"mpp":{"pnacEnabled":"...","audioCodecPriority":"...","backlightTimer":"...","background":"...","cdpEnabled":"...","defaultLoggingLevel":"...","dndServicesEnabled":"...","acd":"..."},"wifi":{"audioCodecPriority":"...","ldap":"...","webAccess":"...","phoneSecurityPwd":"..."}}}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/jobs/devices/callDeviceSettings"
     params = {}
@@ -1552,7 +1552,7 @@ def create_call_device_settings(
             body["locationCustomizationsEnabled"] = location_customizations_enabled
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1594,7 +1594,7 @@ def show_call_device_settings(
     url = f"https://webexapis.com/v1/telephony/config/jobs/devices/callDeviceSettings/{job_id}"
     try:
         result = api.session.rest_get(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1652,7 +1652,7 @@ def list_errors_call_device_settings(
             items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
             items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1700,7 +1700,7 @@ def list_layout(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1738,7 +1738,7 @@ def update_layout(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Device Layout by Device ID\n\nExample --json-body:\n  '{"layoutMode":"DEFAULT","userReorderEnabled":true,"lineKeys":[{"lineKeyIndex":"...","lineKeyType":"...","lineKeyLabel":"...","lineKeyValue":"...","sharedLineIndex":"..."}],"kemModuleType":"KEM_14_KEYS","kemKeys":[{"kemModuleIndex":"...","kemKeyIndex":"...","kemKeyType":"...","kemKeyLabel":"...","kemKeyValue":"...","sharedLineIndex":"..."}]}'."""
+    """Modify Device Layout by Device ID\n\nExample --json-body:\n  '{"layoutMode":"DEFAULT","lineKeys":[{"lineKeyIndex":"...","lineKeyType":"...","sharedLineIndex":"...","lineKeyLabel":"...","lineKeyValue":"..."}],"userReorderEnabled":true,"kemModuleType":"KEM_14_KEYS","kemKeys":[{"kemModuleIndex":"...","kemKeyIndex":"...","kemKeyType":"...","sharedLineIndex":"...","kemKeyLabel":"...","kemKeyValue":"..."}]}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/devices/{device_id}/layout"
     params = {}
@@ -1757,7 +1757,7 @@ def update_layout(
             body["kemModuleType"] = kem_module_type
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1801,7 +1801,7 @@ def list_rebuild_phones(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1856,7 +1856,7 @@ def create_rebuild_phones(
             raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1902,7 +1902,7 @@ def show_rebuild_phones(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1955,7 +1955,7 @@ def list_errors_rebuild_phones(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1999,7 +1999,7 @@ def show_settings_devices_3(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -2053,7 +2053,7 @@ def update_settings_devices_1(
             body["compression"] = compression
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -2092,7 +2092,7 @@ def show_settings_devices_4(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -2146,7 +2146,7 @@ def update_settings_devices_2(
             body["compression"] = compression
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -2190,7 +2190,7 @@ def list_background_images(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -2235,7 +2235,7 @@ def delete_background_images(
         params["orgId"] = org_id
     try:
         api.session.rest_delete(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -2278,7 +2278,7 @@ def upload_a_device(
         body = {}
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -2317,7 +2317,7 @@ def show_count_devices(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)

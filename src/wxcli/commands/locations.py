@@ -1,6 +1,6 @@
 import json
 import typer
-from wxcli.errors import WebexError
+from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 from wxcli.config import get_org_id
@@ -13,7 +13,6 @@ app = typer.Typer(help="Manage Webex Calling locations.")
 def cmd_list(
     name: str = typer.Option(None, "--name", help="List locations whose name contains this string (case-insensi"),
     id_param: str = typer.Option(None, "--id", help="List locations by ID."),
-    max: str = typer.Option(None, "--max", help="Limit the maximum number of location in the response."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -27,8 +26,6 @@ def cmd_list(
         params["name"] = name
     if id_param is not None:
         params["id"] = id_param
-    if max is not None:
-        params["max"] = max
     if limit > 0:
         params["max"] = limit
     if offset > 0:
@@ -43,7 +40,7 @@ def cmd_list(
             items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
             items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -57,6 +54,9 @@ def cmd_list(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -80,7 +80,7 @@ def create(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Location\n\nExample --json-body:\n  '{"name":"...","timeZone":"...","preferredLanguage":"...","announcementLanguage":"...","address":{"address1":"...","address2":"...","city":"...","state":"...","postalCode":"...","country":"..."},"latitude":"..."}'."""
+    """Create a Location\n\nExample --json-body:\n  '{"name":"...","timeZone":"...","preferredLanguage":"...","announcementLanguage":"...","address":{"address1":"...","city":"...","state":"...","postalCode":"...","country":"...","address2":"..."},"latitude":"...","longitude":"...","notes":"..."}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/locations"
     params = {}
@@ -111,7 +111,7 @@ def create(
             raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -125,6 +125,9 @@ def create(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -154,7 +157,7 @@ def show(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -168,6 +171,9 @@ def show(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -211,7 +217,7 @@ def update(
             body["preferredLanguage"] = preferred_language
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -225,6 +231,9 @@ def update(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -249,7 +258,7 @@ def delete(
         params["orgId"] = org_id
     try:
         api.session.rest_delete(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -263,6 +272,9 @@ def delete(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -288,7 +300,7 @@ def list_floors(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -302,6 +314,9 @@ def list_floors(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -340,7 +355,7 @@ def create_floors(
             raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -354,6 +369,9 @@ def create_floors(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -380,7 +398,7 @@ def show_floors(
     url = f"https://webexapis.com/v1/locations/{location_id}/floors/{floor_id}"
     try:
         result = api.session.rest_get(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -394,6 +412,9 @@ def show_floors(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -431,7 +452,7 @@ def update_floors(
             body["displayName"] = display_name
     try:
         result = api.session.rest_put(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -445,6 +466,9 @@ def update_floors(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -466,7 +490,7 @@ def delete_floors(
     url = f"https://webexapis.com/v1/locations/{location_id}/floors/{floor_id}"
     try:
         api.session.rest_delete(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -480,6 +504,9 @@ def delete_floors(
         elif "25409" in err:
             typer.echo(f"Error: {e}", err=True)
             typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)

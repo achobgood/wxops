@@ -1,6 +1,6 @@
 import json
 import typer
-from wxcli.errors import WebexError
+from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 
@@ -28,7 +28,7 @@ def cmd_list(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -75,7 +75,7 @@ def create(
             body["lineOwnerId"] = line_owner_id
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -122,7 +122,7 @@ def delete(
         params["lineOwnerId"] = line_owner_id
     try:
         api.session.rest_delete(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -171,7 +171,7 @@ def create_add_participant(
             raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -220,7 +220,7 @@ def create_mute(
             body["callId"] = call_id
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -269,7 +269,7 @@ def create_unmute(
             body["callId"] = call_id
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -322,7 +322,7 @@ def create_deafen(
             raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -375,7 +375,7 @@ def create_undeafen(
             raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -425,7 +425,7 @@ def create_hold(
         body = {}
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -475,7 +475,7 @@ def create_resume(
         body = {}
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)

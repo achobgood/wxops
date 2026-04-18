@@ -1408,19 +1408,20 @@ TranslationPatternsApi.delete(
 from wxc_sdk.telephony.call_routing.translation_pattern import TranslationPattern
 
 # Create an org-level translation pattern
-# Strips leading '9' from 4-digit extensions before routing
+# Rewrites 4-digit 9xxx extensions to E.164
 pattern = TranslationPattern(
-    name='Strip-9-Prefix',
+    name='Ext-to-E164',
     matching_pattern='9XXX',
-    replacement_pattern='XXX'
+    replacement_pattern='+15125559000'
 )
 tp_id = api.telephony.call_routing.tp.create(pattern=pattern)
 
 # Create a location-level translation pattern
+# NOTE: replacement_pattern must use literal digits only — X wildcards are rejected (error 28043)
 pattern_loc = TranslationPattern(
     name='Local-Rewrite',
     matching_pattern='+1919555XXXX',
-    replacement_pattern='555XXXX'
+    replacement_pattern='+19195550000'
 )
 tp_id_loc = api.telephony.call_routing.tp.create(
     pattern=pattern_loc,
@@ -2276,7 +2277,7 @@ Dial plans, trunks, route groups, and route lists all live under `telephony/conf
 
 ### 1. Translation pattern replacement must use fully specified digits
 
-E.164-formatted translation pattern replacement strings cannot contain `X` wildcards. For example, `+1919666XXXX` is rejected — use `+19196660000` instead. Note: `X` wildcards ARE valid in non-E.164 replacement patterns for digit manipulation (e.g., replacing `9XXX` with `XXX` to strip a prefix).
+Translation pattern replacement strings cannot contain `X` wildcards in any format. For example, `+1919666XXXX` is rejected, and so is `XXX` (non-E.164). Use fully specified literal digits: `+19196660000`. The matching pattern accepts `X` wildcards normally (`9XXXXXXX`, `+1512555XXXX`), but the replacement must be all literal digits. Confirmed via live API testing 2026-04-18 — error 28043 "Invalid Translation Replacement Pattern" for any replacement containing `X`.
 
 ### 2. Dial plans require an existing trunk or route group
 
@@ -2286,7 +2287,11 @@ You cannot create a standalone dial plan without a route choice. The dial plan m
 
 The `test_call_routing` API requires the `originatorId` to be a valid calling-enabled user. Passing a non-calling user's ID returns `404 "Originator not found"`. Always verify the user has a Webex Calling license and location assigned before using them as an originator.
 
-### 4. Number porting and ordering are Control Hub only
+### 4. Trunk passwords reject `?` and `!` characters
+
+When creating a REGISTERING trunk, the password field rejects `?` and `!` — error 25015 "Invalid characters ? or ! in password." Use alphanumeric + other special characters (e.g., `@`, `#`, `$`). Confirmed via live API testing 2026-04-18.
+
+### 5. Number porting and ordering are Control Hub only
 
 The API manages PSTN connections, trunks, and routing for numbers that already exist in the org. To port in new numbers or order from Cisco Calling Plan, use Control Hub or contact Cisco PTS.
 

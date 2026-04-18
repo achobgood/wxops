@@ -1,6 +1,6 @@
 import json
 import typer
-from wxcli.errors import WebexError
+from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 from wxcli.config import get_org_id
@@ -52,7 +52,7 @@ def cmd_list(
             items = result.get("queues", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
             items = list(api.session.follow_pagination(url=url, params=params, item_key="queues"))
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -99,7 +99,7 @@ def create(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Call Queue with Customer Experience Essentials\n\nExample --json-body:\n  '{"name":"...","phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"..."}'."""
+    """Create a Call Queue with Customer Experience Essentials\n\nExample --json-body:\n  '{"name":"...","callPolicies":{"routingType":"PRIORITY_BASED","policy":"CIRCULAR","callBounce":{"callBounceEnabled":"...","callBounceMaxRings":"...","agentUnavailableEnabled":"...","alertAgentEnabled":"...","alertAgentMaxSeconds":"...","callBounceOnHoldEnabled":"...","callBounceOnHoldMaxSeconds":"..."},"distinctiveRing":{"enabled":"...","ringPattern":"..."}},"queueSettings":{"queueSize":0,"overflow":{"action":"...","greeting":"...","sendToVoicemail":"...","transferNumber":"...","overflowAfterWaitEnabled":"...","overflowAfterWaitTime":"...","playOverflowGreetingEnabled":"...","audioAnnouncementFiles":"..."},"callOfferToneEnabled":true,"resetCallStatisticsEnabled":true,"welcomeMessage":{"greeting":"...","enabled":"...","alwaysEnabled":"...","audioAnnouncementFiles":"..."},"waitMessage":{"waitMode":"...","enabled":"...","handlingTime":"...","defaultHandlingTime":"...","queuePosition":"...","highVolumeMessageEnabled":"...","estimatedWaitingTime":"...","callbackOptionEnabled":"..."},"comfortMessage":{"greeting":"...","enabled":"...","timeBetweenMessages":"...","audioAnnouncementFiles":"..."},"comfortMessageBypass":{"greeting":"...","enabled":"...","callWaitingAgeThreshold":"...","audioAnnouncementFiles":"..."}},"agents":[{"id":"...","weight":"...","skillLevel":"..."}],"phoneNumber":"...","extension":"...","languageCode":"...","firstName":"..."}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues"
     params = {}
@@ -142,7 +142,7 @@ def create(
             raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -192,7 +192,7 @@ def show(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -245,7 +245,7 @@ def update(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Call Queue\n\nExample --json-body:\n  '{"enabled":true,"name":"...","languageCode":"...","firstName":"...","lastName":"...","timeZone":"..."}'."""
+    """Update a Call Queue\n\nExample --json-body:\n  '{"queueSettings":{"queueSize":0,"overflow":{"action":"...","greeting":"...","sendToVoicemail":"...","transferNumber":"...","overflowAfterWaitEnabled":"...","overflowAfterWaitTime":"...","playOverflowGreetingEnabled":"...","audioAnnouncementFiles":"..."},"callOfferToneEnabled":true,"resetCallStatisticsEnabled":true,"welcomeMessage":{"greeting":"...","enabled":"...","alwaysEnabled":"...","audioAnnouncementFiles":"..."},"waitMessage":{"waitMode":"...","enabled":"...","handlingTime":"...","defaultHandlingTime":"...","queuePosition":"...","highVolumeMessageEnabled":"...","estimatedWaitingTime":"...","callbackOptionEnabled":"..."},"comfortMessage":{"greeting":"...","enabled":"...","timeBetweenMessages":"...","audioAnnouncementFiles":"..."},"comfortMessageBypass":{"greeting":"...","enabled":"...","callWaitingAgeThreshold":"...","audioAnnouncementFiles":"..."}},"enabled":true,"name":"...","languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","phoneNumber":"..."}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}"
     params = {}
@@ -286,7 +286,7 @@ def update(
             body["dialByName"] = dial_by_name
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -328,7 +328,7 @@ def delete(
         params["orgId"] = org_id
     try:
         api.session.rest_delete(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -374,7 +374,7 @@ def list_announcements(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -422,7 +422,7 @@ def delete_announcements(
         params["orgId"] = org_id
     try:
         api.session.rest_delete(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -462,7 +462,7 @@ def show_call_forwarding(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -514,7 +514,7 @@ def update_call_forwarding(
         body = {}
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -550,7 +550,7 @@ def create_selective_rules(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Selective Call Forwarding Rule for a Call Queue\n\nExample --json-body:\n  '{"name":"...","enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":"...","unavailableNumberEnabled":"...","numbers":"..."}}}'."""
+    """Create a Selective Call Forwarding Rule for a Call Queue\n\nExample --json-body:\n  '{"name":"...","callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":"...","unavailableNumberEnabled":"...","numbers":"..."}},"callsTo":{"numbers":["..."]},"enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."}}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/callForwarding/selectiveRules"
     params = {}
@@ -575,7 +575,7 @@ def create_selective_rules(
             raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -623,7 +623,7 @@ def show_selective_rules(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -667,7 +667,7 @@ def update_selective_rules(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Selective Call Forwarding Rule for a Call Queue\n\nExample --json-body:\n  '{"name":"...","enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":"...","unavailableNumberEnabled":"...","numbers":"..."}}}'."""
+    """Update a Selective Call Forwarding Rule for a Call Queue\n\nExample --json-body:\n  '{"name":"...","enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":"...","unavailableNumberEnabled":"...","numbers":"..."}},"callsTo":{"numbers":["..."]}}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/callForwarding/selectiveRules/{rule_id}"
     params = {}
@@ -688,7 +688,7 @@ def update_selective_rules(
             body["businessSchedule"] = business_schedule
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -731,7 +731,7 @@ def delete_selective_rules(
         params["orgId"] = org_id
     try:
         api.session.rest_delete(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -777,7 +777,7 @@ def list_holiday_service(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -820,7 +820,7 @@ def update_holiday_service(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Call Queue Holiday Service\n\nExample --json-body:\n  '{"holidayServiceEnabled":true,"action":"BUSY","holidayScheduleLevel":"LOCATION","holidayScheduleName":"...","transferPhoneNumber":"...","playAnnouncementBeforeEnabled":true}'."""
+    """Update a Call Queue Holiday Service\n\nExample --json-body:\n  '{"holidayServiceEnabled":true,"action":"BUSY","holidayScheduleLevel":"LOCATION","playAnnouncementBeforeEnabled":true,"audioMessageSelection":"DEFAULT","holidayScheduleName":"...","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"...","level":"..."}]}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/holidayService"
     params = {}
@@ -847,7 +847,7 @@ def update_holiday_service(
             body["audioMessageSelection"] = audio_message_selection
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -893,7 +893,7 @@ def list_night_service(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -939,7 +939,7 @@ def update_night_service(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Call Queue Night Service\n\nExample --json-body:\n  '{"nightServiceEnabled":true,"action":"BUSY","transferPhoneNumber":"...","playAnnouncementBeforeEnabled":true,"announcementMode":"NORMAL","audioMessageSelection":"DEFAULT"}'."""
+    """Update a Call Queue Night Service\n\nExample --json-body:\n  '{"nightServiceEnabled":true,"playAnnouncementBeforeEnabled":true,"announcementMode":"NORMAL","audioMessageSelection":"DEFAULT","forceNightServiceEnabled":true,"manualAudioMessageSelection":"DEFAULT","action":"BUSY","transferPhoneNumber":"..."}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/nightService"
     params = {}
@@ -972,7 +972,7 @@ def update_night_service(
             body["manualAudioMessageSelection"] = manual_audio_message_selection
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1018,7 +1018,7 @@ def list_forced_forward(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1058,7 +1058,7 @@ def update_forced_forward(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Call Queue Forced Forward service\n\nExample --json-body:\n  '{"forcedForwardEnabled":true,"transferPhoneNumber":"...","playAnnouncementBeforeEnabled":true,"audioMessageSelection":"DEFAULT","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"...","level":"..."}]}'."""
+    """Update a Call Queue Forced Forward service\n\nExample --json-body:\n  '{"forcedForwardEnabled":true,"playAnnouncementBeforeEnabled":true,"audioMessageSelection":"DEFAULT","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"...","level":"..."}]}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/forcedForward"
     params = {}
@@ -1079,7 +1079,7 @@ def update_forced_forward(
             body["audioMessageSelection"] = audio_message_selection
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1125,7 +1125,7 @@ def list_stranded_calls(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1164,7 +1164,7 @@ def update_stranded_calls(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Call Queue Stranded Calls service\n\nExample --json-body:\n  '{"action":"NONE","transferPhoneNumber":"...","audioMessageSelection":"DEFAULT","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"...","level":"..."}]}'."""
+    """Update a Call Queue Stranded Calls service\n\nExample --json-body:\n  '{"action":"NONE","audioMessageSelection":"DEFAULT","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"...","level":"..."}]}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/strandedCalls"
     params = {}
@@ -1183,7 +1183,7 @@ def update_stranded_calls(
             body["audioMessageSelection"] = audio_message_selection
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1231,7 +1231,7 @@ def list_available_numbers_queues(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1284,7 +1284,7 @@ def list_available_numbers_alternate(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1343,7 +1343,7 @@ def list_available_numbers_call_forwarding(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1404,7 +1404,7 @@ def list_available_agents_queues(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1465,7 +1465,7 @@ def list_supervisors(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1523,7 +1523,7 @@ def create_supervisors(
             raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1573,7 +1573,7 @@ def delete_supervisors_config(
         params["orgId"] = org_id
     try:
         api.session.rest_delete(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1630,7 +1630,7 @@ def show_supervisors(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1684,7 +1684,7 @@ def update_supervisors(
         body = {}
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1728,7 +1728,7 @@ def delete_supervisors_config_1(
         params["orgId"] = org_id
     try:
         api.session.rest_delete(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1784,7 +1784,7 @@ def list_available_supervisors(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1845,7 +1845,7 @@ def list_available_agents_supervisors(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1920,7 +1920,7 @@ def list_agents(
             items = result.get("agents", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
             items = list(api.session.follow_pagination(url=url, params=params, item_key="agents"))
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1971,7 +1971,7 @@ def show_agents(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -2025,7 +2025,7 @@ def update_settings(
         body = {}
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -2069,7 +2069,7 @@ def switch_mode_for(
         body = {}
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)

@@ -1,6 +1,6 @@
 import json
 import typer
-from wxcli.errors import WebexError
+from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 from wxcli.config import get_org_id, get_cc_base_url
@@ -25,7 +25,7 @@ def show(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -88,7 +88,7 @@ def update(
             body["status"] = status
     try:
         result = api.session.rest_patch(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -130,7 +130,7 @@ def delete(
         params["orgId"] = org_id
     try:
         api.session.rest_delete(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -175,7 +175,7 @@ def cmd_list(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -216,7 +216,7 @@ def create(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Register Subscription\n\nExample --json-body:\n  '{"name":"...","resourceVersion":"...","destinationUrl":"...","eventTypes":["..."],"description":"...","orgId":"..."}'."""
+    """Register Subscription\n\nExample --json-body:\n  '{"name":"...","resourceVersion":"...","destinationUrl":"...","eventTypes":["..."],"description":"...","orgId":"...","secret":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/v2/subscriptions"
@@ -238,7 +238,7 @@ def create(
             body["secret"] = secret
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -285,7 +285,7 @@ def show_subscriptions(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -329,7 +329,7 @@ def update_subscriptions(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Subscription\n\nExample --json-body:\n  '{"resourceVersion":"...","destinationUrl":"...","eventTypes":["..."],"orgId":"...","description":"...","secret":"..."}'."""
+    """Update Subscription\n\nExample --json-body:\n  '{"resourceVersion":"...","destinationUrl":"...","eventTypes":["..."],"orgId":"...","description":"...","secret":"...","status":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/v2/subscriptions/{id}"
@@ -351,7 +351,7 @@ def update_subscriptions(
             body["status"] = status
     try:
         result = api.session.rest_patch(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -393,7 +393,7 @@ def delete_subscriptions(
         params["orgId"] = org_id
     try:
         api.session.rest_delete(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -438,7 +438,7 @@ def list_event_types_v1(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -488,7 +488,7 @@ def list_subscriptions(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -548,7 +548,7 @@ def create_subscriptions(
             body["secret"] = secret
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -600,7 +600,7 @@ def list_event_types_v2(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)

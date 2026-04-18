@@ -172,8 +172,13 @@ def _schema_to_example(schema: dict, spec: dict, depth: int = 0) -> Any:
         return [_schema_to_example(items, spec, depth + 1)]
     if t == "object" or "properties" in schema:
         props = schema.get("properties", {})
+        required_set = set(schema.get("required", []))
+        required_keys = [k for k in props if k in required_set]
+        optional_keys = [k for k in props if k not in required_set]
+        ordered = required_keys + optional_keys
         result = {}
-        for name, prop in list(props.items())[:6]:  # cap at 6 keys
+        for name in ordered[:8]:
+            prop = props[name]
             if "$ref" in prop:
                 prop = resolve_ref(spec, prop["$ref"])
             result[name] = _schema_to_example(prop, spec, depth + 1)

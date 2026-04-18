@@ -1,6 +1,6 @@
 import json
 import typer
-from wxcli.errors import WebexError
+from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 from wxcli.config import get_org_id, get_cc_base_url
@@ -22,7 +22,7 @@ def show(
     url = f"{cc_base_url}/organization/{orgid}/user/with-user-profile/{id}"
     try:
         result = api.session.rest_get(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -83,7 +83,7 @@ def cmd_list(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -161,7 +161,7 @@ def list_user_v2(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -210,7 +210,7 @@ def show_by_ci_user_id_v2(
         params["includeNames"] = include_names
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -276,7 +276,7 @@ def list_user_organization(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -321,7 +321,7 @@ def update(
         body = {}
     try:
         result = api.session.rest_patch(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -370,7 +370,7 @@ def list_bulk_export(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -408,7 +408,7 @@ def create(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get the agents matching skill requirements criteria\n\nExample --json-body:\n  '{"skillRequirements":[{"condition":"...","skillId":"...","skillValue":"...","skillName":"...","skillType":"...","version":"..."}]}'."""
+    """Get the agents matching skill requirements criteria\n\nExample --json-body:\n  '{"skillRequirements":[{"condition":"...","skillId":"...","skillValue":"...","skillName":"...","skillType":"...","version":"...","id":"...","organizationId":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -426,7 +426,7 @@ def create(
         body = {}
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -487,7 +487,7 @@ def create_fetch_user_details_by_ids(
             body["search"] = search
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -537,7 +537,7 @@ def list_with_user_profile(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -586,7 +586,7 @@ def show_user(
         params["includeSkillProfileAudit"] = include_skill_profile_audit
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -652,7 +652,7 @@ def update_user_organization(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific User by ID\n\nExample --json-body:\n  '{"subscriptionId":"...","multimediaProfileId":"...","active":"...","version":"...","userLevelAutoCSATInclusion":"...","teamIds":["..."]}'."""
+    """Update specific User by ID\n\nExample --json-body:\n  '{"subscriptionId":"...","multimediaProfileId":"...","active":"...","version":"...","userLevelAutoCSATInclusion":"...","teamIds":["..."],"firstName":"...","lastName":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -719,7 +719,7 @@ def update_user_organization(
             body["xspVersion"] = xsp_version
     try:
         result = api.session.rest_put(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -763,7 +763,7 @@ def update_user_organization_1(
             body["valueType"] = value_type
     try:
         result = api.session.rest_patch(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -804,7 +804,7 @@ def show_by_ci_user_id_organization(
         params["includeUserProfile"] = include_user_profile
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)

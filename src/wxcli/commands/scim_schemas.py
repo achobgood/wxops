@@ -1,6 +1,6 @@
 import json
 import typer
-from wxcli.errors import WebexError
+from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 
@@ -18,7 +18,7 @@ def show(
     url = f"https://webexapis.com/Schemas/SCIM2/Group"
     try:
         result = api.session.rest_get(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -60,7 +60,7 @@ def show_user(
     url = f"https://webexapis.com/Schemas/SCIM2/User"
     try:
         result = api.session.rest_get(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -103,7 +103,7 @@ def show_scim2(
     url = f"https://webexapis.com/Schemas/SCIM2/{schema_id}"
     try:
         result = api.session.rest_get(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)

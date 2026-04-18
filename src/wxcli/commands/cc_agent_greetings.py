@@ -1,6 +1,6 @@
 import json
 import typer
-from wxcli.errors import WebexError
+from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 from wxcli.config import get_org_id, get_cc_base_url
@@ -46,7 +46,7 @@ def cmd_list(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -82,7 +82,7 @@ def create(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Greeting File using v2 API\n\nExample --json-body:\n  '{"agentPersonalGreetingInfo":{"greetingPurposeId":"...","lastName":"...","contentType":"...","email":"...","agentId":"...","version":"..."},"audioFile":"..."}'."""
+    """Create a new Greeting File using v2 API\n\nExample --json-body:\n  '{"agentPersonalGreetingInfo":{"greetingPurposeId":"...","lastName":"...","contentType":"...","email":"...","agentId":"...","version":"...","blobId":"...","audioFile":"..."},"audioFile":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -95,7 +95,7 @@ def create(
             body["audioFile"] = audio_file
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -143,7 +143,7 @@ def show(
         params["includeUrl"] = include_url
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -182,7 +182,7 @@ def update(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Greeting File by ID using v2 API\n\nExample --json-body:\n  '{"agentPersonalGreetingInfo":{"greetingPurposeId":"...","lastName":"...","contentType":"...","email":"...","agentId":"...","version":"..."},"audioFile":"..."}'."""
+    """Update specific Greeting File by ID using v2 API\n\nExample --json-body:\n  '{"agentPersonalGreetingInfo":{"greetingPurposeId":"...","lastName":"...","contentType":"...","email":"...","agentId":"...","version":"...","blobId":"...","audioFile":"..."},"audioFile":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -195,7 +195,7 @@ def update(
             body["audioFile"] = audio_file
     try:
         result = api.session.rest_put(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -242,7 +242,7 @@ def update_agent_personal_greeting_v2(
             body["attributeTag"] = attribute_tag
     try:
         result = api.session.rest_patch(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -281,7 +281,7 @@ def delete(
     url = f"{cc_base_url}/organization/{orgid}/v2/agent-personal-greeting/{id}"
     try:
         api.session.rest_delete(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -342,7 +342,7 @@ def list_agent_personal_greeting(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -378,7 +378,7 @@ def create_agent_personal_greeting(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Greeting File\n\nExample --json-body:\n  '{"agentPersonalGreetingInfo":{"firstName":"...","lastName":"...","contentType":"...","email":"...","agentId":"...","version":"..."},"audioFile":"..."}'."""
+    """Create a new Greeting File\n\nExample --json-body:\n  '{"agentPersonalGreetingInfo":{"firstName":"...","lastName":"...","contentType":"...","email":"...","agentId":"...","version":"...","blobId":"...","audioFile":"..."},"audioFile":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -391,7 +391,7 @@ def create_agent_personal_greeting(
             body["audioFile"] = audio_file
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -439,7 +439,7 @@ def create_delete_reference(
         body = {}
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -487,7 +487,7 @@ def show_agent_personal_greeting(
         params["includeUrl"] = include_url
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -526,7 +526,7 @@ def update_agent_personal_greeting_organization(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Greeting File by ID\n\nExample --json-body:\n  '{"agentPersonalGreetingInfo":{"firstName":"...","lastName":"...","contentType":"...","email":"...","agentId":"...","version":"..."},"audioFile":"..."}'."""
+    """Update specific Greeting File by ID\n\nExample --json-body:\n  '{"agentPersonalGreetingInfo":{"firstName":"...","lastName":"...","contentType":"...","email":"...","agentId":"...","version":"...","blobId":"...","audioFile":"..."},"audioFile":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -539,7 +539,7 @@ def update_agent_personal_greeting_organization(
             body["audioFile"] = audio_file
     try:
         result = api.session.rest_put(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -586,7 +586,7 @@ def update_agent_personal_greeting_organization_1(
             body["attributeTag"] = attribute_tag
     try:
         result = api.session.rest_patch(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -625,7 +625,7 @@ def delete_agent_personal_greeting(
     url = f"{cc_base_url}/organization/{orgid}/agent-personal-greeting/{id}"
     try:
         api.session.rest_delete(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)

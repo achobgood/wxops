@@ -1,6 +1,6 @@
 import json
 import typer
-from wxcli.errors import WebexError
+from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 from wxcli.config import get_org_id, get_cc_base_url
@@ -40,7 +40,7 @@ def cmd_list(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -82,7 +82,7 @@ def create(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Address Book\n\nExample --json-body:\n  '{"name":"...","version":"...","organizationId":"...","id":"...","siteId":"...","description":"..."}'."""
+    """Create a new Address Book\n\nExample --json-body:\n  '{"name":"...","version":"...","organizationId":"...","id":"...","siteId":"...","description":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","version":"...","id":"..."}],"parentType":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -107,7 +107,7 @@ def create(
             body["parentType"] = parent_type
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -163,7 +163,7 @@ def list_bulk_export(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -225,7 +225,7 @@ def create_entry(
             body["id"] = id_param
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -274,7 +274,7 @@ def create_bulk(
         body = {}
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -318,7 +318,7 @@ def show(
     url = f"{cc_base_url}/organization/{orgid}/address-book/{id}"
     try:
         result = api.session.rest_get(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -363,7 +363,7 @@ def update(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Address Book by ID\n\nExample --json-body:\n  '{"name":"...","version":"...","organizationId":"...","id":"...","siteId":"...","description":"..."}'."""
+    """Update specific Address Book by ID\n\nExample --json-body:\n  '{"name":"...","version":"...","organizationId":"...","id":"...","siteId":"...","description":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","version":"...","id":"..."}],"parentType":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -388,7 +388,7 @@ def update(
             body["parentType"] = parent_type
     try:
         result = api.session.rest_put(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -427,7 +427,7 @@ def delete(
     url = f"{cc_base_url}/organization/{orgid}/address-book/{id}"
     try:
         api.session.rest_delete(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -480,7 +480,7 @@ def list_incoming_references(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -543,7 +543,7 @@ def list_address_book_v2(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -607,7 +607,7 @@ def list_entry(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -670,7 +670,7 @@ def list_address_book_v3(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -737,7 +737,7 @@ def create_address_book(
             body["parentType"] = parent_type
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -781,7 +781,7 @@ def show_address_book(
     url = f"{cc_base_url}/organization/{orgid}/v3/address-book/{id}"
     try:
         result = api.session.rest_get(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -851,7 +851,7 @@ def update_address_book(
             body["parentType"] = parent_type
     try:
         result = api.session.rest_put(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -890,7 +890,7 @@ def delete_address_book(
     url = f"{cc_base_url}/organization/{orgid}/v3/address-book/{id}"
     try:
         api.session.rest_delete(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -928,7 +928,7 @@ def show_entry(
     url = f"{cc_base_url}/organization/{orgid}/address-book/{address_book_id}/entry/{id}"
     try:
         result = api.session.rest_get(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -993,7 +993,7 @@ def update_entry(
             body["id"] = id_param
     try:
         result = api.session.rest_put(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -1033,7 +1033,7 @@ def delete_entry(
     url = f"{cc_base_url}/organization/{orgid}/address-book/{address_book_id}/entry/{id}"
     try:
         api.session.rest_delete(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)

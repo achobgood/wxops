@@ -1,6 +1,6 @@
 import json
 import typer
-from wxcli.errors import WebexError
+from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 from wxcli.config import get_org_id, get_cc_base_url
@@ -26,7 +26,7 @@ def create(
         body = {}
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -94,7 +94,7 @@ def cmd_list(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -145,7 +145,7 @@ def create_desktop_layout(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Desktop Layout\n\nExample --json-body:\n  '{"defaultJsonModified":"...","editedBy":"...","jsonFileContent":"...","jsonFileName":"...","validatedTime":"...","defaultJsonModifiedTime":"..."}'."""
+    """Create a new Desktop Layout\n\nExample --json-body:\n  '{"defaultJsonModified":"...","editedBy":"...","jsonFileContent":"...","jsonFileName":"...","validatedTime":"...","defaultJsonModifiedTime":"...","modifiedTime":"...","teamIds":["..."]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -188,7 +188,7 @@ def create_desktop_layout(
             body["global"] = global_param
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -244,7 +244,7 @@ def list_bulk_export(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -302,7 +302,7 @@ def list_incoming_references(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -344,7 +344,7 @@ def show(
     url = f"{cc_base_url}/organization/{orgid}/desktop-layout/{id}"
     try:
         result = api.session.rest_get(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -398,7 +398,7 @@ def update(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Desktop Layout by ID\n\nExample --json-body:\n  '{"defaultJsonModified":"...","editedBy":"...","jsonFileContent":"...","jsonFileName":"...","validatedTime":"...","defaultJsonModifiedTime":"..."}'."""
+    """Update specific Desktop Layout by ID\n\nExample --json-body:\n  '{"defaultJsonModified":"...","editedBy":"...","jsonFileContent":"...","jsonFileName":"...","validatedTime":"...","defaultJsonModifiedTime":"...","modifiedTime":"...","teamIds":["..."]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -441,7 +441,7 @@ def update(
             body["global"] = global_param
     try:
         result = api.session.rest_put(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -480,7 +480,7 @@ def delete(
     url = f"{cc_base_url}/organization/{orgid}/desktop-layout/{id}"
     try:
         api.session.rest_delete(url)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -525,7 +525,7 @@ def create_purge_inactive_entities(
         body = {}
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)

@@ -1,6 +1,6 @@
 import json
 import typer
-from wxcli.errors import WebexError
+from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 
@@ -25,7 +25,7 @@ def show(
         params["siteUrl"] = site_url
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -70,7 +70,7 @@ def update(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Audio Options\n\nExample --json-body:\n  '{"enabledTollFree":"...","enabledAutoConnection":"...","officeNumber":{"enabledCallInAuthentication":"...","enabledCallMe":"...","countryCode":"...","number":"..."},"audioPin":"...","mobileNumber":{"enabledCallInAuthentication":"...","enabledCallMe":"...","countryCode":"...","number":"..."},"defaultAudioType":"..."}'."""
+    """Update Audio Options\n\nExample --json-body:\n  '{"enabledTollFree":"...","enabledAutoConnection":"...","officeNumber":{"enabledCallInAuthentication":"...","enabledCallMe":"...","countryCode":"...","number":"..."},"audioPin":"...","mobileNumber":{"enabledCallInAuthentication":"...","enabledCallMe":"...","countryCode":"...","number":"..."},"defaultAudioType":"...","otherTeleconferenceDescription":"...","enabledGlobalCallIn":"..."}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetingPreferences/audio"
     params = {}
@@ -96,7 +96,7 @@ def update(
             body["enabledGlobalCallIn"] = enabled_global_call_in
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -143,7 +143,7 @@ def cmd_list(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -193,7 +193,7 @@ def update_video(
         body = {}
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -240,7 +240,7 @@ def list_scheduling_options(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -302,7 +302,7 @@ def update_scheduling_options(
             body["enabledAutoShareRecording"] = enabled_auto_share_recording
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -348,7 +348,7 @@ def create(
         body = {}
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -402,7 +402,7 @@ def list_sites(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -455,7 +455,7 @@ def update_sites(
             body["siteUrl"] = site_url
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -497,7 +497,7 @@ def create_refresh_id(
             body["siteUrl"] = site_url
     try:
         result = api.session.rest_post(url, json=body)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -551,7 +551,7 @@ def list_meeting_preferences(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -602,7 +602,7 @@ def create_insert(
         body = {}
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -656,7 +656,7 @@ def list_personal_meeting_room(
         params["start"] = offset
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -701,7 +701,7 @@ def update_personal_meeting_room(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Personal Meeting Room Options\n\nExample --json-body:\n  '{"supportAnyoneAsCoHost":"...","allowFirstUserToBeCoHost":"...","hostPin":"...","coHosts":[{"displayName":"...","email":"..."}],"enabledAutoLock":"...","enabledNotifyHost":"..."}'."""
+    """Update Personal Meeting Room Options\n\nExample --json-body:\n  '{"supportAnyoneAsCoHost":"...","allowFirstUserToBeCoHost":"...","hostPin":"...","coHosts":[{"displayName":"...","email":"..."}],"enabledAutoLock":"...","enabledNotifyHost":"...","supportCoHost":"...","allowAuthenticatedDevices":"..."}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetingPreferences/personalMeetingRoom"
     params = {}
@@ -733,7 +733,7 @@ def update_personal_meeting_room(
             body["autoLockMinutes"] = auto_lock_minutes
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)

@@ -1,6 +1,6 @@
 import json
 import typer
-from wxcli.errors import WebexError
+from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 from wxcli.config import get_org_id
@@ -36,7 +36,7 @@ def cmd_list(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -74,7 +74,7 @@ def create(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Call Park\n\nExample --json-body:\n  '{"name":"...","recall":{"huntGroupId":"...","option":"ALERT_PARKING_USER_ONLY"},"agents":["..."],"parkOnAgentsEnabled":true,"callParkExtensions":["..."]}'."""
+    """Create a Call Park\n\nExample --json-body:\n  '{"name":"...","recall":{"option":"ALERT_PARKING_USER_ONLY","huntGroupId":"..."},"agents":["..."],"parkOnAgentsEnabled":true,"callParkExtensions":["..."]}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callParks"
     params = {}
@@ -95,7 +95,7 @@ def create(
             raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -142,7 +142,7 @@ def show(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -183,7 +183,7 @@ def update(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Call Park\n\nExample --json-body:\n  '{"name":"...","recall":{"huntGroupId":"...","option":"ALERT_PARKING_USER_ONLY"},"agents":["..."],"parkOnAgentsEnabled":true,"callParkExtensions":["..."]}'."""
+    """Update a Call Park\n\nExample --json-body:\n  '{"name":"...","recall":{"option":"ALERT_PARKING_USER_ONLY","huntGroupId":"..."},"agents":["..."],"parkOnAgentsEnabled":true,"callParkExtensions":["..."]}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callParks/{call_park_id}"
     params = {}
@@ -200,7 +200,7 @@ def update(
             body["parkOnAgentsEnabled"] = park_on_agents_enabled
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -242,7 +242,7 @@ def delete(
         params["orgId"] = org_id
     try:
         api.session.rest_delete(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -299,7 +299,7 @@ def list_available_users(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -355,7 +355,7 @@ def list_available_recall_hunt_groups(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -399,7 +399,7 @@ def show_settings(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -437,7 +437,7 @@ def update_settings(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Call Park settings\n\nExample --json-body:\n  '{"callParkRecall":{"huntGroupId":"...","option":"ALERT_PARKING_USER_ONLY"},"callParkSettings":{"ringPattern":"NORMAL","recallTime":0,"huntWaitTime":0}}'."""
+    """Update Call Park settings\n\nExample --json-body:\n  '{"callParkRecall":{"option":"ALERT_PARKING_USER_ONLY","huntGroupId":"..."},"callParkSettings":{"ringPattern":"NORMAL","recallTime":0,"huntWaitTime":0}}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callParks/settings"
     params = {}
@@ -450,7 +450,7 @@ def update_settings(
         body = {}
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -514,7 +514,7 @@ def list_call_park_extensions(
             items = result.get("callParkExtensions", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
             items = list(api.session.follow_pagination(url=url, params=params, item_key="callParkExtensions"))
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -557,7 +557,7 @@ def show_call_park_extensions(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -615,7 +615,7 @@ def update_call_park_extensions(
             body["extension"] = extension
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -657,7 +657,7 @@ def delete_call_park_extensions(
         params["orgId"] = org_id
     try:
         api.session.rest_delete(url, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
@@ -711,7 +711,7 @@ def create_call_park_extensions(
             raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
-    except WebexError as e:
+    except RestError as e:
         err = str(e)
         if "25008" in err:
             typer.echo(f"Error: Missing required field. {e}", err=True)
