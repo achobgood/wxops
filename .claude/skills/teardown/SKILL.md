@@ -46,6 +46,13 @@ wxcli cleanup run --scope "GlobalTech*" --max-concurrent 10 --force
 
 **Always dry-run first** for any scope larger than a single location.
 
+### What `wxcli cleanup` deletes by default (no flags)
+
+With just `--scope` and `--force`, cleanup deletes: dial plans, route lists, route groups, translation patterns, trunks, call features (HG/CQ/AA/paging/park/pickup), operating modes, schedules, virtual lines, **devices**, **workspaces**, and phone numbers. It does NOT delete users or locations unless `--include-users` / `--include-locations` is passed.
+
+**Selective teardown (features/routing only, keep devices + users + location):**
+Do NOT use `wxcli cleanup` — it has no `--exclude-devices` flag and will delete devices and workspaces. Use the manual procedure (Step 2 below), deleting only Layers 1-2 (features + routing).
+
 ---
 
 ## Manual Teardown Procedure
