@@ -48,6 +48,7 @@ class ResourceType:
     delete_url: str
     location_scoped_list: bool = False
     supports_location_filter: bool = False
+    server_side_location_filter: bool = False
     id_field: str = "id"
     name_field: str = "name"
     extra_delete_fields: list[str] = field(default_factory=list)
@@ -165,6 +166,7 @@ RESOURCE_TYPES: dict[str, ResourceType] = {
         item_key="items",
         delete_url="/people/{id}",
         name_field="displayName",
+        server_side_location_filter=True,
     ),
     "numbers": ResourceType(
         name="Numbers",
@@ -177,6 +179,7 @@ RESOURCE_TYPES: dict[str, ResourceType] = {
         list_url="/locations",
         item_key="items",
         delete_url="/locations/{id}",
+        server_side_location_filter=True,
     ),
 }
 
@@ -233,6 +236,22 @@ def list_resources(
                     url=url, params=dict(params), item_key=rt.item_key,
                 ))
                 # Tag each item with its location_id for delete
+                for item in items:
+                    item.setdefault("locationId", loc_id)
+                all_items.extend(items)
+            except WebexError as e:
+                logger.warning("Failed to list %s in location %s: %s", rt.name, loc_id, e)
+        return all_items
+
+    if scope_filter and location_ids and rt.server_side_location_filter:
+        all_items = []
+        for loc_id in location_ids:
+            try:
+                loc_params = {**params, "locationId": loc_id}
+                items = list(api.session.follow_pagination(
+                    url=f"{BASE}{rt.list_url}", params=loc_params,
+                    item_key=rt.item_key,
+                ))
                 for item in items:
                     item.setdefault("locationId", loc_id)
                 all_items.extend(items)
