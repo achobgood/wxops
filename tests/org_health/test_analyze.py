@@ -62,3 +62,77 @@ class TestRunAnalysis:
         assert "categories" in loaded
         assert "findings" in loaded
         assert "stats" in loaded
+
+
+class TestAnalyzeCLI:
+    def test_cli_writes_results_json(self, collected_dir, tmp_path):
+        results_dir = tmp_path / "results"
+        result = subprocess.run(
+            [sys.executable, "-m", "wxcli.org_health.analyze",
+             str(collected_dir), "--output", str(results_dir)],
+            capture_output=True, text=True,
+        )
+        assert result.returncode == 0
+        assert (results_dir / "results.json").exists()
+        data = json.loads((results_dir / "results.json").read_text())
+        assert data["org_name"] == "Acme Corp"
+        assert "findings" in data
+        assert "categories" in data
+
+    def test_cli_missing_manifest_exits_1(self, tmp_path):
+        empty_dir = tmp_path / "empty"
+        empty_dir.mkdir()
+        results_dir = tmp_path / "results"
+        result = subprocess.run(
+            [sys.executable, "-m", "wxcli.org_health.analyze",
+             str(empty_dir), "--output", str(results_dir)],
+            capture_output=True, text=True,
+        )
+        assert result.returncode == 1
+        assert "Missing" in result.stderr or "manifest" in result.stderr.lower()
+
+    def test_cli_creates_output_dir(self, collected_dir, tmp_path):
+        results_dir = tmp_path / "deeply" / "nested" / "results"
+        result = subprocess.run(
+            [sys.executable, "-m", "wxcli.org_health.analyze",
+             str(collected_dir), "--output", str(results_dir)],
+            capture_output=True, text=True,
+        )
+        assert result.returncode == 0
+        assert results_dir.exists()
+
+
+class TestEdgeCases:
+    def test_empty_org_no_crash(self, collected_dir):
+        """An org with all empty lists should produce zero findings, not crash."""
+        result = run_analysis(collected_dir)
+        assert len(result.findings) == 0
+        assert result.stats.total_users == 0
+        assert result.stats.total_devices == 0
+
+    def test_mixed_findings_across_categories(self, collected_dir):
+        """Multiple issues across categories all appear in results."""
+        aa_data = [{"id": "aa-1", "name": "Disabled", "locationName": "HQ", "enabled": False}]
+        trunk_data = [{"id": "t-1", "name": "Bad Trunk", "trunkType": "REGISTERING",
+                       "inUse": True, "registrationStatus": "error"}]
+        device_data = [{"id": "d-1", "displayName": "Offline", "connectionStatus": "disconnected",
+                        "product": "Cisco 8845"}]
+        (collected_dir / "auto_attendants.json").write_text(json.dumps(aa_data))
+        (collected_dir / "trunks.json").write_text(json.dumps(trunk_data))
+        (collected_dir / "devices.json").write_text(json.dumps(device_data))
+        result = run_analysis(collected_dir)
+        categories_with_findings = [
+            k for k, v in result.categories.items()
+            if v.high_count + v.medium_count + v.low_count + v.info_count > 0
+        ]
+        assert len(categories_with_findings) >= 3
+
+    def test_location_count_derived_from_data(self, collected_dir):
+        users = [
+            {"id": "u-1", "displayName": "User 1", "locationName": "Dallas"},
+            {"id": "u-2", "displayName": "User 2", "locationName": "Austin"},
+            {"id": "u-3", "displayName": "User 3", "locationName": "Dallas"},
+        ]
+        (collected_dir / "users.json").write_text(json.dumps(users))
+        result = run_analysis(collected_dir)
+        assert result.stats.total_locations == 2
