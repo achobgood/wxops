@@ -139,3 +139,320 @@ def check_empty_call_parks(data: dict[str, Any]) -> list[Finding]:
         affected_items=[{"id": cp.get("id"), "name": cp.get("name"), "location": cp.get("locationName")} for cp in empty],
         recommendation="Add park extensions or delete unused call park groups.",
     )]
+
+
+# ---------------------------------------------------------------------------
+# Device Health checks
+# ---------------------------------------------------------------------------
+
+_ONLINE_STATUSES = {"connected", "connected_with_issues", "online", "registered"}
+
+
+@check("device_health")
+def check_offline_devices(data: dict[str, Any]) -> list[Finding]:
+    offline = [
+        d for d in data.get("devices", [])
+        if d.get("connectionStatus", "").lower() not in _ONLINE_STATUSES
+    ]
+    if not offline:
+        return []
+    return [Finding(
+        check_name="offline_devices",
+        category="device_health",
+        severity="HIGH",
+        title=f"{len(offline)} device{'s are' if len(offline) != 1 else ' is'} offline",
+        detail="Offline devices cannot make or receive calls. This may indicate network issues, power failures, or decommissioned hardware.",
+        affected_items=[
+            {"id": d.get("id"), "name": d.get("displayName"), "product": d.get("product"),
+             "status": d.get("connectionStatus")}
+            for d in offline
+        ],
+        recommendation="Investigate connectivity for offline devices. Decommission any that are no longer in use.",
+    )]
+
+
+@check("device_health")
+def check_device_limit_users(data: dict[str, Any]) -> list[Finding]:
+    from collections import Counter
+    device_counts = Counter(
+        d.get("personId") for d in data.get("devices", []) if d.get("personId")
+    )
+    user_map = {u["id"]: u for u in data.get("users", [])}
+    at_limit = [
+        (pid, count) for pid, count in device_counts.items() if count >= 5
+    ]
+    if not at_limit:
+        return []
+    return [Finding(
+        check_name="device_limit_users",
+        category="device_health",
+        severity="MEDIUM",
+        title=f"{len(at_limit)} user{'s are' if len(at_limit) != 1 else ' is'} at or near the 5-device limit",
+        detail="Webex enforces a hard limit of 5 devices per user. Users at this limit cannot add new devices without removing existing ones.",
+        affected_items=[
+            {"id": pid, "name": user_map.get(pid, {}).get("displayName", "Unknown"),
+             "device_count": count}
+            for pid, count in at_limit
+        ],
+        recommendation="Review device assignments and remove unused devices for affected users.",
+    )]
+
+
+@check("device_health")
+def check_unassigned_devices(data: dict[str, Any]) -> list[Finding]:
+    unassigned = [
+        d for d in data.get("devices", [])
+        if not d.get("personId") and not d.get("workspaceId")
+    ]
+    if not unassigned:
+        return []
+    return [Finding(
+        check_name="unassigned_devices",
+        category="device_health",
+        severity="MEDIUM",
+        title=f"{len(unassigned)} device{'s are' if len(unassigned) != 1 else ' is'} unassigned",
+        detail="Devices without an owner (person or workspace) cannot be used for calling. They may have been orphaned during a user deletion.",
+        affected_items=[
+            {"id": d.get("id"), "name": d.get("displayName"), "product": d.get("product")}
+            for d in unassigned
+        ],
+        recommendation="Assign these devices to users or workspaces, or delete them.",
+    )]
+
+
+@check("device_health")
+def check_deviceless_workspaces(data: dict[str, Any]) -> list[Finding]:
+    workspace_ids_with_devices = {
+        d.get("workspaceId") for d in data.get("devices", []) if d.get("workspaceId")
+    }
+    calling_workspaces = [
+        ws for ws in data.get("workspaces", [])
+        if ws.get("calling", {}).get("type") == "webexCalling"
+        and ws.get("id") not in workspace_ids_with_devices
+    ]
+    if not calling_workspaces:
+        return []
+    return [Finding(
+        check_name="deviceless_workspaces",
+        category="device_health",
+        severity="LOW",
+        title=f"{len(calling_workspaces)} workspace{'s have' if len(calling_workspaces) != 1 else ' has'} calling enabled but no device",
+        detail="Workspaces with Webex Calling enabled but no device assigned cannot make or receive calls.",
+        affected_items=[
+            {"id": ws.get("id"), "name": ws.get("displayName")}
+            for ws in calling_workspaces
+        ],
+        recommendation="Assign a device to these workspaces or disable calling if not needed.",
+    )]
+
+
+@check("device_health")
+def check_stale_activation_codes(data: dict[str, Any]) -> list[Finding]:
+    stale = [
+        d for d in data.get("devices", [])
+        if d.get("activationState", "").lower() == "activating"
+    ]
+    if not stale:
+        return []
+    return [Finding(
+        check_name="stale_activation_codes",
+        category="device_health",
+        severity="LOW",
+        title=f"{len(stale)} device{'s have' if len(stale) != 1 else ' has'} pending activation codes",
+        detail="Devices in 'activating' state have an activation code that hasn't been used. The code may have expired or been forgotten.",
+        affected_items=[
+            {"id": d.get("id"), "name": d.get("displayName"), "product": d.get("product")}
+            for d in stale
+        ],
+        recommendation="Complete device activation or regenerate expired codes.",
+    )]
+
+
+# ---------------------------------------------------------------------------
+# Security Posture checks
+# ---------------------------------------------------------------------------
+
+@check("security")
+def check_aa_external_transfer(data: dict[str, Any]) -> list[Finding]:
+    transfer_enabled = [
+        aa for aa in data.get("auto_attendants", [])
+        if aa.get("transferEnabled", False)
+    ]
+    if not transfer_enabled:
+        return []
+    return [Finding(
+        check_name="aa_external_transfer",
+        category="security",
+        severity="MEDIUM",
+        title=f"{len(transfer_enabled)} Auto Attendant{'s allow' if len(transfer_enabled) != 1 else ' allows'} external transfers",
+        detail="Auto attendants with transfer enabled can be used by external callers to place outbound calls through your system (toll fraud vector).",
+        affected_items=[
+            {"id": aa.get("id"), "name": aa.get("name"), "location": aa.get("locationName")}
+            for aa in transfer_enabled
+        ],
+        recommendation="Disable external transfer unless explicitly required. Restrict transfer destinations to internal extensions.",
+    )]
+
+
+@check("security")
+def check_queues_without_recording(data: dict[str, Any]) -> list[Finding]:
+    no_recording = []
+    for cq in data.get("call_queues", []):
+        detail = data.get("call_queue_details", {}).get(cq.get("id", ""), {})
+        recording = detail.get("callRecording", {})
+        if not detail or not recording.get("enabled", False):
+            no_recording.append(cq)
+    if not no_recording:
+        return []
+    return [Finding(
+        check_name="queues_without_recording",
+        category="security",
+        severity="MEDIUM",
+        title=f"{len(no_recording)} Call Queue{'s do' if len(no_recording) != 1 else ' does'} not have recording enabled",
+        detail="Call queues without recording have no audit trail for customer interactions. This may violate compliance requirements.",
+        affected_items=[
+            {"id": cq.get("id"), "name": cq.get("name"), "location": cq.get("locationName")}
+            for cq in no_recording
+        ],
+        recommendation="Enable call recording for queues that handle customer interactions.",
+    )]
+
+
+_PREMIUM_CALL_TYPES = {"INTERNATIONAL", "PREMIUM_SERVICES_I", "PREMIUM_SERVICES_II"}
+
+
+@check("security")
+def check_unrestricted_international(data: dict[str, Any]) -> list[Finding]:
+    unrestricted_users = []
+    for user_id, perm_data in data.get("outgoing_permissions", {}).items():
+        permissions = perm_data.get("callingPermissions", [])
+        for p in permissions:
+            if p.get("callType") in _PREMIUM_CALL_TYPES and p.get("action") == "ALLOW":
+                unrestricted_users.append(user_id)
+                break
+    if not unrestricted_users:
+        return []
+    sample_size = data.get("manifest", {}).get("sampled_users_for_permissions", len(unrestricted_users))
+    return [Finding(
+        check_name="unrestricted_international",
+        category="security",
+        severity="HIGH",
+        title=f"{len(unrestricted_users)} of {sample_size} sampled users have unrestricted international/premium dialing",
+        detail="Users with unrestricted international or premium service dialing can incur significant toll charges. This is a common toll fraud vector if credentials are compromised.",
+        affected_items=[{"id": uid} for uid in unrestricted_users],
+        recommendation="Restrict international and premium dialing to users who require it. Use authorization codes for occasional international callers.",
+    )]
+
+
+@check("security")
+def check_no_outgoing_restrictions(data: dict[str, Any]) -> list[Finding]:
+    no_rules = []
+    for user_id, perm_data in data.get("outgoing_permissions", {}).items():
+        permissions = perm_data.get("callingPermissions", [])
+        if not permissions:
+            no_rules.append(user_id)
+    if not no_rules:
+        return []
+    sample_size = data.get("manifest", {}).get("sampled_users_for_permissions", len(no_rules))
+    return [Finding(
+        check_name="no_outgoing_restrictions",
+        category="security",
+        severity="MEDIUM",
+        title=f"{len(no_rules)} of {sample_size} sampled users have no outgoing permission rules",
+        detail="Users without any outgoing permission rules inherit the default org/location policy. Verify the default policy is appropriate.",
+        affected_items=[{"id": uid} for uid in no_rules],
+        recommendation="Configure explicit outgoing permissions or verify the default policy is restrictive enough.",
+    )]
+
+
+# ---------------------------------------------------------------------------
+# Routing Hygiene checks
+# ---------------------------------------------------------------------------
+
+@check("routing")
+def check_empty_dial_plans(data: dict[str, Any]) -> list[Finding]:
+    empty = [
+        dp for dp in data.get("dial_plans", [])
+        if not dp.get("routeChoices")
+    ]
+    if not empty:
+        return []
+    return [Finding(
+        check_name="empty_dial_plans",
+        category="routing",
+        severity="HIGH",
+        title=f"{len(empty)} Dial Plan{'s have' if len(empty) != 1 else ' has'} no route choices",
+        detail="Dial plans without route choices will not route any calls. Calls matching these patterns will fail.",
+        affected_items=[
+            {"id": dp.get("id"), "name": dp.get("name")}
+            for dp in empty
+        ],
+        recommendation="Add route choices to these dial plans or delete them if obsolete.",
+    )]
+
+
+@check("routing")
+def check_orphan_route_components(data: dict[str, Any]) -> list[Finding]:
+    findings: list[Finding] = []
+    empty_rgs = [
+        rg for rg in data.get("route_groups", [])
+        if not rg.get("localGateways")
+    ]
+    if empty_rgs:
+        findings.append(Finding(
+            check_name="orphan_route_components",
+            category="routing",
+            severity="MEDIUM",
+            title=f"{len(empty_rgs)} Route Group{'s have' if len(empty_rgs) != 1 else ' has'} no trunks",
+            detail="Route groups without trunks cannot route calls. They may reference decommissioned gateways.",
+            affected_items=[
+                {"id": rg.get("id"), "name": rg.get("name")}
+                for rg in empty_rgs
+            ],
+            recommendation="Add trunks to these route groups or delete them.",
+        ))
+    empty_rls = [
+        rl for rl in data.get("route_lists", [])
+        if not rl.get("routeGroups")
+    ]
+    if empty_rls:
+        findings.append(Finding(
+            check_name="orphan_route_components",
+            category="routing",
+            severity="MEDIUM",
+            title=f"{len(empty_rls)} Route List{'s have' if len(empty_rls) != 1 else ' has'} no Route Groups",
+            detail="Route lists without route groups cannot route calls to any gateway.",
+            affected_items=[
+                {"id": rl.get("id"), "name": rl.get("name")}
+                for rl in empty_rls
+            ],
+            recommendation="Add route groups to these route lists or delete them.",
+        ))
+    return findings
+
+
+_HEALTHY_TRUNK_STATUSES = {"registered", "online", "connected"}
+
+
+@check("routing")
+def check_trunk_errors(data: dict[str, Any]) -> list[Finding]:
+    error_trunks = [
+        t for t in data.get("trunks", [])
+        if t.get("registrationStatus", "").lower() not in _HEALTHY_TRUNK_STATUSES
+        and t.get("registrationStatus")  # skip empty/missing status
+    ]
+    if not error_trunks:
+        return []
+    return [Finding(
+        check_name="trunk_errors",
+        category="routing",
+        severity="HIGH",
+        title=f"{len(error_trunks)} trunk{'s are' if len(error_trunks) != 1 else ' is'} not registered",
+        detail="Trunks in error or unregistered state cannot route PSTN calls. This likely indicates a gateway connectivity issue.",
+        affected_items=[
+            {"id": t.get("id"), "name": t.get("name"), "type": t.get("trunkType"),
+             "status": t.get("registrationStatus")}
+            for t in error_trunks
+        ],
+        recommendation="Investigate gateway connectivity and registration for affected trunks.",
+    )]
