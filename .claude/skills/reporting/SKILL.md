@@ -124,6 +124,34 @@ wxcli cdr list-cdr_stream --start-time "2026-04-10T14:00:00.000Z" --end-time "20
 wxcli cdr list --start-time START --end-time END --locations "San Jose,Austin" -o json
 ```
 
+#### Multi-pull merge pattern (windows >12 hours)
+
+CDR Feed allows a maximum 12-hour window per request. For longer ranges (e.g., "yesterday" = 24h, "this week" = ~4 days), issue sequential 12-hour pulls and merge the results before running any recipe. Rate limit: 1 request/minute — budget ~1 min per pull.
+
+**Example: yesterday (24h = 2 pulls)**
+```bash
+wxcli cdr list --start-time "2026-04-16T00:00:00.000Z" --end-time "2026-04-16T12:00:00.000Z" -o json > /tmp/cdr_p1.json
+wxcli cdr list --start-time "2026-04-16T12:00:00.000Z" --end-time "2026-04-17T00:00:00.000Z" -o json > /tmp/cdr_p2.json
+python3.11 -c "
+import json
+data = json.load(open('/tmp/cdr_p1.json')) + json.load(open('/tmp/cdr_p2.json'))
+json.dump(data, open('/tmp/cdr-session.json','w'))
+print(f'Merged: {len(data)} records')
+"
+# Now pipe /tmp/cdr-session.json to any recipe
+cat /tmp/cdr-session.json | python3.11 -c "import json,sys; data=json.load(sys.stdin); ..."
+```
+
+**Window count by range:**
+| Range | 12h windows | ~Time at 1 req/min |
+|-------|-------------|-------------------|
+| 24h (yesterday) | 2 | ~2 min |
+| 48h (2 days) | 4 | ~4 min |
+| 4 days (this week Mon–Thu) | 8 | ~8 min |
+| 7 days | 14 | ~14 min |
+
+Surface the pull count and estimated wait time in your plan before executing.
+
 ## CDR Query Composition Guide
 
 Use this guide to construct CDR queries for ANY natural-language question. The recipes below cover common patterns — for questions not covered by a recipe, compose a query using the field taxonomy, composition rules, and output patterns.
