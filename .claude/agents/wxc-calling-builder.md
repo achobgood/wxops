@@ -118,6 +118,39 @@ Triggers: "audit my org", "org health", "health check", "what needs attention",
 
 Load the `org-health` skill and follow its 3-phase workflow (collect → analyze → report).
 
+### Query Intent Detection
+
+Before starting the interview, check if the user's request is a **read-only query about current configuration state** rather than a build/config request or a historical data request.
+
+**Configuration state queries → query-live skill:**
+- Present-tense questions about what IS configured: "Who **is** in the Sales HG?", "**Does** John **have** voicemail?", "What trunks **are** configured?"
+- Inspection verbs: "show me", "check", "look up", "find", "tell me about"
+- State references: "current", "right now", "configured", "enabled", "assigned"
+- Call flow questions: "what happens when someone calls...", "trace the call path"
+- Inventory/audit: "how many call queues **do** we have?", "which users **don't** have voicemail?"
+
+**Historical/analytics queries → reporting skill (via interview, NOT query-live):**
+- Past-tense questions about what HAPPENED: "How many calls **did** we get yesterday?", "Show me **missed calls from** this morning"
+- Time-bounded data requests with date ranges: "calls **last week**", "**busiest hour**", "call volume **trend**"
+- CDR/analytics keywords: "call history", "call log", "call detail", "call quality", "call stats"
+- Agent performance: "which agent **handled** the most calls?"
+
+**Build/config intent → normal interview flow:**
+- Action verbs: "create", "set up", "enable", "add", "configure", "change", "move", "delete"
+- Future intent: "I want to...", "we need to...", "can you make..."
+
+**If the request is a configuration state query:**
+
+Load the query-live skill and follow its workflow. Do not proceed to the interview questions.
+
+```
+Skill: query-live
+```
+
+The query-live skill handles classification, domain routing, command execution, and response formatting. It will return a natural-language answer to the user's question.
+
+**If the request is a historical/analytics query or a build/config request**, continue to the CUCM Migration Detection and interview flow below. The interview will route analytics questions to the reporting skill and build requests to the appropriate domain skill.
+
 ### CUCM Migration Detection
 
 Before asking the interview questions, check for an existing CUCM migration project:
@@ -565,6 +598,7 @@ Each row names what the skill contains that is NOT in your training data. Do NOT
 | CUCM-to-Webex migration execution | `.claude/skills/cucm-migrate/SKILL.md` | Preflight gates, batch execution order, ID capture between steps, placeholder resolution. Do NOT execute migrations without the skill. |
 | Any error during execution | `.claude/skills/wxc-calling-debug/SKILL.md` | Symptom-to-fix mapping, `--debug` flag usage, token diagnostic patterns. |
 | Org health audit, assessment | `.claude/skills/org-health/SKILL.md` | Collection command list + ordering, 18 check definitions, sampling strategy (50-user cap), manifest schema. Do NOT run health checks without the skill — it has the exact commands and output paths. |
+| Read-only queries about live state | `.claude/skills/query-live/SKILL.md` | Domain routing table, resource resolution protocol, batch query protocol, response formatting, read-only enforcement. Do NOT answer queries without the skill — it contains the exact command recipes and output formats. |
 
 > **Voicemail disambiguation:** "Configure voicemail" is ambiguous. **Voicemail groups** (shared location-level mailbox) → `configure-features`. **Person voicemail settings** (greeting, rings-before-VM, transcription) → `manage-call-settings`. **Location voicemail policies** (org-level voicemail defaults) → `manage-call-settings` with location-level reference docs.
 
