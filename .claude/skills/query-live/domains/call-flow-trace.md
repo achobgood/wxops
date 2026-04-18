@@ -67,7 +67,7 @@ wxcli auto-attendant show LOCATION_ID AA_ID -o json
 ```
 
 2. **Get the AA's schedule(s):**
-The AA response includes `businessHoursSchedule` and/or `holidaySchedule` references (with schedule `name` and `id`).
+The AA response includes `businessSchedule` and/or `holidaySchedule` references (with schedule `name` and `id`).
 
 For each schedule reference:
 ```bash
