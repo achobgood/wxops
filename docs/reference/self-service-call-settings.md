@@ -759,7 +759,7 @@ POST https://webexapis.com/v1/telephony/config/people/me/settings/modeManagement
 Authorization: Bearer {user_token}
 ```
 
-**Cross-reference:** CLAUDE.md known issue #3 (mode-management requires calling-licensed user). See also `location-call-settings-advanced.md` for admin-level operating modes.
+**Cross-reference:** CLAUDE.md known issue #3 (mode-management requires calling-licensed user). See also `location-recording-advanced.md` for admin-level operating modes.
 
 ---
 
@@ -828,7 +828,7 @@ Master mapping of every `/me/` endpoint to its admin equivalent. Path suffixes a
 | Calling Services | `settings/services` | — | — |
 | Contact Center Extensions | `settings/contactCenterExtensions` | — | — |
 | **Mode Management** | | | |
-| Mode Management Features | `settings/modeManagement/features` | `/telephony/config/people/{personId}/modeManagement/features` | location-call-settings-advanced.md |
+| Mode Management Features | `settings/modeManagement/features` | `/telephony/config/people/{personId}/modeManagement/features` | location-recording-advanced.md |
 | Common Modes | `settings/modeManagement/features/commonModes` | — | — |
 | Mode Management Feature | `settings/modeManagement/features/{featureId}` | — | — |
 | Normal Operation Mode | `settings/modeManagement/features/{featureId}/normalOperationMode` | — | — |
