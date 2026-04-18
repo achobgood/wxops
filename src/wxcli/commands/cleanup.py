@@ -52,6 +52,9 @@ class ResourceType:
     id_field: str = "id"
     name_field: str = "name"
     extra_delete_fields: list[str] = field(default_factory=list)
+    # Extra query params always included when listing this resource type.
+    # Used for /people which requires callingData=true for locationId filtering.
+    extra_list_params: dict = field(default_factory=dict)
 
 
 RESOURCE_TYPES: dict[str, ResourceType] = {
@@ -167,6 +170,10 @@ RESOURCE_TYPES: dict[str, ResourceType] = {
         delete_url="/people/{id}",
         name_field="displayName",
         server_side_location_filter=True,
+        # /people?locationId=... requires callingData=true or the API returns
+        # "Calling flag not set" (error 25008 equivalent). Without this, scoped
+        # user listing silently returns nothing and users are never cleaned up.
+        extra_list_params={"callingData": "true"},
     ),
     "numbers": ResourceType(
         name="Numbers",
@@ -223,6 +230,8 @@ def list_resources(
     params = {}
     if org_id:
         params["orgId"] = org_id
+    if rt.extra_list_params:
+        params.update(rt.extra_list_params)
 
     if rt.location_scoped_list:
         # Must iterate per location
@@ -1366,6 +1375,7 @@ def cleanup_run(
             continue
 
         results = execute_layer(api, layer_keys, inventory, org_id, max_concurrent)
+        all_results.extend(results)
 
         successes = sum(1 for r in results if r.success)
         failures = sum(1 for r in results if not r.success)
