@@ -186,7 +186,6 @@ RESOURCE_TYPES: dict[str, ResourceType] = {
         list_url="/locations",
         item_key="items",
         delete_url="/locations/{id}",
-        server_side_location_filter=True,
     ),
 }
 
@@ -308,6 +307,9 @@ def build_inventory(
 
             rt = RESOURCE_TYPES[key]
             items = list_resources(api, rt, org_id, location_ids, scope_filter=scope_filter)
+            if key == "locations" and scope_filter and location_ids:
+                loc_set = set(location_ids)
+                items = [i for i in items if i.get("id") in loc_set]
             if items:
                 inventory[key] = items
 
