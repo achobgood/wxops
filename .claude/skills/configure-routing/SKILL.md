@@ -257,7 +257,21 @@ wxcli call-routing create \
 
 ```bash
 wxcli call-routing update DIAL_PLAN_ID \
-  --json-body '{"dialPatterns": [{"dialPattern": "+1!", "action": "ADD"}, {"dialPattern": "+44!", "action": "ADD"}]}'
+  --json-body '{"dialPatterns": [{"dialPattern": "+1!", "action": "ADD"}]}'
+```
+
+**Multi-destination routing (different patterns → different trunks/groups):**
+
+Each dial plan has exactly one route target. To route US and UK calls to different trunks:
+
+```bash
+# Dial plan 1: US calls → US route group (with failover)
+wxcli call-routing create --name "US-Outbound" --route-id US_ROUTE_GROUP_ID --route-type ROUTE_GROUP
+wxcli call-routing update US_DP_ID --json-body '{"dialPatterns": [{"dialPattern": "+1!", "action": "ADD"}]}'
+
+# Dial plan 2: UK calls → UK trunk (direct)
+wxcli call-routing create --name "UK-Outbound" --route-id UK_TRUNK_ID --route-type TRUNK
+wxcli call-routing update UK_DP_ID --json-body '{"dialPatterns": [{"dialPattern": "+44!", "action": "ADD"}]}'
 ```
 
 **Validate dial patterns before adding:**
