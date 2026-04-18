@@ -105,8 +105,8 @@ Added 2026-04-15 after an org-cleanup subagent died mid-Phase-2 when its Python 
 | `docs/reference/person-call-settings-permissions.md` | Incoming/outgoing permissions, feature access, executive/assistant |
 | `docs/reference/person-call-settings-behavior.md` | Calling behavior, app services, hoteling, receptionist, numbers, ECBN |
 | `docs/reference/self-service-call-settings.md` | User self-service call settings (/people/me/ endpoints) |
-| `docs/reference/location-call-settings-core.md` | Location enablement, internal dialing, voicemail policies, voice portal |
-| `docs/reference/location-call-settings-media.md` | Announcements, playlists, schedules, access codes |
+| `docs/reference/location-calling-core.md` | Location enablement, internal dialing, voicemail policies, voice portal |
+| `docs/reference/location-calling-media.md` | Announcements, playlists, schedules, access codes |
 | `docs/reference/location-recording-advanced.md` | Call recording, caller reputation, conference, supervisor, operating modes |
 | `docs/reference/call-routing.md` | Dial plans, trunks, route groups, route lists, translation patterns, PSTN |
 | `docs/reference/devices-core.md` | Device CRUD, activation, device configurations, telephony devices |
@@ -404,7 +404,7 @@ Whenever you discover a technical detail through implementation — a gotcha, a 
    - Provisioning: `docs/reference/provisioning.md`
    - Call features (AA/CQ/HG): `docs/reference/call-features-major.md`, `call-features-additional.md`
    - Person settings: `docs/reference/person-call-settings-*.md` (4 files: handling, media, permissions, behavior) + `self-service-call-settings.md`
-   - Location settings: `docs/reference/location-call-settings-core.md`, `location-call-settings-media.md`, `location-recording-advanced.md`
+   - Location settings: `docs/reference/location-calling-core.md`, `location-calling-media.md`, `location-recording-advanced.md`
    - Devices: `docs/reference/devices-*.md` (4 files: core, dect, workspaces, platform)
    - Routing: `docs/reference/call-routing.md`
    - Auth: `docs/reference/authentication.md`

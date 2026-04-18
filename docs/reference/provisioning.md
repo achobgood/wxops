@@ -1361,4 +1361,4 @@ Using the wrong format (e.g., `[{"id": ...}]` for pickup) produces 400 "Invalid 
 
 - **`authentication.md`** — Token setup, OAuth flows, and scope reference.
 - **`wxc-sdk-patterns.md`** — Async bulk provisioning patterns (recipes 5.3, 5.4), workspace provisioning (recipe 5.12).
-- **`location-call-settings-core.md`** — Location calling enablement and location-level telephony configuration.
+- **`location-calling-core.md`** — Location calling enablement and location-level telephony configuration.

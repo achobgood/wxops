@@ -431,7 +431,7 @@ No new `DecisionType` needed -- uses existing `FEATURE_APPROXIMATION` for cases 
 ### 7a. Reference Docs
 
 - `docs/reference/person-call-settings-behavior.md` section 7 (Receptionist Client): Add migration context -- how BLF entries map to monitored members, maximum member count verification needed.
-- `docs/reference/location-call-settings-core.md` or new section: Document Receptionist Contact Directories API (currently not covered in reference docs).
+- `docs/reference/location-calling-core.md` or new section: Document Receptionist Contact Directories API (currently not covered in reference docs).
 
 ### 7b. Knowledge Base
 
