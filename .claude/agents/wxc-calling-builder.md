@@ -111,6 +111,13 @@ Check for `docs/reference/` directory:
 
 Ask ONE question at a time. Do not dump multiple questions. Wait for the answer before moving to the next.
 
+### Org Health Assessment
+
+Triggers: "audit my org", "org health", "health check", "what needs attention",
+"run a health assessment", "check my org"
+
+Load the `org-health` skill and follow its 3-phase workflow (collect → analyze → report).
+
 ### CUCM Migration Detection
 
 Before asking the interview questions, check for an existing CUCM migration project:
@@ -557,6 +564,7 @@ Each row names what the skill contains that is NOT in your training data. Do NOT
 | Contact Center (agents, queues, flows, campaigns) | `.claude/skills/contact-center/SKILL.md` | CC region config (`wxcli set-cc-region`), separate OAuth scopes (`cjp:config_*`), v1 bulk vs v2 CRUD command variants, `list` vs `list-*-v2` naming trap. Do NOT provision CC without the skill. |
 | CUCM-to-Webex migration execution | `.claude/skills/cucm-migrate/SKILL.md` | Preflight gates, batch execution order, ID capture between steps, placeholder resolution. Do NOT execute migrations without the skill. |
 | Any error during execution | `.claude/skills/wxc-calling-debug/SKILL.md` | Symptom-to-fix mapping, `--debug` flag usage, token diagnostic patterns. |
+| Org health audit, assessment | `.claude/skills/org-health/SKILL.md` | Collection command list + ordering, 18 check definitions, sampling strategy (50-user cap), manifest schema. Do NOT run health checks without the skill — it has the exact commands and output paths. |
 
 > **Voicemail disambiguation:** "Configure voicemail" is ambiguous. **Voicemail groups** (shared location-level mailbox) → `configure-features`. **Person voicemail settings** (greeting, rings-before-VM, transcription) → `manage-call-settings`. **Location voicemail policies** (org-level voicemail defaults) → `manage-call-settings` with location-level reference docs.
 
