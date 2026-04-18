@@ -206,10 +206,10 @@ A route group bundles up to 10 trunks (from different locations) with priority-b
 ```bash
 wxcli call-routing create-route-groups \
   --name "US-East-RG" \
-  --json-body '{"localGateways": [{"trunkId": "TRUNK_ID_1", "priority": 1}, {"trunkId": "TRUNK_ID_2", "priority": 2}]}'
+  --json-body '{"localGateways": [{"id": "TRUNK_ID_1", "priority": 1}, {"id": "TRUNK_ID_2", "priority": 2}]}'
 ```
 
-> **NOTE:** The `localGateways` array with trunk IDs and priorities requires `--json-body` because it's a nested object the CLI cannot express as flat options.
+> **NOTE:** The `localGateways` array requires `--json-body` because it's a nested object the CLI cannot express as flat options. Each entry uses `id` (not `trunkId`) for the trunk identifier.
 
 **View route group details:**
 
@@ -269,10 +269,20 @@ wxcli call-routing validate-a-dial --json-body '{"dialPatterns": ["+1408!", "+44
 wxcli call-routing show-dial-plans DIAL_PLAN_ID --output json
 ```
 
-**List dial patterns on a dial plan:**
+**List which dial plans use a trunk:**
 
 ```bash
 wxcli call-routing list TRUNK_ID --output json
+```
+
+> This lists dial plans that reference the given trunk — not patterns within a dial plan. To see a dial plan's details (including its route choice), use `show-dial-plans`.
+
+**Modify a dial plan's route target (name, route-id, route-type):**
+
+```bash
+wxcli call-routing update-dial-plans DIAL_PLAN_ID \
+  --route-id NEW_TRUNK_OR_ROUTE_GROUP_ID \
+  --route-type ROUTE_GROUP
 ```
 
 **Delete a dial plan:**
@@ -506,11 +516,9 @@ The test call routing command simulates routing without placing an actual call:
 ```bash
 wxcli call-routing test-call-routing \
   --originator-id PERSON_ID \
-  --destination "+19195551234" \
-  --json-body '{"originatorType": "USER"}'
+  --originator-type PEOPLE \
+  --destination "+19195551234"
 ```
-
-> **Note:** `--originator-type` is not a CLI flag. Pass `originatorType` via `--json-body`. Both `USER` and `PEOPLE` are accepted; `PEOPLE` is preferred per OpenAPI spec.
 
 Check the response for:
 - `destinationType` -- should be `PSTN_NUMBER` for external calls
@@ -523,9 +531,9 @@ To include translation pattern details in the test:
 ```bash
 wxcli call-routing test-call-routing \
   --originator-id PERSON_ID \
+  --originator-type PEOPLE \
   --destination "+19195551234" \
-  --include-applied-services true \
-  --json-body '{"originatorType": "USER"}'
+  --include-applied-services true
 ```
 
 ## Step 8: Report results
