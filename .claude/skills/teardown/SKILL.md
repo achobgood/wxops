@@ -24,8 +24,8 @@ If you cannot answer all three, you skipped reading this skill. Go back and read
 # Dry-run first — shows what would be deleted
 wxcli cleanup run --scope "Location Name" --dry-run
 
-# Delete all resources at specific locations
-wxcli cleanup run --scope "DP-HQ-Phones,DP-Branch-Phones" --include-users --force
+# Delete all resources at specific locations (--include-users deletes users at scoped locations)
+wxcli cleanup run --scope "DP-HQ-Phones,DP-Branch-Phones" --include-users --exclude-user-domains "wbx.ai" --force
 
 # Delete everything in the org
 wxcli cleanup run --all --include-users --include-locations --force
@@ -41,10 +41,17 @@ wxcli cleanup run --scope "GlobalTech*" --max-concurrent 10 --force
 
 **Key behaviors:**
 - **Phone numbers** are removed automatically before location deletion (batched in groups of 5, main numbers skipped). Numbers assigned to a location block location deletion with 409.
-- **Location delete warning** — public API cleanup can remove dependencies, but final delete of a calling-enabled location may still require Control Hub. Do not promise that `wxcli cleanup` can disable calling on the location via API.
-- **`--exclude-user-domains`** filters users by email domain — useful for keeping admin accounts while deleting migration-created users.
+- **Location deletion cannot be completed via API.** The public API cannot disable Webex Calling on a location — the telephony detach endpoint returns 404 in most orgs. `wxcli cleanup --include-locations` will remove all resources AT the location (features, routing, devices, users, numbers) but the location itself will remain calling-enabled and 409 on delete. **The operator must finish location deletion in Control Hub** (Locations → select location → disable Webex Calling → delete). Always tell the user this upfront when `--include-locations` is requested.
+- **`--include-users` is location-scoped when `--scope` is set.** With `--scope`, only users at the specified locations are deleted. With `--all`, all org users are in scope. In both cases, **always use `--exclude-user-domains`** to protect admin and service accounts (e.g., `--exclude-user-domains "wbx.ai,company.com"`).
 
 **Always dry-run first** for any scope larger than a single location.
+
+### What `wxcli cleanup` deletes by default (no flags)
+
+With just `--scope` and `--force`, cleanup deletes: dial plans, route lists, route groups, translation patterns, trunks, call features (HG/CQ/AA/paging/park/pickup), operating modes, schedules, virtual lines, **devices**, **workspaces**, and phone numbers. It does NOT delete users or locations unless `--include-users` / `--include-locations` is passed.
+
+**Selective teardown (features/routing only, keep devices + users + location):**
+Do NOT use `wxcli cleanup` — it has no `--exclude-devices` flag and will delete devices and workspaces. Use the manual procedure (Step 2 below), deleting only Layers 1-2 (features + routing).
 
 ---
 
@@ -144,12 +151,12 @@ wxcli numbers list --location-id $LOC -o json
 
 #### Layer 7: Locations
 ```bash
-# Public API teardown can remove blockers, but the final disable/delete of a
-# calling-enabled location may still require Control Hub.
-# First inspect blockers:
+# The API CANNOT disable Webex Calling on a location. After clearing all
+# dependencies above, the location will still 409 on delete because it
+# remains calling-enabled. Attempt the delete — it may work in rare cases:
 wxcli location-settings safe-delete-check $LOC
-# Then attempt delete:
 wxcli locations delete --force $LOC
+# If 409: tell the user to finish in Control Hub (disable calling → delete).
 ```
 
 ### Step 3: Handle 409 on location delete
@@ -162,7 +169,7 @@ If `locations delete` returns 409 "being referenced", check these in order:
 4. **Virtual lines** — discoverable via `wxcli numbers list -o json` (owner.type == VIRTUAL_LINE), not always via `virtual-extensions list`
 5. **Workspaces** still assigned — workspaces API has no location filter, must filter client-side by `locationId` field
 6. **Operating modes** referencing deleted schedules
-7. **Calling-enabled location still held by telephony backend** — even after visible dependencies are gone, public API delete may still 409. Use `wxcli location-settings safe-delete-check $LOC`, then finish in Control Hub if the location remains calling-enabled.
+7. **Calling-enabled location (most common cause)** — the public API cannot disable Webex Calling on a location. Even with all visible dependencies gone, the location remains calling-enabled and 409s on delete. The telephony detach endpoint (`DELETE /telephony/config/locations/{id}`) returns 404 in most orgs. **This is not fixable via CLI/API — the operator must disable Webex Calling in Control Hub** (Locations → select → disable calling → delete).
 8. **Ghost/stale locations** — locations returning 404 on sub-resource queries may still be deletable. Attempt deletion regardless.
 
 ### Rule: never hand-roll polling loops
