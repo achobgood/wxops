@@ -48,9 +48,13 @@ class ResourceType:
     delete_url: str
     location_scoped_list: bool = False
     supports_location_filter: bool = False
+    server_side_location_filter: bool = False
     id_field: str = "id"
     name_field: str = "name"
     extra_delete_fields: list[str] = field(default_factory=list)
+    # Extra query params always included when listing this resource type.
+    # Used for /people which requires callingData=true for locationId filtering.
+    extra_list_params: dict = field(default_factory=dict)
 
 
 RESOURCE_TYPES: dict[str, ResourceType] = {
@@ -165,6 +169,11 @@ RESOURCE_TYPES: dict[str, ResourceType] = {
         item_key="items",
         delete_url="/people/{id}",
         name_field="displayName",
+        server_side_location_filter=True,
+        # /people?locationId=... requires callingData=true or the API returns
+        # "Calling flag not set" (error 25008 equivalent). Without this, scoped
+        # user listing silently returns nothing and users are never cleaned up.
+        extra_list_params={"callingData": "true"},
     ),
     "numbers": ResourceType(
         name="Numbers",
@@ -220,6 +229,8 @@ def list_resources(
     params = {}
     if org_id:
         params["orgId"] = org_id
+    if rt.extra_list_params:
+        params.update(rt.extra_list_params)
 
     if rt.location_scoped_list:
         # Must iterate per location
@@ -233,6 +244,22 @@ def list_resources(
                     url=url, params=dict(params), item_key=rt.item_key,
                 ))
                 # Tag each item with its location_id for delete
+                for item in items:
+                    item.setdefault("locationId", loc_id)
+                all_items.extend(items)
+            except WebexError as e:
+                logger.warning("Failed to list %s in location %s: %s", rt.name, loc_id, e)
+        return all_items
+
+    if scope_filter and location_ids and rt.server_side_location_filter:
+        all_items = []
+        for loc_id in location_ids:
+            try:
+                loc_params = {**params, "locationId": loc_id}
+                items = list(api.session.follow_pagination(
+                    url=f"{BASE}{rt.list_url}", params=loc_params,
+                    item_key=rt.item_key,
+                ))
                 for item in items:
                     item.setdefault("locationId", loc_id)
                 all_items.extend(items)
@@ -280,6 +307,9 @@ def build_inventory(
 
             rt = RESOURCE_TYPES[key]
             items = list_resources(api, rt, org_id, location_ids, scope_filter=scope_filter)
+            if key == "locations" and scope_filter and location_ids:
+                loc_set = set(location_ids)
+                items = [i for i in items if i.get("id") in loc_set]
             if items:
                 inventory[key] = items
 
@@ -1347,6 +1377,7 @@ def cleanup_run(
             continue
 
         results = execute_layer(api, layer_keys, inventory, org_id, max_concurrent)
+        all_results.extend(results)
 
         successes = sum(1 for r in results if r.success)
         failures = sum(1 for r in results if not r.success)
