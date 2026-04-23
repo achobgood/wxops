@@ -1,7 +1,7 @@
 ---
 name: customer-assist
 description: |
-  Configure Webex Calling Customer Assist (CX Essentials) using wxcli CLI commands: screen pop,
+  Configure Webex Calling Customer Assist using wxcli CLI commands: screen pop,
   wrap-up reasons, queue call recording, supervisors, and available agents.
   Guides the user from prerequisites through configuration and verification.
 allowed-tools: Read, Grep, Glob, Bash
@@ -11,7 +11,7 @@ argument-hint: [feature-type]
 # Configure Customer Assist Workflow
 
 **Checkpoint — do NOT proceed until you can answer these:**
-1. How do you list CX Essentials call queues? (Answer: `wxcli call-queue list --has-cx-essentials true` — they are hidden from the default `call-queue list` output.)
+1. How do you list Customer Assist call queues? (Answer: `wxcli call-queue list --has-cx-essentials true` — they are hidden from the default `call-queue list` output.)
 2. What is the workaround for the supervisor delete bug? (Answer: `delete-supervisors-config-1` returns 204 but the supervisor persists. Instead, use `update-supervisors` with `action: DELETE` on each agent — removing the last agent auto-removes the supervisor.)
 
 If you cannot answer both, you skipped reading this skill. Go back and read it.
@@ -42,11 +42,11 @@ Ask the user which feature they want to configure. Present this decision matrix 
 
 | Need | Feature | CLI Group |
 |------|---------|-----------|
-| Pop a CRM/ticketing URL when agent receives a queued call | **Screen Pop** | `wxcli cx-essentials` |
-| Post-call categorization codes for agents | **Wrap-Up Reasons** | `wxcli cx-essentials` |
-| Record calls on a queue for QA/compliance/training | **Queue Call Recording** | `wxcli cx-essentials` |
+| Pop a CRM/ticketing URL when agent receives a queued call | **Screen Pop** | `wxcli customer-assist` |
+| Post-call categorization codes for agents | **Wrap-Up Reasons** | `wxcli customer-assist` |
+| Record calls on a queue for QA/compliance/training | **Queue Call Recording** | `wxcli customer-assist` |
 | Assign supervisors to monitor/coach/barge agents | **Supervisors** | `wxcli call-queue` |
-| List agents with or without Customer Assist licensing | **Available Agents** | `wxcli cx-essentials` |
+| List agents with or without Customer Assist licensing | **Available Agents** | `wxcli customer-assist` |
 
 ## Step 4: Check prerequisites
 
@@ -78,13 +78,13 @@ wxcli call-queue create LOCATION_ID --name "Queue Name" --has-cx-essentials true
 
 ### 4c. Customer Assist licensing
 
-Confirm agents have CX Essentials licenses:
+Confirm agents have Customer Assist licenses:
 
 ```bash
-wxcli cx-essentials list-available-agents LOCATION_ID --has-cx-essentials true
+wxcli customer-assist list-available-agents LOCATION_ID --has-cx-essentials true
 ```
 
-If no agents are returned, CX Essentials licenses must be assigned first (use `manage-licensing` skill).
+If no agents are returned, Customer Assist licenses must be assigned first (use `manage-licensing` skill).
 
 ### 4d. Feature-specific prerequisites
 
@@ -119,14 +119,14 @@ CLI commands:
 
 ```bash
 # View current screen pop config
-wxcli cx-essentials show-screen-pop LOCATION_ID QUEUE_ID -o json
+wxcli customer-assist show-screen-pop LOCATION_ID QUEUE_ID -o json
 
 # Simple: enable with URL
-wxcli cx-essentials update-screen-pop LOCATION_ID QUEUE_ID \
+wxcli customer-assist update-screen-pop LOCATION_ID QUEUE_ID \
   --enabled --screen-pop-url "https://crm.example.com/lookup"
 
 # Full: enable with URL, label, and query params (requires --json-body)
-wxcli cx-essentials update-screen-pop LOCATION_ID QUEUE_ID --json-body '{
+wxcli customer-assist update-screen-pop LOCATION_ID QUEUE_ID --json-body '{
   "enabled": true,
   "screenPopUrl": "https://crm.example.com/lookup",
   "desktopLabel": "Customer Lookup",
@@ -168,43 +168,43 @@ CLI commands:
 # --- Org-level reason management ---
 
 # List all wrap-up reasons
-wxcli cx-essentials list
+wxcli customer-assist list
 
 # Create a reason (simple — assign to queues later)
-wxcli cx-essentials create --name "Issue Resolved" --description "Customer issue resolved on the call"
+wxcli customer-assist create --name "Issue Resolved" --description "Customer issue resolved on the call"
 
 # Create a reason AND assign to specific queues (requires --json-body)
-wxcli cx-essentials create --json-body '{
+wxcli customer-assist create --json-body '{
   "name": "Issue Resolved",
   "description": "Customer issue resolved on the call",
   "queues": ["QUEUE_ID_1", "QUEUE_ID_2"]
 }'
 
 # Validate a reason name before creating
-wxcli cx-essentials validate-wrap-up --name "Issue Resolved"
+wxcli customer-assist validate-wrap-up --name "Issue Resolved"
 
 # Show reason details (includes assigned queues)
-wxcli cx-essentials show REASON_ID -o json
+wxcli customer-assist show REASON_ID -o json
 
 # Update a reason (incremental queue assignment)
-wxcli cx-essentials update REASON_ID --json-body '{
+wxcli customer-assist update REASON_ID --json-body '{
   "queuesToAssign": ["QUEUE_ID_3"],
   "queuesToUnassign": ["QUEUE_ID_1"]
 }'
 
 # List queues not yet assigned to a reason
-wxcli cx-essentials list-available-queues REASON_ID
+wxcli customer-assist list-available-queues REASON_ID
 
 # Delete a reason
-wxcli cx-essentials delete REASON_ID --force
+wxcli customer-assist delete REASON_ID --force
 
 # --- Per-queue wrap-up settings ---
 
 # View queue wrap-up settings
-wxcli cx-essentials list-settings LOCATION_ID QUEUE_ID -o json
+wxcli customer-assist list-settings LOCATION_ID QUEUE_ID -o json
 
 # Update queue wrap-up timer and assign reasons
-wxcli cx-essentials update-settings LOCATION_ID QUEUE_ID --json-body '{
+wxcli customer-assist update-settings LOCATION_ID QUEUE_ID --json-body '{
   "wrapupTimerEnabled": true,
   "wrapupTimer": 60,
   "wrapupReasons": ["REASON_ID_1", "REASON_ID_2"],
@@ -234,14 +234,14 @@ CLI commands:
 
 ```bash
 # View current queue recording settings
-wxcli cx-essentials show-queue-recording LOCATION_ID QUEUE_ID -o json
+wxcli customer-assist show-queue-recording LOCATION_ID QUEUE_ID -o json
 
 # Enable always-on recording (simple)
-wxcli cx-essentials update-queue-recording LOCATION_ID QUEUE_ID \
+wxcli customer-assist update-queue-recording LOCATION_ID QUEUE_ID \
   --enabled --record Always
 
 # Full recording config with notifications (requires --json-body)
-wxcli cx-essentials update-queue-recording LOCATION_ID QUEUE_ID --json-body '{
+wxcli customer-assist update-queue-recording LOCATION_ID QUEUE_ID --json-body '{
   "enabled": true,
   "record": "Always",
   "notification": {"enabled": true, "type": "Beep"},
@@ -256,7 +256,7 @@ wxcli cx-essentials update-queue-recording LOCATION_ID QUEUE_ID --json-body '{
 
 ### Supervisors
 
-Supervisor commands live under `wxcli call-queue`, not `wxcli cx-essentials`. **All commands must include `--has-cx-essentials true` when working with Customer Assist supervisors** (without it, commands default to CX Basic).
+Supervisor commands live under `wxcli call-queue`, not `wxcli customer-assist`. **All commands must include `--has-cx-essentials true` when working with Customer Assist supervisors** (without it, commands default to CX Basic).
 
 Collect from user (for create):
 
@@ -264,7 +264,7 @@ Collect from user (for create):
 |-----------|:--------:|-------|
 | Supervisor person ID | Yes | `--id` flag — the person's ID (not a separate supervisor entity ID); must be a calling-enabled user |
 | Agents | Yes | List of agent IDs — requires `--json-body` |
-| Has CX Essentials | Yes (for Customer Assist) | `--has-cx-essentials true` |
+| Has Customer Assist | Yes (for Customer Assist) | `--has-cx-essentials true` |
 
 CLI commands:
 
@@ -322,13 +322,13 @@ wxcli call-queue delete-supervisors-config --has-cx-essentials true --force
 
 ```bash
 # List all agents at a location
-wxcli cx-essentials list-available-agents LOCATION_ID
+wxcli customer-assist list-available-agents LOCATION_ID
 
-# List only agents with Customer Assist (CX Essentials) license
-wxcli cx-essentials list-available-agents LOCATION_ID --has-cx-essentials true
+# List only agents with Customer Assist (Customer Assist) license
+wxcli customer-assist list-available-agents LOCATION_ID --has-cx-essentials true
 
 # List only agents with CX Basic license
-wxcli cx-essentials list-available-agents LOCATION_ID --has-cx-essentials false
+wxcli customer-assist list-available-agents LOCATION_ID --has-cx-essentials false
 ```
 
 ---
@@ -348,11 +348,11 @@ Configuration:
 Prerequisites verified:
   ✓ Location exists
   ✓ Call queue exists
-  ✓ CX Essentials licenses assigned ([N] agents)
+  ✓ Customer Assist licenses assigned ([N] agents)
   ✓ [Feature-specific prereqs]
 
 Commands to execute:
-  wxcli cx-essentials [command] ...
+  wxcli customer-assist [command] ...
 
 Proceed? (yes/no)
 ```
@@ -377,17 +377,17 @@ After configuration, fetch the details back and confirm:
 
 ```bash
 # Verify screen pop
-wxcli cx-essentials show-screen-pop LOCATION_ID QUEUE_ID -o json
+wxcli customer-assist show-screen-pop LOCATION_ID QUEUE_ID -o json
 
 # Verify wrap-up reasons (org-level)
-wxcli cx-essentials list -o json
-wxcli cx-essentials show REASON_ID -o json
+wxcli customer-assist list -o json
+wxcli customer-assist show REASON_ID -o json
 
 # Verify wrap-up settings (per-queue)
-wxcli cx-essentials list-settings LOCATION_ID QUEUE_ID -o json
+wxcli customer-assist list-settings LOCATION_ID QUEUE_ID -o json
 
 # Verify queue recording
-wxcli cx-essentials show-queue-recording LOCATION_ID QUEUE_ID -o json
+wxcli customer-assist show-queue-recording LOCATION_ID QUEUE_ID -o json
 
 # Verify supervisors
 wxcli call-queue list-supervisors --has-cx-essentials true -o json
@@ -424,7 +424,7 @@ Next steps:
 1. **All Customer Assist features require a Customer Assist queue.** Screen pop, queue recording, and wrap-up reasons are per-queue configurations. The queue must be created with `--has-cx-essentials true` — a regular queue returns error 28018. Use `wxcli call-queue list --has-cx-essentials true` to find existing Customer Assist queues (they are hidden from the default `call-queue list`).
 2. **Always show the deployment plan** (Step 5) and wait for user confirmation before executing.
 3. **Always pass `--has-cx-essentials true` on supervisor commands.** Without it, commands default to CX Basic supervisors. This applies to `list-supervisors`, `create-supervisors`, `show-supervisors`, `update-supervisors`, `list-available-supervisors`, and `list-available-agents-supervisors`.
-4. **Supervisor commands live under `wxcli call-queue`, not `wxcli cx-essentials`.** The supervisor API base path (`/telephony/config/supervisors`) was grouped with call queues in the OpenAPI spec. The `cx-essentials` group handles wrap-up reasons, screen pop, queue recording, and available agents.
+4. **Supervisor commands live under `wxcli call-queue`, not `wxcli customer-assist`.** The supervisor API base path (`/telephony/config/supervisors`) was grouped with call queues in the OpenAPI spec. The `cx-essentials` group handles wrap-up reasons, screen pop, queue recording, and available agents.
 5. **A supervisor must have at least one agent** when created via `create-supervisors`.
 6. **`delete-supervisors-config --force` can remove ALL supervisors in the org.** The bulk delete endpoint has a `delete_all` option. Always confirm scope before executing.
 7. **Queue call recording requires different scopes.** Queue recording uses `spark-admin:people_read` / `spark-admin:people_write`, while all other Customer Assist features use `spark-admin:telephony_config_read` / `spark-admin:telephony_config_write`.

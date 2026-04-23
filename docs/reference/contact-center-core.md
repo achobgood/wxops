@@ -268,6 +268,9 @@ Contact Center user management. CC users are Webex users with CC-specific config
 | GET | `/organization/{orgid}/user/{id}/incoming-references` | `list` | List references for User |
 | GET | `/organization/{orgid}/v2/user` | `list-user-v2` | List User(s) (v2) |
 | GET | `/organization/{orgid}/v2/user/by-ci-user-id/{id}` | `show-by-ci-user-id-v2` | Get User by CI User ID (v2) |
+| PATCH | `/organization/{orgid}/user/bulk/update-dynamic-skill/{skillId}` | `update-dynamic-skill` | Bulk assign/unassign dynamic skill |
+| GET | `/organization/{orgid}/user/by-dynamic-skill-id/{skillId}` | `show-by-dynamic-skill-id` | List users with a specific dynamic skill |
+| PATCH | `/organization/{orgid}/user/{id}/reskill` | `update-reskill` | Reassign skill profiles/dynamic skills to a user |
 
 ### Key Parameters
 
@@ -275,6 +278,9 @@ Contact Center user management. CC users are Webex users with CC-specific config
 - **Bulk update:** Accepts array of user objects with partial fields
 - **Fetch by skill:** POST body with `skillRequirements` array
 - **CI User ID:** The Webex Common Identity user ID (different from CC user ID)
+- **Bulk update dynamic skill:** Takes `skillId` as path parameter. PATCH body with `items` array, each containing `itemIdentifier`, `item` (user/skill mapping), and `requestAction` (SAVE or DELETE)
+- **By dynamic skill ID:** Takes `skillId` as path parameter. Supports `search` (filter by firstName, lastName, email, value), `page`, `pageSize`
+- **Reskill:** Takes user `id` as path parameter. PATCH body with `skillProfileId` to assign a new skill profile, and `dynamicSkills` with `add`/`remove` arrays for individual skill changes
 
 ### CLI Examples
 
@@ -303,6 +309,26 @@ wxcli cc-users update --json-body '[
   {"id": "user1-uuid", "teamId": "team-uuid"},
   {"id": "user2-uuid", "teamId": "team-uuid"}
 ]'
+
+# List users with a specific dynamic skill
+wxcli cc-users show-by-dynamic-skill-id "skill-uuid"
+
+# Bulk assign a dynamic skill to users
+wxcli cc-users update-dynamic-skill "skill-uuid" --json-body '{
+  "items": [
+    {"itemIdentifier": 1, "item": {"id": "user1-uuid"}, "requestAction": "SAVE"},
+    {"itemIdentifier": 2, "item": {"id": "user2-uuid"}, "requestAction": "SAVE"}
+  ]
+}'
+
+# Reskill an agent (change skill profile + add/remove dynamic skills)
+wxcli cc-users update-reskill "user-uuid" --json-body '{
+  "skillProfileId": "new-profile-uuid",
+  "dynamicSkills": {
+    "add": ["skill-uuid-1"],
+    "remove": ["skill-uuid-2"]
+  }
+}'
 ```
 
 ### Raw HTTP
@@ -405,7 +431,7 @@ curl "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/v3/user-profile/$PROFI
 
 ## 6. Queues (`cc-queue`)
 
-Contact Service Queues route incoming contacts to agents based on routing strategy (skill-based, agent-based, or team-based). This is the largest CC config entity with 23 commands.
+Contact Service Queues route incoming contacts to agents based on routing strategy (skill-based, agent-based, or team-based). This is the largest CC config entity with 30 commands.
 
 ### Endpoints
 
@@ -434,6 +460,12 @@ Contact Service Queues route incoming contacts to agents based on routing strate
 | PUT | `/organization/{orgid}/v2/contact-service-queue/{id}` | `update-contact-service-queue-v2` | Update (v2) |
 | POST | `/organization/{orgid}/v2/contact-service-queue/{id}/reassign-agents` | `create-reassign-agents` | Reassign agents |
 | GET | `/organization/{orgid}/v3/contact-service-queue` | `list-contact-service-queue-v3` | List (v3) |
+| GET | `/organization/{orgid}/contact-service-queue/by-team-id/{id}/internal` | `list-internal-by-team-id` | Team CSQs by team ID (internal) |
+| GET | `/organization/{orgid}/contact-service-queue/by-user-ci-id/{ciUserId}/internal` | `list-internal-by-user-ci-id` | Agent CSQs by CI user ID (internal) |
+| POST | `/organization/{orgid}/contact-service-queue/fetch-by-dynamic-skills-and-skillProfile` | `create-fetch-by-dynamic-skills-and-skill-profile` | Skill-based CSQs by dynamic skills + profile |
+| POST | `/organization/{orgid}/contact-service-queue/fetch-by-userId-skillProfileId` | `create-fetch-by-user-id-skill-profile-id` | Skill-based CSQs by user ID + skill profile ID |
+| GET | `/organization/{orgid}/contact-service-queue/skill-based-queues/by-ci-user-id/{id}/internal` | `list-internal-by-ci-user-id` | Skill-based CSQs by CI user ID (internal) |
+| POST | `/organization/{orgid}/v2/contact-service-queue/fetch-by-grouped-assistant-skill` | `create-fetch-by-grouped-assistant-skill` | Queue mapping summary by assistant skill (v2) |
 
 ### Key Parameters
 
@@ -441,6 +473,10 @@ Contact Service Queues route incoming contacts to agents based on routing strate
 - **Reassign agents:** POST with `agentIds` array and `action` (ADD or REMOVE) for agent-based queues
 - **By user ID queries:** Return queues where a specific user is eligible to receive contacts
 - **By skill profile ID:** Returns queues that use a specific skill profile for routing
+- **By team ID (internal):** Returns team-based CSQs assigned to a specific team. Takes team ID as path parameter.
+- **By CI user ID (internal):** Returns agent-based or skill-based CSQs for a Webex Common Identity user. Takes CI user ID as path parameter.
+- **Fetch by dynamic skills + profile:** POST body with `skillProfileId`, `userId`, and `dynamicSkills` array (each with `skillId`, `textValue`, `booleanValue`, `proficiencyValue`, or `enumSkillValues`)
+- **Fetch by grouped assistant skill:** POST body with `assistantSkillIds` array. Returns queue mapping summary (mapped queue count, last assigned time) grouped by assistant skill. Supports `page`/`pageSize` query params.
 
 ### CLI Examples
 
@@ -477,6 +513,32 @@ wxcli cc-queue list
 
 # Delete a queue
 wxcli cc-queue delete --id "queue-uuid"
+
+# List team-based queues for a team (internal)
+wxcli cc-queue list-internal-by-team-id "team-uuid"
+
+# List agent-based queues for a CI user (internal)
+wxcli cc-queue list-internal-by-user-ci-id "ci-user-uuid"
+
+# List skill-based queues for a CI user (internal)
+wxcli cc-queue list-internal-by-ci-user-id "ci-user-uuid"
+
+# Find skill-based queues matching dynamic skills + profile
+wxcli cc-queue create-fetch-by-dynamic-skills-and-skill-profile --json-body '{
+  "skillProfileId": "profile-uuid",
+  "dynamicSkills": [
+    {"skillId": "skill-uuid", "proficiencyValue": 5}
+  ]
+}'
+
+# Find skill-based queues by user + skill profile
+wxcli cc-queue create-fetch-by-user-id-skill-profile-id \
+  --user-id "user-uuid" --skill-profile-id "profile-uuid"
+
+# Get queue mapping summary grouped by assistant skill
+wxcli cc-queue create-fetch-by-grouped-assistant-skill --json-body '{
+  "assistantSkillIds": ["skill-uuid-1", "skill-uuid-2"]
+}'
 ```
 
 ### Raw HTTP
@@ -497,6 +559,26 @@ curl -X POST "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/v2/contact-ser
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"agentIds":["agent1-uuid","agent2-uuid"],"action":"ADD"}'
+
+# List team-based queues by team ID (internal)
+curl "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/contact-service-queue/by-team-id/$TEAM_ID/internal" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Fetch skill-based queues by dynamic skills + profile
+curl -X POST "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/contact-service-queue/fetch-by-dynamic-skills-and-skillProfile" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"skillProfileId":"...","dynamicSkills":[{"skillId":"...","proficiencyValue":5}]}'
+
+# Reskill an agent
+curl -X PATCH "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/user/$USER_ID/reskill" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"skillProfileId":"new-profile-uuid","dynamicSkills":{"add":["skill-uuid-1"],"remove":["skill-uuid-2"]}}'
+
+# List users by dynamic skill ID
+curl "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/user/by-dynamic-skill-id/$SKILL_ID?page=0&pageSize=50" \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
 ---
@@ -689,10 +771,12 @@ Skills are attributes assigned to agents for skill-based routing. Each skill has
 | PUT | `/organization/{orgid}/skill/{id}` | `update` | Update |
 | GET | `/organization/{orgid}/skill/{id}/incoming-references` | `list-incoming-references` | List references |
 | GET | `/organization/{orgid}/v2/skill` | `list-skill` | List (v2) |
+| POST | `/organization/{orgid}/skill/populate-json-attr/{id}` | `create-populate-json-attr` | Populate JSON attributes for a skill |
 
 ### Key Parameters
 
 - **Create:** Requires `name`, `serviceLevel`, `skillType` (TEXT, PROFICIENCY, BOOLEAN, ENUM)
+- **Populate JSON attributes:** Takes skill ID as path parameter. Populates the `jsonAttr` field for the specified skill. Useful for initializing skill metadata after creation.
 - **PROFICIENCY type:** Values 0-10, used for competency-based routing
 - **BOOLEAN type:** True/false, used for capability flags (e.g., "speaks_spanish")
 - **ENUM type:** Requires `enumValues` array defining the allowed values
@@ -731,6 +815,9 @@ wxcli cc-skill show --id "skill-uuid"
 
 # Delete a skill
 wxcli cc-skill delete --id "skill-uuid"
+
+# Populate JSON attributes for a skill
+wxcli cc-skill create-populate-json-attr "skill-uuid"
 ```
 
 ### Raw HTTP
@@ -1490,6 +1577,12 @@ For teardown, reverse this order.
 14. **Sites must exist before teams.** A team requires a `siteId`. Create sites first, then teams. Similarly, skill profiles require skills, and queues can require skill profiles.
 
 15. **Agent summaries use POST for search.** Both `cc-agent-summaries` endpoints use POST (not GET) because they accept complex filter criteria in the request body. This is a search pattern, not a create pattern, despite the CLI command name `create`.
+
+16. **Auto CSAT has two path families.** The deprecated paths use `/auto-csat/{autoCsatId}/...` and are documented in [contact-center-analytics.md](contact-center-analytics.md). The new non-deprecated paths use `/ai-feature/auto-csat/...` and are available via `wxcli cc-ai-feature` (8 commands). Use the `ai-feature` paths for new integrations.
+
+17. **Internal queue endpoints.** The `by-team-id/.../internal` and `by-user-ci-id/.../internal` queue endpoints are marked as internal-use. They work with CI (Common Identity) user IDs, not CC user IDs. Use the v2 `by-user-id` endpoints for standard integrations.
+
+18. **Reskill uses PATCH, not PUT.** The `/user/{id}/reskill` endpoint uses PATCH (partial update) to modify a user's skill profile and dynamic skills. The `dynamicSkills` field accepts `add` and `remove` arrays for incremental changes rather than full replacement.
 
 ---
 

@@ -73,12 +73,16 @@ Ask the user what they want to configure. Present this decision matrix if they a
 | Agent wellbeing settings | Burnout/wellness config | `cc-agent-wellbeing` |
 | Manage user profiles | Agent desktop/permissions profiles | `cc-user-profiles` |
 | Manage CC users | CC user CRUD | `cc-users` |
+| Update dynamic skills for users | Bulk update dynamic skill assignments | `cc-users` |
+| List users by dynamic skill | Query users with a specific dynamic skill | `cc-users` |
+| Reskill users | Reassign skill profiles to users | `cc-users` |
 
 ### Queue & Routing
 
 | Need | Operation | CLI Group(s) |
 |------|-----------|-------------|
 | Configure queues | Create/update/delete contact service queues | `cc-queue` |
+| Query queues by skill/team/user | Skill-based routing queue lookups | `cc-queue` |
 | Set up entry points | Inbound/outbound entry point CRUD | `cc-entry-point` |
 | Configure dial plans | CC dial plan management | `cc-dial-plan` |
 | Manage dial numbers | Number-to-entry-point mapping | `cc-dial-number` |
@@ -118,7 +122,7 @@ Ask the user what they want to configure. Present this decision matrix if they a
 
 | Need | Operation | CLI Group(s) |
 |------|-----------|-------------|
-| Manage flows | Import/export/publish flows | `cc-flow` |
+| Manage flows | Export/publish/list flows | `cc-flow` |
 | Data sources | External data source config | `cc-data-sources` |
 | Audio files | Upload/manage IVR audio | `cc-audio-files` |
 | Resource collections | Resource collection management | `cc-resource-collection` |
@@ -279,6 +283,60 @@ wxcli cc-queue list-contact-service-queue-v2 -o json
 wxcli cc-queue show-contact-service-queue-v2 QUEUE_ID -o json
 ```
 
+#### Queue Skill-Based Routing Queries
+
+These commands query queues based on skill, team, or user assignments. Useful for verifying routing configuration and debugging skill-based queue assignments.
+
+**List queues assigned to a specific team:**
+
+```bash
+wxcli cc-queue list-internal-by-team-id TEAM_ID -o json
+```
+
+**List queues for a CI user:**
+
+```bash
+wxcli cc-queue list-internal-by-user-ci-id USER_CI_ID -o json
+```
+
+**List skill-based queues by CI user:**
+
+```bash
+wxcli cc-queue list-internal-by-ci-user-id USER_CI_ID -o json
+```
+
+**List queues by skill profile:**
+
+```bash
+wxcli cc-queue list-internal-by-skill-profile-id SKILL_PROFILE_ID -o json
+```
+
+**Fetch queues by dynamic skill and skill profile (POST):**
+
+```bash
+wxcli cc-queue create-fetch-by-dynamic-skills-and-skill-profile --json-body '{
+  "dynamicSkillIds": ["SKILL_ID"],
+  "skillProfileId": "SKILL_PROFILE_ID"
+}'
+```
+
+**Fetch queues by user ID and skill profile ID (POST):**
+
+```bash
+wxcli cc-queue create-fetch-by-user-id-skill-profile-id --json-body '{
+  "userId": "USER_ID",
+  "skillProfileId": "SKILL_PROFILE_ID"
+}'
+```
+
+**Fetch queues by grouped assistant skill (v2, POST):**
+
+```bash
+wxcli cc-queue create-fetch-by-grouped-assistant-skill --json-body '{
+  "skillIds": ["SKILL_ID"]
+}'
+```
+
 ---
 
 ### Entry Point
@@ -347,6 +405,47 @@ wxcli cc-team list -o json
 
 ```bash
 wxcli cc-team show TEAM_ID -o json
+```
+
+---
+
+### CC Users
+
+**List CC users:**
+
+```bash
+wxcli cc-users list -o json
+```
+
+**Show a CC user:**
+
+```bash
+wxcli cc-users show USER_ID -o json
+```
+
+**Bulk update dynamic skill for users:**
+
+```bash
+wxcli cc-users update-dynamic-skill --json-body '{
+  "userIds": ["USER_ID_1", "USER_ID_2"],
+  "dynamicSkillId": "SKILL_ID",
+  "skillValue": 8
+}'
+```
+
+**List users with a specific dynamic skill:**
+
+```bash
+wxcli cc-users show-by-dynamic-skill-id DYNAMIC_SKILL_ID -o json
+```
+
+**Reassign skill profiles to a user (reskill):**
+
+```bash
+wxcli cc-users update-reskill --json-body '{
+  "userId": "USER_ID",
+  "skillProfileId": "NEW_SKILL_PROFILE_ID"
+}'
 ```
 
 ---
@@ -577,28 +676,64 @@ wxcli cc-global-vars list-cad-variable -o json
 **List flows:**
 
 ```bash
-wxcli cc-flow list -o json
-```
-
-**Import a flow:**
-
-```bash
-wxcli cc-flow create --json-body '{
-  "name": "Main IVR Flow",
-  "flowType": "flow"
-}'
+wxcli cc-flow list PROJECT_ID -o json
 ```
 
 **Export a flow:**
 
 ```bash
-wxcli cc-flow list-export PROJECT_ID FLOW_ID -o json
+wxcli cc-flow export FLOW_ID PROJECT_ID -o json
+```
+
+Use `--version` to specify a version: `draft`, `latest`, or a specific version ID.
+
+```bash
+wxcli cc-flow export FLOW_ID PROJECT_ID --version draft -o json
 ```
 
 **Publish a flow:**
 
 ```bash
-wxcli cc-flow create-export PROJECT_ID FLOW_ID --comment "Initial publish"
+wxcli cc-flow publish FLOW_ID PROJECT_ID --comment "Initial publish"
+```
+
+Use `--json-body` for additional publish options (e.g., tag IDs):
+
+```bash
+wxcli cc-flow publish FLOW_ID PROJECT_ID --json-body '{
+  "comment": "Production release",
+  "tagIds": ["TAG_ID"]
+}'
+```
+
+> **NOTE:** Flow import (file upload) is not available via CLI. Use Control Hub or the API directly for flow import.
+
+---
+
+### Auto CSAT
+
+**Show Auto CSAT configuration:**
+
+```bash
+wxcli cc-auto-csat show-auto-csat -o json
+```
+
+**Update Auto CSAT settings:**
+
+```bash
+wxcli cc-auto-csat update --json-body '{...}'
+```
+
+**List Auto CSAT entries:**
+
+```bash
+wxcli cc-auto-csat list -o json
+```
+
+**List Auto CSAT questions:**
+
+```bash
+wxcli cc-auto-csat list-question -o json
 ```
 
 ---
@@ -799,6 +934,12 @@ wxcli cc-aux-code show AUX_ID -o json
 
 # Subscription
 wxcli cc-subscriptions show SUBSCRIPTION_ID -o json
+
+# CC user
+wxcli cc-users show USER_ID -o json
+
+# Auto CSAT
+wxcli cc-auto-csat show-auto-csat -o json
 ```
 
 ## Step 8: Report results
@@ -861,7 +1002,7 @@ Next steps:
 4. Create entry point → `wxcli cc-entry-point create-entry-point --json-body '...'`
 5. Create queue → `wxcli cc-queue create-contact-service-queue-v2 --json-body '...'`
 6. Map dial number → `wxcli cc-dial-number create --json-body '...'`
-7. Create/assign flow → `wxcli cc-flow create --json-body '...'`
+7. Create/assign flow → `wxcli cc-flow publish FLOW_ID PROJECT_ID --comment "..."`
 8. Verify end-to-end → list all resources and confirm IDs are linked
 
 ### Workflow B: Add skill-based routing
@@ -870,6 +1011,8 @@ Next steps:
 2. Create skill profiles → `wxcli cc-skill-profile create-skill-profile --json-body '...'`
 3. Update queue routing type → `wxcli cc-queue update --json-body '{"routingType": "SKILLS_BASED", ...}'`
 4. Assign skill profiles to teams/agents
+5. Verify queue-to-skill mapping → `wxcli cc-queue list-internal-by-skill-profile-id SKILL_PROFILE_ID -o json`
+6. Verify user queue assignments → `wxcli cc-queue list-internal-by-ci-user-id USER_CI_ID -o json`
 
 ### Workflow C: Set up outbound campaign
 
@@ -883,6 +1026,14 @@ Next steps:
 1. Create event subscription → `wxcli cc-subscriptions create --json-body '...'`
 2. Monitor live calls → `wxcli cc-call-monitoring create-monitor --json-body '...'`
 3. Barge in if needed → `wxcli cc-call-monitoring create-barge-in --json-body '...'`
+
+### Workflow E: Reskill agents
+
+1. List current user skill assignments → `wxcli cc-users show USER_ID -o json`
+2. List users by dynamic skill → `wxcli cc-users show-by-dynamic-skill-id SKILL_ID -o json`
+3. Bulk update dynamic skills → `wxcli cc-users update-dynamic-skill --json-body '...'`
+4. Reassign skill profile → `wxcli cc-users update-reskill --json-body '...'`
+5. Verify updated queues → `wxcli cc-queue list-internal-by-ci-user-id USER_CI_ID -o json`
 
 ---
 

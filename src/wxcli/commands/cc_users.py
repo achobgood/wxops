@@ -112,8 +112,8 @@ def update(
 
 
 
-@app.command("update-update-dynamic-skill")
-def update_update_dynamic_skill(
+@app.command("update-dynamic-skill")
+def update_dynamic_skill(
     skill_id: str = typer.Argument(help="skillId"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -506,6 +506,198 @@ def show_with_user_profile(
             print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
         else:
             print_json(result)
+
+
+
+@app.command("show-user")
+def show_user(
+    id: str = typer.Argument(help="id"),
+    include_count: str = typer.Option(None, "--include-count", help="If set to true, the API response will include the count of e"),
+    include_user_profile_type: str = typer.Option(None, "--include-user-profile-type", help="If set to true, the API response will include the user profi"),
+    include_skill_profile_audit: str = typer.Option(None, "--include-skill-profile-audit", help="If set to true gives skill profile modification info."),
+    include_reskill_audit_info: str = typer.Option(None, "--include-reskill-audit-info", help="If set to true gives skill profile and dynamic skill modific"),
+    include_skill_details: str = typer.Option(None, "--include-skill-details", help="If set to true,the response includes skill information for e"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get specific User by ID."""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/user/{id}"
+    params = {}
+    if include_count is not None:
+        params["includeCount"] = include_count
+    if include_user_profile_type is not None:
+        params["includeUserProfileType"] = include_user_profile_type
+    if include_skill_profile_audit is not None:
+        params["includeSkillProfileAudit"] = include_skill_profile_audit
+    if include_reskill_audit_info is not None:
+        params["includeReskillAuditInfo"] = include_reskill_audit_info
+    if include_skill_details is not None:
+        params["includeSkillDetails"] = include_skill_details
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if output == "json":
+        print_json(result)
+    else:
+        if isinstance(result, dict):
+            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
+        elif isinstance(result, list):
+            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
+        else:
+            print_json(result)
+
+
+
+@app.command("update-user")
+def update_user(
+    id: str = typer.Argument(help="id"),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is require"),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
+    first_name: str = typer.Option(None, "--first-name", help="The first name of the user. Can be changed using Users Manag"),
+    last_name: str = typer.Option(None, "--last-name", help="The last name of the user. Can be changed using Users Manage"),
+    email: str = typer.Option(None, "--email", help="The email address of the user. Can be changed using Users Ma"),
+    work_phone: str = typer.Option(None, "--work-phone", help="The work phone number of the user."),
+    mobile: str = typer.Option(None, "--mobile", help="The mobile phone number of the user."),
+    ci_user_id: str = typer.Option(None, "--ci-user-id", help="Cisco Common Identity user Id. Existence of a CI user is a p"),
+    broad_cloud_user_id: str = typer.Option(None, "--broad-cloud-user-id", help="Broadcloud user Id. This field cannot be modified."),
+    user_profile_id: str = typer.Option(None, "--user-profile-id", help="Identifier for an user profile which a Contact Center admini"),
+    contact_center_enabled: bool = typer.Option(None, "--contact-center-enabled/--no-contact-center-enabled", help="The setting is for accessing the Agent Desktop to handle cus"),
+    timezone: str = typer.Option(None, "--timezone", help="(Optional) The time zone that you provision for your enterpr"),
+    xsp_version: str = typer.Option(None, "--xsp-version", help="(Optional) Used to subscribe for recording events. This fiel"),
+    subscription_id: str = typer.Option(None, "--subscription-id", help="(Optional) Used to subscribe for recording events. This fiel"),
+    site_id: str = typer.Option(None, "--site-id", help="(Optional) Identifier for a site which is a physical contact"),
+    skill_profile_id: str = typer.Option(None, "--skill-profile-id", help="(Optional) If your enterprise uses the optional Skills-Based"),
+    agent_profile_id: str = typer.Option(None, "--agent-profile-id", help="Identifier for a Desktop Profile which is a group of permiss"),
+    multimedia_profile_id: str = typer.Option(None, "--multimedia-profile-id", help="(Optional) If your organization administrator enables Multim"),
+    deafult_dialled_number: str = typer.Option(None, "--deafult-dialled-number", help="(Optional) The dial number of the agent. This field is appli"),
+    external_identifier: str = typer.Option(None, "--external-identifier", help="(Optional) Agent identification details, such as the employe"),
+    active: bool = typer.Option(None, "--active/--no-active", help="Indicates whether the user is active or not active. Can be c"),
+    imi_user_created: bool = typer.Option(None, "--imi-user-created/--no-imi-user-created", help="(Optional) Indicates whether this user has a corresponding u"),
+    preferred_supervisor_team_id: str = typer.Option(None, "--preferred-supervisor-team-id", help="(Optional) Indicates the id of a preferred supervisor."),
+    user_level_burnout_inclusion: str = typer.Option(None, "--user-level-burnout-inclusion", help="Choices: INCLUDED, EXCLUDED"),
+    user_level_auto_csat_inclusion: str = typer.Option(None, "--user-level-auto-csat-inclusion", help="Choices: INCLUDED, EXCLUDED"),
+    user_level_wellness_break_reminders: str = typer.Option(None, "--user-level-wellness-break-reminders", help="Choices: DISABLED, ENABLED"),
+    user_level_summaries_inclusion: str = typer.Option(None, "--user-level-summaries-inclusion", help="Choices: INCLUDED, EXCLUDED"),
+    created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
+    last_updated_time: str = typer.Option(None, "--last-updated-time", help="This is the updated time of the entity."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update specific User by ID\n\nExample --json-body:\n  '{"firstName":"...","lastName":"...","email":"...","ciUserId":"...","userProfileId":"...","contactCenterEnabled":true,"active":true,"organizationId":"..."}'."""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/user/{id}"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if organization_id is not None:
+            body["organizationId"] = organization_id
+        if id_param is not None:
+            body["id"] = id_param
+        if version is not None:
+            body["version"] = version
+        if first_name is not None:
+            body["firstName"] = first_name
+        if last_name is not None:
+            body["lastName"] = last_name
+        if email is not None:
+            body["email"] = email
+        if work_phone is not None:
+            body["workPhone"] = work_phone
+        if mobile is not None:
+            body["mobile"] = mobile
+        if ci_user_id is not None:
+            body["ciUserId"] = ci_user_id
+        if broad_cloud_user_id is not None:
+            body["broadCloudUserId"] = broad_cloud_user_id
+        if user_profile_id is not None:
+            body["userProfileId"] = user_profile_id
+        if contact_center_enabled is not None:
+            body["contactCenterEnabled"] = contact_center_enabled
+        if timezone is not None:
+            body["timezone"] = timezone
+        if xsp_version is not None:
+            body["xspVersion"] = xsp_version
+        if subscription_id is not None:
+            body["subscriptionId"] = subscription_id
+        if site_id is not None:
+            body["siteId"] = site_id
+        if skill_profile_id is not None:
+            body["skillProfileId"] = skill_profile_id
+        if agent_profile_id is not None:
+            body["agentProfileId"] = agent_profile_id
+        if multimedia_profile_id is not None:
+            body["multimediaProfileId"] = multimedia_profile_id
+        if deafult_dialled_number is not None:
+            body["deafultDialledNumber"] = deafult_dialled_number
+        if external_identifier is not None:
+            body["externalIdentifier"] = external_identifier
+        if active is not None:
+            body["active"] = active
+        if imi_user_created is not None:
+            body["imiUserCreated"] = imi_user_created
+        if preferred_supervisor_team_id is not None:
+            body["preferredSupervisorTeamId"] = preferred_supervisor_team_id
+        if user_level_burnout_inclusion is not None:
+            body["userLevelBurnoutInclusion"] = user_level_burnout_inclusion
+        if user_level_auto_csat_inclusion is not None:
+            body["userLevelAutoCSATInclusion"] = user_level_auto_csat_inclusion
+        if user_level_wellness_break_reminders is not None:
+            body["userLevelWellnessBreakReminders"] = user_level_wellness_break_reminders
+        if user_level_summaries_inclusion is not None:
+            body["userLevelSummariesInclusion"] = user_level_summaries_inclusion
+        if created_time is not None:
+            body["createdTime"] = created_time
+        if last_updated_time is not None:
+            body["lastUpdatedTime"] = last_updated_time
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
 
 
 

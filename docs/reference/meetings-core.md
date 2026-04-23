@@ -897,5 +897,7 @@ These issues span multiple meetings API surfaces. Check per-section Gotchas for 
 - `meetings-content.md` — Meeting content: recordings, transcripts, closed captions, chat, polls, Q&A, summaries
 - `meetings-settings.md` — Meeting preferences, site configuration, session types (admin CRUD), tracking codes (admin CRUD), common settings
 - `meetings-infrastructure.md` — Meeting participants, invitees, reports, Video Mesh, Slido compliance
+- [`admin-hybrid.md`](admin-hybrid.md) — Meeting quality metrics (`GET /meeting/qualities`), hybrid analytics
+- [`admin-apps-data.md`](admin-apps-data.md) — Admin/group recordings, soft-delete/restore/purge, access lists
 - [`authentication.md`](authentication.md) — Token types (user, admin), scopes, OAuth flows
 - [`webhooks-events.md`](webhooks-events.md) — Webhook events for meeting lifecycle (meeting started, ended, participant joined/left)

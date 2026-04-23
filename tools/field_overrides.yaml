@@ -741,3 +741,7 @@ cli_name_overrides:
   command_name_overrides:
     "list-{flow-id}:export": "export"
     "create": "publish"
+
+"Users":
+  command_name_overrides:
+    "update-update-dynamic-skill": "update-dynamic-skill"

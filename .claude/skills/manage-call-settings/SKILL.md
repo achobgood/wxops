@@ -9,7 +9,7 @@ allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [person-email-or-workspace-name]
 ---
 
-<!-- Updated by playbook session 2026-03-19 -->
+<!-- Updated by playbook session 2026-04-23 -->
 
 # Manage Call Settings Workflow
 
@@ -40,6 +40,25 @@ wxcli location-voicemail show LOCATION_ID -o json          # Location voicemail 
 wxcli location-voicemail update LOCATION_ID --json-body '{"voiceMessageTranscriptionEnabled": true}'
 wxcli user-settings update-voicemail PERSON_ID --json-body '{"enabled": true, "emailCopyOfMessage": {"enabled": true, "emailId": "user@example.com"}}'
 ```
+
+### Voicemail self-service (user-level OAuth — Phase 5)
+```bash
+wxcli call-settings-for-me-phase-5 show -o json            # Show own voicemail settings
+wxcli call-settings-for-me-phase-5 update --json-body '{"enabled": true, "sendUnansweredCalls": {"enabled": true, "numberOfRings": 6}}'
+wxcli call-settings-for-me-phase-5 show-rules -o json      # Show voicemail PIN rules
+wxcli call-settings-for-me-phase-5 update-pin --json-body '{"pin": "123456"}'  # Reset/change voicemail PIN
+```
+- Requires **user-level OAuth** token (`spark:people_read` / `spark:people_write`). Admin tokens will not work.
+- These are `/people/me/` endpoints — the authenticated user configures their own settings.
+
+### Hoteling self-service (user-level OAuth — Phase 5)
+```bash
+wxcli call-settings-for-me-phase-5 show-guest -o json      # Show own hoteling guest settings
+wxcli call-settings-for-me-phase-5 update-guest --json-body '{"enabled": true}'  # Enable self as hoteling guest
+wxcli call-settings-for-me-phase-5 list -o json            # List available hoteling hosts
+```
+- Requires **user-level OAuth** token. Admin tokens will not work.
+- The admin path for hoteling guest is `wxcli user-settings update-hoteling PERSON_ID`. Use the self-service path when the user is configuring their own hoteling.
 
 ### Call forwarding (PUT replaces entire object — read first, carry ALL blocks)
 ```bash
@@ -104,6 +123,7 @@ wxcli user-settings list-assigned-assistants EXEC_ID -o json
 | Person settings | `user-settings` | — |
 | Workspace settings | `workspace-settings` | — |
 | Workspace hoteling | `device-settings` | ~~workspace-settings~~ |
+| Self-service voicemail/hoteling (Phase 5) | `call-settings-for-me-phase-5` | ~~my-call-settings~~ |
 
 ---
 
@@ -117,6 +137,7 @@ Load ONLY the reference docs relevant to the user's specific request. Do NOT loa
 | Voicemail, caller ID, recording, intercept, monitoring | `docs/reference/person-call-settings-media.md` |
 | Permissions, executive/assistant, feature access | `docs/reference/person-call-settings-permissions.md` |
 | Hoteling, receptionist, calling behavior, numbers | `docs/reference/person-call-settings-behavior.md` |
+| Self-service settings (user-level OAuth) | `docs/reference/self-service-call-settings.md` |
 
 **For recording + voicemail scenarios:** Load `person-call-settings-media.md` only. The location-level recording commands are in the Quick Recipes above — you do NOT need to load any location-call-settings docs.
 
@@ -168,12 +189,15 @@ Check the token has the required scopes for the target operation.
 | Receptionist | | |
 | Numbers (read) | | |
 
+**Self-service scopes:** `call-settings-for-me-phase-5` commands use `spark:people_read` / `spark:people_write` (user-level, NOT admin). These are the same scopes as `my-call-settings`.
+
 ### Scope Verification Logic
 
 1. Determine target type: **Person** needs `people_*` scopes; **Workspace** needs `workspaces_*` scopes
 2. Determine operation: **Read** needs `*_read`; **Write** needs `*_write`
 3. Check if the setting uses `telephony_config` scopes (see table above) — if so, verify those are present too
-4. If `wxcli whoami` does not show the required scopes, stop and tell the user which scopes are missing before proceeding
+4. **Self-service commands** (`call-settings-for-me-phase-5`, `my-call-settings`): require user-level `spark:people_*` scopes, NOT admin scopes
+5. If `wxcli whoami` does not show the required scopes, stop and tell the user which scopes are missing before proceeding
 
 ## Step 3: Identify the operation
 
@@ -231,29 +255,36 @@ async with AsWebexSimpleApi(tokens='<token>') as api:
 | A specific **workspace** | `wxcli workspace-settings` | `spark-admin:workspaces_read/write` | `wxcli workspace-settings show-voicemail WORKSPACE_ID` |
 | All people/workspaces at a **location** | `wxcli location-voicemail` / `wxcli location-settings` | `spark-admin:telephony_config_read/write` | `wxcli location-voicemail show LOCATION_ID` |
 | **Org-wide** recording vendor | `wxcli call-recording` | `spark-admin:telephony_config_read/write` | `wxcli call-recording show` |
+| **Self** (own settings) | `wxcli my-call-settings` or `wxcli call-settings-for-me-phase-5` | `spark:people_read/write` | `wxcli call-settings-for-me-phase-5 show` |
 
 #### Multi-scope settings — which command for what?
 
-| Setting | Person | Workspace | Location | Org |
-|---------|--------|-----------|----------|-----|
-| **Voicemail** | `user-settings show-voicemail PERSON_ID` | `workspace-settings show-voicemail WS_ID` | `location-voicemail show LOC_ID` (policies) | — |
-| **Call Recording** | `user-settings show-call-recording PERSON_ID` | `workspace-settings show-call-recordings WS_ID` | — | `call-recording show` (vendor config) |
-| **Music on Hold** | SDK only (telephony_config) | SDK only | `location-settings` (must enable first) | — |
-| **Call Intercept** | `user-settings show-intercept PERSON_ID` | `workspace-settings show-intercept WS_ID` | Location defaults apply | — |
-| **Call Forwarding** | `user-settings show-call-forwarding PERSON_ID` | `workspace-settings show-call-forwarding WS_ID` | — | — |
+| Setting | Person | Workspace | Location | Org | Self-Service |
+|---------|--------|-----------|----------|-----|-------------|
+| **Voicemail** | `user-settings show-voicemail PERSON_ID` | `workspace-settings show-voicemail WS_ID` | `location-voicemail show LOC_ID` (policies) | — | `call-settings-for-me-phase-5 show` |
+| **Voicemail PIN** | `user-settings reset-voicemail-pin PERSON_ID` | — | — | — | `call-settings-for-me-phase-5 update-pin` |
+| **Voicemail PIN Rules** | — | — | — | — | `call-settings-for-me-phase-5 show-rules` |
+| **Call Recording** | `user-settings show-call-recording PERSON_ID` | `workspace-settings show-call-recordings WS_ID` | — | `call-recording show` (vendor config) | — |
+| **Music on Hold** | SDK only (telephony_config) | SDK only | `location-settings` (must enable first) | — | — |
+| **Call Intercept** | `user-settings show-intercept PERSON_ID` | `workspace-settings show-intercept WS_ID` | Location defaults apply | — | — |
+| **Call Forwarding** | `user-settings show-call-forwarding PERSON_ID` | `workspace-settings show-call-forwarding WS_ID` | — | — | — |
+| **Hoteling Guest** | `user-settings show-hoteling PERSON_ID` | — | — | — | `call-settings-for-me-phase-5 show-guest` |
+| **Hoteling Hosts** | — | — | — | — | `call-settings-for-me-phase-5 list` |
 
 #### User-only settings (no admin endpoint — 404 guaranteed)
 
 These 6 settings exist ONLY at `/people/me/settings/{feature}`. Admin tokens **always** get 404. With a **user-level OAuth token**, use `wxcli my-call-settings` (120 commands covering all self-service `/people/me/` endpoints including these 6). Without user-level OAuth, the user must configure these via the Webex app.
 
-| Setting | Self-service path | Workspace equivalent? |
-|---------|-------------------|----------------------|
-| Simultaneous Ring | `/me/settings/simultaneousRing` | No |
-| Sequential Ring | `/me/settings/sequentialRing` | No |
-| Priority Alert | `/me/settings/priorityAlert` | No |
-| Call Notify | `/me/settings/callNotify` | No |
-| Anonymous Call Reject | `/me/settings/anonymousCallReject` | **Yes:** `workspace-settings` has admin endpoint |
-| Call Policies | `/me/settings/callPolicies` | **Yes:** workspace-level admin endpoint (Professional license required) |
+| Setting | Self-service path | CLI group | Workspace equivalent? |
+|---------|-------------------|-----------|----------------------|
+| Simultaneous Ring | `/me/settings/simultaneousRing` | `my-call-settings` | No |
+| Sequential Ring | `/me/settings/sequentialRing` | `my-call-settings` | No |
+| Priority Alert | `/me/settings/priorityAlert` | `my-call-settings` | No |
+| Call Notify | `/me/settings/callNotify` | `my-call-settings` | No |
+| Anonymous Call Reject | `/me/settings/anonymousCallReject` | `my-call-settings` | **Yes:** `workspace-settings` has admin endpoint |
+| Call Policies | `/me/settings/callPolicies` | `my-call-settings` | **Yes:** workspace-level admin endpoint (Professional license required) |
+
+**Phase 5 self-service commands** (`call-settings-for-me-phase-5`): These are NOT user-only — they have admin-path equivalents (`user-settings show-voicemail`, `user-settings update-hoteling`, `user-settings reset-voicemail-pin`). The Phase 5 group provides the self-service path for users to manage their own voicemail and hoteling settings with a user-level token. Route to this group when the user is configuring their own settings rather than an admin configuring someone else's.
 
 **If the user asks to configure one of these for a person:** Stop and explain that no admin API exists. Offer the workspace-level alternative if applicable, or inform them the user must self-configure.
 
@@ -280,6 +311,9 @@ Present the user with the settings categories. Ask which settings they want to r
 | Setting | CLI Command (show) | CLI Command (update) | Notes |
 |---------|-------------------|---------------------|-------|
 | Voicemail | `show-voicemail` | `update-voicemail` | Inherits from location; greeting uploads via `configure-busy-voicemail`, `configure-no-answer` |
+| Voicemail (self-service) | `call-settings-for-me-phase-5 show` | `call-settings-for-me-phase-5 update` | User-level OAuth only. User manages own voicemail settings |
+| Voicemail PIN Rules | `call-settings-for-me-phase-5 show-rules` | — | User-level OAuth only. Read-only PIN policy |
+| Voicemail PIN Reset | — | `call-settings-for-me-phase-5 update-pin` | User-level OAuth only. User resets own PIN |
 | Caller ID | `list` | `update-caller-id-features` | |
 | Anonymous Call Rejection | — | — | **USER-ONLY: No admin endpoint. Requires user-level OAuth via `/me/settings/anonymousCallReject`; workspace-level uses `workspaces/{id}/anonymousCallReject`** |
 | Privacy | `list-privacy` | `update-privacy` | Controls line monitoring, AA extension/name dialing |
@@ -306,7 +340,9 @@ Present the user with the settings categories. Ask which settings they want to r
 |---------|-------------------|---------------------|-------|
 | Calling Behavior | `show-calling-behavior` | `update-calling-behavior` | Which Webex telephony app handles calls |
 | App Services | `show` | `update` | Client platforms (browser, desktop, tablet, mobile) and ring behavior |
-| Hoteling | `show-hoteling` | `update-hoteling` | Person-level only. **Workspace hoteling:** use `wxcli device-settings update-devices-workspaces WORKSPACE_ID --enabled` |
+| Hoteling | `show-hoteling` | `update-hoteling` | Person-level only (admin path). **Workspace hoteling:** use `wxcli device-settings update-devices-workspaces WORKSPACE_ID --enabled` |
+| Hoteling (self-service) | `call-settings-for-me-phase-5 show-guest` | `call-settings-for-me-phase-5 update-guest` | User-level OAuth only. User manages own hoteling guest settings |
+| Available Hoteling Hosts | `call-settings-for-me-phase-5 list` | — | User-level OAuth only. Lists hosts the user can sign into |
 | Receptionist Client | `list-reception` | `update-reception` | `receptionEnabled` must be `true` if members set. Path: `/features/reception` (NOT receptionist) |
 | Numbers | `list-numbers` | — | Primary + alternate numbers; distinctive ring patterns |
 | Preferred Answer Endpoint | — | — | Which device/app answers by default (SDK only for now) |
@@ -315,7 +351,7 @@ Present the user with the settings categories. Ask which settings they want to r
 | Personal Assistant | — | — | Away status, transfer, alerting (SDK only for now) |
 | Emergency Callback Number | — | — | DIRECT_LINE, LOCATION_ECBN, or LOCATION_MEMBER_NUMBER (SDK only for now) |
 
-All CLI commands above are under `wxcli user-settings`. Run `wxcli user-settings --help` to see the full list.
+All CLI commands above are under `wxcli user-settings` unless otherwise noted. Run `wxcli user-settings --help` to see the full list. Self-service commands use `wxcli call-settings-for-me-phase-5` (run `wxcli call-settings-for-me-phase-5 --help` to see all 7 commands).
 
 ### Settings without CLI commands ("SDK only")
 
@@ -382,6 +418,22 @@ wxcli user-settings show-voicemail PERSON_ID --output json
 wxcli user-settings show-caller-id PERSON_ID --output json
 wxcli user-settings list-privacy PERSON_ID --output json
 wxcli user-settings show-barge-in PERSON_ID --output json
+```
+
+#### Reading self-service settings (user-level OAuth)
+
+```bash
+# Read own voicemail settings
+wxcli call-settings-for-me-phase-5 show --output json
+
+# Read own hoteling guest settings
+wxcli call-settings-for-me-phase-5 show-guest --output json
+
+# Check voicemail PIN rules
+wxcli call-settings-for-me-phase-5 show-rules --output json
+
+# List available hoteling hosts
+wxcli call-settings-for-me-phase-5 list --output json
 ```
 
 ### 4b. Check for location-level dependencies
@@ -560,6 +612,19 @@ wxcli user-settings delete PERSON_ID SCHEDULE_TYPE SCHEDULE_ID EVENT_ID
 wxcli user-settings reset-voicemail-pin PERSON_ID
 ```
 
+#### Pattern: Self-service voicemail and hoteling (user-level OAuth)
+
+```bash
+# User updates own voicemail settings
+wxcli call-settings-for-me-phase-5 update --json-body '{"enabled": true, "sendUnansweredCalls": {"enabled": true, "numberOfRings": 6}}'
+
+# User resets own voicemail PIN
+wxcli call-settings-for-me-phase-5 update-pin --json-body '{"pin": "123456"}'
+
+# User enables self as hoteling guest
+wxcli call-settings-for-me-phase-5 update-guest --json-body '{"enabled": true}'
+```
+
 ### 6b. Bulk changes
 
 #### Shell loop for small batches
@@ -604,6 +669,12 @@ wxcli user-settings show-call-forwarding PERSON_ID --output json
 
 # After updating voicemail
 wxcli user-settings show-voicemail PERSON_ID --output json
+
+# After self-service voicemail update
+wxcli call-settings-for-me-phase-5 show --output json
+
+# After self-service hoteling update
+wxcli call-settings-for-me-phase-5 show-guest --output json
 ```
 
 Compare the JSON output to the values you set. Flag any discrepancies.
@@ -633,6 +704,7 @@ All 3 changes applied successfully.
 - **Handle person vs workspace scope differences** — some scopes use `workspaces_read/write` instead of `people_read/write` (outgoing permissions transfer numbers, access codes, call policy)
 - **Location-level prerequisites** — voicemail, recording, intercept, and MoH have location-level settings that must be configured first; person-level settings may be overridden or ineffective without them
 - **SimRing, SequentialRing, PriorityAlert admin limitation** — these are not available via admin-level person management; use `wxcli my-call-settings` with user-level OAuth, or workspace-level commands where available
+- **Self-service vs admin path** — for voicemail and hoteling, both admin (`user-settings`) and self-service (`call-settings-for-me-phase-5`) paths exist. Use admin path when configuring for another user; use self-service path when the user is configuring their own settings with a user-level token
 - **Call Recording read scope bug** — the actual required scope is `people_read`, not `people_write` as some docs state
 - **Selective feature precedence** — Selective Reject > Selective Accept > Selective Forward > Standard Forwarding
 - **SNR uses telephony_config scopes** — Single Number Reach uses `spark-admin:telephony_config_read/write`, not `people_read/write`
@@ -641,6 +713,7 @@ All 3 changes applied successfully.
 - **Receptionist validation** — `enabled` must be `True` if `monitored_members` is set
 - **Use --output json** — always pass `--output json` on show/list commands to get structured data for comparison and scripting
 - **Run `wxcli user-settings --help`** — to discover all available commands and their exact names
+- **Run `wxcli call-settings-for-me-phase-5 --help`** — to discover all 7 self-service commands
 
 ---
 
@@ -674,6 +747,7 @@ Common errors:
 - **405 "Invalid Professional Place" on workspace settings:** The workspace has a Basic license. Most `/telephony/config/workspaces/{id}/` settings require Professional. Only `musicOnHold` and `doNotDisturb` work on Basic. Use the `/workspaces/{id}/features/` path family for Basic workspaces (callForwarding, callWaiting, callerId, intercept, monitoring).
 - **403 on Single Number Reach:** SNR uses `spark-admin:telephony_config_read/write` scopes, not `spark-admin:people_read/write`. Check token scopes.
 - **Empty/no-effect on MoH:** Both location-level `moh_location_enabled` AND person-level `moh_enabled` must be `true`. If either is false, no music plays. Check both levels.
+- **404 on `call-settings-for-me-phase-5` commands:** The authenticated user must have a Webex Calling license. These are `/people/me/` endpoints and require user-level OAuth tokens (`spark:people_read` / `spark:people_write`), not admin tokens.
 
 ---
 
