@@ -3,7 +3,19 @@
 Build and configure Webex Calling, admin, device, and messaging APIs programmatically with guided Claude Code assistance.
 
 **Execution pattern:** `wxcli` CLI commands (primary) → `wxcadm` (XSI/E911/CP-API) → raw HTTP (fallback).
-The wxcli CLI has 166 command groups covering calling, admin, device, messaging, meetings, and contact center APIs. Raw HTTP docs in `docs/reference/` serve as reference and fallback.
+The wxcli CLI has 173 command groups covering calling, admin, device, messaging, meetings, and contact center APIs. Raw HTTP docs in `docs/reference/` serve as reference and fallback.
+
+## Mandatory Grounding Rule
+
+**Never answer any question about Webex Calling from training data alone.**
+
+For every question — capability, configuration, behavior, limits, or anything else — you MUST either:
+1. Invoke the relevant skill (`configure-features`, `customer-assist`, `contact-center`, etc.), OR
+2. Read the relevant reference doc in `docs/reference/`
+
+The reference docs and skills are the authoritative source for this project. Training data about Cisco/Webex products is unreliable — product tiers get conflated, feature names change, and capabilities vary by license. If the answer isn't in the docs or skills, say so explicitly rather than filling the gap from training data.
+
+---
 
 ## Quick Start
 
@@ -70,7 +82,7 @@ Added 2026-04-15 after an org-cleanup subagent died mid-Phase-2 when its Python 
 | `.claude/agents/migration-advisor.md` | Opus-powered CCIE-level migration advisor — architectural reasoning + decision review |
 | `.claude/skills/provision-calling/` | Skill: provision users, locations, licenses |
 | `.claude/skills/teardown/` | Skill: dependency-safe teardown, `wxcli cleanup`, manual deletion procedure |
-| `.claude/skills/configure-features/` | Skill: set up call features (AA, CQ, HG, etc.; CX Essentials → see customer-assist skill) |
+| `.claude/skills/configure-features/` | Skill: set up call features (AA, CQ, HG, etc.; Customer Assist → see customer-assist skill) |
 | `.claude/skills/customer-assist/`      | Skill: configure Customer Assist (screen pop, wrap-up, recording, supervisors) |
 | `.claude/skills/manage-call-settings/` | Skill: configure person/workspace call settings |
 | `.claude/skills/configure-routing/` | Skill: configure routing (trunks, dial plans, PSTN) |
@@ -101,7 +113,7 @@ Added 2026-04-15 after an org-cleanup subagent died mid-Phase-2 when its Python 
 | `docs/reference/provisioning.md` | People, licenses, locations, org setup |
 | `docs/reference/wxc-sdk-patterns.md` | wxc_sdk setup, auth, async patterns, common recipes |
 | `docs/reference/call-features-major.md` | Auto attendants, call queues, hunt groups |
-| `docs/reference/call-features-additional.md` | Paging, call park, pickup, voicemail groups, CX Essentials |
+| `docs/reference/call-features-additional.md` | Paging, call park, pickup, voicemail groups, Customer Assist |
 | `docs/reference/person-call-settings-handling.md` | Call forwarding, DND, call waiting, sim/sequential ring |
 | `docs/reference/person-call-settings-media.md` | Voicemail, caller ID, privacy, barge, recording, intercept |
 | `docs/reference/person-call-settings-permissions.md` | Incoming/outgoing permissions, feature access, executive/assistant |
@@ -201,7 +213,7 @@ Operator-facing reference docs for the CUCM-to-Webex migration tool. Written for
 
 | Path | Purpose |
 |------|---------|
-| `src/wxcli/main.py` | CLI entry point — 166 command groups |
+| `src/wxcli/main.py` | CLI entry point — 173 command groups |
 | `src/wxcli/commands/*.py` | All command implementations (raw HTTP pattern) |
 | `wxcli --help` | Shows all command groups |
 | `wxcli <group> --help` | Shows commands within a group |
@@ -211,7 +223,7 @@ Operator-facing reference docs for the CUCM-to-Webex migration tool. Written for
 | `specs/webex-device.json` | OpenAPI 3.0 spec — device management APIs |
 | `specs/webex-messaging.json` | OpenAPI 3.0 spec — messaging/rooms/teams APIs |
 | `specs/webex-meetings.json` | OpenAPI 3.0 spec — meetings/video mesh/transcripts APIs |
-| `specs/webex-contact-center.json` | OpenAPI 3.0 spec — contact center APIs (48 groups, 431 commands) |
+| `specs/webex-contact-center.json` | OpenAPI 3.0 spec — contact center APIs (48 groups, 383 commands) |
 | `src/wxcli/commands/cleanup.py` | Batch cleanup: inventory + parallel layered deletion |
 | `src/wxcli/commands/converged_recordings_export.py` | Hand-written download/export for converged recordings (registered into generated group) |
 
@@ -289,11 +301,11 @@ Mock server URLs (public, no auth required — return saved response examples):
 
 ## CLI Status & Known Issues
 
-**166 command groups covering calling, admin, device, messaging, meetings, and contact center APIs.** Nearly all generated from 7 OpenAPI 3.0 specs via `tools/generate_commands.py`. The `converged-recordings` group combines generated CRUD commands with hand-written `download` and `export` commands (`converged_recordings_export.py`).
+**173 command groups covering calling, admin, device, messaging, meetings, and contact center APIs.** Nearly all generated from 9 OpenAPI 3.0 specs via `tools/generate_commands.py`. The `converged-recordings` group combines generated CRUD commands with hand-written `download` and `export` commands (`converged_recordings_export.py`).
 
 ### CLI test status
 
-166 command groups, all generated from OpenAPI specs. Calling/admin/device/messaging groups live-tested across 4 batch sweeps (2026-03-19 through 2026-03-21). Contact center and meetings groups are newly generated and not yet live-tested. CUCM pipeline tested against live test bed (10.201.123.107) with 2 test bed expansions. See git history for detailed test logs.
+173 command groups, all generated from OpenAPI specs. Calling/admin/device/messaging groups live-tested across 4 batch sweeps (2026-03-19 through 2026-03-21). Contact center and meetings groups are newly generated and not yet live-tested. CUCM pipeline tested against live test bed (10.201.123.107) with 2 test bed expansions. See git history for detailed test logs.
 
 ### Partner Multi-Org Support
 
@@ -318,7 +330,7 @@ See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for fu
 5. **Two path families for person settings.** Classic `/people/{id}/features/` vs newer `/telephony/config/people/{id}/`. Some names differ. See `docs/reference/person-call-settings-behavior.md` (lines 36-54) for the full mapping table.
 6. **Workspace `/telephony/config/` settings require Professional license.** Basic workspaces get 405. See `docs/reference/devices-workspaces.md` gotcha #10 for the endpoint-by-license matrix.
 7. **Settings endpoints now support table output.** Settings-get commands (show-*) now accept `-o table` and auto-detect columns from the response data. List commands with non-standard response shapes (no `id`/`name` fields) also auto-detect columns.
-8. **Customer Assist queues are hidden from default `call-queue list`.** Must pass `--has-cx-essentials true`. See `docs/reference/call-features-additional.md` cross-cutting gotchas.
+8. **Customer Assist queues are hidden from default `call-queue list`.** Must pass `--has-cx-essentials true`. CLI group is `customer-assist` (alias `cx-essentials`). See `docs/reference/call-features-additional.md` cross-cutting gotchas.
 9. **Supervisor delete returns 204 but supervisor persists.** Workaround: `update-supervisors` with `action: DELETE` on each agent. See `docs/reference/call-features-additional.md` gotchas.
 10. **CUCM CallPickupGroup creation with members fails on CUCM 15.0.** Create empty, then assign via `updateLine`. See `src/wxcli/migration/CLAUDE.md` known issues.
 11. **Create commands now support `-o json`.** All create commands accept `-o json` to output the full API response as JSON. Default behavior (`-o id`) prints just the created ID.
@@ -357,17 +369,20 @@ See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for fu
 - **Never hand-edit generated files.** Fix bugs by updating `tools/field_overrides.yaml` and regenerating.
 - **Never create new hand-written command files** unless adding functionality that the generator cannot produce (e.g., multi-step workflows, file downloads). 3 legacy hand-written files remain (`locations.py`, `numbers.py`, `licenses.py`) — these are a known drift risk that miss generator improvements. `users.py` was retired and replaced with an alias to the generated `people` command group. `converged_recordings_export.py` is a deliberate hand-written extension that registers `download` and `export` commands onto the generated `converged_recordings` group via a `register(app)` pattern. For simple CRUD commands, use the generator. If a generated command needs custom behavior, use `field_overrides.yaml`.
 - **`auto_inject_from_config`** — `field_overrides.yaml` supports an `auto_inject_from_config: ["orgId"]` key per endpoint. Parameters listed here are omitted from `--help` and injected automatically from the saved config at runtime. This replaces the older `omit_query_params` approach for `orgId`.
-- **Spec files:** 7 OpenAPI 3.0 specs in `specs/` (`webex-cloud-calling.json`, `webex-admin.json`, `webex-device.json`, `webex-messaging.json`, `webex-meetings.json`, `webex-contact-center.json`, `webex-wholesale.json`)
+- **Spec files:** 9 OpenAPI 3.0 specs in `specs/` — 7 active (`webex-cloud-calling.json`, `webex-admin.json`, `webex-device.json`, `webex-messaging.json`, `webex-meetings.json`, `webex-contact-center.json`, `webex-ucm.json`) + 2 out-of-scope (`webex-broadworks.json`, `webex-wholesale.json`)
+- **Pull updated specs:** `python3.14 tools/update-specs.py` — downloads latest from GitHub, reports diffs. BroadWorks and Wholesale are excluded.
+- **Tag collision:** CC spec has "Data Sources" and "Meeting Site" tags that collide with admin/meetings specs. The CC versions are registered as `cc-data-sources` and `cc-site`. Always regenerate admin and meetings specs AFTER contact center to restore the correct `data_sources.py` and `meeting_site.py`.
 - Regenerate one tag: `PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-cloud-calling.json --tag "Tag Name"`
 - Regenerate one spec (all tags): `PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-cloud-calling.json --all`
-- Regenerate all specs:
+- Regenerate all specs (order matters — CC before admin/meetings):
   ```
   PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-cloud-calling.json --all
-  PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-admin.json --all
   PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-device.json --all
   PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-messaging.json --all
-  PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-meetings.json --all
+  PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-ucm.json --all
   PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-contact-center.json --all
+  PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-admin.json --all
+  PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-meetings.json --all
   ```
 - Reinstall after regen: `pip3.14 install -e . -q`
 

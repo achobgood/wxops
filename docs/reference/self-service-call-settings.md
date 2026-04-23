@@ -4,7 +4,7 @@ User-level self-service endpoints for managing personal call settings via user O
 
 ## Sources
 
-- specs/webex-cloud-calling.json (5 "Call Settings For Me" tags + Mode Management + Beta Barge-In, 151 endpoints across 95 paths)
+- specs/webex-cloud-calling.json (6 "Call Settings For Me" tags + Mode Management + Beta Barge-In, 156 endpoints across 99 paths)
 - CLAUDE.md known issue #4 (6 user-only endpoints)
 - person-call-settings-*.md (admin-path equivalents)
 
@@ -391,6 +391,8 @@ Settings for voicemail, call recording, caller ID, barge-in, and related media s
 | Voicemail | Yes | Yes | — | `settings/voicemail` | `/people/{personId}/features/voicemail` |
 | Voicemail Busy Greeting Upload | — | — | Yes | `settings/voicemail/actions/busyGreetingUpload/invoke` | `/people/{personId}/features/voicemail/actions/uploadBusyGreeting/invoke` |
 | Voicemail No Answer Greeting Upload | — | — | Yes | `settings/voicemail/actions/noAnswerGreetingUpload/invoke` | `/people/{personId}/features/voicemail/actions/uploadNoAnswerGreeting/invoke` |
+| Voicemail PIN | — | Yes | — | `voicemail/pin` | — |
+| Voicemail Rules | Yes | — | — | `voicemail/rules` | `/telephony/config/voicemail/rules` (org-level) |
 | Caller ID | Yes | Yes | — | `settings/callerId` | `/people/{personId}/features/callerId` |
 | Selected Caller ID | Yes | Yes | — | `settings/selectedCallerId` | — |
 | Available Caller IDs | Yes | — | — | `settings/availableCallerIds` | `/telephony/config/people/{personId}/agent/availableCallerIds` |
@@ -420,6 +422,33 @@ Content-Type: audio/wav
 {binary audio data}
 --boundary--
 ```
+
+### Raw HTTP — Update Voicemail PIN
+
+```http
+PUT https://webexapis.com/v1/telephony/config/people/me/voicemail/pin
+Authorization: Bearer {user_token}
+Content-Type: application/json
+
+{
+  "passcode": "27850230"
+}
+```
+
+The PIN must comply with the organization's passcode rules (see voicemail rules endpoint below). No response body on success (204).
+
+**CLI:** `wxcli call-settings-for-me-phase-5 update-pin --passcode "27850230"`
+
+### Raw HTTP — Read Voicemail Rules
+
+```http
+GET https://webexapis.com/v1/telephony/config/people/me/voicemail/rules
+Authorization: Bearer {user_token}
+```
+
+Returns the passcode policy rules for the user's organization. Read-only; rules are set at the org level. Response includes `blockRepeatedPatternsEnabled`, `blockUserNumberEnabled`, `blockReversedUserNumberEnabled`, `blockPreviousPasscodes` (with `numberOfPasscodes`), `blockReversedOldPasscodeEnabled`, `blockRepeatedDigits` (with `max`), `blockContiguousSequences` (with `numberOfAscendingDigits`, `numberOfDescendingDigits`), and `length` (with `min`, `max`).
+
+**CLI:** `wxcli call-settings-for-me-phase-5 show-rules`
 
 ### Raw HTTP — Modify Caller ID
 
@@ -459,6 +488,7 @@ Content-Type: application/json
 
 **Cross-references:**
 - Voicemail: `person-call-settings-media.md` section 1
+- Voicemail PIN/Rules: org-level rules at `/telephony/config/voicemail/rules`
 - Caller ID: `person-call-settings-media.md` sections 2-3
 - Call Recording: `person-call-settings-media.md` section 7
 - Barge-In: `person-call-settings-media.md` section 5
@@ -478,6 +508,8 @@ Manage the user's registered endpoints (desk phones, soft clients, etc.) and pre
 | Get Endpoint Details | Yes | Yes | `endpoints/{endpointId}` | — |
 | Available Preferred Answer Endpoints | Yes | — | `settings/availablePreferredAnswerEndpoints` | `/telephony/config/people/{personId}/preferredAnswerEndpoint` (via availableEndpoints in response) |
 | Preferred Answer Endpoint | Yes | Yes | `settings/preferredAnswerEndpoint` | `/telephony/config/people/{personId}/preferredAnswerEndpoint` |
+| Hoteling Guest | Yes | Yes | `settings/hoteling/guest` | `/people/{personId}/features/hoteling` |
+| Available Hoteling Hosts | Yes | — | `settings/hoteling/availableHosts` | — |
 
 ### Raw HTTP — List My Endpoints
 
@@ -498,7 +530,46 @@ Content-Type: application/json
 }
 ```
 
-**Cross-reference:** `person-call-settings-behavior.md` section 10 (Preferred Answer Endpoint).
+### Raw HTTP — List Available Hoteling Hosts
+
+```http
+GET https://webexapis.com/v1/telephony/config/people/me/settings/hoteling/availableHosts
+Authorization: Bearer {user_token}
+```
+
+Supports pagination (`max`, `start`) and filtering (`name`, `phoneNumber`). Returns a `hosts` array of objects with `hostId`, `firstName`, `lastName`, `phoneNumber`, `extension`, `allowedAssociationDuration`.
+
+**CLI:** `wxcli call-settings-for-me-phase-5 list [--name "..."] [--phone-number "..."]`
+
+### Raw HTTP — Read Hoteling Guest Settings
+
+```http
+GET https://webexapis.com/v1/telephony/config/people/me/settings/hoteling/guest
+Authorization: Bearer {user_token}
+```
+
+Returns `enabled`, `associationLimitEnabled`, `associationLimitHours`, and current host association details (`hostId`, `hostFirstName`, `hostLastName`, `hostEnforcedAssociationLimitEnabled`, `hostAssociationLimitHours`).
+
+**CLI:** `wxcli call-settings-for-me-phase-5 show-guest`
+
+### Raw HTTP — Modify Hoteling Guest Settings
+
+```http
+PUT https://webexapis.com/v1/telephony/config/people/me/settings/hoteling/guest
+Authorization: Bearer {user_token}
+Content-Type: application/json
+
+{
+  "enabled": true,
+  "associationLimitEnabled": true,
+  "associationLimitHours": 12,
+  "hostId": "{host_person_or_workspace_id}"
+}
+```
+
+**CLI:** `wxcli call-settings-for-me-phase-5 update-guest --enabled --association-limit-enabled --association-limit-hours 12 --host-id "{id}"`
+
+**Cross-reference:** `person-call-settings-behavior.md` section 10 (Preferred Answer Endpoint). `person-call-settings-behavior.md` section 7 (Hoteling) for admin-path hoteling host settings.
 
 ---
 
@@ -605,7 +676,7 @@ Endpoints for retrieving location-level data, schedules, assigned numbers, featu
 
 | Setting | Methods | Path Suffix | Admin Equivalent | Tag |
 |---------|---------|-------------|-----------------|-----|
-| My Details | GET | (root: `/me`) | `/telephony/config/people/{personId}` (via other APIs) | — |
+| My Details | GET | (root: `/me`) | `/telephony/config/people/{personId}` | — |
 | Announcement Languages | GET | `announcementLanguages` | — | Beta |
 | Country Config | GET | `countries/{countryCode}` | — | Beta |
 | Assigned Numbers (Location) | GET | `location/assignedNumbers` | — | — |
@@ -622,6 +693,34 @@ Endpoints for retrieving location-level data, schedules, assigned numbers, featu
 GET https://webexapis.com/v1/telephony/config/people/me
 Authorization: Bearer {user_token}
 ```
+
+### Raw HTTP — Get Person Timezone and Announcement Language (Admin)
+
+```http
+GET https://webexapis.com/v1/telephony/config/people/{personId}
+Authorization: Bearer {admin_token}
+```
+
+Returns `announcementLanguage` and `timeZone` for the specified person. Requires `spark-admin:people_read` scope. Accepts optional `orgId` query parameter.
+
+**CLI:** `wxcli user-settings show-people {personId}`
+
+### Raw HTTP — Update Person Timezone and Announcement Language (Admin)
+
+```http
+PUT https://webexapis.com/v1/telephony/config/people/{personId}
+Authorization: Bearer {admin_token}
+Content-Type: application/json
+
+{
+  "announcementLanguage": "English",
+  "timeZone": "America/Los_Angeles"
+}
+```
+
+Requires `spark-admin:people_write` scope. Accepts optional `orgId` query parameter.
+
+**CLI:** `wxcli user-settings update-people {personId} --announcement-language "English" --time-zone "America/Los_Angeles"`
 
 ### Raw HTTP — List My Schedules
 
@@ -805,6 +904,8 @@ Master mapping of every `/me/` endpoint to its admin equivalent. Path suffixes a
 | Voicemail | `settings/voicemail` | `/people/{personId}/features/voicemail` | person-call-settings-media.md sec 1 |
 | Voicemail Busy Greeting | `settings/voicemail/actions/busyGreetingUpload/invoke` | `/people/{personId}/features/voicemail/actions/uploadBusyGreeting/invoke` | person-call-settings-media.md sec 1 |
 | Voicemail No Answer Greeting | `settings/voicemail/actions/noAnswerGreetingUpload/invoke` | `/people/{personId}/features/voicemail/actions/uploadNoAnswerGreeting/invoke` | person-call-settings-media.md sec 1 |
+| Voicemail PIN | `voicemail/pin` | — | — |
+| Voicemail Rules | `voicemail/rules` | `/telephony/config/voicemail/rules` (org-level) | — |
 | Caller ID | `settings/callerId` | `/people/{personId}/features/callerId` | person-call-settings-media.md sec 2 |
 | Selected Caller ID | `settings/selectedCallerId` | — | person-call-settings-media.md sec 3 |
 | Available Caller IDs | `settings/availableCallerIds` | `/telephony/config/people/{personId}/agent/availableCallerIds` | person-call-settings-media.md sec 3 |
@@ -817,6 +918,8 @@ Master mapping of every `/me/` endpoint to its admin equivalent. Path suffixes a
 | Endpoint Details | `endpoints/{endpointId}` | — | — |
 | Available Preferred Answer | `settings/availablePreferredAnswerEndpoints` | — | person-call-settings-behavior.md sec 10 |
 | Preferred Answer Endpoint | `settings/preferredAnswerEndpoint` | `/telephony/config/people/{personId}/preferredAnswerEndpoint` | person-call-settings-behavior.md sec 10 |
+| Hoteling Guest | `settings/hoteling/guest` | `/people/{personId}/features/hoteling` | person-call-settings-behavior.md sec 7 |
+| Available Hoteling Hosts | `settings/hoteling/availableHosts` | — | — |
 | **Routing & Groups** | | | |
 | Call Park | `settings/callPark` | — (location-level) | call-features-additional.md |
 | Call Pickup Group | `settings/callPickupGroup` | — (location-level) | call-features-additional.md |
@@ -838,7 +941,7 @@ Master mapping of every `/me/` endpoint to its admin equivalent. Path suffixes a
 | Extend Mode Duration | `settings/modeManagement/features/{featureId}/actions/extendMode/invoke` | — | — |
 | Switch to Normal | `settings/modeManagement/features/{featureId}/actions/switchToNormalOperation/invoke` | — | — |
 | **Location & System** | | | |
-| My Details | (root: `/me`) | — | — |
+| My Details | (root: `/me`) | `/telephony/config/people/{personId}` | person-call-settings-behavior.md |
 | Announcement Languages | `announcementLanguages` [BETA] | — | — |
 | Country Config | `countries/{countryCode}` [BETA] | — | — |
 | Assigned Numbers | `location/assignedNumbers` | — | — |
@@ -867,7 +970,7 @@ Master mapping of every `/me/` endpoint to its admin equivalent. Path suffixes a
 
 ## Gotchas
 
-1. **Admin tokens do not work on /me/ paths.** All 151 endpoints require user-level OAuth. Admin tokens (from service apps or admin-granted integrations) will get 404 or 401, not a helpful error.
+1. **Admin tokens do not work on /me/ paths.** All 156 self-service endpoints require user-level OAuth. Admin tokens (from service apps or admin-granted integrations) will get 404 or 401, not a helpful error.
 
 2. **User must have Webex Calling license.** Error 4008 ("User not found or not calling-licensed") is returned for all `/me/` endpoints if the authenticated user lacks a Calling license.
 
@@ -882,7 +985,7 @@ Master mapping of every `/me/` endpoint to its admin equivalent. Path suffixes a
    - `/me/settings/voicemail/actions/busyGreetingUpload/invoke` vs admin `.../actions/uploadBusyGreeting/invoke`
    - `/me/settings/callBlock` has no admin equivalent at all
 
-7. **Read-only settings.** Several settings only expose GET (no PUT): `callRecording`, `callCaptions`, `callPark`, `callPickupGroup`, `monitoring`, `featureAccessCode`, `services`, `availableCallerIds`, `availablePreferredAnswerEndpoints`, `guestCalling/numbers`, `announcementLanguages`, `countries/{countryCode}`. These are informational views of settings controlled by the admin.
+7. **Read-only settings.** Several settings only expose GET (no PUT): `callRecording`, `callCaptions`, `callPark`, `callPickupGroup`, `monitoring`, `featureAccessCode`, `services`, `availableCallerIds`, `availablePreferredAnswerEndpoints`, `guestCalling/numbers`, `announcementLanguages`, `countries/{countryCode}`, `hoteling/availableHosts`, `voicemail/rules`. These are informational views of settings controlled by the admin.
 
 8. **Call Block is self-service only.** The call block feature (personal block list for phone numbers) exists only on the `/me/` surface with no admin equivalent. Users manage their own block list via GET/POST/DELETE on `settings/callBlock/numbers`.
 
@@ -895,6 +998,14 @@ Master mapping of every `/me/` endpoint to its admin equivalent. Path suffixes a
 12. **Barge-In is tagged Beta.** The `/me/settings/bargeIn` endpoints are tagged `Beta Settings Features For Barge-In`. The admin equivalent at `/people/{personId}/features/bargeIn` is the stable path.
 
 13. **Contact Center Extensions is user-only.** The `contactCenterExtensions` GET endpoint has no admin-path equivalent and no tag assignment in the spec.
+
+14. **Voicemail PIN and rules use a different path prefix.** Unlike most `/me/` endpoints that use `settings/voicemail`, the PIN and rules endpoints use `voicemail/pin` and `voicemail/rules` (no `settings/` prefix). This mirrors the org-level voicemail rules path at `/telephony/config/voicemail/rules`.
+
+15. **Voicemail rules are read-only at the user level.** The `voicemail/rules` endpoint only supports GET. Rules are set at the org level via `/telephony/config/voicemail/rules`. The user endpoint returns the rules that apply to them for informational purposes.
+
+16. **Person telephony config root is admin-only.** The `GET/PUT /telephony/config/people/{personId}` endpoint (timezone and announcement language) requires an admin token (`spark-admin:people_read`/`spark-admin:people_write`). The `/me/` equivalent returns the same fields via the root `GET /telephony/config/people/me` endpoint but only supports GET.
+
+17. **Hoteling guest vs hoteling host.** The `/me/settings/hoteling/guest` endpoint manages the guest side of hoteling (associating yourself with a host device). The admin-path equivalent at `/people/{personId}/features/hoteling` manages the host side (enabling a person's device to accept guests). These are complementary but asymmetric.
 
 ---
 
