@@ -213,8 +213,9 @@ from wxcli.commands.text_to_speech import app as text_to_speech_app
 app.add_typer(text_to_speech_app, name="text-to-speech")
 from wxcli.commands.call_recording import app as call_recording_app
 app.add_typer(call_recording_app, name="call-recording")
-from wxcli.commands.cx_essentials import app as cx_essentials_app
-app.add_typer(cx_essentials_app, name="cx-essentials")
+from wxcli.commands.customer_assist import app as customer_assist_app
+app.add_typer(customer_assist_app, name="customer-assist")
+app.add_typer(customer_assist_app, name="cx-essentials")  # alias: cx-essentials → customer-assist
 from wxcli.commands.hot_desking_portal import app as hot_desking_portal_app
 app.add_typer(hot_desking_portal_app, name="hot-desking-portal")
 from wxcli.commands.operating_modes import app as operating_modes_app
@@ -256,6 +257,8 @@ from wxcli.commands.workspace_settings import app as workspace_settings_app
 app.add_typer(workspace_settings_app, name="workspace-settings")
 from wxcli.commands.my_call_settings import app as my_call_settings_app
 app.add_typer(my_call_settings_app, name="my-call-settings")
+from wxcli.commands.call_settings_for_me_phase_5 import app as call_settings_for_me_phase_5_app
+app.add_typer(call_settings_for_me_phase_5_app, name="call-settings-for-me-phase-5")
 from wxcli.commands.workspaces import app as workspaces_app
 app.add_typer(workspaces_app, name="workspaces")
 
@@ -384,8 +387,8 @@ from wxcli.commands.meeting_session_types import app as meeting_session_types_ap
 app.add_typer(meeting_session_types_app, name="meeting-session-types")
 from wxcli.commands.meeting_site import app as meeting_site_app
 app.add_typer(meeting_site_app, name="meeting-site")
-from wxcli.commands.meeting_slido import app as meeting_slido_app
-app.add_typer(meeting_slido_app, name="meeting-slido")
+from wxcli.commands.slidosecurepremium import app as slidosecurepremium_app
+app.add_typer(slidosecurepremium_app, name="meeting-slido")
 from wxcli.commands.meeting_summaries import app as meeting_summaries_app
 app.add_typer(meeting_summaries_app, name="meeting-summaries")
 from wxcli.commands.meeting_tracking_codes import app as meeting_tracking_codes_app
@@ -492,3 +495,13 @@ from wxcli.commands.cc_users import app as cc_users_app
 app.add_typer(cc_users_app, name="cc-users")
 from wxcli.commands.cc_work_types import app as cc_work_types_app
 app.add_typer(cc_work_types_app, name="cc-work-types")
+
+# Auto-generated from broadworks spec (specs/webex-broadworks.json)
+from wxcli.commands.broadworks_billing_reports import app as broadworks_billing_reports_app
+app.add_typer(broadworks_billing_reports_app, name="broadworks-billing-reports")
+from wxcli.commands.broadworks_enterprises import app as broadworks_enterprises_app
+app.add_typer(broadworks_enterprises_app, name="broadworks-enterprises")
+from wxcli.commands.broadworks_subscribers import app as broadworks_subscribers_app
+app.add_typer(broadworks_subscribers_app, name="broadworks-subscribers")
+from wxcli.commands.broadworks_workspaces import app as broadworks_workspaces_app
+app.add_typer(broadworks_workspaces_app, name="broadworks-workspaces")

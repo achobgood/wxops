@@ -12,7 +12,7 @@ app = typer.Typer(help="Manage Webex Contact Center cc-skill.")
 @app.command("list")
 def cmd_list(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
-    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes"),
+    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attri"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
     single_object_response: str = typer.Option(None, "--single-object-response", help="Specifiy whether to include array fields in the response, Th"),
@@ -74,19 +74,22 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    service_level_threshold: str = typer.Option(None, "--service-level-threshold", help=""),
-    version: str = typer.Option(None, "--version", help=""),
-    name: str = typer.Option(None, "--name", help=""),
-    active: str = typer.Option(None, "--active", help=""),
-    organization_id: str = typer.Option(None, "--organization-id", help=""),
-    skill_type: str = typer.Option(None, "--skill-type", help=""),
-    description: str = typer.Option(None, "--description", help=""),
-    id_param: str = typer.Option(None, "--id", help=""),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is require"),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
+    name: str = typer.Option(None, "--name", help="(required) Indicates the name of the skill. Once created, name cannot b"),
+    description: str = typer.Option(None, "--description", help="Indicates the description of the skill."),
+    service_level_threshold: str = typer.Option(None, "--service-level-threshold", help="(required) Allows to set the time that a customer request can be in a q"),
+    active: bool = typer.Option(None, "--active/--no-active", help="(required) Indicates the status of the skill whether it is active(when"),
+    dynamic_skill: bool = typer.Option(None, "--dynamic-skill/--no-dynamic-skill", help="Indicates whether the skill is a dynamic skill or not. Defau"),
+    skill_type: str = typer.Option(None, "--skill-type", help="(required) Choices: Proficiency, Boolean, Text, enum"),
+    created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
+    last_updated_time: str = typer.Option(None, "--last-updated-time", help="This is the updated time of the entity."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Skill\n\nExample --json-body:\n  '{"serviceLevelThreshold":"...","version":"...","name":"...","active":"...","organizationId":"...","skillType":"...","description":"...","enumSkillValues":[{"name":"...","version":"...","organizationId":"...","description":"...","skillId":"...","id":"..."}]}'."""
+    """Create a new Skill\n\nExample --json-body:\n  '{"name":"...","serviceLevelThreshold":0,"active":true,"skillType":"Proficiency","organizationId":"...","id":"...","version":0,"description":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -95,22 +98,32 @@ def create(
         body = json.loads(json_body)
     else:
         body = {}
-        if service_level_threshold is not None:
-            body["serviceLevelThreshold"] = service_level_threshold
+        if organization_id is not None:
+            body["organizationId"] = organization_id
+        if id_param is not None:
+            body["id"] = id_param
         if version is not None:
             body["version"] = version
         if name is not None:
             body["name"] = name
-        if active is not None:
-            body["active"] = active
-        if organization_id is not None:
-            body["organizationId"] = organization_id
-        if skill_type is not None:
-            body["skillType"] = skill_type
         if description is not None:
             body["description"] = description
-        if id_param is not None:
-            body["id"] = id_param
+        if service_level_threshold is not None:
+            body["serviceLevelThreshold"] = service_level_threshold
+        if active is not None:
+            body["active"] = active
+        if dynamic_skill is not None:
+            body["dynamicSkill"] = dynamic_skill
+        if skill_type is not None:
+            body["skillType"] = skill_type
+        if created_time is not None:
+            body["createdTime"] = created_time
+        if last_updated_time is not None:
+            body["lastUpdatedTime"] = last_updated_time
+        _missing = [f for f in ['name', 'serviceLevelThreshold', 'active', 'skillType'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -150,7 +163,7 @@ def create_bulk(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Skill(s)\n\nExample --json-body:\n  '{"items":[{"item":"...","itemIdentifier":"...","requestAction":"..."}]}'."""
+    """Bulk save Skill(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -243,6 +256,55 @@ def list_bulk_export(
         print_json(items)
     else:
         print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+
+
+
+@app.command("create-populate-json-attr")
+def create_populate_json_attr(
+    id: str = typer.Argument(help="id"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Populate json-attributes field for a given skill-id of an organization."""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/skill/populate-json-attr/{id}"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+    try:
+        result = api.session.rest_post(url, json=body)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif not result or result == {}:
+        typer.echo("Created.")
+    else:
+        print_json(result)
 
 
 
@@ -346,18 +408,21 @@ def show(
 @app.command("update")
 def update(
     id: str = typer.Argument(help="id"),
-    service_level_threshold: str = typer.Option(None, "--service-level-threshold", help=""),
-    version: str = typer.Option(None, "--version", help=""),
-    name: str = typer.Option(None, "--name", help=""),
-    active: str = typer.Option(None, "--active", help=""),
-    organization_id: str = typer.Option(None, "--organization-id", help=""),
-    skill_type: str = typer.Option(None, "--skill-type", help=""),
-    description: str = typer.Option(None, "--description", help=""),
-    id_param: str = typer.Option(None, "--id", help=""),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is require"),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
+    name: str = typer.Option(None, "--name", help="Indicates the name of the skill. Once created, name cannot b"),
+    description: str = typer.Option(None, "--description", help="Indicates the description of the skill."),
+    service_level_threshold: str = typer.Option(None, "--service-level-threshold", help="Allows to set the time that a customer request can be in a q"),
+    active: bool = typer.Option(None, "--active/--no-active", help="Indicates the status of the skill whether it is active(when"),
+    dynamic_skill: bool = typer.Option(None, "--dynamic-skill/--no-dynamic-skill", help="Indicates whether the skill is a dynamic skill or not. Defau"),
+    skill_type: str = typer.Option(None, "--skill-type", help="Choices: Proficiency, Boolean, Text, enum"),
+    created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
+    last_updated_time: str = typer.Option(None, "--last-updated-time", help="This is the updated time of the entity."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Skill by ID\n\nExample --json-body:\n  '{"serviceLevelThreshold":"...","version":"...","name":"...","active":"...","organizationId":"...","skillType":"...","description":"...","enumSkillValues":[{"name":"...","version":"...","organizationId":"...","description":"...","skillId":"...","id":"..."}]}'."""
+    """Update specific Skill by ID\n\nExample --json-body:\n  '{"name":"...","serviceLevelThreshold":0,"active":true,"skillType":"Proficiency","organizationId":"...","id":"...","version":0,"description":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -366,22 +431,28 @@ def update(
         body = json.loads(json_body)
     else:
         body = {}
-        if service_level_threshold is not None:
-            body["serviceLevelThreshold"] = service_level_threshold
+        if organization_id is not None:
+            body["organizationId"] = organization_id
+        if id_param is not None:
+            body["id"] = id_param
         if version is not None:
             body["version"] = version
         if name is not None:
             body["name"] = name
-        if active is not None:
-            body["active"] = active
-        if organization_id is not None:
-            body["organizationId"] = organization_id
-        if skill_type is not None:
-            body["skillType"] = skill_type
         if description is not None:
             body["description"] = description
-        if id_param is not None:
-            body["id"] = id_param
+        if service_level_threshold is not None:
+            body["serviceLevelThreshold"] = service_level_threshold
+        if active is not None:
+            body["active"] = active
+        if dynamic_skill is not None:
+            body["dynamicSkill"] = dynamic_skill
+        if skill_type is not None:
+            body["skillType"] = skill_type
+        if created_time is not None:
+            body["createdTime"] = created_time
+        if last_updated_time is not None:
+            body["lastUpdatedTime"] = last_updated_time
     try:
         result = api.session.rest_put(url, json=body)
     except RestError as e:
@@ -416,7 +487,7 @@ def delete(
 ):
     """Delete specific Skill by ID."""
     if not force:
-        typer.confirm(f"Delete {orgid}?", abort=True)
+        typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -443,7 +514,7 @@ def delete(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    typer.echo(f"Deleted: {orgid}")
+    typer.echo(f"Deleted: {id}")
 
 
 
@@ -508,7 +579,7 @@ def list_incoming_references(
 @app.command("list-skill")
 def list_skill(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
-    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes"),
+    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attri"),
     search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search col"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),

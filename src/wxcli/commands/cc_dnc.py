@@ -12,9 +12,9 @@ app = typer.Typer(help="Manage Webex Contact Center cc-dnc.")
 @app.command("create")
 def create(
     dnc_list_name: str = typer.Argument(help="dncListName"),
-    source: str = typer.Option(None, "--source", help=""),
-    phone_number: str = typer.Option(None, "--phone-number", help=""),
-    reason: str = typer.Option(None, "--reason", help=""),
+    phone_number: str = typer.Option(None, "--phone-number", help="(required) The phone number to add to the DNC list. Must be in E.164 fo"),
+    source: str = typer.Option(None, "--source", help="(required) The source or origin of the DNC entry. This helps track wher"),
+    reason: str = typer.Option(None, "--reason", help="Optional reason for adding the phone number to the DNC list."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -27,12 +27,16 @@ def create(
         body = json.loads(json_body)
     else:
         body = {}
-        if source is not None:
-            body["source"] = source
         if phone_number is not None:
             body["phoneNumber"] = phone_number
+        if source is not None:
+            body["source"] = source
         if reason is not None:
             body["reason"] = reason
+        _missing = [f for f in ['phoneNumber', 'source'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:

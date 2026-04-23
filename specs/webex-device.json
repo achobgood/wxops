@@ -1955,7 +1955,8 @@
                       }
                     }
                   ],
-                  "maxDeviceCount": 1
+                  "maxDeviceCount": 1,
+                  "maxOwnedDeviceCount": 1
                 }
               }
             }
@@ -2172,7 +2173,8 @@
                       }
                     }
                   ],
-                  "maxDeviceCount": 1
+                  "maxDeviceCount": 1,
+                  "maxOwnedDeviceCount": 1
                 }
               }
             }
@@ -5027,7 +5029,7 @@
         },
         "summary": "Get Device Layout by Device ID",
         "operationId": "getDeviceLayoutByDeviceId",
-        "description": "Get layout information of a device by device ID in an organization.\n\nDevice layout customizes a user\u2019s programmable line keys (PLK) on the phone and any attached Key Expansion Modules (KEM) with the existing configured line members and the user\u2019s monitoring list.\n\nThis API requires a full or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "description": "Get layout information of a device by device ID in an organization.\n\nDevice layout customizes a user’s programmable line keys (PLK) on the phone and any attached Key Expansion Modules (KEM) with the existing configured line members and the user’s monitoring list.\n\nThis API requires a full or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Device Call Settings"
         ],
@@ -5108,7 +5110,7 @@
         },
         "summary": "Modify Device Layout by Device ID",
         "operationId": "modifyDeviceLayoutByDeviceId",
-        "description": "Modify the layout of a device by device ID in an organization.\n\nDevice layout customizes a user\u2019s programmable line keys (PLK) on the phone and any attached Key Expansion Modules (KEM) with the existing configured line members and the user\u2019s monitoring list.\n\nThis API requires a full or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "description": "Modify the layout of a device by device ID in an organization.\n\nDevice layout customizes a user’s programmable line keys (PLK) on the phone and any attached Key Expansion Modules (KEM) with the existing configured line members and the user’s monitoring list.\n\nThis API requires a full or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Device Call Settings"
         ],
@@ -8793,7 +8795,7 @@
         },
         "summary": "Create a Device by MAC Address",
         "operationId": "Create a Device by MAC Address",
-        "description": "Create a phone by its MAC address in a specific workspace or for a person.\n\nSpecify the `mac`, `model` and either `workspaceId` or `personId`.\n\n* You can get the `model` from the [supported devices](/docs/api/v1/device-call-settings/read-the-list-of-supported-devices) API.\n\n* Either `workspaceId` or `personId` should be provided. If both are supplied, the request will be invalid.\n\n* The `password` field is only required for third party devices. You can obtain the required third party phone configuration from [here](/docs/api/v1/beta-device-call-settings-with-third-party-device-support/get-third-party-device).\n\n<div><Callout type=\"warning\">Adding a device to a person with a Webex Calling Standard license will disable Webex Calling across their Webex mobile, tablet, desktop, and browser applications.</Callout></div>",
+        "description": "Create a phone by its MAC address in a specific workspace or for a person.\n\nSpecify the `mac`, `model` and either `workspaceId` or `personId`.\n\n* You can get the `model` from the [supported devices](/docs/api/v1/device-call-settings/read-the-list-of-supported-devices) API.\n\n* Either `workspaceId` or `personId` should be provided. If both are supplied, the request will be invalid.\n\n* The `password` field is only required for third party devices. You can obtain the required third party phone configuration from [here](/docs/api/v1/beta-device-call-settings-with-third-party-device-support/get-third-party-device).\n\n<div><Callout type=\"warning\">Adding a device to a person with a Webex Calling Standard license will disable Webex Calling across their Webex mobile, tablet, desktop, and browser applications.</Callout></div><br><div><Callout type=\"warning\">When adding devices to a Webex Calling Professional licensed person or workspace, wait for each API call to finish before starting the next. This prevents race conditions that can cause errors when assigning primary versus secondary device status.</Callout></div>",
         "tags": [
           "Devices"
         ],
@@ -9309,7 +9311,7 @@
         },
         "summary": "Create a Device Activation Code",
         "operationId": "Create a Device Activation Code",
-        "description": "Generate an activation code for a device in a specific workspace by `workspaceId` or for a person by `personId`. This requires an auth token with the `spark-admin:devices_write` scope, and either `identity:placeonetimepassword_create` (allows creating activation codes for workspaces only) or `identity:one_time_password` (allows creating activation codes for workspaces or persons).\n\n* Adding a device to a workspace with calling type `none` or `thirdPartySipCalling` will reset the workspace calling type to `freeCalling`.\n\n* Either `workspaceId` or `personId` should be provided. If both are supplied, the request will be invalid.\n\n* If no `model` is supplied, the `code` returned will only be accepted on RoomOS devices.\n\n* If your device is a phone, you must provide the `model` as a field. You can get the `model` from the [supported devices](/docs/api/v1/device-call-settings/read-the-list-of-supported-devices) API.\n\n<div><Callout type=\"warning\">Adding a device to a person with a Webex Calling Standard license will disable Webex Calling across their Webex mobile, tablet, desktop, and browser applications.</Callout></div>",
+        "description": "Generate an activation code for a device in a specific workspace by `workspaceId` or for a person by `personId`. This requires an auth token with the `spark-admin:devices_write` scope, and either `identity:placeonetimepassword_create` (allows creating activation codes for workspaces only) or `identity:one_time_password` (allows creating activation codes for workspaces or persons).\n\n* Adding a device to a workspace with calling type `none` or `thirdPartySipCalling` will reset the workspace calling type to `freeCalling`.\n\n* Either `workspaceId` or `personId` should be provided. If both are supplied, the request will be invalid.\n\n* If no `model` is supplied, the `code` returned will only be accepted on RoomOS devices.\n\n* If your device is a phone, you must provide the `model` as a field. You can get the `model` from the [supported devices](/docs/api/v1/device-call-settings/read-the-list-of-supported-devices) API.\n\n<div><Callout type=\"warning\">Adding a device to a person with a Webex Calling Standard license will disable Webex Calling across their Webex mobile, tablet, desktop, and browser applications.</Callout></div><br><div><Callout type=\"warning\">When adding devices to a Webex Calling Professional licensed person or workspace, wait for each API call to finish before starting the next. This prevents race conditions that can cause errors when assigning primary versus secondary device status.</Callout></div>",
         "tags": [
           "Devices"
         ],
@@ -9538,6 +9540,1018 @@
         ]
       }
     },
+    "/locations": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "Link": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocationsCollectionResponse"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OL2M5N2VlMDQ5LTM1OWItNGM3OC04NDU0LTA1OGMyZWRlMjU2Mw",
+                      "name": "Denver",
+                      "orgId": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi9hNDVkNmNkYS1hZTVhLTQwYzMtYTdhZC01NjUwZmRkZGQ1M2M",
+                      "address": {
+                        "address1": "123 Some St.",
+                        "address2": "Suite 456",
+                        "city": "Supercity",
+                        "state": "Goodstate",
+                        "postalCode": "12345",
+                        "country": "US"
+                      },
+                      "timeZone": "America/Chicago",
+                      "preferredLanguage": "en_us",
+                      "latitude": "12.935784",
+                      "longitude": "77.697332",
+                      "notes": "Suite 456 Denver location"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "List Locations",
+        "operationId": "listLocations",
+        "description": "List locations for an organization.\n\n* Use query parameters to filter the result set by location name, ID, or organization.\n\n* Long result sets will be split into [pages](/docs/basics#pagination).\n\n* Searching and viewing locations in your organization requires an administrator or location administrator auth token with any of the following scopes: `spark-admin:locations_read`, `spark-admin:people_read` or `spark-admin:device_read`.",
+        "tags": [
+          "Locations"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "description": "List locations whose name contains this string (case-insensitive).",
+            "example": "Denver",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "description": "List locations by ID.",
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OL2M5N2VlMDQ5LTM1OWItNGM3OC04NDU0LTA1OGMyZWRlMjU2Mw",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "List locations in this organization. Only admin users of another organization (such as partners) may use this parameter.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "max",
+            "in": "query",
+            "description": "Limit the maximum number of location in the response.",
+            "example": 100,
+            "schema": {
+              "type": "number",
+              "default": 500
+            }
+          }
+        ]
+      },
+      "post": {
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzljYTNhZmQ3LTE5MjYtNGQ0ZS05ZDA3LTk5ZDJjMGU4OGFhMA",
+                      "description": "ID of the newly created location."
+                    }
+                  }
+                },
+                "example": {
+                  "id": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzljYTNhZmQ3LTE5MjYtNGQ0ZS05ZDA3LTk5ZDJjMGU4OGFhMA"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Create a Location",
+        "operationId": "createLocation",
+        "description": "Create a new Location for a given organization. Only an admin in the organization can create a new Location.\n\n* Creating a location in your organization requires a full administrator auth token with a scope of `spark-admin:locations_write`.\n\n* Partners may specify `orgId` query parameter to create location in managed organization.\n\n* The following body parameters are required to create a new location: \n    * `name`\n    * `timeZone`\n    * `preferredLanguage`\n    * `address`\n    * `announcementLanguage`.\n\n* `latitude`, `longitude` and `notes` are optional parameters to create a new location.\n\n* **Important:** While the `name` field supports up to 256 characters, locations that will be enabled for Webex Calling must have names with a maximum of 80 characters. If you plan to enable calling for this location, ensure the name does not exceed 80 characters to maintain compatibility with Control Hub and calling features.",
+        "tags": [
+          "Locations"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Create a location common attribute for this organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "name": "Denver",
+                "timeZone": "America/Chicago",
+                "announcementLanguage": "fr_fr",
+                "preferredLanguage": "en_us",
+                "address": {
+                  "address1": "123 Some St.",
+                  "address2": "Suite 456",
+                  "city": "Supercity",
+                  "state": "Goodstate",
+                  "postalCode": "12345",
+                  "country": "US"
+                },
+                "latitude": "12.935784",
+                "longitude": "77.697332",
+                "notes": "123 Some St. Denver location"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/PostCommonLocationObject"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/locations/{locationId}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Location"
+                },
+                "example": {
+                  "id": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OL2M5N2VlMDQ5LTM1OWItNGM3OC04NDU0LTA1OGMyZWRlMjU2Mw",
+                  "name": "Denver",
+                  "orgId": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi9hNDVkNmNkYS1hZTVhLTQwYzMtYTdhZC01NjUwZmRkZGQ1M2M",
+                  "address": {
+                    "address1": "123 Some St.",
+                    "city": "San Jose",
+                    "state": "CA",
+                    "postalCode": "95134",
+                    "country": "US"
+                  },
+                  "timeZone": "America/Chicago",
+                  "latitude": "12.935784",
+                  "longitude": "77.697332",
+                  "notes": "123 Some St. Denver location"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get Location Details",
+        "operationId": "getLocationDetails",
+        "description": "Shows details for a location, by ID.\n\n* Specify the location ID in the `locationId` parameter in the URI.\n\n* Use query parameter `orgId` to filter the result set by organization(optional).\n\n* Searching and viewing location in your organization requires an administrator or location administrator auth token with any of the following scopes:\n\n    * `spark-admin:locations_read`\n    * `spark-admin:people_read`\n    * `spark-admin:device_read`",
+        "tags": [
+          "Locations"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "description": "A unique identifier for the location.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OL2M5N2VlMDQ5LTM1OWItNGM3OC04NDU0LTA1OGMyZWRlMjU2Mw",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Get location common attributes for this organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "put": {
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {},
+            "content": {}
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Update a Location",
+        "operationId": "updateLocation",
+        "description": "Update details for a location, by ID.\n\n* Updating a location in your organization requires a full administrator or location administrator auth token with a scope of `spark-admin:locations_write`.\n\n* Specify the location ID in the `locationId` parameter in the URI.\n\n* Partners may specify `orgId` query parameter to update location in managed organization.\n\n* **Important:** While the `name` field supports up to 256 characters, locations that are enabled for Webex Calling must have names with a maximum of 80 characters. If the location is enabled for calling, ensure the name does not exceed 80 characters to maintain compatibility with Control Hub and calling features.",
+        "tags": [
+          "Locations"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "description": "Update location common attributes for this location.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OL2E4NjczZDIwLWM0M2EtNDQ5Ni1iYWIxLTNiMjhhZGJjMjViYQ",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Update location common attributes for this organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "name": "Denver",
+                "address": {
+                  "address1": "123 Some St.",
+                  "address2": "Suite 456",
+                  "city": "Supercity",
+                  "state": "Goodstate",
+                  "postalCode": "12345",
+                  "country": "US"
+                },
+                "timeZone": "America/Chicago",
+                "preferredLanguage": "en_us"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/PutCommonLocationObject"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {},
+            "content": {}
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Delete Location",
+        "operationId": "deleteLocation",
+        "description": "Delete a location, by ID.\n\n* Specify the location ID in the `locationId` parameter in the URI.\n\n* Deleting a location in your organization requires a full administrator auth token with a scope of `spark-admin:locations_write`.\n\n* NOTE: Disabling Webex Calling for a Webex Calling enabled location is required prior to deleting a location.",
+        "tags": [
+          "Locations"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "description": "A unique identifier for the location.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OL2M5N2VlMDQ5LTM1OWItNGM3OC04NDU0LTA1OGMyZWRlMjU2Mw",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Specify the organization for the location to be deleted.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/locations/{locationId}/floors": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FloorCollectionResponse"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": "Y2lzY29zcGFyazovL3VybjpURUFNOnVzLWVhc3QtMl9hL1dPUktTUEFDRV9MT0NBVElPTl9GTE9PUi83NDhkZDNmMS1iYmE5LTQxMDItODk5NC00M2IyOTM2MzNlNjY",
+                      "locationId": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OL2E4NjczZDIwLWM0M2EtNDQ5Ni1iYWIxLTNiMjhhZGJjMjViYQ",
+                      "floorNumber": -1,
+                      "displayName": "The basement"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "List Location Floors",
+        "operationId": "listLocationFloors",
+        "description": "List location floors.\nRequires an administrator auth token with the `spark-admin:locations_read` scope.",
+        "tags": [
+          "Locations"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "description": "A unique identifier for the location.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OL2E4NjczZDIwLWM0M2EtNDQ5Ni1iYWIxLTNiMjhhZGJjMjViYQ",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "post": {
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Floor"
+                },
+                "example": {
+                  "id": "Y2lzY29zcGFyazovL3VybjpURUFNOnVzLWVhc3QtMl9hL1dPUktTUEFDRV9MT0NBVElPTl9GTE9PUi83NDhkZDNmMS1iYmE5LTQxMDItODk5NC00M2IyOTM2MzNlNjY",
+                  "locationId": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OL2E4NjczZDIwLWM0M2EtNDQ5Ni1iYWIxLTNiMjhhZGJjMjViYQ",
+                  "floorNumber": -1,
+                  "displayName": "The basement"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Create a Location Floor",
+        "operationId": "createLocationFloor",
+        "description": "Create a new floor in the given location. The `displayName` parameter is optional, and omitting it will result in the creation of a floor without that value set.\nRequires an administrator auth token with the `spark-admin:locations_write` scope.",
+        "tags": [
+          "Locations"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "description": "A unique identifier for the location.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OL2E4NjczZDIwLWM0M2EtNDQ5Ni1iYWIxLTNiMjhhZGJjMjViYQ",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "floorNumber": -1,
+                "displayName": "The basement"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/FloorCreationRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/locations/{locationId}/floors/{floorId}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Floor"
+                },
+                "example": {
+                  "id": "Y2lzY29zcGFyazovL3VybjpURUFNOnVzLWVhc3QtMl9hL1dPUktTUEFDRV9MT0NBVElPTl9GTE9PUi83NDhkZDNmMS1iYmE5LTQxMDItODk5NC00M2IyOTM2MzNlNjY",
+                  "locationId": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OL2E4NjczZDIwLWM0M2EtNDQ5Ni1iYWIxLTNiMjhhZGJjMjViYQ",
+                  "floorNumber": -1,
+                  "displayName": "The basement"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get Location Floor Details",
+        "operationId": "getLocationFloorDetails",
+        "description": "Shows details for a floor, by ID. Specify the floor ID in the `floorId` parameter in the URI.\nRequires an administrator auth token with the `spark-admin:locations_read` scope.",
+        "tags": [
+          "Locations"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "description": "A unique identifier for the location.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OL2E4NjczZDIwLWM0M2EtNDQ5Ni1iYWIxLTNiMjhhZGJjMjViYQ",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "floorId",
+            "in": "path",
+            "description": "A unique identifier for the floor.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VybjpURUFNOnVzLWVhc3QtMl9hL1dPUktTUEFDRV9MT0NBVElPTl9GTE9PUi83NDhkZDNmMS1iYmE5LTQxMDItODk5NC00M2IyOTM2MzNlNjY",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "put": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FloorUpdated"
+                },
+                "example": {
+                  "id": "Y2lzY29zcGFyazovL3VybjpURUFNOnVzLWVhc3QtMl9hL1dPUktTUEFDRV9MT0NBVElPTl9GTE9PUi83NDhkZDNmMS1iYmE5LTQxMDItODk5NC00M2IyOTM2MzNlNj",
+                  "locationId": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OL2E4NjczZDIwLWM0M2EtNDQ5Ni1iYWIxLTNiMjhhZGJjMjViYQ",
+                  "floorNumber": 1,
+                  "displayName": "My custom name"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Update a Location Floor",
+        "operationId": "updateLocationFloor",
+        "description": "Updates details for a floor, by ID. Specify the floor ID in the `floorId` parameter in the URI. Include all details for the floor returned by a previous call to [Get Location Floor Details](/docs/api/v1/locations/get-location-floor-details). Omitting the optional `displayName` field will result in that field no longer being defined for the floor.\nRequires an administrator auth token with the `spark-admin:locations_write` scope.",
+        "tags": [
+          "Locations"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "description": "A unique identifier for the location.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VybjpURUFNOnVzLWVhc3QtMV9pbnQxMy9XT1JLU1BBQ0VfTE9DQVRJT04vM2E2ZmYzNzMtNjhhNy00NGU0LTkxZDYtYTI3NDYwZTBhYzVjIzUxOWY2N2E1LTlkOTktNGM2My04YTA5LWI5MTcxY2M2NmJkMQ==",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "floorId",
+            "in": "path",
+            "description": "A unique identifier for the floor.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VybjpURUFNOnVzLWVhc3QtMl9hL1dPUktTUEFDRV9MT0NBVElPTl9GTE9PUi83NDhkZDNmMS1iYmE5LTQxMDItODk5NC00M2IyOTM2MzNlNjY",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "floorNumber": 1,
+                "displayName": "My custom name"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/FloorUpdateRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {},
+            "content": {}
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Delete a Location Floor",
+        "operationId": "deleteLocationFloor",
+        "description": "Deletes a floor, by ID.\nRequires an administrator auth token with the `spark-admin:locations_write` scope.",
+        "tags": [
+          "Locations"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "description": "A unique identifier for the location.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VybjpURUFNOnVzLWVhc3QtMV9pbnQxMy9XT1JLU1BBQ0VfTE9DQVRJT04vM2E2ZmYzNzMtNjhhNy00NGU0LTkxZDYtYTI3NDYwZTBhYzVjIzUxOWY2N2E1LTlkOTktNGM2My04YTA5LWI5MTcxY2M2NmJkMQ==",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "floorId",
+            "in": "path",
+            "description": "A unique identifier for the floor.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VybjpURUFNOnVzLWVhc3QtMl9hL1dPUktTUEFDRV9MT0NBVElPTl9GTE9PUi83NDhkZDNmMS1iYmE5LTQxMDItODk5NC00M2IyOTM2MzNlNjY",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/workspaceLocations": {
       "get": {
         "responses": {
@@ -9665,7 +10679,8 @@
               "type": "string"
             }
           }
-        ]
+        ],
+        "deprecated": true
       },
       "post": {
         "responses": {
@@ -9761,7 +10776,8 @@
               }
             }
           }
-        }
+        },
+        "deprecated": true
       }
     },
     "/workspaceLocations/{locationId}": {
@@ -9852,7 +10868,8 @@
               "type": "string"
             }
           }
-        ]
+        ],
+        "deprecated": true
       },
       "put": {
         "responses": {
@@ -9960,7 +10977,8 @@
               }
             }
           }
-        }
+        },
+        "deprecated": true
       },
       "delete": {
         "responses": {
@@ -10032,7 +11050,8 @@
               "type": "string"
             }
           }
-        ]
+        ],
+        "deprecated": true
       }
     },
     "/workspaceLocations/{locationId}/floors": {
@@ -10122,7 +11141,8 @@
               "type": "string"
             }
           }
-        ]
+        ],
+        "deprecated": true
       },
       "post": {
         "responses": {
@@ -10219,7 +11239,8 @@
               }
             }
           }
-        }
+        },
+        "deprecated": true
       }
     },
     "/workspaceLocations/{locationId}/floors/{floorId}": {
@@ -10315,7 +11336,8 @@
               "type": "string"
             }
           }
-        ]
+        ],
+        "deprecated": true
       },
       "put": {
         "responses": {
@@ -10422,7 +11444,8 @@
               }
             }
           }
-        }
+        },
+        "deprecated": true
       },
       "delete": {
         "responses": {
@@ -10504,7 +11527,8 @@
               "type": "string"
             }
           }
-        ]
+        ],
+        "deprecated": true
       }
     },
     "/workspaceMetrics": {
@@ -10989,13 +12013,7 @@
         "responses": {
           "200": {
             "description": "OK",
-            "headers": {
-              "Link": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
+            "headers": {},
             "content": {
               "application/json": {
                 "schema": {
@@ -14764,7 +15782,8 @@
         "type": "object",
         "required": [
           "devices",
-          "maxDeviceCount"
+          "maxDeviceCount",
+          "maxOwnedDeviceCount"
         ],
         "properties": {
           "devices": {
@@ -14777,6 +15796,10 @@
           "maxDeviceCount": {
             "type": "number",
             "description": "Maximum number of devices a person can be assigned to."
+          },
+          "maxOwnedDeviceCount": {
+            "type": "number",
+            "description": "Maximum number of devices a person can own."
           }
         }
       },
@@ -15549,7 +16572,8 @@
         "type": "object",
         "required": [
           "devices",
-          "maxDeviceCount"
+          "maxDeviceCount",
+          "maxOwnedDeviceCount"
         ],
         "properties": {
           "devices": {
@@ -15562,6 +16586,10 @@
           "maxDeviceCount": {
             "type": "number",
             "description": "Maximum number of devices a workspace can be assigned to."
+          },
+          "maxOwnedDeviceCount": {
+            "type": "number",
+            "description": "Maximum number of devices a workspace can own."
           }
         }
       },
@@ -18473,6 +19501,323 @@
           }
         }
       },
+      "Location": {
+        "type": "object",
+        "required": [
+          "address",
+          "countryCode",
+          "latitude",
+          "longitude"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VybjpURUFNOnVzLWVhc3QtMV9pbnQxMy9XT1JLU1BBQ0VfTE9DQVRJT04vM2E2ZmYzNzMtNjhhNy00NGU0LTkxZDYtYTI3NDYwZTBhYzVjIzUxOWY2N2E1LTlkOTktNGM2My04YTA5LWI5MTcxY2M2NmJkMQ==",
+            "description": "Unique identifier for the location."
+          },
+          "locationId": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzA2OWEzMDY2LTgwNjMtNDI0Zi05YmE0LTBhZDdhMmYxMzNjNQ",
+            "description": "The ID to use for this location in the [/locations API](/docs/api/v1/locations)"
+          },
+          "displayName": {
+            "type": "string",
+            "example": "Cisco Barcelona",
+            "description": "A friendly name for the location."
+          },
+          "address": {
+            "type": "string",
+            "example": "Carrer de Pere IV, Barcelona, Spain",
+            "description": "The location address."
+          },
+          "countryCode": {
+            "type": "string",
+            "example": "ES",
+            "description": "The location country code (ISO 3166-1)."
+          },
+          "cityName": {
+            "type": "string",
+            "example": "Barcelona",
+            "description": "The location city name."
+          },
+          "latitude": {
+            "type": "number",
+            "example": 41.406615,
+            "description": "The location latitude."
+          },
+          "longitude": {
+            "type": "number",
+            "example": 2.200717,
+            "description": "The location longitude."
+          },
+          "notes": {
+            "type": "string",
+            "example": "A note about the location",
+            "description": "Notes associated with the location."
+          }
+        }
+      },
+      "PutCommonLocationObject": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Denver",
+            "description": "The name of the location. Supports up to 256 characters, but locations enabled for Webex Calling are limited to 80 characters maximum."
+          },
+          "timeZone": {
+            "type": "string",
+            "example": "America/Chicago",
+            "description": "Time zone associated with this location, refer to this link (https://developer.webex.com/docs/api/guides/webex-for-broadworks-developers-guide#webex-meetings-site-timezone) for format."
+          },
+          "preferredLanguage": {
+            "type": "string",
+            "example": "en_us",
+            "description": "Default email language."
+          },
+          "address": {
+            "type": "object",
+            "properties": {
+              "address1": {
+                "type": "string",
+                "example": "123 Some St.",
+                "description": "Address 1"
+              },
+              "address2": {
+                "type": "string",
+                "example": "Suite 456",
+                "description": "Address 2"
+              },
+              "city": {
+                "type": "string",
+                "example": "Supercity",
+                "description": "City"
+              },
+              "state": {
+                "type": "string",
+                "example": "Goodstate",
+                "description": "State code"
+              },
+              "postalCode": {
+                "type": "string",
+                "example": "12345",
+                "description": "Postal Code"
+              },
+              "country": {
+                "type": "string",
+                "example": "US",
+                "description": "ISO-3166 2-Letter Country Code."
+              }
+            },
+            "description": "The address of the location."
+          }
+        }
+      },
+      "PostCommonLocationObject": {
+        "type": "object",
+        "required": [
+          "name",
+          "timeZone",
+          "preferredLanguage",
+          "announcementLanguage",
+          "address"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Denver",
+            "description": "The name of the location. Supports up to 256 characters, but locations enabled for Webex Calling are limited to 80 characters maximum."
+          },
+          "timeZone": {
+            "type": "string",
+            "example": "America/Chicago",
+            "description": "Time zone associated with this location, refer to this link (https://developer.webex.com/docs/api/guides/webex-for-broadworks-developers-guide#webex-meetings-site-timezone) for format."
+          },
+          "preferredLanguage": {
+            "type": "string",
+            "example": "en_us",
+            "description": "Default email language."
+          },
+          "announcementLanguage": {
+            "type": "string",
+            "example": "fr_fr",
+            "description": "Location's phone announcement language."
+          },
+          "address": {
+            "type": "object",
+            "required": [
+              "address1",
+              "city",
+              "state",
+              "postalCode",
+              "country"
+            ],
+            "properties": {
+              "address1": {
+                "type": "string",
+                "example": "123 Some St.",
+                "description": "Address 1"
+              },
+              "address2": {
+                "type": "string",
+                "example": "Suite 456",
+                "description": "Address 2"
+              },
+              "city": {
+                "type": "string",
+                "example": "Supercity",
+                "description": "City"
+              },
+              "state": {
+                "type": "string",
+                "example": "Goodstate",
+                "description": "State code"
+              },
+              "postalCode": {
+                "type": "string",
+                "example": "12345",
+                "description": "Postal Code"
+              },
+              "country": {
+                "type": "string",
+                "example": "US",
+                "description": "ISO-3166 2-Letter Country Code."
+              }
+            },
+            "description": "The address of the location."
+          },
+          "latitude": {
+            "type": "string",
+            "example": "12.935784",
+            "description": "Latitude"
+          },
+          "longitude": {
+            "type": "string",
+            "example": "77.697332",
+            "description": "Longitude"
+          },
+          "notes": {
+            "type": "string",
+            "example": "123 Some St. Denver Location",
+            "description": "Notes"
+          }
+        }
+      },
+      "LocationsCollectionResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Location"
+            }
+          }
+        }
+      },
+      "Floor": {
+        "type": "object",
+        "required": [
+          "floorNumber"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "xxx==",
+            "description": "Unique identifier for the floor."
+          },
+          "locationId": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VybjpURUFNOnVzLWVhc3QtMV9pbnQxMy9XT1JLU1BBQ0VfTE9DQVRJT04vM2E2ZmYzNzMtNjhhNy00NGU0LTkxZDYtYTI3NDYwZTBhYzVjIzUxOWY2N2E1LTlkOTktNGM2My04YTA5LWI5MTcxY2M2NmJkMQ==",
+            "description": "Unique identifier for the location."
+          },
+          "floorNumber": {
+            "type": "number",
+            "example": -1,
+            "description": "The floor number."
+          },
+          "displayName": {
+            "type": "string",
+            "example": "The basement",
+            "description": "The floor display name."
+          }
+        }
+      },
+      "FloorUpdated": {
+        "type": "object",
+        "required": [
+          "floorNumber"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "xxx==",
+            "description": "Unique identifier for the floor."
+          },
+          "locationId": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VybjpURUFNOnVzLWVhc3QtMV9pbnQxMy9XT1JLU1BBQ0VfTE9DQVRJT04vM2E2ZmYzNzMtNjhhNy00NGU0LTkxZDYtYTI3NDYwZTBhYzVjIzUxOWY2N2E1LTlkOTktNGM2My04YTA5LWI5MTcxY2M2NmJkMQ==",
+            "description": "Unique identifier for the location."
+          },
+          "floorNumber": {
+            "type": "number",
+            "example": 1,
+            "description": "The floor number."
+          },
+          "displayName": {
+            "type": "string",
+            "example": "My custom name",
+            "description": "The floor display name."
+          }
+        }
+      },
+      "FloorCreationRequest": {
+        "type": "object",
+        "required": [
+          "floorNumber"
+        ],
+        "properties": {
+          "floorNumber": {
+            "type": "number",
+            "example": -1,
+            "description": "The floor number."
+          },
+          "displayName": {
+            "type": "string",
+            "example": "The basement",
+            "description": "The floor display name."
+          }
+        }
+      },
+      "FloorUpdateRequest": {
+        "type": "object",
+        "required": [
+          "floorNumber"
+        ],
+        "properties": {
+          "floorNumber": {
+            "type": "number",
+            "example": 1,
+            "description": "The floor number."
+          },
+          "displayName": {
+            "type": "string",
+            "example": "My custom name",
+            "description": "The floor display name."
+          }
+        }
+      },
+      "FloorCollectionResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Floor"
+            },
+            "description": "An array of floor objects."
+          }
+        }
+      },
       "MeetingQualitiesResponse": {
         "type": "object",
         "properties": {
@@ -19513,7 +20858,7 @@
               "presenting",
               "unknown"
             ],
-            "description": "The current presence status of the person. This will only be returned for people within your organization or an organization you manage. Presence information will not be shown if the authenticated user has [disabled status sharing](https://help.webex.com/nkzs6wl/). Presence status is different from Control Hub's \"Last Service Access Time\" which indicates the last time an oAuth token was issued for this user.\n * `active` - Active within the last 10 minutes.\n * `call` - The user is in a call.\n * `DoNotDisturb` - The user has manually set their status to \"Do Not Disturb\".\n * `inactive` - Last activity occurred more than 10 minutes ago.\n * `meeting` - The user is in a meeting.\n * `OutOfOffice` - The user or a Hybrid Calendar service has indicated that they are \"Out of Office\".\n * `pending` - The user has never logged in; a status cannot be determined.\n * `presenting` - The user is sharing content.\n * `unknown` - The user\u2019s status could not be determined.\n"
+            "description": "The current presence status of the person. This will only be returned for people within your organization or an organization you manage. Presence information will not be shown if the authenticated user has [disabled status sharing](https://help.webex.com/nkzs6wl/). Presence status is different from Control Hub's \"Last Service Access Time\" which indicates the last time an oAuth token was issued for this user.\n * `active` - Active within the last 10 minutes.\n * `call` - The user is in a call.\n * `DoNotDisturb` - The user has manually set their status to \"Do Not Disturb\".\n * `inactive` - Last activity occurred more than 10 minutes ago.\n * `meeting` - The user is in a meeting.\n * `OutOfOffice` - The user or a Hybrid Calendar service has indicated that they are \"Out of Office\".\n * `pending` - The user has never logged in; a status cannot be determined.\n * `presenting` - The user is sharing content.\n * `unknown` - The user’s status could not be determined.\n"
           },
           "invitePending": {
             "type": "string",
@@ -20811,62 +22156,6 @@
           }
         }
       },
-      "Location": {
-        "type": "object",
-        "required": [
-          "address",
-          "countryCode",
-          "latitude",
-          "longitude"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VybjpURUFNOnVzLWVhc3QtMV9pbnQxMy9XT1JLU1BBQ0VfTE9DQVRJT04vM2E2ZmYzNzMtNjhhNy00NGU0LTkxZDYtYTI3NDYwZTBhYzVjIzUxOWY2N2E1LTlkOTktNGM2My04YTA5LWI5MTcxY2M2NmJkMQ==",
-            "description": "Unique identifier for the location."
-          },
-          "locationId": {
-            "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzA2OWEzMDY2LTgwNjMtNDI0Zi05YmE0LTBhZDdhMmYxMzNjNQ",
-            "description": "The ID to use for this location in the [/locations API](/docs/api/v1/locations)"
-          },
-          "displayName": {
-            "type": "string",
-            "example": "Cisco Barcelona",
-            "description": "A friendly name for the location."
-          },
-          "address": {
-            "type": "string",
-            "example": "Carrer de Pere IV, Barcelona, Spain",
-            "description": "The location address."
-          },
-          "countryCode": {
-            "type": "string",
-            "example": "ES",
-            "description": "The location country code (ISO 3166-1)."
-          },
-          "cityName": {
-            "type": "string",
-            "example": "Barcelona",
-            "description": "The location city name."
-          },
-          "latitude": {
-            "type": "number",
-            "example": 41.406615,
-            "description": "The location latitude."
-          },
-          "longitude": {
-            "type": "number",
-            "example": 2.200717,
-            "description": "The location longitude."
-          },
-          "notes": {
-            "type": "string",
-            "example": "A note about the location",
-            "description": "Notes associated with the location."
-          }
-        }
-      },
       "WorkspaceLocationsCreationRequest": {
         "type": "object",
         "required": [
@@ -20975,62 +22264,6 @@
               "$ref": "#/components/schemas/Location"
             },
             "description": "An array of location objects."
-          }
-        }
-      },
-      "Floor": {
-        "type": "object",
-        "required": [
-          "floorNumber"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "xxx==",
-            "description": "Unique identifier for the floor."
-          },
-          "locationId": {
-            "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VybjpURUFNOnVzLWVhc3QtMV9pbnQxMy9XT1JLU1BBQ0VfTE9DQVRJT04vM2E2ZmYzNzMtNjhhNy00NGU0LTkxZDYtYTI3NDYwZTBhYzVjIzUxOWY2N2E1LTlkOTktNGM2My04YTA5LWI5MTcxY2M2NmJkMQ==",
-            "description": "Unique identifier for the location."
-          },
-          "floorNumber": {
-            "type": "number",
-            "example": -1,
-            "description": "The floor number."
-          },
-          "displayName": {
-            "type": "string",
-            "example": "The basement",
-            "description": "The floor display name."
-          }
-        }
-      },
-      "FloorUpdated": {
-        "type": "object",
-        "required": [
-          "floorNumber"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "xxx==",
-            "description": "Unique identifier for the floor."
-          },
-          "locationId": {
-            "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VybjpURUFNOnVzLWVhc3QtMV9pbnQxMy9XT1JLU1BBQ0VfTE9DQVRJT04vM2E2ZmYzNzMtNjhhNy00NGU0LTkxZDYtYTI3NDYwZTBhYzVjIzUxOWY2N2E1LTlkOTktNGM2My04YTA5LWI5MTcxY2M2NmJkMQ==",
-            "description": "Unique identifier for the location."
-          },
-          "floorNumber": {
-            "type": "number",
-            "example": 1,
-            "description": "The floor number."
-          },
-          "displayName": {
-            "type": "string",
-            "example": "My custom name",
-            "description": "The floor display name."
           }
         }
       },

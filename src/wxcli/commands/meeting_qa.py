@@ -10,7 +10,7 @@ app = typer.Typer(help="Manage Webex Meetings meeting-qa.")
 
 @app.command("list")
 def cmd_list(
-    meeting_id: str = typer.Option(None, "--meeting-id", help="A unique identifier for the [meeting instance](/docs/meeting"),
+    meeting_id: str = typer.Option(..., "--meeting-id", help="A unique identifier for the [meeting instance](/docs/meeting"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -63,7 +63,7 @@ def cmd_list(
 @app.command("list-answers")
 def list_answers(
     question_id: str = typer.Argument(help="questionId"),
-    meeting_id: str = typer.Option(None, "--meeting-id", help="A unique identifier for the [meeting instance](/docs/meeting"),
+    meeting_id: str = typer.Option(..., "--meeting-id", help="A unique identifier for the [meeting instance](/docs/meeting"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),

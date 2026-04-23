@@ -11,14 +11,16 @@ app = typer.Typer(help="Manage Webex Contact Center cc-work-types.")
 
 @app.command("create")
 def create(
-    name: str = typer.Option(None, "--name", help=""),
-    active: str = typer.Option(None, "--active", help=""),
-    organization_id: str = typer.Option(None, "--organization-id", help=""),
-    system_default: str = typer.Option(None, "--system-default", help=""),
-    version: str = typer.Option(None, "--version", help=""),
-    description: str = typer.Option(None, "--description", help=""),
-    id_param: str = typer.Option(None, "--id", help=""),
-    work_type_code: str = typer.Option(None, "--work-type-code", help=""),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to def"),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
+    name: str = typer.Option(None, "--name", help="(required) A name for the Work Type."),
+    description: str = typer.Option(None, "--description", help="A description for the Work type code created."),
+    work_type_code: str = typer.Option(None, "--work-type-code", help="(required) Identifier for the Work Type being created. Can be 'WRAP_UP_"),
+    active: bool = typer.Option(None, "--active/--no-active", help="(required) Indicates whether the work type is active or not."),
+    system_default: bool = typer.Option(None, "--system-default/--no-system-default", help="Indicates whether the created resource is system created or"),
+    created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
+    last_updated_time: str = typer.Option(None, "--last-updated-time", help="Time(in epoch millis) when this resource was last updated."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -32,22 +34,30 @@ def create(
         body = json.loads(json_body)
     else:
         body = {}
-        if name is not None:
-            body["name"] = name
-        if active is not None:
-            body["active"] = active
         if organization_id is not None:
             body["organizationId"] = organization_id
-        if system_default is not None:
-            body["systemDefault"] = system_default
-        if version is not None:
-            body["version"] = version
-        if description is not None:
-            body["description"] = description
         if id_param is not None:
             body["id"] = id_param
+        if version is not None:
+            body["version"] = version
+        if name is not None:
+            body["name"] = name
+        if description is not None:
+            body["description"] = description
         if work_type_code is not None:
             body["workTypeCode"] = work_type_code
+        if active is not None:
+            body["active"] = active
+        if system_default is not None:
+            body["systemDefault"] = system_default
+        if created_time is not None:
+            body["createdTime"] = created_time
+        if last_updated_time is not None:
+            body["lastUpdatedTime"] = last_updated_time
+        _missing = [f for f in ['name', 'workTypeCode', 'active'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -87,7 +97,7 @@ def create_bulk(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Work Type(s)\n\nExample --json-body:\n  '{"items":[{"item":"...","itemIdentifier":"...","requestAction":"..."}]}'."""
+    """Bulk save Work Type(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -235,6 +245,161 @@ def create_purge_inactive_entities(
 
 
 
+@app.command("show")
+def show(
+    id: str = typer.Argument(help="id"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get specific Work Type by ID."""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/work-type/{id}"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if output == "json":
+        print_json(result)
+    else:
+        if isinstance(result, dict):
+            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
+        elif isinstance(result, list):
+            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
+        else:
+            print_json(result)
+
+
+
+@app.command("update")
+def update(
+    id: str = typer.Argument(help="id"),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to def"),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
+    name: str = typer.Option(None, "--name", help="A name for the Work Type."),
+    description: str = typer.Option(None, "--description", help="A description for the Work type code created."),
+    work_type_code: str = typer.Option(None, "--work-type-code", help="Identifier for the Work Type being created. Can be 'WRAP_UP_"),
+    active: bool = typer.Option(None, "--active/--no-active", help="Indicates whether the work type is active or not."),
+    system_default: bool = typer.Option(None, "--system-default/--no-system-default", help="Indicates whether the created resource is system created or"),
+    created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
+    last_updated_time: str = typer.Option(None, "--last-updated-time", help="Time(in epoch millis) when this resource was last updated."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update specific Work Type by ID."""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/work-type/{id}"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if organization_id is not None:
+            body["organizationId"] = organization_id
+        if id_param is not None:
+            body["id"] = id_param
+        if version is not None:
+            body["version"] = version
+        if name is not None:
+            body["name"] = name
+        if description is not None:
+            body["description"] = description
+        if work_type_code is not None:
+            body["workTypeCode"] = work_type_code
+        if active is not None:
+            body["active"] = active
+        if system_default is not None:
+            body["systemDefault"] = system_default
+        if created_time is not None:
+            body["createdTime"] = created_time
+        if last_updated_time is not None:
+            body["lastUpdatedTime"] = last_updated_time
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("delete")
+def delete(
+    id: str = typer.Argument(help="id"),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Delete specific Work Type by ID."""
+    if not force:
+        typer.confirm(f"Delete {id}?", abort=True)
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/work-type/{id}"
+    try:
+        api.session.rest_delete(url)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Deleted: {id}")
+
+
+
 @app.command("list-incoming-references")
 def list_incoming_references(
     id: str = typer.Argument(help="id"),
@@ -353,154 +518,5 @@ def list_work_type(
         print_json(items)
     else:
         print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
-
-
-
-@app.command("show")
-def show(
-    id: str = typer.Argument(help="id"),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Get specific Work Type by ID."""
-    api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
-    url = f"{cc_base_url}/organization/{orgid}/work-type/{id}"
-    try:
-        result = api.session.rest_get(url)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
-
-
-
-@app.command("update")
-def update(
-    id: str = typer.Argument(help="id"),
-    name: str = typer.Option(None, "--name", help=""),
-    active: str = typer.Option(None, "--active", help=""),
-    organization_id: str = typer.Option(None, "--organization-id", help=""),
-    system_default: str = typer.Option(None, "--system-default", help=""),
-    version: str = typer.Option(None, "--version", help=""),
-    description: str = typer.Option(None, "--description", help=""),
-    id_param: str = typer.Option(None, "--id", help=""),
-    work_type_code: str = typer.Option(None, "--work-type-code", help=""),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Update specific Work Type by ID."""
-    api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
-    url = f"{cc_base_url}/organization/{orgid}/work-type/{id}"
-    if json_body:
-        body = json.loads(json_body)
-    else:
-        body = {}
-        if name is not None:
-            body["name"] = name
-        if active is not None:
-            body["active"] = active
-        if organization_id is not None:
-            body["organizationId"] = organization_id
-        if system_default is not None:
-            body["systemDefault"] = system_default
-        if version is not None:
-            body["version"] = version
-        if description is not None:
-            body["description"] = description
-        if id_param is not None:
-            body["id"] = id_param
-        if work_type_code is not None:
-            body["workTypeCode"] = work_type_code
-    try:
-        result = api.session.rest_put(url, json=body)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    typer.echo(f"Updated.")
-
-
-
-@app.command("delete")
-def delete(
-    id: str = typer.Argument(help="id"),
-    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Delete specific Work Type by ID."""
-    if not force:
-        typer.confirm(f"Delete {orgid}?", abort=True)
-    api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
-    url = f"{cc_base_url}/organization/{orgid}/work-type/{id}"
-    try:
-        api.session.rest_delete(url)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    typer.echo(f"Deleted: {orgid}")
 
 

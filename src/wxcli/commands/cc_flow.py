@@ -76,66 +76,10 @@ def cmd_list(
 
 
 
-@app.command("create")
-def create(
-    project_id: str = typer.Argument(help="projectId"),
-    overwrite: str = typer.Option(None, "--overwrite", help="Determines whether to overwrite the existing flow or not. Po"),
-    flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Import a Flow or Subflow."""
-    api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    org_id = get_org_id() or api.people.me().org_id
-    url = f"{cc_base_url}/flow-store/{org_id}/project/{project_id}/flows/import"
-    params = {}
-    if overwrite is not None:
-        params["overwrite"] = overwrite
-    if flow_type is not None:
-        params["flowType"] = flow_type
-    if json_body:
-        body = json.loads(json_body)
-    else:
-        body = {}
-    try:
-        result = api.session.rest_post(url, json=body, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
-    else:
-        print_json(result)
-
-
-
-@app.command("list-export")
-def list_export(
-    project_id: str = typer.Argument(help="projectId"),
+@app.command("export")
+def export(
     flow_id: str = typer.Argument(help="flowId"),
+    project_id: str = typer.Argument(help="projectId"),
     version: str = typer.Option(None, "--version", help="Version ID. Possible values are 'draft', 'latest' or version"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
@@ -146,7 +90,7 @@ def list_export(
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     org_id = get_org_id() or api.people.me().org_id
-    url = f"{cc_base_url}/flow-store/{org_id}/project/{project_id}/flows/{flow_id}/export"
+    url = f"{cc_base_url}/flow-store/{org_id}/project/{project_id}/flows/{flow_id}:export"
     params = {}
     if version is not None:
         params["version"] = version
@@ -177,7 +121,7 @@ def list_export(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("validationResults", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("runtimeVariables", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -185,11 +129,11 @@ def list_export(
 
 
 
-@app.command("create-export")
-def create_export(
-    project_id: str = typer.Argument(help="projectId"),
+@app.command("publish")
+def publish(
     flow_id: str = typer.Argument(help="flowId"),
-    comment: str = typer.Option(None, "--comment", help=""),
+    project_id: str = typer.Argument(help="projectId"),
+    comment: str = typer.Option(None, "--comment", help="A comment to provide context on publishing the flow."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -198,7 +142,7 @@ def create_export(
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     org_id = get_org_id() or api.people.me().org_id
-    url = f"{cc_base_url}/flow-store/{org_id}/project/{project_id}/flows/{flow_id}/export"
+    url = f"{cc_base_url}/flow-store/{org_id}/project/{project_id}/flows/{flow_id}:publish"
     if json_body:
         body = json.loads(json_body)
     else:

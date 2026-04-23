@@ -2441,7 +2441,7 @@
                       "cx_essentials",
                       "webex_calling_standard"
                     ],
-                    "description": "The Webex Wholesale package to be assigned to the subscriber. **NOTE:** This parameter will be deprecated soon. Please\n\nuse `packages` instead.\n * `webex_calling` - Calling Basic Package.\n * `webex_meetings` - Meetings Package.\n * `webex_suite` - Suite Package.\n * `webex_voice` - Voice Package.\n * `cx_essentials` - Customer Experience Essentials Package.\n * `webex_calling_standard` - Webex Calling Standard Package.\n"
+                    "description": "The Webex Wholesale package to be assigned to the subscriber. **NOTE:** This parameter will be deprecated soon. Please\n\nuse `packages` instead.\n * `webex_calling` - Calling Basic Package.\n * `webex_meetings` - Meetings Package.\n * `webex_suite` - Suite Package.\n * `webex_voice` - Voice Package.\n * `cx_essentials` - Customer Assist Package.\n * `webex_calling_standard` - Webex Calling Standard Package.\n"
                   },
                   "packages": {
                     "type": "array",
@@ -2960,7 +2960,7 @@
                       "cx_essentials",
                       "webex_calling_standard"
                     ],
-                    "description": "The Webex Wholesale package to be assigned to the subscriber. **NOTE:** This parameter will be deprecated soon. Please\n\nuse `packages` instead.\n * `webex_calling` - Calling Basic Package.\n * `webex_meetings` - Meetings Package.\n * `webex_suite` - Suite Package.\n * `webex_voice` - Voice Package.\n * `cx_essentials` - Customer Experience Essentials Package.\n * `webex_calling_standard` - Webex Calling Standard Package.\n"
+                    "description": "The Webex Wholesale package to be assigned to the subscriber. **NOTE:** This parameter will be deprecated soon. Please\n\nuse `packages` instead.\n * `webex_calling` - Calling Basic Package.\n * `webex_meetings` - Meetings Package.\n * `webex_suite` - Suite Package.\n * `webex_voice` - Voice Package.\n * `cx_essentials` - Customer Assist Package.\n * `webex_calling_standard` - Webex Calling Standard Package.\n"
                   },
                   "packages": {
                     "type": "array",
@@ -5383,7 +5383,8 @@
         "type": "object",
         "required": [
           "devices",
-          "maxDeviceCount"
+          "maxDeviceCount",
+          "maxOwnedDeviceCount"
         ],
         "properties": {
           "devices": {
@@ -5396,6 +5397,10 @@
           "maxDeviceCount": {
             "type": "number",
             "description": "Maximum number of devices a person can be assigned to."
+          },
+          "maxOwnedDeviceCount": {
+            "type": "number",
+            "description": "Maximum number of devices a person can own."
           }
         }
       },
@@ -6168,7 +6173,8 @@
         "type": "object",
         "required": [
           "devices",
-          "maxDeviceCount"
+          "maxDeviceCount",
+          "maxOwnedDeviceCount"
         ],
         "properties": {
           "devices": {
@@ -6181,6 +6187,10 @@
           "maxDeviceCount": {
             "type": "number",
             "description": "Maximum number of devices a workspace can be assigned to."
+          },
+          "maxOwnedDeviceCount": {
+            "type": "number",
+            "description": "Maximum number of devices a workspace can own."
           }
         }
       },
@@ -9092,6 +9102,323 @@
           }
         }
       },
+      "Location": {
+        "type": "object",
+        "required": [
+          "address",
+          "countryCode",
+          "latitude",
+          "longitude"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VybjpURUFNOnVzLWVhc3QtMV9pbnQxMy9XT1JLU1BBQ0VfTE9DQVRJT04vM2E2ZmYzNzMtNjhhNy00NGU0LTkxZDYtYTI3NDYwZTBhYzVjIzUxOWY2N2E1LTlkOTktNGM2My04YTA5LWI5MTcxY2M2NmJkMQ==",
+            "description": "Unique identifier for the location."
+          },
+          "locationId": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzA2OWEzMDY2LTgwNjMtNDI0Zi05YmE0LTBhZDdhMmYxMzNjNQ",
+            "description": "The ID to use for this location in the [/locations API](/docs/api/v1/locations)"
+          },
+          "displayName": {
+            "type": "string",
+            "example": "Cisco Barcelona",
+            "description": "A friendly name for the location."
+          },
+          "address": {
+            "type": "string",
+            "example": "Carrer de Pere IV, Barcelona, Spain",
+            "description": "The location address."
+          },
+          "countryCode": {
+            "type": "string",
+            "example": "ES",
+            "description": "The location country code (ISO 3166-1)."
+          },
+          "cityName": {
+            "type": "string",
+            "example": "Barcelona",
+            "description": "The location city name."
+          },
+          "latitude": {
+            "type": "number",
+            "example": 41.406615,
+            "description": "The location latitude."
+          },
+          "longitude": {
+            "type": "number",
+            "example": 2.200717,
+            "description": "The location longitude."
+          },
+          "notes": {
+            "type": "string",
+            "example": "A note about the location",
+            "description": "Notes associated with the location."
+          }
+        }
+      },
+      "PutCommonLocationObject": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Denver",
+            "description": "The name of the location. Supports up to 256 characters, but locations enabled for Webex Calling are limited to 80 characters maximum."
+          },
+          "timeZone": {
+            "type": "string",
+            "example": "America/Chicago",
+            "description": "Time zone associated with this location, refer to this link (https://developer.webex.com/docs/api/guides/webex-for-broadworks-developers-guide#webex-meetings-site-timezone) for format."
+          },
+          "preferredLanguage": {
+            "type": "string",
+            "example": "en_us",
+            "description": "Default email language."
+          },
+          "address": {
+            "type": "object",
+            "properties": {
+              "address1": {
+                "type": "string",
+                "example": "123 Some St.",
+                "description": "Address 1"
+              },
+              "address2": {
+                "type": "string",
+                "example": "Suite 456",
+                "description": "Address 2"
+              },
+              "city": {
+                "type": "string",
+                "example": "Supercity",
+                "description": "City"
+              },
+              "state": {
+                "type": "string",
+                "example": "Goodstate",
+                "description": "State code"
+              },
+              "postalCode": {
+                "type": "string",
+                "example": "12345",
+                "description": "Postal Code"
+              },
+              "country": {
+                "type": "string",
+                "example": "US",
+                "description": "ISO-3166 2-Letter Country Code."
+              }
+            },
+            "description": "The address of the location."
+          }
+        }
+      },
+      "PostCommonLocationObject": {
+        "type": "object",
+        "required": [
+          "name",
+          "timeZone",
+          "preferredLanguage",
+          "announcementLanguage",
+          "address"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Denver",
+            "description": "The name of the location. Supports up to 256 characters, but locations enabled for Webex Calling are limited to 80 characters maximum."
+          },
+          "timeZone": {
+            "type": "string",
+            "example": "America/Chicago",
+            "description": "Time zone associated with this location, refer to this link (https://developer.webex.com/docs/api/guides/webex-for-broadworks-developers-guide#webex-meetings-site-timezone) for format."
+          },
+          "preferredLanguage": {
+            "type": "string",
+            "example": "en_us",
+            "description": "Default email language."
+          },
+          "announcementLanguage": {
+            "type": "string",
+            "example": "fr_fr",
+            "description": "Location's phone announcement language."
+          },
+          "address": {
+            "type": "object",
+            "required": [
+              "address1",
+              "city",
+              "state",
+              "postalCode",
+              "country"
+            ],
+            "properties": {
+              "address1": {
+                "type": "string",
+                "example": "123 Some St.",
+                "description": "Address 1"
+              },
+              "address2": {
+                "type": "string",
+                "example": "Suite 456",
+                "description": "Address 2"
+              },
+              "city": {
+                "type": "string",
+                "example": "Supercity",
+                "description": "City"
+              },
+              "state": {
+                "type": "string",
+                "example": "Goodstate",
+                "description": "State code"
+              },
+              "postalCode": {
+                "type": "string",
+                "example": "12345",
+                "description": "Postal Code"
+              },
+              "country": {
+                "type": "string",
+                "example": "US",
+                "description": "ISO-3166 2-Letter Country Code."
+              }
+            },
+            "description": "The address of the location."
+          },
+          "latitude": {
+            "type": "string",
+            "example": "12.935784",
+            "description": "Latitude"
+          },
+          "longitude": {
+            "type": "string",
+            "example": "77.697332",
+            "description": "Longitude"
+          },
+          "notes": {
+            "type": "string",
+            "example": "123 Some St. Denver Location",
+            "description": "Notes"
+          }
+        }
+      },
+      "LocationsCollectionResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Location"
+            }
+          }
+        }
+      },
+      "Floor": {
+        "type": "object",
+        "required": [
+          "floorNumber"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "xxx==",
+            "description": "Unique identifier for the floor."
+          },
+          "locationId": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VybjpURUFNOnVzLWVhc3QtMV9pbnQxMy9XT1JLU1BBQ0VfTE9DQVRJT04vM2E2ZmYzNzMtNjhhNy00NGU0LTkxZDYtYTI3NDYwZTBhYzVjIzUxOWY2N2E1LTlkOTktNGM2My04YTA5LWI5MTcxY2M2NmJkMQ==",
+            "description": "Unique identifier for the location."
+          },
+          "floorNumber": {
+            "type": "number",
+            "example": -1,
+            "description": "The floor number."
+          },
+          "displayName": {
+            "type": "string",
+            "example": "The basement",
+            "description": "The floor display name."
+          }
+        }
+      },
+      "FloorUpdated": {
+        "type": "object",
+        "required": [
+          "floorNumber"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "xxx==",
+            "description": "Unique identifier for the floor."
+          },
+          "locationId": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VybjpURUFNOnVzLWVhc3QtMV9pbnQxMy9XT1JLU1BBQ0VfTE9DQVRJT04vM2E2ZmYzNzMtNjhhNy00NGU0LTkxZDYtYTI3NDYwZTBhYzVjIzUxOWY2N2E1LTlkOTktNGM2My04YTA5LWI5MTcxY2M2NmJkMQ==",
+            "description": "Unique identifier for the location."
+          },
+          "floorNumber": {
+            "type": "number",
+            "example": 1,
+            "description": "The floor number."
+          },
+          "displayName": {
+            "type": "string",
+            "example": "My custom name",
+            "description": "The floor display name."
+          }
+        }
+      },
+      "FloorCreationRequest": {
+        "type": "object",
+        "required": [
+          "floorNumber"
+        ],
+        "properties": {
+          "floorNumber": {
+            "type": "number",
+            "example": -1,
+            "description": "The floor number."
+          },
+          "displayName": {
+            "type": "string",
+            "example": "The basement",
+            "description": "The floor display name."
+          }
+        }
+      },
+      "FloorUpdateRequest": {
+        "type": "object",
+        "required": [
+          "floorNumber"
+        ],
+        "properties": {
+          "floorNumber": {
+            "type": "number",
+            "example": 1,
+            "description": "The floor number."
+          },
+          "displayName": {
+            "type": "string",
+            "example": "My custom name",
+            "description": "The floor display name."
+          }
+        }
+      },
+      "FloorCollectionResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Floor"
+            },
+            "description": "An array of floor objects."
+          }
+        }
+      },
       "MeetingQualitiesResponse": {
         "type": "object",
         "properties": {
@@ -11450,62 +11777,6 @@
           }
         }
       },
-      "Location": {
-        "type": "object",
-        "required": [
-          "address",
-          "countryCode",
-          "latitude",
-          "longitude"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VybjpURUFNOnVzLWVhc3QtMV9pbnQxMy9XT1JLU1BBQ0VfTE9DQVRJT04vM2E2ZmYzNzMtNjhhNy00NGU0LTkxZDYtYTI3NDYwZTBhYzVjIzUxOWY2N2E1LTlkOTktNGM2My04YTA5LWI5MTcxY2M2NmJkMQ==",
-            "description": "Unique identifier for the location."
-          },
-          "locationId": {
-            "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzA2OWEzMDY2LTgwNjMtNDI0Zi05YmE0LTBhZDdhMmYxMzNjNQ",
-            "description": "The ID to use for this location in the [/locations API](/docs/api/v1/locations)"
-          },
-          "displayName": {
-            "type": "string",
-            "example": "Cisco Barcelona",
-            "description": "A friendly name for the location."
-          },
-          "address": {
-            "type": "string",
-            "example": "Carrer de Pere IV, Barcelona, Spain",
-            "description": "The location address."
-          },
-          "countryCode": {
-            "type": "string",
-            "example": "ES",
-            "description": "The location country code (ISO 3166-1)."
-          },
-          "cityName": {
-            "type": "string",
-            "example": "Barcelona",
-            "description": "The location city name."
-          },
-          "latitude": {
-            "type": "number",
-            "example": 41.406615,
-            "description": "The location latitude."
-          },
-          "longitude": {
-            "type": "number",
-            "example": 2.200717,
-            "description": "The location longitude."
-          },
-          "notes": {
-            "type": "string",
-            "example": "A note about the location",
-            "description": "Notes associated with the location."
-          }
-        }
-      },
       "WorkspaceLocationsCreationRequest": {
         "type": "object",
         "required": [
@@ -11614,62 +11885,6 @@
               "$ref": "#/components/schemas/Location"
             },
             "description": "An array of location objects."
-          }
-        }
-      },
-      "Floor": {
-        "type": "object",
-        "required": [
-          "floorNumber"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "xxx==",
-            "description": "Unique identifier for the floor."
-          },
-          "locationId": {
-            "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VybjpURUFNOnVzLWVhc3QtMV9pbnQxMy9XT1JLU1BBQ0VfTE9DQVRJT04vM2E2ZmYzNzMtNjhhNy00NGU0LTkxZDYtYTI3NDYwZTBhYzVjIzUxOWY2N2E1LTlkOTktNGM2My04YTA5LWI5MTcxY2M2NmJkMQ==",
-            "description": "Unique identifier for the location."
-          },
-          "floorNumber": {
-            "type": "number",
-            "example": -1,
-            "description": "The floor number."
-          },
-          "displayName": {
-            "type": "string",
-            "example": "The basement",
-            "description": "The floor display name."
-          }
-        }
-      },
-      "FloorUpdated": {
-        "type": "object",
-        "required": [
-          "floorNumber"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "xxx==",
-            "description": "Unique identifier for the floor."
-          },
-          "locationId": {
-            "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VybjpURUFNOnVzLWVhc3QtMV9pbnQxMy9XT1JLU1BBQ0VfTE9DQVRJT04vM2E2ZmYzNzMtNjhhNy00NGU0LTkxZDYtYTI3NDYwZTBhYzVjIzUxOWY2N2E1LTlkOTktNGM2My04YTA5LWI5MTcxY2M2NmJkMQ==",
-            "description": "Unique identifier for the location."
-          },
-          "floorNumber": {
-            "type": "number",
-            "example": 1,
-            "description": "The floor number."
-          },
-          "displayName": {
-            "type": "string",
-            "example": "My custom name",
-            "description": "The floor display name."
           }
         }
       },
@@ -12736,10 +12951,16 @@
           "webex_suite",
           "webex_voice",
           "cx_essentials",
+          "webex_calling_standard",
           "cisco_calling_plan",
-          "attendant_console"
+          "attendant_console",
+          "cx_premium_agent",
+          "cx_standard_agent",
+          "cx_voice_ports",
+          "cx_ai_assistant",
+          "webex_ai_agent"
         ],
-        "description": " * `common_area_calling` - Webex Common Area Calling Package.\n * `webex_calling` - Webex Calling Package.\n * `webex_meetings` - Webex Meetings Package.\n * `webex_suite` - Webex Suite Package.\n * `webex_voice` - Webex Voice Package.\n * `cx_essentials` - Customer Experience Essentials Package.\n * `cisco_calling_plan` - Cisco Calling Plan Package.\n * `attendant_console` - Attendant Console Package.\n"
+        "description": " * `common_area_calling` - Webex Common Area Calling Package.\n * `webex_calling` - Webex Calling Package.\n * `webex_meetings` - Webex Meetings Package.\n * `webex_suite` - Webex Suite Package.\n * `webex_voice` - Webex Voice Package.\n * `cx_essentials` - Customer Assist Package.\n * `webex_calling_standard` - Webex Calling Standard Package.\n * `cisco_calling_plan` - Cisco Calling Plan Package.\n * `attendant_console` - Attendant Console Package.\n * `cx_premium_agent` - Contact Center Premium Agent Package.\n * `cx_standard_agent` - Contact Center Standard Agent Package.\n * `cx_voice_ports` - Contact Center Voice Ports Package.\n * `cx_ai_assistant` - Contact Center AI Assistant Package.\n * `webex_ai_agent` - Webex AI Agent Package.\n"
       },
       "Address": {
         "type": "object",
@@ -12757,7 +12978,7 @@
           "city": {
             "type": "string",
             "example": "Milpitas",
-            "description": "City of the customer."
+            "description": "Customer's city."
           },
           "stateOrProvince": {
             "type": "string",
@@ -12772,7 +12993,7 @@
           "country": {
             "type": "string",
             "example": "`US`:",
-            "description": "ISO2 country code of the customer size = 2."
+            "description": "ISO2 country code of the customer, 2 characters. This attribute is used to determine the default Dial In number for the Webex Meeting Sites. Refer to the Address section of [help page](https://www.cisco.com/c/en/us/td/docs/voice_ip_comm/cloudCollaboration/wholesale_rtm/wbxbw_b_wholesale-rtm-solution-guide/wbxbw_m_overview-of-webex-wholesale.html#Cisco_Reference.dita_7875bb3e-10c0-4214-8173-7845db31c7a6) for more information."
           }
         }
       },
@@ -12863,7 +13084,7 @@
                 "description": "A textual description of the `infoCode`."
               }
             },
-            "description": "A list of ProvisioningPreCheckResponseInfo object."
+            "description": "A list of `ProvisioningPreCheckResponseInfo` objects."
           }
         }
       },
@@ -12886,18 +13107,8 @@
         "type": "object",
         "properties": {
           "name": {
-            "type": "string",
-            "enum": [
-              "common_area_calling",
-              "webex_calling",
-              "webex_meetings",
-              "webex_suite",
-              "webex_voice",
-              "cx_essentials",
-              "cisco_calling_plan",
-              "attendant_console"
-            ],
-            "description": "The Webex Wholesale Packages assigned to the customer.\n * `common_area_calling` - Webex Common Area Calling Package.\n * `webex_calling` - Webex Calling Package.\n * `webex_meetings` - Webex Meetings Package.\n * `webex_suite` - Webex Suite Package.\n * `webex_voice` - Webex Voice Package.\n * `cx_essentials` - Customer Experience Essentials Package.\n * `cisco_calling_plan` - Cisco Calling Plan Package.\n * `attendant_console` - Attendant Console Package.\n"
+            "$ref": "#/components/schemas/WholesalePackagesCustomer",
+            "description": "The Webex Wholesale Packages assigned to the customer."
           },
           "status": {
             "type": "string",
@@ -12922,6 +13133,14 @@
               "$ref": "#/components/schemas/Error"
             },
             "description": "List of errors that occurred during that last attempt to provision/update this customer.\n\n *Note:*\n\n+ This list captures errors that occurred during *asynchronous or background* provisioning of the customer, *after* the API has been accepted and 202 response returned.\n\n+ Any errors that occur during initial API request validation will be captured directly in error response with appropriate HTTP status code."
+          },
+          "licenseIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "example": "Y2lzY29zcGFyazovL3VzL0xJQ0VOU0UvYjdjNGRlZTgtODZmNi00YzAxLWJkYjMtMTM3MjM2ZWY3NGRmOlNMV0NBXzdmYTBkZjhjLTlmNTEtNGE1Zi05YzY4LTU1ODRlNWM2N2E0Yg"
+            },
+            "description": "List of licenseIds for the package."
           }
         }
       },
@@ -12999,9 +13218,12 @@
           "webex_suite",
           "webex_voice",
           "cx_essentials",
-          "attendant_console"
+          "webex_calling_standard",
+          "attendant_console",
+          "cx_premium_agent",
+          "cx_standard_agent"
         ],
-        "description": " * `webex_calling` - Calling Basic Package.\n * `webex_meetings` - Meetings Package.\n * `webex_suite` - Suite Package.\n * `webex_voice` - Voice Package.\n * `cx_essentials` - Customer Experience Essentials Package.\n * `attendant_console` - Attendant Console Package.\n"
+        "description": " * `webex_calling` - Calling Basic Package.\n * `webex_meetings` - Meetings Package.\n * `webex_suite` - Suite Package.\n * `webex_voice` - Voice Package.\n * `cx_essentials` - Customer Assist Package.\n * `webex_calling_standard` - Webex Calling Standard Package.\n * `attendant_console` - Attendant Console Package.\n * `cx_premium_agent` - Contact Center Premium Agent Package.\n * `cx_standard_agent` - Contact Center Standard Agent Package.\n"
       },
       "Subscriber": {
         "type": "object",
@@ -13038,9 +13260,10 @@
               "webex_meetings",
               "webex_suite",
               "webex_voice",
-              "cx_essentials"
+              "cx_essentials",
+              "webex_calling_standard"
             ],
-            "description": "The Webex Wholesale Package assigned to the subscriber.\n * `webex_calling` - Calling Basic Package.\n * `webex_meetings` - Meetings Package.\n * `webex_suite` - Suite Package.\n * `webex_voice` - Voice Package.\n * `cx_essentials` - Customer Experience Essentials Package.\n"
+            "description": "The Webex Wholesale Package assigned to the subscriber.\n * `webex_calling` - Calling Basic Package.\n * `webex_meetings` - Meetings Package.\n * `webex_suite` - Suite Package.\n * `webex_voice` - Voice Package.\n * `cx_essentials` - Customer Assist Package.\n * `webex_calling_standard` - Webex Calling Standard Package.\n"
           },
           "packages": {
             "type": "array",
@@ -13110,7 +13333,7 @@
                 "description": "A textual description of the `infoCode`."
               }
             },
-            "description": "A list of ProvisioningPreCheckResponseInfo object."
+            "description": "A list of `ProvisioningPreCheckResponseInfo` objects."
           }
         }
       }

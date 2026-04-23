@@ -736,3 +736,8 @@ cli_name_overrides:
   make_optional:
     list:
       - limitToLocationId
+
+"Flow":
+  command_name_overrides:
+    "list-{flow-id}:export": "export"
+    "create": "publish"

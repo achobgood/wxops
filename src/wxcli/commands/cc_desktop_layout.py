@@ -11,11 +11,117 @@ app = typer.Typer(help="Manage Webex Contact Center cc-desktop-layout.")
 
 @app.command("create")
 def create(
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is require"),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
+    name: str = typer.Option(None, "--name", help="(required) A name for the Desktop Layout."),
+    description: str = typer.Option(None, "--description", help="A short description indicating the context of the Desktop La"),
+    edited_by: str = typer.Option(None, "--edited-by", help="(required) Indicates who modified the Desktop Layout."),
+    json_file_name: str = typer.Option(None, "--json-file-name", help="(required) Enter the name of the file."),
+    json_file_content: str = typer.Option(None, "--json-file-content", help="(required) Enter the Desktop Layout json."),
+    global_param: bool = typer.Option(None, "--global/--no-global", help="(required) Indicates if the Desktop Layout is a global layout or a cust"),
+    status: bool = typer.Option(None, "--status/--no-status", help="(required) Indicates if the Desktop Layout is in active state or inacti"),
+    default_json_modified: bool = typer.Option(None, "--default-json-modified/--no-default-json-modified", help="(required) Indicates if the default Desktop Layout is modified."),
+    validated: bool = typer.Option(None, "--validated/--no-validated", help="(required) Indicates if the Desktop Layout is validated."),
+    validated_time: str = typer.Option(None, "--validated-time", help="Validated time(in epoch milliseconds) of this resource."),
+    default_json_modified_time: str = typer.Option(None, "--default-json-modified-time", help="Default Json Modified time(in epoch milliseconds) of this re"),
+    modified_time: str = typer.Option(None, "--modified-time", help="Modified time(in epoch milliseconds) of this resource."),
+    system_default: bool = typer.Option(None, "--system-default/--no-system-default", help="Indicates whether the created resource is system created or"),
+    created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
+    last_updated_time: str = typer.Option(None, "--last-updated-time", help="This is the updated time of the entity."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Desktop Layout(s)\n\nExample --json-body:\n  '{"items":[{"item":"...","itemIdentifier":"...","requestAction":"..."}]}'."""
+    """Create a new Desktop Layout\n\nExample --json-body:\n  '{"name":"...","editedBy":"...","jsonFileName":"...","jsonFileContent":"...","global":true,"status":true,"defaultJsonModified":true,"validated":true}'."""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/desktop-layout"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if organization_id is not None:
+            body["organizationId"] = organization_id
+        if id_param is not None:
+            body["id"] = id_param
+        if version is not None:
+            body["version"] = version
+        if name is not None:
+            body["name"] = name
+        if description is not None:
+            body["description"] = description
+        if edited_by is not None:
+            body["editedBy"] = edited_by
+        if json_file_name is not None:
+            body["jsonFileName"] = json_file_name
+        if json_file_content is not None:
+            body["jsonFileContent"] = json_file_content
+        if global_param is not None:
+            body["global"] = global_param
+        if status is not None:
+            body["status"] = status
+        if default_json_modified is not None:
+            body["defaultJsonModified"] = default_json_modified
+        if validated is not None:
+            body["validated"] = validated
+        if validated_time is not None:
+            body["validatedTime"] = validated_time
+        if default_json_modified_time is not None:
+            body["defaultJsonModifiedTime"] = default_json_modified_time
+        if modified_time is not None:
+            body["modifiedTime"] = modified_time
+        if system_default is not None:
+            body["systemDefault"] = system_default
+        if created_time is not None:
+            body["createdTime"] = created_time
+        if last_updated_time is not None:
+            body["lastUpdatedTime"] = last_updated_time
+        _missing = [f for f in ['name', 'editedBy', 'jsonFileName', 'jsonFileContent', 'global', 'status', 'defaultJsonModified', 'validated'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
+    try:
+        result = api.session.rest_post(url, json=body)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif not result or result == {}:
+        typer.echo("Created.")
+    else:
+        print_json(result)
+
+
+
+@app.command("create-bulk")
+def create_bulk(
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Bulk save Desktop Layout(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -59,168 +165,6 @@ def create(
 
 @app.command("list")
 def cmd_list(
-    filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
-    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes"),
-    search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search col"),
-    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
-    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
-    single_object_response: str = typer.Option(None, "--single-object-response", help="Specifiy whether to include array fields in the response, Th"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """List Desktop Layout(s)."""
-    api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
-    url = f"{cc_base_url}/organization/{orgid}/v2/desktop-layout"
-    params = {}
-    if filter_param is not None:
-        params["filter"] = filter_param
-    if attributes is not None:
-        params["attributes"] = attributes
-    if search is not None:
-        params["search"] = search
-    if page is not None:
-        params["page"] = page
-    if page_size is not None:
-        params["pageSize"] = page_size
-    if single_object_response is not None:
-        params["singleObjectResponse"] = single_object_response
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
-    try:
-        result = api.session.rest_get(url, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
-
-
-
-@app.command("create-desktop-layout")
-def create_desktop_layout(
-    default_json_modified: str = typer.Option(None, "--default-json-modified", help=""),
-    edited_by: str = typer.Option(None, "--edited-by", help=""),
-    json_file_content: str = typer.Option(None, "--json-file-content", help=""),
-    json_file_name: str = typer.Option(None, "--json-file-name", help=""),
-    validated_time: str = typer.Option(None, "--validated-time", help=""),
-    default_json_modified_time: str = typer.Option(None, "--default-json-modified-time", help=""),
-    modified_time: str = typer.Option(None, "--modified-time", help=""),
-    description: str = typer.Option(None, "--description", help=""),
-    version: str = typer.Option(None, "--version", help=""),
-    system_default: str = typer.Option(None, "--system-default", help=""),
-    status: str = typer.Option(None, "--status", help=""),
-    id_param: str = typer.Option(None, "--id", help=""),
-    organization_id: str = typer.Option(None, "--organization-id", help=""),
-    validated: str = typer.Option(None, "--validated", help=""),
-    name: str = typer.Option(None, "--name", help=""),
-    global_param: str = typer.Option(None, "--global", help=""),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Create a new Desktop Layout\n\nExample --json-body:\n  '{"defaultJsonModified":"...","editedBy":"...","jsonFileContent":"...","jsonFileName":"...","validatedTime":"...","defaultJsonModifiedTime":"...","modifiedTime":"...","teamIds":["..."]}'."""
-    api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
-    url = f"{cc_base_url}/organization/{orgid}/desktop-layout"
-    if json_body:
-        body = json.loads(json_body)
-    else:
-        body = {}
-        if default_json_modified is not None:
-            body["defaultJsonModified"] = default_json_modified
-        if edited_by is not None:
-            body["editedBy"] = edited_by
-        if json_file_content is not None:
-            body["jsonFileContent"] = json_file_content
-        if json_file_name is not None:
-            body["jsonFileName"] = json_file_name
-        if validated_time is not None:
-            body["validatedTime"] = validated_time
-        if default_json_modified_time is not None:
-            body["defaultJsonModifiedTime"] = default_json_modified_time
-        if modified_time is not None:
-            body["modifiedTime"] = modified_time
-        if description is not None:
-            body["description"] = description
-        if version is not None:
-            body["version"] = version
-        if system_default is not None:
-            body["systemDefault"] = system_default
-        if status is not None:
-            body["status"] = status
-        if id_param is not None:
-            body["id"] = id_param
-        if organization_id is not None:
-            body["organizationId"] = organization_id
-        if validated is not None:
-            body["validated"] = validated
-        if name is not None:
-            body["name"] = name
-        if global_param is not None:
-            body["global"] = global_param
-    try:
-        result = api.session.rest_post(url, json=body)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
-    else:
-        print_json(result)
-
-
-
-@app.command("list-bulk-export")
-def list_bulk_export(
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
@@ -270,6 +214,237 @@ def list_bulk_export(
         print_json(items)
     else:
         print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+
+
+
+@app.command("create-purge-inactive-entities")
+def create_purge_inactive_entities(
+    next_start_id: str = typer.Option(None, "--next-start-id", help="This is the entity ID from which items for the next purge ba"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Purge inactive Desktop Layout(s)."""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/desktop-layout/purge-inactive-entities"
+    params = {}
+    if next_start_id is not None:
+        params["nextStartId"] = next_start_id
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+    try:
+        result = api.session.rest_post(url, json=body, params=params)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif not result or result == {}:
+        typer.echo("Created.")
+    else:
+        print_json(result)
+
+
+
+@app.command("show")
+def show(
+    id: str = typer.Argument(help="id"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get specific Desktop Layout by ID."""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/desktop-layout/{id}"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if output == "json":
+        print_json(result)
+    else:
+        if isinstance(result, dict):
+            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
+        elif isinstance(result, list):
+            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
+        else:
+            print_json(result)
+
+
+
+@app.command("update")
+def update(
+    id: str = typer.Argument(help="id"),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is require"),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
+    name: str = typer.Option(None, "--name", help="A name for the Desktop Layout."),
+    description: str = typer.Option(None, "--description", help="A short description indicating the context of the Desktop La"),
+    edited_by: str = typer.Option(None, "--edited-by", help="Indicates who modified the Desktop Layout."),
+    json_file_name: str = typer.Option(None, "--json-file-name", help="Enter the name of the file."),
+    json_file_content: str = typer.Option(None, "--json-file-content", help="Enter the Desktop Layout json."),
+    global_param: bool = typer.Option(None, "--global/--no-global", help="Indicates if the Desktop Layout is a global layout or a cust"),
+    status: bool = typer.Option(None, "--status/--no-status", help="Indicates if the Desktop Layout is in active state or inacti"),
+    default_json_modified: bool = typer.Option(None, "--default-json-modified/--no-default-json-modified", help="Indicates if the default Desktop Layout is modified."),
+    validated: bool = typer.Option(None, "--validated/--no-validated", help="Indicates if the Desktop Layout is validated."),
+    validated_time: str = typer.Option(None, "--validated-time", help="Validated time(in epoch milliseconds) of this resource."),
+    default_json_modified_time: str = typer.Option(None, "--default-json-modified-time", help="Default Json Modified time(in epoch milliseconds) of this re"),
+    modified_time: str = typer.Option(None, "--modified-time", help="Modified time(in epoch milliseconds) of this resource."),
+    system_default: bool = typer.Option(None, "--system-default/--no-system-default", help="Indicates whether the created resource is system created or"),
+    created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
+    last_updated_time: str = typer.Option(None, "--last-updated-time", help="This is the updated time of the entity."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update specific Desktop Layout by ID\n\nExample --json-body:\n  '{"name":"...","editedBy":"...","jsonFileName":"...","jsonFileContent":"...","global":true,"status":true,"defaultJsonModified":true,"validated":true}'."""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/desktop-layout/{id}"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if organization_id is not None:
+            body["organizationId"] = organization_id
+        if id_param is not None:
+            body["id"] = id_param
+        if version is not None:
+            body["version"] = version
+        if name is not None:
+            body["name"] = name
+        if description is not None:
+            body["description"] = description
+        if edited_by is not None:
+            body["editedBy"] = edited_by
+        if json_file_name is not None:
+            body["jsonFileName"] = json_file_name
+        if json_file_content is not None:
+            body["jsonFileContent"] = json_file_content
+        if global_param is not None:
+            body["global"] = global_param
+        if status is not None:
+            body["status"] = status
+        if default_json_modified is not None:
+            body["defaultJsonModified"] = default_json_modified
+        if validated is not None:
+            body["validated"] = validated
+        if validated_time is not None:
+            body["validatedTime"] = validated_time
+        if default_json_modified_time is not None:
+            body["defaultJsonModifiedTime"] = default_json_modified_time
+        if modified_time is not None:
+            body["modifiedTime"] = modified_time
+        if system_default is not None:
+            body["systemDefault"] = system_default
+        if created_time is not None:
+            body["createdTime"] = created_time
+        if last_updated_time is not None:
+            body["lastUpdatedTime"] = last_updated_time
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("delete")
+def delete(
+    id: str = typer.Argument(help="id"),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Delete specific Desktop Layout by ID."""
+    if not force:
+        typer.confirm(f"Delete {id}?", abort=True)
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/desktop-layout/{id}"
+    try:
+        api.session.rest_delete(url)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Deleted: {id}")
 
 
 
@@ -331,200 +506,46 @@ def list_incoming_references(
 
 
 
-@app.command("show")
-def show(
-    id: str = typer.Argument(help="id"),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+@app.command("list-desktop-layout")
+def list_desktop_layout(
+    filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
+    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attri"),
+    search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search col"),
+    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
+    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
+    single_object_response: str = typer.Option(None, "--single-object-response", help="Specifiy whether to include array fields in the response, Th"),
+    provisioning_view: str = typer.Option(None, "--provisioning-view", help="If set to true, the API will only return data that user has"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific Desktop Layout by ID."""
+    """List Desktop Layout(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
-    url = f"{cc_base_url}/organization/{orgid}/desktop-layout/{id}"
-    try:
-        result = api.session.rest_get(url)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
-
-
-
-@app.command("update")
-def update(
-    id: str = typer.Argument(help="id"),
-    default_json_modified: str = typer.Option(None, "--default-json-modified", help=""),
-    edited_by: str = typer.Option(None, "--edited-by", help=""),
-    json_file_content: str = typer.Option(None, "--json-file-content", help=""),
-    json_file_name: str = typer.Option(None, "--json-file-name", help=""),
-    validated_time: str = typer.Option(None, "--validated-time", help=""),
-    default_json_modified_time: str = typer.Option(None, "--default-json-modified-time", help=""),
-    modified_time: str = typer.Option(None, "--modified-time", help=""),
-    description: str = typer.Option(None, "--description", help=""),
-    version: str = typer.Option(None, "--version", help=""),
-    system_default: str = typer.Option(None, "--system-default", help=""),
-    status: str = typer.Option(None, "--status", help=""),
-    id_param: str = typer.Option(None, "--id", help=""),
-    organization_id: str = typer.Option(None, "--organization-id", help=""),
-    validated: str = typer.Option(None, "--validated", help=""),
-    name: str = typer.Option(None, "--name", help=""),
-    global_param: str = typer.Option(None, "--global", help=""),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Update specific Desktop Layout by ID\n\nExample --json-body:\n  '{"defaultJsonModified":"...","editedBy":"...","jsonFileContent":"...","jsonFileName":"...","validatedTime":"...","defaultJsonModifiedTime":"...","modifiedTime":"...","teamIds":["..."]}'."""
-    api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
-    url = f"{cc_base_url}/organization/{orgid}/desktop-layout/{id}"
-    if json_body:
-        body = json.loads(json_body)
-    else:
-        body = {}
-        if default_json_modified is not None:
-            body["defaultJsonModified"] = default_json_modified
-        if edited_by is not None:
-            body["editedBy"] = edited_by
-        if json_file_content is not None:
-            body["jsonFileContent"] = json_file_content
-        if json_file_name is not None:
-            body["jsonFileName"] = json_file_name
-        if validated_time is not None:
-            body["validatedTime"] = validated_time
-        if default_json_modified_time is not None:
-            body["defaultJsonModifiedTime"] = default_json_modified_time
-        if modified_time is not None:
-            body["modifiedTime"] = modified_time
-        if description is not None:
-            body["description"] = description
-        if version is not None:
-            body["version"] = version
-        if system_default is not None:
-            body["systemDefault"] = system_default
-        if status is not None:
-            body["status"] = status
-        if id_param is not None:
-            body["id"] = id_param
-        if organization_id is not None:
-            body["organizationId"] = organization_id
-        if validated is not None:
-            body["validated"] = validated
-        if name is not None:
-            body["name"] = name
-        if global_param is not None:
-            body["global"] = global_param
-    try:
-        result = api.session.rest_put(url, json=body)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    typer.echo(f"Updated.")
-
-
-
-@app.command("delete")
-def delete(
-    id: str = typer.Argument(help="id"),
-    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Delete specific Desktop Layout by ID."""
-    if not force:
-        typer.confirm(f"Delete {orgid}?", abort=True)
-    api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
-    url = f"{cc_base_url}/organization/{orgid}/desktop-layout/{id}"
-    try:
-        api.session.rest_delete(url)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    typer.echo(f"Deleted: {orgid}")
-
-
-
-@app.command("create-purge-inactive-entities")
-def create_purge_inactive_entities(
-    next_start_id: str = typer.Option(None, "--next-start-id", help="This is the entity ID from which items for the next purge ba"),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Purge inactive Desktop Layout(s)."""
-    api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
-    url = f"{cc_base_url}/organization/{orgid}/desktop-layout/purge-inactive-entities"
+    url = f"{cc_base_url}/organization/{orgid}/v2/desktop-layout"
     params = {}
-    if next_start_id is not None:
-        params["nextStartId"] = next_start_id
-    if json_body:
-        body = json.loads(json_body)
-    else:
-        body = {}
+    if filter_param is not None:
+        params["filter"] = filter_param
+    if attributes is not None:
+        params["attributes"] = attributes
+    if search is not None:
+        params["search"] = search
+    if page is not None:
+        params["page"] = page
+    if page_size is not None:
+        params["pageSize"] = page_size
+    if single_object_response is not None:
+        params["singleObjectResponse"] = single_object_response
+    if provisioning_view is not None:
+        params["provisioningView"] = provisioning_view
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
     try:
-        result = api.session.rest_post(url, json=body, params=params)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -545,13 +566,11 @@ def create_purge_inactive_entities(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
+    result = result or []
+    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+        print_json(items)
     else:
-        print_json(result)
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 

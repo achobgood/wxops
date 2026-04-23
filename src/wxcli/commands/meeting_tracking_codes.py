@@ -59,29 +59,33 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    input_mode: str = typer.Option(None, "--input-mode", help=""),
-    host_profile_code: str = typer.Option(None, "--host-profile-code", help=""),
-    name: str = typer.Option(None, "--name", help=""),
-    site_url: str = typer.Option(None, "--site-url", help=""),
+    name: str = typer.Option(None, "--name", help="(required) Name for tracking code. The name cannot be empty and the max"),
+    site_url: str = typer.Option(None, "--site-url", help="(required) Site URL for the tracking code."),
+    input_mode: str = typer.Option(None, "--input-mode", help="(required) Choices: text, select, editableSelect, hostProfileSelect"),
+    host_profile_code: str = typer.Option(None, "--host-profile-code", help="(required) Choices: optional, required, adminSet, notUsed"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Tracking Code\n\nExample --json-body:\n  '{"inputMode":"...","hostProfileCode":"...","name":"...","scheduleStartCodes":[{"service":"...","type":"..."}],"options":[{"defaultValue":"...","value":"..."}],"siteUrl":"..."}'."""
+    """Create a Tracking Code\n\nExample --json-body:\n  '{"name":"...","siteUrl":"...","options":[{"value":"...","defaultValue":"..."}],"inputMode":"text","hostProfileCode":"optional","scheduleStartCodes":[{"service":"...","type":"..."}]}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/admin/meeting/config/trackingCodes"
     if json_body:
         body = json.loads(json_body)
     else:
         body = {}
-        if input_mode is not None:
-            body["inputMode"] = input_mode
-        if host_profile_code is not None:
-            body["hostProfileCode"] = host_profile_code
         if name is not None:
             body["name"] = name
         if site_url is not None:
             body["siteUrl"] = site_url
+        if input_mode is not None:
+            body["inputMode"] = input_mode
+        if host_profile_code is not None:
+            body["hostProfileCode"] = host_profile_code
+        _missing = [f for f in ['name', 'siteUrl', 'inputMode', 'hostProfileCode'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -112,6 +116,144 @@ def create(
         typer.echo("Created.")
     else:
         print_json(result)
+
+
+
+@app.command("show")
+def show(
+    tracking_code_id: str = typer.Argument(help="trackingCodeId"),
+    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site which the API retrieves the tracking c"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get a Tracking Code."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/admin/meeting/config/trackingCodes/{tracking_code_id}"
+    params = {}
+    if site_url is not None:
+        params["siteUrl"] = site_url
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if output == "json":
+        print_json(result)
+    else:
+        if isinstance(result, dict):
+            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
+        elif isinstance(result, list):
+            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
+        else:
+            print_json(result)
+
+
+
+@app.command("update")
+def update(
+    name: str = typer.Option(None, "--name", help="Name for tracking code. The name cannot be empty and the max"),
+    site_url: str = typer.Option(None, "--site-url", help="Site URL for the tracking code."),
+    input_mode: str = typer.Option(None, "--input-mode", help="Choices: text, select, editableSelect, hostProfileSelect"),
+    host_profile_code: str = typer.Option(None, "--host-profile-code", help="Choices: optional, required, adminSet, notUsed"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update a Tracking Code\n\nExample --json-body:\n  '{"name":"...","siteUrl":"...","options":[{"value":"...","defaultValue":"..."}],"inputMode":"text","hostProfileCode":"optional","scheduleStartCodes":[{"service":"...","type":"..."}]}'."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/admin/meeting/config/trackingCodes/{trackingCodeId}"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if name is not None:
+            body["name"] = name
+        if site_url is not None:
+            body["siteUrl"] = site_url
+        if input_mode is not None:
+            body["inputMode"] = input_mode
+        if host_profile_code is not None:
+            body["hostProfileCode"] = host_profile_code
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("delete")
+def delete(
+    tracking_code_id: str = typer.Argument(help="trackingCodeId"),
+    site_url: str = typer.Option(..., "--site-url", help="URL of the Webex site from which the API deletes the trackin"),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Delete a Tracking Code."""
+    if not force:
+        typer.confirm(f"Delete {tracking_code_id}?", abort=True)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/admin/meeting/config/trackingCodes/{tracking_code_id}"
+    params = {}
+    if site_url is not None:
+        params["siteUrl"] = site_url
+    try:
+        api.session.rest_delete(url, params=params)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Deleted: {tracking_code_id}")
 
 
 
@@ -167,27 +309,27 @@ def list_tracking_codes(
 
 
 
-@app.command("update")
-def update(
-    email: str = typer.Option(None, "--email", help=""),
-    site_url: str = typer.Option(None, "--site-url", help=""),
-    person_id: str = typer.Option(None, "--person-id", help=""),
+@app.command("update-tracking-codes")
+def update_tracking_codes(
+    site_url: str = typer.Option(None, "--site-url", help="Site URL for the tracking code."),
+    person_id: str = typer.Option(None, "--person-id", help="Unique identifier for the user. At least one parameter of `p"),
+    email: str = typer.Option(None, "--email", help="Email address for the user. At least one parameter of `perso"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update User Tracking Codes\n\nExample --json-body:\n  '{"trackingCodes":[{"name":"...","value":"..."}],"email":"...","siteUrl":"...","personId":"..."}'."""
+    """Update User Tracking Codes\n\nExample --json-body:\n  '{"siteUrl":"...","personId":"...","email":"...","trackingCodes":[{"name":"...","value":"..."}]}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/admin/meeting/userconfig/trackingCodes"
     if json_body:
         body = json.loads(json_body)
     else:
         body = {}
-        if email is not None:
-            body["email"] = email
         if site_url is not None:
             body["siteUrl"] = site_url
         if person_id is not None:
             body["personId"] = person_id
+        if email is not None:
+            body["email"] = email
     try:
         result = api.session.rest_put(url, json=body)
     except RestError as e:
@@ -211,144 +353,5 @@ def update(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     typer.echo(f"Updated.")
-
-
-
-@app.command("show")
-def show(
-    tracking_code_id: str = typer.Argument(help="trackingCodeId"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site which the API retrieves the tracking c"),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Get a Tracking Code."""
-    api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/meeting/config/trackingCodes/{tracking_code_id}"
-    params = {}
-    if site_url is not None:
-        params["siteUrl"] = site_url
-    try:
-        result = api.session.rest_get(url, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
-
-
-
-@app.command("update-tracking-codes")
-def update_tracking_codes(
-    tracking_code_id: str = typer.Argument(help="trackingCodeId"),
-    input_mode: str = typer.Option(None, "--input-mode", help=""),
-    host_profile_code: str = typer.Option(None, "--host-profile-code", help=""),
-    name: str = typer.Option(None, "--name", help=""),
-    site_url: str = typer.Option(None, "--site-url", help=""),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Update a Tracking Code\n\nExample --json-body:\n  '{"inputMode":"...","hostProfileCode":"...","name":"...","scheduleStartCodes":[{"service":"...","type":"..."}],"options":[{"defaultValue":"...","value":"..."}],"siteUrl":"..."}'."""
-    api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/meeting/config/trackingCodes/{tracking_code_id}"
-    if json_body:
-        body = json.loads(json_body)
-    else:
-        body = {}
-        if input_mode is not None:
-            body["inputMode"] = input_mode
-        if host_profile_code is not None:
-            body["hostProfileCode"] = host_profile_code
-        if name is not None:
-            body["name"] = name
-        if site_url is not None:
-            body["siteUrl"] = site_url
-    try:
-        result = api.session.rest_put(url, json=body)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    typer.echo(f"Updated.")
-
-
-
-@app.command("delete")
-def delete(
-    tracking_code_id: str = typer.Argument(help="trackingCodeId"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site from which the API deletes the trackin"),
-    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Delete a Tracking Code."""
-    if not force:
-        typer.confirm(f"Delete {tracking_code_id}?", abort=True)
-    api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/meeting/config/trackingCodes/{tracking_code_id}"
-    params = {}
-    if site_url is not None:
-        params["siteUrl"] = site_url
-    try:
-        api.session.rest_delete(url, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    typer.echo(f"Deleted: {tracking_code_id}")
 
 

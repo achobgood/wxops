@@ -11,8 +11,8 @@ app = typer.Typer(help="Manage Webex Contact Center cc-queue-stats.")
 
 @app.command("list")
 def cmd_list(
-    from_param: str = typer.Option(None, "--from", help="Start time for the query (in epoch milliseconds). Any epoch"),
-    to: str = typer.Option(None, "--to", help="End time for the query (in epoch milliseconds). Any epoch ti"),
+    from_param: str = typer.Option(..., "--from", help="Start time for the query (in epoch milliseconds). Any epoch"),
+    to: str = typer.Option(..., "--to", help="End time for the query (in epoch milliseconds). Any epoch ti"),
     interval: str = typer.Option(None, "--interval", help="Time interval (in minutes) to chunk statistics by i.e. break"),
     queue_ids: str = typer.Option(None, "--queue-ids", help="Comma-separated list of queue IDs. A maximum of 100 values i"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
