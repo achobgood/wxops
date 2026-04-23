@@ -8,107 +8,6 @@ from wxcli.output import print_table, print_json
 app = typer.Typer(help="Manage Webex Calling my-call-settings.")
 
 
-@app.command("show")
-def show(
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Get My Personal Assistant."""
-    api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/telephony/config/people/me/settings/personalAssistant"
-    try:
-        result = api.session.rest_get(url)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
-
-
-
-@app.command("update")
-def update(
-    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Toggles feature."),
-    presence: str = typer.Option(None, "--presence", help="Person's availability.  * `NONE` - User is available.  * `BU (use --help for choices)"),
-    until_date_time: str = typer.Option(None, "--until-date-time", help="The date until which the personal assistant is active."),
-    transfer_enabled: bool = typer.Option(None, "--transfer-enabled/--no-transfer-enabled", help="If `true`, allows transfer and forwarding for the call type."),
-    transfer_number: str = typer.Option(None, "--transfer-number", help="Number to transfer to."),
-    alerting: str = typer.Option(None, "--alerting", help="Choices: ALERT_ME_FIRST, PLAY_RING_REMINDER, NONE"),
-    alert_me_first_number_of_rings: str = typer.Option(None, "--alert-me-first-number-of-rings", help="Number of rings for alert type: ALERT_ME_FIRST; available ra"),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Modify My Personal Assistant."""
-    api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/telephony/config/people/me/settings/personalAssistant"
-    if json_body:
-        body = json.loads(json_body)
-    else:
-        body = {}
-        if enabled is not None:
-            body["enabled"] = enabled
-        if presence is not None:
-            body["presence"] = presence
-        if until_date_time is not None:
-            body["untilDateTime"] = until_date_time
-        if transfer_enabled is not None:
-            body["transferEnabled"] = transfer_enabled
-        if transfer_number is not None:
-            body["transferNumber"] = transfer_number
-        if alerting is not None:
-            body["alerting"] = alerting
-        if alert_me_first_number_of_rings is not None:
-            body["alertMeFirstNumberOfRings"] = alert_me_first_number_of_rings
-    try:
-        result = api.session.rest_put(url, json=body)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    typer.echo(f"Updated.")
-
-
-
 @app.command("list")
 def cmd_list(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
@@ -202,8 +101,8 @@ def list_available_preferred_answer_endpoints(
 
 
 
-@app.command("show-preferred-answer-endpoint-settings")
-def show_preferred_answer_endpoint_settings(
+@app.command("show")
+def show(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -244,8 +143,8 @@ def show_preferred_answer_endpoint_settings(
 
 
 
-@app.command("update-preferred-answer-endpoint-settings")
-def update_preferred_answer_endpoint_settings(
+@app.command("update")
+def update(
     preferred_answer_endpoint_id: str = typer.Option(None, "--preferred-answer-endpoint-id", help="Person’s preferred answer endpoint."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -285,8 +184,8 @@ def update_preferred_answer_endpoint_settings(
 
 
 
-@app.command("show-preferred-answer-endpoint-secondary-lines")
-def show_preferred_answer_endpoint_secondary_lines(
+@app.command("show-preferred-answer-endpoint")
+def show_preferred_answer_endpoint(
     line_owner_id: str = typer.Argument(help="lineOwnerId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -328,8 +227,8 @@ def show_preferred_answer_endpoint_secondary_lines(
 
 
 
-@app.command("update-preferred-answer-endpoint-secondary-lines")
-def update_preferred_answer_endpoint_secondary_lines(
+@app.command("update-preferred-answer-endpoint")
+def update_preferred_answer_endpoint(
     line_owner_id: str = typer.Argument(help="lineOwnerId"),
     preferred_answer_endpoint_id: str = typer.Option(None, "--preferred-answer-endpoint-id", help="Person’s preferred answer endpoint."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),

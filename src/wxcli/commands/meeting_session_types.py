@@ -111,25 +111,25 @@ def list_session_types(
 
 @app.command("update")
 def update(
-    person_id: str = typer.Option(None, "--person-id", help=""),
-    email: str = typer.Option(None, "--email", help=""),
-    site_url: str = typer.Option(None, "--site-url", help=""),
+    site_url: str = typer.Option(None, "--site-url", help="Site URL for the session type."),
+    person_id: str = typer.Option(None, "--person-id", help="A unique identifier for the user."),
+    email: str = typer.Option(None, "--email", help="The email of the user."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update User Session Types\n\nExample --json-body:\n  '{"personId":"...","email":"...","siteUrl":"...","sessionTypeIds":["..."]}'."""
+    """Update User Session Types\n\nExample --json-body:\n  '{"siteUrl":"...","sessionTypeIds":["..."],"personId":"...","email":"..."}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/admin/meeting/userconfig/sessionTypes"
     if json_body:
         body = json.loads(json_body)
     else:
         body = {}
+        if site_url is not None:
+            body["siteUrl"] = site_url
         if person_id is not None:
             body["personId"] = person_id
         if email is not None:
             body["email"] = email
-        if site_url is not None:
-            body["siteUrl"] = site_url
     try:
         result = api.session.rest_put(url, json=body)
     except RestError as e:

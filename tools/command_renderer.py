@@ -144,7 +144,10 @@ PYTHON_KEYWORDS = {
 }
 
 def _safe_func_name(command_name: str) -> str:
+    import re
     name = command_name.replace("-", "_")
+    name = re.sub(r"[^a-zA-Z0-9_]", "_", name)
+    name = re.sub(r"_+", "_", name).strip("_")
     if name in PYTHON_KEYWORDS:
         return f"cmd_{name}"
     return name

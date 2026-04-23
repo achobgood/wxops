@@ -71,18 +71,20 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    name: str = typer.Option(None, "--name", help=""),
-    version: str = typer.Option(None, "--version", help=""),
-    organization_id: str = typer.Option(None, "--organization-id", help=""),
-    id_param: str = typer.Option(None, "--id", help=""),
-    site_id: str = typer.Option(None, "--site-id", help=""),
-    description: str = typer.Option(None, "--description", help=""),
-    parent_type: str = typer.Option(None, "--parent-type", help=""),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to def"),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
+    name: str = typer.Option(None, "--name", help="(required) A name for the address book."),
+    description: str = typer.Option(None, "--description", help="A short description indicating the context of the address bo"),
+    parent_type: str = typer.Option(None, "--parent-type", help="(required) Choices: ORGANIZATION, SITE"),
+    site_id: str = typer.Option(None, "--site-id", help="The specific site id where the address book is accessible."),
+    created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
+    last_updated_time: str = typer.Option(None, "--last-updated-time", help="Time(in epoch millis) when this resource was last updated."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Address Book\n\nExample --json-body:\n  '{"name":"...","version":"...","organizationId":"...","id":"...","siteId":"...","description":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","version":"...","id":"..."}],"parentType":"..."}'."""
+    """Create a new Address Book\n\nExample --json-body:\n  '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":"...","createdTime":"...","lastUpdatedTime":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -91,20 +93,28 @@ def create(
         body = json.loads(json_body)
     else:
         body = {}
-        if name is not None:
-            body["name"] = name
-        if version is not None:
-            body["version"] = version
         if organization_id is not None:
             body["organizationId"] = organization_id
         if id_param is not None:
             body["id"] = id_param
-        if site_id is not None:
-            body["siteId"] = site_id
+        if version is not None:
+            body["version"] = version
+        if name is not None:
+            body["name"] = name
         if description is not None:
             body["description"] = description
         if parent_type is not None:
             body["parentType"] = parent_type
+        if site_id is not None:
+            body["siteId"] = site_id
+        if created_time is not None:
+            body["createdTime"] = created_time
+        if last_updated_time is not None:
+            body["lastUpdatedTime"] = last_updated_time
+        _missing = [f for f in ['name', 'parentType'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -195,11 +205,13 @@ def list_bulk_export(
 @app.command("create-entry")
 def create_entry(
     address_book_id: str = typer.Argument(help="addressBookId"),
-    name: str = typer.Option(None, "--name", help=""),
-    number: str = typer.Option(None, "--number", help=""),
-    organization_id: str = typer.Option(None, "--organization-id", help=""),
-    version: str = typer.Option(None, "--version", help=""),
-    id_param: str = typer.Option(None, "--id", help=""),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to def"),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
+    name: str = typer.Option(None, "--name", help="(required) A name for the address book entry."),
+    number: str = typer.Option(None, "--number", help="(required) The phone number for the entry."),
+    created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
+    last_updated_time: str = typer.Option(None, "--last-updated-time", help="Time(in epoch millis) when this resource was last updated."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -213,16 +225,24 @@ def create_entry(
         body = json.loads(json_body)
     else:
         body = {}
+        if organization_id is not None:
+            body["organizationId"] = organization_id
+        if id_param is not None:
+            body["id"] = id_param
+        if version is not None:
+            body["version"] = version
         if name is not None:
             body["name"] = name
         if number is not None:
             body["number"] = number
-        if organization_id is not None:
-            body["organizationId"] = organization_id
-        if version is not None:
-            body["version"] = version
-        if id_param is not None:
-            body["id"] = id_param
+        if created_time is not None:
+            body["createdTime"] = created_time
+        if last_updated_time is not None:
+            body["lastUpdatedTime"] = last_updated_time
+        _missing = [f for f in ['name', 'number'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -263,7 +283,7 @@ def create_bulk(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Address Book Entry(s)\n\nExample --json-body:\n  '{"items":[{"item":"...","itemIdentifier":"...","requestAction":"..."}]}'."""
+    """Bulk save Address Book Entry(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -307,6 +327,155 @@ def create_bulk(
 
 @app.command("show")
 def show(
+    address_book_id: str = typer.Argument(help="addressBookId"),
+    id: str = typer.Argument(help="id"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get specific Address Book Entry by ID."""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/address-book/{address_book_id}/entry/{id}"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if output == "json":
+        print_json(result)
+    else:
+        if isinstance(result, dict):
+            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
+        elif isinstance(result, list):
+            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
+        else:
+            print_json(result)
+
+
+
+@app.command("update")
+def update(
+    address_book_id: str = typer.Argument(help="addressBookId"),
+    id: str = typer.Argument(help="id"),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to def"),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
+    name: str = typer.Option(None, "--name", help="A name for the address book entry."),
+    number: str = typer.Option(None, "--number", help="The phone number for the entry."),
+    created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
+    last_updated_time: str = typer.Option(None, "--last-updated-time", help="Time(in epoch millis) when this resource was last updated."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update specific Address Book Entry by ID."""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/address-book/{address_book_id}/entry/{id}"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if organization_id is not None:
+            body["organizationId"] = organization_id
+        if id_param is not None:
+            body["id"] = id_param
+        if version is not None:
+            body["version"] = version
+        if name is not None:
+            body["name"] = name
+        if number is not None:
+            body["number"] = number
+        if created_time is not None:
+            body["createdTime"] = created_time
+        if last_updated_time is not None:
+            body["lastUpdatedTime"] = last_updated_time
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("delete")
+def delete(
+    address_book_id: str = typer.Argument(help="addressBookId"),
+    id: str = typer.Argument(help="id"),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Delete specific Address Book Entry by ID."""
+    if not force:
+        typer.confirm(f"Delete {id}?", abort=True)
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.people.me().org_id
+    url = f"{cc_base_url}/organization/{orgid}/address-book/{address_book_id}/entry/{id}"
+    try:
+        api.session.rest_delete(url)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Deleted: {id}")
+
+
+
+@app.command("show-address-book-organization")
+def show_address_book_organization(
     id: str = typer.Argument(help="id"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -350,20 +519,22 @@ def show(
 
 
 
-@app.command("update")
-def update(
+@app.command("update-address-book-organization")
+def update_address_book_organization(
     id: str = typer.Argument(help="id"),
-    name: str = typer.Option(None, "--name", help=""),
-    version: str = typer.Option(None, "--version", help=""),
-    organization_id: str = typer.Option(None, "--organization-id", help=""),
-    id_param: str = typer.Option(None, "--id", help=""),
-    site_id: str = typer.Option(None, "--site-id", help=""),
-    description: str = typer.Option(None, "--description", help=""),
-    parent_type: str = typer.Option(None, "--parent-type", help=""),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to def"),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
+    name: str = typer.Option(None, "--name", help="A name for the address book."),
+    description: str = typer.Option(None, "--description", help="A short description indicating the context of the address bo"),
+    parent_type: str = typer.Option(None, "--parent-type", help="Choices: ORGANIZATION, SITE"),
+    site_id: str = typer.Option(None, "--site-id", help="The specific site id where the address book is accessible."),
+    created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
+    last_updated_time: str = typer.Option(None, "--last-updated-time", help="Time(in epoch millis) when this resource was last updated."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Address Book by ID\n\nExample --json-body:\n  '{"name":"...","version":"...","organizationId":"...","id":"...","siteId":"...","description":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","version":"...","id":"..."}],"parentType":"..."}'."""
+    """Update specific Address Book by ID\n\nExample --json-body:\n  '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":"...","createdTime":"...","lastUpdatedTime":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -372,20 +543,24 @@ def update(
         body = json.loads(json_body)
     else:
         body = {}
-        if name is not None:
-            body["name"] = name
-        if version is not None:
-            body["version"] = version
         if organization_id is not None:
             body["organizationId"] = organization_id
         if id_param is not None:
             body["id"] = id_param
-        if site_id is not None:
-            body["siteId"] = site_id
+        if version is not None:
+            body["version"] = version
+        if name is not None:
+            body["name"] = name
         if description is not None:
             body["description"] = description
         if parent_type is not None:
             body["parentType"] = parent_type
+        if site_id is not None:
+            body["siteId"] = site_id
+        if created_time is not None:
+            body["createdTime"] = created_time
+        if last_updated_time is not None:
+            body["lastUpdatedTime"] = last_updated_time
     try:
         result = api.session.rest_put(url, json=body)
     except RestError as e:
@@ -412,15 +587,15 @@ def update(
 
 
 
-@app.command("delete")
-def delete(
+@app.command("delete-address-book-organization")
+def delete_address_book_organization(
     id: str = typer.Argument(help="id"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete specific Address Book by ID."""
     if not force:
-        typer.confirm(f"Delete {orgid}?", abort=True)
+        typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -447,7 +622,7 @@ def delete(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    typer.echo(f"Deleted: {orgid}")
+    typer.echo(f"Deleted: {id}")
 
 
 
@@ -701,13 +876,15 @@ def list_address_book_v3(
 
 @app.command("create-address-book")
 def create_address_book(
-    name: str = typer.Option(None, "--name", help=""),
-    version: str = typer.Option(None, "--version", help=""),
-    organization_id: str = typer.Option(None, "--organization-id", help=""),
-    site_id: str = typer.Option(None, "--site-id", help=""),
-    description: str = typer.Option(None, "--description", help=""),
-    id_param: str = typer.Option(None, "--id", help=""),
-    parent_type: str = typer.Option(None, "--parent-type", help=""),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to def"),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
+    name: str = typer.Option(None, "--name", help="(required) A name for the address book."),
+    description: str = typer.Option(None, "--description", help="A short description indicating the context of the address bo"),
+    parent_type: str = typer.Option(None, "--parent-type", help="(required) Choices: ORGANIZATION, SITE"),
+    site_id: str = typer.Option(None, "--site-id", help="The specific site id where the address book is accessible."),
+    created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
+    last_updated_time: str = typer.Option(None, "--last-updated-time", help="Time(in epoch millis) when this resource was last updated."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -721,20 +898,28 @@ def create_address_book(
         body = json.loads(json_body)
     else:
         body = {}
-        if name is not None:
-            body["name"] = name
-        if version is not None:
-            body["version"] = version
         if organization_id is not None:
             body["organizationId"] = organization_id
-        if site_id is not None:
-            body["siteId"] = site_id
-        if description is not None:
-            body["description"] = description
         if id_param is not None:
             body["id"] = id_param
+        if version is not None:
+            body["version"] = version
+        if name is not None:
+            body["name"] = name
+        if description is not None:
+            body["description"] = description
         if parent_type is not None:
             body["parentType"] = parent_type
+        if site_id is not None:
+            body["siteId"] = site_id
+        if created_time is not None:
+            body["createdTime"] = created_time
+        if last_updated_time is not None:
+            body["lastUpdatedTime"] = last_updated_time
+        _missing = [f for f in ['name', 'parentType'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -768,8 +953,8 @@ def create_address_book(
 
 
 
-@app.command("show-address-book")
-def show_address_book(
+@app.command("show-address-book-v3")
+def show_address_book_v3(
     id: str = typer.Argument(help="id"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -813,16 +998,18 @@ def show_address_book(
 
 
 
-@app.command("update-address-book")
-def update_address_book(
+@app.command("update-address-book-v3")
+def update_address_book_v3(
     id: str = typer.Argument(help="id"),
-    name: str = typer.Option(None, "--name", help=""),
-    version: str = typer.Option(None, "--version", help=""),
-    organization_id: str = typer.Option(None, "--organization-id", help=""),
-    site_id: str = typer.Option(None, "--site-id", help=""),
-    description: str = typer.Option(None, "--description", help=""),
-    id_param: str = typer.Option(None, "--id", help=""),
-    parent_type: str = typer.Option(None, "--parent-type", help=""),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to def"),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
+    name: str = typer.Option(None, "--name", help="A name for the address book."),
+    description: str = typer.Option(None, "--description", help="A short description indicating the context of the address bo"),
+    parent_type: str = typer.Option(None, "--parent-type", help="Choices: ORGANIZATION, SITE"),
+    site_id: str = typer.Option(None, "--site-id", help="The specific site id where the address book is accessible."),
+    created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
+    last_updated_time: str = typer.Option(None, "--last-updated-time", help="Time(in epoch millis) when this resource was last updated."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -835,20 +1022,24 @@ def update_address_book(
         body = json.loads(json_body)
     else:
         body = {}
-        if name is not None:
-            body["name"] = name
-        if version is not None:
-            body["version"] = version
         if organization_id is not None:
             body["organizationId"] = organization_id
-        if site_id is not None:
-            body["siteId"] = site_id
-        if description is not None:
-            body["description"] = description
         if id_param is not None:
             body["id"] = id_param
+        if version is not None:
+            body["version"] = version
+        if name is not None:
+            body["name"] = name
+        if description is not None:
+            body["description"] = description
         if parent_type is not None:
             body["parentType"] = parent_type
+        if site_id is not None:
+            body["siteId"] = site_id
+        if created_time is not None:
+            body["createdTime"] = created_time
+        if last_updated_time is not None:
+            body["lastUpdatedTime"] = last_updated_time
     try:
         result = api.session.rest_put(url, json=body)
     except RestError as e:
@@ -875,15 +1066,15 @@ def update_address_book(
 
 
 
-@app.command("delete-address-book")
-def delete_address_book(
+@app.command("delete-address-book-v3")
+def delete_address_book_v3(
     id: str = typer.Argument(help="id"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete specific Address Book by ID."""
     if not force:
-        typer.confirm(f"Delete {orgid}?", abort=True)
+        typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -910,149 +1101,6 @@ def delete_address_book(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    typer.echo(f"Deleted: {orgid}")
-
-
-
-@app.command("show-entry")
-def show_entry(
-    address_book_id: str = typer.Argument(help="addressBookId"),
-    id: str = typer.Argument(help="id"),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Get specific Address Book Entry by ID."""
-    api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
-    url = f"{cc_base_url}/organization/{orgid}/address-book/{address_book_id}/entry/{id}"
-    try:
-        result = api.session.rest_get(url)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
-
-
-
-@app.command("update-entry")
-def update_entry(
-    address_book_id: str = typer.Argument(help="addressBookId"),
-    id: str = typer.Argument(help="id"),
-    name: str = typer.Option(None, "--name", help=""),
-    number: str = typer.Option(None, "--number", help=""),
-    organization_id: str = typer.Option(None, "--organization-id", help=""),
-    version: str = typer.Option(None, "--version", help=""),
-    id_param: str = typer.Option(None, "--id", help=""),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Update specific Address Book Entry by ID."""
-    api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
-    url = f"{cc_base_url}/organization/{orgid}/address-book/{address_book_id}/entry/{id}"
-    if json_body:
-        body = json.loads(json_body)
-    else:
-        body = {}
-        if name is not None:
-            body["name"] = name
-        if number is not None:
-            body["number"] = number
-        if organization_id is not None:
-            body["organizationId"] = organization_id
-        if version is not None:
-            body["version"] = version
-        if id_param is not None:
-            body["id"] = id_param
-    try:
-        result = api.session.rest_put(url, json=body)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    typer.echo(f"Updated.")
-
-
-
-@app.command("delete-entry")
-def delete_entry(
-    address_book_id: str = typer.Argument(help="addressBookId"),
-    id: str = typer.Argument(help="id"),
-    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Delete specific Address Book Entry by ID."""
-    if not force:
-        typer.confirm(f"Delete {orgid}?", abort=True)
-    api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
-    url = f"{cc_base_url}/organization/{orgid}/address-book/{address_book_id}/entry/{id}"
-    try:
-        api.session.rest_delete(url)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    typer.echo(f"Deleted: {orgid}")
+    typer.echo(f"Deleted: {id}")
 
 

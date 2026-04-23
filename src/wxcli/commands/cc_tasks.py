@@ -12,7 +12,7 @@ app = typer.Typer(help="Manage Webex Contact Center cc-tasks.")
 @app.command("list")
 def cmd_list(
     channel_types: str = typer.Option(None, "--channel-types", help="Task channel type(s) permitted in response. Separate values"),
-    from_param: str = typer.Option(None, "--from", help="Filters tasks created after the given epoch timestamp (in mi"),
+    from_param: str = typer.Option(..., "--from", help="Filters tasks created after the given epoch timestamp (in mi"),
     to: str = typer.Option(None, "--to", help="Filters tasks created before the given epoch timestamp (in m"),
     page_size: str = typer.Option(None, "--page-size", help="Maximum page size in the response. Maximum allowed value is"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
@@ -73,16 +73,16 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    media_type: str = typer.Option(None, "--media-type", help=""),
-    destination: str = typer.Option(None, "--destination", help=""),
-    outbound_type: str = typer.Option(None, "--outbound-type", help=""),
-    origin: str = typer.Option(None, "--origin", help=""),
-    entry_point_id: str = typer.Option(None, "--entry-point-id", help=""),
+    destination: str = typer.Option(None, "--destination", help="(required) A valid customer DN, on which the response is expected, maxi"),
+    entry_point_id: str = typer.Option(None, "--entry-point-id", help="(required) An entryPointId for respective task. For ```CALLBACK``` and"),
+    outbound_type: str = typer.Option(None, "--outbound-type", help="The outbound type for the task. Supported values are ```CALL"),
+    media_type: str = typer.Option(None, "--media-type", help="(required) The media type for the request. The ```telephony``` type is"),
+    origin: str = typer.Option(None, "--origin", help="The contact center number, which is an ANI Outdial number, t"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Task\n\nExample --json-body:\n  '{"mediaType":"...","customAttributes":{},"attributes":{},"callback":{"callbackType":"...","callbackOrigin":"..."},"destination":"...","outboundType":"...","origin":"...","entryPointId":"..."}'."""
+    """Create Task\n\nExample --json-body:\n  '{"destination":"...","entryPointId":"...","mediaType":"...","attributes":{},"outboundType":"...","origin":"...","callback":{"callbackOrigin":"...","callbackType":"..."},"customAttributes":{}}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/tasks"
@@ -90,16 +90,20 @@ def create(
         body = json.loads(json_body)
     else:
         body = {}
-        if media_type is not None:
-            body["mediaType"] = media_type
         if destination is not None:
             body["destination"] = destination
-        if outbound_type is not None:
-            body["outboundType"] = outbound_type
-        if origin is not None:
-            body["origin"] = origin
         if entry_point_id is not None:
             body["entryPointId"] = entry_point_id
+        if outbound_type is not None:
+            body["outboundType"] = outbound_type
+        if media_type is not None:
+            body["mediaType"] = media_type
+        if origin is not None:
+            body["origin"] = origin
+        _missing = [f for f in ['destination', 'entryPointId', 'mediaType'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -173,57 +177,6 @@ def update(
 
 
 
-@app.command("create-end-consult")
-def create_end_consult(
-    task_id: str = typer.Argument(help="taskId"),
-    queue_id: str = typer.Option(None, "--queue-id", help=""),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Consult End Task."""
-    api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/tasks/{task_id}/consult/end"
-    if json_body:
-        body = json.loads(json_body)
-    else:
-        body = {}
-        if queue_id is not None:
-            body["queueId"] = queue_id
-    try:
-        result = api.session.rest_post(url, json=body)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
-    else:
-        print_json(result)
-
-
-
 @app.command("create-accept-tasks")
 def create_accept_tasks(
     task_id: str = typer.Argument(help="taskId"),
@@ -235,54 +188,6 @@ def create_accept_tasks(
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/tasks/{task_id}/accept"
-    if json_body:
-        body = json.loads(json_body)
-    else:
-        body = {}
-    try:
-        result = api.session.rest_post(url, json=body)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
-    else:
-        print_json(result)
-
-
-
-@app.command("create-exit")
-def create_exit(
-    task_id: str = typer.Argument(help="taskId"),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Exit Conference Task."""
-    api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/tasks/{task_id}/conference/exit"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -371,8 +276,8 @@ def create_end_tasks(
 @app.command("create-wrapup")
 def create_wrapup(
     task_id: str = typer.Argument(help="taskId"),
-    aux_code_id: str = typer.Option(None, "--aux-code-id", help=""),
-    wrap_up_reason: str = typer.Option(None, "--wrap-up-reason", help=""),
+    aux_code_id: str = typer.Option(None, "--aux-code-id", help="(required) Auxiliary codes are status codes which an agent can select i"),
+    wrap_up_reason: str = typer.Option(None, "--wrap-up-reason", help="(required) Every wrap up reason will have an unique auxillary code. Use"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -389,6 +294,10 @@ def create_wrapup(
             body["auxCodeId"] = aux_code_id
         if wrap_up_reason is not None:
             body["wrapUpReason"] = wrap_up_reason
+        _missing = [f for f in ['auxCodeId', 'wrapUpReason'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -422,185 +331,186 @@ def create_wrapup(
 
 
 
-@app.command("create-accept-preview-task")
-def create_accept_preview_task(
-    campaign_id: str = typer.Argument(help="campaignId"),
+@app.command("create-hold")
+def create_hold(
+    task_id: str = typer.Argument(help="taskId"),
+    media_resource_id: str = typer.Option(None, "--media-resource-id", help="(required) It is an identifier of a media resource, maximum length 36 c"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Hold Task."""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/tasks/{task_id}/hold"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if media_resource_id is not None:
+            body["mediaResourceId"] = media_resource_id
+        _missing = [f for f in ['mediaResourceId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
+    try:
+        result = api.session.rest_post(url, json=body)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif not result or result == {}:
+        typer.echo("Created.")
+    else:
+        print_json(result)
+
+
+
+@app.command("create-unhold")
+def create_unhold(
+    task_id: str = typer.Argument(help="taskId"),
+    media_resource_id: str = typer.Option(None, "--media-resource-id", help="(required) It is an identifier of a media resource, maximum length 36 c"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Resume Task."""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/tasks/{task_id}/unhold"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if media_resource_id is not None:
+            body["mediaResourceId"] = media_resource_id
+        _missing = [f for f in ['mediaResourceId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
+    try:
+        result = api.session.rest_post(url, json=body)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif not result or result == {}:
+        typer.echo("Created.")
+    else:
+        print_json(result)
+
+
+
+@app.command("create-reject")
+def create_reject(
+    task_id: str = typer.Argument(help="taskId"),
+    media_resource_id: str = typer.Option(None, "--media-resource-id", help="(required) It is an identifier of a media resource, maximum length 36 c"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Reject Task."""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/tasks/{task_id}/reject"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if media_resource_id is not None:
+            body["mediaResourceId"] = media_resource_id
+        _missing = [f for f in ['mediaResourceId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
+    try:
+        result = api.session.rest_post(url, json=body)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif not result or result == {}:
+        typer.echo("Created.")
+    else:
+        print_json(result)
+
+
+
+@app.command("create-pause")
+def create_pause(
     task_id: str = typer.Argument(help="taskId"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Accept Preview Task."""
+    """Pause Recording Task."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/dialer/campaign/{campaign_id}/preview-task/{task_id}/accept"
+    url = f"{cc_base_url}/tasks/{task_id}/record/pause"
     if json_body:
         body = json.loads(json_body)
     else:
         body = {}
-    try:
-        result = api.session.rest_post(url, json=body)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
-    else:
-        print_json(result)
-
-
-
-@app.command("create-skip")
-def create_skip(
-    campaign_id: str = typer.Argument(help="campaignId"),
-    task_id: str = typer.Argument(help="taskId"),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Skip Preview Task."""
-    api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/dialer/campaign/{campaign_id}/preview-task/{task_id}/skip"
-    if json_body:
-        body = json.loads(json_body)
-    else:
-        body = {}
-    try:
-        result = api.session.rest_post(url, json=body)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
-    else:
-        print_json(result)
-
-
-
-@app.command("create-remove")
-def create_remove(
-    campaign_id: str = typer.Argument(help="campaignId"),
-    task_id: str = typer.Argument(help="taskId"),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Remove Preview Task."""
-    api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/dialer/campaign/{campaign_id}/preview-task/{task_id}/remove"
-    if json_body:
-        body = json.loads(json_body)
-    else:
-        body = {}
-    try:
-        result = api.session.rest_post(url, json=body)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
-    else:
-        print_json(result)
-
-
-
-@app.command("create-tasks")
-def create_tasks(
-    media_type: str = typer.Option(None, "--media-type", help=""),
-    media_mgr: str = typer.Option(None, "--media-mgr", help=""),
-    org_id: str = typer.Option(None, "--org-id", help=""),
-    event_time: str = typer.Option(None, "--event-time", help=""),
-    tracking_id: str = typer.Option(None, "--tracking-id", help=""),
-    channel: str = typer.Option(None, "--channel", help=""),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Create Task\n\nExample --json-body:\n  '{"mediaType":"...","mediaMgr":"...","direction":{"type":"..."},"destination":{"id":"...","type":"..."},"globalVariables":{"key_0":"..."},"origin":{"id":"...","name":"..."},"orgId":"...","flowSettings":{"key_0":"..."}}'."""
-    api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/v2/tasks"
-    if json_body:
-        body = json.loads(json_body)
-    else:
-        body = {}
-        if media_type is not None:
-            body["mediaType"] = media_type
-        if media_mgr is not None:
-            body["mediaMgr"] = media_mgr
-        if org_id is not None:
-            body["orgId"] = org_id
-        if event_time is not None:
-            body["eventTime"] = event_time
-        if tracking_id is not None:
-            body["trackingId"] = tracking_id
-        if channel is not None:
-            body["channel"] = channel
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -637,7 +547,7 @@ def create_tasks(
 @app.command("create-resume")
 def create_resume(
     task_id: str = typer.Argument(help="taskId"),
-    auto_resumed: str = typer.Option(None, "--auto-resumed", help=""),
+    auto_resumed: bool = typer.Option(None, "--auto-resumed/--no-auto-resumed", help="(required) The setting to mention if the recording has to resume automa"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -652,6 +562,10 @@ def create_resume(
         body = {}
         if auto_resumed is not None:
             body["autoResumed"] = auto_resumed
+        _missing = [f for f in ['autoResumed'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -688,8 +602,8 @@ def create_resume(
 @app.command("create-transfer-tasks")
 def create_transfer_tasks(
     task_id: str = typer.Argument(help="taskId"),
-    to: str = typer.Option(None, "--to", help=""),
-    destination_type: str = typer.Option(None, "--destination-type", help=""),
+    to: str = typer.Option(None, "--to", help="(required) The user destination ID or the entry point ID to transfer, m"),
+    destination_type: str = typer.Option(None, "--destination-type", help="(required) The user can transfer to another user in the team(```agent``"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -706,6 +620,10 @@ def create_transfer_tasks(
             body["to"] = to
         if destination_type is not None:
             body["destinationType"] = destination_type
+        _missing = [f for f in ['to', 'destinationType'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -742,9 +660,9 @@ def create_transfer_tasks(
 @app.command("create-consult")
 def create_consult(
     task_id: str = typer.Argument(help="taskId"),
-    hold_participants: str = typer.Option(None, "--hold-participants", help=""),
-    to: str = typer.Option(None, "--to", help=""),
-    destination_type: str = typer.Option(None, "--destination-type", help=""),
+    to: str = typer.Option(None, "--to", help="(required) The destination ID to consult, maximum length 36 characters."),
+    destination_type: str = typer.Option(None, "--destination-type", help="(required) The user can consult to another user in the team(```agent```"),
+    hold_participants: bool = typer.Option(None, "--hold-participants/--no-hold-participants", help="This allows the caller to specify their preference for wheth"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -757,60 +675,16 @@ def create_consult(
         body = json.loads(json_body)
     else:
         body = {}
-        if hold_participants is not None:
-            body["holdParticipants"] = hold_participants
         if to is not None:
             body["to"] = to
         if destination_type is not None:
             body["destinationType"] = destination_type
-    try:
-        result = api.session.rest_post(url, json=body)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
-    else:
-        print_json(result)
-
-
-
-@app.command("create-messages")
-def create_messages(
-    task_id: str = typer.Argument(help="taskId"),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Update Task\n\nExample --json-body:\n  '{"mediaParams":{"outdialEntryPointId":"...","message":{"aliasId":"...","workItemData":"...","timestamp":"..."},"type":"..."}}'."""
-    api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/v2/tasks/{task_id}/messages"
-    if json_body:
-        body = json.loads(json_body)
-    else:
-        body = {}
+        if hold_participants is not None:
+            body["holdParticipants"] = hold_participants
+        _missing = [f for f in ['to', 'destinationType'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -847,9 +721,9 @@ def create_messages(
 @app.command("create-conference")
 def create_conference(
     task_id: str = typer.Argument(help="taskId"),
-    destination_type: str = typer.Option(None, "--destination-type", help=""),
-    to: str = typer.Option(None, "--to", help=""),
-    agent_id: str = typer.Option(None, "--agent-id", help=""),
+    agent_id: str = typer.Option(None, "--agent-id", help="The unique Id of the user logged in as an agent."),
+    to: str = typer.Option(None, "--to", help="(required) The destination ID to consult, maximum length 36 characters."),
+    destination_type: str = typer.Option(None, "--destination-type", help="The user can consult to another user in the team(```agent```"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -862,12 +736,16 @@ def create_conference(
         body = json.loads(json_body)
     else:
         body = {}
-        if destination_type is not None:
-            body["destinationType"] = destination_type
-        if to is not None:
-            body["to"] = to
         if agent_id is not None:
             body["agentId"] = agent_id
+        if to is not None:
+            body["to"] = to
+        if destination_type is not None:
+            body["destinationType"] = destination_type
+        _missing = [f for f in ['to'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -904,8 +782,8 @@ def create_conference(
 @app.command("create-transfer-consult")
 def create_transfer_consult(
     task_id: str = typer.Argument(help="taskId"),
-    to: str = typer.Option(None, "--to", help=""),
-    destination_type: str = typer.Option(None, "--destination-type", help=""),
+    to: str = typer.Option(None, "--to", help="(required) The consulted user destination ID to transfer, maximum lengt"),
+    destination_type: str = typer.Option(None, "--destination-type", help="(required) The user can transfer to another consulted user in the team("),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -922,6 +800,10 @@ def create_transfer_consult(
             body["to"] = to
         if destination_type is not None:
             body["destinationType"] = destination_type
+        _missing = [f for f in ['to', 'destinationType'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -1051,17 +933,68 @@ def create_assign(
 
 
 
-@app.command("create-pause")
-def create_pause(
+@app.command("create-end-consult")
+def create_end_consult(
+    task_id: str = typer.Argument(help="taskId"),
+    queue_id: str = typer.Option(None, "--queue-id", help="The unique ID of a particular queue, maximum length 36 chara"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Consult End Task."""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/tasks/{task_id}/consult/end"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if queue_id is not None:
+            body["queueId"] = queue_id
+    try:
+        result = api.session.rest_post(url, json=body)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif not result or result == {}:
+        typer.echo("Created.")
+    else:
+        print_json(result)
+
+
+
+@app.command("create-exit")
+def create_exit(
     task_id: str = typer.Argument(help="taskId"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Pause Recording Task."""
+    """Exit Conference Task."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/tasks/{task_id}/record/pause"
+    url = f"{cc_base_url}/tasks/{task_id}/conference/exit"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -1099,24 +1032,22 @@ def create_pause(
 
 
 
-@app.command("create-reject")
-def create_reject(
+@app.command("create-accept-preview-task")
+def create_accept_preview_task(
     task_id: str = typer.Argument(help="taskId"),
-    media_resource_id: str = typer.Option(None, "--media-resource-id", help=""),
+    campaign_id: str = typer.Argument(help="campaignId"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Reject Task."""
+    """Accept Preview Task."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/tasks/{task_id}/reject"
+    url = f"{cc_base_url}/dialer/campaign/{campaign_id}/preview-task/{task_id}/accept"
     if json_body:
         body = json.loads(json_body)
     else:
         body = {}
-        if media_resource_id is not None:
-            body["mediaResourceId"] = media_resource_id
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -1150,24 +1081,22 @@ def create_reject(
 
 
 
-@app.command("create-unhold")
-def create_unhold(
+@app.command("create-skip")
+def create_skip(
     task_id: str = typer.Argument(help="taskId"),
-    media_resource_id: str = typer.Option(None, "--media-resource-id", help=""),
+    campaign_id: str = typer.Argument(help="campaignId"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Resume Task."""
+    """Skip Preview Task."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/tasks/{task_id}/unhold"
+    url = f"{cc_base_url}/dialer/campaign/{campaign_id}/preview-task/{task_id}/skip"
     if json_body:
         body = json.loads(json_body)
     else:
         body = {}
-        if media_resource_id is not None:
-            body["mediaResourceId"] = media_resource_id
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -1201,24 +1130,22 @@ def create_unhold(
 
 
 
-@app.command("create-hold")
-def create_hold(
+@app.command("create-remove")
+def create_remove(
     task_id: str = typer.Argument(help="taskId"),
-    media_resource_id: str = typer.Option(None, "--media-resource-id", help=""),
+    campaign_id: str = typer.Argument(help="campaignId"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Hold Task."""
+    """Remove Preview Task."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/tasks/{task_id}/hold"
+    url = f"{cc_base_url}/dialer/campaign/{campaign_id}/preview-task/{task_id}/remove"
     if json_body:
         body = json.loads(json_body)
     else:
         body = {}
-        if media_resource_id is not None:
-            body["mediaResourceId"] = media_resource_id
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:

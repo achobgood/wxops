@@ -3,28 +3,34 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
-from wxcli.config import get_cc_base_url
 
 
-app = typer.Typer(help="Manage Webex Contact Center cc-agent-summaries.")
+app = typer.Typer(help="Manage Webex Calling slidosecurepremium.")
 
 
-@app.command("create")
-def create(
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+@app.command("list")
+def cmd_list(
+    session_org_id: str = typer.Option(..., "--session-org-id", help="Webex organization UUID."),
+    session_id: str = typer.Option(..., "--session-id", help="Webex meeting instance ID (`{meetingSeriesId}_I_{conferenceI"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List summaries."""
+    """List Compliance Events."""
     api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/generated-summaries/search"
-    if json_body:
-        body = json.loads(json_body)
-    else:
-        body = {}
+    url = f"https://webexapis.com/v1/slido/compliance/events"
+    params = {}
+    if session_org_id is not None:
+        params["sessionOrgId"] = session_org_id
+    if session_id is not None:
+        params["sessionId"] = session_id
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
     try:
-        result = api.session.rest_post(url, json=body)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -45,13 +51,11 @@ def create(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
+    result = result or []
+    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+        print_json(items)
     else:
-        print_json(result)
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 

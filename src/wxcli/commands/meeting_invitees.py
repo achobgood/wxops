@@ -10,7 +10,7 @@ app = typer.Typer(help="Manage Webex Meetings meeting-invitees.")
 
 @app.command("list")
 def cmd_list(
-    meeting_id: str = typer.Option(None, "--meeting-id", help="Unique identifier for the meeting for which invitees are bei"),
+    meeting_id: str = typer.Option(..., "--meeting-id", help="Unique identifier for the meeting for which invitees are bei"),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only u"),
     panelist: str = typer.Option(None, "--panelist", help="Filter invitees or attendees for webinars only. If `true`, r"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
@@ -68,13 +68,13 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    meeting_id: str = typer.Option(None, "--meeting-id", help=""),
-    email: str = typer.Option(None, "--email", help=""),
-    display_name: str = typer.Option(None, "--display-name", help=""),
-    host_email: str = typer.Option(None, "--host-email", help=""),
-    co_host: str = typer.Option(None, "--co-host", help=""),
-    panelist: str = typer.Option(None, "--panelist", help=""),
-    send_email: str = typer.Option(None, "--send-email", help=""),
+    meeting_id: str = typer.Option(None, "--meeting-id", help="(required) Unique identifier for the meeting to which a person is being"),
+    email: str = typer.Option(None, "--email", help="(required) Email address for meeting invitee."),
+    display_name: str = typer.Option(None, "--display-name", help="Display name for meeting invitee. The maximum length of `dis"),
+    co_host: bool = typer.Option(None, "--co-host/--no-co-host", help="Whether or not the invitee is a designated alternate host fo"),
+    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This attribute should on"),
+    send_email: bool = typer.Option(None, "--send-email/--no-send-email", help="If `true`, send an email to the invitee."),
+    panelist: bool = typer.Option(None, "--panelist/--no-panelist", help="If `true`, the invitee is a designated panelist for the even"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -92,14 +92,18 @@ def create(
             body["email"] = email
         if display_name is not None:
             body["displayName"] = display_name
-        if host_email is not None:
-            body["hostEmail"] = host_email
         if co_host is not None:
             body["coHost"] = co_host
-        if panelist is not None:
-            body["panelist"] = panelist
+        if host_email is not None:
+            body["hostEmail"] = host_email
         if send_email is not None:
             body["sendEmail"] = send_email
+        if panelist is not None:
+            body["panelist"] = panelist
+        _missing = [f for f in ['meetingId', 'email'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -135,13 +139,13 @@ def create(
 
 @app.command("create-bulk-insert")
 def create_bulk_insert(
-    meeting_id: str = typer.Option(None, "--meeting-id", help=""),
-    host_email: str = typer.Option(None, "--host-email", help=""),
+    meeting_id: str = typer.Option(None, "--meeting-id", help="(required) Unique identifier for the meeting to which the people are be"),
+    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This attribute should on"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Meeting Invitees\n\nExample --json-body:\n  '{"meetingId":"...","hostEmail":"...","items":[{"coHost":"...","displayName":"...","email":"...","panelist":"...","sendEmail":"..."}]}'."""
+    """Create Meeting Invitees\n\nExample --json-body:\n  '{"meetingId":"...","hostEmail":"...","items":[{"email":"...","displayName":"...","coHost":"...","sendEmail":"...","panelist":"..."}]}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetingInvitees/bulkInsert"
     if json_body:
@@ -152,6 +156,10 @@ def create_bulk_insert(
             body["meetingId"] = meeting_id
         if host_email is not None:
             body["hostEmail"] = host_email
+        _missing = [f for f in ['meetingId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -235,12 +243,12 @@ def show(
 @app.command("update")
 def update(
     meeting_invitee_id: str = typer.Argument(help="meetingInviteeId"),
-    email: str = typer.Option(None, "--email", help=""),
-    display_name: str = typer.Option(None, "--display-name", help=""),
-    host_email: str = typer.Option(None, "--host-email", help=""),
-    co_host: str = typer.Option(None, "--co-host", help=""),
-    panelist: str = typer.Option(None, "--panelist", help=""),
-    send_email: str = typer.Option(None, "--send-email", help=""),
+    email: str = typer.Option(None, "--email", help="Email address for meeting invitee."),
+    display_name: str = typer.Option(None, "--display-name", help="Display name for meeting invitee. The maximum length of `dis"),
+    co_host: bool = typer.Option(None, "--co-host/--no-co-host", help="Whether or not the invitee is a designated alternate host fo"),
+    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This attribute should on"),
+    send_email: bool = typer.Option(None, "--send-email/--no-send-email", help="If `true`, send an email to the invitee."),
+    panelist: bool = typer.Option(None, "--panelist/--no-panelist", help="If `true`, the invitee is a designated panelist for the even"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -255,14 +263,14 @@ def update(
             body["email"] = email
         if display_name is not None:
             body["displayName"] = display_name
-        if host_email is not None:
-            body["hostEmail"] = host_email
         if co_host is not None:
             body["coHost"] = co_host
-        if panelist is not None:
-            body["panelist"] = panelist
+        if host_email is not None:
+            body["hostEmail"] = host_email
         if send_email is not None:
             body["sendEmail"] = send_email
+        if panelist is not None:
+            body["panelist"] = panelist
     try:
         result = api.session.rest_put(url, json=body)
     except RestError as e:

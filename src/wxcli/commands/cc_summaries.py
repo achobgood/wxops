@@ -57,13 +57,15 @@ def show(
 @app.command("update")
 def update(
     id: str = typer.Argument(help="id"),
-    id_param: str = typer.Option(None, "--id", help=""),
-    version: str = typer.Option(None, "--version", help=""),
-    organization_id: str = typer.Option(None, "--organization-id", help=""),
-    agent_inclusion_type: str = typer.Option(None, "--agent-inclusion-type", help=""),
-    call_drop_summaries_enabled: str = typer.Option(None, "--call-drop-summaries-enabled", help=""),
-    virtual_agent_transfer_summaries_enabled: str = typer.Option(None, "--virtual-agent-transfer-summaries-enabled", help=""),
-    consult_transfer_summaries_enabled: str = typer.Option(None, "--consult-transfer-summaries-enabled", help=""),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is require"),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
+    call_drop_summaries_enabled: bool = typer.Option(None, "--call-drop-summaries-enabled/--no-call-drop-summaries-enabled", help="Used to toggle the enable/disable call drop summaries for Ge"),
+    virtual_agent_transfer_summaries_enabled: bool = typer.Option(None, "--virtual-agent-transfer-summaries-enabled/--no-virtual-agent-transfer-summaries-enabled", help="Used to toggle the enable/disable virtual agent transfer sum"),
+    consult_transfer_summaries_enabled: bool = typer.Option(None, "--consult-transfer-summaries-enabled/--no-consult-transfer-summaries-enabled", help="Used to toggle the enable/disable mid call consult/transfer"),
+    agent_inclusion_type: str = typer.Option(None, "--agent-inclusion-type", help="Choices: ALL, SPECIFIC"),
+    created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
+    last_updated_time: str = typer.Option(None, "--last-updated-time", help="This is the updated time of the entity."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -76,20 +78,24 @@ def update(
         body = json.loads(json_body)
     else:
         body = {}
+        if organization_id is not None:
+            body["organizationId"] = organization_id
         if id_param is not None:
             body["id"] = id_param
         if version is not None:
             body["version"] = version
-        if organization_id is not None:
-            body["organizationId"] = organization_id
-        if agent_inclusion_type is not None:
-            body["agentInclusionType"] = agent_inclusion_type
         if call_drop_summaries_enabled is not None:
             body["callDropSummariesEnabled"] = call_drop_summaries_enabled
         if virtual_agent_transfer_summaries_enabled is not None:
             body["virtualAgentTransferSummariesEnabled"] = virtual_agent_transfer_summaries_enabled
         if consult_transfer_summaries_enabled is not None:
             body["consultTransferSummariesEnabled"] = consult_transfer_summaries_enabled
+        if agent_inclusion_type is not None:
+            body["agentInclusionType"] = agent_inclusion_type
+        if created_time is not None:
+            body["createdTime"] = created_time
+        if last_updated_time is not None:
+            body["lastUpdatedTime"] = last_updated_time
     try:
         result = api.session.rest_put(url, json=body)
     except RestError as e:
@@ -119,7 +125,7 @@ def update(
 @app.command("list")
 def cmd_list(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
-    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes"),
+    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attri"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),

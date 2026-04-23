@@ -16,13 +16,13 @@ def cmd_list(
     phone_number: str = typer.Option(None, "--phone-number", help="Returns only the call queues matching the given primary phon"),
     department_id: str = typer.Option(None, "--department-id", help="Returns only call queues matching the given department ID."),
     department_name: str = typer.Option(None, "--department-name", help="Returns only call queues matching the given department name."),
-    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Returns only the list of call queues with Customer Experienc"),
+    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Returns only the list of call queues with Customer Assist li"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Read the List of Call Queues with Customer Experience Essentials."""
+    """Read the List of Call Queues with Customer Assist."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/queues"
     params = {}
@@ -82,7 +82,7 @@ def cmd_list(
 @app.command("create")
 def create(
     location_id: str = typer.Argument(help="locationId"),
-    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Creates a Customer Experience Essentials call queue, when `t"),
+    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Creates a Customer Assist call queue, when `true`. This requ"),
     name: str = typer.Option(None, "--name", help="(required) Unique name for the call queue."),
     phone_number: str = typer.Option(None, "--phone-number", help="Primary phone number of the call queue. Either a `phoneNumbe"),
     extension: str = typer.Option(None, "--extension", help="Primary phone extension of the call queue. Either a `phoneNu"),
@@ -99,7 +99,7 @@ def create(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Call Queue with Customer Experience Essentials\n\nExample --json-body:\n  '{"name":"...","callPolicies":{"routingType":"PRIORITY_BASED","policy":"CIRCULAR","callBounce":{"callBounceEnabled":"...","callBounceMaxRings":"...","agentUnavailableEnabled":"...","alertAgentEnabled":"...","alertAgentMaxSeconds":"...","callBounceOnHoldEnabled":"...","callBounceOnHoldMaxSeconds":"..."},"distinctiveRing":{"enabled":"...","ringPattern":"..."}},"queueSettings":{"queueSize":0,"overflow":{"action":"...","greeting":"...","sendToVoicemail":"...","transferNumber":"...","overflowAfterWaitEnabled":"...","overflowAfterWaitTime":"...","playOverflowGreetingEnabled":"...","audioAnnouncementFiles":"..."},"callOfferToneEnabled":true,"resetCallStatisticsEnabled":true,"welcomeMessage":{"greeting":"...","enabled":"...","alwaysEnabled":"...","audioAnnouncementFiles":"..."},"waitMessage":{"waitMode":"...","enabled":"...","handlingTime":"...","defaultHandlingTime":"...","queuePosition":"...","highVolumeMessageEnabled":"...","estimatedWaitingTime":"...","callbackOptionEnabled":"..."},"comfortMessage":{"greeting":"...","enabled":"...","timeBetweenMessages":"...","audioAnnouncementFiles":"..."},"comfortMessageBypass":{"greeting":"...","enabled":"...","callWaitingAgeThreshold":"...","audioAnnouncementFiles":"..."}},"agents":[{"id":"...","weight":"...","skillLevel":"..."}],"phoneNumber":"...","extension":"...","languageCode":"...","firstName":"..."}'."""
+    """Create a Call Queue with Customer Assist\n\nExample --json-body:\n  '{"name":"...","callPolicies":{"routingType":"PRIORITY_BASED","policy":"CIRCULAR","callBounce":{"callBounceEnabled":"...","callBounceMaxRings":"...","agentUnavailableEnabled":"...","alertAgentEnabled":"...","alertAgentMaxSeconds":"...","callBounceOnHoldEnabled":"...","callBounceOnHoldMaxSeconds":"..."},"distinctiveRing":{"enabled":"...","ringPattern":"..."}},"queueSettings":{"queueSize":0,"overflow":{"action":"...","greeting":"...","sendToVoicemail":"...","transferNumber":"...","overflowAfterWaitEnabled":"...","overflowAfterWaitTime":"...","playOverflowGreetingEnabled":"...","audioAnnouncementFiles":"..."},"callOfferToneEnabled":true,"resetCallStatisticsEnabled":true,"welcomeMessage":{"greeting":"...","enabled":"...","alwaysEnabled":"...","audioAnnouncementFiles":"..."},"waitMessage":{"waitMode":"...","enabled":"...","handlingTime":"...","defaultHandlingTime":"...","queuePosition":"...","highVolumeMessageEnabled":"...","estimatedWaitingTime":"...","callbackOptionEnabled":"..."},"comfortMessage":{"greeting":"...","enabled":"...","timeBetweenMessages":"...","audioAnnouncementFiles":"..."},"comfortMessageBypass":{"greeting":"...","enabled":"...","callWaitingAgeThreshold":"...","audioAnnouncementFiles":"..."}},"agents":[{"id":"...","weight":"...","skillLevel":"..."}],"phoneNumber":"...","extension":"...","languageCode":"...","firstName":"..."}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues"
     params = {}
@@ -181,7 +181,7 @@ def show(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Details for a Call Queue with Customer Experience Essentials."""
+    """Get Details for a Call Queue with Customer Assist."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}"
     params = {}
@@ -1438,13 +1438,13 @@ def list_supervisors(
     name: str = typer.Option(None, "--name", help="Only return the supervisors that match the given name."),
     phone_number: str = typer.Option(None, "--phone-number", help="Only return the supervisors that match the given phone numbe"),
     order: str = typer.Option(None, "--order", help="Sort results alphabetically by supervisor name, in ascending"),
-    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Returns only the list of supervisors with Customer Experienc"),
+    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Returns only the list of supervisors with Customer Assist li"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get List of Supervisors with Customer Experience Essentials."""
+    """Get List of Supervisors with Customer Assist."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/supervisors"
     params = {}
@@ -1496,13 +1496,13 @@ def list_supervisors(
 
 @app.command("create-supervisors")
 def create_supervisors(
-    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Creates a Customer Experience Essentials queue supervisor, w"),
+    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Creates a Customer Assist queue supervisor, when `true`. Cus"),
     id_param: str = typer.Option(None, "--id", help="(required) A unique identifier for the supervisor."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Supervisor with Customer Experience Essentials\n\nExample --json-body:\n  '{"id":"...","agents":[{"id":"..."}]}'."""
+    """Create a Supervisor with Customer Assist\n\nExample --json-body:\n  '{"id":"...","agents":[{"id":"..."}]}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/supervisors"
     params = {}
@@ -1609,7 +1609,7 @@ def show_supervisors(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """GET Supervisor Detail with Customer Experience Essentials."""
+    """GET Supervisor Detail with Customer Assist."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/supervisors/{supervisor_id}"
     params = {}
@@ -1665,11 +1665,11 @@ def show_supervisors(
 @app.command("update-supervisors")
 def update_supervisors(
     supervisor_id: str = typer.Argument(help="supervisorId"),
-    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true` to modify a supervisor with Customer E"),
+    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true` to modify a supervisor with Customer A"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Assign or Unassign Agents to Supervisor with Customer Experience Essentials\n\nExample --json-body:\n  '{"agents":[{"id":"...","action":"..."}]}'."""
+    """Assign or Unassign Agents to Supervisor with Customer Assist\n\nExample --json-body:\n  '{"agents":[{"id":"...","action":"..."}]}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/supervisors/{supervisor_id}"
     params = {}
@@ -1763,7 +1763,7 @@ def list_available_supervisors(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Available Supervisors with Customer Experience Essentials."""
+    """List Available Supervisors with Customer Assist."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/supervisors/availableSupervisors"
     params = {}
@@ -1818,13 +1818,13 @@ def list_available_agents_supervisors(
     name: str = typer.Option(None, "--name", help="Returns only the agents that match the given name."),
     phone_number: str = typer.Option(None, "--phone-number", help="Returns only the agents that match the phone number, extensi"),
     order: str = typer.Option(None, "--order", help="Sort results alphabetically by supervisor name, in ascending"),
-    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Returns only the list of available agents with Customer Expe"),
+    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Returns only the list of available agents with Customer Assi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Available Agents with Customer Experience Essentials."""
+    """List Available Agents with Customer Assist."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/supervisors/availableAgents"
     params = {}
@@ -1881,14 +1881,14 @@ def list_agents(
     name: str = typer.Option(None, "--name", help="Returns only the list of call queue agents that match the gi"),
     phone_number: str = typer.Option(None, "--phone-number", help="Returns only the list of call queue agents that match the gi"),
     join_enabled: str = typer.Option(None, "--join-enabled", help="Returns only the list of call queue agents that match the gi"),
-    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Returns only the list of call queues with Customer Experienc"),
+    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Returns only the list of call queues with Customer Assist li"),
     order: str = typer.Option(None, "--order", help="Sort results alphabetically by call queue agent's name, in a"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Read the List of Call Queue Agents with Customer Experience Essentials."""
+    """Read the List of Call Queue Agents with Customer Assist."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/queues/agents"
     params = {}
@@ -1956,7 +1956,7 @@ def show_agents(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Details for a Call Queue Agent with Customer Experience Essentials."""
+    """Get Details for a Call Queue Agent with Customer Assist."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/queues/agents/{id}"
     params = {}
@@ -2006,11 +2006,11 @@ def show_agents(
 @app.command("update-settings")
 def update_settings(
     id: str = typer.Argument(help="id"),
-    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true` to modify an agent that has Customer E"),
+    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true` to modify an agent that has Customer A"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update an Agent's Settings of One or More Call Queues with Customer Experience Essentials\n\nExample --json-body:\n  '{"settings":[{"queueId":"...","joinEnabled":"..."}]}'."""
+    """Update an Agent's Settings of One or More Call Queues with Customer Assist\n\nExample --json-body:\n  '{"settings":[{"queueId":"...","joinEnabled":"..."}]}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/queues/agents/{id}/settings"
     params = {}

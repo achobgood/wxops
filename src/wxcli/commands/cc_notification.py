@@ -11,10 +11,10 @@ app = typer.Typer(help="Manage Webex Contact Center cc-notification.")
 
 @app.command("create")
 def create(
-    is_keep_alive_enabled: bool = typer.Option(None, "--is-keep-alive-enabled/--no-is-keep-alive-enabled", help=""),
-    client_type: str = typer.Option(None, "--client-type", help=""),
-    allow_multi_login: bool = typer.Option(None, "--allow-multi-login/--no-allow-multi-login", help=""),
-    force: bool = typer.Option(None, "--force/--no-force", help=""),
+    is_keep_alive_enabled: bool = typer.Option(None, "--is-keep-alive-enabled/--no-is-keep-alive-enabled", help="This represents that a json message {\\\"keepalive\\\":\\\"true\\\"}"),
+    client_type: str = typer.Option(None, "--client-type", help="ClientType is used to identify a web application differently"),
+    allow_multi_login: bool = typer.Option(None, "--allow-multi-login/--no-allow-multi-login", help="This cannot be used without providing \\\"clientType\\\". When s"),
+    force: bool = typer.Option(None, "--force/--no-force", help="When true, will drop a random connection and then subscribes"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),

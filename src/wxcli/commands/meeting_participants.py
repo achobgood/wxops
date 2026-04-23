@@ -10,7 +10,7 @@ app = typer.Typer(help="Manage Webex Meetings meeting-participants.")
 
 @app.command("list")
 def cmd_list(
-    meeting_id: str = typer.Option(None, "--meeting-id", help="The unique identifier for the meeting. Please note that curr"),
+    meeting_id: str = typer.Option(..., "--meeting-id", help="The unique identifier for the meeting. Please note that curr"),
     breakout_session_id: str = typer.Option(None, "--breakout-session-id", help="The unique identifier for a breakout session which happened"),
     meeting_start_time_from: str = typer.Option(None, "--meeting-start-time-from", help="Meetings start from the specified date and time(exclusive) i"),
     meeting_start_time_to: str = typer.Option(None, "--meeting-start-time-to", help="Meetings start before the specified date and time(exclusive)"),
@@ -77,17 +77,17 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    meeting_id: str = typer.Option(None, "--meeting-id", help="The unique identifier for the meeting."),
+    meeting_id: str = typer.Option(..., "--meeting-id", help="The unique identifier for the meeting."),
     meeting_start_time_from: str = typer.Option(None, "--meeting-start-time-from", help="Meetings start from the specified date and time(exclusive) i"),
     meeting_start_time_to: str = typer.Option(None, "--meeting-start-time-to", help="Meetings start before the specified date and time(exclusive)"),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only u"),
-    join_time_to: str = typer.Option(None, "--join-time-to", help=""),
-    join_time_from: str = typer.Option(None, "--join-time-from", help=""),
+    join_time_from: str = typer.Option(None, "--join-time-from", help="The time participants join a meeting starts from the specifi"),
+    join_time_to: str = typer.Option(None, "--join-time-to", help="The time participants join a meeting before the specified da"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Query Meeting Participants with Email\n\nExample --json-body:\n  '{"emails":["..."],"joinTimeTo":"...","joinTimeFrom":"..."}'."""
+    """Query Meeting Participants with Email\n\nExample --json-body:\n  '{"emails":["..."],"joinTimeFrom":"...","joinTimeTo":"..."}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetingParticipants/query"
     params = {}
@@ -103,10 +103,10 @@ def create(
         body = json.loads(json_body)
     else:
         body = {}
-        if join_time_to is not None:
-            body["joinTimeTo"] = join_time_to
         if join_time_from is not None:
             body["joinTimeFrom"] = join_time_from
+        if join_time_to is not None:
+            body["joinTimeTo"] = join_time_to
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -190,9 +190,9 @@ def show(
 @app.command("update")
 def update(
     participant_id: str = typer.Argument(help="participantId"),
-    admit: str = typer.Option(None, "--admit", help=""),
-    expel: str = typer.Option(None, "--expel", help=""),
-    muted: str = typer.Option(None, "--muted", help=""),
+    muted: bool = typer.Option(None, "--muted/--no-muted", help="If `true`, participant is muted."),
+    admit: bool = typer.Option(None, "--admit/--no-admit", help="If `true` the participant admit a participant in the lobby t"),
+    expel: bool = typer.Option(None, "--expel/--no-expel", help="If `true` the participant is expelled from the meeting."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -203,12 +203,12 @@ def update(
         body = json.loads(json_body)
     else:
         body = {}
+        if muted is not None:
+            body["muted"] = muted
         if admit is not None:
             body["admit"] = admit
         if expel is not None:
             body["expel"] = expel
-        if muted is not None:
-            body["muted"] = muted
     try:
         result = api.session.rest_put(url, json=body)
     except RestError as e:
@@ -241,7 +241,7 @@ def create_admit(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Admit Participants\n\nExample --json-body:\n  '{"items":[{"breakoutSessionId":"...","participantId":"..."}]}'."""
+    """Admit Participants\n\nExample --json-body:\n  '{"items":[{"participantId":"...","breakoutSessionId":"..."}]}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetingParticipants/admit"
     if json_body:
@@ -283,12 +283,12 @@ def create_admit(
 
 @app.command("create-callout")
 def create_callout(
-    address: str = typer.Option(None, "--address", help=""),
-    meeting_number: str = typer.Option(None, "--meeting-number", help=""),
-    display_name: str = typer.Option(None, "--display-name", help=""),
-    invitation_correlation_id: str = typer.Option(None, "--invitation-correlation-id", help=""),
-    address_type: str = typer.Option(None, "--address-type", help=""),
-    meeting_id: str = typer.Option(None, "--meeting-id", help=""),
+    meeting_id: str = typer.Option(None, "--meeting-id", help="Unique identifier of the meeting to which the SIP participan"),
+    meeting_number: str = typer.Option(None, "--meeting-number", help="Number of the meeting to which the SIP participant is to be"),
+    address: str = typer.Option(None, "--address", help="(required) SIP address of the invited SIP participant."),
+    address_type: str = typer.Option(None, "--address-type", help="Choices: sipAddress"),
+    invitation_correlation_id: str = typer.Option(None, "--invitation-correlation-id", help="An internal ID that is associated with the call-out invitati"),
+    display_name: str = typer.Option(None, "--display-name", help="(required) The display name of the invited SIP participant. The maximum"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -300,18 +300,22 @@ def create_callout(
         body = json.loads(json_body)
     else:
         body = {}
-        if address is not None:
-            body["address"] = address
-        if meeting_number is not None:
-            body["meetingNumber"] = meeting_number
-        if display_name is not None:
-            body["displayName"] = display_name
-        if invitation_correlation_id is not None:
-            body["invitationCorrelationId"] = invitation_correlation_id
-        if address_type is not None:
-            body["addressType"] = address_type
         if meeting_id is not None:
             body["meetingId"] = meeting_id
+        if meeting_number is not None:
+            body["meetingNumber"] = meeting_number
+        if address is not None:
+            body["address"] = address
+        if address_type is not None:
+            body["addressType"] = address_type
+        if invitation_correlation_id is not None:
+            body["invitationCorrelationId"] = invitation_correlation_id
+        if display_name is not None:
+            body["displayName"] = display_name
+        _missing = [f for f in ['address', 'displayName'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -347,7 +351,7 @@ def create_callout(
 
 @app.command("create-cancel-callout")
 def create_cancel_callout(
-    participant_id: str = typer.Option(None, "--participant-id", help=""),
+    participant_id: str = typer.Option(None, "--participant-id", help="(required) ID of the SIP participant on whom the callout is to be cance"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -361,6 +365,10 @@ def create_cancel_callout(
         body = {}
         if participant_id is not None:
             body["participantId"] = participant_id
+        _missing = [f for f in ['participantId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:

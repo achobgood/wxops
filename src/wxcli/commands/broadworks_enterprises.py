@@ -3,35 +3,31 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
-from wxcli.config import get_cc_base_url
 
 
-app = typer.Typer(help="Manage Webex Contact Center cc-contact-list.")
+app = typer.Typer(help="Manage Webex Calling broadworks-enterprises.")
 
 
-@app.command("create")
-def create(
-    campaign_id: str = typer.Argument(help="campaignId"),
-    activation_time_lag_minutes: str = typer.Option(None, "--activation-time-lag-minutes", help="Contact list activation time lag in minutes (0 = immediate a"),
-    activation_date_time: str = typer.Option(None, "--activation-date-time", help="Contact list activation DateTimeStamp (format: YYYY-MM-DDTHH"),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+@app.command("show")
+def show(
+    sp_enterprise_id: str = typer.Option(None, "--sp-enterprise-id", help="The Service Provider supplied unique identifier for the subs"),
+    starts_with: str = typer.Option(None, "--starts-with", help="The starting string of the enterprise identifiers to match a"),
+    max: str = typer.Option(None, "--max", help="Limit the number of enterprises returned in the search, up t"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create contact list\n\nExample --json-body:\n  '{"supportedChannels":["Voice"],"activationTimeLagMinutes":0,"activationDateTime":"..."}'."""
+    """List BroadWorks Enterprises."""
     api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/v3/campaign-management/campaigns/{campaign_id}/contact-list"
-    if json_body:
-        body = json.loads(json_body)
-    else:
-        body = {}
-        if activation_time_lag_minutes is not None:
-            body["activationTimeLagMinutes"] = activation_time_lag_minutes
-        if activation_date_time is not None:
-            body["activationDateTime"] = activation_date_time
+    url = f"https://webexapis.com/v1/broadworks/enterprises"
+    params = {}
+    if sp_enterprise_id is not None:
+        params["spEnterpriseId"] = sp_enterprise_id
+    if starts_with is not None:
+        params["startsWith"] = starts_with
+    if max is not None:
+        params["max"] = max
     try:
-        result = api.session.rest_post(url, json=body)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -54,33 +50,80 @@ def create(
         raise typer.Exit(1)
     if output == "json":
         print_json(result)
-    elif isinstance(result, dict) and "contactListId" in result:
-        typer.echo(f"Created: {result['contactListId']}")
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
     else:
+        if isinstance(result, dict):
+            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
+        elif isinstance(result, list):
+            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
+        else:
+            print_json(result)
+
+
+
+@app.command("show-broadworks-directory-sync")
+def show_broadworks_directory_sync(
+    id: str = typer.Argument(help="id"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Directory Sync Status for an Enterprise."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/broadworks/enterprises/{id}/broadworksDirectorySync"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if output == "json":
         print_json(result)
+    else:
+        if isinstance(result, dict):
+            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
+        elif isinstance(result, list):
+            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
+        else:
+            print_json(result)
 
 
 
-@app.command("create-contacts")
-def create_contacts(
-    campaign_id: str = typer.Argument(help="campaignId"),
-    contact_list_id: str = typer.Argument(help="contactListId"),
+@app.command("create")
+def create(
+    id: str = typer.Argument(help="id"),
+    sync_status: str = typer.Option(None, "--sync-status", help="(required) At this time, the only value allowed for this attribute is `"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create contacts within a contact list\n\nExample --json-body:\n  '{"contacts":[{"contactAttributes":"..."}]}'."""
+    """Trigger Directory Sync for an Enterprise."""
     api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/v3/campaign-management/campaigns/{campaign_id}/contact-list/{contact_list_id}/contacts"
+    url = f"https://webexapis.com/v1/broadworks/enterprises/{id}/broadworksDirectorySync"
     if json_body:
         body = json.loads(json_body)
     else:
         body = {}
+        if sync_status is not None:
+            body["syncStatus"] = sync_status
+        _missing = [f for f in ['syncStatus'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -116,25 +159,22 @@ def create_contacts(
 
 @app.command("update")
 def update(
-    campaign_id: str = typer.Argument(help="campaignId"),
-    contact_list_id: str = typer.Argument(help="contactListId"),
-    contact_id: str = typer.Argument(help="contactId"),
-    contact_status: str = typer.Option(None, "--contact-status", help="Choices: CLOSED"),
+    id: str = typer.Argument(help="id"),
+    enable_dir_sync: bool = typer.Option(None, "--enable-dir-sync/--no-enable-dir-sync", help="The toggle to enable/disable directory sync."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a contact's status within a contact list."""
+    """Update Directory Sync for a BroadWorks Enterprise."""
     api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/v3/campaign-management/campaigns/{campaign_id}/contact-list/{contact_list_id}/contacts/{contact_id}"
+    url = f"https://webexapis.com/v1/broadworks/enterprises/{id}/broadworksDirectorySync"
     if json_body:
         body = json.loads(json_body)
     else:
         body = {}
-        if contact_status is not None:
-            body["contactStatus"] = contact_status
+        if enable_dir_sync is not None:
+            body["enableDirSync"] = enable_dir_sync
     try:
-        result = api.session.rest_patch(url, json=body)
+        result = api.session.rest_put(url, json=body)
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -159,26 +199,25 @@ def update(
 
 
 
-@app.command("update-status")
-def update_status(
-    campaign_id: str = typer.Argument(help="campaignId"),
-    contact_list_id: str = typer.Argument(help="contactListId"),
-    contact_list_status: str = typer.Option(None, "--contact-list-status", help="Contact List Status (e.g., EXPIRED). Note: This value is not"),
+@app.command("create-external-user")
+def create_external_user(
+    id: str = typer.Argument(help="id"),
+    user_id: str = typer.Option(None, "--user-id", help="The user ID of the Broadworks user to be synced (A non-webex"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update contact list status."""
+    """Trigger Directory Sync for a User."""
     api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/v3/campaign-management/campaigns/{campaign_id}/contact-list/{contact_list_id}/status"
+    url = f"https://webexapis.com/v1/broadworks/enterprises/{id}/broadworksDirectorySync/externalUser"
     if json_body:
         body = json.loads(json_body)
     else:
         body = {}
-        if contact_list_status is not None:
-            body["contactListStatus"] = contact_list_status
+        if user_id is not None:
+            body["userId"] = user_id
     try:
-        result = api.session.rest_patch(url, json=body)
+        result = api.session.rest_post(url, json=body)
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -199,60 +238,13 @@ def update_status(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    typer.echo(f"Updated.")
-
-
-
-@app.command("list")
-def cmd_list(
-    campaign_id: str = typer.Argument(help="campaignId"),
-    status: str = typer.Option(None, "--status", help="Choices: Active, Expired, UploadFailed"),
-    source: str = typer.Option(None, "--source", help="Choices: API, SFTP, ManualFile, GlobalUpload, GlobalSFTP"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Get Contact Lists within a Campaign."""
-    api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/v3/campaign-management/campaigns/{campaign_id}/contact-lists"
-    params = {}
-    if status is not None:
-        params["status"] = status
-    if source is not None:
-        params["source"] = source
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
-    try:
-        result = api.session.rest_get(url, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    result = result or []
-    items = result.get("contactLists", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
-        print_json(items)
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif not result or result == {}:
+        typer.echo("Created.")
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_json(result)
 
 

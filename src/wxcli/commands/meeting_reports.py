@@ -10,7 +10,7 @@ app = typer.Typer(help="Manage Webex Meetings meeting-reports.")
 
 @app.command("list")
 def cmd_list(
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site which the API lists meeting usage repo"),
+    site_url: str = typer.Option(..., "--site-url", help="URL of the Webex site which the API lists meeting usage repo"),
     service_type: str = typer.Option(None, "--service-type", help="Meeting usage report's service-type. If `serviceType` is spe"),
     from_param: str = typer.Option(None, "--from", help="Starting date and time for meeting usage reports to return,"),
     to: str = typer.Option(None, "--to", help="Ending date and time for meeting usage reports to return, in"),
@@ -71,7 +71,7 @@ def cmd_list(
 
 @app.command("list-attendees")
 def list_attendees(
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site which the API lists meeting attendee r"),
+    site_url: str = typer.Option(..., "--site-url", help="URL of the Webex site which the API lists meeting attendee r"),
     from_param: str = typer.Option(None, "--from", help="Starting date and time for the meeting attendee reports to r"),
     to: str = typer.Option(None, "--to", help="Ending date and time for the meeting attendee reports to ret"),
     meeting_id: str = typer.Option(None, "--meeting-id", help="Meeting ID for the meeting attendee reports to return. If sp"),

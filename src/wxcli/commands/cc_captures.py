@@ -15,7 +15,7 @@ def create(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Captures\n\nExample --json-body:\n  '{"query":{"taskIds":["..."],"orgId":"...","includeSegments":"...","urlExpiration":"..."}}'."""
+    """List Captures\n\nExample --json-body:\n  '{"query":{"taskIds":["..."],"orgId":"...","urlExpiration":0,"includeSegments":true,"includeVARecordings":true}}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/captures/query"

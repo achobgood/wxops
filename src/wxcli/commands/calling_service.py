@@ -11,6 +11,7 @@ app = typer.Typer(help="Manage Webex Calling calling-service.")
 
 @app.command("list")
 def cmd_list(
+    tts_language: str = typer.Option(None, "--tts-language", help="Filter languages by TTS support."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -20,6 +21,8 @@ def cmd_list(
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/announcementLanguages"
     params = {}
+    if tts_language is not None:
+        params["ttsLanguage"] = tts_language
     if limit > 0:
         params["max"] = limit
     if offset > 0:

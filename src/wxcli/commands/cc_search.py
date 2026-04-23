@@ -11,12 +11,12 @@ app = typer.Typer(help="Manage Webex Contact Center cc-search.")
 
 @app.command("create")
 def create(
-    query: str = typer.Option(None, "--query", help=""),
+    query: str = typer.Option(None, "--query", help="A graphQL query specifying the task attributes needed in the"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Search tasks\n\nExample --json-body:\n  '{"query":"...","variables":{}}'."""
+    """Search tasks\n\nExample --json-body:\n  '{"variables":{},"query":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/search"

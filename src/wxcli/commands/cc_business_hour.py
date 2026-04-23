@@ -12,7 +12,7 @@ app = typer.Typer(help="Manage Webex Contact Center cc-business-hour.")
 @app.command("list")
 def cmd_list(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
-    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes"),
+    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attri"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
     single_object_response: str = typer.Option(None, "--single-object-response", help="Specifiy whether to include array fields in the response, Th"),
@@ -74,20 +74,22 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    version: str = typer.Option(None, "--version", help=""),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is require"),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
+    name: str = typer.Option(None, "--name", help="(required) Enter a name for the agent profile."),
+    description: str = typer.Option(None, "--description", help="(Optional) Enter a description of the profile."),
+    timezone: str = typer.Option(None, "--timezone", help="(required) The time zone that you provision for your business hour."),
+    holidays_id: str = typer.Option(None, "--holidays-id", help=""),
     overrides_id: str = typer.Option(None, "--overrides-id", help=""),
     working_hours_count: str = typer.Option(None, "--working-hours-count", help=""),
-    name: str = typer.Option(None, "--name", help=""),
-    organization_id: str = typer.Option(None, "--organization-id", help=""),
-    holidays_id: str = typer.Option(None, "--holidays-id", help=""),
-    id_param: str = typer.Option(None, "--id", help=""),
-    description: str = typer.Option(None, "--description", help=""),
-    timezone: str = typer.Option(None, "--timezone", help=""),
+    created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
+    last_updated_time: str = typer.Option(None, "--last-updated-time", help="This is the updated time of the entity."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Business Hours resource\n\nExample --json-body:\n  '{"version":"...","overridesId":"...","workingHoursCount":"...","name":"...","organizationId":"...","holidaysId":"...","id":"...","description":"..."}'."""
+    """Create a new Business Hours resource\n\nExample --json-body:\n  '{"name":"...","timezone":"...","workingHours":[{"name":"...","days":"...","startTime":"...","endTime":"..."}],"organizationId":"...","id":"...","version":0,"description":"...","holidaysId":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -96,24 +98,32 @@ def create(
         body = json.loads(json_body)
     else:
         body = {}
-        if version is not None:
-            body["version"] = version
-        if overrides_id is not None:
-            body["overridesId"] = overrides_id
-        if working_hours_count is not None:
-            body["workingHoursCount"] = working_hours_count
-        if name is not None:
-            body["name"] = name
         if organization_id is not None:
             body["organizationId"] = organization_id
-        if holidays_id is not None:
-            body["holidaysId"] = holidays_id
         if id_param is not None:
             body["id"] = id_param
+        if version is not None:
+            body["version"] = version
+        if name is not None:
+            body["name"] = name
         if description is not None:
             body["description"] = description
         if timezone is not None:
             body["timezone"] = timezone
+        if holidays_id is not None:
+            body["holidaysId"] = holidays_id
+        if overrides_id is not None:
+            body["overridesId"] = overrides_id
+        if working_hours_count is not None:
+            body["workingHoursCount"] = working_hours_count
+        if created_time is not None:
+            body["createdTime"] = created_time
+        if last_updated_time is not None:
+            body["lastUpdatedTime"] = last_updated_time
+        _missing = [f for f in ['name', 'timezone'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except RestError as e:
@@ -153,7 +163,7 @@ def create_bulk(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Business Hours resource(s)\n\nExample --json-body:\n  '{"items":[{"item":"...","itemIdentifier":"...","requestAction":"..."}]}'."""
+    """Bulk save Business Hours resource(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -297,19 +307,21 @@ def show(
 @app.command("update")
 def update(
     id: str = typer.Argument(help="id"),
-    version: str = typer.Option(None, "--version", help=""),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is require"),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
+    name: str = typer.Option(None, "--name", help="Enter a name for the agent profile."),
+    description: str = typer.Option(None, "--description", help="(Optional) Enter a description of the profile."),
+    timezone: str = typer.Option(None, "--timezone", help="The time zone that you provision for your business hour."),
+    holidays_id: str = typer.Option(None, "--holidays-id", help=""),
     overrides_id: str = typer.Option(None, "--overrides-id", help=""),
     working_hours_count: str = typer.Option(None, "--working-hours-count", help=""),
-    name: str = typer.Option(None, "--name", help=""),
-    organization_id: str = typer.Option(None, "--organization-id", help=""),
-    holidays_id: str = typer.Option(None, "--holidays-id", help=""),
-    id_param: str = typer.Option(None, "--id", help=""),
-    description: str = typer.Option(None, "--description", help=""),
-    timezone: str = typer.Option(None, "--timezone", help=""),
+    created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
+    last_updated_time: str = typer.Option(None, "--last-updated-time", help="This is the updated time of the entity."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Business Hours resource by ID\n\nExample --json-body:\n  '{"version":"...","overridesId":"...","workingHoursCount":"...","name":"...","organizationId":"...","holidaysId":"...","id":"...","description":"..."}'."""
+    """Update specific Business Hours resource by ID\n\nExample --json-body:\n  '{"name":"...","timezone":"...","workingHours":[{"name":"...","days":"...","startTime":"...","endTime":"..."}],"organizationId":"...","id":"...","version":0,"description":"...","holidaysId":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -318,24 +330,28 @@ def update(
         body = json.loads(json_body)
     else:
         body = {}
-        if version is not None:
-            body["version"] = version
-        if overrides_id is not None:
-            body["overridesId"] = overrides_id
-        if working_hours_count is not None:
-            body["workingHoursCount"] = working_hours_count
-        if name is not None:
-            body["name"] = name
         if organization_id is not None:
             body["organizationId"] = organization_id
-        if holidays_id is not None:
-            body["holidaysId"] = holidays_id
         if id_param is not None:
             body["id"] = id_param
+        if version is not None:
+            body["version"] = version
+        if name is not None:
+            body["name"] = name
         if description is not None:
             body["description"] = description
         if timezone is not None:
             body["timezone"] = timezone
+        if holidays_id is not None:
+            body["holidaysId"] = holidays_id
+        if overrides_id is not None:
+            body["overridesId"] = overrides_id
+        if working_hours_count is not None:
+            body["workingHoursCount"] = working_hours_count
+        if created_time is not None:
+            body["createdTime"] = created_time
+        if last_updated_time is not None:
+            body["lastUpdatedTime"] = last_updated_time
     try:
         result = api.session.rest_put(url, json=body)
     except RestError as e:
@@ -370,7 +386,7 @@ def delete(
 ):
     """Delete specific Business Hours resource by ID."""
     if not force:
-        typer.confirm(f"Delete {orgid}?", abort=True)
+        typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_org_id() or api.people.me().org_id
@@ -397,7 +413,7 @@ def delete(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    typer.echo(f"Deleted: {orgid}")
+    typer.echo(f"Deleted: {id}")
 
 
 
@@ -462,7 +478,7 @@ def list_incoming_references(
 @app.command("list-business-hours")
 def list_business_hours(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
-    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes"),
+    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attri"),
     search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search col"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),

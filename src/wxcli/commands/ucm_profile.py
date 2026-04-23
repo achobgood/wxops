@@ -3,28 +3,32 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
-from wxcli.config import get_cc_base_url
+from wxcli.config import get_org_id
 
 
-app = typer.Typer(help="Manage Webex Contact Center cc-agent-summaries.")
+app = typer.Typer(help="Manage Webex Calling ucm-profile.")
 
 
-@app.command("create")
-def create(
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+@app.command("list")
+def cmd_list(
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List summaries."""
+    """Read the List of UC Manager Profiles."""
     api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/generated-summaries/search"
-    if json_body:
-        body = json.loads(json_body)
-    else:
-        body = {}
+    url = f"https://webexapis.com/v1/telephony/config/callingProfiles"
+    params = {}
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
-        result = api.session.rest_post(url, json=body)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -45,13 +49,11 @@ def create(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
+    result = result or []
+    items = result.get("callingProfiles", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+        print_json(items)
     else:
-        print_json(result)
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 

@@ -6,52 +6,26 @@ from wxcli.output import print_table, print_json
 from wxcli.config import get_org_id
 
 
-app = typer.Typer(help="Manage Webex Calling announcements.")
+app = typer.Typer(help="Manage Webex Calling customer-assist.")
 
 
 @app.command("list")
 def cmd_list(
-    location_id: str = typer.Option(None, "--location-id", help="Choices: all, locations, Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzMxMTYx"),
-    order: str = typer.Option(None, "--order", help="Sort the list according to fileName or fileSize. The default"),
-    file_name: str = typer.Option(None, "--file-name", help="Return the list of announcements with the given fileName."),
-    file_type: str = typer.Option(None, "--file-type", help="Return the list of announcement files for this fileType."),
-    media_file_type: str = typer.Option(None, "--media-file-type", help="Return the list of announcement files for this mediaFileType"),
-    name: str = typer.Option(None, "--name", help="Return the list of announcement files for this announcement"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Fetch list of announcement greetings on location and organization level."""
+    """List Wrap Up Reasons."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/telephony/config/announcements"
+    url = f"https://webexapis.com/v1/telephony/config/cxEssentials/wrapup/reasons"
     params = {}
-    if location_id is not None:
-        params["locationId"] = location_id
-    if order is not None:
-        params["order"] = order
-    if file_name is not None:
-        params["fileName"] = file_name
-    if file_type is not None:
-        params["fileType"] = file_type
-    if media_file_type is not None:
-        params["mediaFileType"] = media_file_type
-    if name is not None:
-        params["name"] = name
     if limit > 0:
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
-    org_id = get_org_id()
-    if org_id is not None:
-        params["orgId"] = org_id
     try:
-        if limit > 0:
-            result = api.session.rest_get(url, params=params)
-            result = result or {}
-            items = result.get("announcements", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-        else:
-            items = list(api.session.follow_pagination(url=url, params=params, item_key="announcements"))
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -72,6 +46,8 @@ def cmd_list(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
+    result = result or []
+    items = result.get("wrapupReasons", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -81,39 +57,32 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    name: str = typer.Option(None, "--name", help="(required) Name of the announcement."),
-    file_uri: str = typer.Option(None, "--file-uri", help="(required) URI of the announcement file."),
-    file_name: str = typer.Option(None, "--file-name", help="(required) File name of the announcement."),
-    is_text_to_speech: bool = typer.Option(None, "--is-text-to-speech/--no-is-text-to-speech", help="(required) Indicates whether the announcement is text-to-speech."),
+    name: str = typer.Option(None, "--name", help="(required) Name of the wrap-up reason."),
+    description: str = typer.Option(None, "--description", help="Description of the wrap-up reason."),
+    assign_all_queues_enabled: bool = typer.Option(None, "--assign-all-queues-enabled/--no-assign-all-queues-enabled", help="Denotes whether all queues are assigned to the wrap-up reaso"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Upload a binary announcement greeting at organization level."""
+    """Create Wrap Up Reason\n\nExample --json-body:\n  '{"name":"...","description":"...","queues":["..."],"assignAllQueuesEnabled":true}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/telephony/config/announcements"
-    params = {}
-    org_id = get_org_id()
-    if org_id is not None:
-        params["orgId"] = org_id
+    url = f"https://webexapis.com/v1/telephony/config/cxEssentials/wrapup/reasons"
     if json_body:
         body = json.loads(json_body)
     else:
         body = {}
         if name is not None:
             body["name"] = name
-        if file_uri is not None:
-            body["fileUri"] = file_uri
-        if file_name is not None:
-            body["fileName"] = file_name
-        if is_text_to_speech is not None:
-            body["isTextToSpeech"] = is_text_to_speech
-        _missing = [f for f in ['name', 'fileUri', 'fileName', 'isTextToSpeech'] if f not in body or body[f] is None]
+        if description is not None:
+            body["description"] = description
+        if assign_all_queues_enabled is not None:
+            body["assignAllQueuesEnabled"] = assign_all_queues_enabled
+        _missing = [f for f in ['name'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
             raise typer.Exit(1)
     try:
-        result = api.session.rest_post(url, json=body, params=params)
+        result = api.session.rest_post(url, json=body)
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -147,65 +116,15 @@ def create(
 
 @app.command("show")
 def show(
+    wrapup_reason_id: str = typer.Argument(help="wrapupReasonId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Fetch repository usage for announcements for an organization."""
+    """Read Wrap Up Reason."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/telephony/config/announcements/usage"
-    params = {}
-    org_id = get_org_id()
-    if org_id is not None:
-        params["orgId"] = org_id
+    url = f"https://webexapis.com/v1/telephony/config/cxEssentials/wrapup/reasons/{wrapup_reason_id}"
     try:
-        result = api.session.rest_get(url, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
-
-
-
-@app.command("show-announcements-config")
-def show_announcements_config(
-    announcement_id: str = typer.Argument(help="announcementId"),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Fetch details of a binary announcement greeting at the organization level."""
-    api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/telephony/config/announcements/{announcement_id}"
-    params = {}
-    org_id = get_org_id()
-    if org_id is not None:
-        params["orgId"] = org_id
-    try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -240,35 +159,31 @@ def show_announcements_config(
 
 @app.command("update")
 def update(
-    announcement_id: str = typer.Argument(help="announcementId"),
-    name: str = typer.Option(None, "--name", help="Name of the announcement."),
-    file_uri: str = typer.Option(None, "--file-uri", help="URI of the announcement file."),
-    file_name: str = typer.Option(None, "--file-name", help="File name of the announcement."),
-    is_text_to_speech: bool = typer.Option(None, "--is-text-to-speech/--no-is-text-to-speech", help="Indicates whether the announcement is text-to-speech."),
+    wrapup_reason_id: str = typer.Argument(help="wrapupReasonId"),
+    name: str = typer.Option(None, "--name", help="Name of the wrap-up reason."),
+    description: str = typer.Option(None, "--description", help="Description of the wrap-up reason."),
+    assign_all_queues_enabled: bool = typer.Option(None, "--assign-all-queues-enabled/--no-assign-all-queues-enabled", help="Denotes whether all queues are assigned to the wrap-up reaso"),
+    unassign_all_queues_enabled: bool = typer.Option(None, "--unassign-all-queues-enabled/--no-unassign-all-queues-enabled", help="Denotes whether all queues are unassigned from the wrap-up r"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify a binary announcement greeting at organization level."""
+    """Update Wrap Up Reason\n\nExample --json-body:\n  '{"name":"...","description":"...","queuesToAssign":["..."],"queuesToUnassign":["..."],"assignAllQueuesEnabled":true,"unassignAllQueuesEnabled":true}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/telephony/config/announcements/{announcement_id}"
-    params = {}
-    org_id = get_org_id()
-    if org_id is not None:
-        params["orgId"] = org_id
+    url = f"https://webexapis.com/v1/telephony/config/cxEssentials/wrapup/reasons/{wrapup_reason_id}"
     if json_body:
         body = json.loads(json_body)
     else:
         body = {}
         if name is not None:
             body["name"] = name
-        if file_uri is not None:
-            body["fileUri"] = file_uri
-        if file_name is not None:
-            body["fileName"] = file_name
-        if is_text_to_speech is not None:
-            body["isTextToSpeech"] = is_text_to_speech
+        if description is not None:
+            body["description"] = description
+        if assign_all_queues_enabled is not None:
+            body["assignAllQueuesEnabled"] = assign_all_queues_enabled
+        if unassign_all_queues_enabled is not None:
+            body["unassignAllQueuesEnabled"] = unassign_all_queues_enabled
     try:
-        result = api.session.rest_put(url, json=body, params=params)
+        result = api.session.rest_put(url, json=body)
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -295,21 +210,17 @@ def update(
 
 @app.command("delete")
 def delete(
-    announcement_id: str = typer.Argument(help="announcementId"),
+    wrapup_reason_id: str = typer.Argument(help="wrapupReasonId"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete an announcement greeting of the organization."""
+    """Delete Wrap Up Reason."""
     if not force:
-        typer.confirm(f"Delete {announcement_id}?", abort=True)
+        typer.confirm(f"Delete {wrapup_reason_id}?", abort=True)
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/telephony/config/announcements/{announcement_id}"
-    params = {}
-    org_id = get_org_id()
-    if org_id is not None:
-        params["orgId"] = org_id
+    url = f"https://webexapis.com/v1/telephony/config/cxEssentials/wrapup/reasons/{wrapup_reason_id}"
     try:
-        api.session.rest_delete(url, params=params)
+        api.session.rest_delete(url)
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -330,46 +241,27 @@ def delete(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    typer.echo(f"Deleted: {announcement_id}")
+    typer.echo(f"Deleted: {wrapup_reason_id}")
 
 
 
-@app.command("create-announcements")
-def create_announcements(
-    location_id: str = typer.Argument(help="locationId"),
-    name: str = typer.Option(None, "--name", help="(required) Name of the announcement."),
-    file_uri: str = typer.Option(None, "--file-uri", help="(required) URI of the announcement file."),
-    file_name: str = typer.Option(None, "--file-name", help="(required) File name of the announcement."),
-    is_text_to_speech: bool = typer.Option(None, "--is-text-to-speech/--no-is-text-to-speech", help="(required) Indicates whether the announcement is text-to-speech."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+@app.command("validate-wrap-up")
+def validate_wrap_up(
+    name: str = typer.Option(None, "--name", help="Name of the wrap-up reason."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Upload a binary announcement greeting at the location level."""
+    """Validate Wrap Up Reason."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/announcements"
-    params = {}
-    org_id = get_org_id()
-    if org_id is not None:
-        params["orgId"] = org_id
+    url = f"https://webexapis.com/v1/telephony/config/cxEssentials/wrapup/reasons/actions/validateName/invoke"
     if json_body:
         body = json.loads(json_body)
     else:
         body = {}
         if name is not None:
             body["name"] = name
-        if file_uri is not None:
-            body["fileUri"] = file_uri
-        if file_name is not None:
-            body["fileName"] = file_name
-        if is_text_to_speech is not None:
-            body["isTextToSpeech"] = is_text_to_speech
-        _missing = [f for f in ['name', 'fileUri', 'fileName', 'isTextToSpeech'] if f not in body or body[f] is None]
-        if _missing:
-            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
-            raise typer.Exit(1)
     try:
-        result = api.session.rest_post(url, json=body, params=params)
+        result = api.session.rest_post(url, json=body)
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -390,26 +282,164 @@ def create_announcements(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
+    print_json(result)
+
+
+
+@app.command("list-available-queues")
+def list_available_queues(
+    wrapup_reason_id: str = typer.Argument(help="wrapupReasonId"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Read Available Queues."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/cxEssentials/wrapup/reasons/{wrapup_reason_id}/availableQueues"
+    params = {}
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    result = result or []
+    items = result.get("queues", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+        print_json(items)
     else:
-        print_json(result)
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
-@app.command("show-usage-announcements")
-def show_usage_announcements(
+@app.command("list-settings")
+def list_settings(
     location_id: str = typer.Argument(help="locationId"),
+    queue_id: str = typer.Argument(help="queueId"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Read Wrap Up Reason Settings."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/cxEssentials/locations/{location_id}/queues/{queue_id}/wrapup/settings"
+    params = {}
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    result = result or []
+    items = result.get("wrapupReasons", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+
+
+
+@app.command("update-settings")
+def update_settings(
+    location_id: str = typer.Argument(help="locationId"),
+    queue_id: str = typer.Argument(help="queueId"),
+    default_wrapup_reason_id: str = typer.Option(None, "--default-wrapup-reason-id", help="Unique wrap-up identifier."),
+    wrapup_timer_enabled: bool = typer.Option(None, "--wrapup-timer-enabled/--no-wrapup-timer-enabled", help="Denotes whether the wrap-up timer is enabled."),
+    wrapup_timer: str = typer.Option(None, "--wrapup-timer", help="Wrap up timer value in seconds."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update Wrap Up Reason Settings\n\nExample --json-body:\n  '{"wrapupReasons":["..."],"defaultWrapupReasonId":"...","wrapupTimerEnabled":true,"wrapupTimer":0}'."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/cxEssentials/locations/{location_id}/queues/{queue_id}/wrapup/settings"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if default_wrapup_reason_id is not None:
+            body["defaultWrapupReasonId"] = default_wrapup_reason_id
+        if wrapup_timer_enabled is not None:
+            body["wrapupTimerEnabled"] = wrapup_timer_enabled
+        if wrapup_timer is not None:
+            body["wrapupTimer"] = wrapup_timer
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("show-screen-pop")
+def show_screen_pop(
+    location_id: str = typer.Argument(help="locationId"),
+    queue_id: str = typer.Argument(help="queueId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Fetch repository usage for announcements in a location."""
+    """Read Screen Pop Configuration."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/announcements/usage"
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/cxEssentials/screenPop"
     params = {}
     org_id = get_org_id()
     if org_id is not None:
@@ -448,68 +478,19 @@ def show_usage_announcements(
 
 
 
-@app.command("show-announcements-locations")
-def show_announcements_locations(
+@app.command("update-screen-pop")
+def update_screen_pop(
     location_id: str = typer.Argument(help="locationId"),
-    announcement_id: str = typer.Argument(help="announcementId"),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Fetch details of a binary announcement greeting at location level."""
-    api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/announcements/{announcement_id}"
-    params = {}
-    org_id = get_org_id()
-    if org_id is not None:
-        params["orgId"] = org_id
-    try:
-        result = api.session.rest_get(url, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
-
-
-
-@app.command("update-announcements")
-def update_announcements(
-    location_id: str = typer.Argument(help="locationId"),
-    announcement_id: str = typer.Argument(help="announcementId"),
-    name: str = typer.Option(None, "--name", help="Name of the announcement."),
-    file_uri: str = typer.Option(None, "--file-uri", help="URI of the announcement file."),
-    file_name: str = typer.Option(None, "--file-name", help="File name of the announcement."),
-    is_text_to_speech: bool = typer.Option(None, "--is-text-to-speech/--no-is-text-to-speech", help="Indicates whether the announcement is text-to-speech."),
+    queue_id: str = typer.Argument(help="queueId"),
+    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Enable/disable screen pop."),
+    screen_pop_url: str = typer.Option(None, "--screen-pop-url", help="The screen pop URL that integrates Webex calls with other bu"),
+    desktop_label: str = typer.Option(None, "--desktop-label", help="A label for the screen pop configuration."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify a binary announcement greeting at location level."""
+    """Update Screen Pop Configuration\n\nExample --json-body:\n  '{"enabled":true,"screenPopUrl":"...","desktopLabel":"...","queryParams":{"example_param_1":"...","example_param_2":"...","example_param_3":"..."}}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/announcements/{announcement_id}"
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/cxEssentials/screenPop"
     params = {}
     org_id = get_org_id()
     if org_id is not None:
@@ -518,14 +499,12 @@ def update_announcements(
         body = json.loads(json_body)
     else:
         body = {}
-        if name is not None:
-            body["name"] = name
-        if file_uri is not None:
-            body["fileUri"] = file_uri
-        if file_name is not None:
-            body["fileName"] = file_name
-        if is_text_to_speech is not None:
-            body["isTextToSpeech"] = is_text_to_speech
+        if enabled is not None:
+            body["enabled"] = enabled
+        if screen_pop_url is not None:
+            body["screenPopUrl"] = screen_pop_url
+        if desktop_label is not None:
+            body["desktopLabel"] = desktop_label
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except RestError as e:
@@ -552,203 +531,21 @@ def update_announcements(
 
 
 
-@app.command("delete-announcements")
-def delete_announcements(
+@app.command("list-available-agents")
+def list_available_agents(
     location_id: str = typer.Argument(help="locationId"),
-    announcement_id: str = typer.Argument(help="announcementId"),
-    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Delete an announcement greeting in a location."""
-    if not force:
-        typer.confirm(f"Delete {announcement_id}?", abort=True)
-    api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/announcements/{announcement_id}"
-    params = {}
-    org_id = get_org_id()
-    if org_id is not None:
-        params["orgId"] = org_id
-    try:
-        api.session.rest_delete(url, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    typer.echo(f"Deleted: {announcement_id}")
-
-
-
-@app.command("generate-a-text")
-def generate_a_text(
-    voice: str = typer.Option(None, "--voice", help="The voice ID used to generate the audio prompt. Use the List"),
-    text: str = typer.Option(None, "--text", help="The text to convert to speech."),
-    language_code: str = typer.Option(None, "--language-code", help="The language code used to generate the audio prompt. Use the"),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Generate a Text-to-Speech Prompt."""
-    api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/telephony/config/textToSpeech/actions/generate/invoke"
-    params = {}
-    org_id = get_org_id()
-    if org_id is not None:
-        params["orgId"] = org_id
-    if json_body:
-        body = json.loads(json_body)
-    else:
-        body = {}
-        if voice is not None:
-            body["voice"] = voice
-        if text is not None:
-            body["text"] = text
-        if language_code is not None:
-            body["languageCode"] = language_code
-    try:
-        result = api.session.rest_post(url, json=body, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    print_json(result)
-
-
-
-@app.command("show-usage-text-to-speech")
-def show_usage_text_to_speech(
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Get Text-to-Speech Usage."""
-    api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/telephony/config/textToSpeech/usage"
-    params = {}
-    org_id = get_org_id()
-    if org_id is not None:
-        params["orgId"] = org_id
-    try:
-        result = api.session.rest_get(url, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
-
-
-
-@app.command("show-text-to-speech")
-def show_text_to_speech(
-    tts_id: str = typer.Argument(help="ttsId"),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Get Text-to-Speech Generation Status."""
-    api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/telephony/config/textToSpeech/{tts_id}"
-    params = {}
-    org_id = get_org_id()
-    if org_id is not None:
-        params["orgId"] = org_id
-    try:
-        result = api.session.rest_get(url, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
-
-
-
-@app.command("list-voices")
-def list_voices(
+    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Returns only the list of available agents with Customer Assi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Text-to-Speech Voices."""
+    """List Available Agents."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/telephony/config/textToSpeech/voices"
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/cxEssentials/agents/availableAgents"
     params = {}
+    if has_cx_essentials is not None:
+        params["hasCxEssentials"] = has_cx_essentials
     if limit > 0:
         params["max"] = limit
     if offset > 0:
@@ -779,7 +576,7 @@ def list_voices(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("voices", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("agents", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:

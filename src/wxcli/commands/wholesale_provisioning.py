@@ -3,32 +3,39 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
+from wxcli.config import get_org_id
 
 
-app = typer.Typer(help="Manage Webex Meetings meeting-preferences.")
+app = typer.Typer(help="Manage Webex Calling wholesale-provisioning.")
 
 
 @app.command("list")
 def cmd_list(
-    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if t"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `site"),
+    external_id: str = typer.Option(None, "--external-id", help="Customer external ID."),
+    status: str = typer.Option(None, "--status", help="Customer API status."),
+    on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Meeting Preference Details."""
+    """List Wholesale Customers."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/meetingPreferences"
+    url = f"https://webexapis.com/v1/wholesale/customers"
     params = {}
-    if user_email is not None:
-        params["userEmail"] = user_email
-    if site_url is not None:
-        params["siteUrl"] = site_url
+    if external_id is not None:
+        params["externalId"] = external_id
+    if status is not None:
+        params["status"] = status
+    if on_behalf_of_sub_partner_org_id is not None:
+        params["onBehalfOfSubPartnerOrgId"] = on_behalf_of_sub_partner_org_id
     if limit > 0:
         params["max"] = limit
     if offset > 0:
-        params["start"] = offset
+        params["offset"] = offset
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
     except RestError as e:
@@ -52,7 +59,7 @@ def cmd_list(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("sites", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -60,106 +67,41 @@ def cmd_list(
 
 
 
-@app.command("list-personal-meeting-room")
-def list_personal_meeting_room(
-    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if t"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `site"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Get Personal Meeting Room Options."""
-    api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/meetingPreferences/personalMeetingRoom"
-    params = {}
-    if user_email is not None:
-        params["userEmail"] = user_email
-    if site_url is not None:
-        params["siteUrl"] = site_url
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
-    try:
-        result = api.session.rest_get(url, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    result = result or []
-    items = result.get("coHosts", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
-
-
-
-@app.command("update")
-def update(
-    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if t"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `site"),
-    topic: str = typer.Option(None, "--topic", help="Personal Meeting Room topic to be updated."),
-    host_pin: str = typer.Option(None, "--host-pin", help="Updated PIN for joining the room as host. The host PIN must"),
-    enabled_auto_lock: bool = typer.Option(None, "--enabled-auto-lock/--no-enabled-auto-lock", help="Update for option to automatically lock the Personal Room a"),
-    auto_lock_minutes: str = typer.Option(None, "--auto-lock-minutes", help="Updated number of minutes after which the Personal Room is l"),
-    enabled_notify_host: bool = typer.Option(None, "--enabled-notify-host/--no-enabled-notify-host", help="Update for flag to enable notifying the owner of a Personal"),
-    support_co_host: bool = typer.Option(None, "--support-co-host/--no-support-co-host", help="Update for flag allowing other invitees to host a meetingCoH"),
-    support_anyone_as_co_host: bool = typer.Option(None, "--support-anyone-as-co-host/--no-support-anyone-as-co-host", help="Whether or not to allow any attendee with a host account on"),
-    allow_first_user_to_be_co_host: bool = typer.Option(None, "--allow-first-user-to-be-co-host/--no-allow-first-user-to-be-co-host", help="Whether or not to allow the first attendee with a host accou"),
-    allow_authenticated_devices: bool = typer.Option(None, "--allow-authenticated-devices/--no-allow-authenticated-devices", help="Whether or not to allow authenticated video devices in the u"),
+@app.command("create")
+def create(
+    on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
+    provisioning_id: str = typer.Option(None, "--provisioning-id", help="(required) This Provisioning ID defines how this customer is to be prov"),
+    org_id: str = typer.Option(None, "--org-id", help="The organization ID of the enterprise in Webex. Mandatory fo"),
+    external_id: str = typer.Option(None, "--external-id", help="(required) External ID of the Wholesale customer."),
+    sub_partner_admin_email: str = typer.Option(None, "--sub-partner-admin-email", help="The email of the sub partner organization admin."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Personal Meeting Room Options\n\nExample --json-body:\n  '{"topic":"...","hostPin":"...","enabledAutoLock":true,"autoLockMinutes":0,"enabledNotifyHost":true,"supportCoHost":true,"coHosts":[{"email":"...","displayName":"..."}],"supportAnyoneAsCoHost":true}'."""
+    """Provision a Wholesale Customer\n\nExample --json-body:\n  '{"provisioningId":"...","packages":["common_area_calling"],"externalId":"...","address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"orgId":"...","customerInfo":{"name":"...","primaryEmail":"...","language":"..."},"provisioningParameters":{"calling":{"location":"..."},"meetings":{"timezone":"..."},"packages":{"limits":"..."}},"subPartnerAdminEmail":"..."}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/meetingPreferences/personalMeetingRoom"
+    url = f"https://webexapis.com/v1/wholesale/customers"
     params = {}
-    if user_email is not None:
-        params["userEmail"] = user_email
-    if site_url is not None:
-        params["siteUrl"] = site_url
+    if on_behalf_of_sub_partner_org_id is not None:
+        params["onBehalfOfSubPartnerOrgId"] = on_behalf_of_sub_partner_org_id
     if json_body:
         body = json.loads(json_body)
     else:
         body = {}
-        if topic is not None:
-            body["topic"] = topic
-        if host_pin is not None:
-            body["hostPin"] = host_pin
-        if enabled_auto_lock is not None:
-            body["enabledAutoLock"] = enabled_auto_lock
-        if auto_lock_minutes is not None:
-            body["autoLockMinutes"] = auto_lock_minutes
-        if enabled_notify_host is not None:
-            body["enabledNotifyHost"] = enabled_notify_host
-        if support_co_host is not None:
-            body["supportCoHost"] = support_co_host
-        if support_anyone_as_co_host is not None:
-            body["supportAnyoneAsCoHost"] = support_anyone_as_co_host
-        if allow_first_user_to_be_co_host is not None:
-            body["allowFirstUserToBeCoHost"] = allow_first_user_to_be_co_host
-        if allow_authenticated_devices is not None:
-            body["allowAuthenticatedDevices"] = allow_authenticated_devices
+        if provisioning_id is not None:
+            body["provisioningId"] = provisioning_id
+        if org_id is not None:
+            body["orgId"] = org_id
+        if external_id is not None:
+            body["externalId"] = external_id
+        if sub_partner_admin_email is not None:
+            body["subPartnerAdminEmail"] = sub_partner_admin_email
+        _missing = [f for f in ['provisioningId', 'externalId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
-        result = api.session.rest_put(url, json=body, params=params)
+        result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -180,25 +122,33 @@ def update(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    typer.echo(f"Updated.")
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif not result or result == {}:
+        typer.echo("Created.")
+    else:
+        print_json(result)
 
 
 
 @app.command("show")
 def show(
-    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if t"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `site"),
+    customer_id: str = typer.Argument(help="customerId"),
+    on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
+    include_package_license_info: str = typer.Option(None, "--include-package-license-info", help="If specified as true, a list of licenseIds will be returned"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Audio Options."""
+    """Get a Wholesale Customer."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/meetingPreferences/audio"
+    url = f"https://webexapis.com/v1/wholesale/customers/{customer_id}"
     params = {}
-    if user_email is not None:
-        params["userEmail"] = user_email
-    if site_url is not None:
-        params["siteUrl"] = site_url
+    if on_behalf_of_sub_partner_org_id is not None:
+        params["onBehalfOfSubPartnerOrgId"] = on_behalf_of_sub_partner_org_id
+    if include_package_license_info is not None:
+        params["includePackageLicenseInfo"] = include_package_license_info
     try:
         result = api.session.rest_get(url, params=params)
     except RestError as e:
@@ -233,43 +183,29 @@ def show(
 
 
 
-@app.command("update-audio")
-def update_audio(
-    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if t"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `site"),
-    default_audio_type: str = typer.Option(None, "--default-audio-type", help="Choices: webexAudio, voipOnly, otherTeleconferenceService, none"),
-    other_teleconference_description: str = typer.Option(None, "--other-teleconference-description", help="Phone number and other information for the teleconference pr"),
-    enabled_global_call_in: bool = typer.Option(None, "--enabled-global-call-in/--no-enabled-global-call-in", help="Flag to enable/disable global call ins. ***Note***: If the s"),
-    enabled_toll_free: bool = typer.Option(None, "--enabled-toll-free/--no-enabled-toll-free", help="Flag to enable/disable call-ins from toll-free numbers.  ***"),
-    enabled_auto_connection: bool = typer.Option(None, "--enabled-auto-connection/--no-enabled-auto-connection", help="Flag to enable/disable automatically connecting to audio usi"),
-    audio_pin: str = typer.Option(None, "--audio-pin", help="PIN to provide a secondary level of authentication for calls"),
+@app.command("update")
+def update(
+    customer_id: str = typer.Argument(help="customerId"),
+    on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
+    external_id: str = typer.Option(None, "--external-id", help="External ID of the Wholesale customer."),
+    sub_partner_admin_email: str = typer.Option(None, "--sub-partner-admin-email", help="The email of the sub partner organization admin."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Audio Options\n\nExample --json-body:\n  '{"defaultAudioType":"webexAudio","otherTeleconferenceDescription":"...","enabledGlobalCallIn":true,"enabledTollFree":true,"enabledAutoConnection":true,"officeNumber":{"countryCode":"...","number":"...","enabledCallInAuthentication":true,"enabledCallMe":true},"mobileNumber":{"countryCode":"...","number":"...","enabledCallInAuthentication":true,"enabledCallMe":true},"audioPin":"..."}'."""
+    """Update a Wholesale Customer\n\nExample --json-body:\n  '{"packages":["common_area_calling"],"externalId":"...","address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"provisioningParameters":{"calling":{"location":"..."},"meetings":{"timezone":"..."},"packages":{"limits":"..."}},"subPartnerAdminEmail":"..."}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/meetingPreferences/audio"
+    url = f"https://webexapis.com/v1/wholesale/customers/{customer_id}"
     params = {}
-    if user_email is not None:
-        params["userEmail"] = user_email
-    if site_url is not None:
-        params["siteUrl"] = site_url
+    if on_behalf_of_sub_partner_org_id is not None:
+        params["onBehalfOfSubPartnerOrgId"] = on_behalf_of_sub_partner_org_id
     if json_body:
         body = json.loads(json_body)
     else:
         body = {}
-        if default_audio_type is not None:
-            body["defaultAudioType"] = default_audio_type
-        if other_teleconference_description is not None:
-            body["otherTeleconferenceDescription"] = other_teleconference_description
-        if enabled_global_call_in is not None:
-            body["enabledGlobalCallIn"] = enabled_global_call_in
-        if enabled_toll_free is not None:
-            body["enabledTollFree"] = enabled_toll_free
-        if enabled_auto_connection is not None:
-            body["enabledAutoConnection"] = enabled_auto_connection
-        if audio_pin is not None:
-            body["audioPin"] = audio_pin
+        if external_id is not None:
+            body["externalId"] = external_id
+        if sub_partner_admin_email is not None:
+            body["subPartnerAdminEmail"] = sub_partner_admin_email
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except RestError as e:
@@ -296,29 +232,23 @@ def update_audio(
 
 
 
-@app.command("list-video")
-def list_video(
-    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if t"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `site"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+@app.command("delete")
+def delete(
+    customer_id: str = typer.Argument(help="customerId"),
+    on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Video Options."""
+    """Remove a Wholesale Customer."""
+    if not force:
+        typer.confirm(f"Delete {customer_id}?", abort=True)
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/meetingPreferences/video"
+    url = f"https://webexapis.com/v1/wholesale/customers/{customer_id}"
     params = {}
-    if user_email is not None:
-        params["userEmail"] = user_email
-    if site_url is not None:
-        params["siteUrl"] = site_url
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
+    if on_behalf_of_sub_partner_org_id is not None:
+        params["onBehalfOfSubPartnerOrgId"] = on_behalf_of_sub_partner_org_id
     try:
-        result = api.session.rest_get(url, params=params)
+        api.session.rest_delete(url, params=params)
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -339,189 +269,36 @@ def list_video(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    result = result or []
-    items = result.get("videoDevices", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    typer.echo(f"Deleted: {customer_id}")
 
 
 
-@app.command("update-video")
-def update_video(
-    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if t"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `site"),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Update Video Options\n\nExample --json-body:\n  '{"videoDevices":[{"deviceName":"...","deviceAddress":"...","isDefault":"..."}]}'."""
-    api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/meetingPreferences/video"
-    params = {}
-    if user_email is not None:
-        params["userEmail"] = user_email
-    if site_url is not None:
-        params["siteUrl"] = site_url
-    if json_body:
-        body = json.loads(json_body)
-    else:
-        body = {}
-    try:
-        result = api.session.rest_put(url, json=body, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    typer.echo(f"Updated.")
-
-
-
-@app.command("list-scheduling-options")
-def list_scheduling_options(
-    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if t"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `site"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Get Scheduling Options."""
-    api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/meetingPreferences/schedulingOptions"
-    params = {}
-    if user_email is not None:
-        params["userEmail"] = user_email
-    if site_url is not None:
-        params["siteUrl"] = site_url
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
-    try:
-        result = api.session.rest_get(url, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    result = result or []
-    items = result.get("delegateEmails", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
-
-
-
-@app.command("update-scheduling-options")
-def update_scheduling_options(
-    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if t"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `site"),
-    enabled_join_before_host: bool = typer.Option(None, "--enabled-join-before-host/--no-enabled-join-before-host", help="Flag to enable/disable ***Join Before Host***. The period du"),
-    join_before_host_minutes: str = typer.Option(None, "--join-before-host-minutes", help="Number of minutes before the start time that an invitee can"),
-    enabled_auto_share_recording: bool = typer.Option(None, "--enabled-auto-share-recording/--no-enabled-auto-share-recording", help="Flag to enable/disable the automatic sharing of the meeting"),
-    enabled_webex_assistant_by_default: bool = typer.Option(None, "--enabled-webex-assistant-by-default/--no-enabled-webex-assistant-by-default", help="Flag to automatically enable Webex Assistant whenever you st"),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Update Scheduling Options\n\nExample --json-body:\n  '{"enabledJoinBeforeHost":true,"joinBeforeHostMinutes":0,"enabledAutoShareRecording":true,"enabledWebexAssistantByDefault":true,"delegateEmails":["..."]}'."""
-    api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/meetingPreferences/schedulingOptions"
-    params = {}
-    if user_email is not None:
-        params["userEmail"] = user_email
-    if site_url is not None:
-        params["siteUrl"] = site_url
-    if json_body:
-        body = json.loads(json_body)
-    else:
-        body = {}
-        if enabled_join_before_host is not None:
-            body["enabledJoinBeforeHost"] = enabled_join_before_host
-        if join_before_host_minutes is not None:
-            body["joinBeforeHostMinutes"] = join_before_host_minutes
-        if enabled_auto_share_recording is not None:
-            body["enabledAutoShareRecording"] = enabled_auto_share_recording
-        if enabled_webex_assistant_by_default is not None:
-            body["enabledWebexAssistantByDefault"] = enabled_webex_assistant_by_default
-    try:
-        result = api.session.rest_put(url, json=body, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    typer.echo(f"Updated.")
-
-
-
-@app.command("create")
-def create(
-    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if t"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `site"),
+@app.command("create-validate-customers")
+def create_validate_customers(
+    on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
+    provisioning_id: str = typer.Option(None, "--provisioning-id", help="Defines how this wholesale customer is to be provisioned for"),
+    org_id: str = typer.Option(None, "--org-id", help="The organization ID of the enterprise in Cisco Webex."),
+    external_id: str = typer.Option(None, "--external-id", help="External ID of the Wholesale customer."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Insert Delegate Emails\n\nExample --json-body:\n  '{"emails":["..."]}'."""
+    """Precheck a Wholesale Customer Provisioning\n\nExample --json-body:\n  '{"address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"provisioningId":"...","packages":["common_area_calling"],"orgId":"...","externalId":"...","customerInfo":{"primaryEmail":"...","name":"..."},"provisioningParameters":{"calling":{"location":"..."},"meetings":{"timezone":"..."},"packages":{"limits":"..."}}}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/meetingPreferences/schedulingOptions/delegateEmails/insert"
+    url = f"https://webexapis.com/v1/wholesale/customers/validate"
     params = {}
-    if user_email is not None:
-        params["userEmail"] = user_email
-    if site_url is not None:
-        params["siteUrl"] = site_url
+    if on_behalf_of_sub_partner_org_id is not None:
+        params["onBehalfOfSubPartnerOrgId"] = on_behalf_of_sub_partner_org_id
     if json_body:
         body = json.loads(json_body)
     else:
         body = {}
+        if provisioning_id is not None:
+            body["provisioningId"] = provisioning_id
+        if org_id is not None:
+            body["orgId"] = org_id
+        if external_id is not None:
+            body["externalId"] = external_id
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
@@ -555,80 +332,24 @@ def create(
 
 
 
-@app.command("create-delete")
-def create_delete(
-    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if t"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `site"),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Delete Delegate Emails\n\nExample --json-body:\n  '{"emails":["..."]}'."""
-    api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/meetingPreferences/schedulingOptions/delegateEmails/delete"
-    params = {}
-    if user_email is not None:
-        params["userEmail"] = user_email
-    if site_url is not None:
-        params["siteUrl"] = site_url
-    if json_body:
-        body = json.loads(json_body)
-    else:
-        body = {}
-    try:
-        result = api.session.rest_post(url, json=body, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
-    else:
-        print_json(result)
-
-
-
-@app.command("list-sites")
-def list_sites(
-    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if t"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. If `siteUrl` is not specifie"),
+@app.command("list-sub-partners")
+def list_sub_partners(
+    provisioning_state: str = typer.Option(None, "--provisioning-state", help="Status to filter sub-partners based on provisioning state."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Site List."""
+    """List Wholesale Sub-partners."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/meetingPreferences/sites"
+    url = f"https://webexapis.com/v1/wholesale/subPartners"
     params = {}
-    if user_email is not None:
-        params["userEmail"] = user_email
-    if site_url is not None:
-        params["siteUrl"] = site_url
+    if provisioning_state is not None:
+        params["provisioningState"] = provisioning_state
     if limit > 0:
         params["max"] = limit
     if offset > 0:
-        params["start"] = offset
+        params["offset"] = offset
     try:
         result = api.session.rest_get(url, params=params)
     except RestError as e:
@@ -652,7 +373,7 @@ def list_sites(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("sites", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -660,30 +381,53 @@ def list_sites(
 
 
 
-@app.command("update-sites")
-def update_sites(
-    default_site: str = typer.Option(..., "--default-site", help="Whether or not to change user's default site. ***Note***: `d"),
-    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if t"),
-    site_url: str = typer.Option(None, "--site-url", help="Access URL for the site."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+@app.command("list-subscribers")
+def list_subscribers(
+    customer_id: str = typer.Option(None, "--customer-id", help="Wholesale customer ID."),
+    person_id: str = typer.Option(None, "--person-id", help="The person ID of the subscriber used in the [/v1/people API]"),
+    external_customer_id: str = typer.Option(None, "--external-customer-id", help="Customer external ID."),
+    email: str = typer.Option(None, "--email", help="The email address of the subscriber."),
+    status: str = typer.Option(None, "--status", help="The provisioning status of the subscriber."),
+    after: str = typer.Option(None, "--after", help="Only include subscribers created after this date and time. E"),
+    last_status_change: str = typer.Option(None, "--last-status-change", help="Only include subscribers with a provisioning status change a"),
+    sort_by: str = typer.Option(None, "--sort-by", help="Supported `sortBy` attributes are `created` and `lastStatusC"),
+    sort_order: str = typer.Option(None, "--sort-order", help="Sort by `ASC` (ascending) or `DESC` (descending)."),
+    on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Default Site."""
+    """List Wholesale Subscribers."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/meetingPreferences/sites"
+    url = f"https://webexapis.com/v1/wholesale/subscribers"
     params = {}
-    if default_site is not None:
-        params["defaultSite"] = default_site
-    if user_email is not None:
-        params["userEmail"] = user_email
-    if json_body:
-        body = json.loads(json_body)
-    else:
-        body = {}
-        if site_url is not None:
-            body["siteUrl"] = site_url
+    if customer_id is not None:
+        params["customerId"] = customer_id
+    if person_id is not None:
+        params["personId"] = person_id
+    if external_customer_id is not None:
+        params["externalCustomerId"] = external_customer_id
+    if email is not None:
+        params["email"] = email
+    if status is not None:
+        params["status"] = status
+    if after is not None:
+        params["after"] = after
+    if last_status_change is not None:
+        params["lastStatusChange"] = last_status_change
+    if sort_by is not None:
+        params["sortBy"] = sort_by
+    if sort_order is not None:
+        params["sortOrder"] = sort_order
+    if on_behalf_of_sub_partner_org_id is not None:
+        params["onBehalfOfSubPartnerOrgId"] = on_behalf_of_sub_partner_org_id
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["offset"] = offset
     try:
-        result = api.session.rest_put(url, json=body, params=params)
+        result = api.session.rest_get(url, params=params)
     except RestError as e:
         err = str(e)
         if "25008" in err:
@@ -704,32 +448,298 @@ def update_sites(
         else:
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
-    typer.echo(f"Updated.")
+    result = result or []
+    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
-@app.command("create-refresh-id")
-def create_refresh_id(
-    site_url: str = typer.Option(None, "--site-url", help="(required) Site URL to refresh the personal room IDs."),
+@app.command("create-subscribers")
+def create_subscribers(
+    on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
+    customer_id: str = typer.Option(None, "--customer-id", help="(required) ID of the Provisioned Customer for Webex Wholesale."),
+    email: str = typer.Option(None, "--email", help="(required) The email address of the subscriber (mandatory for the trust"),
+    package: str = typer.Option(None, "--package", help="Choices: webex_calling, webex_meetings, webex_suite, webex_voice, cx_essentials, webex_calling_standard"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Batch Refresh Personal Meeting Room ID\n\nExample --json-body:\n  '{"siteUrl":"...","personalMeetingRoomIds":[{"email":"...","personId":"...","systemGenerated":"...","personalMeetingRoomId":"..."}]}'."""
+    """Provision a Wholesale Subscriber\n\nExample --json-body:\n  '{"customerId":"...","email":"...","provisioningParameters":{"firstName":"...","lastName":"...","primaryPhoneNumber":"...","extension":"...","locationId":"..."},"package":"webex_calling","packages":["webex_calling"]}'."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/meetingPreferences/personalMeetingRoom/refreshId"
+    url = f"https://webexapis.com/v1/wholesale/subscribers"
+    params = {}
+    if on_behalf_of_sub_partner_org_id is not None:
+        params["onBehalfOfSubPartnerOrgId"] = on_behalf_of_sub_partner_org_id
     if json_body:
         body = json.loads(json_body)
     else:
         body = {}
-        if site_url is not None:
-            body["siteUrl"] = site_url
-        _missing = [f for f in ['siteUrl'] if f not in body or body[f] is None]
+        if customer_id is not None:
+            body["customerId"] = customer_id
+        if email is not None:
+            body["email"] = email
+        if package is not None:
+            body["package"] = package
+        _missing = [f for f in ['customerId', 'email'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
             raise typer.Exit(1)
     try:
-        result = api.session.rest_post(url, json=body)
+        result = api.session.rest_post(url, json=body, params=params)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif not result or result == {}:
+        typer.echo("Created.")
+    else:
+        print_json(result)
+
+
+
+@app.command("show-subscribers")
+def show_subscribers(
+    subscriber_id: str = typer.Argument(help="subscriberId"),
+    on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get a Wholesale Subscriber."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/wholesale/subscribers/{subscriber_id}"
+    params = {}
+    if on_behalf_of_sub_partner_org_id is not None:
+        params["onBehalfOfSubPartnerOrgId"] = on_behalf_of_sub_partner_org_id
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if output == "json":
+        print_json(result)
+    else:
+        if isinstance(result, dict):
+            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
+        elif isinstance(result, list):
+            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
+        else:
+            print_json(result)
+
+
+
+@app.command("update-subscribers")
+def update_subscribers(
+    subscriber_id: str = typer.Argument(help="subscriberId"),
+    on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
+    package: str = typer.Option(None, "--package", help="The Webex Wholesale package to be assigned to the subscriber (use --help for choices)"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update a Wholesale Subscriber\n\nExample --json-body:\n  '{"package":"webex_calling","packages":["webex_calling"],"provisioningParameters":{"primaryPhoneNumber":"...","extension":"...","locationId":"..."}}'."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/wholesale/subscribers/{subscriber_id}"
+    params = {}
+    if on_behalf_of_sub_partner_org_id is not None:
+        params["onBehalfOfSubPartnerOrgId"] = on_behalf_of_sub_partner_org_id
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if package is not None:
+            body["package"] = package
+    try:
+        result = api.session.rest_put(url, json=body, params=params)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("delete-subscribers")
+def delete_subscribers(
+    subscriber_id: str = typer.Argument(help="subscriberId"),
+    on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Remove a Wholesale Subscriber."""
+    if not force:
+        typer.confirm(f"Delete {subscriber_id}?", abort=True)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/wholesale/subscribers/{subscriber_id}"
+    params = {}
+    if on_behalf_of_sub_partner_org_id is not None:
+        params["onBehalfOfSubPartnerOrgId"] = on_behalf_of_sub_partner_org_id
+    try:
+        api.session.rest_delete(url, params=params)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Deleted: {subscriber_id}")
+
+
+
+@app.command("create-validate-subscribers")
+def create_validate_subscribers(
+    on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
+    provisioning_id: str = typer.Option(None, "--provisioning-id", help="Defines how this wholesale subscriber is to be provisioned f"),
+    customer_id: str = typer.Option(None, "--customer-id", help="ID of the Provisioned Customer for Webex Wholesale."),
+    email: str = typer.Option(None, "--email", help="(required) The email address of the subscriber."),
+    package: str = typer.Option(None, "--package", help="Choices: webex_calling, webex_meetings, webex_suite, webex_voice, cx_essentials, webex_calling_standard"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Precheck a Wholesale Subscriber Provisioning\n\nExample --json-body:\n  '{"email":"...","provisioningId":"...","customerId":"...","package":"webex_calling","packages":["webex_calling"],"provisioningParameters":{"firstName":"...","lastName":"...","primaryPhoneNumber":"...","extension":"...","locationId":"..."},"customerInfo":{"primaryEmail":"..."}}'."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/wholesale/subscribers/validate"
+    params = {}
+    if on_behalf_of_sub_partner_org_id is not None:
+        params["onBehalfOfSubPartnerOrgId"] = on_behalf_of_sub_partner_org_id
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if provisioning_id is not None:
+            body["provisioningId"] = provisioning_id
+        if customer_id is not None:
+            body["customerId"] = customer_id
+        if email is not None:
+            body["email"] = email
+        if package is not None:
+            body["package"] = package
+        _missing = [f for f in ['email'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
+    try:
+        result = api.session.rest_post(url, json=body, params=params)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif not result or result == {}:
+        typer.echo("Created.")
+    else:
+        print_json(result)
+
+
+
+@app.command("create-consent-move")
+def create_consent_move(
+    subscriber_id: str = typer.Argument(help="subscriberId"),
+    on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Send Consent User Move Email to Pending Wholesale Subscribers."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/subscribers/{subscriber_id}/emails/consentMove"
+    params = {}
+    if on_behalf_of_sub_partner_org_id is not None:
+        params["onBehalfOfSubPartnerOrgId"] = on_behalf_of_sub_partner_org_id
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+    try:
+        result = api.session.rest_post(url, json=body, params=params)
     except RestError as e:
         err = str(e)
         if "25008" in err:

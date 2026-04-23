@@ -59,7 +59,7 @@ def update(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Meeting Common Settings Configuration\n\nExample --json-body:\n  '{"siteOptions":{"allowCustomPersonalRoomURL":"..."},"defaultSchedulerOptions":{"VoIP":"...","telephonySupport":"...","joinTeleconfNotPress1":"...","entryAndExitTone":"...","tollFree":"..."},"securityOptions":{"audioBeforeHost":"...","firstAttendeeAsPresenter":"...","unlistAllMeetings":"...","requireLoginBeforeAccess":"...","allowMobileScreenCapture":"...","requireStrongPassword":"...","passwordCriteria":{"minNumeric":"...","minAlpha":"...","minSpecial":"...","minLength":"...","disallowList":"...","disallowValues":"...","disallowDynamicWebText":"...","mixedCase":"..."},"joinBeforeHost":"..."},"scheduleMeetingOptions":{"emailReminders":"..."}}'."""
+    """Update Meeting Common Settings Configuration\n\nExample --json-body:\n  '{"siteOptions":{"allowCustomPersonalRoomURL":true},"defaultSchedulerOptions":{"entryAndExitTone":"NoTone","telephonySupport":"None","joinTeleconfNotPress1":true,"tollFree":true,"VoIP":true},"scheduleMeetingOptions":{"emailReminders":true},"securityOptions":{"joinBeforeHost":true,"audioBeforeHost":true,"firstAttendeeAsPresenter":true,"unlistAllMeetings":true,"requireLoginBeforeAccess":true,"allowMobileScreenCapture":true,"requireStrongPassword":true,"passwordCriteria":{"mixedCase":"...","minLength":"...","minNumeric":"...","minAlpha":"...","minSpecial":"...","disallowDynamicWebText":"...","disallowList":"...","disallowValues":"..."}}}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/admin/meeting/config/commonSettings"
     if json_body:

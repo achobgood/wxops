@@ -1,13 +1,18 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "Webex for UCM",
+    "title": "Webex Broadworks Calling",
     "version": "1.0.0",
-    "description": "The Webex for UCM APIs provide integration points for Cisco Unified Communications Manager (UCM) environments, enabling hybrid calling, user management, device provisioning, and migration to the Webex cloud. These APIs support seamless connectivity between on-premises UCM and Webex cloud services, allowing organizations to extend calling capabilities, automate provisioning, synchronize user data, and enable advanced collaboration features. The APIs are ideal for hybrid deployments and gradual cloud migration strategies."
+    "description": "The Webex BroadWorks Calling APIs provide access to advanced calling features and user management for BroadWorks-powered Webex Calling deployments. These APIs support provisioning of users and devices, call control, feature management, device inventory, and detailed reporting. Service providers and enterprises can automate onboarding, integrate with OSS/BSS systems, manage user entitlements, and monitor call quality. The APIs are designed for scalable, multi-tenant environments and support seamless integration with existing telephony infrastructure."
   },
-  "tags": [],
+  "tags": [
+    {
+      "name": "BroadWorks Workspaces",
+      "description": "APIs for managing BroadWorks Workspaces."
+    }
+  ],
   "paths": {
-    "/telephony/config/callingProfiles": {
+    "/broadworks/billing/reports": {
       "get": {
         "responses": {
           "200": {
@@ -16,29 +21,24 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "callingProfiles"
-                  ],
-                  "properties": {
-                    "callingProfiles": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/GetManagerProfileObject"
-                      },
-                      "description": "Array of manager profiles."
-                    }
-                  }
+                  "$ref": "#/components/schemas/BillingReportsListResponse"
                 },
                 "example": {
-                  "callingProfiles": [
+                  "items": [
                     {
-                      "id": "Y2lzY29zcGFyazovL3VzL0NBTExJTkdfUFJPRklMRS8zMDg3ZmVhMC02MGM3LTQyZmEtODNjYi0zNTZjNDA3ZDYwZGU",
-                      "name": "UC Profile1"
+                      "id": "Y2lzY29zcGFyazovL3VzL0JJTExJTkdfUkVQT1JULzViOGQ1MThhLThmMDAtNDUxYi1hNDA2LWVhZjQ5YjRhN2ZhOA",
+                      "billingPeriod": "2021-05",
+                      "status": "IN_PROGRESS"
                     },
                     {
-                      "id": "Y2lzY29zcGFyazovL3VzL0NBTExJTkdfUFJPRklMRS9mNDU2YzMxYy0yZTdkLTExZWItYjIwZS02MzBmNTA1NzliNzE",
-                      "name": "UC Profile2"
+                      "id": "Y2lzY29zcGFyazovL3VzL0JJTExJTkdfUkVQT1JULzViOGQ1MThhLThmMDAtNDUxYi1hNDA2LWVhZjQ5YjRhN2Zh2B",
+                      "billingPeriod": "2021-04",
+                      "status": "COMPLETED"
+                    },
+                    {
+                      "id": "Y2lzY29zcGFyazovL3VzL0JJTExJTkdfUkVQT1JULzViOGQ1MThhLThmMDAtNDUxYi1hNDA2LWVhZjQ5YjRhN2Zh5D",
+                      "billingPeriod": "2021-03",
+                      "status": "FAILED"
                     }
                   ]
                 }
@@ -91,20 +91,2120 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Read the List of UC Manager Profiles",
-        "operationId": "Read the List of UC Manager Profiles",
-        "description": "List all calling UC Manager Profiles for the organization.\n\nUC Manager Profiles are applicable if your organization uses Jabber in Team Messaging mode or Calling in Webex (Unified CM).\n\nThe UC Manager Profile has an organization-wide default and may be overridden for individual persons, although currently only setting at a user level is supported by Webex APIs.\n\nRetrieving this list requires a full or read-only administrator auth token with a scope of `spark-admin:people_read` as this API is designed to be used in conjunction with calling behavior at the user level.",
+        "summary": "List BroadWorks Billing Reports",
+        "operationId": "List BroadWorks Billing Reports",
+        "description": "Search for reports. There are a number of filter options which can be combined in a single request.",
         "tags": [
-          "UCM Profile"
+          "BroadWorks Billing Reports"
         ],
         "parameters": [
           {
-            "name": "orgId",
+            "name": "before",
             "in": "query",
-            "description": "List manager profiles in this organization.",
-            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "description": "Only include billing reports created before this date.",
+            "example": "2020-03",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "description": "Only include billing reports created after this date.",
+            "example": "2019-12",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "description": "Sort the reports.\n\n+ Members:\n    + id\n    + status\n    + billingPeriod",
+            "example": "billingPeriod",
+            "schema": {
+              "type": "string",
+              "default": "billingPeriod"
+            }
+          }
+        ]
+      },
+      "post": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportId"
+                },
+                "example": {
+                  "id": "Y2lzY29zcGFyazovL3VzL0JJTExJTkdfUkVQT1JULzViOGQ1MThhLThmMDAtNDUxYi1hNDA2LWVhZjQ5YjRhN2ZhOA"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Create a BroadWorks Billing Report",
+        "operationId": "Create a BroadWorks Billing Report",
+        "description": "Generate a monthly reconciliation report.\n\n<div>\n<Callout type='info'>\nPartners who have moved to extended wholesale subscription model should generate reports via [Wholesale Billing Reports](/docs/api/v1/wholesale-billing).\n</Callout>\n</div>",
+        "tags": [
+          "BroadWorks Billing Reports"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "billingPeriod": "2020-11"
+              },
+              "schema": {
+                "type": "object",
+                "required": [
+                  "billingPeriod"
+                ],
+                "properties": {
+                  "billingPeriod": {
+                    "type": "string",
+                    "example": "2020-11",
+                    "description": "The year and month (`YYYY-MM`) for which the billing report is to be generated."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/broadworks/billing/reports/{id}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Report"
+                },
+                "example": {
+                  "id": "Y2lzY29zcGFyazovL3VzL0JJTExJTkdfUkVQT1JULzViOGQ1MThhLThmMDAtNDUxYi1hNDA2LWVhZjQ5YjRhN2ZhOA",
+                  "billingPeriod": "2021-05",
+                  "status": "COMPLETED",
+                  "created": "2021-06-16T12:40:33.109Z",
+                  "createdBy": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS8wYWNkMzg3NS00ZTEyLTRkNzctYjk4MS1lMzg5ZmQ4ODQ2YzA",
+                  "tempDownloadURL": "https://billing-reports-example.webexcontent.com/a366de9b-3204-4140-8181-25808d360e36/2021/06/16/340177d1-7f25-41e1-a39f-ad63ec1103a5.csv?Expires=1624978489&Signature=Syp3vrVeMx4P6MeMtm8e1bQaeAdHFe-c7NeHERWh5-qJGLZ1T8Dvl2ee-M8OsFf~z6Yepz94e2Hh1HDVailD0Uryl8SgiM~jl0cBh7L0PmSe~i9oFA0eJ0MulkqGSMVf7ZHhxY55xYMgIBZIERkWm3CqQNDg5BS4EaXapKfOnmFegf36OokCM63m5uOK8-csk08IkZhwo2Z0l1JMtuWYEaLh4dgMHoe~xgH3YmDSSCWInFYaEifUAfgi2YAYS6nP9Zq4BTliBq62XBaehOE1gBrhy4RdwD-3WSs2oD-BdpoRpuGzo3FZzDLVEvd0S2D6gTcHljOHodQKxe-u0BXPWQ__&Key-Pair-Id=APKAJADAKLCI2FW2U32Q"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get a BroadWorks Billing Report",
+        "operationId": "Get a BroadWorks Billing Report",
+        "description": "Retrieve a specific billing reconciliation report.",
+        "tags": [
+          "BroadWorks Billing Reports"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "A unique identifier for the report in request.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0JJTExJTkdfUkVQT1JULzViOGQ1MThhLThmMDAtNDUxYi1hNDA2LWVhZjQ5YjRhN2ZhOA",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "delete": {
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {},
+            "content": {}
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Delete a BroadWorks Billing Report",
+        "operationId": "Delete a BroadWorks Billing Report",
+        "description": "Delete a monthly reconciliation report using a report ID.",
+        "tags": [
+          "BroadWorks Billing Reports"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "A unique report ID that corresponds to a billing report.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0JJTExJTkdfUkVQT1JULzViOGQ1MThhLThmMDAtNDUxYi1hNDA2LWVhZjQ5YjRhN2ZhOA",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/broadworks/enterprises": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnterpriseListResponse"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": "Y2lzY29zcGFyazovL3VzL0VOVEVSUFJJU0UvOTZhYmMyYWEtM2RjYy0xMWU1LWExNTItZmUzNDgxOWNkYzlh",
+                      "orgId": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+                      "spEnterpriseId": "Reseller1+acme",
+                      "provisioningId": "ZjViMzYxODctYzhkZC00NzI3LThiMmYtZjljNDQ3ZjI5MDQ2OjQyODVmNTk0LTViNTEtNDdiZS05Mzk2LTZjMzZlMmFkODNhNQ",
+                      "broadworksDirectorySync": {
+                        "enableDirSync": true,
+                        "directorySyncStatus": {
+                          "lastSyncStartTime": "2021-04-07T15:26:40.704911Z",
+                          "lastSyncEndTime": "2021-04-07T15:26:42.695060Z",
+                          "syncStatus": "COMPLETE",
+                          "usersAdded": 0,
+                          "usersUpdated": 0,
+                          "usersDeleted": 0,
+                          "machinesAdded": 0,
+                          "machinesUpdated": 0,
+                          "machinesDeleted": 0,
+                          "totalExternalUsersInCI": 2,
+                          "totalExternalMachinesInCI": 1,
+                          "lastSyncTrackingId": "WEBEX-DEV-PORTAL_2de9b76f-6ad4-4f28-b8e8-c835885f9e7d_44"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "List BroadWorks Enterprises",
+        "operationId": "List BroadWorks Enterprises",
+        "description": "List the provisioned enterprises for a Service Provider. This API also lets a Service Provider search for their provisioned enterprises on Webex. A search on enterprises can be performed by either a full or partial enterprise identifier.",
+        "tags": [
+          "BroadWorks Enterprises"
+        ],
+        "parameters": [
+          {
+            "name": "spEnterpriseId",
+            "in": "query",
+            "description": "The Service Provider supplied unique identifier for the subscriber's enterprise.",
+            "example": "Reseller1+acme",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "startsWith",
+            "in": "query",
+            "description": "The starting string of the enterprise identifiers to match against.",
+            "example": "Res",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "max",
+            "in": "query",
+            "description": "Limit the number of enterprises returned in the search, up to 1000.",
+            "example": "10",
+            "schema": {
+              "type": "number",
+              "default": 100
+            }
+          }
+        ]
+      }
+    },
+    "/broadworks/enterprises/{id}/broadworksDirectorySync": {
+      "put": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateDirectorySyncResponse"
+                },
+                "example": {
+                  "enableDirSync": true,
+                  "directorySyncStatus": {
+                    "syncStatus": "NOT_SYNCED"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Update Directory Sync for a BroadWorks Enterprise",
+        "operationId": "Update Directory Sync for a BroadWorks Enterprise",
+        "description": "This API lets a Partner Admin enable or disable directory sync for the customer's Broadworks enterprise on Webex.",
+        "tags": [
+          "BroadWorks Enterprises"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "A unique identifier for the enterprise in question.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL1NVQlNDUklCRVIvNjk3MGU2YmItNzQzOS00ZmZiLWFkMzQtZDNmZjAxNjdkZGFk",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "enableDirSync": true
+              },
+              "schema": {
+                "type": "object",
+                "required": [
+                  "enableDirSync"
+                ],
+                "properties": {
+                  "enableDirSync": {
+                    "type": "boolean",
+                    "example": true,
+                    "description": "The toggle to enable/disable directory sync."
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TriggerDirectorySyncResponse"
+                },
+                "example": {
+                  "enableDirSync": true,
+                  "directorySyncStatus": {
+                    "syncStatus": "IN_PROGRESS"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Trigger Directory Sync for an Enterprise",
+        "operationId": "Trigger Directory Sync for an Enterprise",
+        "description": "This API lets a Partner Admin trigger a directory sync for the customer's Broadworks enterprise on Webex.",
+        "tags": [
+          "BroadWorks Enterprises"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "A unique identifier for the enterprise in question.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL1NVQlNDUklCRVIvNjk3MGU2YmItNzQzOS00ZmZiLWFkMzQtZDNmZjAxNjdkZGFk",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "syncStatus": "SYNC_NOW"
+              },
+              "schema": {
+                "type": "object",
+                "required": [
+                  "syncStatus"
+                ],
+                "properties": {
+                  "syncStatus": {
+                    "type": "string",
+                    "example": "SYNC_NOW",
+                    "description": "At this time, the only value allowed for this attribute is `SYNC_NOW` which will trigger the directory sync for the BroadWorks enterprise."
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetDirectorySyncStatusResponse"
+                },
+                "example": {
+                  "enableDirSync": true,
+                  "directorySyncStatus": {
+                    "lastSyncStartTime": "2021-03-23T16:09:06.527199Z",
+                    "lastSyncEndTime": "2021-03-23T17:21:41.532770Z",
+                    "syncStatus": "COMPLETE",
+                    "usersAdded": 44,
+                    "usersUpdated": 21,
+                    "usersDeleted": 34,
+                    "machinesAdded": 24,
+                    "machinesUpdated": 4,
+                    "machinesDeleted": 9,
+                    "totalExternalUsersInCI": 1077,
+                    "totalExternalMachinesInCI": 326,
+                    "lastSyncTrackingId": "NA_dde3a13a-bad7-4990-b155-9b4574e545b9"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get Directory Sync Status for an Enterprise",
+        "operationId": "Get Directory Sync Status for an Enterprise",
+        "description": "This API lets a Partner Admin get the most recent directory sync status for a customer's Broadworks enterprise on Webex.",
+        "tags": [
+          "BroadWorks Enterprises"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "A unique identifier for the enterprise in question.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL1NVQlNDUklCRVIvNjk3MGU2YmItNzQzOS00ZmZiLWFkMzQtZDNmZjAxNjdkZGFk",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/broadworks/enterprises/{id}/broadworksDirectorySync/externalUser": {
+      "post": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TriggerUserDirectorySyncResponse"
+                },
+                "example": {
+                  "userResponse": {
+                    "userId": "john.anderson@acme.com",
+                    "firstName": "John",
+                    "lastName": "Anderson",
+                    "extension": "4653",
+                    "number": "+35391884653",
+                    "mobile": "+188-(2323)-(343)"
+                  },
+                  "status": "ADD"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Trigger Directory Sync for a User",
+        "operationId": "Trigger Directory Sync for a User",
+        "description": "This API lets a Partner Admin trigger a directory sync for an external user (real or virtual user) on Broadworks enterprise with Webex.",
+        "tags": [
+          "BroadWorks Enterprises"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "A unique identifier for the enterprise in question.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL1NVQlNDUklCRVIvNjk3MGU2YmItNzQzOS00ZmZiLWFkMzQtZDNmZjAxNjdkZGFk",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "userId": "john_anderson@acme.com"
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userId": {
+                    "type": "string",
+                    "example": "john_anderson@acme.com",
+                    "description": "The user ID of the Broadworks user to be synced (A non-webex user)."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/broadworks/subscribers": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriberListResponse"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": "Y2lzY29zcGFyazovL3VzL1NVQlNDUklCRVIvNjk3MGU2YmItNzQzOS00ZmZiLWFkMzQtZDNmZjAxNjdkZGFk",
+                      "personId": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9mNWIzNjE4Ny1jOGRkLTQ3MjctOGIyZi1mOWM0NDdmMjkwNDY",
+                      "userId": "95547321@sp.com",
+                      "spEnterpriseId": "SP1+acme",
+                      "firstName": "John",
+                      "lastName": "Andersen",
+                      "email": "john.anderson@acme.com",
+                      "primaryPhoneNumber": "+1-240-555-1212",
+                      "mobilePhoneNumber": "+1-818-279-1234",
+                      "extension": "1212",
+                      "package": "standard",
+                      "status": "error",
+                      "errors": [
+                        {
+                          "errorCode": 10022,
+                          "description": "The BroadWorks UserID is already associated with an existing user"
+                        }
+                      ],
+                      "created": "2019-10-18T14:26:16.000Z",
+                      "lastStatusChange": "2020-03-18T16:05:34.000Z",
+                      "provisioningId": "ZjViMzYxODctYzhkZC00NzI3LThiMmYtZjljNDQ3ZjI5MDQ2OjQyODVmNTk0LTViNTEtNDdiZS05Mzk2LTZjMzZlMmFkODNhNQ",
+                      "selfActivated": "false"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "List BroadWorks Subscribers",
+        "operationId": "List BroadWorks Subscribers",
+        "description": "This API lets a Service Provider search for their associated subscribers. There are a number of filter options that can be combined in a single request.",
+        "tags": [
+          "BroadWorks Subscribers"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "description": "The user ID of the subscriber on BroadWorks.",
+            "example": "95547321@sp.com",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "personId",
+            "in": "query",
+            "description": "The Person ID of the Webex subscriber.",
+            "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9mNWIzNjE4Ny1jOGRkLTQ3MjctOGIyZi1mOWM0NDdmMjkwNDY",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "email",
+            "in": "query",
+            "description": "The email address of the subscriber.",
+            "example": "john.anderson@acme.com",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "provisioningId",
+            "in": "query",
+            "description": "The Provisioning ID associated with this subscriber.",
+            "example": "ZjViMzYxODctYzhkZC00NzI3LThiMmYtZjljNDQ3ZjI5MDQ2OjQyODVmNTk0LTViNTEtNDdiZS05Mzk2LTZjMzZlMmFkODNhNQ",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "spEnterpriseId",
+            "in": "query",
+            "description": "The Service Provider supplied unique identifier for the subscriber's enterprise.",
+            "example": "SP1+Acme",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lastStatusChange",
+            "in": "query",
+            "description": "Only include subscribers with a provisioning status change after this date and time. Epoch time (in milliseconds) preferred, but ISO 8601 date format also accepted.",
+            "example": "1579046400245",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "The provisioning status of the subscriber. This Parameter supports multiple comma separated values. For example : status=error,provisioned,provisioning.",
+            "example": "pending_email_input",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending_email_input",
+                "pending_email_validation",
+                "pending_user_migration",
+                "provisioning",
+                "provisioned",
+                "updating",
+                "error"
+              ]
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "description": "Only include subscribers created after this date and time. Epoch time (in milliseconds) preferred, but ISO 8601 date format also accepted.",
+            "example": "1579046400245",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "selfActivated",
+            "in": "query",
+            "description": "Indicates if the subscriber was self activated, rather than provisioned via these APIs.",
+            "example": "false",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "max",
+            "in": "query",
+            "description": "Limit the maximum number of subscribers returned in the search response, up to 100 per page. Refer to the [Pagination](/docs/basics#pagination) section of [Webex REST API Basics](/docs/basics).",
+            "example": "10",
+            "schema": {
+              "type": "integer",
+              "default": 50
+            }
+          }
+        ]
+      },
+      "post": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subscriber"
+                },
+                "example": {
+                  "id": "Y2lzY29zcGFyazovL3VzL1NVQlNDUklCRVIvNjk3MGU2YmItNzQzOS00ZmZiLWFkMzQtZDNmZjAxNjdkZGFk",
+                  "userId": "95547321@sp.com",
+                  "spEnterpriseId": "Reseller1+acme",
+                  "firstName": "John",
+                  "lastName": "Andersen",
+                  "email": "john.anderson@acme.com",
+                  "primaryPhoneNumber": "+1-240-555-1212",
+                  "mobilePhoneNumber": "+1-818-279-1234",
+                  "extension": "1212",
+                  "package": "standard",
+                  "status": "provisioning",
+                  "created": "2019-10-18T14:26:16.000Z",
+                  "lastStatusChange": "2020-03-18T16:05:34.000Z",
+                  "provisioningId": "ZjViMzYxODctYzhkZC00NzI3LThiMmYtZjljNDQ3ZjI5MDQ2OjQyODVmNTk0LTViNTEtNDdiZS05Mzk2LTZjMzZlMmFkODNhNQ",
+                  "selfActivated": "false"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Provision a BroadWorks Subscriber",
+        "operationId": "Provision a BroadWorks Subscriber",
+        "description": "Provision a new BroadWorks subscriber for Webex services.\n\nThis API lets a Service Provider map a BroadWorks subscriber to a new or existing Webex user and assign the required licenses and entitlements for Webex and Meetings.",
+        "tags": [
+          "BroadWorks Subscribers"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "provisioningId": "ZjViMzYxODctYzhkZC00NzI3LThiMmYtZjljNDQ3ZjI5MDQ2OjQyODVmNTk0LTViNTEtNDdiZS05Mzk2LTZjMzZlMmFkODNhNQ",
+                "userId": "95547321@sp.com",
+                "spEnterpriseId": "Reseller1+acme",
+                "firstName": "John",
+                "lastName": "Andersen",
+                "package": "standard",
+                "primaryPhoneNumber": "+1-240-555-1212",
+                "mobilePhoneNumber": "+1-818-279-1234",
+                "extension": "1212",
+                "email": "john.anderson@acme.com",
+                "language": "en",
+                "timezone": "America/Los_Angeles"
+              },
+              "schema": {
+                "type": "object",
+                "required": [
+                  "provisioningId",
+                  "userId",
+                  "spEnterpriseId",
+                  "firstName",
+                  "lastName",
+                  "package"
+                ],
+                "properties": {
+                  "provisioningId": {
+                    "type": "string",
+                    "example": "ZjViMzYxODctYzhkZC00NzI3LThiMmYtZjljNDQ3ZjI5MDQ2OjQyODVmNTk0LTViNTEtNDdiZS05Mzk2LTZjMzZlMmFkODNhNQ",
+                    "description": "This Provisioning ID defines how this subscriber is to be provisioned for Webex Services.\n\nEach Customer Template will have their own unique Provisioning ID. This ID will be displayed under the chosen Customer Template\non Webex Partner Hub."
+                  },
+                  "userId": {
+                    "type": "string",
+                    "example": "95547321@sp.com",
+                    "description": "The user ID of the subscriber on BroadWorks."
+                  },
+                  "spEnterpriseId": {
+                    "type": "string",
+                    "example": "Reseller1+acme",
+                    "description": "The Service Provider supplied unique identifier for the subscriber's enterprise."
+                  },
+                  "firstName": {
+                    "type": "string",
+                    "example": "John",
+                    "description": "The first name of the subscriber."
+                  },
+                  "lastName": {
+                    "type": "string",
+                    "example": "Andersen",
+                    "description": "The last name of the subscriber."
+                  },
+                  "package": {
+                    "type": "string",
+                    "enum": [
+                      "softphone",
+                      "basic",
+                      "standard",
+                      "premium"
+                    ],
+                    "description": "The Webex for BroadWorks package to be assigned to the subscriber.\n * `softphone` - Softphone package\n * `basic` - Basic package\n * `standard` - Standard package\n * `premium` - Premium package\n"
+                  },
+                  "primaryPhoneNumber": {
+                    "type": "string",
+                    "example": "+1-240-555-1212",
+                    "description": "The primary phone number configured against the subscriber on BroadWorks."
+                  },
+                  "mobilePhoneNumber": {
+                    "type": "string",
+                    "example": "+1-818-279-1234",
+                    "description": "The mobile phone number configured against the subscriber on BroadWorks. Any empty value on update will remove the already configured mobile phone number."
+                  },
+                  "extension": {
+                    "type": "string",
+                    "example": "1212",
+                    "description": "The extension number configured against the subscriber on BroadWorks."
+                  },
+                  "email": {
+                    "type": "string",
+                    "example": "john.anderson@acme.com",
+                    "description": "The email address of the subscriber (mandatory for the trusted email provisioning flow)."
+                  },
+                  "language": {
+                    "type": "string",
+                    "example": "en",
+                    "description": "The {ISO-639-1}_{ISO-3166} or {ISO-639-1} locale or language code used as preferred language for organization and Webex Meeting Sites. Refer to the [help page](https://www.cisco.com/content/en/us/td/docs/voice_ip_comm/cloudCollaboration/wx4bwks/Solution_Guide/wbxbw_b_solution-guide/wbxbw_b_SolutionGuide-PDF_chapter_01.html#Cisco_Reference.dita_f10351e1-f775-418d-a700-ec8487e0a33b) for more information."
+                  },
+                  "timezone": {
+                    "type": "string",
+                    "example": "America/Los_Angeles",
+                    "description": "The time zone associated with the subscriber. Refer to the [Webex Meetings Site Timezone](/docs/api/guides/webex-for-broadworks-developers-guide#webex-meetings-site-timezone) section of the [Webex for BroadWorks](/docs/api/guides/webex-for-broadworks-developers-guide) guide for more information."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/broadworks/subscribers/{subscriberId}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subscriber"
+                },
+                "example": {
+                  "id": "Y2lzY29zcGFyazovL3VzL1NVQlNDUklCRVIvNjk3MGU2YmItNzQzOS00ZmZiLWFkMzQtZDNmZjAxNjdkZGFk",
+                  "personId": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9mNWIzNjE4Ny1jOGRkLTQ3MjctOGIyZi1mOWM0NDdmMjkwNDY",
+                  "userId": "95547321@sp.com",
+                  "spEnterpriseId": "Reseller1+acme",
+                  "firstName": "John",
+                  "lastName": "Andersen",
+                  "email": "john.anderson@acme.com",
+                  "primaryPhoneNumber": "+1-240-555-1212",
+                  "mobilePhoneNumber": "+1-818-279-1234",
+                  "extension": "1212",
+                  "package": "basic",
+                  "status": "pending_email_input",
+                  "created": "2019-10-18T14:26:16.000Z",
+                  "lastStatusChange": "2020-03-18T16:05:34.000Z",
+                  "provisioningId": "ZjViMzYxODctYzhkZC00NzI3LThiMmYtZjljNDQ3ZjI5MDQ2OjQyODVmNTk0LTViNTEtNDdiZS05Mzk2LTZjMzZlMmFkODNhNQ",
+                  "selfActivated": "false"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get a BroadWorks Subscriber",
+        "operationId": "Get a BroadWorks Subscriber",
+        "description": "This API lets a Service Provider retrieve details of a provisioned BroadWorks subscriber on Webex.",
+        "tags": [
+          "BroadWorks Subscribers"
+        ],
+        "parameters": [
+          {
+            "name": "subscriberId",
+            "in": "path",
+            "description": "A unique identifier for the subscriber in question.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL1NVQlNDUklCRVIvNjk3MGU2YmItNzQzOS00ZmZiLWFkMzQtZDNmZjAxNjdkZGFk",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "put": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subscriber"
+                },
+                "example": {
+                  "id": "Y2lzY29zcGFyazovL3VzL1NVQlNDUklCRVIvNjk3MGU2YmItNzQzOS00ZmZiLWFkMzQtZDNmZjAxNjdkZGFk",
+                  "personId": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9mNWIzNjE4Ny1jOGRkLTQ3MjctOGIyZi1mOWM0NDdmMjkwNDY",
+                  "userId": "95547321@sp.com",
+                  "spEnterpriseId": "Reseller1+acme",
+                  "firstName": "John",
+                  "lastName": "Andersen",
+                  "email": "john.anderson@acme.com",
+                  "primaryPhoneNumber": "+1-240-555-1212",
+                  "mobilePhoneNumber": "+1-818-279-1234",
+                  "extension": "1212",
+                  "package": "premium",
+                  "status": "updating",
+                  "created": "2019-10-18T14:26:16.000Z",
+                  "lastStatusChange": "2020-03-18T16:05:34.000Z",
+                  "provisioningId": "ZjViMzYxODctYzhkZC00NzI3LThiMmYtZjljNDQ3ZjI5MDQ2OjQyODVmNTk0LTViNTEtNDdiZS05Mzk2LTZjMzZlMmFkODNhNQ",
+                  "selfActivated": "false"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Update a BroadWorks Subscriber",
+        "operationId": "Update a BroadWorks Subscriber",
+        "description": "This API lets a Service Provider update certain details of a provisioned BroadWorks subscriber\non Webex.\n\n<div>\n        <Callout type='info'>The updated items will not be immediately reflected in the response body, but can be subsequently obtained via the [Get a BroadWorks Subscriber](/docs/api/v1/broadworks-subscribers/get-a-broadworks-subscriber) API once the status has transitioned from the updating state to the provisioned state.</Callout>\n</div>",
+        "tags": [
+          "BroadWorks Subscribers"
+        ],
+        "parameters": [
+          {
+            "name": "subscriberId",
+            "in": "path",
+            "description": "A unique identifier for the subscriber in question.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL1NVQlNDUklCRVIvNjk3MGU2YmItNzQzOS00ZmZiLWFkMzQtZDNmZjAxNjdkZGFk",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "userId": "95547321@sp.com",
+                "firstName": "John",
+                "lastName": "Andersen",
+                "primaryPhoneNumber": "+1-240-555-1212",
+                "mobilePhoneNumber": "+1-818-279-1234",
+                "extension": "1212",
+                "timezone": "America/Los_Angeles",
+                "package": "premium"
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userId": {
+                    "type": "string",
+                    "example": "95547321@sp.com",
+                    "description": "The user ID of the subscriber on BroadWorks."
+                  },
+                  "firstName": {
+                    "type": "string",
+                    "example": "John",
+                    "description": "The first name of the subscriber."
+                  },
+                  "lastName": {
+                    "type": "string",
+                    "example": "Andersen",
+                    "description": "The last name of the subscriber."
+                  },
+                  "primaryPhoneNumber": {
+                    "type": "string",
+                    "example": "+1-240-555-1212",
+                    "description": "The primary phone number configured against the subscriber on BroadWorks. Any empty value on update will remove the already configured primary phone number if an extension is set. The user must have either a primary phone number or an extension configured."
+                  },
+                  "mobilePhoneNumber": {
+                    "type": "string",
+                    "example": "+1-818-279-1234",
+                    "description": "The mobile phone number configured against the subscriber on BroadWorks. Any empty value on update will remove the already configured mobile phone number."
+                  },
+                  "extension": {
+                    "type": "string",
+                    "example": "1212",
+                    "description": "The extension number configured against the subscriber on BroadWorks. Any empty value on update will remove the already configured extension if a primary phone number is set. The user must have either a primary phone number or an extension configured."
+                  },
+                  "timezone": {
+                    "type": "string",
+                    "example": "America/Los_Angeles",
+                    "description": "The time zone associated with the subscriber. Refer to the [Webex Meetings Site Timezone](/docs/api/guides/webex-for-broadworks-developers-guide#webex-meetings-site-timezone) section of the [Webex for BroadWorks](/docs/api/guides/webex-for-broadworks-developers-guide) guide for more information."
+                  },
+                  "package": {
+                    "type": "string",
+                    "example": "premium",
+                    "description": "The Webex for BroadWorks Package to be assigned to the subscriber."
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {},
+            "content": {}
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Remove a BroadWorks Subscriber",
+        "operationId": "Remove a BroadWorks Subscriber",
+        "description": "This API will allow a Service Provider to remove the mapping between a BroadWorks Subscriber and Webex user.",
+        "tags": [
+          "BroadWorks Subscribers"
+        ],
+        "parameters": [
+          {
+            "name": "subscriberId",
+            "in": "path",
+            "description": "A unique identifier for the subscriber in question.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL1NVQlNDUklCRVIvNjk3MGU2YmItNzQzOS00ZmZiLWFkMzQtZDNmZjAxNjdkZGFk",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/broadworks/subscribers/validate": {
+      "post": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriberProvisioningPrecheckResponse"
+                },
+                "example": {
+                  "message": "success",
+                  "info": [
+                    {
+                      "infoCode": 100,
+                      "description": "Provisioning preCheck validation successful."
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Precheck a Broadworks Subscriber Provisioning",
+        "operationId": "Precheck a Broadworks Subscriber Provisioning",
+        "description": "Verify the likely success of provisioning a broadworks subscriber.\n\n<div>\n<Callout type='info'>\nThe Prerequisite for using this API is to have at least one Broadworks Cluster configured against partner using Partner Hub. The Provisioning Precheck APIs supports two variants of Broadworks Provisioning Precheck Requests. Please refer to [Using the Provisioning Precheck API](/docs/api/guides/webex-for-broadworks-developers-guide#using-the-precheck-provisioning-api) section in [Webex for BroadWorks](/docs/api/guides/webex-for-broadworks-developers-guide) guide for more information.\n</Callout>\n</div>",
+        "tags": [
+          "BroadWorks Subscribers"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "provisioningId": "ZjViMzYxODctYzhkZC00NzI3LThiMmYtZjljNDQ3ZjI5MDQ2OjQyODVmNTk0LTViNTEtNDdiZS05Mzk2LTZjMzZlMmFkODNhNQ",
+                "userId": "95547321@example.com",
+                "spEnterpriseId": "Reseller1+example",
+                "firstName": "John",
+                "lastName": "Andersen",
+                "email": "john.anderson@example.com",
+                "primaryPhoneNumber": "+1-240-555-1212",
+                "language": "en",
+                "package": "standard",
+                "customerInfo": {
+                  "primaryEmail": "alice.anderson@example.com"
+                }
+              },
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email"
+                ],
+                "properties": {
+                  "provisioningId": {
+                    "type": "string",
+                    "example": "ZjViMzYxODctYzhkZC00NzI3LThiMmYtZjljNDQ3ZjI5MDQ2OjQyODVmNTk0LTViNTEtNDdiZS05Mzk2LTZjMzZlMmFkODNhNQ",
+                    "description": "Provisioning ID that defines how this subscriber is to be provisioned for Cisco Webex Services. Each Customer Template has its unique Provisioning ID. This ID will be displayed under the chosen Customer Template on Cisco Webex Control Hub."
+                  },
+                  "userId": {
+                    "type": "string",
+                    "example": "95547321@example.com",
+                    "description": "The user ID of the Broadworks subscriber."
+                  },
+                  "spEnterpriseId": {
+                    "type": "string",
+                    "example": "Reseller1+example",
+                    "description": "The Service Provider supplied unique identifier for the subscriber's enterprise."
+                  },
+                  "firstName": {
+                    "type": "string",
+                    "example": "John",
+                    "description": "The first name of the subscriber."
+                  },
+                  "lastName": {
+                    "type": "string",
+                    "example": "Andersen",
+                    "description": "The last name of the subscriber."
+                  },
+                  "package": {
+                    "type": "string",
+                    "enum": [
+                      "softphone",
+                      "basic",
+                      "standard",
+                      "premium"
+                    ],
+                    "description": "The Webex for BroadWorks package to be assigned to the subscriber.\n * `softphone` - Softphone package.\n * `basic` - Basic package.\n * `standard` - Standard package.\n * `premium` - Premium package.\n"
+                  },
+                  "primaryPhoneNumber": {
+                    "type": "string",
+                    "example": "+1-240-555-1212",
+                    "description": "The primary phone number configured for the subscriber on BroadWorks."
+                  },
+                  "mobilePhoneNumber": {
+                    "type": "string",
+                    "example": "+1-818-279-1234",
+                    "description": "The mobile phone number configured against the subscriber on BroadWorks."
+                  },
+                  "extension": {
+                    "type": "string",
+                    "example": "1212",
+                    "description": "The extension number configured against the subscriber on BroadWorks."
+                  },
+                  "email": {
+                    "type": "string",
+                    "example": "john.anderson@example.com",
+                    "description": "The email address of the subscriber."
+                  },
+                  "language": {
+                    "type": "string",
+                    "example": "en",
+                    "description": "The ISO 639-1 language code associated with the subscriber. Reserved for future use. Any value currently specified will be ignored during subscriber provisioning."
+                  },
+                  "timezone": {
+                    "type": "string",
+                    "example": "America/Los_Angeles",
+                    "description": "The time zone associated with the subscriber. Refer to the [Webex Meetings Site Timezone](/docs/api/guides/webex-for-broadworks-developers-guide#webex-meetings-site-timezone) section of the [Webex for BroadWorks](/docs/api/guides/webex-for-broadworks-developers-guide) guide for more information."
+                  },
+                  "customerInfo": {
+                    "type": "object",
+                    "required": [
+                      "primaryEmail"
+                    ],
+                    "properties": {
+                      "primaryEmail": {
+                        "type": "string",
+                        "example": "\"john.anderson@example.com\"",
+                        "description": "The Customer's primary email address."
+                      }
+                    },
+                    "description": "The information of the customer into which the subscriber is provisioned. If you are including this parameter, you must include the `primaryEmail` of the customer."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/subscribers/{subscriberId}/emails/consentMove": {
+      "post": {
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {},
+            "content": {}
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Send Consent User Move Email to Pending Broadworks Subscribers",
+        "operationId": "Send Consent User Move Email to Pending Broadworks Subscribers",
+        "description": "Allows a Service Provider to send the user consent move email to a subscriber who is currently in `pending_user_migration` state.",
+        "tags": [
+          "BroadWorks Subscribers"
+        ],
+        "parameters": [
+          {
+            "name": "subscriberId",
+            "in": "path",
+            "description": "A unique identifier for the subscriber in question.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL1NVQlNDUklCRVIvNjk3MGU2YmItNzQzOS00ZmZiLWFkMzQtZDNmZjAxNjdkZGFk",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/broadworks/workspaces": {
+      "post": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceResponse"
+                },
+                "example": {
+                  "id": "Y2lzY29zcGFyazovL3VzL1BMQUNFL2RkMjJlZGZlLTlmZWYtNDdmOS05ODFkLWYxYjA3MWFmMDcwYw",
+                  "provisioningId": "ZjViMzYxODctYzhkZC00NzI3LThiMmYtZjljNDQ3ZjI5MDQ2OjQyODVmNTk0LTViNTEtNDdiZS05Mzk2LTZjMzZlMmFkODNhNQ",
+                  "userId": "95547321@sp.com",
+                  "spEnterpriseId": "Reseller1+acme",
+                  "displayName": "Conference Room",
+                  "primaryPhoneNumber": "+1-240-555-1212",
+                  "extension": "51212",
+                  "created": "2019-10-18T14:26:16.000Z"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Provision a BroadWorks Workspace",
+        "operationId": "provisionBroadWorksWorkspace",
+        "description": "Provision a new BroadWorks workspace for Cisco Webex services.\n\nThis API allows a Service Provider to provision a workspace for an existing customer.",
+        "tags": [
+          "BroadWorks Workspaces"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "provisioningId": "ZjViMzYxODctYzhkZC00NzI3LThiMmYtZjljNDQ3ZjI5MDQ2OjQyODVmNTk0LTViNTEtNDdiZS05Mzk2LTZjMzZlMmFkODNhNQ",
+                "userId": "95547321@sp.com",
+                "spEnterpriseId": "Reseller1+acme",
+                "displayName": "Conference Room",
+                "primaryPhoneNumber": "+1-240-555-1212",
+                "extension": "51212"
+              },
+              "schema": {
+                "type": "object",
+                "required": [
+                  "provisioningId",
+                  "userId",
+                  "spEnterpriseId",
+                  "displayName"
+                ],
+                "properties": {
+                  "provisioningId": {
+                    "type": "string",
+                    "example": "ZjViMzYxODctYzhkZC00NzI3LThiMmYtZjljNDQ3ZjI5MDQ2OjQyODVmNTk0LTViNTEtNDdiZS05Mzk2LTZjMzZlMmFkODNhNQ",
+                    "description": "Provisioning ID that defines how this workspace is to be provisioned for Cisco Webex Services. Each Customer Template will have their own unique Provisioning ID. This ID will be displayed under the chosen Customer Template on Cisco Webex Control Hub."
+                  },
+                  "userId": {
+                    "type": "string",
+                    "example": "95547321@sp.com",
+                    "description": "The user ID of the workspace on BroadWorks."
+                  },
+                  "spEnterpriseId": {
+                    "type": "string",
+                    "example": "Reseller1+acme",
+                    "description": "The Service Provider supplied unique identifier for the workspace's enterprise."
+                  },
+                  "displayName": {
+                    "type": "string",
+                    "example": "Conference Room",
+                    "description": "The display name of the workspace."
+                  },
+                  "primaryPhoneNumber": {
+                    "type": "string",
+                    "example": "+1-240-555-1212",
+                    "description": "The primary phone number configured against the workspace on BroadWorks."
+                  },
+                  "extension": {
+                    "type": "string",
+                    "example": "51212",
+                    "description": "The extension number configured against the workspace on BroadWorks."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/broadworks/workspaces/{workspaceId}": {
+      "put": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceResponse"
+                },
+                "example": {
+                  "id": "Y2lzY29zcGFyazovL3VzL1BMQUNFL2RkMjJlZGZlLTlmZWYtNDdmOS05ODFkLWYxYjA3MWFmMDcwYw",
+                  "provisioningId": "ZjViMzYxODctYzhkZC00NzI3LThiMmYtZjljNDQ3ZjI5MDQ2OjQyODVmNTk0LTViNTEtNDdiZS05Mzk2LTZjMzZlMmFkODNhNQ",
+                  "userId": "95547321@sp.com",
+                  "spEnterpriseId": "Reseller1+acme",
+                  "displayName": "Conference Room",
+                  "primaryPhoneNumber": "+1-240-555-1212",
+                  "extension": "51212",
+                  "created": "2019-10-18T14:26:16.000Z"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Update a Broadworks Workspace",
+        "operationId": "updateBroadworksWorkspace",
+        "description": "Update certain details of a provisioned BroadWorks workspace on Cisco Webex.",
+        "tags": [
+          "BroadWorks Workspaces"
+        ],
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "in": "path",
+            "description": "A unique Cisco identifier for the workspace.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL1BMQUNFL2RkMjJlZGZlLTlmZWYtNDdmOS05ODFkLWYxYjA3MWFmMDcwYw",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "userId": "95547321@sp.com",
+                "primaryPhoneNumber": "+1-240-555-1212",
+                "extension": "51212"
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userId": {
+                    "type": "string",
+                    "example": "95547321@sp.com",
+                    "description": "The user ID of the workspace on BroadWorks."
+                  },
+                  "primaryPhoneNumber": {
+                    "type": "string",
+                    "example": "+1-240-555-1212",
+                    "description": "The primary phone number configured against the workspace on BroadWorks."
+                  },
+                  "extension": {
+                    "type": "string",
+                    "example": "51212",
+                    "description": "The extension number configured against the workspace on BroadWorks."
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {},
+            "content": {}
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Remove a BroadWorks Workspace",
+        "operationId": "removeBroadWorksWorkspace",
+        "description": "Remove the mapping between a BroadWorks workspace and Cisco Webex device.",
+        "tags": [
+          "BroadWorks Workspaces"
+        ],
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "in": "path",
+            "description": "A unique Cisco identifier for the workspace.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL1BMQUNFL2RkMjJlZGZlLTlmZWYtNDdmOS05ODFkLWYxYjA3MWFmMDcwYw",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
             }
           }
         ]
@@ -7127,58 +9227,44 @@
         "properties": {
           "id": {
             "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9mYzhjMWFhMS00OTM5LTQ2NjEtODAwMy1hYWE0MzFmZWM0ZmE",
-            "description": "Unique identifier for the report."
+            "example": "'Y2lzY29zcGFyazovL3VzL0JJTExJTkdfUkVQT1JULzViOGQ1MThhLThmMDAtNDUxYi1hNDA2LWVhZjQ5YjRhN2ZhOA'",
+            "description": "A unique report ID that corresponds to a billing report."
           },
-          "title": {
+          "billingPeriod": {
             "type": "string",
-            "example": "Bots Activity",
-            "description": "Name of the template to which this report belongs."
-          },
-          "service": {
-            "type": "string",
-            "example": "Teams",
-            "description": "The service to which the report belongs."
-          },
-          "startDate": {
-            "type": "string",
-            "example": "2020-02-23",
-            "description": "The data in this report belongs to dates greater than or equal to this."
-          },
-          "endDate": {
-            "type": "string",
-            "example": "2020-03-24",
-            "description": "The data in this report belongs to dates smaller than or equal to this."
-          },
-          "siteList": {
-            "type": "string",
-            "example": "cisco.webex.com",
-            "description": "The site to which this report belongs to. This only exists if the report belongs to service `Webex`."
-          },
-          "created": {
-            "type": "string",
-            "example": "2020-03-24 17:13:39",
-            "description": "Time of creation for this report."
-          },
-          "createdBy": {
-            "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9mYzhjMWFhMS00OTM5LTQ2NjEtODAwMy1hYWE0MzFmZWM0ZmE",
-            "description": "The person who created the report."
-          },
-          "scheduledFrom": {
-            "type": "string",
-            "example": "API",
-            "description": "Whether this report was scheduled from API or Control Hub."
+            "example": "2021-05",
+            "description": "The year and month (`YYYY-MM`) for which the billing report was generated."
           },
           "status": {
             "type": "string",
-            "example": "done",
-            "description": "Completion status of this report."
+            "enum": [
+              "IN_PROGRESS",
+              "COMPLETED",
+              "FAILED"
+            ],
+            "description": "The status of the billing report.\n * `IN_PROGRESS` - Report generation is in progress.\n * `COMPLETED` - Report generation is complete.\n * `FAILED` - Report generation failed.\n"
           },
-          "downloadURL": {
+          "created": {
             "type": "string",
-            "example": "https://downloadservicebts.webex.com/api?reportId=Y2lzY29zcGFyazovL3VzL1JFUE9SVC9hZDBkMjA1NzVkYTA0NWE0OGZhZDQ3ZDk3NGFiNDFmMg",
-            "description": "The link from which the report can be downloaded."
+            "example": "2021-06-16T12:40:33.109Z",
+            "description": "The date and time the report was generated."
+          },
+          "createdBy": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS8wYWNkMzg3NS00ZTEyLTRkNzctYjk4MS1lMzg5ZmQ4ODQ2YzA",
+            "description": "The person ID of the partner administrator who created the report."
+          },
+          "tempDownloadURL": {
+            "type": "string",
+            "example": "https://billing-reports-int-example.webexcontent.com/a366de9b-3204-4140-8181-25808d360e36/2021/06/16/340177d1-7f25-41e1-a39f-ad63ec1103a5.csv?Expires=1624978489&Signature=Syp3vrVeMx4P6MeMtm8e1bQaeAdHFe-c7NeHERWh5-qJGLZ1T8Dvl2ee-M8OsFf~z6Yepz94e2Hh1HDVailD0Uryl8SgiM~jl0cBh7L0PmSe~i9oFA0eJ0MulkqGSMVf7ZHhxY55xYMgIBZIERkWm3CqQNDg5BS4EaXapKfOnmFegf36OokCM63m5uOK8-csk08IkZhwo2Z0l1JMtuWYEaLh4dgMHoe~xgH3YmDSSCWInFYaEifUAfgi2YAYS6nP9Zq4BTliBq62XBaehOE1gBrhy4RdwD-3WSs2oD-BdpoRpuGzo3FZzDLVEvd0S2D6gTcHljOHodQKxe-u0BXPWQ__&Key-Pair-Id=APKAJADAKLCI2FW2U32Q",
+            "description": "The URL for partners to download the billing report."
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReportError"
+            },
+            "description": "List of errors that occurred during report generation.\n\n**Note:**\n\n* Captures errors that occurred during asynchronous or background report generation, after the request has been accepted and a `202 OK` response is returned."
           }
         }
       },
@@ -9807,22 +11893,675 @@
           "configured": true
         }
       },
-      "GetManagerProfileObject": {
+      "ReportError": {
         "type": "object",
-        "required": [
-          "id",
-          "name"
-        ],
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 2024,
+            "description": "The error code itself."
+          },
+          "description": {
+            "type": "string",
+            "example": "Billing Report not found.",
+            "description": "A textual representation of the error code."
+          }
+        }
+      },
+      "ReportId": {
+        "type": "object",
         "properties": {
           "id": {
             "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VzL0NBTExJTkdfUFJPRklMRS9iMzdmMmZiYS0yZTdjLTExZWItYTM2OC1kYmU0Yjc2NzFmZTk",
-            "description": "A unique identifier for the calling UC Manager Profile."
-          },
-          "name": {
+            "example": "'Y2lzY29zcGFyazovL3VzL0JJTExJTkdfUkVQT1JULzViOGQ1MThhLThmMDAtNDUxYi1hNDA2LWVhZjQ5YjRhN2ZhOA'",
+            "description": "A unique report ID that corresponds to a billing report."
+          }
+        }
+      },
+      "ListReport": {
+        "type": "object",
+        "properties": {
+          "id": {
             "type": "string",
-            "example": "UC Profile2",
-            "description": "Unique name for the calling UC Manager Profile."
+            "example": "'Y2lzY29zcGFyazovL3VzL0JJTExJTkdfUkVQT1JULzViOGQ1MThhLThmMDAtNDUxYi1hNDA2LWVhZjQ5YjRhN2ZhOA'",
+            "description": "A unique report ID that corresponds to a billing report."
+          },
+          "billingPeriod": {
+            "type": "string",
+            "example": "2021-05",
+            "description": "The year and month (`YYYY-MM`) for which the billing report was generated."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_PROGRESS",
+              "COMPLETED",
+              "FAILED"
+            ],
+            "description": "The status of the billing report.\n * `IN_PROGRESS` - Report generation is in progress.\n * `COMPLETED` - Report generation is complete.\n * `FAILED` - Report generation failed.\n"
+          }
+        }
+      },
+      "BillingReportsListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ListReport"
+            },
+            "description": "An array of reports objects."
+          }
+        }
+      },
+      "EnterpriseListResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL0VOVEVSUFJJU0UvOTZhYmMyYWEtM2RjYy0xMWU1LWExNTItZmUzNDgxOWNkYzlh",
+            "description": "A unique Cisco identifier for the enterprise."
+          },
+          "orgId": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "description": "The Organization ID of the enterprise on Webex."
+          },
+          "provisioningId": {
+            "type": "string",
+            "example": "ZjViMzYxODctYzhkZC00NzI3LThiMmYtZjljNDQ3ZjI5MDQ2OjQyODVmNTk0LTViNTEtNDdiZS05Mzk2LTZjMzZlMmFkODNhNQ",
+            "description": "The Provisioning ID associated with the enterprise."
+          },
+          "spEnterpriseId": {
+            "type": "string",
+            "example": "Reseller1+acme",
+            "description": "The Service Provider supplied unique identifier for the subscriber's enterprise."
+          },
+          "broadworksDirectorySync": {
+            "type": "object",
+            "properties": {
+              "enableDirSync": {
+                "type": "boolean",
+                "example": true,
+                "description": "The toggle to enable/disable directory sync."
+              },
+              "directorySyncStatus": {
+                "type": "object",
+                "properties": {
+                  "lastSyncStartTime": {
+                    "type": "string",
+                    "example": "2021-04-01T14:49:50.309640Z",
+                    "description": "The start date and time of the last sync."
+                  },
+                  "lastSyncEndTime": {
+                    "type": "string",
+                    "example": "2021-04-01T14:49:52.667189Z",
+                    "description": "The end date and time of the last sync."
+                  },
+                  "syncStatus": {
+                    "type": "string",
+                    "example": "COMPLETE",
+                    "description": "The sync status of the enterprise."
+                  },
+                  "usersAdded": {
+                    "type": "number",
+                    "example": 44,
+                    "description": "The number of users added to Common Identity (CI) in this sync."
+                  },
+                  "usersUpdated": {
+                    "type": "number",
+                    "example": 21,
+                    "description": "The number of users updated in Common Identity (CI) in this sync."
+                  },
+                  "usersDeleted": {
+                    "type": "number",
+                    "example": 34,
+                    "description": "The number of users deleted from Common Identity (CI) in this sync."
+                  },
+                  "machinesAdded": {
+                    "type": "number",
+                    "example": 24,
+                    "description": "The number of machines added to Common Identity (CI) in this sync."
+                  },
+                  "machinesUpdated": {
+                    "type": "number",
+                    "example": 4,
+                    "description": "The number of machines updated in Common Identity (CI) in this sync."
+                  },
+                  "machinesDeleted": {
+                    "type": "number",
+                    "example": 9,
+                    "description": "The number of machines deleted from Common Identity (CI) in this sync."
+                  },
+                  "totalExternalUsersInCI": {
+                    "type": "number",
+                    "example": 1077,
+                    "description": "The number of total external users that have been added to CI across all syncs."
+                  },
+                  "totalExternalMachinesInCI": {
+                    "type": "number",
+                    "example": 326,
+                    "description": "The number of total external machines that have been added to Common Identity (CI) across all syncs."
+                  },
+                  "lastSuccessfulSyncTime": {
+                    "type": "string",
+                    "example": "2021-04-01T14:48:30.502539Z",
+                    "description": "The date and time of the last successful sync."
+                  },
+                  "lastSyncTrackingId": {
+                    "type": "string",
+                    "example": "NA_dde3a13a-bad7-4990-b155-9b4574e545b9",
+                    "description": "Unique tracking identifier."
+                  },
+                  "errors": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "errorCode": {
+                          "type": "number",
+                          "example": 6003,
+                          "description": "An error code that identifies the reason for the error"
+                        },
+                        "description": {
+                          "type": "string",
+                          "example": "Broadworks External Directory User Sync failed while trying to connect to Broadworks cluster.",
+                          "description": "A textual representation of the error code."
+                        }
+                      }
+                    },
+                    "description": "List of errors that occurred during that last attempt to sync this BroadWorks enterprise. This list captures errors that occurred during *directory sync* of the BroadWorks enterprise, *after* the API has been accepted and 200 OK response returned. Any errors that occur during initial API request validation will be captured directly in error response with appropriate HTTP status code."
+                  },
+                  "userContactsAdded": {
+                    "type": "number",
+                    "example": 5,
+                    "description": "The number of user contacts added to Contact service in this sync."
+                  },
+                  "userContactsUpdated": {
+                    "type": "number",
+                    "example": 2,
+                    "description": "The number of user contacts updated in Contact service in this sync."
+                  },
+                  "userContactsDeleted": {
+                    "type": "number",
+                    "example": 1,
+                    "description": "The number of user contacts deleted from Contact service in this sync."
+                  },
+                  "orgContactsAdded": {
+                    "type": "number",
+                    "example": 5,
+                    "description": "The number of org contacts added to Contact service in this sync."
+                  },
+                  "orgContactsUpdated": {
+                    "type": "number",
+                    "example": 2,
+                    "description": "The number of org contacts updated in Contact service in this sync."
+                  },
+                  "orgContactsDeleted": {
+                    "type": "number",
+                    "example": 1,
+                    "description": "The number of org contacts deleted from Contact service in this sync."
+                  },
+                  "totalUserContactsInContactService": {
+                    "type": "number",
+                    "example": 10,
+                    "description": "The total number of user contacts in Contact service."
+                  },
+                  "totalOrgContactsInContactService": {
+                    "type": "number",
+                    "example": 2,
+                    "description": "The total number of org contacts in Contact service."
+                  }
+                },
+                "description": "Directory sync status"
+              }
+            },
+            "description": "BroadWorks Directory sync"
+          }
+        }
+      },
+      "GetDirectorySyncStatusResponse": {
+        "type": "object",
+        "properties": {
+          "enableDirSync": {
+            "type": "boolean",
+            "example": true,
+            "description": "The toggle to enable/disable directory sync."
+          },
+          "directorySyncStatus": {
+            "type": "object",
+            "properties": {
+              "lastSyncStartTime": {
+                "type": "string",
+                "example": "2021-04-01T14:49:50.309640Z",
+                "description": "The start date and time of the last sync."
+              },
+              "lastSyncEndTime": {
+                "type": "string",
+                "example": "2021-04-01T14:49:52.667189Z",
+                "description": "The end date and time of the last sync."
+              },
+              "syncStatus": {
+                "type": "string",
+                "example": "COMPLETE",
+                "description": "The sync status of the enterprise."
+              },
+              "usersAdded": {
+                "type": "number",
+                "example": 44,
+                "description": "The number of users added to Common Identity (CI) in this sync."
+              },
+              "usersUpdated": {
+                "type": "number",
+                "example": 21,
+                "description": "The number of users updated in Common Identity (CI) in this sync."
+              },
+              "usersDeleted": {
+                "type": "number",
+                "example": 34,
+                "description": "The number of users deleted from Common Identity (CI) in this sync."
+              },
+              "machinesAdded": {
+                "type": "number",
+                "example": 24,
+                "description": "The number of machines added to Common Identity (CI) in this sync."
+              },
+              "machinesUpdated": {
+                "type": "number",
+                "example": 4,
+                "description": "The number of machines updated in Common Identity (CI) in this sync."
+              },
+              "machinesDeleted": {
+                "type": "number",
+                "example": 9,
+                "description": "The number of machines deleted from Common Identity (CI) in this sync."
+              },
+              "totalExternalUsersInCI": {
+                "type": "number",
+                "example": 1077,
+                "description": "The number of total external users that have been added to CI across all syncs."
+              },
+              "totalExternalMachinesInCI": {
+                "type": "number",
+                "example": 326,
+                "description": "The number of total external machines that have been added to Common Identity (CI) across all syncs."
+              },
+              "lastSuccessfulSyncTime": {
+                "type": "string",
+                "example": "2021-04-01T14:48:30.502539Z",
+                "description": "The date and time of the last successful sync."
+              },
+              "lastSyncTrackingId": {
+                "type": "string",
+                "example": "NA_dde3a13a-bad7-4990-b155-9b4574e545b9",
+                "description": "Unique tracking identifier."
+              },
+              "errors": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "errorCode": {
+                      "type": "number",
+                      "example": 6003,
+                      "description": "An error code that identifies the reason for the error"
+                    },
+                    "description": {
+                      "type": "string",
+                      "example": "Broadworks External Directory User Sync failed while trying to connect to Broadworks cluster.",
+                      "description": "A textual representation of the error code."
+                    }
+                  }
+                },
+                "description": "List of errors that occurred during that last attempt to sync this BroadWorks enterprise. This list captures errors that occurred during *directory sync* of the BroadWorks enterprise, *after* the API has been accepted and 200 OK response returned. Any errors that occur during initial API request validation will be captured directly in error response with appropriate HTTP status code."
+              },
+              "userContactsAdded": {
+                "type": "number",
+                "example": 5,
+                "description": "The number of user contacts added to Contact service in this sync."
+              },
+              "userContactsUpdated": {
+                "type": "number",
+                "example": 2,
+                "description": "The number of user contacts updated in Contact service in this sync."
+              },
+              "userContactsDeleted": {
+                "type": "number",
+                "example": 1,
+                "description": "The number of user contacts deleted from Contact service in this sync."
+              },
+              "orgContactsAdded": {
+                "type": "number",
+                "example": 5,
+                "description": "The number of org contacts added to Contact service in this sync."
+              },
+              "orgContactsUpdated": {
+                "type": "number",
+                "example": 2,
+                "description": "The number of org contacts updated in Contact service in this sync."
+              },
+              "orgContactsDeleted": {
+                "type": "number",
+                "example": 1,
+                "description": "The number of org contacts deleted from Contact service in this sync."
+              },
+              "totalUserContactsInContactService": {
+                "type": "number",
+                "example": 10,
+                "description": "The total number of user contacts in Contact service."
+              },
+              "totalOrgContactsInContactService": {
+                "type": "number",
+                "example": 2,
+                "description": "The total number of org contacts in Contact service."
+              }
+            },
+            "description": "Directory sync status"
+          }
+        }
+      },
+      "UpdateDirectorySyncResponse": {
+        "type": "object",
+        "properties": {
+          "enableDirSync": {
+            "type": "boolean",
+            "example": true,
+            "description": "The toggle to enable/disable directory sync."
+          },
+          "directorySyncStatus": {
+            "type": "object",
+            "properties": {
+              "syncStatus": {
+                "type": "string",
+                "example": "NOT_SYNCED",
+                "description": "The sync status of the enterprise."
+              }
+            },
+            "description": "Directory sync status"
+          }
+        }
+      },
+      "TriggerDirectorySyncResponse": {
+        "type": "object",
+        "properties": {
+          "enableDirSync": {
+            "type": "boolean",
+            "example": true,
+            "description": "The toggle that enabled the directory sync."
+          },
+          "directorySyncStatus": {
+            "type": "object",
+            "properties": {
+              "syncStatus": {
+                "type": "string",
+                "example": "IN_PROGRESS",
+                "description": "The sync status of the enterprise."
+              }
+            },
+            "description": "Directory sync status"
+          }
+        }
+      },
+      "TriggerUserDirectorySyncResponse": {
+        "type": "object",
+        "properties": {
+          "userResponse": {
+            "type": "object",
+            "properties": {
+              "userId": {
+                "type": "string",
+                "example": "john.anderson@acme.com",
+                "description": "The UserID of the user on Broadworks (A non-webex user)."
+              },
+              "firstName": {
+                "type": "string",
+                "example": "John",
+                "description": "First name of the user on Broadworks."
+              },
+              "lastName": {
+                "type": "string",
+                "example": "Anderson",
+                "description": "Last name of the user on Broadworks."
+              },
+              "extension": {
+                "type": "string",
+                "example": "4653",
+                "description": "Extension of the user on Broadworks."
+              },
+              "number": {
+                "type": "string",
+                "example": "+35391884653",
+                "description": "Phone number of the user on Broadworks."
+              },
+              "mobile": {
+                "type": "string",
+                "example": "+188-(2323)-(343)",
+                "description": "Mobile number of the user on Broadworks."
+              }
+            },
+            "description": "User Directory sync response"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ADD",
+              "UPDATE",
+              "DELETE",
+              "NO_OPERATION"
+            ],
+            "description": "The Status of the operation being performed.\n * `ADD` - The external user is added in this sync\n * `UPDATE` - The external user is updated in this sync\n * `DELETE` - The external user is deleted in this sync\n * `NO_OPERATION` - No changes made on the external user in this sync\n"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "errorCode": {
+            "type": "number",
+            "example": 10022,
+            "description": "An error code that identifies the reason for the error."
+          },
+          "description": {
+            "type": "string",
+            "example": "The BroadWorks UserID is already associated with an existing user.",
+            "description": "A description of the error."
+          }
+        }
+      },
+      "Subscriber": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "'Y2lzY29zcGFyazovL3VzL1NVQlNDUklCRVIvNjk3MGU2YmItNzQzOS00ZmZiLWFkMzQtZDNmZjAxNjdkZGFk'",
+            "description": "A unique Cisco identifier for the subscriber."
+          },
+          "personId": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9mNWIzNjE4Ny1jOGRkLTQ3MjctOGIyZi1mOWM0NDdmMjkwNDY",
+            "description": "The Person Id of the subscriber on Webex. To be used when referencing this subscriber on other Webex APIs. Only presented when status is `provisioned`."
+          },
+          "userId": {
+            "type": "string",
+            "example": "95547321@sp.com",
+            "description": "The user ID of the subscriber on BroadWorks."
+          },
+          "spEnterpriseId": {
+            "type": "string",
+            "example": "Reseller1+acme",
+            "description": "The Service Provider supplied unique identifier for the subscriber's enterprise."
+          },
+          "firstName": {
+            "type": "string",
+            "example": "John",
+            "description": "The first name of the subscriber."
+          },
+          "lastName": {
+            "type": "string",
+            "example": "Andersen",
+            "description": "The last name of the subscriber."
+          },
+          "email": {
+            "type": "string",
+            "example": "john.anderson@acme.com",
+            "description": "The email address of the subscriber."
+          },
+          "primaryPhoneNumber": {
+            "type": "string",
+            "example": "+1-240-555-1212",
+            "description": "The primary phone number configured against the subscriber on BroadWorks."
+          },
+          "mobilePhoneNumber": {
+            "type": "string",
+            "example": "+1-818-279-1234",
+            "description": "The mobile phone number configured against the subscriber on BroadWorks."
+          },
+          "extension": {
+            "type": "string",
+            "example": "1212",
+            "description": "The extension number configured against the subscriber on BroadWorks."
+          },
+          "package": {
+            "type": "string",
+            "enum": [
+              "softphone",
+              "basic",
+              "standard",
+              "premium"
+            ],
+            "description": "The Webex for BroadWorks Package assigned to the subscriber.\n * `softphone` - Softphone package.\n * `basic` - Basic package.\n * `standard` - Standard package.\n * `premium` - Premium package.\n"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending_email_input",
+              "pending_email_validation",
+              "pending_user_migration",
+              "provisioning",
+              "provisioned",
+              "updating",
+              "error"
+            ],
+            "description": "The provisioning status of the user.\n * `pending_email_input` - Subscriber Provisioning is paused, pending input of email address.\n * `pending_email_validation` - Subscriber Provisioning is paused. The subscriber has entered an email address but has yet to complete validation.\n * `pending_user_migration` - Subscriber Provisioning is paused. An automated email is sent to the subscriber, waiting for the subscriber's consent.\n * `provisioning` - Subscriber provisioning is in progress.\n * `provisioned` - The subscriber is fully provisioned on Webex.\n * `updating` - An update is in progress for a provisioned subscriber.\n * `error` - An error occurred provisioning the subscriber on Webex.\n"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "description": "List of errors that occurred during that last attempt to provision/update this subscriber.\n\n *Note:*\n\n+ This list captures errors that occurred during *asynchronous or background* provisioning of the subscriber, *after* the API has been accepted and 200 OK response returned.\n\n+ Any errors that occur during initial API request validation will be captured directly in error response with appropriate HTTP status code."
+          },
+          "created": {
+            "type": "string",
+            "example": "2019-10-18T14:26:16.000Z",
+            "description": "The date and time the subscriber was provisioned."
+          },
+          "lastStatusChange": {
+            "type": "string",
+            "example": "2020-03-18T16:05:34.000Z",
+            "description": "The date and time the provisioning status of the subscriber last changed."
+          },
+          "provisioningId": {
+            "type": "string",
+            "example": "ZjViMzYxODctYzhkZC00NzI3LThiMmYtZjljNDQ3ZjI5MDQ2OjQyODVmNTk0LTViNTEtNDdiZS05Mzk2LTZjMzZlMmFkODNhNQ",
+            "description": "This Provisioning ID associated with this subscriber."
+          },
+          "selfActivated": {
+            "type": "boolean",
+            "description": "Indicates if the subscriber was self activated, rather than provisioned via these APIs."
+          }
+        }
+      },
+      "SubscriberListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Subscriber"
+            },
+            "description": "An array of Subscriber objects."
+          }
+        }
+      },
+      "SubscriberProvisioningPrecheckResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "success",
+            "description": "A textual representation of the Precheck response message containing the `infoCode` object in the case of a success response and the `errorCode` object in the case of failure."
+          },
+          "info": {
+            "type": "object",
+            "properties": {
+              "infoCode": {
+                "type": "number",
+                "example": 100,
+                "description": "Provisioning Precheck `infoCode`."
+              },
+              "description": {
+                "type": "string",
+                "example": "Provisioning Precheck validation successful.",
+                "description": "A textual description of the `infoCode`."
+              }
+            },
+            "description": "A list of `ProvisioningPreCheckResponseInfo` objects."
+          }
+        }
+      },
+      "WorkspaceResponse": {
+        "type": "object",
+        "example": {
+          "id": "Y2lzY29zcGFyazovL3VzL1BMQUNFL2RkMjJlZGZlLTlmZWYtNDdmOS05ODFkLWYxYjA3MWFmMDcwYw",
+          "provisioningId": "ZjViMzYxODctYzhkZC00NzI3LThiMmYtZjljNDQ3ZjI5MDQ2OjQyODVmNTk0LTViNTEtNDdiZS05Mzk2LTZjMzZlMmFkODNhNQ",
+          "userId": "95547321@sp.com",
+          "spEnterpriseId": "Reseller1+acme",
+          "displayName": "Conference Room",
+          "primaryPhoneNumber": "+1-240-555-1212",
+          "extension": "51212",
+          "created": "2019-10-18T14:26:16.000Z"
+        },
+        "properties": {
+          "provisioningId": {
+            "type": "string",
+            "example": "ZjViMzYxODctYzhkZC00NzI3LThiMmYtZjljNDQ3ZjI5MDQ2OjQyODVmNTk0LTViNTEtNDdiZS05Mzk2LTZjMzZlMmFkODNhNQ",
+            "description": "Provisioning ID that defines how this workspace is to be provisioned for Cisco Webex Services. Each Customer Template will have their own unique Provisioning ID. This ID will be displayed under the chosen Customer Template on Cisco Webex Control Hub."
+          },
+          "userId": {
+            "type": "string",
+            "example": "95547321@sp.com",
+            "description": "The user ID of the workspace on BroadWorks."
+          },
+          "spEnterpriseId": {
+            "type": "string",
+            "example": "Reseller1+acme",
+            "description": "The Service Provider supplied unique identifier for the workspace's enterprise."
+          },
+          "displayName": {
+            "type": "string",
+            "example": "Conference Room",
+            "description": "The display name of the workspace."
+          },
+          "primaryPhoneNumber": {
+            "type": "string",
+            "example": "+1-240-555-1212",
+            "description": "The primary phone number configured against the workspace on BroadWorks."
+          },
+          "extension": {
+            "type": "string",
+            "example": "51212",
+            "description": "The extension number configured against the workspace on BroadWorks."
+          },
+          "id": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL1BMQUNFL2RkMjJlZGZlLTlmZWYtNDdmOS05ODFkLWYxYjA3MWFmMDcwYw",
+            "description": "A unique Cisco identifier for the workspace."
+          },
+          "created": {
+            "type": "string",
+            "example": "2019-10-18T14:26:16.000Z",
+            "description": "The date and time the workspace was provisioned."
           }
         }
       }
@@ -9839,6 +12578,12 @@
         "type": "oauth2"
       },
       "bearer-key": {
+        "type": "http",
+        "description": "e.g. Bearer YOUR_AUTHORIZATION_TOKEN",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      },
+      "bearerAuth": {
         "type": "http",
         "description": "e.g. Bearer YOUR_AUTHORIZATION_TOKEN",
         "scheme": "bearer",
