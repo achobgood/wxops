@@ -336,8 +336,10 @@ See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for fu
 11. **Create commands now support `-o json`.** All create commands accept `-o json` to output the full API response as JSON. Default behavior (`-o id`) prints just the created ID.
 12. **`virtual-extensions` commands use wrong ID type.** Uses `VIRTUAL_EXTENSION`-encoded IDs but virtual lines use `VIRTUAL_LINE` IDs. `wxcli cleanup` uses raw REST as a workaround. See `docs/reference/virtual-lines.md` Raw HTTP Gotchas #9.
 13. **Device config schema is firmware-dependent.** Per-line ringtone was absent on PhoneOS 3.5/3.6 but fixed in 4.1. Offline/expired devices retain a stale schema. See `docs/reference/devices-platform.md` gotchas #10-11.
-14. **Contact Center (`cc-*`) commands require CC-scoped OAuth and region config.** See `docs/reference/contact-center-core.md` gotchas #1-3.
+14. **Contact Center (`cc-*`) commands require CC-scoped OAuth and region config.** PATs do NOT carry `cjp:config` scopes — even full admins on CC orgs get 403. Use an OAuth integration with `cjp:config_read`/`cjp:config_write` explicitly selected, then re-run the OAuth flow. The CC API also requires the bare UUID org ID (not the base64 Spark ID); `get_cc_org_id()` in `config.py` handles decoding. See `docs/reference/contact-center-core.md` gotchas #14 and #18-22.
 15. **Device settings templates are pipeline-only, not named Webex objects.** The migration pipeline generates "templates" for device settings, but Webex has no named template API object for device settings. Settings are applied directly at org, location, or device level via PUT.
+16. **CC spec has duplicate operationIds across paths.** 31 operationIds in `specs/webex-contact-center.json` are reused across different resource paths (e.g., `getConfig_22` on both `/business-hours/{id}` and `/cad-variable/{id}`). The parser deduplicates on `(operationId, path)` to handle this. If regenerating CC commands with `--all`, verify the total is 414 commands — fewer means the dedup regressed.
+17. **CC "Site" tag collides with Meetings "Site" tag.** Both specs have a tag named "Site" but for different resources. The `cli_name_overrides` maps "Site" to `meeting-site`, so `cc_site.py` must be maintained separately from the `--all` regen. The `--all` flag generates `meeting_site.py` for this tag.
 
 ### Cleanup Command
 
@@ -384,6 +386,7 @@ See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for fu
   PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-admin.json --all
   PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-meetings.json --all
   ```
+- **CC response data key:** CC v2 list endpoints return `{"data": [...]}` not `{"items": [...]}`. The renderer adds a `"data"` fallback automatically. If adding a new CC list endpoint manually, use `result.get("items", result.get("data", ...))` for extraction.
 - Reinstall after regen: `pip3.14 install -e . -q`
 
 ### Templates, Examples & Plans
