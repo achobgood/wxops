@@ -51,8 +51,10 @@ Read the domain module(s) that match the question. Cross-domain queries load mul
 
 **Cross-domain examples:**
 - "Show me all users at Austin with their devices and voicemail status" → people-and-settings (primary)
-- "Who's in the Sales hunt group and what are their forwarding settings?" → features + people-and-settings
 - "What number is assigned to the Main auto attendant?" → features + numbers
+
+**Cross-domain anti-pattern — do NOT combine these:**
+- "Who's in the Sales hunt group and what are their forwarding settings?" — member personal forwarding settings are irrelevant to HG routing. Hunt groups route directly to agent devices and ignore personal call forwarding entirely. Ask about the HG's own no-answer/forwarding settings instead (features domain only).
 
 ## Step 3: Execute the domain module's recipes
 

@@ -1281,7 +1281,11 @@ When creating/updating, only `agent_id` is required. Set `weight` or `skill_leve
 
 ## Gotchas (Cross-Cutting)
 
-1. **Partial updates are safer than full-object PUTs.** For all three features (AA, CQ, HG), sending the full GET response back as a PUT body can trigger validation errors on read-only or computed fields (e.g., `callingLineIdPolicy=CUSTOM` without a phone number on CQ). Always send only the fields you want to change.
+1. **Hunt groups ignore member personal call forwarding.** HG calls route directly to the agent's device and bypass any personal call forwarding the member has configured. Only the hunt group's own no-answer/forwarding settings govern overflow behavior.
+
+2. **DND on a hunt group member skips them, not their voicemail.** If a member has DND enabled, the hunt group skips that member and moves to the next — it does NOT send the call to the member's personal voicemail. The HG's no-answer action only triggers after all members are exhausted.
+
+3. **Partial updates are safer than full-object PUTs.** For all three features (AA, CQ, HG), sending the full GET response back as a PUT body can trigger validation errors on read-only or computed fields (e.g., `callingLineIdPolicy=CUSTOM` without a phone number on CQ). Always send only the fields you want to change.
 
 2. **`--json-body` is required for nested settings.** The CLI generator skips deeply nested object/array body fields. Menu configurations (AA), queue settings with announcements (CQ), and call policies with no-answer/bounce config (HG) all require `--json-body '{ ... }'` instead of individual flags.
 
