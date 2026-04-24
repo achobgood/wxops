@@ -58,8 +58,9 @@ Authorization: Bearer <ACCESS_TOKEN>
 **Key facts:**
 - Expires after **12 hours** from the time it is displayed
 - Cannot be refreshed — you must generate a new one manually
-- Carries all scopes your account has access to (including admin scopes if you are an admin)
+- Carries most scopes your account has access to (including `spark-admin:*` scopes if you are an admin), but does NOT include Contact Center scopes (`cjp:config_read`, `cjp:config_write`). CC config operations require an OAuth integration with CC scopes explicitly selected.
 - Intended strictly for development and testing — never embed in production code
+- **Contact Center limitation:** Even full admins on CC-provisioned orgs get 403 on CC config endpoints (`api.wxcc-{region}.cisco.com`) with a PAT. Create an OAuth integration at developer.webex.com with `cjp:config_read` and `cjp:config_write` scopes, complete the OAuth flow, and use that token instead.
 
 **wxc_sdk usage:**
 

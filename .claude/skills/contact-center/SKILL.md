@@ -59,6 +59,14 @@ If this returns 403, the token lacks CC-specific OAuth scopes. Required scopes:
 
 The user may need to re-authenticate with CC scopes enabled.
 
+> **WARNING:** Personal access tokens (PATs) from developer.webex.com do NOT carry CC scopes, even for full admins. If you get 403 "Access denied - Client is forbidden access to the resource" with a `ccconfig_` tracking ID, the token lacks CC scopes. You must:
+> 1. Create an OAuth integration at developer.webex.com with `cjp:config_read` and `cjp:config_write` scopes selected
+> 2. Complete the OAuth authorization flow to get a token
+> 3. Run `wxcli configure` with the new token
+> 4. If you added scopes to an existing integration, you must re-authorize — old tokens don't pick up new scopes
+
+> **Note:** The CC API requires the bare UUID org ID (e.g., `a9527d60-...`), not the base64-encoded Spark ID (`Y2lzY29...`). The CLI handles this automatically via `get_cc_org_id()`, which decodes the Spark ID to extract the UUID. No manual conversion is needed.
+
 ## Step 3: Identify the operation
 
 Ask the user what they want to configure. Present this decision matrix if they are unsure:

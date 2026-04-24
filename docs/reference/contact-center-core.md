@@ -1584,6 +1584,16 @@ For teardown, reverse this order.
 
 18. **Reskill uses PATCH, not PUT.** The `/user/{id}/reskill` endpoint uses PATCH (partial update) to modify a user's skill profile and dynamic skills. The `dynamicSkills` field accepts `add` and `remove` arrays for incremental changes rather than full replacement.
 
+19. **CC org ID must be bare UUID.** The CC config API path parameter `{orgid}` requires the raw UUID (e.g., `b8410147-6104-42e8-9b93-639730d983ff`), not the base64-encoded Spark ID returned by `/people/me`. The CLI uses `get_cc_org_id()` in `config.py` to decode automatically. If calling the API directly, decode the base64 orgId to extract the UUID after the last `/` in the URN.
+
+20. **CC v2 list endpoints return `"data"`, not `"items"`.** The v2 endpoints (e.g., `GET /organization/{orgid}/v2/cad-variable`) wrap results in `{"meta": {...}, "data": [...]}`. The v1 bulk-export endpoints use `{"items": [...]}`. The CLI handles both automatically.
+
+21. **Global Variable `variableType` requires title case.** The API rejects `"STRING"` — use `"String"`, `"Integer"`, `"Boolean"`, `"Decimal"`, `"DateTime"`. The OpenAPI spec lists both forms but only title case works at runtime.
+
+22. **`desktopLabel` required when `agentViewable` is true.** Creating or updating a Global Variable with `agentViewable: true` fails unless `desktopLabel` is also provided. This dependency is not documented in the API spec's required fields list.
+
+23. **Personal access tokens lack CC scopes.** PATs from developer.webex.com do NOT carry `cjp:config_read` or `cjp:config_write`, even for full admins on CC-provisioned orgs. CC config operations require an OAuth integration with CC scopes explicitly selected, plus completing the OAuth authorization flow after adding the scopes. Adding scopes to an existing integration does not update previously issued tokens — you must re-authorize.
+
 ---
 
 ## 23. See Also
