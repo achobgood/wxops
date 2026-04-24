@@ -23,7 +23,7 @@ def cmd_list(
     """List Multimedia Profile(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/multimedia-profile"
     params = {}
     if filter_param is not None:
@@ -93,7 +93,7 @@ def create(
     """Create a new Multimedia Profile\n\nExample --json-body:\n  '{"name":"...","chat":0,"email":0,"telephony":0,"social":0,"active":true,"blendingModeEnabled":true,"blendingMode":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/multimedia-profile"
     if json_body:
         body = json.loads(json_body)
@@ -175,7 +175,7 @@ def create_bulk(
     """Bulk save Multimedia Profile(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/multimedia-profile/bulk"
     if json_body:
         body = json.loads(json_body)
@@ -226,7 +226,7 @@ def list_bulk_export(
     """Bulk export Multimedia Profile(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/multimedia-profile/bulk-export"
     params = {}
     if page is not None:
@@ -278,7 +278,7 @@ def create_purge_inactive_entities(
     """Purge inactive Multimedia Profile(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/multimedia-profile/purge-inactive-entities"
     params = {}
     if next_start_id is not None:
@@ -329,7 +329,7 @@ def show(
     """Get specific Multimedia Profile by ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/multimedia-profile/{id}"
     try:
         result = api.session.rest_get(url)
@@ -389,7 +389,7 @@ def update(
     """Update specific Multimedia Profile by ID\n\nExample --json-body:\n  '{"name":"...","chat":0,"email":0,"telephony":0,"social":0,"active":true,"blendingModeEnabled":true,"blendingMode":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/multimedia-profile/{id}"
     if json_body:
         body = json.loads(json_body)
@@ -462,7 +462,7 @@ def delete(
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/multimedia-profile/{id}"
     try:
         api.session.rest_delete(url)
@@ -504,7 +504,7 @@ def list_incoming_references(
     """List references for a specific Multimedia Profile."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/multimedia-profile/{id}/incoming-references"
     params = {}
     if type_param is not None:
@@ -563,7 +563,7 @@ def list_multimedia_profile(
     """List Multimedia Profile(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/v2/multimedia-profile"
     params = {}
     if filter_param is not None:

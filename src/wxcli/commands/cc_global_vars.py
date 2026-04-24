@@ -18,7 +18,7 @@ def create(
     description: str = typer.Option(None, "--description", help="A the description for the Global Variable created."),
     active: bool = typer.Option(None, "--active/--no-active", help="(required) Indicates whether the Global Variable is active or not."),
     agent_editable: bool = typer.Option(None, "--agent-editable/--no-agent-editable", help="(required) Indicates whether the Global Variable is editable in the Age"),
-    variable_type: str = typer.Option(None, "--variable-type", help="(required) A valid Global Variable Type. The valid types are: String, I (use --help for choices)"),
+    variable_type: str = typer.Option(None, "--variable-type", help="(required) Choices: String, Integer, DATE_TIME, Boolean, Decimal, DateTime"),
     default_value: str = typer.Option(None, "--default-value", help="(required) A default value for the Global Variable."),
     reportable: bool = typer.Option(None, "--reportable/--no-reportable", help="(required) Indicates whether the Global Variable is reportable or not."),
     agent_viewable: bool = typer.Option(None, "--agent-viewable/--no-agent-viewable", help="(required) Indicates whether the agent can view the Global Variable in"),
@@ -34,7 +34,7 @@ def create(
     """Create a new Global Variable."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/cad-variable"
     if json_body:
         body = json.loads(json_body)
@@ -118,7 +118,7 @@ def create_bulk(
     """Bulk save Global Variable(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/cad-variable/bulk"
     if json_body:
         body = json.loads(json_body)
@@ -169,7 +169,7 @@ def cmd_list(
     """Bulk export Global Variable(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/cad-variable/bulk-export"
     params = {}
     if page is not None:
@@ -221,7 +221,7 @@ def create_purge_inactive_entities(
     """Purge inactive Global Variable(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/cad-variable/purge-inactive-entities"
     params = {}
     if next_start_id is not None:
@@ -273,7 +273,7 @@ def list_reportable_count(
     """Get reportable count for Global Variable(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/cad-variable/reportable-count"
     params = {}
     if limit > 0:
@@ -311,6 +311,140 @@ def list_reportable_count(
 
 
 
+@app.command("show")
+def show(
+    id: str = typer.Argument(help="id"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get specific Global Variable by ID."""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    url = f"{cc_base_url}/organization/{orgid}/cad-variable/{id}"
+    try:
+        result = api.session.rest_get(url)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    if output == "json":
+        print_json(result)
+    else:
+        if isinstance(result, dict):
+            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
+        elif isinstance(result, list):
+            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
+        else:
+            print_json(result)
+
+
+
+@app.command("update")
+def update(
+    id: str = typer.Argument(help="id"),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to def"),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
+    name: str = typer.Option(None, "--name", help="A name for the Global Variable."),
+    description: str = typer.Option(None, "--description", help="A the description for the Global Variable created."),
+    active: bool = typer.Option(None, "--active/--no-active", help="Indicates whether the Global Variable is active or not."),
+    agent_editable: bool = typer.Option(None, "--agent-editable/--no-agent-editable", help="Indicates whether the Global Variable is editable in the Age"),
+    variable_type: str = typer.Option(None, "--variable-type", help="Choices: String, Integer, DATE_TIME, Boolean, Decimal, DateTime"),
+    default_value: str = typer.Option(None, "--default-value", help="A default value for the Global Variable."),
+    reportable: bool = typer.Option(None, "--reportable/--no-reportable", help="Indicates whether the Global Variable is reportable or not."),
+    agent_viewable: bool = typer.Option(None, "--agent-viewable/--no-agent-viewable", help="Indicates whether the agent can view the Global Variable in"),
+    sensitive: bool = typer.Option(None, "--sensitive/--no-sensitive", help="Indicates whether the Global Variable is sensitive or not."),
+    desktop_label: str = typer.Option(None, "--desktop-label", help="A desktop label for the Global Variable created."),
+    system_default: bool = typer.Option(None, "--system-default/--no-system-default", help="Indicates whether the created resource is system created or"),
+    created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
+    last_updated_time: str = typer.Option(None, "--last-updated-time", help="Time(in epoch millis) when this resource was last updated."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update specific Global Variable by ID."""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    url = f"{cc_base_url}/organization/{orgid}/cad-variable/{id}"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if organization_id is not None:
+            body["organizationId"] = organization_id
+        if id_param is not None:
+            body["id"] = id_param
+        if version is not None:
+            body["version"] = version
+        if name is not None:
+            body["name"] = name
+        if description is not None:
+            body["description"] = description
+        if active is not None:
+            body["active"] = active
+        if agent_editable is not None:
+            body["agentEditable"] = agent_editable
+        if variable_type is not None:
+            body["variableType"] = variable_type
+        if default_value is not None:
+            body["defaultValue"] = default_value
+        if reportable is not None:
+            body["reportable"] = reportable
+        if agent_viewable is not None:
+            body["agentViewable"] = agent_viewable
+        if sensitive is not None:
+            body["sensitive"] = sensitive
+        if desktop_label is not None:
+            body["desktopLabel"] = desktop_label
+        if system_default is not None:
+            body["systemDefault"] = system_default
+        if created_time is not None:
+            body["createdTime"] = created_time
+        if last_updated_time is not None:
+            body["lastUpdatedTime"] = last_updated_time
+    try:
+        result = api.session.rest_put(url, json=body)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"Updated.")
+
+
+
 @app.command("delete")
 def delete(
     id: str = typer.Argument(help="id"),
@@ -322,7 +456,7 @@ def delete(
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/cad-variable/{id}"
     try:
         api.session.rest_delete(url)
@@ -350,6 +484,64 @@ def delete(
 
 
 
+@app.command("list-incoming-references")
+def list_incoming_references(
+    id: str = typer.Argument(help="id"),
+    type_param: str = typer.Option(None, "--type", help="Entity type of the other entity that has a reference to this"),
+    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
+    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """List references for a specific Global Variable."""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    url = f"{cc_base_url}/organization/{orgid}/cad-variable/{id}/incoming-references"
+    params = {}
+    if type_param is not None:
+        params["type"] = type_param
+    if page is not None:
+        params["page"] = page
+    if page_size is not None:
+        params["pageSize"] = page_size
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except RestError as e:
+        err = str(e)
+        if "25008" in err:
+            typer.echo(f"Error: Missing required field. {e}", err=True)
+            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
+        elif "4003" in err or "Target user not authorized" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
+        elif "4008" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
+        elif "25409" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
+        elif "wxcc" in err and "403" in err:
+            typer.echo(f"Error: {e}", err=True)
+            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+        else:
+            typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    result = result or []
+    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+
+
+
 @app.command("list-cad-variable")
 def list_cad_variable(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
@@ -365,7 +557,7 @@ def list_cad_variable(
     """List Global Variable(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/v2/cad-variable"
     params = {}
     if filter_param is not None:

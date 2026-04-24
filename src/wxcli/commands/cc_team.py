@@ -24,7 +24,7 @@ def cmd_list(
     """List Team(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/team"
     params = {}
     if filter_param is not None:
@@ -82,7 +82,7 @@ def create(
     """Create a new Team."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/team"
     params = {}
     if team_dto is not None:
@@ -133,7 +133,7 @@ def create_bulk(
     """Bulk save Team(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/team/bulk"
     if json_body:
         body = json.loads(json_body)
@@ -182,7 +182,7 @@ def create_purge_inactive_entities(
     """Purge inactive Team(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/team/purge-inactive-entities"
     params = {}
     if next_start_id is not None:
@@ -233,7 +233,7 @@ def show(
     """Get specific Team by ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/team/{id}"
     try:
         result = api.session.rest_get(url)
@@ -279,7 +279,7 @@ def update(
     """Update specific Team by ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/team/{id}"
     params = {}
     if team_dto is not None:
@@ -325,7 +325,7 @@ def delete(
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/team/{id}"
     try:
         api.session.rest_delete(url)
@@ -367,7 +367,7 @@ def list_incoming_references(
     """List references for a specific Team."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/team/{id}/incoming-references"
     params = {}
     if type_param is not None:
@@ -429,7 +429,7 @@ def list_team(
     """List Team(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/v2/team"
     params = {}
     if filter_param is not None:

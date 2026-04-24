@@ -36,7 +36,7 @@ def create(
     """Create a new Desktop Layout\n\nExample --json-body:\n  '{"name":"...","editedBy":"...","jsonFileName":"...","jsonFileContent":"...","global":true,"status":true,"defaultJsonModified":true,"validated":true}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/desktop-layout"
     if json_body:
         body = json.loads(json_body)
@@ -124,7 +124,7 @@ def create_bulk(
     """Bulk save Desktop Layout(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/desktop-layout/bulk"
     if json_body:
         body = json.loads(json_body)
@@ -175,7 +175,7 @@ def cmd_list(
     """Bulk export Desktop Layout(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/desktop-layout/bulk-export"
     params = {}
     if page is not None:
@@ -227,7 +227,7 @@ def create_purge_inactive_entities(
     """Purge inactive Desktop Layout(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/desktop-layout/purge-inactive-entities"
     params = {}
     if next_start_id is not None:
@@ -278,7 +278,7 @@ def show(
     """Get specific Desktop Layout by ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/desktop-layout/{id}"
     try:
         result = api.session.rest_get(url)
@@ -341,7 +341,7 @@ def update(
     """Update specific Desktop Layout by ID\n\nExample --json-body:\n  '{"name":"...","editedBy":"...","jsonFileName":"...","jsonFileContent":"...","global":true,"status":true,"defaultJsonModified":true,"validated":true}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/desktop-layout/{id}"
     if json_body:
         body = json.loads(json_body)
@@ -420,7 +420,7 @@ def delete(
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/desktop-layout/{id}"
     try:
         api.session.rest_delete(url)
@@ -462,7 +462,7 @@ def list_incoming_references(
     """List references for a specific Desktop Layout."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/desktop-layout/{id}/incoming-references"
     params = {}
     if type_param is not None:
@@ -523,7 +523,7 @@ def list_desktop_layout(
     """List Desktop Layout(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/v2/desktop-layout"
     params = {}
     if filter_param is not None:

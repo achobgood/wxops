@@ -26,7 +26,7 @@ def cmd_list(
     """List Flows or Subflows."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/flow-store/{org_id}/project/{project_id}/flows"
     params = {}
     if flow_type is not None:
@@ -89,7 +89,7 @@ def export(
     """Export a Flow or Subflow."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/flow-store/{org_id}/project/{project_id}/flows/{flow_id}:export"
     params = {}
     if version is not None:
@@ -141,7 +141,7 @@ def publish(
     """Publish a Flow or Subflow\n\nExample --json-body:\n  '{"comment":"...","tagIds":["..."]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/flow-store/{org_id}/project/{project_id}/flows/{flow_id}:publish"
     if json_body:
         body = json.loads(json_body)
