@@ -3,7 +3,7 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
-from wxcli.config import get_org_id, get_cc_base_url
+from wxcli.config import get_org_id, get_cc_base_url, get_cc_org_id
 
 
 app = typer.Typer(help="Manage Webex Contact Center cc-audio-files.")
@@ -19,7 +19,7 @@ def show(
     """Get specific Audio File by ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/audio-file/{id}"
     params = {}
     if include_url is not None:
@@ -69,7 +69,7 @@ def delete(
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/audio-file/{id}"
     try:
         api.session.rest_delete(url)
@@ -111,7 +111,7 @@ def cmd_list(
     """List references for a specific Audio File."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/audio-file/{id}/incoming-references"
     params = {}
     if type_param is not None:
@@ -147,7 +147,7 @@ def cmd_list(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("data", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("data", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -170,7 +170,7 @@ def list_audio_file(
     """List Audio File(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/v2/audio-file"
     params = {}
     if filter_param is not None:
@@ -210,7 +210,7 @@ def list_audio_file(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("data", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("data", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:

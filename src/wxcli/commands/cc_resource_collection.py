@@ -3,7 +3,7 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
-from wxcli.config import get_org_id, get_cc_base_url
+from wxcli.config import get_org_id, get_cc_base_url, get_cc_org_id
 
 
 app = typer.Typer(help="Manage Webex Contact Center cc-resource-collection.")
@@ -26,7 +26,7 @@ def create(
     """Create a new Resource Collection\n\nExample --json-body:\n  '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","resources":[{"name":"...","accessLevel":"...","ids":"..."}],"resourceCount":0,"createdTime":0}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/resource-collection"
     if json_body:
         body = json.loads(json_body)
@@ -93,7 +93,7 @@ def update(
     """Bulk partial update Resource Collections\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/resource-collection/bulk"
     if json_body:
         body = json.loads(json_body)
@@ -136,7 +136,7 @@ def create_update_resource(
     """Update resource with default resource collection\n\nExample --json-body:\n  '{"resourceType":"...","resourceId":"...","resourceCollections":[{"id":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/resource-collection/update-resource"
     if json_body:
         body = json.loads(json_body)
@@ -192,7 +192,7 @@ def show(
     """Get specific Resource Collection by ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/resource-collection/{id}"
     try:
         result = api.session.rest_get(url)
@@ -245,7 +245,7 @@ def update_resource_collection(
     """Update specific Resource Collection by ID\n\nExample --json-body:\n  '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","resources":[{"name":"...","accessLevel":"...","ids":"..."}],"resourceCount":0,"createdTime":0}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/resource-collection/{id}"
     if json_body:
         body = json.loads(json_body)
@@ -304,7 +304,7 @@ def delete(
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/resource-collection/{id}"
     try:
         api.session.rest_delete(url)
@@ -346,7 +346,7 @@ def cmd_list(
     """List references for a specific Resource Collection."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/resource-collection/{id}/incoming-references"
     params = {}
     if type_param is not None:
@@ -382,7 +382,7 @@ def cmd_list(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -405,7 +405,7 @@ def list_resource_collection(
     """List Resource Collections."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/v2/resource-collection"
     params = {}
     if filter_param is not None:
@@ -445,7 +445,7 @@ def list_resource_collection(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:

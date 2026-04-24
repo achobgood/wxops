@@ -3,7 +3,7 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
-from wxcli.config import get_org_id, get_cc_base_url
+from wxcli.config import get_org_id, get_cc_base_url, get_cc_org_id
 
 
 app = typer.Typer(help="Manage Webex Contact Center cc-outdial-ani.")
@@ -24,7 +24,7 @@ def cmd_list(
     """List Outdial ANI(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/outdial-ani"
     params = {}
     if filter_param is not None:
@@ -64,7 +64,7 @@ def cmd_list(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -88,7 +88,7 @@ def create(
     """Create a new Outdial ANI\n\nExample --json-body:\n  '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","outdialANIEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":"...","defaultANIEntry":"...","createdTime":"...","lastUpdatedTime":"..."}],"createdTime":0,"lastUpdatedTime":0}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/outdial-ani"
     if json_body:
         body = json.loads(json_body)
@@ -154,7 +154,7 @@ def create_bulk_outdial_ani(
     """Bulk save Outdial ANI(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/outdial-ani/bulk"
     if json_body:
         body = json.loads(json_body)
@@ -205,7 +205,7 @@ def list_bulk_export(
     """Bulk export Outdial ANI(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/outdial-ani/bulk-export"
     params = {}
     if page is not None:
@@ -239,7 +239,7 @@ def list_bulk_export(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -262,7 +262,7 @@ def list_entry_outdial_ani(
     """List Outdial ANI Entry(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/outdial-ani/entry"
     params = {}
     if filter_param is not None:
@@ -302,7 +302,7 @@ def list_entry_outdial_ani(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -319,7 +319,7 @@ def show(
     """Get specific Outdial ANI by ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/outdial-ani/{id}"
     try:
         result = api.session.rest_get(url)
@@ -371,7 +371,7 @@ def update(
     """Update specific Outdial ANI by ID\n\nExample --json-body:\n  '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","outdialANIEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":"...","defaultANIEntry":"...","createdTime":"...","lastUpdatedTime":"..."}],"createdTime":0,"lastUpdatedTime":0}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/outdial-ani/{id}"
     if json_body:
         body = json.loads(json_body)
@@ -428,7 +428,7 @@ def delete(
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/outdial-ani/{id}"
     try:
         api.session.rest_delete(url)
@@ -470,7 +470,7 @@ def list_incoming_references(
     """List references for a specific Outdial ANI."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/outdial-ani/{id}/incoming-references"
     params = {}
     if type_param is not None:
@@ -506,7 +506,7 @@ def list_incoming_references(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -532,7 +532,7 @@ def create_entry(
     """Create a new Outdial ANI Entry."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/outdial-ani/{out_dial_ani_id}/entry"
     if json_body:
         body = json.loads(json_body)
@@ -601,7 +601,7 @@ def create_bulk_entry(
     """Bulk save Outdial ANI Entry(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/outdial-ani/{out_dial_ani_id}/entry/bulk"
     if json_body:
         body = json.loads(json_body)
@@ -650,7 +650,7 @@ def show_entry(
     """Get specific Outdial ANI Entry by ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/outdial-ani/{out_dial_ani_id}/entry/{id}"
     try:
         result = api.session.rest_get(url)
@@ -704,7 +704,7 @@ def update_entry(
     """Update specific Outdial ANI Entry by ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/outdial-ani/{out_dial_ani_id}/entry/{id}"
     if json_body:
         body = json.loads(json_body)
@@ -764,7 +764,7 @@ def delete_entry(
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/outdial-ani/{out_dial_ani_id}/entry/{id}"
     try:
         api.session.rest_delete(url)
@@ -808,7 +808,7 @@ def list_outdial_ani(
     """List Outdial ANI(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/v2/outdial-ani"
     params = {}
     if filter_param is not None:
@@ -850,7 +850,7 @@ def list_outdial_ani(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -874,7 +874,7 @@ def list_entry_outdial_ani_1(
     """List Outdial ANI Entry(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/v2/outdial-ani/{out_dial_ani_id}/entry"
     params = {}
     if filter_param is not None:
@@ -914,7 +914,7 @@ def list_entry_outdial_ani_1(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:

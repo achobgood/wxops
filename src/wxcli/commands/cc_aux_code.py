@@ -3,7 +3,7 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
-from wxcli.config import get_org_id, get_cc_base_url
+from wxcli.config import get_org_id, get_cc_base_url, get_cc_org_id
 
 
 app = typer.Typer(help="Manage Webex Contact Center cc-aux-code.")
@@ -23,7 +23,7 @@ def cmd_list(
     """List Auxiliary Code(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/auxiliary-code"
     params = {}
     if filter_param is not None:
@@ -61,7 +61,7 @@ def cmd_list(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -92,7 +92,7 @@ def create(
     """Create a new Auxiliary Code."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/auxiliary-code"
     if json_body:
         body = json.loads(json_body)
@@ -172,7 +172,7 @@ def create_bulk(
     """Bulk save Auxiliary Code(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/auxiliary-code/bulk"
     if json_body:
         body = json.loads(json_body)
@@ -219,7 +219,7 @@ def update(
     """Bulk partial update Auxiliary Code(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/auxiliary-code/bulk"
     if json_body:
         body = json.loads(json_body)
@@ -263,7 +263,7 @@ def list_bulk_export(
     """Bulk export Auxiliary Code(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/auxiliary-code/bulk-export"
     params = {}
     if page is not None:
@@ -297,7 +297,7 @@ def list_bulk_export(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -315,7 +315,7 @@ def create_purge_inactive_entities(
     """Purge inactive Auxiliary Code(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/auxiliary-code/purge-inactive-entities"
     params = {}
     if next_start_id is not None:
@@ -366,7 +366,7 @@ def show(
     """Get specific Auxiliary Code by ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/auxiliary-code/{id}"
     try:
         result = api.session.rest_get(url)
@@ -425,7 +425,7 @@ def update_auxiliary_code(
     """Update specific Auxiliary Code by ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/auxiliary-code/{id}"
     if json_body:
         body = json.loads(json_body)
@@ -496,7 +496,7 @@ def delete(
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/auxiliary-code/{id}"
     try:
         api.session.rest_delete(url)
@@ -538,7 +538,7 @@ def list_incoming_references(
     """List references for a specific Auxiliary Code."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/auxiliary-code/{id}/incoming-references"
     params = {}
     if type_param is not None:
@@ -574,7 +574,7 @@ def list_incoming_references(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -599,7 +599,7 @@ def list_auxiliary_code(
     """List Auxiliary Code(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/v2/auxiliary-code"
     params = {}
     if filter_param is not None:
@@ -643,7 +643,7 @@ def list_auxiliary_code(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:

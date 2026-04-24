@@ -3,7 +3,7 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
-from wxcli.config import get_org_id, get_cc_base_url
+from wxcli.config import get_org_id, get_cc_base_url, get_cc_org_id
 
 
 app = typer.Typer(help="Manage Webex Contact Center cc-ai-feature.")
@@ -25,7 +25,7 @@ def create(
     """Create a new Question mapped to AutoCSAT."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/ai-feature/auto-csat/question"
     if json_body:
         body = json.loads(json_body)
@@ -91,7 +91,7 @@ def create_bulk(
     """Bulk save Question mapped to AutoCSAT\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/ai-feature/auto-csat/question/bulk"
     if json_body:
         body = json.loads(json_body)
@@ -139,7 +139,7 @@ def show(
     """Get specific Question mapped to AutoCSAT by ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/ai-feature/auto-csat/question/{id}"
     try:
         result = api.session.rest_get(url)
@@ -186,7 +186,7 @@ def delete(
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/ai-feature/auto-csat/question/{id}"
     try:
         api.session.rest_delete(url)
@@ -223,7 +223,7 @@ def show_ai_feature(
     """Get specific AI Feature resource by ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/ai-feature/{id}"
     try:
         result = api.session.rest_get(url)
@@ -273,7 +273,7 @@ def update(
     """Partially update AI Feature resource by ID\n\nExample --json-body:\n  '{"organizationId":"...","id":"...","version":0,"realtimeTranscripts":{"enable":true,"agentInclusionType":"ALL","queuesInclusionType":"ALL"},"suggestedResponses":{"enable":true},"generatedSummaries":{"callDropSummariesEnabled":true,"virtualAgentTransferSummariesEnabled":true,"consultTransferSummariesEnabled":true,"wrapUpSummariesEnabled":true,"queuesInclusionType":"ALL"},"agentWellbeing":{"enable":true,"agentInclusionType":"ALL","wellnessBreakReminders":"DISABLED"},"autoCSAT":{"enable":true,"queuesInclusionType":"ALL","selectedGlobalVariableId":"...","surveyDataSource":"EXPERIENCE_MANAGEMENT"}}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/ai-feature/{id}"
     if json_body:
         body = json.loads(json_body)
@@ -329,7 +329,7 @@ def cmd_list(
     """List AI Feature resource(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/v2/ai-feature"
     params = {}
     if filter_param is not None:
@@ -367,7 +367,7 @@ def cmd_list(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("data", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("data", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -389,7 +389,7 @@ def list_question(
     """List Question mapped to AutoCSAT(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/v2/ai-feature/auto-csat/question"
     params = {}
     if filter_param is not None:
@@ -427,7 +427,7 @@ def list_question(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:

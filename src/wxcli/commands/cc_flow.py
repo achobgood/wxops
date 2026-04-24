@@ -3,7 +3,7 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
-from wxcli.config import get_org_id, get_cc_base_url
+from wxcli.config import get_org_id, get_cc_base_url, get_cc_org_id
 
 
 app = typer.Typer(help="Manage Webex Contact Center cc-flow.")
@@ -26,7 +26,7 @@ def cmd_list(
     """List Flows or Subflows."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    org_id = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    org_id = get_cc_org_id(api.session)
     url = f"{cc_base_url}/flow-store/{org_id}/project/{project_id}/flows"
     params = {}
     if flow_type is not None:
@@ -68,7 +68,7 @@ def cmd_list(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -89,7 +89,7 @@ def export(
     """Export a Flow or Subflow."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    org_id = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    org_id = get_cc_org_id(api.session)
     url = f"{cc_base_url}/flow-store/{org_id}/project/{project_id}/flows/{flow_id}:export"
     params = {}
     if version is not None:
@@ -121,7 +121,7 @@ def export(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("runtimeVariables", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("runtimeVariables", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -141,7 +141,7 @@ def publish(
     """Publish a Flow or Subflow\n\nExample --json-body:\n  '{"comment":"...","tagIds":["..."]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    org_id = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    org_id = get_cc_org_id(api.session)
     url = f"{cc_base_url}/flow-store/{org_id}/project/{project_id}/flows/{flow_id}:publish"
     if json_body:
         body = json.loads(json_body)
