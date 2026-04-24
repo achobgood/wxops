@@ -165,3 +165,5 @@ Austin has 12 call features:
 2. **Call park and call pickup have no org-wide list.** You must enumerate per-location. If the user asks "show all call parks" without specifying a location, list locations first, then query each.
 3. **Feature show commands need TWO positional args.** `wxcli hunt-group show LOCATION_ID HG_ID` — not just the feature ID. Both IDs are in the list response.
 4. **Voicemail groups are not yet in wxcli.** If asked about voicemail groups, note they can be managed in Control Hub under Calling → Features → Voicemail Groups.
+5. **Hunt groups ignore member personal call forwarding.** HG calls route directly to the agent's device and bypass any personal call forwarding the member has configured. Only the hunt group's own no-answer/forwarding settings (feature-level) govern what happens when a member doesn't answer.
+6. **DND on a hunt group member skips them, not their voicemail.** If a member has DND enabled, the hunt group skips that member and moves to the next — it does NOT send the call to the member's personal voicemail. The HG's no-answer action only triggers after all members are exhausted.

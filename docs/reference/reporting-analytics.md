@@ -196,11 +196,11 @@ The `CDR` model (class `wxc_sdk.cdr.CDR`) contains 55+ fields. Field names arriv
 | `remote_session_id` | `str` | UUID from terminating user agent (alias: `remote_sessionid`). |
 | `final_local_session_id` | `str` | Local Session ID value at call end (alias: `final_local_sessionid`). |
 | `final_remote_session_id` | `str` | Remote Session ID value at call end (alias: `final_remote_sessionid`). |
-| `local_call_id` | `str` | Used with Remote call ID to correlate CDR legs. |
-| `remote_call_id` | `str` | Used with Local call ID to identify remote CDR of a leg. |
-| `network_call_id` | `str` | Same value = same call leg across CDRs. |
-| `related_call_id` | `str` | Call ID of a different call created by this call due to service activation (e.g., call recording, executive-assistant). Not used for transfers. |
-| `transfer_related_call_id` | `str` | Correlation ID of the other call involved in an **attended (consultative) transfer**. Not populated for blind transfers. |
+| `local_call_id` | `str` | Correlation identity for this CDR. Used with `remote_call_id` to identify the paired CDR of the same call leg: if A.local_call_id = B.remote_call_id AND A.remote_call_id = B.local_call_id, A and B are the two CDRs of the same leg. |
+| `remote_call_id` | `str` | The `local_call_id` value of the other CDR in this call leg. If A.local_call_id = B.remote_call_id, A and B form a leg pair. |
+| `network_call_id` | `str` | Secondary leg-pairing key. If A.network_call_id = B.network_call_id, A and B are the two CDRs of the same call leg. Use this when the local/remote pair is not present (cloud distributes processing internally). |
+| `related_call_id` | `str` | Deflection chaining key. In a deflection (HG ring, forward, redirect), the new leg's ORIGINATING CDR has `related_call_id` = the source leg's TERMINATING CDR's `local_call_id`. This chains each delivery attempt back to the HG/forwarding party. Also used for service activation (recording, executive-assistant) where a new call is spawned. |
+| `transfer_related_call_id` | `str` | Contains the `local_call_id` of a CDR in the **other** call group involved in an attended (consultative) transfer. Linking rule: if CDR1.transfer_related_call_id = CDR2.local_call_id, then CDR1.correlation_id and CDR2.correlation_id belong to the same transfer interaction. Not populated for blind transfers. |
 | `interaction_id` | `str` | Correlates CDRs linked by service interaction (e.g., consult + transfer). |
 
 ### CDR Data Model — Call Legs and ID Relationships
@@ -214,7 +214,7 @@ Every call generates one CDR record per **call leg**. A call leg is one particip
 | **Simple point-to-point call** | 2 legs: ORIGINATING (caller) + TERMINATING (callee) | Same Correlation ID on both legs |
 | **Blind transfer** | Original call: 2 legs. New call to transfer target: 2 new legs with a **new Correlation ID**. `Transfer related call ID` is **not populated**. | Different Correlation ID per call |
 | **Attended (consultative) transfer** | Original call: 2 legs. Consultation call: 2 legs with a new Correlation ID. After transfer completes, the consultation leg's `Transfer related call ID` contains the **Correlation ID of the original call**. | Different Correlation ID per call, linked by `Transfer related call ID` |
-| **Hunt Group / Call Queue** | Inbound call + each agent delivery attempt all share the **same Correlation ID**. Each ring/attempt to an agent generates a TERMINATING leg. | Same Correlation ID throughout |
+| **Hunt Group / Call Queue** | Inbound call + each HG ring attempt share the **same Correlation ID**. HG itself appears in CDRs as: (1) TERMINATING — the HG "receives" the inbound call; (2) ORIGINATING — the HG "dials" each agent delivery attempt. Each agent attempt produces a HG ORIGINATING CDR + an agent TERMINATING CDR, linked by `related_call_id` = HG's TERMINATING CDR's `local_call_id`. | Same Correlation ID throughout |
 | **Call forwarding (CFA/CFB/CFNA)** | Original call legs + forwarded legs share the same Correlation ID. `Redirect reason` and `Original reason` explain why it was forwarded. | Same Correlation ID |
 | **Call park + retrieve** | Park and retrieve events share the same Correlation ID. `Related reason` = `CallPark` or `CallParkRetrieve`. | Same Correlation ID |
 
@@ -222,34 +222,65 @@ Every call generates one CDR record per **call leg**. A call leg is one particip
 
 ```
 Correlation ID ─── groups all legs of ONE call (or one HG/CQ interaction)
+    │               A single call involving a transfer produces 2+ Correlation IDs
+    │               linked by transfer_related_call_id
     │
-    ├── Call ID ─── unique per leg (SIP Call ID)
+    ├── local_call_id / remote_call_id ─── identify the two CDRs of one call leg
+    │       if A.local_call_id = B.remote_call_id → A and B are the same leg
     │
-    ├── Transfer Related Call ID ─── points to the Correlation ID of the
-    │                                OTHER call in an attended transfer
-    │                                (NOT populated for blind transfers)
+    ├── network_call_id ─── secondary leg-pairing key (use when local/remote pair absent)
+    │       if A.network_call_id = B.network_call_id → A and B are the same leg
     │
-    ├── Related Call ID ─── points to the Call ID of a different call
-    │                       created by service activation (recording,
-    │                       exec-assistant, etc.) — NOT transfers
+    ├── related_call_id ─── deflection chaining key
+    │       ORIGINATING CDR's related_call_id = TERMINATING CDR's local_call_id
+    │       Links each HG ring attempt / forward leg back to the source TERMINATING CDR
+    │       Also used when a new call is spawned by service activation (recording, exec-assistant)
     │
-    └── Interaction ID ─── correlates CDRs linked by service interaction
+    ├── transfer_related_call_id ─── contains a local_call_id from the OTHER call group
+    │       Linking rule: CDR1.transfer_related_call_id = CDR2.local_call_id
+    │           → CDR1.correlation_id is linked to CDR2.correlation_id
+    │       Present in attended (consultative) transfers; NOT populated for blind transfers
+    │
+    └── interaction_id ─── correlates CDRs linked by service interaction
                            (consult + transfer sequence)
 ```
 
+#### Transfer Correlation ID linking rule
+
+Two Correlation IDs belong to the same transfer interaction when:
+
+```
+CDR1.'transfer_related_call_id' = CDR2.'local_call_id'
+```
+
+Then CDR1.correlation_id and CDR2.correlation_id are linked. Search for the ultimate destination and CDR correlation must be done across all CDRs sharing any of the linked Correlation IDs. Optionally limit the search to CDR pairs that overlap in time.
+
 #### Direction semantics per leg
 
-- **ORIGINATING**: The leg from the perspective of the party who **placed** the call (or initiated the transfer/forward).
-- **TERMINATING**: The leg from the perspective of the party who **received** the call (or was the target of a transfer/forward).
+- **ORIGINATING**: The leg from the perspective of the party who **placed** the call (or initiated the delivery/forward).
+- **TERMINATING**: The leg from the perspective of the party who **received** the call (or was the target of the delivery).
 - A single call always produces at least one ORIGINATING and one TERMINATING leg.
-- Hunt group/call queue calls produce one ORIGINATING leg (the inbound caller) and multiple TERMINATING legs (one per agent attempt).
+- **Hunt Group CDR pattern**: HG appears in CDRs with `user_type = HuntGroup` in **both** directions:
+  - HG TERMINATING — the HG "receives" the inbound call (one per Correlation ID)
+  - HG ORIGINATING — the HG "dials" each agent delivery attempt (one per ring attempt)
+  - Agent TERMINATING — the agent who receives the ring (one per ring attempt, paired with the HG ORIGINATING above)
+  - A HG call with 3 ring attempts produces: 1 inbound ORIGINATING + 1 HG TERMINATING + 3×(HG ORIGINATING + agent TERMINATING) = 8 CDRs total.
+  - `Answered=true` on a HuntGroup-type CDR means the HG processed/accepted the call — **not** that a human answered it.
 
 #### Answer indicator per leg
 
-- `Yes` — this specific leg was answered by the target party.
+- `Yes` — this specific leg was answered.
 - `No` — this leg was not answered (rang out, rejected, or redirected before answer).
 - `Yes-PostRedirection` — this leg was answered, but only after being redirected (forwarded/transferred) from another destination.
-- In a hunt group with 5 ring attempts, only the agent who answered has `Answer indicator = Yes`; the other 4 have `No`.
+- In a hunt group, the HG TERMINATING CDR has `Yes` (HG accepted the call). For agent delivery: only the HG ORIGINATING + agent TERMINATING pair for the answering attempt have `Yes`; all other agent attempts have `No`.
+
+#### Ultimate destination rule
+
+To find the CDR representing the ultimate answering party:
+
+**Simple rule:** `answered=Yes`, `direction=TERMINATING`, and either `user_type=LocalGateway` (on-prem answer) OR the CDR is the only answered TERMINATING CDR for that Correlation ID group.
+
+**Robust rule:** `answered=Yes`, `direction=TERMINATING`, AND `local_call_id` is **not** referenced by any `related_call_id` or `transfer_related_call_id` across all linked CDRs. (Handles edge cases where a user forwards or transfers a call that comes back to them.)
 
 #### Webhook delivery and deduplication
 
@@ -846,6 +877,11 @@ The SDK source code flags several discrepancies between Webex API documentation 
 - **Report quota:** The 50-report limit is hard. Always delete reports after downloading to avoid hitting the cap.
 - **Pro Pack requirement:** The Reports API (templates, create, list, download, delete) requires the Pro Pack license. The CDR Feed API does not require Pro Pack but does require the admin role to be explicitly enabled.
 - **Async download not implemented:** The SDK's async variant of `ReportsApi.download()` raises `NotImplementedError`. Use the sync API for report downloads.
+- **`transfer_related_call_id` contains a `local_call_id`, NOT a Correlation ID.** To link two Correlation IDs across a transfer: find CDRs where `CDR1.transfer_related_call_id = CDR2.local_call_id` — their Correlation IDs are linked. Do not compare `transfer_related_call_id` directly to `correlation_id`.
+- **HG CDRs have both ORIGINATING and TERMINATING records.** The HuntGroup entity appears in CDRs as TERMINATING (receiving the inbound call) and ORIGINATING (dialing each agent). `Answered=true` on a HuntGroup CDR means the HG processed the call, not that a human answered. Do not count HG-typed CDRs when tallying human-answered calls.
+- **A single call can have multiple Correlation IDs.** Attended transfers, on-prem deflections that return to cloud, and some advanced forwarding scenarios create new Correlation IDs. Use `transfer_related_call_id`/`local_call_id` linkage to reconstruct the full call path.
+- **`related_call_id` is for deflection chaining, not just service activation.** Each HG ring attempt's ORIGINATING CDR has `related_call_id` = the HG TERMINATING CDR's `local_call_id`. This is how you link delivery attempts to the HG that distributed them. `related_call_id` is ALSO used when a new separate call is spawned by service activation (recording, exec-assistant).
+- **On-prem correlation uses Session IDs.** When a call crosses the LGW boundary, the cloud CDR's `local_session_id`/`remote_session_id` matches the UCM CDR's Origination/Destination SIP Session ID. This is the only way to correlate cloud and on-prem (UCM) records for the same call — the Correlation ID does not appear in UCM CDRs.
 
 ---
 

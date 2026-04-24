@@ -175,12 +175,12 @@ Use this guide to construct CDR queries for ANY natural-language question. The r
 Every call generates one CDR record per **call leg** (one per participant perspective). Understanding leg relationships is essential for correct recipe logic:
 
 - **Correlation ID** groups all legs of one call. A simple call has 2 legs (ORIGINATING + TERMINATING) sharing one Correlation ID.
-- **Hunt Group / Call Queue**: the Correlation ID stays the same for the entire interaction — the inbound call and every agent delivery attempt share the same Correlation ID.
-- **Attended (consultative) transfer**: creates a second call with a new Correlation ID. After transfer completes, `Transfer related call ID` on the new call contains the **Correlation ID of the original call**. This is how you link the two calls.
+- **Hunt Group / Call Queue**: All CDRs for the interaction share the **same Correlation ID**. The HG appears in CDRs **twice per ring attempt**: as TERMINATING (HG "receives" the inbound call — one total) and as ORIGINATING (HG "dials" each agent — one per ring attempt), each ORIGINATING paired with an agent TERMINATING. A HG call with 3 ring attempts = 1 inbound ORIGINATING + 1 HG TERMINATING + 3×(HG ORIGINATING + agent TERMINATING) = 8 CDRs. `Answered=Yes` on a HuntGroup CDR means the HG processed the call — **not that a human answered**.
+- **Attended (consultative) transfer**: creates a second call with a new Correlation ID. `Transfer related call ID` on the bridging CDRs contains a **`Local call ID`** from the other call group — NOT the other call's Correlation ID. Linking rule: if `CDR1.'Transfer related call ID'` = `CDR2.'Local call ID'`, their Correlation IDs are linked.
 - **Blind transfer**: creates a new call with a new Correlation ID. `Transfer related call ID` is **NOT populated** — blind transfers cannot be linked to the original call via this field.
-- **Related Call ID**: points to a different call created by **service activation** (recording, executive-assistant) — NOT transfers.
-- **Direction**: ORIGINATING = caller's perspective, TERMINATING = called party's perspective. HG/CQ calls have one ORIGINATING leg and multiple TERMINATING legs (one per agent attempt).
-- **Answer indicator**: `Yes` on the leg that was answered, `No` on all others. In a HG with 5 ring attempts, only the answering agent's leg has `Yes`.
+- **Related Call ID**: deflection chaining key. Each HG ring attempt's ORIGINATING CDR has `Related call ID` = the HG's TERMINATING CDR's `Local call ID`. This chains each agent delivery back to the HG that distributed it. Also used when service activation (recording, exec-assistant) spawns a new separate call.
+- **Direction**: ORIGINATING = the party who placed/initiated the leg. TERMINATING = the party who received it. The HG itself generates BOTH directions (see HG pattern above).
+- **Answer indicator**: `Yes` on answered legs, `No` on unanswered. In a HG with 5 ring attempts: HG TERMINATING = `Yes` (HG processed it), only the answering agent's HG ORIGINATING + agent TERMINATING pair = `Yes`; all other agent attempts = `No`.
 
 See `docs/reference/reporting-analytics.md` § CDR Data Model for the full reference including diagrams and all enum values.
 
@@ -200,7 +200,7 @@ CDR returns 55+ fields with space-separated JSON keys. Use this taxonomy to find
 | **Recording** | `Call Recording Platform Name`, `Call Recording Result` (successful/failed/successful but not kept), `Call Recording Trigger` (always/always-pause-resume/on-demand/on-demand-user-start) | "was it recorded" |
 | **Reputation** | `Caller Reputation Score` (0.0-5.0), `Caller Reputation Service Result` (allow/block/captcha-allow/captcha-block), `Caller Reputation Score Reason` | "spam calls" |
 | **Queue/AA** | `Queue type` (Customer Assist/Call Queue), `Auto Attendant Key Pressed` | "queue CDR data", "AA menu" |
-| **Correlation** | `Correlation ID`, `Call ID`, `Interaction ID`, `Network call ID`, `Related call ID`, `Transfer related call ID` | "trace this call" |
+| **Correlation** | `Correlation ID`, `Call ID`, `Interaction ID`, `Local call ID` (this CDR's identity), `Remote call ID` (paired CDR's local ID), `Network call ID` (secondary leg-pairing key), `Related call ID` (deflection chain: ORIGINATING.relatedCallId = source TERMINATING.localCallId), `Transfer related call ID` (contains a localCallId from the other transfer call group — NOT a Correlation ID) | "trace this call", "link legs", "follow transfer" |
 
 ### Composition Rules
 
@@ -241,6 +241,7 @@ CDR returns 55+ fields with space-separated JSON keys. Use this taxonomy to find
 
 **Recipe 1 — Total call count**
 Question: "How many calls did we get?"
+Note: Unique Correlation ID count = best proxy for "number of calls." Raw CDR count and ORIGINATING count both overcount — HG calls generate multiple ORIGINATING CDRs (one per ring attempt) and multiple TERMINATING CDRs (HG + agent per attempt).
 # Output: Metric | Value
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
@@ -249,9 +250,8 @@ data = json.load(sys.stdin)
 orig = len([r for r in data if r.get('Direction') == 'ORIGINATING'])
 term = len([r for r in data if r.get('Direction') == 'TERMINATING'])
 unique = len(set(r.get('Correlation ID') for r in data if r.get('Correlation ID')))
-# Note: CDR generates one record per call leg (ORIGINATING + TERMINATING).
-# Total count below includes both legs. For unique call count, use Correlation ID dedup
-# or filter by Direction == 'ORIGINATING' only.
+# Raw CDR counts are inflated for HG calls (multiple O+T CDRs per ring attempt).
+# Unique Correlation ID count is the best proxy for unique calls.
 print(f'Total CDR legs: {len(data)} (ORIGINATING: {orig}, TERMINATING: {term})')
 print(f'Unique calls (by Correlation ID): {unique}')
 "
@@ -404,16 +404,24 @@ print(f'Change: {direction} {abs(diff)} ({abs(pct):.1f}%)')
 
 **Recipe 9 — Missed calls**
 Question: "How many calls did we miss?"
+Note: Filters to User-type TERMINATING CDRs only — excludes HuntGroup CDRs (which also have Answer indicator=No for unanswered ring attempts but are not human misses).
 # Output: Time | User | Calling # | Called # | Ring Duration | Reason
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
-missed = [r for r in data if r.get('Answer indicator') == 'No']
-print(f'Missed calls: {len(missed)} of {len(data)} ({len(missed)/len(data)*100:.1f}%)' if data else 'No data')
-print(f'No matching records found in this time window.') if not missed else None
-for c in missed[:10]:
-    print(f\"  {c.get('Start time','')[:16]} | {c.get('User','?')} | {c.get('Calling number','?')} -> {c.get('Called number','?')} | ring {c.get('Ring duration','?')}s | {c.get('Call outcome reason','?')}\")
+# Filter to User-type TERMINATING only: HG ring attempts also show Answer indicator=No
+# but are not missed calls — they are internal delivery mechanics
+missed = [r for r in data if r.get('Answer indicator') == 'No'
+    and r.get('Direction') == 'TERMINATING'
+    and r.get('User type') == 'User']
+unique_calls = set(r.get('Correlation ID') for r in data if r.get('Correlation ID'))
+print(f'Missed deliveries to users: {len(missed)} (of {len(unique_calls)} unique calls)')
+if not missed:
+    print('No matching records found in this time window.')
+else:
+    for c in missed[:10]:
+        print(f\"  {c.get('Start time','')[:16]} | {c.get('User','?')} | {c.get('Calling number','?')} -> {c.get('Called number','?')} | ring {c.get('Ring duration','?')}s | {c.get('Call outcome reason','?')}\")
 "
 ```
 
@@ -436,31 +444,61 @@ else:
 
 **Recipe 11 — Abandoned calls**
 Question: "How many callers hung up before we answered?"
-# Output: Time | User | Calling # | Called # | Ring Duration
+Note: Deduplicates by Correlation ID — a caller who abandoned while ringing through a HG generates multiple No-answer CDRs (one per ring attempt) but should count as one abandonment.
+# Output: Unique abandoned calls + Time | Calling # | Called # | Ring Duration
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
+from collections import defaultdict
 data = json.load(sys.stdin)
-abandoned = [r for r in data if r.get('Answer indicator') == 'No' and r.get('Releasing party') == 'Local']
-print(f'Abandoned (caller hung up before answer): {len(abandoned)}')
+# Group by Correlation ID; a call is abandoned if all CDRs have Answer indicator=No
+# and at least one has Releasing party=Local (caller hung up)
+corr = defaultdict(list)
+for r in data:
+    cid = r.get('Correlation ID')
+    if cid:
+        corr[cid].append(r)
+abandoned = []
+for cid, legs in corr.items():
+    any_answered = any(r.get('Answer indicator') == 'Yes' for r in legs)
+    caller_hungup = any(r.get('Releasing party') == 'Local' and r.get('Answer indicator') == 'No' for r in legs)
+    if not any_answered and caller_hungup:
+        first = sorted(legs, key=lambda x: x.get('Start time',''))[0]
+        abandoned.append(first)
+print(f'Abandoned calls (caller hung up before answer): {len(abandoned)} of {len(corr)} unique calls')
 if not abandoned:
     print('No matching records found in this time window.')
 else:
-    for c in abandoned[:10]:
-        print(f\"  {c.get('Start time','')[:16]} | {c.get('User','?')} | {c.get('Calling number','?')} -> {c.get('Called number','?')} | rang {c.get('Ring duration','?')}s\")
+    for c in sorted(abandoned, key=lambda x: x.get('Start time',''))[:10]:
+        print(f\"  {c.get('Start time','')[:16]} | {c.get('Calling number','?')} -> {c.get('Called number','?')} | rang {c.get('Ring duration','?')}s\")
 "
 ```
 
 **Recipe 12 — Answer rate**
 Question: "What percentage of calls do we answer?"
+Note: Deduplicates by Correlation ID and checks for a User-type TERMINATING answer. Raw CDR counts are NOT valid for answer rate — HG calls produce multiple Answered=Yes CDRs (HG TERMINATING + HG ORIGINATING + agent TERMINATING) per single answered call.
 # Output: Metric | Value
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
+from collections import defaultdict
 data = json.load(sys.stdin)
-answered = len([r for r in data if r.get('Answer indicator') == 'Yes'])
-total = len(data)
-print(f'Answer rate: {answered/total*100:.1f}% ({answered} of {total})' if total else 'No data')
+# Group CDRs by Correlation ID
+corr = defaultdict(list)
+for r in data:
+    cid = r.get('Correlation ID')
+    if cid:
+        corr[cid].append(r)
+# A call is 'answered' if any User-type TERMINATING CDR has Answer indicator=Yes
+answered_calls = sum(
+    1 for legs in corr.values()
+    if any(r.get('Answer indicator') == 'Yes'
+           and r.get('Direction') == 'TERMINATING'
+           and r.get('User type') == 'User'
+           for r in legs)
+)
+total_calls = len(corr)
+print(f'Answer rate: {answered_calls/total_calls*100:.1f}% ({answered_calls} of {total_calls} unique calls)' if total_calls else 'No data')
 "
 ```
 
@@ -516,19 +554,32 @@ else:
 
 **Recipe 16 — Call outcome by location**
 Question: "Which office has the worst answer rate?"
-# Output: Location | Total | Answered | Answer%
+Note: Uses Correlation ID deduplication — HG calls produce multiple Answered=Yes CDRs per call so raw CDR counts would inflate answer rates. Each unique Correlation ID = one call.
+# Output: Location | Unique Calls | Answered | Answer%
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
 from collections import defaultdict
 data = json.load(sys.stdin)
-stats = defaultdict(lambda: {'total': 0, 'answered': 0})
+# Group by Correlation ID, track location and whether a User answered
+corr = defaultdict(lambda: {'loc': 'Unknown', 'answered': False})
 for r in data:
-    loc = r.get('Location', 'Unknown')
+    cid = r.get('Correlation ID')
+    if not cid:
+        continue
+    if r.get('Location'):
+        corr[cid]['loc'] = r.get('Location')
+    if (r.get('Answer indicator') == 'Yes'
+            and r.get('Direction') == 'TERMINATING'
+            and r.get('User type') == 'User'):
+        corr[cid]['answered'] = True
+stats = defaultdict(lambda: {'total': 0, 'answered': 0})
+for info in corr.values():
+    loc = info['loc']
     stats[loc]['total'] += 1
-    if r.get('Answer indicator') == 'Yes':
+    if info['answered']:
         stats[loc]['answered'] += 1
-print(f\"{'Location':<25} {'Total':>6} {'Answered':>9} {'Ans%':>6}\")
+print(f\"{'Location':<25} {'Calls':>6} {'Answered':>9} {'Ans%':>6}\")
 for loc, s in sorted(stats.items(), key=lambda x: x[1]['answered']/max(x[1]['total'],1)):
     rate = s['answered']/s['total']*100 if s['total'] else 0
     print(f\"{loc:<25} {s['total']:>6} {s['answered']:>9} {rate:>5.1f}%\")
@@ -537,19 +588,30 @@ for loc, s in sorted(stats.items(), key=lambda x: x[1]['answered']/max(x[1]['tot
 
 **Recipe 16b — Inbound answer rate for a specific location**
 Question: "What percentage of inbound calls to [Location] were answered vs missed?"
-Note: Filter TERMINATING legs only (inbound = calls delivered to your org). Pass location name via --locations flag at pull time. For windows >12 hours (e.g., yesterday = 2 pulls), merge results before running this recipe.
+Note: Deduplicates by Correlation ID and checks for a User-type answer. HG TERMINATING CDRs also show Answered=Yes (HG processed the call) — filtering to User type=User gives the human answer rate. Pass location name via --locations flag at pull time.
 # Output: Metric | Value
 ```bash
 wxcli cdr list --start-time START --end-time END --locations "Location Name" -o json | python3.11 -c "
 import json, sys
+from collections import defaultdict
 data = json.load(sys.stdin)
-inbound = [r for r in data if r.get('Direction') == 'TERMINATING']
-answered = [r for r in inbound if r.get('Answer indicator') == 'Yes']
-missed = [r for r in inbound if r.get('Answer indicator') == 'No']
-total = len(inbound)
-print(f'Inbound calls: {total}')
-print(f'Answered: {len(answered)} ({len(answered)/total*100:.1f}%)' if total else 'No data')
-print(f'Missed:   {len(missed)} ({len(missed)/total*100:.1f}%)' if total else '')
+corr = defaultdict(list)
+for r in data:
+    cid = r.get('Correlation ID')
+    if cid:
+        corr[cid].append(r)
+answered_calls = sum(
+    1 for legs in corr.values()
+    if any(r.get('Answer indicator') == 'Yes'
+           and r.get('Direction') == 'TERMINATING'
+           and r.get('User type') == 'User'
+           for r in legs)
+)
+total = len(corr)
+missed = total - answered_calls
+print(f'Unique calls: {total}')
+print(f'Answered: {answered_calls} ({answered_calls/total*100:.1f}%)' if total else 'No data')
+print(f'Missed:   {missed} ({missed/total*100:.1f}%)' if total else '')
 "
 ```
 Note: If the window exceeds 12 hours (e.g., "yesterday" = 24h), issue 2 sequential CDR pulls and concatenate the JSON arrays before piping to Python. See the multi-pull merge pattern in Step 6a.
@@ -1503,8 +1565,8 @@ for loc, s in sorted(stats.items(), key=lambda x: x[1]['recorded']/max(x[1]['ans
 
 **Recipe 64 — Trace call by correlation ID**
 Question: "Find all legs of this call"
-Note: Replace CORRELATION_ID with the actual value.
-# Output: Leg # | Time | Direction | User | From | To | Duration | Related Reason
+Note: Replace CORRELATION_ID with the actual value. For calls involving transfers, multiple Correlation IDs may be involved — use Recipe 65 to follow the full transfer chain instead.
+# Output: Leg # | Time | Direction | User type | User | From | To | Duration | Related Reason
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
@@ -1516,26 +1578,49 @@ if not legs:
     print('No matching records found in this time window.')
 else:
     for i, c in enumerate(sorted(legs, key=lambda x: x.get('Start time', '')), 1):
-        print(f'  Leg {i}: {c.get(\"Start time\",\"\")[:16]} | {c.get(\"Direction\")} | {c.get(\"User\", \"?\")} | {c.get(\"Calling number\")} -> {c.get(\"Called number\")} | {c.get(\"Duration\")}s | {c.get(\"Related reason\", \"\")}')
+        print(f'  Leg {i}: {c.get(\"Start time\",\"\")[:16]} | {c.get(\"Direction\")} | {c.get(\"User type\",\"?\")} | {c.get(\"User\", \"?\")} | {c.get(\"Calling number\")} -> {c.get(\"Called number\")} | {c.get(\"Duration\")}s | {c.get(\"Related reason\", \"\")}')
 "
 ```
 
 **Recipe 65 — Transfer chain reconstruction**
 Question: "Show the full transfer path for this call"
-Note: Replace CALL_ID with the actual Call ID.
-# Output: Leg # | Time | User | Direction | Related Reason | From | To
+Note: Replace CORRELATION_ID with the starting Correlation ID. The recipe follows Transfer related call ID → Local call ID linkage to discover all linked Correlation IDs across the transfer chain.
+# Output: CorrID | Leg # | Time | User type | Direction | Related Reason | From | To
 ```bash
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
+from collections import defaultdict
 data = json.load(sys.stdin)
-target = 'CALL_ID'
-chain = [r for r in data if r.get('Call ID') == target or r.get('Transfer related call ID') == target or r.get('Related call ID') == target]
-print(f'Transfer chain ({len(chain)} records):')
-if not chain:
+seed_cid = 'CORRELATION_ID'
+
+# Build lookup: local_call_id -> CDR
+by_local = {r.get('Local call ID'): r for r in data if r.get('Local call ID')}
+
+# Walk transfer chain: follow transfer_related_call_id -> local_call_id links
+visited = set()
+queue = [seed_cid]
+all_cdrs = []
+while queue:
+    cid = queue.pop()
+    if cid in visited:
+        continue
+    visited.add(cid)
+    group = [r for r in data if r.get('Correlation ID') == cid]
+    all_cdrs.extend(group)
+    for r in group:
+        trid = r.get('Transfer related call ID')
+        if trid and trid in by_local:
+            linked_cid = by_local[trid].get('Correlation ID')
+            if linked_cid and linked_cid not in visited:
+                queue.append(linked_cid)
+
+print(f'Transfer chain: {len(visited)} Correlation IDs, {len(all_cdrs)} CDRs')
+if not all_cdrs:
     print('No matching records found in this time window.')
 else:
-    for i, c in enumerate(sorted(chain, key=lambda x: x.get('Start time', '')), 1):
-        print(f\"  Leg {i}: {c.get('Start time','')[:16]} | {c.get('User')} | {c.get('Direction')} | {c.get('Related reason', '')} | {c.get('Calling number')} -> {c.get('Called number')}\")
+    for i, c in enumerate(sorted(all_cdrs, key=lambda x: x.get('Start time', '')), 1):
+        cid_short = (c.get('Correlation ID') or '')[-8:]
+        print(f\"  {i}: ...{cid_short} | {c.get('Start time','')[:16]} | {c.get('User type','?')} | {c.get('Direction')} | {c.get('Related reason','') or c.get('Transfer related call ID','')} | {c.get('Calling number')} -> {c.get('Called number')}\")
 "
 ```
 
