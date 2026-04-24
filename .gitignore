@@ -35,6 +35,7 @@ assessment-report*.pdf
 # Dev-only docs (design prompts, plans, parked items, reports, team templates, branch archives)
 docs/prompts/
 docs/superpowers/
+docs/demo/
 docs/later/
 docs/plans/
 docs/reports/
