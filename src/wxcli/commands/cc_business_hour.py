@@ -24,7 +24,7 @@ def cmd_list(
     """List Business Hours resource(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/business-hours"
     params = {}
     if filter_param is not None:
@@ -92,7 +92,7 @@ def create(
     """Create a new Business Hours resource\n\nExample --json-body:\n  '{"name":"...","timezone":"...","workingHours":[{"name":"...","days":"...","startTime":"...","endTime":"..."}],"organizationId":"...","id":"...","version":0,"description":"...","holidaysId":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/business-hours"
     if json_body:
         body = json.loads(json_body)
@@ -166,7 +166,7 @@ def create_bulk(
     """Bulk save Business Hours resource(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/business-hours/bulk"
     if json_body:
         body = json.loads(json_body)
@@ -217,7 +217,7 @@ def list_bulk_export(
     """Bulk export Business Hours resource(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/business-hours/bulk-export"
     params = {}
     if page is not None:
@@ -268,7 +268,7 @@ def show(
     """Get specific Business Hours resource by ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/business-hours/{id}"
     try:
         result = api.session.rest_get(url)
@@ -324,7 +324,7 @@ def update(
     """Update specific Business Hours resource by ID\n\nExample --json-body:\n  '{"name":"...","timezone":"...","workingHours":[{"name":"...","days":"...","startTime":"...","endTime":"..."}],"organizationId":"...","id":"...","version":0,"description":"...","holidaysId":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/business-hours/{id}"
     if json_body:
         body = json.loads(json_body)
@@ -389,7 +389,7 @@ def delete(
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/business-hours/{id}"
     try:
         api.session.rest_delete(url)
@@ -431,7 +431,7 @@ def list_incoming_references(
     """List references for a specific Business Hours resource."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/business-hours/{id}/incoming-references"
     params = {}
     if type_param is not None:
@@ -493,7 +493,7 @@ def list_business_hours(
     """List Business Hours resource(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/v2/business-hours"
     params = {}
     if filter_param is not None:

@@ -26,7 +26,7 @@ def create(
     """Create a new Auto CSAT mapped Question."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/auto-csat/{auto_csat_id}/question"
     if json_body:
         body = json.loads(json_body)
@@ -93,7 +93,7 @@ def create_bulk(
     """Bulk save Auto CSAT mapped Question(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/auto-csat/{auto_csat_id}/question/bulk"
     if json_body:
         body = json.loads(json_body)
@@ -142,7 +142,7 @@ def show(
     """Get specific Auto CSAT mapped Question by ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/auto-csat/{auto_csat_id}/question/{id}"
     try:
         result = api.session.rest_get(url)
@@ -190,7 +190,7 @@ def delete(
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/auto-csat/{auto_csat_id}/question/{id}"
     try:
         api.session.rest_delete(url)
@@ -227,7 +227,7 @@ def show_auto_csat(
     """Get specific Auto CSAT resource by ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/auto-csat/{id}"
     try:
         result = api.session.rest_get(url)
@@ -281,7 +281,7 @@ def update(
     """Update specific Auto CSAT resource by ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/auto-csat/{id}"
     if json_body:
         body = json.loads(json_body)
@@ -345,7 +345,7 @@ def cmd_list(
     """List Auto CSAT resource(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/v2/auto-csat"
     params = {}
     if filter_param is not None:
@@ -406,7 +406,7 @@ def list_question(
     """List Auto CSAT mapped Question(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/v2/auto-csat/{auto_csat_id}/question"
     params = {}
     if filter_param is not None:

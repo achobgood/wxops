@@ -125,7 +125,7 @@ def _render_path_inject(ep: Endpoint) -> list[str]:
         param = _path_var_to_param(var)
         # orgid/orgId path params resolve from saved org config, fallback to API
         if var.lower() == "orgid":
-            lines.append(f"    {param} = get_org_id() or api.people.me().org_id")
+            lines.append(f"    {param} = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')")
     return lines
 
 
@@ -170,11 +170,22 @@ def _render_docstring(ep) -> str:
     return f'    """{doc}."""'
 
 
+def _dedup_enum_values(values: list[str]) -> list[str]:
+    """Deduplicate case-insensitive enum values, preferring title-case."""
+    seen: dict[str, str] = {}
+    for v in values:
+        key = v.lower()
+        if key not in seen or (v[0].isupper() and not v.isupper()):
+            seen[key] = v
+    return list(seen.values())
+
+
 def _enum_help(field: EndpointField, max_desc: int = 60) -> str:
     """Build help text for a field, showing enum choices if available."""
-    if field.enum_values and len(field.enum_values) <= 8:
-        return _escape_help(f"Choices: {', '.join(field.enum_values)}")
-    elif field.enum_values:
+    if field.enum_values:
+        deduped = _dedup_enum_values(field.enum_values)
+        if len(deduped) <= 12:
+            return _escape_help(f"Choices: {', '.join(deduped)}")
         return _escape_help(f"{field.description[:max_desc]} (use --help for choices)")
     return _escape_help(field.description[:max_desc])
 

@@ -520,11 +520,14 @@ def parse_tag(
                 continue
 
             # Skip already-processed operations (multi-tag dedup)
+            # Key on (operationId, path) because the CC spec reuses
+            # operationIds across different resource paths.
             op_id = op.get("operationId", "")
-            if op_id and op_id in seen_operation_ids:
+            dedup_key = (op_id, path) if op_id else None
+            if dedup_key and dedup_key in seen_operation_ids:
                 continue
-            if op_id:
-                seen_operation_ids.add(op_id)
+            if dedup_key:
+                seen_operation_ids.add(dedup_key)
 
             # Skip multipart/formdata uploads
             rb = op.get("requestBody", {})

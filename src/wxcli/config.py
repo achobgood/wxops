@@ -1,3 +1,4 @@
+import base64
 import json
 from pathlib import Path
 
@@ -33,6 +34,39 @@ def get_org_name(path: Path = DEFAULT_CONFIG_PATH) -> str | None:
     config = load_config(path)
     profile = config.get("profiles", {}).get("default", {})
     return profile.get("org_name")
+
+def decode_webex_id(encoded_id: str) -> str:
+    """Decode a base64-encoded Webex Spark ID to its UUID suffix.
+
+    Webex Calling APIs return orgId as a base64 URN like:
+      Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi9iODQxMDE0Ny02MTA0LTQyZTgt...
+    which decodes to: ciscospark://us/ORGANIZATION/b8410147-6104-42e8-9b93-...
+
+    The Contact Center API requires the bare UUID (after the last '/'),
+    not the full base64 string.
+    """
+    try:
+        padding = 4 - len(encoded_id) % 4
+        if padding != 4:
+            encoded_id += "=" * padding
+        decoded = base64.b64decode(encoded_id).decode("utf-8")
+        return decoded.rsplit("/", 1)[-1]
+    except Exception:
+        return encoded_id
+
+
+def get_cc_org_id(api_session) -> str:
+    """Return the decoded UUID org ID suitable for CC API path parameters.
+
+    Uses the saved org_id from config if available (already decoded), otherwise
+    fetches from people/me and decodes the base64 Spark ID.
+    """
+    saved = get_org_id()
+    if saved:
+        return decode_webex_id(saved)
+    raw = api_session.rest_get("https://webexapis.com/v1/people/me").get("orgId", "")
+    return decode_webex_id(raw)
+
 
 CC_REGIONS = {
     "us1": "https://api.wxcc-us1.cisco.com",

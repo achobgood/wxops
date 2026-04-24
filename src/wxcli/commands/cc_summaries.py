@@ -18,7 +18,7 @@ def show(
     """Get specific Generated Summaries resource by ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/generated-summaries/{id}"
     try:
         result = api.session.rest_get(url)
@@ -72,7 +72,7 @@ def update(
     """Update specific Generated Summaries resource by ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/generated-summaries/{id}"
     if json_body:
         body = json.loads(json_body)
@@ -136,7 +136,7 @@ def cmd_list(
     """List Generated Summaries resource(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/v2/generated-summaries"
     params = {}
     if filter_param is not None:

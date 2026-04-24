@@ -24,7 +24,7 @@ def cmd_list(
     """List Skill(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/skill"
     params = {}
     if filter_param is not None:
@@ -92,7 +92,7 @@ def create(
     """Create a new Skill\n\nExample --json-body:\n  '{"name":"...","serviceLevelThreshold":0,"active":true,"skillType":"Proficiency","organizationId":"...","id":"...","version":0,"description":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/skill"
     if json_body:
         body = json.loads(json_body)
@@ -166,7 +166,7 @@ def create_bulk(
     """Bulk save Skill(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/skill/bulk"
     if json_body:
         body = json.loads(json_body)
@@ -217,7 +217,7 @@ def list_bulk_export(
     """Bulk export Skill(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/skill/bulk-export"
     params = {}
     if page is not None:
@@ -269,7 +269,7 @@ def create_populate_json_attr(
     """Populate json-attributes field for a given skill-id of an organization."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/skill/populate-json-attr/{id}"
     if json_body:
         body = json.loads(json_body)
@@ -318,7 +318,7 @@ def create_purge_inactive_entities(
     """Purge inactive Skill(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/skill/purge-inactive-entities"
     params = {}
     if next_start_id is not None:
@@ -369,7 +369,7 @@ def show(
     """Get specific Skill by ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/skill/{id}"
     try:
         result = api.session.rest_get(url)
@@ -425,7 +425,7 @@ def update(
     """Update specific Skill by ID\n\nExample --json-body:\n  '{"name":"...","serviceLevelThreshold":0,"active":true,"skillType":"Proficiency","organizationId":"...","id":"...","version":0,"description":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/skill/{id}"
     if json_body:
         body = json.loads(json_body)
@@ -490,7 +490,7 @@ def delete(
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/skill/{id}"
     try:
         api.session.rest_delete(url)
@@ -532,7 +532,7 @@ def list_incoming_references(
     """List references for a specific Skill."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/skill/{id}/incoming-references"
     params = {}
     if type_param is not None:
@@ -592,7 +592,7 @@ def list_skill(
     """List Skill(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/v2/skill"
     params = {}
     if filter_param is not None:

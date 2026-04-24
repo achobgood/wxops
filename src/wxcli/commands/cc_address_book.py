@@ -23,7 +23,7 @@ def cmd_list(
     """List Address Book(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/address-book"
     params = {}
     if filter_param is not None:
@@ -87,7 +87,7 @@ def create(
     """Create a new Address Book\n\nExample --json-body:\n  '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":"...","createdTime":"...","lastUpdatedTime":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/address-book"
     if json_body:
         body = json.loads(json_body)
@@ -160,7 +160,7 @@ def list_bulk_export(
     """Bulk export Address Book(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/address-book/bulk-export"
     params = {}
     if page is not None:
@@ -219,7 +219,7 @@ def create_entry(
     """Create a new Address Book Entry."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/address-book/{address_book_id}/entry"
     if json_body:
         body = json.loads(json_body)
@@ -286,7 +286,7 @@ def create_bulk(
     """Bulk save Address Book Entry(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/address-book/{address_book_id}/entry/bulk"
     if json_body:
         body = json.loads(json_body)
@@ -335,7 +335,7 @@ def show(
     """Get specific Address Book Entry by ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/address-book/{address_book_id}/entry/{id}"
     try:
         result = api.session.rest_get(url)
@@ -388,7 +388,7 @@ def update(
     """Update specific Address Book Entry by ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/address-book/{address_book_id}/entry/{id}"
     if json_body:
         body = json.loads(json_body)
@@ -446,7 +446,7 @@ def delete(
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/address-book/{address_book_id}/entry/{id}"
     try:
         api.session.rest_delete(url)
@@ -483,7 +483,7 @@ def show_address_book_organization(
     """Get specific Address Book by ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/address-book/{id}"
     try:
         result = api.session.rest_get(url)
@@ -537,7 +537,7 @@ def update_address_book_organization(
     """Update specific Address Book by ID\n\nExample --json-body:\n  '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":"...","createdTime":"...","lastUpdatedTime":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/address-book/{id}"
     if json_body:
         body = json.loads(json_body)
@@ -598,7 +598,7 @@ def delete_address_book_organization(
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/address-book/{id}"
     try:
         api.session.rest_delete(url)
@@ -640,7 +640,7 @@ def list_incoming_references(
     """List references for a specific Address Book."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/address-book/{id}/incoming-references"
     params = {}
     if type_param is not None:
@@ -699,7 +699,7 @@ def list_address_book_v2(
     """List Address Book(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/v2/address-book"
     params = {}
     if filter_param is not None:
@@ -763,7 +763,7 @@ def list_entry(
     """List Address Book Entry(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/v2/address-book/{address_book_id}/entry"
     params = {}
     if filter_param is not None:
@@ -826,7 +826,7 @@ def list_address_book_v3(
     """List Address Book(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/v3/address-book"
     params = {}
     if filter_param is not None:
@@ -892,7 +892,7 @@ def create_address_book(
     """Create a new Address Book."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/v3/address-book"
     if json_body:
         body = json.loads(json_body)
@@ -962,7 +962,7 @@ def show_address_book_v3(
     """Get specific Address Book by ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/v3/address-book/{id}"
     try:
         result = api.session.rest_get(url)
@@ -1016,7 +1016,7 @@ def update_address_book_v3(
     """Update specific Address Book by ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/v3/address-book/{id}"
     if json_body:
         body = json.loads(json_body)
@@ -1077,7 +1077,7 @@ def delete_address_book_v3(
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.people.me().org_id
+    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
     url = f"{cc_base_url}/organization/{orgid}/v3/address-book/{id}"
     try:
         api.session.rest_delete(url)
