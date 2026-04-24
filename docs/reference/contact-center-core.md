@@ -1594,6 +1594,8 @@ For teardown, reverse this order.
 
 23. **Personal access tokens lack CC scopes.** PATs from developer.webex.com do NOT carry `cjp:config_read` or `cjp:config_write`, even for full admins on CC-provisioned orgs. CC config operations require an OAuth integration with CC scopes explicitly selected, plus completing the OAuth authorization flow after adding the scopes. Adding scopes to an existing integration does not update previously issued tokens — you must re-authorize.
 
+24. **Global Variable names are immutable.** The CC API returns 400 `"name: should not be modified"` if you attempt to change the `name` field via PUT update. To rename a variable, delete and recreate it. Note that any flows referencing the old variable ID will need to be updated.
+
 ---
 
 ## 23. See Also
