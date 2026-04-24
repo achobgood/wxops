@@ -3,7 +3,7 @@ import typer
 from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
-from wxcli.config import get_org_id, get_cc_base_url
+from wxcli.config import get_org_id, get_cc_base_url, get_cc_org_id
 
 
 app = typer.Typer(help="Manage Webex Contact Center cc-queue.")
@@ -25,7 +25,7 @@ def cmd_list(
     """List Contact Service Queue(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/contact-service-queue"
     params = {}
     if filter_param is not None:
@@ -67,7 +67,7 @@ def cmd_list(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -127,7 +127,7 @@ def create(
     """Create a new Contact Service Queue\n\nExample --json-body:\n  '{"name":"...","queueType":"INBOUND","checkAgentAvailability":true,"channelType":"TELEPHONY","serviceLevelThreshold":0,"maxActiveContacts":0,"maxTimeInQueue":0,"active":true}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/contact-service-queue"
     if json_body:
         body = json.loads(json_body)
@@ -265,7 +265,7 @@ def create_bulk_contact_service_queue(
     """Bulk save Contact Service Queue(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/bulk"
     if json_body:
         body = json.loads(json_body)
@@ -312,7 +312,7 @@ def update(
     """Bulk partial update Contact Service Queue(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/bulk"
     if json_body:
         body = json.loads(json_body)
@@ -357,7 +357,7 @@ def list_bulk_export(
     """Bulk export Contact Service Queue(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/bulk-export"
     params = {}
     if type_param is not None:
@@ -393,7 +393,7 @@ def list_bulk_export(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -410,7 +410,7 @@ def show(
     """List Skill CSQs by Skill Profile."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/by-skill-profile-id/{id}"
     try:
         result = api.session.rest_get(url)
@@ -457,7 +457,7 @@ def list_internal_by_skill_profile_id(
     """List Internal Skill CSQs by Profile."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/by-skill-profile-id/{id}/internal"
     params = {}
     if limit > 0:
@@ -487,7 +487,7 @@ def list_internal_by_skill_profile_id(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -506,7 +506,7 @@ def list_internal_by_team_id(
     """List Team CSQs by Team ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/by-team-id/{id}/internal"
     params = {}
     if limit > 0:
@@ -536,7 +536,7 @@ def list_internal_by_team_id(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -555,7 +555,7 @@ def list_internal_by_user_ci_id(
     """List Agent CSQs by CI User ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/by-user-ci-id/{ci_user_id}/internal"
     params = {}
     if limit > 0:
@@ -585,7 +585,7 @@ def list_internal_by_user_ci_id(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -602,7 +602,7 @@ def create_delete_reference(
     """Delete CSQ References\n\nExample --json-body:\n  '{"references":{}}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/delete-reference"
     if json_body:
         body = json.loads(json_body)
@@ -652,7 +652,7 @@ def create_fetch_by_dynamic_skills_and_skill_profile(
     """List CSQs by Skills and Profile\n\nExample --json-body:\n  '{"skillProfileId":"...","dynamicSkills":[{"skillId":"...","textValue":"...","booleanValue":"...","proficiencyValue":"...","enumSkillValues":"..."}],"userId":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/fetch-by-dynamic-skills-and-skillProfile"
     if json_body:
         body = json.loads(json_body)
@@ -706,7 +706,7 @@ def create_fetch_by_user_id_skill_profile_id(
     """List CSQs by User and Profile\n\nExample --json-body:\n  '{"skillProfileId":"...","dynamicSkills":[{"skillId":"...","textValue":"...","booleanValue":"...","proficiencyValue":"...","enumSkillValues":"..."}],"userId":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/fetch-by-userId-skillProfileId"
     if json_body:
         body = json.loads(json_body)
@@ -760,7 +760,7 @@ def create_fetch_manually_assignable_queues(
     """List Manually Assignable CSQs."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/fetch-manually-assignable-queues"
     if json_body:
         body = json.loads(json_body)
@@ -813,7 +813,7 @@ def create_purge_inactive_entities(
     """Purge inactive Contact Service Queue(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/purge-inactive-entities"
     params = {}
     if next_start_id is not None:
@@ -866,7 +866,7 @@ def list_internal_by_ci_user_id(
     """List Skill CSQs by CI User ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/skill-based-queues/by-ci-user-id/{id}/internal"
     params = {}
     if limit > 0:
@@ -896,7 +896,7 @@ def list_internal_by_ci_user_id(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -914,7 +914,7 @@ def show_contact_service_queue_organization(
     """Get specific Contact Service Queue by ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/{id}"
     params = {}
     if agents_updated_info is not None:
@@ -1005,7 +1005,7 @@ def update_contact_service_queue_organization(
     """Update specific Contact Service Queue by ID\n\nExample --json-body:\n  '{"name":"...","queueType":"INBOUND","checkAgentAvailability":true,"channelType":"TELEPHONY","serviceLevelThreshold":0,"maxActiveContacts":0,"maxTimeInQueue":0,"active":true}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/{id}"
     if json_body:
         body = json.loads(json_body)
@@ -1134,7 +1134,7 @@ def delete(
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/{id}"
     try:
         api.session.rest_delete(url)
@@ -1176,7 +1176,7 @@ def list_incoming_references(
     """List CSQ References by ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/{id}/incoming-references"
     params = {}
     if type_param is not None:
@@ -1212,7 +1212,7 @@ def list_incoming_references(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -1229,7 +1229,7 @@ def create_bulk_v2(
     """Bulk save Contact Service Queue(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/v2/bulk"
     if json_body:
         body = json.loads(json_body)
@@ -1287,7 +1287,7 @@ def list_contact_service_queue_v2(
     """List Contact Service Queue(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/v2/contact-service-queue"
     params = {}
     if filter_param is not None:
@@ -1335,7 +1335,7 @@ def list_contact_service_queue_v2(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -1395,7 +1395,7 @@ def create_contact_service_queue(
     """Create a new Contact Service Queue\n\nExample --json-body:\n  '{"name":"...","queueType":"INBOUND","checkAgentAvailability":true,"channelType":"TELEPHONY","serviceLevelThreshold":0,"maxActiveContacts":0,"maxTimeInQueue":0,"active":true}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/v2/contact-service-queue"
     if json_body:
         body = json.loads(json_body)
@@ -1538,7 +1538,7 @@ def list_agent_based_queues(
     """List agent based Contact Service Queue(s)by user ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/v2/contact-service-queue/by-user-id/{userid}/agent-based-queues"
     params = {}
     if search is not None:
@@ -1574,7 +1574,7 @@ def list_agent_based_queues(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -1596,7 +1596,7 @@ def list_skill_based_queues(
     """List skill based Contact Service Queue(s)by user ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/v2/contact-service-queue/by-user-id/{userid}/skill-based-queues"
     params = {}
     if search is not None:
@@ -1632,7 +1632,7 @@ def list_skill_based_queues(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -1654,7 +1654,7 @@ def list_team_based_queues(
     """List team based Contact Service Queue(s)by user ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/v2/contact-service-queue/by-user-id/{userid}/team-based-queues"
     params = {}
     if search is not None:
@@ -1690,7 +1690,7 @@ def list_team_based_queues(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -1709,7 +1709,7 @@ def create_fetch_by_grouped_assistant_skill(
     """List queue mapping summary grouped by Assistant Skill\n\nExample --json-body:\n  '{"assistantSkillIds":["..."]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/v2/contact-service-queue/fetch-by-grouped-assistant-skill"
     params = {}
     if page is not None:
@@ -1763,7 +1763,7 @@ def show_contact_service_queue_v2(
     """Get specific Contact Service Queue by ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/v2/contact-service-queue/{id}"
     params = {}
     if agents_updated_info is not None:
@@ -1854,7 +1854,7 @@ def update_contact_service_queue_v2(
     """Update specific Contact Service Queue by ID\n\nExample --json-body:\n  '{"name":"...","queueType":"INBOUND","checkAgentAvailability":true,"channelType":"TELEPHONY","serviceLevelThreshold":0,"maxActiveContacts":0,"maxTimeInQueue":0,"active":true}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/v2/contact-service-queue/{id}"
     if json_body:
         body = json.loads(json_body)
@@ -1982,7 +1982,7 @@ def create_reassign_agents(
     """Add or remove agents/users to/from an agent based queue\n\nExample --json-body:\n  '{"add":["..."],"remove":["..."]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/v2/contact-service-queue/{id}/reassign-agents"
     if json_body:
         body = json.loads(json_body)
@@ -2039,7 +2039,7 @@ def list_contact_service_queue_v3(
     """List Contact Service Queue(s)."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    orgid = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')
+    orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/v3/contact-service-queue"
     params = {}
     if filter_param is not None:
@@ -2085,7 +2085,7 @@ def list_contact_service_queue_v3(
             typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:

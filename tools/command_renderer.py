@@ -44,7 +44,7 @@ def _path_var_to_param(var: str) -> str:
     return camel_to_snake(var)
 
 
-def _render_imports(include_org_id: bool = False, include_cc_url: bool = False) -> str:
+def _render_imports(include_org_id: bool = False, include_cc_url: bool = False, include_cc_org_id: bool = False) -> str:
     lines = '''import json
 import typer
 from wxc_sdk.rest import RestError
@@ -56,6 +56,8 @@ from wxcli.output import print_table, print_json
         config_imports.append('get_org_id')
     if include_cc_url:
         config_imports.append('get_cc_base_url')
+    if include_cc_org_id:
+        config_imports.append('get_cc_org_id')
     if config_imports:
         lines += f'from wxcli.config import {", ".join(config_imports)}\n'
     return lines
@@ -124,8 +126,12 @@ def _render_path_inject(ep: Endpoint) -> list[str]:
     for var in getattr(ep, "auto_inject_path_params", []):
         param = _path_var_to_param(var)
         # orgid/orgId path params resolve from saved org config, fallback to API
+        # CC APIs need the decoded UUID, not the base64 Spark ID
         if var.lower() == "orgid":
-            lines.append(f"    {param} = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')")
+            if _active_base_url_override == BASE_URL_CC:
+                lines.append(f"    {param} = get_cc_org_id(api.session)")
+            else:
+                lines.append(f"    {param} = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')")
     return lines
 
 
@@ -299,7 +305,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
             f'        if limit > 0:',
             f'            result = api.session.rest_get(url, params=params)',
             f'            result = result or {{}}',
-            f'            items = result.get("{list_key}", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])',
+            f'            items = result.get("{list_key}", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])',
             f'        else:',
             *max_inject,
             f'            items = list(api.session.follow_pagination(url=url, params=params, item_key="{list_key}"))',
@@ -345,7 +351,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
             *fetch_block,
             _render_error_handler("    "),
             f'    result = result or []',
-        f'    items = result.get("{list_key}", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])',
+        f'    items = result.get("{list_key}", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])',
             '    if output == "json":',
             "        print_json(items)",
             "    else:",
@@ -765,6 +771,7 @@ def render_command_file(
     global _active_base_url_override
     _active_base_url_override = base_url_override
     needs_cc_url = base_url_override == BASE_URL_CC
+    needs_cc_org_id = needs_cc_url and needs_org_id
     # Detect product area from CLI name prefix
     if cli_name.startswith("cc-"):
         product = "Webex Contact Center"
@@ -773,7 +780,7 @@ def render_command_file(
     else:
         product = "Webex Calling"
     sections = [
-        _render_imports(include_org_id=needs_org_id, include_cc_url=needs_cc_url),
+        _render_imports(include_org_id=needs_org_id, include_cc_url=needs_cc_url, include_cc_org_id=needs_cc_org_id),
         f'app = typer.Typer(help="Manage {product} {cli_name}.")\n',
     ]
 
