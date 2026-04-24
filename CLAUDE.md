@@ -259,7 +259,7 @@ The migration tool is at `src/wxcli/migration/` and wired into the CLI as `wxcli
 
 ### Migration Spec Template
 
-All migration pipeline spec documents must follow the template at `docs/references/migration-spec-template.md`. This applies whether the spec is written interactively via brainstorming, by an agent swarm, or manually. The template is rigid — all 9 sections are required. Sections can be brief for simple specs but cannot be omitted.
+All migration pipeline spec documents must follow the template at `docs/reference/migration-spec-template.md`. This applies whether the spec is written interactively via brainstorming, by an agent swarm, or manually. The template is rigid — all 9 sections are required. Sections can be brief for simple specs but cannot be omitted.
 
 ### Tools
 
