@@ -484,43 +484,7 @@ for email in ...; do
 done
 ```
 
-**For large batches (50+ items)**, use the async pattern from the bulk engine. Extract the token and use `aiohttp` directly:
-
-```python
-import asyncio, aiohttp, json
-
-TOKEN = json.load(open("~/.wxcli/config.json"))["profiles"]["default"]["token"]
-BASE = "https://webexapis.com/v1"
-SEMAPHORE = asyncio.Semaphore(20)  # match engine's default concurrency
-
-async def create_user(session, user_data):
-    async with SEMAPHORE:
-        async with session.post(f"{BASE}/people", json=user_data) as resp:
-            if resp.status == 429:
-                wait = int(resp.headers.get("Retry-After", 5))
-                await asyncio.sleep(wait)
-                return await create_user(session, user_data)  # retry
-            return await resp.json()
-
-async def bulk_create(users):
-    headers = {"Authorization": f"Bearer {TOKEN}", "Content-Type": "application/json"}
-    async with aiohttp.ClientSession(headers=headers) as session:
-        tasks = [create_user(session, u) for u in users]
-        return await asyncio.gather(*tasks)
-```
-
-Reference the engine implementation at `src/wxcli/migration/execute/engine.py` for the full pattern including 409 recovery, multi-call operations, and cascade failure handling.
-
-### Rate Limiting
-
-wxcli inherits wxc_sdk's automatic 429 retry handling. If you still hit rate limits during a shell loop, add a brief pause:
-
-```bash
-for email in ...; do
-  wxcli users create --json-body "{\"emails\":[\"$email\"]}" ...
-  sleep 1
-done
-```
+**For large batches (50+ items)**, use the bulk engine at `src/wxcli/migration/execute/engine.py`. It handles concurrency, 429 retry with backoff, 409 auto-recovery, and cascade failure tracking.
 
 ---
 
@@ -786,13 +750,6 @@ Everything else uses wxcli. Do not mix wxcadm and wxcli within a single executio
 
 ### CLI-First with Raw HTTP Fallback
 Use wxcli CLI commands for all standard operations. The CLI encodes required fields, handles auth, validates inputs, and produces readable output. When wxcli doesn't cover an operation (e.g., CX Essentials sub-features, bulk async), fall back to raw HTTP via `api.session.rest_*()`. See `docs/reference/wxc-sdk-patterns.md` for the raw HTTP pattern.
-
-**For quick one-off curl calls**, extract the token from wxcli's config:
-```bash
-TOKEN=$(python3.11 -c "import json; print(json.load(open('$HOME/.wxcli/config.json'))['profiles']['default']['token'])")
-curl -s -H "Authorization: Bearer $TOKEN" https://webexapis.com/v1/...
-```
-The config file structure is `profiles.<profile_name>.token` (not a top-level `access_token` key). Default profile is `default`.
 
 ### Command Verification (Anti-Hallucination)
 
