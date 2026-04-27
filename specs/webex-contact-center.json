@@ -10,10 +10,6 @@
       "name": "Agent Summaries"
     },
     {
-      "name": "AI Assistant",
-      "description": "Operations for sending AI Assistant custom events for Webex Contact Center."
-    },
-    {
       "name": "Contact List Management",
       "description": "Operations for managing contact lists and contacts"
     },
@@ -309,46 +305,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "description": "Validation Error"
-          },
-          "401": {
-            "description": "Unauthorized Operation"
-          },
-          "403": {
-            "description": "Forbidden Operation"
-          },
-          "429": {
-            "description": "Too many requests have been sent in a given amount of time and the request has been rate limited."
-          },
-          "500": {
-            "description": "An Unexpected Error Occurred"
-          }
-        }
-      }
-    },
-    "/event": {
-      "post": {
-        "tags": [
-          "AI Assistant"
-        ],
-        "summary": "Get suggestions",
-        "description": "API for getting suggestions based on transcripts. \n\nNotes:\n- Requires machine account token with scope `cjp:config_read` for WxCC\n- Requires machine account token with scope `cjp-hybrid-conn:read` for WxCCE/CCE.\n- `aiAssistantSkillId` / `source` is required for WxCCE/CCE.",
-        "operationId": "getSuggestions",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AiAssistantEventRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Accepted"
           },
           "400": {
             "description": "Validation Error"
@@ -71512,124 +71468,6 @@
             "type": "string",
             "description": "The unique tracking ID for this request.",
             "example": "fb53f6d1-5535-4ac8-b081-53834e17d6f5"
-          }
-        }
-      },
-      "AiAssistantEventRequest": {
-        "type": "object",
-        "required": [
-          "agentId",
-          "orgId",
-          "eventType",
-          "eventName",
-          "eventDetails"
-        ],
-        "properties": {
-          "agentId": {
-            "type": "string",
-            "format": "uuid",
-            "description": "Agent identifier",
-            "example": "bc14567e-ed3b-4c63-a8e2-ed36dd8da425"
-          },
-          "orgId": {
-            "type": "string",
-            "format": "uuid",
-            "description": "Organization identifier",
-            "example": "b14d35ab-6628-44e2-9b57-aca1ab445e4e"
-          },
-          "eventType": {
-            "type": "string",
-            "description": "Event type",
-            "enum": [
-              "CUSTOM_EVENT"
-            ],
-            "example": "CUSTOM_EVENT"
-          },
-          "eventName": {
-            "type": "string",
-            "description": "Event name",
-            "enum": [
-              "GET_SUGGESTIONS"
-            ],
-            "example": "GET_SUGGESTIONS"
-          },
-          "eventDetails": {
-            "type": "object",
-            "description": "Additional event-specific fields",
-            "required": [
-              "data"
-            ],
-            "properties": {
-              "data": {
-                "type": "object",
-                "required": [
-                  "interactionId",
-                  "actionTimeStamp",
-                  "trackingId",
-                  "languageCode"
-                ],
-                "properties": {
-                  "interactionId": {
-                    "type": "string",
-                    "format": "uuid",
-                    "description": "Interaction identifier",
-                    "example": "d3e2ebf5-a712-4a58-ab18-e5a7e2249831"
-                  },
-                  "actionTimeStamp": {
-                    "type": "integer",
-                    "format": "int64",
-                    "description": "Epoch milliseconds when the action occurred",
-                    "example": 1767688018000
-                  },
-                  "trackingId": {
-                    "type": "string",
-                    "description": "Tracking identifier for correlating requests",
-                    "example": "12345"
-                  },
-                  "languageCode": {
-                    "type": "string",
-                    "description": "BCP-47 language tag",
-                    "example": "en-US"
-                  },
-                  "aiAssistantSkillId": {
-                    "type": "string",
-                    "description": "Required only for WxCCE/CCE",
-                    "example": "784b097daf4a15daead67a22"
-                  },
-                  "source": {
-                    "type": "string",
-                    "description": "Identifies the source of the request - WxCC/WxCCE/CCE/etc. Required only for WxCCE/CCE",
-                    "example": "CCE"
-                  }
-                }
-              }
-            },
-            "example": {
-              "data": {
-                "interactionId": "d3e2ebf5-a712-4a58-ab18-e5a7e2249831",
-                "actionTimeStamp": 1767688018000,
-                "aiAssistantSkillId": "784b097daf4a15daead67a22",
-                "trackingId": "12345",
-                "languageCode": "en-US",
-                "source": "CCE"
-              }
-            }
-          }
-        },
-        "example": {
-          "agentId": "aa14567e-ed3b-4c63-a8e2-ed36dd8da425",
-          "orgId": "a04d35ab-6628-44e2-9b57-aca1ab445e4e",
-          "eventType": "CUSTOM_EVENT",
-          "eventName": "GET_SUGGESTIONS",
-          "eventDetails": {
-            "data": {
-              "interactionId": "d3e2ebf5-a712-4a58-ab18-e5a7e2249831",
-              "actionTimeStamp": 1767688018000,
-              "aiAssistantSkillId": "784b097daf4a15daead67a22",
-              "trackingId": "12345",
-              "languageCode": "en-US",
-              "source": "CCE"
-            }
           }
         }
       },

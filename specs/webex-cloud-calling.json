@@ -2819,6 +2819,7 @@
               "example": {
                 "destination": "+12223334444",
                 "endpointId": "Y2lzY29z...",
+                "singleNumberReachPhoneNumber": "+12223334444",
                 "lineOwnerId": "Y2lzY29z..."
               },
               "schema": {
@@ -2835,7 +2836,12 @@
                   "endpointId": {
                     "type": "string",
                     "example": "Y2lzY29z...",
-                    "description": "The ID of the device or application to use for the call. The `endpointId` must be one of the endpointIds returned by the [Get Preferred Answer Endpoint API](/docs/api/v1/user-call-settings-2-2/get-preferred-answer-endpoint)."
+                    "description": "The ID of the device or application to use for the call. The `endpointId` must be one of the endpointIds returned by the [Get Preferred Answer Endpoint API](/docs/api/v1/user-call-settings-2-2/get-preferred-answer-endpoint). Mutually exclusive with `singleNumberReachPhoneNumber`."
+                  },
+                  "singleNumberReachPhoneNumber": {
+                    "type": "string",
+                    "example": "+12223334444",
+                    "description": "The Single Number Reach phone number to use for the call. Mutually exclusive with `endpointId`."
                   },
                   "lineOwnerId": {
                     "type": "string",
@@ -3983,6 +3989,7 @@
               "example": {
                 "destination": "1000",
                 "endpointId": "Y2lzY29z...",
+                "singleNumberReachPhoneNumber": "+12223334444",
                 "lineOwnerId": "Y2lzY29z..."
               },
               "schema": {
@@ -3996,7 +4003,12 @@
                   "endpointId": {
                     "type": "string",
                     "example": "Y2lzY29z...",
-                    "description": "The ID of the device or application to use for the retrieval. The `endpointId` must be one of the endpointIds returned by the [Get Preferred Answer Endpoint API](/docs/api/v1/user-call-settings-2-2/get-preferred-answer-endpoint)."
+                    "description": "The ID of the device or application to use for the retrieval. The `endpointId` must be one of the endpointIds returned by the [Get Preferred Answer Endpoint API](/docs/api/v1/user-call-settings-2-2/get-preferred-answer-endpoint). Mutually exclusive with `singleNumberReachPhoneNumber`."
+                  },
+                  "singleNumberReachPhoneNumber": {
+                    "type": "string",
+                    "example": "+12223334444",
+                    "description": "The Single Number Reach phone number to use for the retrieval. Mutually exclusive with `endpointId`."
                   },
                   "lineOwnerId": {
                     "type": "string",
@@ -4648,6 +4660,7 @@
               "example": {
                 "target": "1000",
                 "endpointId": "Y2lzY29z...",
+                "singleNumberReachPhoneNumber": "+12223334444",
                 "lineOwnerId": "Y2lzY29z..."
               },
               "schema": {
@@ -4661,7 +4674,12 @@
                   "endpointId": {
                     "type": "string",
                     "example": "Y2lzY29z...",
-                    "description": "The ID of the device or application to use for the pickup. The `endpointId` must be one of the endpointIds returned by the [Get Preferred Answer Endpoint API](/docs/api/v1/user-call-settings-2-2/get-preferred-answer-endpoint)."
+                    "description": "The ID of the device or application to use for the pickup. The `endpointId` must be one of the endpointIds returned by the [Get Preferred Answer Endpoint API](/docs/api/v1/user-call-settings-2-2/get-preferred-answer-endpoint). Mutually exclusive with `singleNumberReachPhoneNumber`."
+                  },
+                  "singleNumberReachPhoneNumber": {
+                    "type": "string",
+                    "example": "+12223334444",
+                    "description": "The Single Number Reach phone number to use for the pickup. Mutually exclusive with `endpointId`."
                   },
                   "lineOwnerId": {
                     "type": "string",
@@ -4773,6 +4791,7 @@
               "example": {
                 "target": "1000",
                 "endpointId": "Y2lzY29z...",
+                "singleNumberReachPhoneNumber": "+12223334444",
                 "lineOwnerId": "Y2lzY29z..."
               },
               "schema": {
@@ -4789,7 +4808,12 @@
                   "endpointId": {
                     "type": "string",
                     "example": "Y2lzY29z...",
-                    "description": "The ID of the device or application to use for the barge-in. The `endpointId` must be one of the endpointIds returned by the [Get Preferred Answer Endpoint API](/docs/api/v1/user-call-settings-2-2/get-preferred-answer-endpoint)."
+                    "description": "The ID of the device or application to use for the barge-in. The `endpointId` must be one of the endpointIds returned by the [Get Preferred Answer Endpoint API](/docs/api/v1/user-call-settings-2-2/get-preferred-answer-endpoint). Mutually exclusive with `singleNumberReachPhoneNumber`."
+                  },
+                  "singleNumberReachPhoneNumber": {
+                    "type": "string",
+                    "example": "+12223334444",
+                    "description": "The Single Number Reach phone number to use for the barge-in. Mutually exclusive with `endpointId`."
                   },
                   "lineOwnerId": {
                     "type": "string",
@@ -5588,7 +5612,8 @@
             "application/json": {
               "example": {
                 "destination": "+12223334444",
-                "endpointId": "Y2lzY29z..."
+                "endpointId": "Y2lzY29z...",
+                "singleNumberReachPhoneNumber": "+12223334444"
               },
               "schema": {
                 "type": "object",
@@ -5604,7 +5629,12 @@
                   "endpointId": {
                     "type": "string",
                     "example": "Y2lzY29z...",
-                    "description": "The ID of the device or application to use for the call. The `endpointId` must be one of the endpointIds returned by the [Get Preferred Answer Endpoint API](/docs/api/v1/user-call-settings-2-2/get-preferred-answer-endpoint)."
+                    "description": "The ID of the device or application to use for the call. The `endpointId` must be one of the endpointIds returned by the [Get Preferred Answer Endpoint API](/docs/api/v1/user-call-settings-2-2/get-preferred-answer-endpoint). Mutually exclusive with `singleNumberReachPhoneNumber`."
+                  },
+                  "singleNumberReachPhoneNumber": {
+                    "type": "string",
+                    "example": "+12223334444",
+                    "description": "The Single Number Reach phone number to use for the call. Mutually exclusive with `endpointId`."
                   }
                 }
               }
@@ -39618,7 +39648,9 @@
                     "effectiveValue": "+18164196065",
                     "quality": "RECOMMENDED",
                     "memberType": "PLACE"
-                  }
+                  },
+                  "elinEnabled": false,
+                  "elinForWebexAppEnabled": false
                 }
               }
             }
@@ -39782,10 +39814,12 @@
             "application/json": {
               "example": {
                 "selected": "LOCATION_MEMBER_NUMBER",
-                "locationMemberId": "Y2lzY29zcGFyazovL3VzL1BMQUNFLzExYTNmOTkwLWE2ODktNDc3ZC1iZTZiLTcxMjAwMjVkOGFiYg"
+                "locationMemberId": "Y2lzY29zcGFyazovL3VzL1BMQUNFLzExYTNmOTkwLWE2ODktNDc3ZC1iZTZiLTcxMjAwMjVkOGFiYg",
+                "elinEnabled": false,
+                "elinForWebexAppEnabled": false
               },
               "schema": {
-                "$ref": "#/components/schemas/PutECBNObject"
+                "$ref": "#/components/schemas/PutPersonECBNObject"
               }
             }
           }
@@ -39924,7 +39958,8 @@
                     "effectiveValue": "+18164196065",
                     "quality": "RECOMMENDED",
                     "memberType": "PLACE"
-                  }
+                  },
+                  "elinEnabled": true
                 }
               }
             }
@@ -40088,10 +40123,11 @@
             "application/json": {
               "example": {
                 "selected": "LOCATION_MEMBER_NUMBER",
-                "locationMemberId": "Y2lzY29zcGFyazovL3VzL1BMQUNFLzExYTNmOTkwLWE2ODktNDc3ZC1iZTZiLTcxMjAwMjVkOGFiYg"
+                "locationMemberId": "Y2lzY29zcGFyazovL3VzL1BMQUNFLzExYTNmOTkwLWE2ODktNDc3ZC1iZTZiLTcxMjAwMjVkOGFiYg",
+                "elinEnabled": true
               },
               "schema": {
-                "$ref": "#/components/schemas/PutECBNObject"
+                "$ref": "#/components/schemas/PutWorkspaceECBNObject"
               }
             }
           }
@@ -64645,7 +64681,8 @@
                     "effectiveValue": "+12145551767",
                     "quality": "RECOMMENDED"
                   },
-                  "selected": "LOCATION_MEMBER_NUMBER"
+                  "selected": "LOCATION_MEMBER_NUMBER",
+                  "elinExpiryTimeMinutes": 60
                 }
               }
             }
@@ -64809,7 +64846,8 @@
             "application/json": {
               "example": {
                 "selected": "LOCATION_MEMBER_NUMBER",
-                "locationMemberId": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9hOTc0MzVjZi0zYTZmLTRmNGYtOWU1OC00OTI2OTQ5MDkwMWY"
+                "locationMemberId": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9hOTc0MzVjZi0zYTZmLTRmNGYtOWU1OC00OTI2OTQ5MDkwMWY",
+                "elinExpiryTimeMinutes": 90
               },
               "schema": {
                 "$ref": "#/components/schemas/PutLocationCallBackNumberObject"
@@ -137632,6 +137670,11 @@
               }
             },
             "description": "Gives Emergency Callback Number effective value when none of the above is assigned or some other value is set behind the scene."
+          },
+          "elinEnabled": {
+            "type": "boolean",
+            "example": false,
+            "description": "Indicates whether this workspace is allowed to use an Emergency Location Identification Number (ELIN) for emergency calls made from one of its devices."
           }
         }
       },
@@ -137819,6 +137862,16 @@
               }
             },
             "description": "Gives Emergency Callback Number effective value when none of the above is assigned or some other value is set behind the scene."
+          },
+          "elinEnabled": {
+            "type": "boolean",
+            "example": false,
+            "description": "Indicates whether this person is allowed to use an Emergency Location Identification Number (ELIN) for emergency calls made from one of their devices."
+          },
+          "elinForWebexAppEnabled": {
+            "type": "boolean",
+            "example": false,
+            "description": "Indicates whether this person is allowed to use an Emergency Location Identification Number (ELIN) for emergency calls made using Webex App."
           }
         }
       },
@@ -137842,6 +137895,49 @@
           "dependentMemberCount": {
             "type": "number",
             "description": "Number of members using this person as their emergency callback number."
+          }
+        }
+      },
+      "PutWorkspaceECBNObject": {
+        "type": "object",
+        "properties": {
+          "selected": {
+            "$ref": "#/components/schemas/CallBackSelectedPatch",
+            "description": "The source from which the emergency calling line ID (CLID) is selected for an actual emergency call."
+          },
+          "locationMemberId": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL1BMQUNFLzExYTNmOTkwLWE2ODktNDc3ZC1iZTZiLTcxMjAwMjVkOGFiYg",
+            "description": "Member ID of person/workspace/virtual line/hunt group within the location. Required when `selected` is `LOCATION_MEMBER_NUMBER`."
+          },
+          "elinEnabled": {
+            "type": "boolean",
+            "example": false,
+            "description": "Indicates whether this workspace is allowed to use an Emergency Location Identification Number (ELIN) for emergency calls made from one of its devices."
+          }
+        }
+      },
+      "PutPersonECBNObject": {
+        "type": "object",
+        "properties": {
+          "selected": {
+            "$ref": "#/components/schemas/CallBackSelectedPatch",
+            "description": "The source from which the emergency calling line ID (CLID) is selected for an actual emergency call."
+          },
+          "locationMemberId": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL1BMQUNFLzExYTNmOTkwLWE2ODktNDc3ZC1iZTZiLTcxMjAwMjVkOGFiYg",
+            "description": "Member ID of person/workspace/virtual line/hunt group within the location. Required when `selected` is `LOCATION_MEMBER_NUMBER`."
+          },
+          "elinEnabled": {
+            "type": "boolean",
+            "example": false,
+            "description": "Indicates whether this person is allowed to use an Emergency Location Identification Number (ELIN) for emergency calls made from one of their devices."
+          },
+          "elinForWebexAppEnabled": {
+            "type": "boolean",
+            "example": false,
+            "description": "Indicates whether this member is allowed to use an Emergency Location Identification Number (ELIN) for emergency calls made using Webex App."
           }
         }
       },
@@ -149057,7 +149153,8 @@
         "required": [
           "locationInfo",
           "locationMemberInfo",
-          "selected"
+          "selected",
+          "elinExpiryTimeMinutes"
         ],
         "properties": {
           "locationInfo": {
@@ -149143,6 +149240,11 @@
           "selected": {
             "$ref": "#/components/schemas/CallBackSelected",
             "description": "Selected number type to configure emergency call back."
+          },
+          "elinExpiryTimeMinutes": {
+            "type": "integer",
+            "example": 120,
+            "description": "ELIN (Emergency Location Identification Number) provides location-specific callback information to emergency responders. This field indicates the time in minutes that the ELIN association remains active after being established. The default value is 60 minutes, and the valid values range from 10 to 1440 minutes."
           }
         }
       },
@@ -149509,6 +149611,11 @@
             "type": "string",
             "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9hOTc0MzVjZi0zYTZmLTRmNGYtOWU1OC00OTI2OTQ5MDkwMWY",
             "description": "Member ID of user/place/virtual line/hunt group within the location. Required if `LOCATION_MEMBER_NUMBER` is selected."
+          },
+          "elinExpiryTimeMinutes": {
+            "type": "integer",
+            "example": 90,
+            "description": "ELIN (Emergency Location Identification Number) provides location-specific callback information to emergency responders. This field indicates the time in minutes that the ELIN association remains active after being established. Valid values are between 10 and 1440 minutes."
           }
         }
       },

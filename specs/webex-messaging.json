@@ -1433,7 +1433,7 @@
         ]
       }
     },
-    "/hds/organizations/{organizationId}/database/details": {
+    "/hds/organizations/{organizationId}/database": {
       "get": {
         "responses": {
           "200": {
@@ -1445,17 +1445,11 @@
                   "$ref": "#/components/schemas/databaseDetailsResponse"
                 },
                 "example": {
-                  "items": [
-                    {
-                      "orgId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJVGNG",
-                      "databases": [
-                        {
-                          "databaseType": "PostgreSQL",
-                          "databaseVersion": "PostgreSQL 16.9 (Ubuntu 16.9-1.pgdg24.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0, 64-bit"
-                        }
-                      ]
-                    }
-                  ]
+                  "context": {
+                    "orgId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJVGNG"
+                  },
+                  "databaseType": "PostgreSQL",
+                  "databaseVersion": "PostgreSQL 16.9 (Ubuntu 16.9-1.pgdg24.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0, 64-bit"
                 }
               }
             }
@@ -1526,7 +1520,7 @@
         ]
       }
     },
-    "/hds/organizations/{organizationId}/multiTenant": {
+    "/hds/organizations/{organizationId}/tenants": {
       "get": {
         "responses": {
           "200": {
@@ -1538,23 +1532,21 @@
                   "$ref": "#/components/schemas/multiTenantHDSOrgDetailsResponse"
                 },
                 "example": {
-                  "items": [
+                  "context": {
+                    "partnerOrgId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJVGNG"
+                  },
+                  "tenants": [
                     {
-                      "partnerOrgId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJVGNG",
-                      "tenants": [
-                        {
-                          "tenantOrgId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFCGCGCGH",
-                          "tenantName": "Tenant Org A",
-                          "cmkState": "CMK Managed",
-                          "tenantOrgState": "Setup complete"
-                        },
-                        {
-                          "tenantOrgId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTVHHHFJYJYJKT",
-                          "tenantName": "Tenant Org B",
-                          "cmkState": "CMK Management pending",
-                          "tenantOrgState": "Setup incomplete"
-                        }
-                      ]
+                      "tenantOrgId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFCGCGCGH",
+                      "tenantOrgName": "Tenant Org A",
+                      "cmkState": "CMK Managed",
+                      "tenantOrgState": "Setup complete"
+                    },
+                    {
+                      "tenantOrgId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTVHHHFJYJYJKT",
+                      "tenantOrgName": "Tenant Org B",
+                      "cmkState": "CMK Management pending",
+                      "tenantOrgState": "Setup incomplete"
                     }
                   ]
                 }
@@ -17701,35 +17693,17 @@
       "databaseDetailsResponse": {
         "type": "object",
         "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/databaseDetailsItems"
+          "context": {
+            "type": "object",
+            "properties": {
+              "orgId": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8yYzNjOWY5NS03M2Q5LTQ0NjAtYTY2OC0wNDcxNjJmZjFiYWQ=",
+                "description": "Unique ID of the organization."
+              }
             },
-            "description": "Response for database details API"
-          }
-        }
-      },
-      "databaseDetailsItems": {
-        "type": "object",
-        "properties": {
-          "orgId": {
-            "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8yYzNjOWY5NS03M2Q5LTQ0NjAtYTY2OC0wNDcxNjJmZjFiYWQ=",
-            "description": "Unique ID of the organization."
+            "description": "Context for the response payload."
           },
-          "databases": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/databaseDetails"
-            },
-            "description": "List of databases in the organization."
-          }
-        }
-      },
-      "databaseDetails": {
-        "type": "object",
-        "properties": {
           "databaseType": {
             "type": "string",
             "example": "PostgreSQL",
@@ -17745,22 +17719,16 @@
       "multiTenantHDSOrgDetailsResponse": {
         "type": "object",
         "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/multiTenantHDSOrgDetailsItems"
+          "context": {
+            "type": "object",
+            "properties": {
+              "partnerOrgId": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJjYWUwZTEwZjpiMzdmNTgzYy1kZGRjLTQyOGItODJlNS1jYmU2ODFkYjQ5NjI",
+                "description": "Unique ID of the partner organization."
+              }
             },
-            "description": "Response for multi-tenant HDS organization details API"
-          }
-        }
-      },
-      "multiTenantHDSOrgDetailsItems": {
-        "type": "object",
-        "properties": {
-          "partnerOrgId": {
-            "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJjYWUwZTEwZjpiMzdmNTgzYy1kZGRjLTQyOGItODJlNS1jYmU2ODFkYjQ5NjI",
-            "description": "Unique ID of the partner organization."
+            "description": "Metadata information about the response payload."
           },
           "tenants": {
             "type": "array",
