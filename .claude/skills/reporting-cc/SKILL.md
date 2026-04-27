@@ -27,7 +27,7 @@ If you cannot answer both, read `docs/reference/contact-center-analytics.md` bef
 wxcli whoami
 ```
 
-CC APIs require CC-scoped OAuth. If the token lacks CC scopes, the user needs to re-authenticate with a CC-scoped integration.
+CC APIs require CJP scopes (`cjp:config_read` / `cjp:config_write`). Two options: **OAuth Integration** (user-facing apps, interactive login) or **Service App** (production automation, no interactive login needed). If the token lacks CC scopes, the user needs to re-authenticate with one of these.
 
 Verify region is set:
 ```bash
@@ -233,7 +233,7 @@ print(f'Longest wait: {wait}s in queue {name}')
 
 ## Critical Rules
 
-1. **CC-scoped OAuth required.** Standard admin tokens get 403. Must use `cjp:config_read` / `cjp:config_write`.
+1. **CC-scoped OAuth or Service App required.** Standard admin tokens get 403. Must use `cjp:config_read` / `cjp:config_write` — via OAuth Integration or Service App (both supported).
 2. **Region must be set.** CC APIs route to regional endpoints. Default is us1.
 3. **Response shapes vary.** CC APIs may return objects or arrays. Recipes handle both with `isinstance` checks.
 4. **Field names vary.** Different CC API versions use different field names (e.g., `avgWaitTime` vs `averageWaitTime`). Recipes use fallbacks with `x.get('field1', x.get('field2', 0))`.
