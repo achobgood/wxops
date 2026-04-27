@@ -59,11 +59,19 @@ If this returns 403, the token lacks CC-specific OAuth scopes. Required scopes:
 
 The user may need to re-authenticate with CC scopes enabled.
 
-> **WARNING:** Personal access tokens (PATs) from developer.webex.com do NOT carry CC scopes, even for full admins. If you get 403 "Access denied - Client is forbidden access to the resource" with a `ccconfig_` tracking ID, the token lacks CC scopes. You must:
+> **WARNING:** Personal access tokens (PATs) from developer.webex.com do NOT carry CC scopes, even for full admins. If you get 403 "Access denied - Client is forbidden access to the resource" with a `ccconfig_` tracking ID, the token lacks CC scopes. Two options:
+>
+> **Option A — OAuth Integration** (user-facing apps):
 > 1. Create an OAuth integration at developer.webex.com with `cjp:config_read` and `cjp:config_write` scopes selected
 > 2. Complete the OAuth authorization flow to get a token
 > 3. Run `wxcli configure` with the new token
 > 4. If you added scopes to an existing integration, you must re-authorize — old tokens don't pick up new scopes
+>
+> **Option B — Service App** (production automation, no interactive login):
+> 1. Create a Service App at developer.webex.com with `cjp:config_read` and `cjp:config_write` scopes (all CC scopes work except `spark:applications_token` and `spark:kms`)
+> 2. Have a Full Admin authorize the app in Control Hub → Management → Apps → Service Apps
+> 3. Generate tokens in the developer portal (Access Token: 14-day, Refresh Token: 90-day)
+> 4. Run `wxcli configure` with the access token
 
 > **Note:** The CC API requires the bare UUID org ID (e.g., `a9527d60-...`), not the base64-encoded Spark ID (`Y2lzY29...`). The CLI handles this automatically via `get_cc_org_id()`, which decodes the Spark ID to extract the UUID. No manual conversion is needed.
 

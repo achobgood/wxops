@@ -1592,9 +1592,13 @@ For teardown, reverse this order.
 
 22. **`desktopLabel` required when `agentViewable` is true.** Creating or updating a Global Variable with `agentViewable: true` fails unless `desktopLabel` is also provided. This dependency is not documented in the API spec's required fields list.
 
-23. **Personal access tokens lack CC scopes.** PATs from developer.webex.com do NOT carry `cjp:config_read` or `cjp:config_write`, even for full admins on CC-provisioned orgs. CC config operations require an OAuth integration with CC scopes explicitly selected, plus completing the OAuth authorization flow after adding the scopes. Adding scopes to an existing integration does not update previously issued tokens — you must re-authorize.
+23. **Personal access tokens lack CC scopes.** PATs from developer.webex.com do NOT carry `cjp:config_read` or `cjp:config_write`, even for full admins on CC-provisioned orgs. Two options for CC config operations: (a) **OAuth integration** — select CC scopes explicitly and complete the OAuth authorization flow; adding scopes to an existing integration does not update previously issued tokens, you must re-authorize; (b) **Service App with CJP scopes** — recommended for production automation and server-to-server use; no interactive login required after the org admin authorizes the app, making it suitable for CI/CD pipelines and backend services. Note: all CC integration scopes work with Service Apps except `spark:applications_token` and `spark:kms`.
 
 24. **Global Variable names are immutable.** The CC API returns 400 `"name: should not be modified"` if you attempt to change the `name` field via PUT update. To rename a variable, delete and recreate it. Note that any flows referencing the old variable ID will need to be updated.
+
+25. **Flow Designer HTTP Connector handles auth and base URL automatically.** The CC HTTP Connector (created in Control Hub → Contact Center → Integrations → Connectors) stores the regional base URL and auth tokens for you. In the Flow Designer HTTP Request node, provide only the **request path**, not the full URL — e.g., `/organization/{orgid}/cad-variable` for Global Variables or `/search` for the Search API. Toggle "Use Authenticated Endpoint" and select the connector; no manual token management is needed in flows. When creating the connector, choose the access level: Read-Only (GET) or Read-Write (POST/PUT/DELETE).
+
+26. **Derive the CC regional base URL from the access token.** The Webex access token has three underscore-separated parts: `token.split('_')` → `[accessToken, ciCluster, orgId]`. The middle segment (`ciCluster`) maps directly to the regional base URL: `https://api.wxcc-{ciCluster}.cisco.com`. Available regions: `us1`, `eu1`, `eu2`, `anz1`, `ca1`, `jp1`, `sg1`. This is useful for production apps that need to determine the correct CC API endpoint dynamically without hardcoding a region.
 
 ---
 

@@ -229,6 +229,7 @@ Not all scopes work with service apps:
 | CDR records | Cannot query |
 | Meeting scopes | Limited to `adminOnBehalf` functions (require `hostEmail` parameter) |
 | Compliance scopes (`spark-compliance:*`) | Require Full Admin with Compliance Officer role |
+| CJP scopes (`cjp:config_read`, `cjp:config_write`) | **Supported.** Select them at app creation in the developer portal. Confirmed by Cisco's "Introducing Service Apps for Webex Contact Center" blog post. `spark:applications_token` and `spark:kms` are NOT available for CC service apps — those require a separate OAuth integration. |
 | Scope string length | Limited to ~880 characters total — only request what you need |
 
 ### Authentication Flow
@@ -307,6 +308,26 @@ The SDK example caches tokens to a YML file keyed by `client_id` to avoid unnece
 if tokens.expires_in is not None and tokens.remaining < 24 * 60 * 60:
     tokens = get_access_token(client_id=client_id, client_secret=client_secret, refresh=refresh)
 ```
+
+### Region Extraction from Token
+
+Webex access tokens encode the CI (Common Identity) cluster and org ID directly in the token string. A production app can extract both without a separate API call:
+
+```python
+parts = access_token.split('_')
+# parts[0] = the access token value
+# parts[1] = ciCluster (e.g. "us1", "eu1", "us2")
+# parts[2] = orgId (base64-encoded Spark ID)
+ci_cluster = parts[1]
+```
+
+This is especially important for **Contact Center APIs**, which use a regional base URL rather than `webexapis.com`:
+
+```
+https://api.wxcc-{ciCluster}.cisco.com
+```
+
+For example, a token from a US org with `ciCluster = "us1"` hits `https://api.wxcc-us1.cisco.com`. The `get_cc_org_id()` helper in `wxcli/config.py` performs both the cluster extraction and the org ID decoding.
 
 ---
 
@@ -871,6 +892,7 @@ The SDK masks `Authorization` headers as `Bearer ***` and redacts `access_token`
 | Chatbot responding to messages | Bot Token | Does not expire, but limited calling access |
 | One-off script during development | Personal Access Token or `WEBEX_ACCESS_TOKEN` env var | Use env var to avoid token in source code |
 | CI/CD pipeline | Service App | Store credentials in secrets manager |
+| Production CC app | Service App with CJP scopes | Select `cjp:config_read`/`cjp:config_write` at creation; regional base URL (`api.wxcc-{ciCluster}.cisco.com`) |
 
 ---
 
