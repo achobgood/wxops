@@ -13243,6 +13243,234 @@
         ]
       }
     },
+    "/xapi/schema": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "deviceId": {
+                        "type": "string",
+                        "example": "Y2lzY29zcGFyazovL3VzL0RFVklDRS8wNTVkYThiNy02NWI2LTQ5NjgtOTg1ZC02ZmFjODcwOWMyMDM",
+                        "description": "The unique identifier for the Webex RoomOS Device."
+                      },
+                      "status": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "object",
+                          "properties": {
+                            "schema": {
+                              "type": "object",
+                              "description": "JSON Schema describing the status value."
+                            }
+                          }
+                        },
+                        "description": "Status schemas keyed by status name."
+                      },
+                      "commands": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "object",
+                          "properties": {
+                            "arguments": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "object",
+                                "properties": {
+                                  "required": {
+                                    "type": "boolean",
+                                    "description": "Whether the argument is required."
+                                  },
+                                  "schema": {
+                                    "type": "object",
+                                    "description": "JSON Schema describing the argument value."
+                                  }
+                                }
+                              },
+                              "description": "Command arguments keyed by argument name."
+                            },
+                            "resultSchema": {
+                              "type": "object",
+                              "description": "JSON Schema describing the command result."
+                            },
+                            "bodySchema": {
+                              "type": "object",
+                              "properties": {
+                                "schema": {
+                                  "type": "object",
+                                  "description": "JSON Schema describing the command body."
+                                }
+                              },
+                              "description": "Schema for the command body."
+                            }
+                          }
+                        },
+                        "description": "Command schemas keyed by command name."
+                      }
+                    }
+                  }
+                },
+                "example": [
+                  {
+                    "deviceId": "Y2lzY29zcGFyazovL3VzL0RFVklDRS8wNTVkYThiNy02NWI2LTQ5NjgtOTg1ZC02ZmFjODcwOWMyMDM",
+                    "status": {
+                      "Conference.HideNonVideo.Active": {
+                        "schema": {
+                          "enum": [
+                            "True",
+                            "False"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "Network[1..n].Wifi.Noise": {
+                        "schema": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "commands": {
+                      "UserInterface.Extensions.Icon.Upload": {
+                        "arguments": {
+                          "Id": {
+                            "required": false,
+                            "schema": {
+                              "type": "string",
+                              "maxLength": 128,
+                              "minLength": 0
+                            }
+                          }
+                        },
+                        "resultSchema": {
+                          "type": [
+                            "object",
+                            "null"
+                          ]
+                        },
+                        "bodySchema": {
+                          "schema": {
+                            "type": [
+                              "object",
+                              "string"
+                            ],
+                            "maxLength": 4194304
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Query Schema",
+        "operationId": "Query Schema",
+        "description": "Query the schema for statuses and commands of Webex RoomOS Devices. You specify the target devices in the `deviceId` parameter in the URI. Querying command schemas requires the `spark:xapi_commands` scope and querying status schemas requires the `spark:xapi_statuses` scope.\n\nIf no `status` or `command` expressions are specified, the full schema is returned, including both status and command schemas. If you specify any expression, the response is limited to only the types you queried for. For example, if you provide a `status` expression but no `command` expression, only status schemas will be included in the result.\n\nSee the [xAPI section of the Device Developers Guide](/docs/api/guides/device-developers-guide#xapi) or the [xAPI Command Reference](https://roomos.cisco.com/xapi) for a description of status and command expressions.",
+        "tags": [
+          "xAPI"
+        ],
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "query",
+            "description": "A list of device IDs to query schemas from. A request can contain at most 5 device IDs.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0RFVklDRS8wNTVkYThiNy02NWI2LTQ5NjgtOTg1ZC02ZmFjODcwOWMyMDM",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL0RFVklDRS8wNTVkYThiNy02NWI2LTQ5NjgtOTg1ZC02ZmFjODcwOWMyMDM"
+              },
+              "description": "A list of device IDs to query schemas from. A request can contain at most 5 device IDs."
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "A list of status key expressions to query schemas for. Supports patterns. Requires the `spark:xapi_statuses` scope.",
+            "required": false,
+            "example": "Conference.*",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "example": "Conference.*"
+              },
+              "description": "A list of status key expressions to query schemas for. Supports patterns. Requires the `spark:xapi_statuses` scope."
+            }
+          },
+          {
+            "name": "command",
+            "in": "query",
+            "description": "A list of command key expressions to query schemas for. Supports patterns. Requires the `spark:xapi_commands` scope.",
+            "required": false,
+            "example": "UserInterface.*",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "example": "UserInterface.*"
+              },
+              "description": "A list of command key expressions to query schemas for. Supports patterns. Requires the `spark:xapi_commands` scope."
+            }
+          }
+        ]
+      }
+    },
     "/xapi/command/{commandName}": {
       "post": {
         "responses": {
