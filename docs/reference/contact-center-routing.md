@@ -1107,6 +1107,26 @@ All 98 endpoints across 15 CLI groups, grouped by resource.
 
 14. **Bulk operations use different patterns.** Config resources support `/bulk` (POST for bulk save) and `/bulk-export` (GET for bulk export). The bulk save `create` commands expect an `items` array with `requestAction` per item.
 
+15. **`/bulk-export` endpoints deprecated April 2026.** The GET `/bulk-export` endpoints for all config resources (dial plans, dial numbers, outdial ANI, contact numbers, overrides, audio files, and others) are deprecated in favor of the list endpoints. Prefer `list-dial-plan-v2`, `list-dial-number-v2`, etc. The `list-bulk-export` CLI commands remain in place until the endpoints are removed but should not be used in new code.
+
+16. **Posting JDS events from Flow Designer requires `workspaceId` as a query parameter.** Use an HTTP Request node with method POST and full absolute URL: `https://api.wxcc-us1.cisco.com/publish/v1/api/event?workspaceId={{CJDS_Workspace_ID}}`. The body does not contain `workspaceId` — it goes on the query string only. Minimum body:
+    ```json
+    {
+      "id": "{{DialedDNIS}}-{{CallerANI}}",
+      "specversion": "1.0",
+      "type": "custom:your_event_type",
+      "source": "wxcc_flow",
+      "identity": "{{CallerANI}}",
+      "identitytype": "phone",
+      "datacontenttype": "application/json",
+      "data": {}
+    }
+    ```
+
+17. **Flow Designer HTTP connector requires a full absolute URL.** Relative paths like `/publish/v1/api/event` return HTTP 500 "is not a valid HTTP URL". Always prefix with `https://api.wxcc-{region}.cisco.com`.
+
+18. **Use JDS alias lookup to detect returning callers in a flow.** Query `GET /admin/v1/api/person/workspace-id/{workspaceId}/aliases/{callerANI}` at flow entry. If the person exists and has prior events (events with timestamps before the current contact), they are a returning caller. If NOT_FOUND or no prior events, treat as first-time. WXCC writes ANI in E.164 format (`+19103915567`) — pass the number with `+1` prefix in the lookup or it will miss.
+
 ---
 
 ## 17. See Also

@@ -138,6 +138,8 @@ Content-Type: application/json
 
 ## 3. Auto CSAT
 
+> **Deprecated (April 2026).** The standalone Auto CSAT API is deprecated and will be removed in a future release. Use the consolidated `AI Feature` API (Section 2) instead. Existing configurations continue to work until removal is announced.
+
 CLI group: `wxcli cc-auto-csat` (8 commands)
 
 Auto CSAT (Customer Satisfaction) automates customer satisfaction scoring using AI analysis
@@ -680,10 +682,11 @@ Both v1 and v2 APIs are available — v2 adds enhanced event types.
 # List available event types (v2)
 wxcli cc-subscriptions list-event-types-v2
 
-# Register a subscription (v2)
+# Register a v2 subscription (uses resourceVersion, v2 event names)
 wxcli cc-subscriptions create-subscriptions --json-body '{
   "name": "Agent State Changes",
-  "eventTypes": ["agent:state_change"],
+  "eventTypes": ["agent:channel_state_change"],
+  "resourceVersion": "agent:2.0.0",
   "callbackUrl": "https://example.com/cc-webhook"
 }'
 
@@ -695,7 +698,7 @@ wxcli cc-subscriptions show-subscriptions sub-001
 
 # Update subscription
 wxcli cc-subscriptions update-subscriptions sub-001 --json-body '{
-  "eventTypes": ["agent:state_change", "task:new"]
+  "eventTypes": ["agent:channel_state_change", "task:new"]
 }'
 
 # Delete subscription
@@ -716,7 +719,8 @@ Content-Type: application/json
 
 {
   "name": "Agent State Changes",
-  "eventTypes": ["agent:state_change"],
+  "eventTypes": ["agent:channel_state_change"],
+  "resourceVersion": "agent:2.0.0",
   "callbackUrl": "https://example.com/cc-webhook"
 }
 
@@ -1277,7 +1281,7 @@ All 122 endpoints across the 13 CLI groups. Regional base URL: `https://api.wxcc
 
 4. **The AI Assistant endpoint (POST `/event`) uses a generic path.** Easy to confuse with other event endpoints. The Journey data ingestion endpoint is POST `/publish/v1/api/event` — completely different path and purpose.
 
-5. **Subscriptions have v1 and v2 variants.** v2 adds enhanced event types. Use `list-event-types-v2` to see the full set of available events before registering subscriptions.
+5. **Subscriptions have v1 and v2 variants.** v2 adds enhanced event types and requires a `resourceVersion` field (e.g., `"resourceVersion": "agent:2.0.0"`) when creating subscriptions. Use `list-event-types-v2` to see the full set of available events. **Breaking rename in v2:** `agent:state_change` (v1 event name) is renamed to `agent:channel_state_change` — update subscriptions and webhook handlers when migrating to v2. v1.0.0 agent events are deprecated and supported until December 16, 2026.
 
 6. **Call monitoring uses `taskId` for most operations but `requestId` for delete.** The create-monitor endpoint returns a `requestId` which is needed to delete the monitoring session. The taskId-based endpoints (barge-in, hold, unhold, end) operate on the contact being monitored.
 
@@ -1298,6 +1302,35 @@ All 122 endpoints across the 13 CLI groups. Regional base URL: `https://api.wxcc
 14. **Regional base URL is required.** All CC API requests go to `https://api.wxcc-{region}.cisco.com`, not `https://webexapis.com`. Set the region with `wxcli set-cc-region <region>` (defaults to `us1`).
 
 15. **`orgId` is auto-injected.** For endpoints under `/organization/{orgid}/`, the orgId path parameter is automatically resolved from the saved config or the authenticated user's org. No manual `--org-id` flag is needed.
+
+16. **JDS alias lookup strips `+` but does not normalize the country code.** `9103915567`, `19103915567`, and `+19103915567` are three distinct aliases — they will not cross-match. WXCC writes ANI to JDS in E.164 format (e.g. `+19103915567`), so alias lookups from a flow should pass the number with `+1` prefix or they will miss.
+
+17. **Publish API requires `workspaceId` as a query parameter, not in the body.** POST `/publish/v1/api/event?workspaceId={workspaceId}`. The request body (`JourneyCloudEventModel`) has no `workspaceId` field — the workspace is resolved from the query param. The minimum required body fields are: `id`, `specversion`, `type`, `source`, `identity`, `identitytype`, `datacontenttype`, `data`. For Flow Designer usage see `contact-center-routing.md` gotchas #16–18.
+
+18. **Events are immutable — no delete endpoint exists.** The Publish API (`/publish/v1/api/event`) is write-only. The events read endpoints (`/v1/api/events/...`) are GET-only. Once an event is ingested it cannot be removed.
+
+19. **Events endpoint filter uses RSQL syntax.** Pass `?filter=type=='custom:store_verified'` to filter by event type. Plain strings return `BAD_REQUEST`. Other filterable fields include `identityType`. See the [RSQL syntax reference](https://github.com/perplexhub/rsql-jpa-specification#rsql-syntax-reference).
+
+20. **JDS person records are created near-instantly on first contact.** `journey-stream-profiles` processes the WXCC contact event and creates the person record within seconds of the call arriving. Treating 404 and "zero prior events" as equivalent first-time-caller signals is still correct for race condition safety, but in practice the record will be present by the time a flow's HTTP node queries it. For flow-level returning caller detection, see `contact-center-routing.md` gotcha #18.
+
+22. **`wxcli cc-journey show-workspace-id-events` had a missing `/v1/` prefix bug.** The generated command was hitting `/api/events/` instead of `/v1/api/events/`. Fixed in `src/wxcli/commands/cc_journey.py` lines 1138 and 1200.
+
+23. **Complete webhook event type taxonomy (22 types).** The full set of supported types for subscriptions:
+    - Agent (v1): `agent:login`, `agent:logout`, `agent:state_change`
+    - Agent (v2): `agent:login`, `agent:logout`, `agent:channel_state_change`, `agent:channelType_state_change`
+    - Capture: `capture:available`
+    - Task: `task:new`, `task:connect`, `task:connected`, `task:parked`, `task:on-hold`, `task:hold-done`, `task:consulting`, `task:consult-done`, `task:conferencing`, `task:conference-done`, `task:conference-transferred`, `task:ended`, `task:failed`, `task:origin-updated`
+    - Task message: `task-message:appended`, `task-message:append-failed`
+
+    v2 event data fields — **`agent:channel_state_change`**: `agentId`, `currentState` (idle/available/ringing/not-responding/connected/on-hold/hold-done/consulting/conferencing/consult-done/conference-done/wrapup/wrapup-done), `channelId`, `channelType` (telephony/email/chat/social), `destination`, `queueId`, `taskId`, `createdTime` (epoch ms), `idleCodeId`, `wrapUpAuxCodeId`, `teamId`.
+
+    **`agent:channelType_state_change`**: `agentId`, `currentState` (Available/Idle/Engaged/EngagedOther/WrapUp/Reserved/LoggedOut), `channelType`, `pendingIdleState` (boolean), `idleCodeName`, `teamId`, `createdTime`. Note: the `comciscotimestamp` CloudEvents envelope field is **only** present in `agent:channelType_state_change` events.
+
+24. **Queue Statistics and Agent Statistics REST APIs reach EOL March 31, 2027.** Both are deprecated in favor of the GraphQL Search API. Same auth scopes apply (`cjp:config` or `cjp:config_read`). Migrate before the EOL date.
+
+25. **Bulk export APIs deprecated April 2026.** The `/bulk-export` GET endpoints across 19 config resources (Address Book, Auxiliary Code, Business Hours, Desktop Layout, Skills, Teams, Users, and others) are deprecated. Use the corresponding list endpoints (`/v2/` or `/v3/` variants) instead. The `list-bulk-export` CLI commands for these resources will stop working after removal.
+
+26. **JDS admin operations require separate `cjds:` scopes.** The standard `cjp:config_read`/`cjp:config_write` scopes do NOT grant access to JDS admin APIs (`/admin/v1/api/...`). You also need `cjds:admin_org_read` and/or `cjds:admin_org_write` in your OAuth integration or Service App scopes. Without these, JDS workspace and person management calls return 403. The runtime profile view and event stream endpoints (`/v1/api/...`) may use the same token — check the exact scope requirements per endpoint.
 
 ---
 

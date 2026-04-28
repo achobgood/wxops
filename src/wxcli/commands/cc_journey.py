@@ -1135,7 +1135,7 @@ def show_workspace_id_events(
     """Historic Journey Events."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/api/events/workspace-id/{workspace_id}"
+    url = f"{cc_base_url}/v1/api/events/workspace-id/{workspace_id}"
     params = {}
     if identity is not None:
         params["identity"] = identity
@@ -1197,7 +1197,7 @@ def show_identity(
     """Stream Events By Identity."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/api/events/stream/workspace-id/{workspace_id}/identity/{identity}"
+    url = f"{cc_base_url}/v1/api/events/stream/workspace-id/{workspace_id}/identity/{identity}"
     params = {}
     if filter_param is not None:
         params["filter"] = filter_param

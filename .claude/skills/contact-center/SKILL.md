@@ -56,6 +56,7 @@ wxcli cc-site list -o json
 If this returns 403, the token lacks CC-specific OAuth scopes. Required scopes:
 - **Read**: `cjp:config_read`
 - **Write**: `cjp:config_write`
+- **JDS admin (Journey Data Service)**: `cjds:admin_org_read` and/or `cjds:admin_org_write` — required for `/admin/v1/api/...` JDS endpoints (workspace, person, template management). Standard `cjp:` scopes alone will not grant JDS admin access.
 
 The user may need to re-authenticate with CC scopes enabled.
 
@@ -726,6 +727,119 @@ wxcli cc-flow publish FLOW_ID PROJECT_ID --json-body '{
 
 ---
 
+### JDS (Journey Data Service) — Flow Designer Integration
+
+JDS tracks customer journey events. The two most common flow patterns are:
+
+**1. Detect returning caller at flow entry**
+
+Query JDS by CallerANI at the start of the flow using an HTTP Request node:
+
+```
+Method: GET
+URL: https://api.wxcc-{region}.cisco.com/admin/v1/api/person/workspace-id/{{CJDS_Workspace_ID}}/aliases/{{CallerANI}}
+Authorization: Bearer {{cc_oauth_token}}
+```
+
+- **200 + data array** → caller exists in JDS; check event history to determine if returning
+- **NOT_FOUND** → first-time caller (no prior contacts)
+- CallerANI must be E.164 with `+1` prefix — WXCC writes ANI that way, so `+19105551234`, not `9105551234`
+
+**2. Post a custom event from a flow**
+
+Use an HTTP Request node to record a business event (e.g., store verified, order looked up):
+
+```
+Method: POST
+URL: https://api.wxcc-{region}.cisco.com/publish/v1/api/event?workspaceId={{CJDS_Workspace_ID}}
+Authorization: Bearer {{cc_oauth_token}}
+Content-Type: application/json
+```
+
+Body:
+```json
+{
+  "id": "{{DialedDNIS}}-{{CallerANI}}",
+  "specversion": "1.0",
+  "type": "custom:your_event_type",
+  "source": "wxcc_flow",
+  "identity": "{{CallerANI}}",
+  "identitytype": "phone",
+  "datacontenttype": "application/json",
+  "data": {
+    "event": "your_event_type"
+  }
+}
+```
+
+> `workspaceId` goes on the query string — the body schema has no `workspaceId` field.
+> The URL must be a full absolute URL — relative paths return HTTP 500.
+> `id` must be unique per event (use a combination of flow variables to ensure uniqueness).
+> A successful post returns `"Accepted for processing"` — JDS ingests asynchronously.
+
+**Query events for a person (wxcli):**
+
+```bash
+wxcli cc-journey show-workspace-id-events WORKSPACE_ID --identity "+19105551234" --filter "type=='custom:your_event_type'" -o json
+```
+
+Filter uses RSQL syntax. Omit `--filter` to return all events for that identity.
+
+---
+
+### SCIM User Lookup from Flow Designer
+
+Use this pattern to look up a Webex user's identity data (e.g. alternate phone number, userName, ID) from within a WxCC flow using HTTP Request nodes.
+
+**Authentication:** The SCIM API (`/identity/scim/`) requires `identity:people_read` scope — separate from `spark-admin:people_read`. PATs expire after 12 hours. For production use an OAuth Integration or Service App with `identity:people_read` explicitly selected at developer.webex.com.
+
+**Phone number types:** `work`, `mobile`, `fax`, `work_extension`, `alternate1`, `alternate2`
+
+---
+
+**Node 1 — Search by alternate1 phone number (DNIS)**
+
+Before this node, add a Set Variable node to strip the `+` from DNIS:
+
+```
+Variable: DNIS
+Expression: {{NewContact.DNIS | slice(1)}}
+```
+
+> `| slice(1)` works in WxCC Flow Designer. `| replace("+", "%2B")` does NOT — `+` is a regex special character and fails silently. `.substring(1)` also does not work.
+
+HTTP Request node config:
+- **Method:** GET
+- **URL:** `https://webexapis.com/identity/scim/{orgId}/v2/Users`
+- **Header:** `Authorization: Bearer {token}`
+- **Query param key:** `filter`
+- **Query param value:** `phoneNumbers%5Btype%20eq%20%22alternate1%22%20and%20value%20eq%20%22%2B{{DNIS}}%22%5D`
+- **Output variable:** `StoreUserPersonId` ← JSONPath: `$.Resources[0].id`
+
+Decoded filter: `phoneNumbers[type eq "alternate1" and value eq "+19197010928"]`
+
+Key syntax rules:
+- No space before `[` — `phoneNumbers[...]` not `phoneNumbers [...]`
+- `+` must be hardcoded as `%2B` in the filter — the SCIM server decodes bare `+` as a space, returning zero results
+- `phoneNumbers.value eq "..."` dot notation returns 400 and is not implemented despite being documented
+
+---
+
+**Node 2 — Get full user profile by ID**
+
+HTTP Request node config:
+- **Method:** GET
+- **URL:** `https://webexapis.com/identity/scim/{orgId}/v2/Users/{{StoreUserPersonId}}`
+- **Header:** `Authorization: Bearer {token}`
+- **Query param:** `attributes=id,userName,phoneNumbers` (optional — trims response)
+- **Output variable:** `StoreExtension` ← JSONPath: `$.phoneNumbers[?(@.type=='alternate1')].value`
+
+Response is the raw user object (no `Resources` wrapper), so JSONPath starts at `$.phoneNumbers` not `$.Resources[0].phoneNumbers`.
+
+The `[?(@.type=='alternate1')]` filter expression is supported in WxCC Flow Designer's JSONPath parser.
+
+---
+
 ### Auto CSAT
 
 **Show Auto CSAT configuration:**
@@ -997,7 +1111,7 @@ Next steps:
 11. **Campaign prerequisites are strict.** Campaigns require: contact list, outdial ANI, outbound entry point. Verify all three exist before starting a campaign.
 12. **Task commands are real-time agent operations.** `cc-tasks` commands (accept, hold, transfer, wrapup) operate on live calls. Confirm with the user before executing.
 13. **Monitoring is supervisor-only.** `cc-call-monitoring` commands require supervisor privileges. The authenticated user must have the CC supervisor role.
-14. **Journey API is complex.** `cc-journey` has 41 commands across workspaces, templates, persons, identities, and subscriptions. Read `docs/reference/contact-center-analytics.md` before using.
+14. **Journey API is complex.** `cc-journey` has 41 commands across workspaces, templates, persons, identities, and subscriptions. Read `docs/reference/contact-center-analytics.md` before using. Key gotchas: alias lookup is exact after stripping `+` (no country-code normalization); WXCC writes ANI in E.164 so lookups must use `+1` prefix; events are immutable (no delete); event filter uses RSQL syntax (`type=='custom:event_name'`); Publish API requires `workspaceId` as a query param not in the body. For posting events from Flow Designer, see `docs/reference/contact-center-routing.md` gotchas #16–18.
 15. **Cross-skill handoffs:**
     - Webex Calling features (AA, CQ, HG) → `configure-features` skill
     - Customer Assist (CX Essentials on Calling queues) → `customer-assist` skill
