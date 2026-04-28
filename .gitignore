@@ -56,3 +56,6 @@ run.log
 
 # Local one-off tools (not part of the CLI)
 tools/build_oncall_deck.py
+
+# README backup
+README.md.bak

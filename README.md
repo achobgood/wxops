@@ -1,6 +1,15 @@
 # wxcli — Webex Calling CLI
 
-A command-line tool for provisioning and managing Webex Calling environments. 166 command groups covering the full Webex Calling, admin, device, messaging, meetings, and contact center API surface.
+A command-line tool and AI-assisted playbook for provisioning, managing, migrating, and auditing Webex Calling environments. 173 command groups covering the full Webex Calling, admin, device, messaging, meetings, and contact center API surface.
+
+## What It Does
+
+- **173 CLI command groups** — provision locations, users, call features, devices, routing, PSTN, messaging, meetings, and contact center resources from the terminal
+- **AI-guided playbook** — a Claude Code agent that interviews you about what to build, generates a deployment plan, executes commands, and verifies results
+- **CUCM-to-Webex migration** — 11-phase pipeline: discover a CUCM cluster via AXL, normalize, map, analyze, generate decisions, plan, and execute the migration with an async concurrent engine
+- **Org health assessment** — 18 automated checks across security posture, routing hygiene, feature utilization, and device health with a self-contained HTML report
+- **Partner / multi-org support** — manage multiple customer orgs with a single partner token; 668 commands auto-inject the target `orgId`
+- **Batch cleanup** — dependency-safe teardown of an entire Webex Calling environment (or scoped to specific locations) with `--dry-run` support
 
 ## Install
 
@@ -25,10 +34,44 @@ export WEBEX_ACCESS_TOKEN="YOUR_TOKEN"
 wxcli whoami
 ```
 
-## Usage
+## Claude Code Playbook
+
+This repo includes an AI playbook for [Claude Code](https://claude.com/claude-code) that turns your terminal into a guided Webex Calling configuration assistant.
+
+### What is the Playbook?
+
+A guided AI assistant that walks you through Webex Calling configuration end-to-end. It interviews you about what you want to build, generates a deployment plan, executes `wxcli` commands on your behalf, and verifies the results. Think of it as a Webex Calling expert sitting next to you in the terminal.
+
+### What's Included
+
+- **1 builder agent** (`/agents` → wxc-calling-builder) — the main entry point that drives the full workflow
+- **25 specialized skills** covering: provisioning & teardown, call features, Customer Assist, routing, devices, device platform, call settings, call control, reporting (calling, meetings, contact center), identity/SCIM, licensing, audit/compliance, messaging spaces, messaging bots, meetings, video mesh, contact center, CUCM migration, org health, live query, and debugging
+- **50 reference docs** in `docs/reference/` documenting every Webex Calling API surface with SDK method signatures, raw HTTP examples, and gotchas
+- **Shared permissions** (`.claude/settings.json`) that pre-approve `wxcli` commands so Claude Code doesn't prompt you for every CLI execution
+
+### How to Use It
+
+1. Install [Claude Code](https://claude.com/claude-code)
+2. Clone this repo and `cd` into it
+3. Install the CLI: `pip install -e .`
+4. Run `claude` to start Claude Code
+5. Use `/agents` and select **wxc-calling-builder** to begin
+6. Or use `/wxc-calling-debug` to troubleshoot a specific issue
+
+The repo includes a `.claude/settings.json` that pre-approves common commands (`wxcli`, `pip install`, `which`). This means the playbook agent can run `wxcli` commands without prompting you for permission each time. You can review or customize these permissions in `.claude/settings.json`. Any personal overrides go in `.claude/settings.local.json` (gitignored).
+
+### Without Claude Code
+
+The AI playbook is optional — everything else works standalone:
+
+- **wxcli** is a regular Python CLI tool. Install it and use it directly.
+- The **50 reference docs** in `docs/reference/` are a comprehensive API knowledge base, useful for any developer working with Webex APIs.
+- The **7 OpenAPI specs** (`specs/webex-*.json`) can be imported into Postman or any API client.
+
+## CLI Reference
 
 ```bash
-# See all 166 command groups
+# See all 173 command groups
 wxcli --help
 
 # List calling-enabled locations
@@ -85,7 +128,6 @@ wxcli numbers list --location-id LOC_ID  # Get number inventory
 | `users` | Create, list, manage users |
 | `licenses` | List and inspect licenses |
 | `numbers` | Manage phone numbers |
-| `numbers` | Add, remove, validate numbers |
 | `location-schedules` | Business hours and holiday schedules |
 | `auto-attendant` | IVR menus with key-press routing |
 | `call-queue` | Hold callers until an agent is free |
@@ -110,8 +152,11 @@ wxcli numbers list --location-id LOC_ID  # Get number inventory
 | `call-recording` | Call recording settings |
 | `pstn` | PSTN connection management |
 | `cx-essentials` | Customer Assist (screen pop, wrap-up, supervisors) |
+| `cleanup` | Batch-delete resources in dependency-safe order |
 
-This table shows the most commonly used groups. Run `wxcli --help` to see all 166 groups, which also cover admin, device, messaging, meetings, and contact center APIs.
+This table shows the most commonly used groups. Run `wxcli --help` to see all 173 groups, which also cover admin, device, messaging, meetings, and contact center APIs.
+
+---
 
 ## CUCM-to-Webex Migration Tool
 
@@ -130,7 +175,16 @@ wxcli cucm report --brand "Acme Corp" \   # Generate HTML assessment report
   --prepared-by "Jane Admin" -p myproject
 ```
 
-The assessment report provides a complexity score, environment inventory, analog gateway review, and effort estimates — suitable for customer-facing delivery. See [`assessment-report-v3.html`](assessment-report-v3.html) for a sample report.
+The assessment report provides a complexity score, environment inventory, analog gateway review, and effort estimates — suitable for customer-facing delivery.
+
+### Additional Pipeline Outputs
+
+```bash
+wxcli cucm user-diff -p myproject         # Per-user before/after comparison
+wxcli cucm user-notice --brand "Acme" \   # Email-ready migration notice
+  --migration-date "2026-06-01" \
+  --helpdesk "help@acme.com" -p myproject
+```
 
 ### Execution
 
@@ -146,7 +200,7 @@ wxcli cucm execute -p myproject \         # Execute all operations concurrently
 
 The execution engine handles 409 auto-recovery (existing resources), cascade-skip (failed dependencies), and concurrent batch execution. A 561-operation stress test completes in ~90 seconds.
 
-### Architecture
+### Migration Architecture
 
 - **SQLite-backed store** with objects, cross-references, decisions, and journal
 - **42 normalizers** (Pass 1) + CrossReferenceBuilder (34 relationships)
@@ -156,53 +210,79 @@ The execution engine handles 409 auto-recovery (existing resources), cascade-ski
 - **NetworkX DAG** for dependency ordering and batch planning
 - **Async execution engine** with configurable concurrency
 
-See `docs/plans/cucm-migration-roadmap.md` for the full project status.
+---
+
+## Org Health Assessment
+
+An automated audit of a live Webex Calling org. Runs 18 deterministic checks across 4 categories and produces a self-contained HTML report.
+
+### Categories and Checks
+
+| Category | Checks |
+|----------|--------|
+| **Security Posture** | Unrestricted international dialing, no outgoing call restrictions, auto attendant external transfer enabled, call queues without recording |
+| **Routing Hygiene** | Empty dial plans, orphan route components (route groups/lists without trunks), trunk errors |
+| **Feature Utilization** | Disabled auto attendants, understaffed call queues, single-member hunt groups, empty voicemail groups, empty paging groups, empty call parks |
+| **Device Health** | Offline devices, users at device limit, unassigned devices, workspaces without devices, stale activation codes |
+
+### How to Run
+
+Via the Claude Code playbook:
+
+```
+/agents → wxc-calling-builder → "audit my org"
+```
+
+The builder agent orchestrates three phases: collect data via `wxcli`, analyze with the check engine, and generate the HTML report.
 
 ---
 
-## Claude Code Integration
+## Partner / Multi-Org Support
 
-This repo includes an AI playbook for [Claude Code](https://claude.com/claude-code) that turns your terminal into a guided Webex Calling configuration assistant.
+For partners, VARs, and MSPs managing multiple customer organizations with a single token.
 
-### What is the Playbook?
+```bash
+wxcli configure                   # Auto-detects multi-org token, prompts for org selection
+wxcli switch-org                  # Change the active target org
+wxcli clear-org                   # Revert to single-org behavior
+wxcli whoami                      # Shows "Target:" line when an org is set
+```
 
-A guided AI assistant that walks you through Webex Calling configuration end-to-end. It interviews you about what you want to build, generates a deployment plan, executes `wxcli` commands on your behalf, and verifies the results. Think of it as a Webex Calling expert sitting next to you in the terminal.
+668 of the generated commands auto-inject the selected `orgId` on endpoints that accept it — no extra flag required.
 
-### What's Included
+---
 
-- **1 builder agent** (`/agents` → wxc-calling-builder) — the main entry point that drives the full workflow
-- **22 specialized skills** covering: provisioning & teardown, call features, Customer Assist, routing, devices, device platform, call settings, call control, reporting (calling, meetings, contact center), identity/SCIM, licensing, audit/compliance, messaging spaces, messaging bots, meetings, video mesh, contact center, CUCM migration, and debugging
-- **48 reference docs** in `docs/reference/` documenting every Webex Calling API surface with SDK method signatures, raw HTTP examples, and gotchas
-- **Shared permissions** (`.claude/settings.json`) that pre-approve `wxcli` commands so Claude Code doesn't prompt you for every CLI execution
+## Cleanup
 
-### How to Use It
+Batch-delete Webex Calling resources in dependency-safe order (13 layers, reverse of creation order).
 
-1. Install [Claude Code](https://claude.com/claude-code)
-2. Clone this repo and `cd` into it
-3. Install the CLI: `pip install -e .`
-4. Run `claude` to start Claude Code
-5. Use `/agents` and select **wxc-calling-builder** to begin
-6. Or use `/wxc-calling-debug` to troubleshoot a specific issue
+```bash
+wxcli cleanup run --scope "San Jose,Austin"  # Specific locations only
+wxcli cleanup run --all                       # Entire org
+wxcli cleanup run --all --dry-run             # Preview without deleting
+```
 
-The repo includes a `.claude/settings.json` that pre-approves common commands (`wxcli`, `pip install`, `which`). This means the playbook agent can run `wxcli` commands without prompting you for permission each time. You can review or customize these permissions in `.claude/settings.json`. Any personal overrides go in `.claude/settings.local.json` (gitignored).
+**Flags:**
+- `--include-users` — also delete users (off by default)
+- `--include-locations` — also delete locations (off by default)
+- `--exclude-user-domains "wbx.ai,corp.com"` — protect users matching these email domains
+- `--max-concurrent N` — parallel deletions per layer (default 5)
+- `--force` — skip confirmation prompt
 
-### Without Claude Code
+**Deletion order:** dial plans → route lists → route groups → translation patterns → trunks → call features → schedules/operating modes → virtual lines → devices → workspaces → users → numbers → locations.
 
-The AI playbook is optional — everything else works standalone:
-
-- **wxcli** is a regular Python CLI tool. Install it and use it directly.
-- The **48 reference docs** in `docs/reference/` are a comprehensive API knowledge base, useful for any developer working with Webex APIs.
-- The **7 OpenAPI specs** (`specs/webex-*.json`) can be imported into Postman or any API client.
+---
 
 ## Project Architecture
 
 ```
-webexCalling/
-├── src/wxcli/                    # CLI source (Typer + wxc-sdk REST client)
-│   ├── main.py                   # Entry point — registers 166 command groups
+wxops/
+├── src/wxcli/                    # CLI source (Typer + httpx REST client)
+│   ├── main.py                   # Entry point — registers 173 command groups
 │   ├── auth.py                   # Token storage and API client init
 │   ├── output.py                 # Table/JSON output formatting
-│   ├── commands/                 # 166 generated command files (one per API group)
+│   ├── commands/                 # 173 generated command files (one per API group)
+│   ├── org_health/               # Org health assessment engine (18 checks → HTML report)
 │   └── migration/                # CUCM-to-Webex migration engine
 │       ├── cucm/                 # AXL extractors and discovery
 │       ├── transform/            # Normalizers, mappers, analyzers
@@ -217,10 +297,10 @@ webexCalling/
 │   └── field_overrides.yaml      # Table columns, display config, bug fixes
 ├── tests/                        # 2535 tests (pytest)
 ├── specs/                        # 7 OpenAPI 3.0 specs (calling, admin, device, messaging, meetings, CC, wholesale)
-├── docs/reference/               # 48 API reference docs (SDK + raw HTTP + gotchas)
+├── docs/reference/               # 50 API reference docs (SDK + raw HTTP + gotchas)
 ├── .claude/settings.json         # Shared permissions (pre-approves wxcli commands)
 ├── .claude/agents/               # Claude Code builder + migration advisor agents
-└── .claude/skills/               # 22 Claude Code skills
+└── .claude/skills/               # 25 Claude Code skills
 ```
 
 **Key design decisions:**
@@ -243,7 +323,7 @@ webexCalling/
 
 ### OAuth Scopes
 
-The CLI covers 166 command groups across calling, admin, device, messaging, meetings, and contact center APIs. Not all scopes are needed — request only those for the API domains you use.
+The CLI covers 173 command groups across calling, admin, device, messaging, meetings, and contact center APIs. Not all scopes are needed — request only those for the API domains you use.
 
 **Minimum scopes for Webex Calling admin operations:**
 
