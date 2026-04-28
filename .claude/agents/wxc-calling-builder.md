@@ -927,7 +927,8 @@ docs/reference/meetings-infrastructure.md    — Video Mesh clusters, nodes, hea
 ```
 docs/reference/contact-center-core.md        — agents, queues, entry points, teams, skills, desktop, configuration
 docs/reference/contact-center-routing.md     — dial plans, campaigns, flows, audio, contacts, outdial
-docs/reference/contact-center-analytics.md   — AI, journey, monitoring, subscriptions, tasks
+docs/reference/contact-center-analytics.md   — AI, monitoring, subscriptions, tasks, search
+docs/reference/contact-center-journey.md     — JDS: workspaces, persons, identity, profile views, events
 ```
 
 ### Cross-Cutting (on-demand only — load when debugging or using raw HTTP)

@@ -21,7 +21,7 @@ from the Contact Center OpenAPI spec.
 3. [Auto CSAT](#3-auto-csat)
 4. [Generated Summaries](#4-generated-summaries)
 5. [Agent Summaries](#5-agent-summaries)
-6. [Journey](#6-journey)
+6. [Journey (Moved)](#6-journey-moved) → [`contact-center-journey.md`](contact-center-journey.md)
 7. [Call Monitoring](#7-call-monitoring)
 8. [Realtime](#8-realtime)
 9. [Subscriptions](#9-subscriptions)
@@ -315,224 +315,13 @@ Content-Type: application/json
 
 ---
 
-## 6. Journey
+## 6. Journey (Moved)
 
-CLI group: `wxcli cc-journey` (41 commands)
+**JDS has been moved to its own reference doc: [`contact-center-journey.md`](contact-center-journey.md).**
 
-The Journey API (JDS — Journey Data Service) provides customer journey tracking, identity
-resolution, profile views, and event streaming. This is the largest group in the analytics
-surface, with 41 commands spanning 7 functional areas.
-
-**Important:** Journey workspaces are NOT Webex Calling workspaces. These are JDS workspaces
-that organize journey data, persons, templates, and actions.
-
-**Path families:**
-- Admin API: `/admin/v1/api/...` — workspace, person, template, and action management
-- Runtime API: `/v1/api/...` — live profile views, event streaming, identity operations
-- Publish API: `/publish/v1/api/...` — event ingestion
-
-### 6a. Workspace Management (5 commands)
-
-| CLI Command | HTTP | Description |
-|-------------|------|-------------|
-| `list` | GET `/admin/v1/api/workspace` | Get all workspaces |
-| `create-workspace` | POST `/admin/v1/api/workspace` | Create workspace |
-| `show-workspace-id-api` | GET `/admin/v1/api/workspace/workspace-id/{workspaceId}` | Get workspace |
-| `update-workspace-id` | PUT `/admin/v1/api/workspace/workspace-id/{workspaceId}` | Update workspace |
-| `delete` | DELETE `/admin/v1/api/workspace/workspace-id/{workspaceId}` | Delete workspace |
-
-```bash
-# List all JDS workspaces
-wxcli cc-journey list
-
-# Create a workspace
-wxcli cc-journey create-workspace --json-body '{"name": "Sales Journey"}'
-
-# Get workspace details
-wxcli cc-journey show-workspace-id-api ws-abc-123
-```
-
-### 6b. Person and Identity Management (10 commands)
-
-| CLI Command | HTTP | Description |
-|-------------|------|-------------|
-| `show-workspace-id-person` | GET `.../person/workspace-id/{workspaceId}` | Get person details |
-| `create-workspace-id-person` | POST `.../person/workspace-id/{workspaceId}` | Create a person |
-| `update-person-id-workspace-id` | PATCH `.../person/workspace-id/{wId}/person-id/{pId}` | Update person |
-| `delete-person-id` | DELETE `.../person/workspace-id/{wId}/person-id/{pId}` | Delete person |
-| `update-person-id-workspace-id-1` | PATCH `.../person/add-identities/workspace-id/{wId}/person-id/{pId}` | Add identities |
-| `update` | PATCH `/v1/api/person/remove-identities/...` | Remove identities (runtime) |
-| `update-person-id-workspace-id-2` | PATCH `.../person/remove-identities/workspace-id/{wId}/person-id/{pId}` | Remove identities (admin) |
-| `show-aliases` | GET `.../person/workspace-id/{wId}/aliases/{aliases}` | Search identity by alias |
-| `create-workspace-id-merge-identities` | POST `.../person/merge-identities/workspace-id/{wId}` | Merge aliases |
-| `create-primary-person-id` | POST `.../person/merge/workspace-id/{wId}/primary-person-id/{pId}` | Merge to primary |
-
-Admin paths are prefixed with `/admin/v1/api`.
-
-```bash
-# List persons in a JDS workspace
-wxcli cc-journey show-workspace-id-person ws-abc-123
-
-# Create a person
-wxcli cc-journey create-workspace-id-person ws-abc-123 --json-body '{
-  "firstName": "John", "lastName": "Doe",
-  "identities": [{"type": "phone", "value": "+15551234567"}]
-}'
-
-# Search by alias
-wxcli cc-journey show-aliases ws-abc-123 "+15551234567"
-
-# Merge identities to a primary person
-wxcli cc-journey create-primary-person-id ws-abc-123 person-001
-```
-
-### 6c. Profile View Templates (6 commands)
-
-| CLI Command | HTTP | Description |
-|-------------|------|-------------|
-| `show-workspace-id-profile-view-template` | GET `.../profile-view-template/workspace-id/{wId}` | List templates |
-| `create-workspace-id-profile-view-template` | POST `.../profile-view-template/workspace-id/{wId}` | Create template |
-| `show-template-id-workspace-id` | GET `.../profile-view-template/workspace-id/{wId}/template-id/{tId}` | Get by ID |
-| `show-template-name-workspace-id` | GET `.../profile-view-template/workspace-id/{wId}/template-name/{name}` | Get by name |
-| `update-template-id` | PUT `.../profile-view-template/workspace-id/{wId}/template-id/{tId}` | Update template |
-| `delete-template-id` | DELETE `.../profile-view-template/workspace-id/{wId}/template-id/{tId}` | Delete template |
-
-All paths are prefixed with `/admin/v1/api`.
-
-```bash
-# List all profile view templates
-wxcli cc-journey show-workspace-id-profile-view-template ws-abc-123
-
-# Create a template
-wxcli cc-journey create-workspace-id-profile-view-template ws-abc-123 --json-body '{
-  "name": "Customer 360",
-  "attributes": ["firstName", "lastName", "recentOrders"]
-}'
-
-# Get template by name
-wxcli cc-journey show-template-name-workspace-id ws-abc-123 "Customer 360"
-```
-
-### 6d. Profile Views and Events (9 commands)
-
-Historic and streaming profile view endpoints, plus journey event retrieval.
-
-| CLI Command | HTTP | Description |
-|-------------|------|-------------|
-| `show` | GET `/admin/v1/api/progressive-profile-view/.../template-name/{name}` | Historic view by person + template name |
-| `show-template-name-person-id` | GET `/v1/api/progressive-profile-view/.../person-id/{pId}/template-name/{name}` | Historic view by person + name (runtime) |
-| `show-template-id-identity` | GET `/v1/api/progressive-profile-view/stream/.../identity/{id}/template-id/{tId}` | Stream views by template ID |
-| `show-workspace-id-events` | GET `/v1/api/events/workspace-id/{wId}` | Historic journey events |
-
-Additional profile view endpoints provide access by identity + template ID, identity + template name,
-person + template ID, and streaming by template name. All follow the pattern:
-`/v1/api/progressive-profile-view/[stream/]workspace-id/{wId}/{lookup-type}/{value}/template-{id|name}/{template}`
-
-```bash
-# Get historic profile view by person and template name
-wxcli cc-journey show ws-abc-123 person-001 "Customer 360"
-
-# Stream progressive profile views (SSE long-lived connection)
-wxcli cc-journey show-template-id-identity ws-abc-123 "+15551234567" tmpl-001
-
-# Get historic journey events
-wxcli cc-journey show-workspace-id-events ws-abc-123
-```
-
-### 6e. Journey Actions (7 commands)
-
-| CLI Command | HTTP | Description |
-|-------------|------|-------------|
-| `show-workspace-id-journey-actions` | GET `.../journey-actions/workspace-id/{wId}` | Get all actions |
-| `show-template-id-workspace-id-1` | GET `.../journey-actions/workspace-id/{wId}/template-id/{tId}` | Get actions for template |
-| `create-template-id` | POST `.../journey-actions/workspace-id/{wId}/template-id/{tId}` | Create action |
-| `show-action-name` | GET `.../journey-actions/.../action-name/{name}` | Get action by name |
-| `show-action-id` | GET `.../journey-actions/.../action-id/{actionId}` | Get action by ID |
-| `update-action-id` | PUT `.../journey-actions/.../action-id/{actionId}` | Update action |
-| `delete-action-id` | DELETE `.../journey-actions/.../action-id/{actionId}` | Delete action |
-
-All paths are prefixed with `/admin/v1/api`.
-
-```bash
-# List all journey actions
-wxcli cc-journey show-workspace-id-journey-actions ws-abc-123
-
-# Create an action
-wxcli cc-journey create-template-id ws-abc-123 tmpl-001 --json-body '{
-  "name": "Send Welcome Email",
-  "type": "webhook",
-  "config": {"url": "https://example.com/webhook"}
-}'
-
-# Get action by name
-wxcli cc-journey show-action-name ws-abc-123 tmpl-001 "Send Welcome Email"
-```
-
-### 6f. WXCC Subscription (3 commands)
-
-Manage the WXCC event subscription that feeds journey data from the contact center into JDS.
-
-| CLI Command | HTTP | Description |
-|-------------|------|-------------|
-| `show-workspace-id-wxcc-subscription` | GET `.../wxcc-subscription/workspace-id/{wId}` | Get subscription |
-| `create` | POST `.../wxcc-subscription/workspace-id/{wId}` | Create subscription |
-| `delete-workspace-id` | DELETE `.../wxcc-subscription/workspace-id/{wId}` | Delete subscription |
-
-All paths are prefixed with `/admin/v1/api`.
-
-```bash
-# Check WXCC subscription status
-wxcli cc-journey show-workspace-id-wxcc-subscription ws-abc-123
-
-# Create WXCC subscription
-wxcli cc-journey create ws-abc-123
-
-# Delete WXCC subscription
-wxcli cc-journey delete-workspace-id ws-abc-123
-```
-
-### 6g. Data Ingestion (1 command)
-
-| CLI Command | HTTP | Description |
-|-------------|------|-------------|
-| `create-event` | POST `/publish/v1/api/event` | Post a journey event |
-
-```bash
-# Publish a custom journey event
-wxcli cc-journey create-event --json-body '{
-  "workspaceId": "ws-abc-123",
-  "identity": "+15551234567",
-  "eventType": "custom:page_view",
-  "data": {"page": "/pricing", "duration": 45}
-}'
-```
-
-### Raw HTTP (Journey)
-
-```
-# List JDS workspaces
-GET https://api.wxcc-us1.cisco.com/admin/v1/api/workspace
-Authorization: Bearer {cc_token}
-
-# Create person
-POST https://api.wxcc-us1.cisco.com/admin/v1/api/person/workspace-id/{workspaceId}
-Authorization: Bearer {cc_token}
-Content-Type: application/json
-
-{"firstName": "John", "identities": [{"type": "phone", "value": "+15551234567"}]}
-
-# Stream progressive profile view (SSE)
-GET https://api.wxcc-us1.cisco.com/v1/api/progressive-profile-view/stream/workspace-id/{wId}/identity/{identity}/template-id/{templateId}
-Authorization: Bearer {cc_token}
-Accept: text/event-stream
-
-# Post journey event
-POST https://api.wxcc-us1.cisco.com/publish/v1/api/event
-Authorization: Bearer {cc_token}
-Content-Type: application/json
-
-{"workspaceId": "ws-abc", "identity": "+15551234567", "eventType": "custom:page_view"}
-```
+41 commands covering workspaces, persons, identity resolution, profile view templates,
+progressive profile views, event ingestion, and WXCC subscriptions. See that doc for
+full API reference, raw HTTP table, and gotchas.
 
 ---
 
@@ -1093,81 +882,7 @@ All 122 endpoints across the 13 CLI groups. Regional base URL: `https://api.wxcc
 | POST | `/generated-summaries/search` | Search summaries |
 | POST | `/summary/list` | List summaries |
 
-### Journey — Workspaces (5)
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/admin/v1/api/workspace` | List workspaces |
-| POST | `/admin/v1/api/workspace` | Create workspace |
-| GET | `/admin/v1/api/workspace/workspace-id/{workspaceId}` | Get workspace |
-| PUT | `/admin/v1/api/workspace/workspace-id/{workspaceId}` | Update workspace |
-| DELETE | `/admin/v1/api/workspace/workspace-id/{workspaceId}` | Delete workspace |
-
-### Journey — Person and Identity (10)
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/admin/v1/api/person/workspace-id/{workspaceId}` | Get persons |
-| POST | `/admin/v1/api/person/workspace-id/{workspaceId}` | Create person |
-| PATCH | `/admin/v1/api/person/workspace-id/{wId}/person-id/{personId}` | Update person |
-| DELETE | `/admin/v1/api/person/workspace-id/{wId}/person-id/{personId}` | Delete person |
-| PATCH | `/admin/v1/api/person/add-identities/workspace-id/{wId}/person-id/{pId}` | Add identities |
-| PATCH | `/admin/v1/api/person/remove-identities/workspace-id/{wId}/person-id/{pId}` | Remove identities (admin) |
-| PATCH | `/v1/api/person/remove-identities/workspace-id/{wId}/person-id/{pId}` | Remove identities (runtime) |
-| GET | `/admin/v1/api/person/workspace-id/{wId}/aliases/{aliases}` | Search aliases |
-| POST | `/admin/v1/api/person/merge-identities/workspace-id/{wId}` | Merge aliases |
-| POST | `/admin/v1/api/person/merge/workspace-id/{wId}/primary-person-id/{pId}` | Merge to primary |
-
-### Journey — Profile View Templates (6)
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/admin/v1/api/profile-view-template/workspace-id/{wId}` | List templates |
-| POST | `/admin/v1/api/profile-view-template/workspace-id/{wId}` | Create template |
-| GET | `/admin/v1/api/profile-view-template/workspace-id/{wId}/template-id/{tId}` | Get by ID |
-| GET | `/admin/v1/api/profile-view-template/workspace-id/{wId}/template-name/{name}` | Get by name |
-| PUT | `/admin/v1/api/profile-view-template/workspace-id/{wId}/template-id/{tId}` | Update |
-| DELETE | `/admin/v1/api/profile-view-template/workspace-id/{wId}/template-id/{tId}` | Delete |
-
-### Journey — Profile Views and Events (9)
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/admin/v1/api/progressive-profile-view/.../person-id/{pId}/template-name/{name}` | Historic view (person + name, admin) |
-| GET | `/v1/api/progressive-profile-view/.../person-id/{pId}/template-name/{name}` | Historic view (person + name, runtime) |
-| GET | `/v1/api/progressive-profile-view/.../person-id/{pId}/template-id/{tId}` | Historic view (person + template ID) |
-| GET | `/v1/api/progressive-profile-view/.../identity/{id}/template-id/{tId}` | Historic view (identity + template ID) |
-| GET | `/v1/api/progressive-profile-view/.../identity/{id}/template-name/{name}` | Historic view (identity + name) |
-| GET | `/v1/api/progressive-profile-view/stream/.../identity/{id}/template-id/{tId}` | Stream views (template ID) |
-| GET | `/v1/api/progressive-profile-view/stream/.../identity/{id}/template-name/{name}` | Stream views (template name) |
-| GET | `/v1/api/events/stream/workspace-id/{wId}/identity/{identity}` | Stream events by identity |
-| GET | `/v1/api/events/workspace-id/{wId}` | Historic events |
-
-### Journey — Actions (7)
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/admin/v1/api/journey-actions/workspace-id/{wId}` | Get all actions |
-| GET | `/admin/v1/api/journey-actions/workspace-id/{wId}/template-id/{tId}` | Get for template |
-| POST | `/admin/v1/api/journey-actions/workspace-id/{wId}/template-id/{tId}` | Create action |
-| GET | `/admin/v1/api/journey-actions/.../template-id/{tId}/action-id/{aId}` | Get by ID |
-| GET | `/admin/v1/api/journey-actions/.../template-id/{tId}/action-name/{name}` | Get by name |
-| PUT | `/admin/v1/api/journey-actions/.../template-id/{tId}/action-id/{aId}` | Update |
-| DELETE | `/admin/v1/api/journey-actions/.../template-id/{tId}/action-id/{aId}` | Delete |
-
-### Journey — WXCC Subscription (3)
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/admin/v1/api/wxcc-subscription/workspace-id/{wId}` | Get subscription |
-| POST | `/admin/v1/api/wxcc-subscription/workspace-id/{wId}` | Create subscription |
-| DELETE | `/admin/v1/api/wxcc-subscription/workspace-id/{wId}` | Delete subscription |
-
-### Journey — Data Ingestion (1)
-
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/publish/v1/api/event` | Post journey event |
+*Journey endpoints (41 commands) moved to [`contact-center-journey.md`](contact-center-journey.md).*
 
 ### Call Monitoring (7)
 
@@ -1273,49 +988,41 @@ All 122 endpoints across the 13 CLI groups. Regional base URL: `https://api.wxcc
 
 ## Gotchas
 
-1. **Journey APIs use completely different path patterns from the config API.** Three path families: `/admin/v1/api/` (admin management), `/v1/api/` (runtime queries and streaming), `/publish/v1/api/` (event ingestion). These do not follow the `/organization/{orgid}/` pattern used by all other CC APIs.
+1. **JDS gotchas have moved to [`contact-center-journey.md`](contact-center-journey.md).** All JDS-specific gotchas (alias normalization, Publish API, event immutability, RSQL syntax, scopes, etc.) are in the journey doc's gotchas section.
 
-2. **Journey workspaces are NOT Webex Calling workspaces.** JDS workspaces organize journey data, persons, templates, and actions. They have no relation to Webex Calling workspaces that represent physical rooms/devices.
+2. **Tasks API is the primary agent interaction API.** It handles the full contact/call lifecycle: create, accept, hold, consult, conference, transfer, record, wrap up. This is the API that drives the agent desktop.
 
-3. **Tasks API is the primary agent interaction API.** It handles the full contact/call lifecycle: create, accept, hold, consult, conference, transfer, record, wrap up. This is the API that drives the agent desktop.
+3. **The AI Assistant endpoint (POST `/event`) uses a generic path.** Easy to confuse with the JDS event ingestion endpoint (POST `/publish/v1/api/event`) — completely different path and purpose.
 
-4. **The AI Assistant endpoint (POST `/event`) uses a generic path.** Easy to confuse with other event endpoints. The Journey data ingestion endpoint is POST `/publish/v1/api/event` — completely different path and purpose.
+4. **Subscriptions have v1 and v2 variants.** v2 adds enhanced event types and requires a `resourceVersion` field (e.g., `"resourceVersion": "agent:2.0.0"`) when creating subscriptions. Use `list-event-types-v2` to see the full set of available events. **Breaking rename in v2:** `agent:state_change` (v1 event name) is renamed to `agent:channel_state_change` — update subscriptions and webhook handlers when migrating to v2. v1.0.0 agent events are deprecated and supported until December 16, 2026.
 
-5. **Subscriptions have v1 and v2 variants.** v2 adds enhanced event types and requires a `resourceVersion` field (e.g., `"resourceVersion": "agent:2.0.0"`) when creating subscriptions. Use `list-event-types-v2` to see the full set of available events. **Breaking rename in v2:** `agent:state_change` (v1 event name) is renamed to `agent:channel_state_change` — update subscriptions and webhook handlers when migrating to v2. v1.0.0 agent events are deprecated and supported until December 16, 2026.
+5. **Call monitoring uses `taskId` for most operations but `requestId` for delete.** The create-monitor endpoint returns a `requestId` which is needed to delete the monitoring session. The taskId-based endpoints (barge-in, hold, unhold, end) operate on the contact being monitored.
 
-6. **Call monitoring uses `taskId` for most operations but `requestId` for delete.** The create-monitor endpoint returns a `requestId` which is needed to delete the monitoring session. The taskId-based endpoints (barge-in, hold, unhold, end) operate on the contact being monitored.
+6. **Search endpoint uses POST (not GET).** The query criteria are passed in the request body, not as query parameters.
 
-7. **Search endpoint uses POST (not GET).** The query criteria are passed in the request body, not as query parameters.
+7. **Agent Summaries uses POST endpoints for searching.** Both `create` (search) and `create-list` (list) use POST — the search/filter criteria go in the request body.
 
-8. **Agent Summaries uses POST endpoints for searching.** Both `create` (search) and `create-list` (list) use POST — the search/filter criteria go in the request body.
+8. **Auto CSAT has a two-level structure.** Auto CSAT configurations sit at the top level; mapped questions are nested under each config by `autoCsatId`. You must create the Auto CSAT config before adding questions.
 
-9. **Auto CSAT has a two-level structure.** Auto CSAT configurations sit at the top level; mapped questions are nested under each config by `autoCsatId`. You must create the Auto CSAT config before adding questions.
+9. **Address Book has a two-level structure with v1/v2/v3 API versions.** Address books contain entries. v1 provides full CRUD, v2 adds enhanced list/query, v3 adds further improvements. Entry CRUD uses the v1 path regardless of which version was used to create the address book.
 
-10. **Address Book has a two-level structure with v1/v2/v3 API versions.** Address books contain entries. v1 provides full CRUD, v2 adds enhanced list/query, v3 adds further improvements. Entry CRUD uses the v1 path regardless of which version was used to create the address book.
+10. **Notifications and Realtime are separate subscription mechanisms.** `cc-notification` (POST `/v1/notification/subscribe`) is push-based delivery. `cc-realtime` (POST `/v1/realtime/subscribe`) is for WebSocket/SSE streaming. `cc-subscriptions` manages durable webhook-style subscriptions. All three coexist and serve different consumption patterns.
 
-11. **Journey streaming endpoints (SSE) return real-time profile view updates.** These are long-lived connections using Server-Sent Events. The CLI may time out on these — use `--debug` to see the raw SSE stream or use raw HTTP with an SSE client.
+11. **All CC APIs require CC-specific OAuth scopes.** Standard Webex admin tokens will not work. You need `cjp:config_read` and/or `cjp:config_write` scopes. JDS admin endpoints additionally need `cjds:admin_org_read`/`cjds:admin_org_write`. The CLI detects 403 errors and prints a scope tip.
 
-12. **Notifications and Realtime are separate subscription mechanisms.** `cc-notification` (POST `/v1/notification/subscribe`) is push-based delivery. `cc-realtime` (POST `/v1/realtime/subscribe`) is for WebSocket/SSE streaming. `cc-subscriptions` manages durable webhook-style subscriptions. All three coexist and serve different consumption patterns.
+12. **Regional base URL is required.** All CC API requests go to `https://api.wxcc-{region}.cisco.com`, not `https://webexapis.com`. Set the region with `wxcli set-cc-region <region>` (defaults to `us1`).
 
-13. **All CC APIs require CC-specific OAuth scopes.** Standard Webex admin tokens will not work. You need `cjp:config_read` and/or `cjp:config_write` scopes. The CLI detects 403 errors and prints a scope tip.
+13. **`orgId` is auto-injected.** For endpoints under `/organization/{orgid}/`, the orgId path parameter is automatically resolved from the saved config or the authenticated user's org. No manual `--org-id` flag is needed.
 
-14. **Regional base URL is required.** All CC API requests go to `https://api.wxcc-{region}.cisco.com`, not `https://webexapis.com`. Set the region with `wxcli set-cc-region <region>` (defaults to `us1`).
+14. **WXCC CloudEvents webhook envelope.** All CC webhook events follow CloudEvents 1.0:
 
-15. **`orgId` is auto-injected.** For endpoints under `/organization/{orgid}/`, the orgId path parameter is automatically resolved from the saved config or the authenticated user's org. No manual `--org-id` flag is needed.
+    **v1 envelope fields:** `id` (UUID), `specversion` ("1.0"), `type` (event name), `source` (contains subscription ID), `comciscoorgid` (org ID), `datacontenttype` ("application/json"), `data` (event payload).
 
-16. **JDS alias lookup strips `+` but does not normalize the country code.** `9103915567`, `19103915567`, and `+19103915567` are three distinct aliases — they will not cross-match. WXCC writes ANI to JDS in E.164 format (e.g. `+19103915567`), so alias lookups from a flow should pass the number with `+1` prefix or they will miss.
+    **v2 envelope adds:** `comciscotimestamp` (UTC epoch ms). v2 subscriptions also add headers: `X-WebexCC-Timestamp` (epoch ms), `X-WebexCC-Webhook-Version`, `X-WebexCC-Signature` (HMAC-SHA256 hex).
 
-17. **Publish API requires `workspaceId` as a query parameter, not in the body.** POST `/publish/v1/api/event?workspaceId={workspaceId}`. The request body (`JourneyCloudEventModel`) has no `workspaceId` field — the workspace is resolved from the query param. The minimum required body fields are: `id`, `specversion`, `type`, `source`, `identity`, `identitytype`, `datacontenttype`, `data`. For Flow Designer usage see `contact-center-routing.md` gotchas #16–18.
+    v1 subscriptions use `X-WebexCC-Signature` only.
 
-18. **Events are immutable — no delete endpoint exists.** The Publish API (`/publish/v1/api/event`) is write-only. The events read endpoints (`/v1/api/events/...`) are GET-only. Once an event is ingested it cannot be removed.
-
-19. **Events endpoint filter uses RSQL syntax.** Pass `?filter=type=='custom:store_verified'` to filter by event type. Plain strings return `BAD_REQUEST`. Other filterable fields include `identityType`. See the [RSQL syntax reference](https://github.com/perplexhub/rsql-jpa-specification#rsql-syntax-reference).
-
-20. **JDS person records are created near-instantly on first contact.** `journey-stream-profiles` processes the WXCC contact event and creates the person record within seconds of the call arriving. Treating 404 and "zero prior events" as equivalent first-time-caller signals is still correct for race condition safety, but in practice the record will be present by the time a flow's HTTP node queries it. For flow-level returning caller detection, see `contact-center-routing.md` gotcha #18.
-
-22. **`wxcli cc-journey show-workspace-id-events` had a missing `/v1/` prefix bug.** The generated command was hitting `/api/events/` instead of `/v1/api/events/`. Fixed in `src/wxcli/commands/cc_journey.py` lines 1138 and 1200.
-
-23. **Complete webhook event type taxonomy (22 types).** The full set of supported types for subscriptions:
+15. **Complete webhook event type taxonomy (22 types).** The full set of supported types for subscriptions:
     - Agent (v1): `agent:login`, `agent:logout`, `agent:state_change`
     - Agent (v2): `agent:login`, `agent:logout`, `agent:channel_state_change`, `agent:channelType_state_change`
     - Capture: `capture:available`
@@ -1326,17 +1033,16 @@ All 122 endpoints across the 13 CLI groups. Regional base URL: `https://api.wxcc
 
     **`agent:channelType_state_change`**: `agentId`, `currentState` (Available/Idle/Engaged/EngagedOther/WrapUp/Reserved/LoggedOut), `channelType`, `pendingIdleState` (boolean), `idleCodeName`, `teamId`, `createdTime`. Note: the `comciscotimestamp` CloudEvents envelope field is **only** present in `agent:channelType_state_change` events.
 
-24. **Queue Statistics and Agent Statistics REST APIs reach EOL March 31, 2027.** Both are deprecated in favor of the GraphQL Search API. Same auth scopes apply (`cjp:config` or `cjp:config_read`). Migrate before the EOL date.
+16. **Queue Statistics and Agent Statistics REST APIs reach EOL March 31, 2027.** Both are deprecated in favor of the GraphQL Search API. Same auth scopes apply (`cjp:config` or `cjp:config_read`). Migrate before the EOL date.
 
-25. **Bulk export APIs deprecated April 2026.** The `/bulk-export` GET endpoints across 19 config resources (Address Book, Auxiliary Code, Business Hours, Desktop Layout, Skills, Teams, Users, and others) are deprecated. Use the corresponding list endpoints (`/v2/` or `/v3/` variants) instead. The `list-bulk-export` CLI commands for these resources will stop working after removal.
-
-26. **JDS admin operations require separate `cjds:` scopes.** The standard `cjp:config_read`/`cjp:config_write` scopes do NOT grant access to JDS admin APIs (`/admin/v1/api/...`). You also need `cjds:admin_org_read` and/or `cjds:admin_org_write` in your OAuth integration or Service App scopes. Without these, JDS workspace and person management calls return 403. The runtime profile view and event stream endpoints (`/v1/api/...`) may use the same token — check the exact scope requirements per endpoint.
+17. **Bulk export APIs deprecated April 2026.** The `/bulk-export` GET endpoints across 19 config resources (Address Book, Auxiliary Code, Business Hours, Desktop Layout, Skills, Teams, Users, and others) are deprecated. Use the corresponding list endpoints (`/v2/` or `/v3/` variants) instead. The `list-bulk-export` CLI commands for these resources will stop working after removal.
 
 ---
 
 ## See Also
 
 - [Contact Center: Core](contact-center-core.md) — Agents, queues, teams, skills, desktop, configuration
+- [Contact Center: Journey](contact-center-journey.md) — JDS: workspaces, persons, identity, profile views, events
 - [Contact Center: Routing](contact-center-routing.md) — Dial plans, campaigns, flows, audio, contacts
 - [Webhooks & Events](webhooks-events.md) — Webex platform webhooks (separate from CC subscriptions)
 - [Reporting & Analytics](reporting-analytics.md) — Webex Calling CDR, queue stats, call quality
