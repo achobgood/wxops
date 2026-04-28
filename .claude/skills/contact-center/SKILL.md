@@ -23,7 +23,8 @@ If you cannot answer all three, you skipped reading this skill. Go back and read
 
 1. Read `docs/reference/contact-center-core.md` for agents, queues, entry points, teams, skills, desktop profiles, sites, aux codes, and configuration data models
 2. Read `docs/reference/contact-center-routing.md` for dial plans, campaigns, flows, audio files, contacts, outdial ANI
-3. Read `docs/reference/contact-center-analytics.md` for AI features, journey analytics, monitoring, subscriptions, tasks
+3. Read `docs/reference/contact-center-analytics.md` for AI features, monitoring, subscriptions, tasks
+4. Read `docs/reference/contact-center-journey.md` for JDS: workspaces, persons, identity, profile views, events, WXCC subscription
 
 ## Step 2: Verify auth token and CC region
 
@@ -1111,7 +1112,7 @@ Next steps:
 11. **Campaign prerequisites are strict.** Campaigns require: contact list, outdial ANI, outbound entry point. Verify all three exist before starting a campaign.
 12. **Task commands are real-time agent operations.** `cc-tasks` commands (accept, hold, transfer, wrapup) operate on live calls. Confirm with the user before executing.
 13. **Monitoring is supervisor-only.** `cc-call-monitoring` commands require supervisor privileges. The authenticated user must have the CC supervisor role.
-14. **Journey API is complex.** `cc-journey` has 41 commands across workspaces, templates, persons, identities, and subscriptions. Read `docs/reference/contact-center-analytics.md` before using. Key gotchas: alias lookup is exact after stripping `+` (no country-code normalization); WXCC writes ANI in E.164 so lookups must use `+1` prefix; events are immutable (no delete); event filter uses RSQL syntax (`type=='custom:event_name'`); Publish API requires `workspaceId` as a query param not in the body. For posting events from Flow Designer, see `docs/reference/contact-center-routing.md` gotchas #16–18.
+14. **Journey API is complex.** `cc-journey` has 41 commands across workspaces, templates, persons, identities, and subscriptions. Read `docs/reference/contact-center-journey.md` before using. Key gotchas: alias lookup is exact after stripping `+` (no country-code normalization); WXCC writes ANI in E.164 so lookups must use `+1` prefix; events are immutable (no delete); event filter uses RSQL syntax (`type=='custom:event_name'`); Publish API requires `workspaceId` as a query param not in the body. For posting events from Flow Designer, see `docs/reference/contact-center-routing.md` gotchas #16–18.
 15. **Cross-skill handoffs:**
     - Webex Calling features (AA, CQ, HG) → `configure-features` skill
     - Customer Assist (CX Essentials on Calling queues) → `customer-assist` skill

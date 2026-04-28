@@ -230,6 +230,7 @@ Not all scopes work with service apps:
 | Meeting scopes | Limited to `adminOnBehalf` functions (require `hostEmail` parameter) |
 | Compliance scopes (`spark-compliance:*`) | Require Full Admin with Compliance Officer role |
 | CJP scopes (`cjp:config_read`, `cjp:config_write`) | **Supported.** Select them at app creation in the developer portal. Confirmed by Cisco's "Introducing Service Apps for Webex Contact Center" blog post. `spark:applications_token` and `spark:kms` are NOT available for CC service apps — those require a separate OAuth integration. |
+| CJDS scopes (`cjds:admin_org_read`, `cjds:admin_org_write`) | **Required for JDS admin APIs** (`/admin/v1/api/...` — workspace, person, template management). Standard `cjp:` scopes alone do NOT grant JDS admin access. The runtime profile view and event stream endpoints (`/v1/api/...`) may differ — verify per endpoint. Select these in addition to `cjp:` scopes when building JDS integrations. |
 | Scope string length | Limited to ~880 characters total — only request what you need |
 
 ### Authentication Flow

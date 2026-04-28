@@ -1132,6 +1132,7 @@ All 98 endpoints across 15 CLI groups, grouped by resource.
 ## 17. See Also
 
 - [Contact Center: Core](contact-center-core.md) -- Agents, queues, teams, skills, desktop, configuration
-- [Contact Center: Analytics](contact-center-analytics.md) -- AI, journey, monitoring, subscriptions, tasks
+- [Contact Center: Analytics](contact-center-analytics.md) -- AI, monitoring, subscriptions, tasks, search
+- [Contact Center: Journey](contact-center-journey.md) -- JDS: workspaces, persons, identity, profile views, events
 - [Call Routing & PSTN](call-routing.md) -- Webex Calling routing (trunks, route groups, route lists -- entirely separate from CC routing)
 - [Authentication](authentication.md) -- CC-specific OAuth scopes and region configuration

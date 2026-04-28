@@ -1607,7 +1607,8 @@ For teardown, reverse this order.
 ## 23. See Also
 
 - [Contact Center: Routing](contact-center-routing.md) -- Dial plans, campaigns, flows, audio files, contact lists, dial numbers
-- [Contact Center: Analytics](contact-center-analytics.md) -- AI assistant, journey analytics, call monitoring, subscriptions, tasks
+- [Contact Center: Analytics](contact-center-analytics.md) -- AI, monitoring, subscriptions, tasks, search
+- [Contact Center: Journey](contact-center-journey.md) -- JDS: workspaces, persons, identity, profile views, events
 - [Authentication](authentication.md) -- CC-specific OAuth scopes, region configuration, and token setup
 - [Contact Center Skill](../../.claude/skills/contact-center/SKILL.md) -- Guided workflow for provisioning agents, queues, teams, flows, campaigns via wxcli
 - `CLAUDE.md` (project root) -- CC region setup, CLI integration notes

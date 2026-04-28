@@ -180,7 +180,8 @@ Added 2026-04-15 after an org-cleanup subagent died mid-Phase-2 when its Python 
 |------|---------|
 | `docs/reference/contact-center-core.md` | CC agents, queues, entry points, teams, skills, desktop, configuration |
 | `docs/reference/contact-center-routing.md` | CC dial plans, campaigns, flows, audio, contacts, outdial |
-| `docs/reference/contact-center-analytics.md` | CC AI, journey, monitoring, subscriptions, tasks |
+| `docs/reference/contact-center-analytics.md` | CC AI, monitoring, subscriptions, tasks, search |
+| `docs/reference/contact-center-journey.md` | JDS: workspaces, persons, identity, profile views, events, WXCC subscription |
 
 ### Migration Knowledge Base (Opus Advisor)
 
@@ -294,7 +295,7 @@ See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for fu
 11. **`virtual-extensions` commands use wrong ID type.** Uses `VIRTUAL_EXTENSION`-encoded IDs but virtual lines use `VIRTUAL_LINE` IDs. `wxcli cleanup` uses raw REST as a workaround. See `docs/reference/virtual-lines.md` Raw HTTP Gotchas #9.
 12. **Device config schema is firmware-dependent.** Per-line ringtone was absent on PhoneOS 3.5/3.6 but fixed in 4.1. Offline/expired devices retain a stale schema. See `docs/reference/devices-platform.md` gotchas #10-11.
 13. **Contact Center (`cc-*`) commands require CC-scoped OAuth and region config.** PATs do NOT carry `cjp:config` scopes — even full admins on CC orgs get 403. Use an OAuth integration with `cjp:config_read`/`cjp:config_write` explicitly selected, then re-run the OAuth flow. The CC API also requires the bare UUID org ID (not the base64 Spark ID); `get_cc_org_id()` in `config.py` handles decoding. See `docs/reference/contact-center-core.md` gotchas #14 and #18-22.
-14. **`wxcli cc-journey show-workspace-id-events` and the stream variant were missing `/v1/` in the URL.** Fixed in `src/wxcli/commands/cc_journey.py` — both commands now correctly hit `/v1/api/events/...`. See `docs/reference/contact-center-analytics.md` gotcha #22.
+14. **`wxcli cc-journey show-workspace-id-events` and the stream variant were missing `/v1/` in the URL.** Fixed in `src/wxcli/commands/cc_journey.py` — both commands now correctly hit `/v1/api/events/...`. See `docs/reference/contact-center-journey.md` gotcha #11.
 
 ### Cleanup Command
 
