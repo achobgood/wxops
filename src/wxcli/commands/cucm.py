@@ -1357,7 +1357,7 @@ def decisions(
             from wxcli.migration.transform.decisions import (
                 classify_decisions, generate_decision_review,
             )
-            project_id = project_dir.name if hasattr(project_dir, "name") else str(project_dir).split("/")[-1]
+            project_id = project_dir.name if hasattr(project_dir, "name") else Path(project_dir).name
 
             # Load config so custom auto_rules in config.json are honored.
             config = load_config(project_dir)
@@ -2620,22 +2620,39 @@ def report(
 
         # Optional PDF generation via headless Chrome
         if pdf:
-            # Check PATH first, then macOS .app bundle locations
+            # Check PATH first, then platform-specific install locations
             chrome_bin = (
                 shutil.which("chromium")
                 or shutil.which("google-chrome")
                 or shutil.which("chrome")
+                or shutil.which("chrome.exe")
+                or shutil.which("chromium.exe")
+                or shutil.which("msedge.exe")
             )
             if not chrome_bin:
-                macos_paths = [
-                    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-                    "/Applications/Chromium.app/Contents/MacOS/Chromium",
-                    "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
-                ]
-                for p in macos_paths:
-                    if Path(p).exists():
-                        chrome_bin = p
-                        break
+                import sys
+                if sys.platform == "win32":
+                    win_paths = [
+                        r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+                        r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+                        r"C:\Program Files\Chromium\Application\chromium.exe",
+                        r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+                        r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+                    ]
+                    for p in win_paths:
+                        if Path(p).exists():
+                            chrome_bin = p
+                            break
+                else:
+                    macos_paths = [
+                        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+                        "/Applications/Chromium.app/Contents/MacOS/Chromium",
+                        "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+                    ]
+                    for p in macos_paths:
+                        if Path(p).exists():
+                            chrome_bin = p
+                            break
             if chrome_bin:
                 pdf_path = project_dir / f"{output}.pdf"
                 try:

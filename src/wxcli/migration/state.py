@@ -108,13 +108,13 @@ class MigrationState:
 
     def _load(self) -> dict[str, Any]:
         if self.state_path.exists():
-            with open(self.state_path) as f:
+            with open(self.state_path, encoding="utf-8") as f:
                 return json.load(f)
         return self._default_data()
 
     def _save(self) -> None:
         self.state_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(self.state_path, "w") as f:
+        with open(self.state_path, "w", encoding="utf-8") as f:
             json.dump(self._data, f, indent=2)
 
     @staticmethod
