@@ -907,6 +907,73 @@ curl -s -H "Authorization: Bearer $TOKEN" \
   "https://webexapis.com/identity/scim/YOUR_ORG_ID/v2/Users?filter=userName%20eq%20%22user%40example.com%22"
 ```
 
+### Bracket Filter Syntax — No Space Before `[`
+
+The official docs show `phoneNumbers [ type eq "mobile" and value eq "..." ]` with a space before `[`. This does not parse correctly. The working syntax has no space:
+
+```
+phoneNumbers[type eq "alternate1" and value eq "+19197010928"]
+```
+
+URL encoded:
+```
+phoneNumbers%5Btype%20eq%20%22alternate1%22%20and%20value%20eq%20%22%2B19197010928%22%5D
+```
+
+### `phoneNumbers.value` Dot Notation Not Implemented
+
+The supported attributes table lists `phoneNumbers.value` with `eq`, `sw`, `ew` operators. In practice this returns:
+
+```json
+{"status": "400", "scimType": "invalidFilter", "details": "The user's attribute phoneNumbers.value in request can not find correspond table name."}
+```
+
+Use the bracket filter syntax instead: `phoneNumbers[type eq "alternate1" and value eq "..."]`.
+
+### `+` in Phone Number Filter Values Must Be Encoded as `%2B`
+
+The SCIM server decodes `+` in query strings as a space (form encoding). A filter like `value eq "+19197010928"` with a literal `+` in the URL will be received by the server as `value eq " 19197010928"` and return zero results.
+
+Always encode `+` as `%2B` in filter values:
+
+```
+# Wrong — + decoded as space, zero results
+filter=phoneNumbers%5Btype%20eq%20%22alternate1%22%20and%20value%20eq%20%22+19197010928%22%5D
+
+# Correct — %2B preserved as literal +
+filter=phoneNumbers%5Btype%20eq%20%22alternate1%22%20and%20value%20eq%20%22%2B19197010928%22%5D
+```
+
+### SCIM from WxCC Flow Designer HTTP Request Nodes
+
+The SCIM API requires `identity:people_read` scope — separate from `spark-admin:people_read`. A PAT from developer.webex.com works for testing but expires after 12 hours. For production, use an OAuth Integration or Service App with `identity:people_read` explicitly selected.
+
+**Two-node pattern to look up a user by alternate1 phone number and retrieve their profile:**
+
+**Node 1 — Search by phone number:**
+- URL: `https://webexapis.com/identity/scim/{orgId}/v2/Users`
+- Query param key: `filter`
+- Query param value (with `DNIS` variable containing digits only, no `+`): `phoneNumbers%5Btype%20eq%20%22alternate1%22%20and%20value%20eq%20%22%2B{{DNIS}}%22%5D`
+- JSONPath to extract user ID: `$.Resources[0].id` → store in e.g. `StoreUserPersonId`
+
+**Node 2 — Get full profile by ID:**
+- URL: `https://webexapis.com/identity/scim/{orgId}/v2/Users/{{StoreUserPersonId}}`
+- No filter needed
+- JSONPath to extract alternate1 value: `$.phoneNumbers[?(@.type=='alternate1')].value`
+
+**Stripping `+` from DNIS in Flow Designer:**
+
+DNIS arrives in E.164 format (e.g. `+19197010928`). Strip the `+` using a Set Variable node before the HTTP node:
+
+```
+{{NewContact.DNIS | slice(1)}}
+```
+
+- `| slice(1)` works in WxCC Flow Designer (Pebble)
+- `| replace("+", "%2B")` does NOT work — `+` is a regex special character and fails silently
+- `.substring(1)` does NOT work in Flow Designer expression context
+- Hardcode `%2B` in the filter template and substitute only the digits via `{{DNIS}}`
+
 ---
 
 ## See Also

@@ -196,6 +196,8 @@ curl -X POST "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/v2/agent-perso
 
 ## 3. Agent Wellbeing (`cc-agent-wellbeing`)
 
+> **Deprecated (April 2026).** The standalone Agent Wellbeing API is deprecated and will be removed in a future release. Use the consolidated `AI Feature` API (`wxcli cc-ai-feature`) instead.
+
 Monitor and manage agent burnout detection. Mixes config paths (`/organization/{orgid}/agent-burnout/`) with runtime paths (`/v1/agentburnout/`).
 
 ### Endpoints
