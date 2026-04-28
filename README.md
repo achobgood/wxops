@@ -5,7 +5,8 @@ A command-line tool for provisioning and managing Webex Calling environments. 16
 ## Install
 
 ```bash
-cd webexCalling
+git clone https://github.com/achobgood/wxops.git
+cd wxops
 pip install -e .
 ```
 
