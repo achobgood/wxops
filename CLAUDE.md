@@ -2,7 +2,7 @@
 
 Build and configure Webex Calling, admin, device, and messaging APIs programmatically with guided Claude Code assistance.
 
-**Execution pattern:** `wxcli` CLI commands (primary) → `wxcadm` (XSI/E911/CP-API) → raw HTTP (fallback).
+**Execution pattern:** `wxcli` CLI commands (primary) → raw HTTP (fallback).
 The wxcli CLI has 173 command groups covering calling, admin, device, messaging, meetings, and contact center APIs. Raw HTTP docs in `docs/reference/` serve as reference and fallback.
 
 ## Mandatory Grounding Rule
@@ -19,7 +19,7 @@ The reference docs and skills are the authoritative source for this project. Tra
 
 ## Quick Start
 
-Use `/agents` and select **wxc-calling-builder**. This is the primary interface for all operations.
+You MUST use `/agents` and select **wxc-calling-builder**. This is the primary interface for all operations.
 The agent walks you through authentication, interviews you about what you want to build, designs
 a deployment plan, executes via `wxcli` commands, and verifies the results. **Do not run `wxcli`
 commands directly** — the agent handles the full workflow.
@@ -29,14 +29,19 @@ commands directly** — the agent handles the full workflow.
 **To migrate from CUCM:** `/agents` → wxc-calling-builder → "Run a CUCM migration" and provide
 the CUCM host/credentials. The agent runs the full pipeline: discover → normalize → map → analyze
 → resolve addresses → review decisions → plan → execute → verify. See the CUCM migration section
-below for what the pipeline does.
+below for what the pipeline does. Pipeline and tool details in `.claude/rules/cucm-migration.md` (path-scoped). 
+See `src/wxcli/migration/CLAUDE.md` for the full file map and architecture.
 
 **To debug a failing configuration:** Use `/wxc-calling-debug` (this one is a skill, invoked directly).
+
+**To query live org state:** Use `/query-live` for read-only questions about the current environment ("who has call forwarding enabled?", "which locations have no users?", "show me all hunt groups").
+
+**To audit org health:** `/agents` → wxc-calling-builder → "audit my org". The `org-health` skill orchestrates collection, analysis, and HTML report generation.
 
 ### Agent Invocation Pattern
 
 wxc-calling-builder is a **phase-per-invocation** agent. Each major phase runs as a
-fresh agent invocation — do not resume agents via `SendMessage` for multi-phase workflows.
+fresh agent invocation — do NOT resume agents via `SendMessage` for multi-phase workflows.
 
 **Invocation rules:**
 - Always spawn a fresh agent for each phase
@@ -44,12 +49,49 @@ fresh agent invocation — do not resume agents via `SendMessage` for multi-phas
 - The agent reads state from disk on startup and validates against the prompt
 - For single-phase work (quick config, one-off query), one invocation is sufficient
 
-**CUCM migration example:**
-1. Spawn agent: "Run CUCM discovery for project X against host Y"
-2. Agent completes discover + normalize + map + analyze, writes session-state, terminates
-3. Spawn fresh agent: "Project X is at ANALYZED. Run decision review and generate report"
-4. Agent completes decisions + report, writes session-state, terminates
-5. Continue pattern through plan → execute
+**What constitutes a phase boundary:** Any point where the agent writes state to disk and the next step is conceptually independent. Typical boundaries: auth complete → provisioning starts, provisioning complete → feature configuration starts, discovery complete → analysis starts. If the next step needs results from the current step but could be described to a fresh agent in one sentence, it's a new phase.
+
+**When SendMessage IS appropriate:** Simple follow-ups within a single phase — "also add voicemail to that user", "change the extension to 2001 instead". The agent still has the right context. Do NOT use SendMessage across phase boundaries or after long silences; the agent may have lost context or died mid-tool-call.
+
+**Prompt template for fresh phase invocations:**
+```
+"Project: [name]. Current state: [stage, e.g. 'provisioning complete, 3 users + 2 locations created'].
+Next: [what to do]. Key context: [anything the agent needs that isn't on disk]."
+```
+
+**CUCM migration invocation example:** See `.claude/rules/cucm-migration.md` for the phase-by-phase spawning pattern.
+
+### Agent Model Selection
+
+The builder agent base context is ~40k tokens. Choose the model to match the task complexity:
+
+| Task type | Model | Why |
+|-----------|-------|-----|
+| Cleanup, teardown, batch delete | `haiku` | All logic is in `wxcli cleanup run` — agent just picks flags and runs it |
+| Simple read-only checks (list users, verify resource) | `sonnet` with minimal prompt (1-2 sentences) | Base context load is unavoidable; keep prompt short to minimize output tokens |
+| Standard provisioning, feature config, single-phase builds | `sonnet` (default) | Good balance of capability and cost |
+| Multi-phase CUCM migration, complex routing, architectural decisions | `opus` | Needs reasoning about dependencies, cross-feature interactions |
+| Batch multiple simple checks into one agent call | `sonnet` | One agent with 3 checks < three separate agent spawns |
+
+**Anti-patterns:**
+- Never use Haiku for implementation subagents — it misses details and produces rework
+- Don't spawn a full builder agent just to run one `wxcli` read command — keep the prompt minimal
+- Don't spawn separate agents for each simple check — batch them
+
+### Inline IDs in Commands
+
+Always inline resource IDs directly as arguments. Never use multi-line shell variable assignments before wxcli commands.
+
+```bash
+# WRONG — multi-line breaks permission prefix matching
+HQ="Y2lz..."
+wxcli dect-devices show "$HQ"
+
+# RIGHT — inline the ID
+wxcli dect-devices show "Y2lz..."
+```
+
+**Why:** Permission rules use prefix matching. A variable assignment line before `wxcli` means the command string doesn't start with `wxcli`, so it won't match `Bash(wxcli:*)` permission patterns, triggering unnecessary prompts.
 
 ### Agent Orchestration — Long-Running Work & Silence Detection
 
@@ -105,6 +147,24 @@ Added 2026-04-15 after an org-cleanup subagent died mid-Phase-2 when its Python 
 | `.claude/skills/cucm-migrate/` | Skill: execute CUCM-to-Webex migration from exported deployment plan |
 | `.claude/skills/query-live/` | Skill: read-only natural language queries against live Webex Calling state |
 
+### Skill Disambiguation
+
+When multiple skills could match, use this lookup:
+
+| If the user wants to... | Use this skill | NOT this one |
+|--------------------------|---------------|-------------|
+| Configure Customer Assist (screen pop, wrap-up, supervisors) | `customer-assist` | `configure-features` (CX queues are a separate skill) |
+| Create a call queue, hunt group, or auto attendant | `configure-features` | `customer-assist` (only for CX Essentials features) |
+| Set person call forwarding, DND, voicemail, caller ID | `manage-call-settings` | `configure-features` (person settings ≠ call features) |
+| Configure voicemail groups (shared location mailbox) | `configure-features` | `manage-call-settings` (voicemail groups are a location feature) |
+| Provision MPP phones, DECT, activation codes | `manage-devices` | `device-platform` (that's for config keys, not provisioning) |
+| Set 9800-series PhoneOS config keys, xAPI commands | `device-platform` | `manage-devices` (that's for provisioning, not config) |
+| Query Webex Calling CDR, call quality, queue stats | `reporting` | `reporting-cc` (that's Contact Center only) |
+| Query Contact Center agent/queue analytics | `reporting-cc` | `reporting` (that's Calling only) |
+| Query meeting quality, workspace utilization | `reporting-meetings` | `reporting` (different API domain) |
+| Delete/clean up resources | `teardown` | `provision-calling` (that's for creation) |
+| Provision users, locations, licenses | `provision-calling` | `teardown` (that's for deletion) |
+
 ### Reference Docs — wxc_sdk (Official Cisco SDK)
 
 | Path | Purpose |
@@ -133,16 +193,16 @@ Added 2026-04-15 after an org-cleanup subagent died mid-Phase-2 when its Python 
 | `docs/reference/virtual-lines.md` | Virtual line/extension settings, voicemail, recording |
 | `docs/reference/emergency-services.md` | E911, emergency addresses, ECBN |
 
-### Reference Docs — wxcadm (Admin Library with XSI/CP-API)
+### Reference Docs — Admin APIs (Core Object Model)
 
 | Path | Purpose |
 |------|---------|
-| `docs/reference/wxcadm-core.md` | Webex/Org classes, object model, auth, wxcadm vs wxc_sdk comparison |
+| `docs/reference/wxcadm-core.md` | Webex/Org classes, object model, auth patterns |
 | `docs/reference/wxcadm-person.md` | Person class (34 call settings methods, 10 unique capabilities) |
 | `docs/reference/wxcadm-locations.md` | Location management, features, schedules |
-| `docs/reference/wxcadm-features.md` | AA, CQ, HG, pickup, announcements, recording via wxcadm |
+| `docs/reference/wxcadm-features.md` | AA, CQ, HG, pickup, announcements, recording |
 | `docs/reference/wxcadm-devices-workspaces.md` | Devices, DECT, workspaces, virtual lines, numbers |
-| `docs/reference/wxcadm-xsi-realtime.md` | XSI events, real-time call monitoring (UNIQUE to wxcadm) |
+| `docs/reference/wxcadm-xsi-realtime.md` | XSI events, real-time call monitoring |
 | `docs/reference/wxcadm-routing.md` | Call routing, PSTN, CDR, reports, jobs, webhooks |
 | `docs/reference/wxcadm-advanced.md` | RedSky E911, Meraki integration, CP-API, wholesale, bifrost |
 
@@ -183,32 +243,11 @@ Added 2026-04-15 after an org-cleanup subagent died mid-Phase-2 when its Python 
 | `docs/reference/contact-center-analytics.md` | CC AI, monitoring, subscriptions, tasks, search |
 | `docs/reference/contact-center-journey.md` | JDS: workspaces, persons, identity, profile views, events, WXCC subscription |
 
-### Migration Knowledge Base (Opus Advisor)
+### Migration (KB, Runbooks, Tool, Spec Template)
 
-Structured knowledge base read by the `migration-advisor` agent (Opus) during CUCM migration analysis and decision review. Grounded in the reference docs above + static advisory heuristics. The advisor reads relevant KB docs based on which decision types are present, then applies its own training for edge cases.
+Detailed migration context lives in `.claude/rules/cucm-migration.md` (auto-loaded when touching migration paths). Contains: knowledge base file map (8 KB docs for the Opus advisor), operator runbooks (3 docs for pipeline walkthrough, decision guide, tuning), migration tool pipeline commands, advisory workflow, report/diff/notice generation commands, spec template requirements, and the phase-by-phase agent invocation example.
 
-| Path | Purpose |
-|------|---------|
-| `docs/knowledge-base/migration/kb-css-routing.md` | CSS/partition ordering, dial plan decomposition, calling permissions |
-| `docs/knowledge-base/migration/kb-device-migration.md` | Device replacement paths, firmware conversion, MPP vs PhoneOS/RoomOS |
-| `docs/knowledge-base/migration/kb-trunk-pstn.md` | Trunk topology, LGW vs CCPP, CPN transformation chains |
-| `docs/knowledge-base/migration/kb-feature-mapping.md` | Hunt Group vs Call Queue depth, AA mapping, shared line semantics |
-| `docs/knowledge-base/migration/kb-user-settings.md` | Call forwarding, voicemail, calling permissions, workspace licensing |
-| `docs/knowledge-base/migration/kb-location-design.md` | Device pool → location consolidation, E911, numbering plan |
-| `docs/knowledge-base/migration/kb-identity-numbering.md` | DN ownership, extension conflicts, duplicate users, number porting |
-| `docs/knowledge-base/migration/kb-webex-limits.md` | Platform hard limits, feature gaps, scope requirements (always loaded) |
-
-### Migration Operator Runbooks (Phase 2 Transferability)
-
-Operator-facing reference docs for the CUCM-to-Webex migration tool. Written for a CUCM-literate SE running their first migration. The cucm-migrate skill points operators here for end-to-end pipeline help, per-decision lookups, and tuning recipes.
-
-| Path | Purpose |
-|------|---------|
-| `docs/runbooks/cucm-migration/operator-runbook.md` | Operator runbook — end-to-end pipeline walkthrough, prerequisites, failure recovery |
-| `docs/runbooks/cucm-migration/decision-guide.md` | Decision guide — one entry per DecisionType + advisory pattern, with override criteria |
-| `docs/runbooks/cucm-migration/tuning-reference.md` | Tuning reference — config keys, auto-rules, score weights, 5 worked recipes |
-
-**When handling CUCM migration questions:** Read `operator-runbook.md` first for the pipeline walkthrough and `decision-guide.md` for per-decision interpretation. Read `tuning-reference.md` when discussing customer environment shapes (the 5 worked recipes), config tuning, or recurring decision patterns. The `cucm-migrate` skill loads these references automatically when `/cucm-migrate` is invoked; this instruction covers ad-hoc CUCM questions sent to `wxc-calling-builder` or other agents outside the skill flow.
+**Read the rule when:** handling any CUCM migration question, running `/cucm-migrate`, or working with the migration advisor agent — even if not editing migration source files directly.
 
 ### CLI (wxcli) — Primary Execution Layer
 
@@ -230,37 +269,13 @@ Operator-facing reference docs for the CUCM-to-Webex migration tool. Written for
 
 ### Org Health Assessment
 
-Live Webex Calling org audit at `src/wxcli/org_health/`. Deterministic Python checks against collected JSON — no LLM analysis. Reuses the migration report's CSS design system and chart functions. **76 tests passing.**
+Detailed context in `.claude/rules/org-health.md` (auto-loaded when touching org health paths). Contains: file map (models, collector, checks, analyze, report), run instructions, and check category breakdown (Security Posture, Routing Hygiene, Feature Utilization, Device Health). **76 tests passing.**
 
-| Path | Purpose |
-|------|---------|
-| `src/wxcli/org_health/models.py` | Finding, CategoryScore, HealthResult, OrgStats dataclasses |
-| `src/wxcli/org_health/collector.py` | Load manifest, validate collection, load collected JSON |
-| `src/wxcli/org_health/checks.py` | 18 check functions + `@check()` decorator registry across 4 categories |
-| `src/wxcli/org_health/analyze.py` | `__main__` entry: load → check → write `results.json` |
-| `src/wxcli/org_health/report.py` | `__main__` entry: read results → generate self-contained HTML report |
-
-**To run:** Builder agent → "audit my org" → `org-health` skill orchestrates 3 phases (collect via wxcli → analyze via `python3.14 -m wxcli.org_health.analyze` → report via `python3.14 -m wxcli.org_health.report`).
-
-**Check categories:** Security Posture (4), Routing Hygiene (3), Feature Utilization (6), Device Health (5).
+**Read the rule when:** running an org health audit, modifying checks, or working on the report generator.
 
 ### CUCM→Webex Migration Tool (All 11 phases complete)
 
-The migration tool is at `src/wxcli/migration/` and wired into the CLI as `wxcli cucm <command>`. **2535 tests passing.** See `src/wxcli/migration/CLAUDE.md` for the full file map, architecture, and pipeline commands. Use `/cucm-migrate` to execute a migration after running the pipeline.
-
-**To run a migration:** `wxcli cucm init` → `discover` → `normalize` → `map` → `analyze` → `decisions` → `plan` → `preflight` → `export` → then invoke `/cucm-migrate`.
-
-**Migration advisory workflow:** During `/cucm-migrate`, the cucm-migrate skill delegates to the `migration-advisor` agent (Opus) at two points: (1) after pipeline verification, it produces a `migration-narrative.md` with cross-decision analysis, dissent flags, and risk assessment; (2) during decision review, it presents advisories and recommendations with CCIE-level contextual explanation, grounded in the knowledge base at `docs/knowledge-base/migration/`. The static heuristics (`recommendation_rules.py`, `advisory_patterns.py`) remain the backbone — the Opus layer adds interpretation and structured dissent when heuristics are likely wrong. Falls back to mechanical presentation if the advisor agent is unavailable.
-
-**To generate an assessment report:** `wxcli cucm init` → `discover` (or `discover --from-file`) → `normalize` → `map` → `analyze` → `report --brand "..." --prepared-by "..."`. Does not require plan/preflight/export — the report reads directly from the post-analyze store.
-
-**To generate a per-user diff:** `wxcli cucm init` → `discover` → `normalize` → `map` → `analyze` → `user-diff`. Does not require plan/preflight/export.
-
-**To generate a user communication notice:** `wxcli cucm init` → `discover` → `normalize` → `map` → `analyze` → `user-notice --brand "..." --migration-date "..." --helpdesk "..."`. Does not require plan/preflight/export.
-
-### Migration Spec Template
-
-All migration pipeline spec documents must follow the template at `docs/reference/migration-spec-template.md`. This applies whether the spec is written interactively via brainstorming, by an agent swarm, or manually. The template is rigid — all 9 sections are required. Sections can be brief for simple specs but cannot be omitted.
+The migration tool is at `src/wxcli/migration/` and wired into the CLI as `wxcli cucm <command>`. **2778 tests passing.** See `src/wxcli/migration/CLAUDE.md` for the full file map, architecture, and pipeline commands. Pipeline workflow, report generation, and advisory details are in `.claude/rules/cucm-migration.md`.
 
 ## CLI Status & Known Issues
 
@@ -279,6 +294,21 @@ wxcli supports partner/VAR/MSP admins who manage multiple customer orgs with a s
 - The builder agent has a blocking org confirmation step at session start (section 2b) when a partner token is detected.
 
 See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for full details.
+
+### Error → Known Issue Quick Reference
+
+When you hit one of these errors, jump to the matching known issue:
+
+| Error | Symptom | Known Issue |
+|-------|---------|-------------|
+| 400 "Target user not authorized" | `call-controls` with admin token | #1 — needs user-level OAuth |
+| 404 (error 4008) | `my-call-settings` or `mode-management` | #3 — user needs Calling license |
+| 404 on person settings | Admin token on user-only endpoints | #4 — 6 settings have no admin path |
+| 405 on workspace settings | Workspace `/telephony/config/` endpoint | #6 — needs Professional license |
+| 403 on `cc-*` commands | PAT or wrong OAuth scopes | #13 — needs `cjp:config_*` OAuth scopes |
+| 409 on location delete | Resources still assigned | See `.claude/rules/cleanup.md` |
+| Unexpected command name | `show-*` vs `list-*`, singular vs plural | #5 — two path families; always run `--help` first |
+| `--json-body` needed | Complex nested fields in request body | #2 — check `--help` for JSON example |
 
 ### Known issues
 
@@ -299,26 +329,7 @@ See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for fu
 
 ### Cleanup Command
 
-`wxcli cleanup run` batch-deletes Webex Calling resources in dependency-safe order.
+Detailed context in `.claude/rules/cleanup.md` (auto-loaded when touching `cleanup.py`). Contains: all flags, 13-layer deletion order, and known behaviors (virtual line workaround, location disable propagation, workspace ordering).
 
-**Flags:**
-- `--scope "Name1,Name2"` — limit to specific locations (by name or ID)
-- `--all` — clean up entire org (required if --scope not given)
-- `--include-users` — also delete users (off by default)
-- `--include-locations` — also delete locations (off by default, includes 90s wait for calling disable propagation)
-- `--exclude-user-domains "wbx.ai,corp.com"` — keep users matching these email domains (use with `--include-users`)
-- `--dry-run` — show what would be deleted without deleting
-- `--max-concurrent N` — parallel deletions per layer (default 5)
-- `--force` — skip confirmation prompt
-
-**Deletion order** (13 layers, reverse of creation): dial plans → route lists → route groups → translation patterns → trunks → call features → schedules/operating modes → virtual lines → devices → workspaces → users → numbers → locations.
-
-**Known behaviors:**
-- Virtual lines use raw API (not `wxcli virtual-extensions`) due to ID type mismatch bug
-- Location deletion requires disabling calling first + 90s propagation wait
-- Location delete may still 409 after wait — re-run cleanup to retry
-- Calling disable is best-effort — locations where calling is already off are still attempted for deletion
-- Phone numbers are removed before location deletion (max 5 per API request, main numbers skipped)
-- Call parks and call pickups are enumerated per-location (no org-wide list endpoint)
-- Workspaces must be deleted before disable-calling can succeed — API has no location filter, client-side filtering by locationId
+**Read the rule when:** running `wxcli cleanup`, modifying cleanup logic, or debugging deletion failures.
 
