@@ -141,12 +141,14 @@ def set_cc_region(
 
 
 # Hand-coded modules
+from wxcli.commands.update import app as update_app
 from wxcli.commands.configure import app as configure_app
 from wxcli.commands.locations import app as locations_app
 from wxcli.commands.numbers import app as numbers_app
 from wxcli.commands.licenses import app as licenses_app
 from wxcli.commands.cucm import app as cucm_app
 
+app.add_typer(update_app, name="update")
 app.add_typer(configure_app, name="configure")
 app.add_typer(locations_app, name="locations")
 app.add_typer(numbers_app, name="numbers")

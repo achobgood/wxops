@@ -59,3 +59,4 @@ tools/build_oncall_deck.py
 
 # README backup
 README.md.bak
+src/wxcli/_version.py
