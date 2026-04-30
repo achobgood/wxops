@@ -16,6 +16,11 @@ def update(ctx: typer.Context):
 
     typer.echo(f"Updating from {REPO_ROOT} ...")
 
+    before = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=REPO_ROOT, capture_output=True, text=True,
+    ).stdout.strip()
+
     result = subprocess.run(
         ["git", "pull", "origin", "main"],
         cwd=REPO_ROOT,
@@ -26,6 +31,22 @@ def update(ctx: typer.Context):
     if result.returncode != 0:
         typer.echo("git pull failed.", err=True)
         raise typer.Exit(1)
+
+    after = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=REPO_ROOT, capture_output=True, text=True,
+    ).stdout.strip()
+
+    if before != after:
+        log = subprocess.run(
+            ["git", "log", f"{before}..{after}", "--oneline"],
+            cwd=REPO_ROOT, capture_output=True, text=True,
+        ).stdout.strip()
+        if log:
+            typer.echo("\nWhat's new:")
+            for line in log.splitlines():
+                typer.echo(f"  {line}")
+        typer.echo()
 
     typer.echo("Reinstalling dependencies...")
     result = subprocess.run(
