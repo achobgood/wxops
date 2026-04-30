@@ -5,9 +5,11 @@
   "scripts": {
     "preview": "remotion preview src/index.ts",
     "render": "remotion render src/index.ts AAP-Full --codec h264",
-    "render-gif": "remotion render src/index.ts AAP-Full --codec gif"
+    "render-gif": "remotion render src/index.ts AAP-Full --codec gif",
+    "generate-narration": "node scripts/generate-narration.mjs"
   },
   "dependencies": {
+    "@google-cloud/text-to-speech": "^6.4.0",
     "@remotion/cli": "4.0.261",
     "@remotion/google-fonts": "4.0.261",
     "@remotion/paths": "4.0.261",
