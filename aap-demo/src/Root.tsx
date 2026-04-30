@@ -1,23 +1,24 @@
 import React from 'react';
-import {Composition, AbsoluteFill} from 'remotion';
-import {FPS, WIDTH, HEIGHT, backgroundStyle} from './styles/tokens';
-import {Highway} from './components/Highway';
-import {Car} from './components/Car';
+import {Composition, Sequence, AbsoluteFill} from 'remotion';
+import {FPS, WIDTH, HEIGHT, chapters} from './styles/tokens';
+import {TheCall} from './scenes/TheCall';
+import {TheStore} from './scenes/TheStore';
 
-const FoundationTest: React.FC = () => (
-  <AbsoluteFill style={backgroundStyle}>
-    <Highway drawStartFrame={5} drawDuration={40} />
-    <Car enterFrame={15} startDistance={0} endDistance={55} travelDuration={50} />
+const ScenesPreview: React.FC = () => (
+  <AbsoluteFill>
+    <Sequence from={chapters.theCall.from} durationInFrames={chapters.theCall.duration}>
+      <TheCall />
+    </Sequence>
+    <Sequence from={chapters.theStore.from} durationInFrames={chapters.theStore.duration}>
+      <TheStore />
+    </Sequence>
   </AbsoluteFill>
 );
 
 export const RemotionRoot: React.FC = () => (
-  <Composition
-    id="FoundationTest"
-    component={FoundationTest}
-    durationInFrames={90}
-    fps={FPS}
-    width={WIDTH}
-    height={HEIGHT}
-  />
+  <>
+    <Composition id="Scenes-1-2" component={ScenesPreview} durationInFrames={1050} fps={FPS} width={WIDTH} height={HEIGHT} />
+    <Composition id="Ch1-TheCall" component={TheCall} durationInFrames={chapters.theCall.duration} fps={FPS} width={WIDTH} height={HEIGHT} />
+    <Composition id="Ch2-TheStore" component={TheStore} durationInFrames={chapters.theStore.duration} fps={FPS} width={WIDTH} height={HEIGHT} />
+  </>
 );
