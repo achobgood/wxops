@@ -3,7 +3,7 @@ import typer
 from wxcli.errors import WebexError, handle_rest_error
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
-from wxcli.config import get_org_id
+from wxcli.config import resolve_org_id
 
 
 app = typer.Typer(help="Manage Webex Calling partner-tags.")
@@ -48,7 +48,7 @@ def create(
 ):
     """Create or Replace existing customer tags with the provided ones\n\nExample --json-body:\n  '{"tags":[{"name":"...","description":"..."}]}'."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/v1/partner/tags/organizations/{org_id}/assignTags"
     if json_body:
         body = json.loads(json_body)
@@ -76,7 +76,7 @@ def show(
 ):
     """Get customer organization's tags."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/v1/partner/tags/organizations/{org_id}"
     try:
         result = api.session.rest_get(url)
@@ -134,7 +134,7 @@ def create_assign_tags(
 ):
     """Create or Replace existing subscription tags with the provided ones\n\nExample --json-body:\n  '{"tags":[{"name":"...","description":"..."}]}'."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/v1/partner/tags/organizations/{org_id}/subscriptions/{subscription_id}/assignTags"
     if json_body:
         body = json.loads(json_body)
@@ -194,7 +194,7 @@ def show_subscriptions(
 ):
     """Fetch a Subscription."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/v1/partner/tags/organizations/{org_id}/subscriptions/{subscription_id}"
     try:
         result = api.session.rest_get(url)

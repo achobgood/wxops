@@ -3,7 +3,7 @@ import typer
 from wxcli.errors import WebexError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
-from wxcli.config import get_org_id
+from wxcli.config import resolve_org_id
 
 
 app = typer.Typer(help="Manage Webex Calling organization-contacts.")
@@ -27,7 +27,7 @@ def create(
 ):
     """Create a Contact\n\nExample --json-body:\n  '{"schemas":"...","displayName":"...","firstName":"...","lastName":"...","companyName":"...","title":"..."}'."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/v1/contacts/organizations/{org_id}/contacts"
     if json_body:
         body = json.loads(json_body)
@@ -100,7 +100,7 @@ def show(
 ):
     """Get a Contact."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/v1/contacts/organizations/{org_id}/contacts/{contact_id}"
     try:
         result = api.session.rest_get(url)
@@ -154,7 +154,7 @@ def update(
 ):
     """Update a Contact\n\nExample --json-body:\n  '{"schemas":"...","displayName":"...","firstName":"...","lastName":"...","companyName":"...","title":"..."}'."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/v1/contacts/organizations/{org_id}/contacts/{contact_id}"
     if json_body:
         body = json.loads(json_body)
@@ -216,7 +216,7 @@ def delete(
     if not force:
         typer.confirm(f"Delete {contact_id}?", abort=True)
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/v1/contacts/organizations/{org_id}/contacts/{contact_id}"
     try:
         api.session.rest_delete(url)
@@ -256,7 +256,7 @@ def cmd_list(
 ):
     """List Contacts."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/v1/contacts/organizations/{org_id}/contacts/search"
     params = {}
     if keyword is not None:
@@ -309,7 +309,7 @@ def create_bulk(
 ):
     """Bulk Create or Update Contacts\n\nExample --json-body:\n  '{"schemas":"...","contacts":[{"contactId":"...","displayName":"...","firstName":"...","lastName":"...","companyName":"...","title":"..."}]}'."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/v1/contacts/organizations/{org_id}/contacts/bulk"
     if json_body:
         body = json.loads(json_body)
@@ -363,7 +363,7 @@ def create_delete(
 ):
     """Bulk Delete Contacts\n\nExample --json-body:\n  '{"schemas":"...","objectIds":["..."]}'."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/v1/contacts/organizations/{org_id}/contacts/bulk/delete"
     if json_body:
         body = json.loads(json_body)

@@ -3,7 +3,7 @@ import typer
 from wxcli.errors import WebexError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
-from wxcli.config import get_org_id
+from wxcli.config import resolve_org_id
 
 
 app = typer.Typer(help="Manage Webex Calling scim-2-users.")
@@ -28,7 +28,7 @@ def cmd_list(
 ):
     """Search users."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/scim/{org_id}/v2/Users"
     params = {}
     if filter_param is not None:
@@ -105,7 +105,7 @@ def create(
 ):
     """Create a user\n\nExample --json-body:\n  '{"schemas":["..."],"userName":"...","userType":"user","title":"...","active":true,"roles":[{"value":"...","type":"...","display":"..."}]}'."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/scim/{org_id}/v2/Users"
     if json_body:
         body = json.loads(json_body)
@@ -178,7 +178,7 @@ def show(
 ):
     """Get a user."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/scim/{org_id}/v2/Users/{user_id}"
     try:
         result = api.session.rest_get(url)
@@ -233,7 +233,7 @@ def update(
 ):
     """Update a user with PUT\n\nExample --json-body:\n  '{"schemas":["..."],"userName":"...","userType":"user","title":"...","active":true,"roles":[{"value":"...","type":"...","display":"..."}]}'."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/scim/{org_id}/v2/Users/{user_id}"
     if json_body:
         body = json.loads(json_body)
@@ -295,7 +295,7 @@ def update_users(
 ):
     """Update a user with PATCH\n\nExample --json-body:\n  '{"schemas":["..."],"Operations":[{"op":"...","path":"...","value":"..."}]}'."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/scim/{org_id}/v2/Users/{user_id}"
     if json_body:
         body = json.loads(json_body)
@@ -337,7 +337,7 @@ def delete(
     if not force:
         typer.confirm(f"Delete {user_id}?", abort=True)
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/scim/{org_id}/v2/Users/{user_id}"
     try:
         api.session.rest_delete(url)

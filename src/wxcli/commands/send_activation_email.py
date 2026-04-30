@@ -3,7 +3,7 @@ import typer
 from wxcli.errors import WebexError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
-from wxcli.config import get_org_id
+from wxcli.config import resolve_org_id
 
 
 app = typer.Typer(help="Manage Webex Calling send-activation-email.")
@@ -17,7 +17,7 @@ def create(
 ):
     """Initiate Bulk Activation Email Resend Job."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/organizations/{org_id}/jobs/sendActivationEmails"
     if json_body:
         body = json.loads(json_body)
@@ -66,7 +66,7 @@ def cmd_list(
 ):
     """Get Bulk Activation Email Resend Job Status."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/organizations/{org_id}/jobs/sendActivationEmails/{job_id}/status"
     params = {}
     if limit > 0:
@@ -114,7 +114,7 @@ def list_errors(
 ):
     """Get Bulk Activation Email Resend Job Errors."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/organizations/{org_id}/jobs/sendActivationEmails/{job_id}/errors"
     params = {}
     if limit > 0:
