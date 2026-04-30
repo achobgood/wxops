@@ -4,6 +4,7 @@ import {FPS, WIDTH, HEIGHT, chapters} from './styles/tokens';
 import {TheCall} from './scenes/TheCall';
 import {TheStore} from './scenes/TheStore';
 import {TheHold} from './scenes/TheHold';
+import {TheRecall} from './scenes/TheRecall';
 
 const ScenesPreview: React.FC = () => (
   <AbsoluteFill>
@@ -25,5 +26,6 @@ export const RemotionRoot: React.FC = () => (
     <Composition id="Ch1-TheCall" component={TheCall} durationInFrames={chapters.theCall.duration} fps={FPS} width={WIDTH} height={HEIGHT} />
     <Composition id="Ch2-TheStore" component={TheStore} durationInFrames={chapters.theStore.duration} fps={FPS} width={WIDTH} height={HEIGHT} />
     <Composition id="Ch3-TheHold" component={TheHold} durationInFrames={chapters.theHold.duration} fps={FPS} width={WIDTH} height={HEIGHT} />
+    <Composition id="Ch4-TheRecall" component={TheRecall} durationInFrames={chapters.theRecall.duration} fps={FPS} width={WIDTH} height={HEIGHT} />
   </>
 );
