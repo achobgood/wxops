@@ -2,6 +2,19 @@
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "git fetch origin --quiet 2>/dev/null; BEHIND=$(git rev-list HEAD..origin/main --count 2>/dev/null); if [ \"${BEHIND:-0}\" -gt 0 ]; then echo \"Repo is $BEHIND commit(s) behind origin/main. Tell the user updates are available and suggest running wxcli update.\"; exit 2; fi",
+            "asyncRewake": true
+          }
+        ]
+      }
+    ]
+  },
   "permissions": {
     "allow": [
       "Bash(wxcli:*)",
