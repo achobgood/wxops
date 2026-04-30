@@ -20,15 +20,15 @@ const chapters = [
   },
   {
     id: 'ch3-the-hold',
-    text: `But what happens when the customer gets put on hold? A webhook detects the hold event and starts a sixty-second countdown. When the timer expires, the system automatically disconnects the associate's leg — and the call flows back into Webex Contact Center. No dropped calls. No callbacks.`,
+    text: `But what happens when the customer gets put on hold? A webhook starts a sixty-second countdown. When it expires, the system disconnects the associate — and the call flows back into Webex Contact Center. No dropped calls.`,
   },
   {
     id: 'ch4-the-recall',
-    text: `The call returns to the same flow execution — every variable preserved. An AI Agent picks up seamlessly: "Hi John, I see you were waiting at Store 247. I can help you with those brake pads for your Civic." Context-aware. No re-identification. No starting over.`,
+    text: `The call returns to the same flow — every variable preserved. An AI Agent picks up: "Hi John, I see you were waiting at Store 247. I can help with those brake pads." Context-aware. No starting over.`,
   },
   {
     id: 'ch5-the-scale',
-    text: `And this scales effortlessly. Thirty-five thousand phones. Forty-five hundred stores. One webhook. Stateless middleware. Horizontal scale. Webex Contact Center, Webex Calling, and AI Agent Studio — working together.`,
+    text: `And this scales. Thirty-five thousand phones. Forty-five hundred stores. Webex Contact Center, Webex Calling, and AI Agent Studio.`,
   },
 ];
 
