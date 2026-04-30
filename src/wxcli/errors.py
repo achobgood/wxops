@@ -24,6 +24,9 @@ def handle_rest_error(e: WebexError) -> None:
     elif "28018" in err:
         typer.echo(f"Error: {e}", err=True)
         typer.echo("Tip: CX Essentials is not enabled for this queue. Use --has-cx-essentials true when creating/querying CX queues.", err=True)
+    elif "wxcc" in err and "403" in err:
+        typer.echo(f"Error: {e}", err=True)
+        typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
     else:
         typer.echo(f"Error: {e}", err=True)
     raise typer.Exit(1)

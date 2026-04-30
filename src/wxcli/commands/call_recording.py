@@ -1,6 +1,6 @@
 import json
 import typer
-from wxc_sdk.rest import RestError
+from wxcli.errors import WebexError, handle_rest_error
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
 from wxcli.config import get_org_id
@@ -23,26 +23,8 @@ def show(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
+    except WebexError as e:
+            handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -76,26 +58,8 @@ def update(
             body["enabled"] = enabled
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
+    except WebexError as e:
+            handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -115,26 +79,8 @@ def show_terms_of_service(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
+    except WebexError as e:
+            handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -169,26 +115,8 @@ def update_terms_of_service(
             body["termsOfServiceEnabled"] = terms_of_service_enabled
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
+    except WebexError as e:
+            handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -207,26 +135,8 @@ def show_compliance_announcement_call_recording(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
+    except WebexError as e:
+            handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -269,26 +179,8 @@ def update_compliance_announcement_call_recording(
             body["delayInSeconds"] = delay_in_seconds
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
+    except WebexError as e:
+            handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -308,26 +200,8 @@ def show_compliance_announcement_call_recording_1(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
+    except WebexError as e:
+            handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -374,26 +248,8 @@ def update_compliance_announcement_call_recording_1(
             body["delayInSeconds"] = delay_in_seconds
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
+    except WebexError as e:
+            handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -418,26 +274,8 @@ def cmd_list(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
+    except WebexError as e:
+            handle_rest_error(e)
     result = result or []
     items = result.get("regions", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
@@ -470,26 +308,8 @@ def list_vendor_users_call_recording(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
+    except WebexError as e:
+            handle_rest_error(e)
     result = result or []
     items = result.get("members", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
@@ -536,26 +356,8 @@ def update_vendor_call_recording(
             body["orgFailureBehaviorEnabled"] = org_failure_behavior_enabled
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
+    except WebexError as e:
+            handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -581,26 +383,8 @@ def list_vendors(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
+    except WebexError as e:
+            handle_rest_error(e)
     result = result or []
     items = result.get("vendors", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
@@ -634,26 +418,8 @@ def list_vendor_users_call_recording_1(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
+    except WebexError as e:
+            handle_rest_error(e)
     result = result or []
     items = result.get("members", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
@@ -683,26 +449,8 @@ def list_call_recording(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
+    except WebexError as e:
+            handle_rest_error(e)
     result = result or []
     items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
@@ -727,26 +475,8 @@ def show_call_recording(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
+    except WebexError as e:
+            handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -780,26 +510,8 @@ def list_errors(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
+    except WebexError as e:
+            handle_rest_error(e)
     result = result or []
     items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
@@ -823,26 +535,8 @@ def show_vendors(
         params["orgId"] = org_id
     try:
         result = api.session.rest_get(url, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
+    except WebexError as e:
+            handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -882,26 +576,8 @@ def update_vendor_call_recording_1(
             body["failureBehavior"] = failure_behavior
     try:
         result = api.session.rest_put(url, json=body, params=params)
-    except RestError as e:
-        err = str(e)
-        if "25008" in err:
-            typer.echo(f"Error: Missing required field. {e}", err=True)
-            typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-        elif "4003" in err or "Target user not authorized" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-        elif "4008" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-        elif "25409" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-        elif "wxcc" in err and "403" in err:
-            typer.echo(f"Error: {e}", err=True)
-            typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-        else:
-            typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
+    except WebexError as e:
+            handle_rest_error(e)
     typer.echo(f"Updated.")
 
 

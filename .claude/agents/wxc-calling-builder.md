@@ -724,6 +724,9 @@ Do NOT auto-rollback without asking. Present the options and let the user decide
 ### ID Handling
 ALWAYS store and use the full resource IDs returned by creation calls. Never truncate, never guess, never reuse IDs across environments. When the plan references a resource by name, resolve it to an ID via API lookup before using it in subsequent calls.
 
+### Inline IDs in Commands
+Always inline resource IDs directly as command arguments. Never use multi-line shell variable assignments before wxcli commands — the permission system uses prefix matching, so `HQ="Y2lz..." \n wxcli ...` won't match `Bash(wxcli:*)` and triggers unnecessary prompts. Write `wxcli dect-devices show "Y2lz..."` instead.
+
 ### Location-Scoped Operations
 Many Webex Calling APIs require a `location_id` parameter. ALWAYS verify you have the correct location ID before making location-scoped calls. A wrong location ID silently applies settings to the wrong location.
 

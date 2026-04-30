@@ -47,8 +47,8 @@ def _path_var_to_param(var: str) -> str:
 def _render_imports(include_org_id: bool = False, include_cc_url: bool = False, include_cc_org_id: bool = False) -> str:
     lines = '''import json
 import typer
-from wxc_sdk.rest import RestError
 from wxcli.auth import get_api
+from wxcli.errors import WebexError, handle_rest_error
 from wxcli.output import print_table, print_json
 '''
     config_imports = []
@@ -81,26 +81,8 @@ def _render_url_expr(url_path: str, path_vars: list[str]) -> str:
 
 
 def _render_error_handler(indent: str = "    ") -> str:
-    return f'''{indent}except RestError as e:
-{indent}    err = str(e)
-{indent}    if "25008" in err:
-{indent}        typer.echo(f"Error: Missing required field. {{e}}", err=True)
-{indent}        typer.echo("Tip: Use --json-body for full control over the request body.", err=True)
-{indent}    elif "4003" in err or "Target user not authorized" in err:
-{indent}        typer.echo(f"Error: {{e}}", err=True)
-{indent}        typer.echo("Tip: This endpoint requires a user-level OAuth token, not an admin or service app token.", err=True)
-{indent}    elif "4008" in err:
-{indent}        typer.echo(f"Error: {{e}}", err=True)
-{indent}        typer.echo("Tip: This endpoint requires the target user to have a Webex Calling license.", err=True)
-{indent}    elif "25409" in err:
-{indent}        typer.echo(f"Error: {{e}}", err=True)
-{indent}        typer.echo("Tip: This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.", err=True)
-{indent}    elif "wxcc" in err and "403" in err:
-{indent}        typer.echo(f"Error: {{e}}", err=True)
-{indent}        typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
-{indent}    else:
-{indent}        typer.echo(f"Error: {{e}}", err=True)
-{indent}    raise typer.Exit(1)'''
+    return f'''{indent}except WebexError as e:
+{indent}    handle_rest_error(e)'''
 
 
 def _render_auto_inject_params(ep: Endpoint) -> list[str]:
