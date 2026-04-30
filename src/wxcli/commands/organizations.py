@@ -3,7 +3,7 @@ import typer
 from wxcli.errors import WebexError, handle_rest_error
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
-from wxcli.config import get_org_id
+from wxcli.config import resolve_org_id
 
 
 app = typer.Typer(help="Manage Webex Calling organizations.")
@@ -44,7 +44,7 @@ def show(
 ):
     """Get Organization Details."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/v1/organizations/{org_id}"
     try:
         result = api.session.rest_get(url)
@@ -71,7 +71,7 @@ def delete(
     if not force:
         typer.confirm(f"Delete {org_id}?", abort=True)
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/v1/organizations/{org_id}"
     try:
         api.session.rest_delete(url)

@@ -55,6 +55,14 @@ def decode_webex_id(encoded_id: str) -> str:
         return encoded_id
 
 
+def resolve_org_id(api_session) -> str:
+    """Return the org ID from config, or fetch it from /v1/people/me."""
+    saved = get_org_id()
+    if saved:
+        return saved
+    return api_session.rest_get("https://webexapis.com/v1/people/me").get("orgId", "")
+
+
 def get_cc_org_id(api_session) -> str:
     """Return the decoded UUID org ID suitable for CC API path parameters.
 

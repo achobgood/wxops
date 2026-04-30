@@ -44,7 +44,7 @@ def _path_var_to_param(var: str) -> str:
     return camel_to_snake(var)
 
 
-def _render_imports(include_org_id: bool = False, include_cc_url: bool = False, include_cc_org_id: bool = False) -> str:
+def _render_imports(include_org_id: bool = False, include_org_id_path: bool = False, include_cc_url: bool = False, include_cc_org_id: bool = False) -> str:
     lines = '''import json
 import typer
 from wxcli.auth import get_api
@@ -54,6 +54,8 @@ from wxcli.output import print_table, print_json
     config_imports = []
     if include_org_id:
         config_imports.append('get_org_id')
+    if include_org_id_path:
+        config_imports.append('resolve_org_id')
     if include_cc_url:
         config_imports.append('get_cc_base_url')
     if include_cc_org_id:
@@ -113,7 +115,7 @@ def _render_path_inject(ep: Endpoint) -> list[str]:
             if _active_base_url_override == BASE_URL_CC:
                 lines.append(f"    {param} = get_cc_org_id(api.session)")
             else:
-                lines.append(f"    {param} = get_org_id() or api.session.rest_get('https://webexapis.com/v1/people/me').get('orgId')")
+                lines.append(f"    {param} = resolve_org_id(api.session)")
     return lines
 
 
@@ -745,11 +747,15 @@ def render_command_file(
     base_url_override: str | None = None,
 ) -> str:
     _, cli_name = folder_name_to_module(folder_name)
-    needs_org_id = any(
+    needs_org_id_query = any(
         "orgId" in getattr(ep, "auto_inject_params", [])
-        or any(v.lower() == "orgid" for v in getattr(ep, "auto_inject_path_params", []))
         for ep in endpoints
     )
+    needs_org_id_path = any(
+        any(v.lower() == "orgid" for v in getattr(ep, "auto_inject_path_params", []))
+        for ep in endpoints
+    )
+    needs_org_id = needs_org_id_query or needs_org_id_path
     global _active_base_url_override
     _active_base_url_override = base_url_override
     needs_cc_url = base_url_override == BASE_URL_CC
@@ -762,7 +768,7 @@ def render_command_file(
     else:
         product = "Webex Calling"
     sections = [
-        _render_imports(include_org_id=needs_org_id, include_cc_url=needs_cc_url, include_cc_org_id=needs_cc_org_id),
+        _render_imports(include_org_id=needs_org_id_query, include_org_id_path=needs_org_id_path, include_cc_url=needs_cc_url, include_cc_org_id=needs_cc_org_id),
         f'app = typer.Typer(help="Manage {product} {cli_name}.")\n',
     ]
 

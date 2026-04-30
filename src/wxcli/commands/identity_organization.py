@@ -3,7 +3,7 @@ import typer
 from wxcli.errors import WebexError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
-from wxcli.config import get_org_id
+from wxcli.config import resolve_org_id
 
 
 app = typer.Typer(help="Manage Webex Calling identity-organization.")
@@ -16,7 +16,7 @@ def show(
 ):
     """Get an organization."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/organizations/{org_id}"
     try:
         result = api.session.rest_get(url)
@@ -61,7 +61,7 @@ def update(
 ):
     """Update an organization\n\nExample --json-body:\n  '{"schemas":["..."],"displayName":"...","preferredLanguage":"..."}'."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/organizations/{org_id}"
     if json_body:
         body = json.loads(json_body)
@@ -105,7 +105,7 @@ def generate_otp(
 ):
     """Generate OTP."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/organizations/{org_id}/users/{user_id}/actions/generateOtp"
     if json_body:
         body = json.loads(json_body)

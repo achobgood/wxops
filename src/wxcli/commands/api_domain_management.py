@@ -3,7 +3,7 @@ import typer
 from wxcli.errors import WebexError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
-from wxcli.config import get_org_id
+from wxcli.config import resolve_org_id
 
 
 app = typer.Typer(help="Manage Webex Calling api-domain-management.")
@@ -17,7 +17,7 @@ def get_domain_verification(
 ):
     """Get Domain Verification Token."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/organizations/{org_id}/actions/getDomainVerificationToken"
     if json_body:
         body = json.loads(json_body)
@@ -61,7 +61,7 @@ def verify_domain(
 ):
     """Verify Domain."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/organizations/{org_id}/actions/verifyDomain"
     if json_body:
         body = json.loads(json_body)
@@ -108,7 +108,7 @@ def claim_domain(
 ):
     """Claim Domain\n\nExample --json-body:\n  '{"data":[{"domain":"..."}],"forceDomainClaim":true,"claimDomainOnly":true}'."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/organizations/{org_id}/actions/claimDomain"
     if json_body:
         body = json.loads(json_body)
@@ -153,7 +153,7 @@ def unverify_domain(
 ):
     """Unverify Domain."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/organizations/{org_id}/actions/unverifyDomain"
     if json_body:
         body = json.loads(json_body)
@@ -197,7 +197,7 @@ def unclaim_domain(
 ):
     """Unclaim Domain."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/organizations/{org_id}/actions/unclaimDomain"
     if json_body:
         body = json.loads(json_body)

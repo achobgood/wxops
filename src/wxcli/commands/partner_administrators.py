@@ -3,7 +3,7 @@ import typer
 from wxcli.errors import WebexError
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
-from wxcli.config import get_org_id
+from wxcli.config import resolve_org_id
 
 
 app = typer.Typer(help="Manage Webex Calling partner-administrators.")
@@ -67,7 +67,7 @@ def list_partner_admins(
 ):
     """Get all partner admins assigned to a customer."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/v1/partner/organizations/{org_id}/partnerAdmins"
     params = {}
     if limit > 0:
@@ -114,7 +114,7 @@ def create(
 ):
     """Assign partner admin to a customer."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/v1/partner/organizations/{org_id}/partnerAdmin/{person_id}/assign"
     if json_body:
         body = json.loads(json_body)
@@ -163,7 +163,7 @@ def delete(
     if not force:
         typer.confirm(f"Delete {person_id}?", abort=True)
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/v1/partner/organizations/{org_id}/partnerAdmin/{person_id}/unassign"
     try:
         api.session.rest_delete(url)

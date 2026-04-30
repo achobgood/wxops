@@ -3,7 +3,7 @@ import typer
 from wxcli.errors import WebexError, handle_rest_error
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
-from wxcli.config import get_org_id
+from wxcli.config import resolve_org_id
 
 
 app = typer.Typer(help="Manage Webex Calling scim-groups.")
@@ -27,7 +27,7 @@ def cmd_list(
 ):
     """Search groups."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/scim/{org_id}/v2/Groups"
     params = {}
     if filter_param is not None:
@@ -75,7 +75,7 @@ def create(
 ):
     """Create a group\n\nExample --json-body:\n  '{"schemas":["..."],"displayName":"...","externalId":"...","members":[{"value":"...","type":"..."}],"urn:scim:schemas:extension:cisco:webexidentity:2.0:Group":{"usage":"...","owners":["..."],"inheritances":["..."],"managedBy":["..."]}}'."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/scim/{org_id}/v2/Groups"
     if json_body:
         body = json.loads(json_body)
@@ -113,7 +113,7 @@ def show(
 ):
     """Get a group."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/scim/{org_id}/v2/Groups/{group_id}"
     params = {}
     if excluded_attributes is not None:
@@ -144,7 +144,7 @@ def update(
 ):
     """Update a group with PUT\n\nExample --json-body:\n  '{"schemas":["..."],"displayName":"...","externalId":"...","members":[{"value":"...","type":"..."}],"urn:scim:schemas:extension:cisco:webexidentity:2.0:Group":{"usage":"...","owners":["..."],"inheritances":["..."],"managedBy":["..."]}}'."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/scim/{org_id}/v2/Groups/{group_id}"
     if json_body:
         body = json.loads(json_body)
@@ -170,7 +170,7 @@ def update_groups(
 ):
     """Update a group with PATCH\n\nExample --json-body:\n  '{"schemas":["..."],"Operations":[{"op":"...","path":"...","value":"..."}]}'."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/scim/{org_id}/v2/Groups/{group_id}"
     if json_body:
         body = json.loads(json_body)
@@ -194,7 +194,7 @@ def delete(
     if not force:
         typer.confirm(f"Delete {group_id}?", abort=True)
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/scim/{org_id}/v2/Groups/{group_id}"
     try:
         api.session.rest_delete(url)

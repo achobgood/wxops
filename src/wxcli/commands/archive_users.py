@@ -3,7 +3,7 @@ import typer
 from wxcli.errors import WebexError, handle_rest_error
 from wxcli.auth import get_api
 from wxcli.output import print_table, print_json
-from wxcli.config import get_org_id
+from wxcli.config import resolve_org_id
 
 
 app = typer.Typer(help="Manage Webex Calling archive-users.")
@@ -17,7 +17,7 @@ def show(
 ):
     """Get Archive User."""
     api = get_api(debug=debug)
-    org_id = get_org_id() or api.people.me().org_id
+    org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/organizations/{org_id}/v1/ArchivedUser/{useruuid}"
     try:
         result = api.session.rest_get(url)
