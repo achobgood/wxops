@@ -1,0 +1,4 @@
+node_modules/
+dist/
+out/*.mp4
+out/*.gif
