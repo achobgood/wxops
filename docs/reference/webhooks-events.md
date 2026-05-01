@@ -1,4 +1,4 @@
-<!-- Updated by playbook session 2026-03-18 -->
+<!-- Updated by playbook session 2026-05-01 -->
 # Webhooks & Telephony Events Reference
 
 ## Sources
@@ -20,6 +20,12 @@ Webex webhooks deliver real-time notifications to your application when resource
 7. [Webhook Event Data Class Hierarchy](#7-webhook-event-data-class-hierarchy)
 8. [Webhook Security: HMAC Signature Verification](#8-webhook-security-hmac-signature-verification)
 9. [Key Gotchas](#9-key-gotchas)
+10. [Org-Level Webhooks](#10-org-level-webhooks)
+11. [Webhook Delivery Mechanics](#11-webhook-delivery-mechanics)
+12. [Service App Webhooks](#12-service-app-webhooks)
+13. [callSessionId Correlation Pattern](#13-callsessionid-correlation-pattern)
+14. [Scale Patterns](#14-scale-patterns)
+15. [wxcli Command Reference](#15-wxcli-command-reference)
 
 ---
 
@@ -270,24 +276,44 @@ WebhookApi.webhook_delete(webhook_id: str) -> None
 
 ## 3. Webhook Resources (All Available)
 
-| Resource Value | Description |
-|----------------|-------------|
-| `telephony_calls` | Webex Calling call events |
-| `telephony_conference` | Webex Calling conference controls |
-| `telephony_mwi` | Voicemail message waiting indicator |
-| `messages` | Messaging (chat) |
-| `memberships` | Room/space memberships |
-| `rooms` | Rooms/spaces |
-| `meetings` | Meetings |
-| `recordings` | Meeting recordings |
-| `convergedRecordings` | Converged (call) recordings |
-| `meetingParticipants` | Meeting participants |
-| `meetingTranscripts` | Meeting transcripts |
-| `attachmentActions` | Attachment/card actions |
-| `dataSources` | Data sources |
-| `serviceApp` | Service app authorization |
-| `adminBatchJobs` | Admin batch jobs |
-| `all` | Firehose: all resources |
+| Resource Value | Description | Supports `ownedBy: org`? |
+|----------------|-------------|:------------------------:|
+| `telephony_calls` | Webex Calling call events | Yes (verified 2026-05-01, not in OpenAPI spec — see §10) |
+| `telephony_conference` | Webex Calling conference controls | No |
+| `telephony_mwi` | Voicemail message waiting indicator | No |
+| `messages` | Messaging (chat) | Yes |
+| `memberships` | Room/space memberships | No |
+| `rooms` | Rooms/spaces | Yes |
+| `meetings` | Meetings | Yes |
+| `recordings` | Meeting recordings | Yes |
+| `convergedRecordings` | Converged (call) recordings | Yes |
+| `meetingParticipants` | Meeting participants | Yes |
+| `meetingTranscripts` | Meeting transcripts | Yes |
+| `uc_counters` | Unified Communications counters | No |
+| `attachmentActions` | Attachment/card actions | No |
+| `dataSources` | Data sources | No |
+| `serviceApp` | Service app authorization events | No |
+| `adminBatchJobs` | Admin batch jobs | Yes |
+| `all` | Firehose: all resources | No |
+
+### Event Types (All Available)
+
+The `event` field on webhook creation determines which lifecycle events trigger delivery. Different resources use different event types.
+
+| Event Value | Description | Used By |
+|-------------|-------------|---------|
+| `created` | Resource was created | telephony_calls, messages, memberships, rooms, attachmentActions |
+| `updated` | Resource was modified | telephony_calls, messages, memberships, rooms |
+| `deleted` | Resource was removed | telephony_calls, messages, memberships |
+| `started` | Resource started | meetings |
+| `ended` | Resource ended | meetings |
+| `joined` | Participant joined | meetingParticipants |
+| `left` | Participant left | meetingParticipants |
+| `migrated` | Resource was migrated | meetings |
+| `authorized` | App was authorized | serviceApp |
+| `deauthorized` | App was deauthorized | serviceApp |
+| `statusChanged` | Status changed | adminBatchJobs |
+| `all` | Subscribe to all event types for the resource | All resources |
 
 ---
 
@@ -785,9 +811,632 @@ def verify_webhook_signature(request_body: bytes, signature: str, secret: str) -
 
 10. **One webhook per resource/event combo** -- Creating a duplicate webhook (same resource + event + filter) will create a second webhook, resulting in duplicate event delivery. Always clean up old webhooks before creating new ones.
 
+11. **Org-level `telephony_calls` works but is missing from OpenAPI spec** -- The `ownedBy: org` parameter's description in the OpenAPI spec lists supported resources but does NOT include `telephony_calls`. Live testing (2026-05-01) confirmed it works — the API returns 201 with `status: active`. The spec has a documentation gap, not a feature gap.
+
+12. **Service App `application:webhooks_*` scopes not supported** -- Service Apps cannot use `application:webhooks_write` or `application:webhooks_read` scopes. They create webhooks using standard resource read scopes (e.g., `spark:calls_read`). See §12.
+
+13. **Event storm at scale** -- An org-level webhook for 35,000+ users can generate 70,000+ events/hour at peak. If your receiver slows down under load, the auto-deactivation threshold (gotcha #1) may trigger, silently stopping all event delivery. Monitor webhook status and build receiver capacity well above peak estimates.
+
+14. **Org-level + creator-level overlap** -- If you have both an org-level webhook and a creator-level webhook for the same resource, the creator's events are delivered to BOTH webhooks. This is usually a mistake — use `wxcli webhooks list` and `wxcli webhooks list --owned-by org` to audit for overlaps.
+
+15. **`ownedBy` is immutable after creation** -- The `update` endpoint accepts `ownedBy` in the CLI schema, but the OpenAPI spec does not list it as an updatable field. Like `resource`, `event`, and `filter`, ownership is fixed at creation time. Delete and recreate to change.
+
+16. **Missing event types for non-telephony resources** -- The `event` enum includes `started`, `ended`, `joined`, `left`, `migrated`, `authorized`, `deauthorized`, and `statusChanged` in addition to the common `created`/`updated`/`deleted`. These apply to meetings, meetingParticipants, serviceApp, and adminBatchJobs respectively. See the Event Types table in §3.
+
+---
+
+## 10. Org-Level Webhooks
+
+### Creator-Level vs Org-Level
+
+By default, webhooks are **creator-level** (`ownedBy: creator`): they receive events only for the authenticated user who created them. An **org-level** webhook (`ownedBy: org`) receives events for all users in the organization.
+
+| Aspect | Creator-Level (default) | Org-Level (`ownedBy: org`) |
+|--------|------------------------|---------------------------|
+| Event scope | Events for the creating user only | Events for ALL users in the org |
+| Who can create | Any user with read scope on the resource | Admin or Service App with admin-level scopes |
+| Typical token | User OAuth (PAT or integration) | Admin OAuth or Service App token |
+| Use case | Per-user notifications, bot messages | Org-wide monitoring, compliance, middleware |
+
+### Scope Requirements for Org-Level Webhooks
+
+Creating an org-level webhook requires **admin-level scopes** on the target resource. For example:
+- `spark-admin:telephony_config_read` or `spark:calls_read` with an admin token for `telephony_calls`
+- `spark-admin:rooms_read` for `rooms`
+- `spark-admin:messages_read` for `messages`
+
+The scope requirements are the same read scopes, but the token must belong to an admin (full admin or read-only admin) or a Service App with admin authorization.
+
+### Supported Resources
+
+The OpenAPI spec explicitly lists org-level support for: `meetings`, `recordings`, `convergedRecordings`, `meetingParticipants`, `meetingTranscripts`, `videoMeshAlerts`, `controlHubAlerts`, `rooms`, `messaging`, and `adminBatchJobs`.
+
+> **`telephony_calls` is NOT in this list, but it works.** The OpenAPI spec does not list `telephony_calls` as supporting `ownedBy: org`. However, live API testing (2026-05-01) confirmed that creating an org-level `telephony_calls` webhook succeeds with HTTP 201 and `status: active`. The spec has a documentation gap — the API supports it.
+>
+> **Verified with:**
+> ```bash
+> wxcli webhooks create \
+>   --name "Org Telephony Test" \
+>   --target-url https://example.com/test \
+>   --resource telephony_calls \
+>   --event all \
+>   --owned-by org -o json
+> # Result: 201, ownedBy: "org", status: "active"
+> ```
+
+### Behavior Details
+
+**Multiple org-level webhooks:** You can create multiple org-level webhooks for the same resource/event. Each receives a copy of every event, resulting in duplicate delivery. This is usually a mistake — clean up duplicates via `wxcli webhooks list --owned-by org`.
+
+**Interaction with `filter`:** Org-level and `filter` combine as AND logic. An org-level webhook with `filter=personality=terminator` receives events for all users in the org, but only for incoming calls. This is the recommended pattern for large-scale deployments — subscribe to all org events, filter server-side.
+
+**Deprovisioning the creator:** When the user or Service App that created an org-level webhook is deprovisioned or deauthorized, the webhook's behavior is undocumented. **Requires live verification:**
+
+```bash
+# 1. Create org-level webhook with Service App token
+wxcli webhooks create --name "Test" --target-url https://example.com/test \
+  --resource messages --event created --owned-by org
+
+# 2. Revoke the Service App authorization in Control Hub
+# 3. Check if the webhook still exists and delivers events:
+wxcli webhooks list --owned-by org
+```
+
+### Raw HTTP: Create Org-Level Webhook
+
+```python
+body = {
+    "name": "Org Call Events",
+    "targetUrl": "https://middleware.example.com/webhooks",
+    "resource": "telephony_calls",
+    "event": "all",
+    "ownedBy": "org",
+    "filter": "personality=terminator",
+    "secret": "hmac-secret-here"
+}
+result = api.session.rest_post(f"{BASE}/webhooks", json=body)
+```
+
+---
+
+## 11. Webhook Delivery Mechanics
+
+Webex delivers events as HTTP POST requests to your `targetUrl`. Understanding the delivery contract is critical for building reliable receivers.
+
+### Delivery Contract
+
+| Aspect | Behavior | Source |
+|--------|----------|--------|
+| Transport | HTTPS POST to `targetUrl` | Spec: `targetUrl` must be HTTPS |
+| Payload format | JSON (`Content-Type: application/json`) | Observed |
+| Signature header | `X-Spark-Signature` (HMAC-SHA1 hex digest) if `secret` is set | Spec + SDK |
+| Batching | Events are delivered **individually** (one POST per event) | Observed — no batch envelope in spec |
+
+### Timeout and Response Codes
+
+The Webex platform expects your server to respond quickly. The exact timeout is not documented in the OpenAPI spec.
+
+| Aspect | Documented Behavior |
+|--------|-------------------|
+| Expected response | 2xx status code (any 200-299) |
+| Response body | Ignored — Webex only checks the status code |
+| Timeout | **Requires live verification.** Developer community reports suggest ~15 seconds, but this is not in the spec. |
+
+**Test command to measure timeout:**
+```python
+# Deploy a webhook handler that sleeps increasing durations
+# and log which deliveries Webex considers failed.
+import time
+from flask import Flask, request
+
+app = Flask(__name__)
+
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    time.sleep(20)  # Adjust to find the cutoff
+    return '', 200
+```
+
+### Retry Policy
+
+The retry behavior on delivery failure is **not documented** in the OpenAPI spec. Observable behavior:
+
+| Aspect | Observed Behavior |
+|--------|-------------------|
+| Retry on 5xx | **Requires live verification.** No retry policy is documented. |
+| Retry on timeout | **Requires live verification.** |
+| Retry on connection refused | **Requires live verification.** |
+| Backoff strategy | **Requires live verification.** |
+
+**What IS documented:** After sustained delivery failures, the webhook is auto-deactivated (see below). The absence of documented retries suggests events may be dropped on first failure — design receivers accordingly.
+
+### Auto-Deactivation
+
+Webhooks that fail to receive events are automatically set to `inactive` status.
+
+| Aspect | Behavior |
+|--------|----------|
+| Trigger | Repeated delivery failures to `targetUrl` |
+| Failure threshold | **Not documented.** Developer community suggests ~100 consecutive failures, but this is not in the spec. |
+| Time window | **Not documented.** |
+| Notification | No notification — poll `wxcli webhooks list` or check `status` field |
+| Reactivation | `wxcli webhooks update WEBHOOK_ID --status active` |
+| Cannot deactivate via API | You cannot set `status` to `inactive` — only delete the webhook to stop delivery |
+
+**Test command to find the threshold:**
+```bash
+# 1. Create a webhook pointing at a non-existent URL
+wxcli webhooks create --name "Deactivation Test" \
+  --target-url https://nonexistent.example.com/webhook \
+  --resource messages --event created
+
+# 2. Generate events (send messages)
+# 3. Poll until status changes:
+wxcli webhooks show WEBHOOK_ID
+```
+
+### Event Ordering
+
+**Events are NOT guaranteed to arrive in order.** This is critical for telephony event processing.
+
+For a single call, you might receive events in this order:
+```
+answered (timestamp: T+0s)
+connected (timestamp: T+1s)    ← may arrive before or after "answered"
+held (timestamp: T+30s)
+resumed (timestamp: T+35s)
+disconnected (timestamp: T+60s)
+```
+
+**Ordering rules:**
+- Events from different calls have no ordering relationship
+- Events from the same call (`callSessionId`) may arrive out of order
+- Use `data.eventTimestamp` as the authoritative ordering field
+- Use `data.callSessionId` to group events belonging to the same call session
+- See §13 for a worked correlation example
+
+### Duplicate Delivery
+
+Events may be delivered more than once under these conditions:
+1. **Multiple webhooks** for the same resource/event/filter → each receives the event (gotcha #10)
+2. **Org-level + creator-level overlap** → user events delivered to both
+3. **Infrastructure retries** (if any) → possible duplicate on timeout edge cases
+
+Design receivers to be **idempotent**. Key on `data.callId` + `data.eventType` (or message `data.id` + `event`) for deduplication.
+
+---
+
+## 12. Service App Webhooks
+
+### Can a Service App Create Webhooks?
+
+**Yes, with caveats.** A Service App uses a machine-to-machine OAuth token with scopes authorized by an org admin. If the authorized scopes include read access to the target resource, the Service App can create webhooks.
+
+However, the OpenAPI spec explicitly states that **`application:webhooks_write` and `application:webhooks_read` scopes are NOT supported** for Service Apps (see [authentication.md](authentication.md)). Service Apps create webhooks using the standard resource read scopes, not webhook-specific scopes.
+
+### Required Scopes
+
+| Resource | Scope Needed | Notes |
+|----------|-------------|-------|
+| `telephony_calls` | `spark:calls_read` or `spark-admin:telephony_config_read` | Admin must authorize these on the Service App |
+| `messages` | `spark:messages_read` or `spark-admin:messages_read` | |
+| `meetings` | `spark:meetings_read` or `spark-admin:meetings_read` | |
+| Any resource | Read scope for that resource | Service App must be authorized for it |
+
+### Org-Level Behavior
+
+A webhook created by a Service App does **not** automatically become org-level. You must explicitly set `ownedBy: org` on creation, same as with user tokens. A Service App token with admin-level scopes can create org-level webhooks for supported resources (see §10 for the supported resource list).
+
+### Token Refresh and Webhook Lifecycle
+
+Service App access tokens expire after **14 days**. Refresh tokens expire after **90 days** of non-use.
+
+| Scenario | Webhook Impact |
+|----------|---------------|
+| Access token expires, refresh succeeds | **No impact** — webhook continues to deliver events. The webhook is not tied to the token; it's tied to the authorization. |
+| Refresh token expires (90 days unused) | **Requires live verification.** The webhook may continue delivering (it's server-side), but you lose the ability to manage it until the Service App is re-authorized. |
+| Service App deauthorized by admin | **Requires live verification.** Webhooks created by the app may be auto-deleted or orphaned. Test before relying on this in production. |
+
+**Test commands:**
+```bash
+# Verify Service App can create webhooks
+wxcli webhooks create --name "SA Test" \
+  --target-url https://example.com/webhook \
+  --resource telephony_calls --event all
+
+# Check the webhook's createdBy and appId fields
+wxcli webhooks show WEBHOOK_ID -o json
+```
+
+### Cross-Reference
+
+See [admin-apps-data.md](admin-apps-data.md) §1 for Service App registration, authorization, and token management.
+
+---
+
+## 13. callSessionId Correlation Pattern
+
+When processing telephony webhook events, you need to correlate multiple events that belong to the same call. The key fields are:
+
+| Field | Scope | Purpose |
+|-------|-------|---------|
+| `callSessionId` | Spans the entire call session (including transfers) | Group all events for one end-to-end call |
+| `callId` | Unique per call leg | Identify a specific leg (e.g., before vs after transfer) |
+| `actorPersonId` | The Webex user whose perspective this event represents | Route events to the correct handler |
+| `personality` | `originator` or `terminator` | Distinguish outbound vs inbound perspective |
+
+### Worked Example: Inbound Call with Hold
+
+A customer calls a store associate. The associate answers, places the call on hold to check inventory, resumes, then hangs up.
+
+**Event sequence (6 events, one `callSessionId`):**
+
+```
+Event 1: created/alerting
+  callSessionId: "session-ABC"
+  callId: "call-123"
+  actorPersonId: "associate-001"
+  personality: "terminator"
+  state: "alerting"
+  eventTimestamp: "2026-05-01T14:00:01.000Z"
+  remoteParty: { number: "+15551234567", callType: "external" }
+
+Event 2: created/answered
+  callSessionId: "session-ABC"
+  callId: "call-123"
+  actorPersonId: "associate-001"
+  personality: "terminator"
+  state: "connected"
+  eventTimestamp: "2026-05-01T14:00:05.000Z"
+
+Event 3: updated/connected
+  callSessionId: "session-ABC"
+  callId: "call-123"
+  actorPersonId: "associate-001"
+  personality: "terminator"
+  state: "connected"
+  eventTimestamp: "2026-05-01T14:00:05.500Z"
+
+Event 4: updated/held
+  callSessionId: "session-ABC"
+  callId: "call-123"
+  actorPersonId: "associate-001"
+  personality: "terminator"
+  state: "held"
+  eventTimestamp: "2026-05-01T14:00:35.000Z"
+
+Event 5: updated/resumed
+  callSessionId: "session-ABC"
+  callId: "call-123"
+  actorPersonId: "associate-001"
+  personality: "terminator"
+  state: "connected"
+  eventTimestamp: "2026-05-01T14:01:05.000Z"
+
+Event 6: deleted/disconnected
+  callSessionId: "session-ABC"
+  callId: "call-123"
+  actorPersonId: "associate-001"
+  personality: "terminator"
+  state: "disconnected"
+  eventTimestamp: "2026-05-01T14:02:30.000Z"
+  disconnected: "2026-05-01T14:02:30.000Z"
+```
+
+### Correlation Rules
+
+1. **Group by `callSessionId`** to track one call end-to-end. A transfer creates new `callId` values but keeps the same `callSessionId`.
+2. **Key timers and state on `callId`**, not `callSessionId`. A transferred call has multiple legs — each leg has its own hold/resume cycle.
+3. **Use `actorPersonId`** to route events to the correct user context (e.g., map to a store register).
+4. **Use `personality`** to distinguish the user's role: `terminator` = they received the call, `originator` = they placed it.
+5. **Use `eventTimestamp`** for ordering, not arrival order. Events can arrive out of sequence (see §11).
+
+### Middleware State Machine
+
+For a hold-timeout middleware (e.g., the AAP retail pattern), the state machine keyed on `callId`:
+
+```
+                  answered
+     ┌──────────────────────────────┐
+     │                              ▼
+  [IDLE] ──alerting──▶ [RINGING] ──▶ [ACTIVE]
+                                      │    ▲
+                                 held │    │ resumed
+                                      ▼    │
+                                   [ON_HOLD]
+                                      │
+                              timer fires (60s)
+                                      │
+                                      ▼
+                               [HANGUP_PENDING]
+                                      │
+                              disconnected (any state)
+                                      │
+                                      ▼
+                                   [IDLE]
+```
+
+**Key design decisions:**
+- Key the state map on `callId` (not `callSessionId`) — each leg is independent
+- Store state in Redis with TTL (e.g., 120s) — auto-cleanup if `disconnected` is lost
+- Handle out-of-order: if `resumed` arrives while hangup API call is in flight, the hangup fails safely (call is no longer held)
+- Handle duplicate: check current state before acting — if already in `[IDLE]`, ignore the event
+
+### Race Condition Handling
+
+| Race Condition | Resolution |
+|----------------|------------|
+| `resumed` arrives after timer fires but before hangup completes | Hangup API returns error (call not held) — safe to ignore |
+| `disconnected` arrives before `held` | State transitions to IDLE; late `held` ignored (call already gone) |
+| Duplicate `held` events | Timer already running — ignore duplicate |
+| `connected` arrives before `answered` | Both transition to ACTIVE — idempotent |
+
+---
+
+## 14. Scale Patterns
+
+### One Org-Level Webhook vs Many Filtered Webhooks
+
+| Approach | Pros | Cons |
+|----------|------|------|
+| **One org-level webhook** (`ownedBy: org`, `event: all`) | Single subscription, simple management, no per-user provisioning | High event volume, receiver must filter/route, org-level may not be supported for all resources (see §10) |
+| **Per-user filtered webhooks** (`filter: personId=X`) | Low noise per endpoint, precise routing | O(n) webhook management, provisioning/deprovisioning overhead, webhook count limits |
+| **Org-level + server-side filter** | Best of both — one subscription, filter in middleware | Receiver must handle full org volume |
+
+**Recommendation for 1,000+ users:** One org-level webhook with server-side filtering. Per-user webhooks don't scale — you'd need to create/delete webhooks as users are provisioned/deprovisioned, and there may be undocumented limits on total webhook count per org.
+
+### Volume Estimation
+
+Estimate event volume for capacity planning:
+
+```
+Events/hour = concurrent_calls × events_per_call × calls_per_hour_per_line
+
+Example (4,500-store retail chain, 35,000 phones):
+  Peak concurrent utilization: 10% = 3,500 active calls
+  Events per call: ~6 (alerting, answered, connected, [held, resumed], disconnected)
+  Call duration: ~3 minutes average
+  Calls per hour per active line: ~20
+
+  Peak burst: 3,500 × 6 = 21,000 events in a burst window
+  Sustained: ~70,000 events/hour at peak
+```
+
+### Stateless Receiver Architecture
+
+For high-volume webhook processing, use stateless HTTP receivers behind a load balancer:
+
+```
+Webex Platform
+     │
+     │ HTTPS POST (one per event)
+     ▼
+┌─────────────┐
+│ Load Balancer│
+│ (ALB / CLB) │
+└──────┬──────┘
+       │
+  ┌────┼────┐
+  ▼    ▼    ▼
+┌───┐┌───┐┌───┐
+│ W ││ W ││ W │   Stateless workers
+│ 1 ││ 2 ││ 3 │   (Lambda / Cloud Run / K8s pods)
+└─┬─┘└─┬─┘└─┬─┘
+  │    │    │
+  └────┼────┘
+       ▼
+┌─────────────┐
+│ Redis Cluster│   Timer state, dedup, call-to-register mapping
+└─────────────┘
+```
+
+**Design principles:**
+- Workers are stateless — any worker can handle any event
+- Shared state (timers, call tracking) lives in Redis with TTLs
+- HMAC verification at the worker level (each worker has the secret)
+- Return 200 immediately, process asynchronously if heavy work is needed
+- No persistent connections to Webex — webhooks are push-only
+
+### Timer State Management (Redis Pattern)
+
+For hold-timeout tracking at scale:
+
+```python
+import redis
+import json
+
+r = redis.Redis()
+
+def on_held(call_id: str, actor_person_id: str):
+    """Start a 60-second hold timer."""
+    key = f"hold:{call_id}"
+    r.setex(key, 120, json.dumps({  # TTL 120s (2× timer for safety)
+        "actor": actor_person_id,
+        "held_at": time.time()
+    }))
+    # Enqueue a delayed job to check at T+60s
+    # (use Redis Streams, SQS delay, or scheduled task)
+
+def on_resumed(call_id: str):
+    """Cancel the hold timer."""
+    r.delete(f"hold:{call_id}")
+
+def on_timer_fire(call_id: str):
+    """Timer expired — check if still held, then act."""
+    key = f"hold:{call_id}"
+    data = r.get(key)
+    if not data:
+        return  # Already resumed or disconnected
+    r.delete(key)
+    # Execute hangup via Service App Members API
+```
+
+### Why Not XSI for Large-Scale Event Routing
+
+XSI (Extended Services Interface) provides real-time call event streaming but has architectural constraints that make webhooks the better choice at scale:
+
+| Factor | XSI | Webhooks |
+|--------|-----|----------|
+| Connection model | Persistent streaming (one channel per XSP) | Stateless HTTP POST (push) |
+| Scaling model | Single-process Python (GIL-bound) | Horizontally scaled workers |
+| Org-wide subscription | Single connection for entire org | Single webhook registration |
+| Failure recovery | 60-second gap on channel failure, events lost | Individual event delivery, auto-deactivation on sustained failure |
+| Duplicate subscriptions | Duplicate org-wide subscriptions cause duplicate events | Same (multiple webhooks = duplicate delivery) |
+| Queue bottleneck | `queue.Queue(maxsize=500)` in-process | External (Redis, SQS, etc.) |
+| Deployment | Requires long-running process with DNS SRV discovery | Serverless-compatible (Lambda, Cloud Run) |
+
+**Bottom line:** XSI is designed for single-site monitoring dashboards (wallboards, supervisor consoles). Webhooks are designed for distributed, horizontally-scaled event processing. For 1,000+ users, use webhooks.
+
+See [wxcadm-xsi-realtime.md](wxcadm-xsi-realtime.md) for XSI architecture details and the event streaming API.
+
+---
+
+## 15. wxcli Command Reference
+
+All webhook management is via the `wxcli webhooks` command group.
+
+### webhooks list
+
+```bash
+wxcli webhooks list [OPTIONS]
+```
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--owned-by` | str | (none) | Filter to org-wide webhooks only (value: `org`) |
+| `--output`, `-o` | str | `table` | Output format: `table` or `json` |
+| `--limit` | int | `0` | Max results (0 = all) |
+| `--offset` | int | `0` | Pagination offset |
+| `--debug` | flag | | Enable debug output |
+
+```bash
+# List all webhooks in table format
+wxcli webhooks list
+
+# List org-level webhooks as JSON
+wxcli webhooks list --owned-by org -o json
+
+# List first 10 webhooks
+wxcli webhooks list --limit 10
+```
+
+### webhooks create
+
+```bash
+wxcli webhooks create [OPTIONS]
+```
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--name` | str | Yes | User-friendly name |
+| `--target-url` | str | Yes | HTTPS URL that receives POST requests |
+| `--resource` | str | Yes | Resource type (e.g., `telephony_calls`, `messages`) |
+| `--event` | str | Yes | Event type (e.g., `all`, `created`, `updated`, `deleted`) |
+| `--filter` | str | No | Filter expression (e.g., `personality=terminator`) |
+| `--secret` | str | No | HMAC secret for payload signature verification |
+| `--owned-by` | str | No | Set to `org` for org-level webhook |
+| `--json-body` | str | No | Full JSON request body (overrides all other options) |
+| `--output`, `-o` | str | `id` | Output format: `id` (just the webhook ID) or `json` (full response) |
+| `--debug` | flag | | Enable debug output |
+
+```bash
+# Create a telephony webhook with HMAC secret
+wxcli webhooks create \
+  --name "Call Events" \
+  --target-url https://middleware.example.com/webhooks \
+  --resource telephony_calls \
+  --event all \
+  --secret "my-hmac-secret"
+
+# Create an org-level filtered webhook, output full JSON
+wxcli webhooks create \
+  --name "Org Incoming Calls" \
+  --target-url https://middleware.example.com/webhooks \
+  --resource telephony_calls \
+  --event all \
+  --owned-by org \
+  --filter "personality=terminator" \
+  -o json
+
+# Create via JSON body
+wxcli webhooks create --json-body '{
+  "name": "Custom Webhook",
+  "targetUrl": "https://example.com/hook",
+  "resource": "messages",
+  "event": "created",
+  "filter": "roomId=Y2lz..."
+}'
+```
+
+### webhooks show
+
+```bash
+wxcli webhooks show WEBHOOK_ID [OPTIONS]
+```
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--output`, `-o` | str | `json` | Output format: `table` or `json` |
+| `--debug` | flag | | Enable debug output |
+
+```bash
+# Show webhook details as JSON
+wxcli webhooks show "Y2lzY29zcGFyazov..."
+
+# Show as table
+wxcli webhooks show "Y2lzY29zcGFyazov..." -o table
+```
+
+### webhooks update
+
+```bash
+wxcli webhooks update WEBHOOK_ID [OPTIONS]
+```
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--name` | str | New name |
+| `--target-url` | str | New target URL |
+| `--secret` | str | New HMAC secret |
+| `--owned-by` | str | Ownership (present in CLI but immutable after creation — see gotcha #7) |
+| `--status` | str | Set to `active` to reactivate an auto-deactivated webhook |
+| `--json-body` | str | Full JSON request body (overrides all other options) |
+| `--debug` | flag | Enable debug output |
+
+```bash
+# Reactivate an auto-deactivated webhook
+wxcli webhooks update "Y2lzY29zcGFyazov..." --status active
+
+# Change target URL and secret
+wxcli webhooks update "Y2lzY29zcGFyazov..." \
+  --target-url https://new-server.example.com/webhooks \
+  --secret "new-hmac-secret"
+```
+
+### webhooks delete
+
+```bash
+wxcli webhooks delete WEBHOOK_ID [OPTIONS]
+```
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--force` | flag | Skip confirmation prompt |
+| `--debug` | flag | Enable debug output |
+
+```bash
+# Delete with confirmation prompt
+wxcli webhooks delete "Y2lzY29zcGFyazov..."
+
+# Delete without confirmation
+wxcli webhooks delete "Y2lzY29zcGFyazov..." --force
+```
+
 ---
 
 ## See Also
 
 - **[call-control.md](call-control.md)** — Call control actions and the `TelephonyCall` data model. `TelephonyEventData` inherits from `TelephonyCall`, so the `remoteParty`, `state`, `personality`, and other call fields documented there apply directly to webhook event data.
 - **[authentication.md](authentication.md)** — Scope definitions and OAuth token management. Creating a `telephony_calls` webhook requires `spark:calls_read` scope; a firehose requires `spark:all`.
+- **[admin-apps-data.md](admin-apps-data.md)** — Service App registration, authorization, and token lifecycle. Cross-reference §12 for Service App webhook creation.
+- **[wxcadm-xsi-realtime.md](wxcadm-xsi-realtime.md)** — XSI event streaming architecture. Cross-reference §14 for why webhooks scale better than XSI for large deployments.
