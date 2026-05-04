@@ -35497,7 +35497,33 @@
               "type": "string"
             }
           }
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file",
+                  "fileName"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "The image file to upload. Must be in `.jpeg` or `.png` format. Maximum file size is 625 KB."
+                  },
+                  "fileName": {
+                    "type": "string",
+                    "description": "The name of the image file being uploaded.",
+                    "example": "CompanyLogoBlue.png"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/telephony/config/people/{personId}/devices/count": {
@@ -42934,7 +42960,7 @@
           }
         },
         "summary": "Read the List of Auto Attendants",
-        "operationId": "Read the List of Auto Attendants",
+        "operationId": "listAutoAttendants",
         "description": "List all Auto Attendants for the organization.\n\nAuto attendants play customized prompts and provide callers with menu options for routing their calls through your system.\n\nRetrieving this list requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features:  Auto Attendant"
@@ -43187,7 +43213,7 @@
           }
         },
         "summary": "Get Details for an Auto Attendant",
-        "operationId": "Get Details for an Auto Attendant",
+        "operationId": "getAutoAttendant",
         "description": "Retrieve an Auto Attendant details.\n\nAuto attendants play customized prompts and provide callers with menu options for routing their calls through your system.\n\nRetrieving an auto attendant details requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features:  Auto Attendant"
@@ -43278,7 +43304,7 @@
           }
         },
         "summary": "Update an Auto Attendant",
-        "operationId": "Update an Auto Attendant",
+        "operationId": "updateAutoAttendant",
         "description": "Update the designated Auto Attendant.\n\nAuto attendants play customized prompts and provide callers with menu options for routing their calls through your system.\n\nUpdating an auto attendant requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Features:  Auto Attendant"
@@ -43501,7 +43527,7 @@
           }
         },
         "summary": "Delete an Auto Attendant",
-        "operationId": "Delete an Auto Attendant",
+        "operationId": "deleteAutoAttendant",
         "description": "Delete the designated Auto Attendant.\n\nAuto attendants play customized prompts and provide callers with menu options for routing their calls through your system.\n\nDeleting an auto attendant requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Features:  Auto Attendant"
@@ -43612,7 +43638,7 @@
           }
         },
         "summary": "Create an Auto Attendant",
-        "operationId": "Create an Auto Attendant",
+        "operationId": "createAutoAttendant",
         "description": "Create new Auto Attendant for the given location.\n\nAuto attendants play customized prompts and provide callers with menu options for routing their calls through your system.\n\nCreating an auto attendant requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Features:  Auto Attendant"
@@ -43833,7 +43859,7 @@
           }
         },
         "summary": "Get Call Forwarding Settings for an Auto Attendant",
-        "operationId": "Get Call Forwarding Settings for an Auto Attendant",
+        "operationId": "getAutoAttendantCallForwardingSettings",
         "description": "Retrieve Call Forwarding settings for the designated Auto Attendant including the list of call forwarding rules.\n\nThe call forwarding feature allows you to direct all incoming calls based on specific criteria that you define.\nBelow are the available options for configuring your call forwarding:\n1. Always forward calls to a designated number.\n2. Forward calls to a designated number based on certain criteria.\n3. Forward calls using different modes.\n\nRetrieving call forwarding settings for an auto attendant requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features:  Auto Attendant"
@@ -43924,7 +43950,7 @@
           }
         },
         "summary": "Update Call Forwarding Settings for an Auto Attendant",
-        "operationId": "Update Call Forwarding Settings for an Auto Attendant",
+        "operationId": "updateAutoAttendantCallForwardingSettings",
         "description": "Update Call Forwarding settings for the designated Auto Attendant.\n\nThe call forwarding feature allows you to direct all incoming calls based on specific criteria that you define.\nBelow are the available options for configuring your call forwarding:\n1. Always forward calls to a designated number.\n2. Forward calls to a designated number based on certain criteria.\n3. Forward calls using different modes.\n\nUpdating call forwarding settings for an auto attendant requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Features:  Auto Attendant"
@@ -43983,17 +44009,20 @@
                       "enabled": false
                     }
                   ],
-                  "modes": [
-                    {
-                      "normalOperationEnabled": true,
-                      "id": "Y2lzY29zcGFyazovL3VzL09QRVJBVElOR19NT0RFL2JiOTc1OTcxLTBjZWYtNDdhNi05Yzc5LTliZWFjY2IwYjg4Mg",
-                      "forwardTo": {
-                        "selection": "FORWARD_TO_SPECIFIED_NUMBER",
-                        "destination": "00000",
-                        "destinationVoicemailEnabled": false
+                  "operatingModes": {
+                    "enabled": true,
+                    "modes": [
+                      {
+                        "normalOperationEnabled": true,
+                        "id": "Y2lzY29zcGFyazovL3VzL09QRVJBVElOR19NT0RFL2JiOTc1OTcxLTBjZWYtNDdhNi05Yzc5LTliZWFjY2IwYjg4Mg",
+                        "forwardTo": {
+                          "selection": "FORWARD_TO_SPECIFIED_NUMBER",
+                          "destination": "00000",
+                          "destinationVoicemailEnabled": false
+                        }
                       }
-                    }
-                  ]
+                    ]
+                  }
                 }
               },
               "schema": {
@@ -44077,7 +44106,7 @@
           }
         },
         "summary": "Create a Selective Call Forwarding Rule for an Auto Attendant",
-        "operationId": "Create a Selective Call Forwarding Rule for an Auto Attendant",
+        "operationId": "createAutoAttendantSelectiveCallForwardingRule",
         "description": "Create a Selective Call Forwarding Rule for the designated Auto Attendant.\n\nA selective call forwarding rule for an auto attendant allows calls to be forwarded or not forwarded to the designated number, based on the defined criteria.\n\nNote that the list of existing call forward rules is available in the auto attendant's call forwarding settings.\n\nCreating a selective call forwarding rule for an auto attendant requires a full administrator auth token with a scope of `spark-admin:telephony_config_write`.\n\n**NOTE**: The Call Forwarding Rule ID will change upon modification of the Call Forwarding Rule name.",
         "tags": [
           "Features:  Auto Attendant"
@@ -44139,8 +44168,7 @@
                   ]
                 },
                 "forwardTo": {
-                  "selection": "FORWARD_TO_DEFAULT_NUMBER",
-                  "phoneNumber": null
+                  "selection": "FORWARD_TO_DEFAULT_NUMBER"
                 },
                 "enabled": true
               },
@@ -44241,7 +44269,7 @@
           }
         },
         "summary": "Get Selective Call Forwarding Rule for an Auto Attendant",
-        "operationId": "Get Selective Call Forwarding Rule for an Auto Attendant",
+        "operationId": "getAutoAttendantSelectiveCallForwardingRule",
         "description": "Retrieve a Selective Call Forwarding Rule's settings for the designated Auto Attendant.\n\nA selective call forwarding rule for an auto attendant allows calls to be forwarded or not forwarded to the designated number, based on the defined criteria.\n\nNote that the list of existing call forward rules is available in the auto attendant's call forwarding settings.\n\nRetrieving a selective call forwarding rule's settings for an auto attendant requires a full or read-only administrator or location administrator\n\n**NOTE**: The Call Forwarding Rule ID will change upon modification of the Call Forwarding Rule name.",
         "tags": [
           "Features:  Auto Attendant"
@@ -44360,7 +44388,7 @@
           }
         },
         "summary": "Update Selective Call Forwarding Rule for an Auto Attendant",
-        "operationId": "Update Selective Call Forwarding Rule for an Auto Attendant",
+        "operationId": "updateAutoAttendantSelectiveCallForwardingRule",
         "description": "Update a Selective Call Forwarding Rule's settings for the designated Auto Attendant.\n\nA selective call forwarding rule for an auto attendant allows calls to be forwarded or not forwarded to the designated number, based on the defined criteria.\n\nNote that the list of existing call forward rules is available in the auto attendant's call forwarding settings.\n\nUpdating a selective call forwarding rule's settings for an auto attendant requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write`.\n\n**NOTE**: The Call Forwarding Rule ID will change upon modification of the Call Forwarding Rule name.",
         "tags": [
           "Features:  Auto Attendant"
@@ -44432,8 +44460,7 @@
                   ]
                 },
                 "forwardTo": {
-                  "selection": "FORWARD_TO_DEFAULT_NUMBER",
-                  "phoneNumber": null
+                  "selection": "FORWARD_TO_DEFAULT_NUMBER"
                 },
                 "enabled": true
               },
@@ -44498,7 +44525,7 @@
           }
         },
         "summary": "Delete a Selective Call Forwarding Rule for an Auto Attendant",
-        "operationId": "Delete a Selective Call Forwarding Rule for an Auto Attendant",
+        "operationId": "deleteAutoAttendantSelectiveCallForwardingRule",
         "description": "Delete a Selective Call Forwarding Rule for the designated Auto Attendant.\n\nA selective call forwarding rule for an auto attendant allows calls to be forwarded or not forwarded to the designated number, based on the defined criteria.\n\nNote that the list of existing call forward rules is available in the auto attendant's call forwarding settings.\n\nDeleting a selective call forwarding rule for an auto attendant requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write`.\n\n**NOTE**: The Call Forwarding Rule ID will change upon modification of the Call Forwarding Rule name.",
         "tags": [
           "Features:  Auto Attendant"
@@ -44635,7 +44662,7 @@
           }
         },
         "summary": "Get Auto Attendant Primary Available Phone Numbers",
-        "operationId": "Get Auto Attendant Primary Available Phone Numbers",
+        "operationId": "getAutoAttendantPrimaryAvailablePhoneNumbers",
         "description": "List the service and standard PSTN numbers that are available to be assigned as the auto attendant's primary phone number.\nThese numbers are associated with the location specified in the request URL, can be active or inactive, and are unassigned.\n\nThe available numbers APIs help identify candidate numbers and their owning entities to simplify the assignment or association of these numbers to members or features.\n\nRetrieving this list requires a full, read-only or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features:  Auto Attendant"
@@ -44784,7 +44811,7 @@
           }
         },
         "summary": "Get Auto Attendant Alternate Available Phone Numbers",
-        "operationId": "Get Auto Attendant Alternate Available Phone Numbers",
+        "operationId": "getAutoAttendantAlternateAvailablePhoneNumbers",
         "description": "List the service and standard PSTN numbers that are available to be assigned as the auto attendant's alternate number.\nThese numbers are associated with the location specified in the request URL, can be active or inactive, and are unassigned.\n\nThe available numbers APIs help identify candidate numbers and their owning entities to simplify the assignment or association of these numbers to members or features.\n\nRetrieving this list requires a full, read-only or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features:  Auto Attendant"
@@ -44951,7 +44978,7 @@
           }
         },
         "summary": "Get Auto Attendant Call Forward Available Phone Numbers",
-        "operationId": "Get Auto Attendant Call Forward Available Phone Numbers",
+        "operationId": "getAutoAttendantCallForwardAvailablePhoneNumbers",
         "description": "List the service and standard PSTN numbers that are available to be assigned as the auto attendant's call forward number.\nThese numbers are associated with the location specified in the request URL, can be active or inactive, and are assigned to an owning entity.\n\nThe available numbers APIs help identify candidate numbers and their owning entities to simplify the assignment or association of these numbers to members or features.\n\nRetrieving this list requires a full, read-only or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features:  Auto Attendant"
@@ -45084,8 +45111,8 @@
           }
         },
         "summary": "Switch Mode for Call Forwarding Settings for an Auto Attendant",
-        "operationId": "Switch Mode for Call Forwarding Settings for an Auto Attendant",
-        "description": "Switches the current operating mode of the `Auto Attendant` to the mode as per normal operations.\n\nSwitching operating mode for an `auto attendant` requires a full, or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "operationId": "switchAutoAttendantCallForwardingMode",
+        "description": "Switches the current operating mode of the `Auto Attendant` to the mode as per normal operations.\n\nOperating modes allow call forwarding to be configured based on predefined schedules, enabling different routing behaviors during business hours, after hours, or holidays.\n\nSwitching operating mode for an `auto attendant` requires a full, or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Features:  Auto Attendant"
         ],
@@ -45188,7 +45215,7 @@
           }
         },
         "summary": "Delete a Auto Attendant Announcement File",
-        "operationId": "Delete a Auto Attendant Announcement File",
+        "operationId": "deleteAutoAttendantAnnouncementFile",
         "description": "Delete an announcement file for the designated auto attendant.\n\nAuto Attendant announcement files contain messages and music that callers hear while waiting in the queue. A auto attendant can be configured to play whatever subset of these announcement files is desired.\n\nDeleting an announcement file for a auto attendant requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Features:  Auto Attendant"
@@ -45334,7 +45361,7 @@
           }
         },
         "summary": "Read the List of Auto Attendant Announcement Files",
-        "operationId": "Read the List of Auto Attendant Announcement Files",
+        "operationId": "listAutoAttendantAnnouncementFiles",
         "description": "List file info for all auto attendant announcement files associated with this auto attendant.\n\nAuto attendant announcement files contain messages and music that callers hear while waiting in the queue. A auto attendant can be configured to play whatever subset of these announcement files is desired.\n\nRetrieving this list of files requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.\n\nNote that uploading of announcement files via API is not currently supported, but is available via Webex Control Hub.",
         "tags": [
           "Features:  Auto Attendant"
@@ -48127,7 +48154,7 @@
           }
         },
         "summary": "Read the List of Call Queues with Customer Assist",
-        "operationId": "Read the List of Call Queues with Customer Assist",
+        "operationId": "listCallQueues",
         "description": "List all Call Queues for the organization.\n\nCall queues temporarily hold calls in the cloud, when all agents\nassigned to receive calls from the queue are unavailable. Queued calls are routed to \nan available agent, when not on an active call. Each call queue is assigned a lead number, which is a telephone\nnumber that external callers can dial to reach the users assigned to the call queue.\nCall queues are also assigned an internal extension, which can be dialed\ninternally to reach the users assigned to the call queue.\n\nRetrieving this list requires a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features:  Call Queue"
@@ -48182,7 +48209,7 @@
             "name": "phoneNumber",
             "in": "query",
             "description": "Returns only the call queues matching the given primary phone number or extension.",
-            "example": "5558675309",
+            "example": "+15558675309",
             "schema": {
               "type": "string"
             }
@@ -48290,7 +48317,7 @@
           }
         },
         "summary": "Create a Call Queue with Customer Assist",
-        "operationId": "Create a Call Queue with Customer Assist",
+        "operationId": "createCallQueue",
         "description": "Create new Call Queues for the given location.\n\nCall queues temporarily hold calls in the cloud, when all agents assigned to receive calls from the queue are unavailable.\nQueued calls are routed to an available agent, when not on an active call. Each call queue is assigned a lead number, which is a telephone\nnumber that external callers can dial to reach the users assigned to the call queue. Call queues are also assigned an internal extension,\nwhich can be dialed internally to reach the users assigned to the call queue.\n\nCreating a call queue requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Features:  Call Queue"
@@ -48541,7 +48568,7 @@
           }
         },
         "summary": "Delete a Call Queue",
-        "operationId": "Delete a Call Queue",
+        "operationId": "deleteCallQueue",
         "description": "Delete the designated Call Queue.\n\nCall queues temporarily hold calls in the cloud when all agents, which\ncan be users or agents, assigned to receive calls from the queue are\nunavailable. Queued calls are routed to an available agent when not on an\nactive call. Each call queue is assigned a Lead Number, which is a telephone\nnumber outside callers can dial to reach users assigned to the call queue.\nCall queues are also assigned an internal extension, which can be dialed\ninternally to reach users assigned to the call queue.\n\nDeleting a call queue requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Features:  Call Queue"
@@ -48731,7 +48758,7 @@
           }
         },
         "summary": "Get Details for a Call Queue with Customer Assist",
-        "operationId": "Get Details for a Call Queue with Customer Assist",
+        "operationId": "getCallQueueWithCustomerAssist",
         "description": "Retrieve Call Queue details.\n\nCall queues temporarily hold calls in the cloud, when all agents assigned to receive calls from the queue are unavailable.\nQueued calls are routed to an available agent, when not on an active call. Each call queue is assigned a lead number, which is a telephone\nnumber that external callers can dial to reach the users assigned to the call queue. Call queues are also assigned an internal extension,\nwhich can be dialed internally to reach the users assigned to the call queue.\n\nRetrieving call queue details requires a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features:  Call Queue"
@@ -48831,7 +48858,7 @@
           }
         },
         "summary": "Update a Call Queue",
-        "operationId": "Update a Call Queue",
+        "operationId": "updateCallQueue",
         "description": "Update the designated Call Queue.\n\nCall queues temporarily hold calls in the cloud when all agents, which\ncan be users or agents, assigned to receive calls from the queue are\nunavailable. Queued calls are routed to an available agent when not on an\nactive call. Each call queue is assigned a Lead Number, which is a telephone\nnumber outside callers can dial to reach users assigned to the call queue.\nCall queues are also assigned an internal extension, which can be dialed\ninternally to reach users assigned to the call queue.\n\nUpdating a call queue requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Features:  Call Queue"
@@ -48979,7 +49006,7 @@
           }
         },
         "summary": "Read the List of Call Queue Announcement Files",
-        "operationId": "Read the List of Call Queue Announcement Files",
+        "operationId": "listCallQueueAnnouncementFiles",
         "description": "List file info for all Call Queue announcement files associated with this Call Queue.\n\nCall Queue announcement files contain messages and music that callers hear while waiting in the queue. A call queue can be configured to play whatever subset of these announcement files is desired.\n\nRetrieving this list of files requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.\n\nNote that uploading of announcement files via API is not currently supported, but is available via Webex Control Hub.",
         "tags": [
           "Features:  Call Queue"
@@ -49072,7 +49099,7 @@
           }
         },
         "summary": "Delete a Call Queue Announcement File",
-        "operationId": "Delete a Call Queue Announcement File",
+        "operationId": "deleteCallQueueAnnouncementFile",
         "description": "Delete an announcement file for the designated Call Queue.\n\nCall Queue announcement files contain messages and music that callers hear while waiting in the queue. A call queue can be configured to play whatever subset of these announcement files is desired.\n\nDeleting an announcement file for a call queue requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Features:  Call Queue"
@@ -49181,7 +49208,7 @@
           }
         },
         "summary": "Get Call Forwarding Settings for a Call Queue",
-        "operationId": "Get Call Forwarding Settings for a Call Queue",
+        "operationId": "getCallQueueCallForwardingSettings",
         "description": "Retrieve Call Forwarding settings for the specified Call Queue, including the list of call forwarding rules.\n\nThe call forwarding feature allows you to direct all incoming calls based on specific criteria that you define.\nBelow are the available options for configuring your call forwarding:\n1. Always forward calls to a designated number.\n2. Forward calls to a designated number based on certain criteria.\n3. Forward calls using different modes.\n\nRetrieving call forwarding settings for a call queue requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features:  Call Queue"
@@ -49272,7 +49299,7 @@
           }
         },
         "summary": "Update Call Forwarding Settings for a Call Queue",
-        "operationId": "Update Call Forwarding Settings for a Call Queue",
+        "operationId": "updateCallQueueCallForwardingSettings",
         "description": "Update Call Forwarding settings for the designated Call Queue.\n\nThe call forwarding feature allows you to direct all incoming calls based on specific criteria that you define.\nBelow are the available options for configuring your call forwarding:\n1. Always forward calls to a designated number.\n2. Forward calls to a designated number based on certain criteria.\n3. Forward calls using different modes.\n\nUpdating call forwarding settings for a call queue requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Features:  Call Queue"
@@ -49332,17 +49359,20 @@
                       "enabled": false
                     }
                   ],
-                  "modes": [
-                    {
-                      "normalOperationEnabled": true,
-                      "id": "Y2lzY29zcGFyazovL3VzL09QRVJBVElOR19NT0RFL2JiOTc1OTcxLTBjZWYtNDdhNi05Yzc5LTliZWFjY2IwYjg4Mg",
-                      "forwardTo": {
-                        "selection": "FORWARD_TO_SPECIFIED_NUMBER",
-                        "destination": "00000",
-                        "destinationVoicemailEnabled": false
+                  "operatingModes": {
+                    "enabled": true,
+                    "modes": [
+                      {
+                        "normalOperationEnabled": true,
+                        "id": "Y2lzY29zcGFyazovL3VzL09QRVJBVElOR19NT0RFL2JiOTc1OTcxLTBjZWYtNDdhNi05Yzc5LTliZWFjY2IwYjg4Mg",
+                        "forwardTo": {
+                          "selection": "FORWARD_TO_SPECIFIED_NUMBER",
+                          "destination": "00000",
+                          "destinationVoicemailEnabled": false
+                        }
                       }
-                    }
-                  ]
+                    ]
+                  }
                 }
               },
               "schema": {
@@ -49426,7 +49456,7 @@
           }
         },
         "summary": "Create a Selective Call Forwarding Rule for a Call Queue",
-        "operationId": "Create a Selective Call Forwarding Rule for a Call Queue",
+        "operationId": "createCallQueueSelectiveCallForwardingRule",
         "description": "Create a Selective Call Forwarding Rule for the designated Call Queue.\n\nA selective call forwarding rule for a call queue allows calls to be forwarded or not forwarded to the designated number, based on the defined criteria.\n\nNote that the list of existing call forward rules is available in the call queue's call forwarding settings.\n\nCreating a selective call forwarding rule for a call queue requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write`.\n\n**NOTE**: The Call Forwarding Rule ID will change upon modification of the Call Forwarding Rule name.",
         "tags": [
           "Features:  Call Queue"
@@ -49483,8 +49513,7 @@
                   "numbers": []
                 },
                 "forwardTo": {
-                  "selection": "FORWARD_TO_DEFAULT_NUMBER",
-                  "phoneNumber": null
+                  "selection": "FORWARD_TO_DEFAULT_NUMBER"
                 },
                 "enabled": true
               },
@@ -49580,7 +49609,7 @@
           }
         },
         "summary": "Get Selective Call Forwarding Rule for a Call Queue",
-        "operationId": "Get Selective Call Forwarding Rule for a Call Queue",
+        "operationId": "getCallQueueSelectiveCallForwardingRule",
         "description": "Retrieve a Selective Call Forwarding Rule's settings for the designated Call Queue.\n\nA selective call forwarding rule for a call queue allows calls to be forwarded or not forwarded to the designated number, based on the defined criteria.\n\nNote that the list of existing call forward rules is available in the call queue's call forwarding settings.\n\nRetrieving a selective call forwarding rule's settings for a call queue requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.\n\n**NOTE**: The Call Forwarding Rule ID will change upon modification of the Call Forwarding Rule name.",
         "tags": [
           "Features:  Call Queue"
@@ -49699,7 +49728,7 @@
           }
         },
         "summary": "Update a Selective Call Forwarding Rule for a Call Queue",
-        "operationId": "Update a Selective Call Forwarding Rule for a Call Queue",
+        "operationId": "updateCallQueueSelectiveCallForwardingRule",
         "description": "Update a Selective Call Forwarding Rule's settings for the designated Call Queue.\n\nA selective call forwarding rule for a call queue allows calls to be forwarded or not forwarded to the designated number, based on the defined criteria.\n\nNote that the list of existing call forward rules is available in the call queue's call forwarding settings.\n\nUpdating a selective call forwarding rule's settings for a call queue requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write`.\n\n**NOTE**: The Call Forwarding Rule ID will change upon modification of the Call Forwarding Rule name.",
         "tags": [
           "Features:  Call Queue"
@@ -49831,7 +49860,7 @@
           }
         },
         "summary": "Delete a Selective Call Forwarding Rule for a Call Queue",
-        "operationId": "Delete a Selective Call Forwarding Rule for a Call Queue",
+        "operationId": "deleteCallQueueSelectiveCallForwardingRule",
         "description": "Delete a Selective Call Forwarding Rule for the designated Call Queue.\n\nA selective call forwarding rule for a call queue allows calls to be forwarded or not forwarded to the designated number, based on the defined criteria.\n\nNote that the list of existing call forward rules is available in the call queue's call forwarding settings.\n\nDeleting a selective call forwarding rule for a call queue requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write`.\n\n**NOTE**: The Call Forwarding Rule ID will change upon modification of the Call Forwarding Rule name.",
         "tags": [
           "Features:  Call Queue"
@@ -49986,7 +50015,7 @@
           }
         },
         "summary": "Get Details for a Call Queue Holiday Service",
-        "operationId": "Get Details for a Call Queue Holiday Service",
+        "operationId": "getCallQueueHolidayService",
         "description": "Retrieve Call Queue Holiday Service details.\n\nConfigure the call queue to route calls differently during the holidays.\n\nRetrieving call queue holiday service details requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features:  Call Queue"
@@ -50077,7 +50106,7 @@
           }
         },
         "summary": "Update a Call Queue Holiday Service",
-        "operationId": "Update a Call Queue Holiday Service",
+        "operationId": "updateCallQueueHolidayService",
         "description": "Update the designated Call Queue Holiday Service.\n\nConfigure the call queue to route calls differently during the holidays.\n\nUpdating a call queue holiday service requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Features:  Call Queue"
@@ -50278,7 +50307,7 @@
           }
         },
         "summary": "Get Details for a Call Queue Night Service",
-        "operationId": "Get Details for a Call Queue Night Service",
+        "operationId": "getCallQueueNightService",
         "description": "Retrieve Call Queue Night service details.\n\nConfigure the call queue to route calls differently during the hours when the queue is not in service. This is\ndetermined by a schedule that defines the business hours of the queue.\n\nRetrieving call queue details requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features:  Call Queue"
@@ -50369,7 +50398,7 @@
           }
         },
         "summary": "Update a Call Queue Night Service",
-        "operationId": "Update a Call Queue Night Service",
+        "operationId": "updateCallQueueNightService",
         "description": "Update Call Queue Night Service details.\n\nConfigure the call queue to route calls differently during the hours when the queue is not in service. This is\ndetermined by a schedule that defines the business hours of the queue.\n\nUpdating call queue night service details requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Features:  Call Queue"
@@ -50489,7 +50518,7 @@
                   "forcedForwardEnabled": true,
                   "transferPhoneNumber": "+911235557890",
                   "playAnnouncementBeforeEnabled": true,
-                  "audioMessageSelection": "<DEFAULT | CUSTOM>",
+                  "audioMessageSelection": "DEFAULT",
                   "audioFiles": [
                     {
                       "id": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC9jZWRkODcwYS1lMTkzLTQxNmQtYmM3OS1mNzkyYmUyMzlhOGI",
@@ -50564,7 +50593,7 @@
           }
         },
         "summary": "Get Details for a Call Queue Forced Forward",
-        "operationId": "Get Details for a Call Queue Forced Forward",
+        "operationId": "getCallQueueForcedForward",
         "description": "Retrieve Call Queue policy Forced Forward details.\n\nThis policy allows calls to be temporarily diverted to a configured destination.\n\nRetrieving call queue Forced Forward details requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features:  Call Queue"
@@ -50654,8 +50683,8 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Update a Call Queue Forced Forward service",
-        "operationId": "Update a Call Queue Forced Forward service",
+        "summary": "Update a Call Queue Forced Forward Service",
+        "operationId": "updateCallQueueForcedForward",
         "description": "Update the designated Forced Forward Service.\n\nIf the option is enabled, then incoming calls to the queue are forwarded to the configured destination. Calls that are already in the queue remain queued.\nThe policy can be configured to play an announcement prior to proceeding with the forward.\n\nUpdating a call queue Forced Forward service requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Features:  Call Queue"
@@ -50698,7 +50727,7 @@
                 "forcedForwardEnabled": true,
                 "transferPhoneNumber": "+911235557890",
                 "playAnnouncementBeforeEnabled": true,
-                "audioMessageSelection": "<DEFAULT | CUSTOM>",
+                "audioMessageSelection": "DEFAULT",
                 "audioFiles": [
                   {
                     "id": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC9jZWRkODcwYS1lMTkzLTQxNmQtYmM3OS1mNzkyYmUyMzlhOGI",
@@ -50740,9 +50769,9 @@
                   "$ref": "#/components/schemas/GetCallQueueStrandedCallsObject"
                 },
                 "example": {
-                  "action": "<NONE | BUSY | TRANSFER | NIGHT_SERVICE | RINGING | ANNOUNCEMENT>",
+                  "action": "NONE",
                   "transferPhoneNumber": "+911235557890",
-                  "audioMessageSelection": "<DEFAULT | CUSTOM>",
+                  "audioMessageSelection": "DEFAULT",
                   "audioFiles": [
                     {
                       "id": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC9jZWRkODcwYS1lMTkzLTQxNmQtYmM3OS1mNzkyYmUyMzlhOGI",
@@ -50817,7 +50846,7 @@
           }
         },
         "summary": "Get Details for a Call Queue Stranded Calls",
-        "operationId": "Get Details for a Call Queue Stranded Calls",
+        "operationId": "getCallQueueStrandedCalls",
         "description": "Allow admin to view default/configured Stranded Calls settings.\n\nStranded-All agents logoff Policy: If the last agent staffing a queue “unjoins” the queue or signs out, then all calls in the queue become stranded.\nStranded-Unavailable Policy: This policy allows for the configuration of the processing of calls that are in a staffed queue when all agents are unavailable.\n\nRetrieving call queue Stranded Calls details requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features:  Call Queue"
@@ -50907,8 +50936,8 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Update a Call Queue Stranded Calls service",
-        "operationId": "Update a Call Queue Stranded Calls service",
+        "summary": "Update a Call Queue Stranded Calls Service",
+        "operationId": "updateCallQueueStrandedCalls",
         "description": "Update the designated Call Stranded Calls Service.\n\nAllow admin to modify configured Stranded Calls settings.\n\nUpdating a call queue stranded calls requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Features:  Call Queue"
@@ -50948,9 +50977,9 @@
           "content": {
             "application/json": {
               "example": {
-                "action": "<NONE | BUSY | TRANSFER | NIGHT_SERVICE | RINGING | ANNOUNCEMENT>",
+                "action": "NONE",
                 "transferPhoneNumber": "+911235557890",
-                "audioMessageSelection": "<DEFAULT | CUSTOM>",
+                "audioMessageSelection": "DEFAULT",
                 "audioFiles": [
                   {
                     "id": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC9jZWRkODcwYS1lMTkzLTQxNmQtYmM3OS1mNzkyYmUyMzlhOGI",
@@ -51069,7 +51098,7 @@
           }
         },
         "summary": "Get Call Queue Primary Available Phone Numbers",
-        "operationId": "Get Call Queue Primary Available Phone Numbers",
+        "operationId": "getCallQueuePrimaryAvailablePhoneNumbers",
         "description": "List the service and standard PSTN numbers that are available to be assigned as the call queue's primary phone number.\nThese numbers are associated with the location specified in the request URL, can be active or inactive, and are unassigned.\n\nThe available numbers APIs help identify candidate numbers and their owning entities to simplify the assignment or association of these numbers to members or features.\n\nRetrieving this list requires a full, read-only or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features:  Call Queue"
@@ -51218,7 +51247,7 @@
           }
         },
         "summary": "Get Call Queue Alternate Available Phone Numbers",
-        "operationId": "Get Call Queue Alternate Available Phone Numbers",
+        "operationId": "getCallQueueAlternateAvailablePhoneNumbers",
         "description": "List the service and standard PSTN numbers that are available to be assigned as the call queue's alternate phone number.\nThese numbers are associated with the location specified in the request URL, can be active or inactive, and are unassigned.\n\nThe available numbers APIs help identify candidate numbers and their owning entities to simplify the assignment or association of these numbers to members or features.\n\nRetrieving this list requires a full, read-only or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features:  Call Queue"
@@ -51385,7 +51414,7 @@
           }
         },
         "summary": "Get Call Queue Call Forward Available Phone Numbers",
-        "operationId": "Get Call Queue Call Forward Available Phone Numbers",
+        "operationId": "getCallQueueCallForwardAvailablePhoneNumbers",
         "description": "List the service and standard PSTN numbers that are available to be assigned as the call queue's call forward number.\nThese numbers are associated with the location specified in the request URL, can be active or inactive, and are assigned to an owning entity.\n\nThe available numbers APIs help identify candidate numbers and their owning entities to simplify the assignment or association of these numbers to members or features.\n\nRetrieving this list requires a full, read-only or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features:  Call Queue"
@@ -51543,7 +51572,7 @@
           }
         },
         "summary": "Get Call Queue Available Agents",
-        "operationId": "Get Call Queue Available Agents",
+        "operationId": "getCallQueueAvailableAgents",
         "description": "List all available users, workspaces, or virtual lines that can be assigned as call queue agents.\n\nAvailable agents are users (excluding users with Webex Calling Standard license), workspaces, or virtual lines that can be assigned to a call queue. \nCalls from the call queue are routed to assigned agents based on configuration. \nAn agent can be assigned to one or more call queues and can be managed by supervisors.\n\nRetrieving this list requires a full, read-only or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features:  Call Queue"
@@ -51599,7 +51628,7 @@
             "name": "phoneNumber",
             "in": "query",
             "description": "Search based on number or extension.",
-            "example": "5558675309",
+            "example": "+15558675309",
             "schema": {
               "type": "string"
             }
@@ -51715,7 +51744,7 @@
           }
         },
         "summary": "Get List of Supervisors with Customer Assist",
-        "operationId": "Get List of Supervisors with Customer Assist",
+        "operationId": "listCallQueueSupervisors",
         "description": "Get list of supervisors for an organization.\n\nAgents in a call queue can be associated with a supervisor who can silently monitor, coach, barge in or to take over calls that their assigned agents are currently handling.\n\nRequires a full, location, user or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features:  Call Queue"
@@ -51872,7 +51901,7 @@
           }
         },
         "summary": "Create a Supervisor with Customer Assist",
-        "operationId": "Create a Supervisor with Customer Assist",
+        "operationId": "createCallQueueSupervisor",
         "description": "Create a new supervisor. The supervisor must be created with at least one agent.\n\nAgents in a call queue can be associated with a supervisor who can silently monitor, coach, barge in or to take over calls that their assigned agents are currently handling.\n\nThis operation requires a full or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Features:  Call Queue"
@@ -51971,8 +52000,8 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Delete Bulk supervisors",
-        "operationId": "Delete Bulk supervisors",
+        "summary": "Delete Bulk Supervisors",
+        "operationId": "deleteBulkCallQueueSupervisors",
         "description": "Deletes supervisors in bulk from an organization.\n\nSupervisors are users who manage agents and who perform functions including monitoring, coaching, and more.\n\nRequires a full administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Features:  Call Queue"
@@ -52060,8 +52089,8 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Delete A Supervisor",
-        "operationId": "Delete A Supervisor",
+        "summary": "Delete a Supervisor",
+        "operationId": "deleteCallQueueSupervisor",
         "description": "Deletes the supervisor from an organization.\n\nSupervisors are users who manage agents and who perform functions including monitoring, coaching, and more.\n\nRequires a full administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Features:  Call Queue"
@@ -52189,8 +52218,8 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "GET Supervisor Detail with Customer Assist",
-        "operationId": "GET Supervisor Detail with Customer Assist",
+        "summary": "Get Supervisor Detail with Customer Assist",
+        "operationId": "getCallQueueSupervisor",
         "description": "Get details of a specific supervisor, which includes the agents associated agents with the supervisor, in an organization.\n\nAgents in a call queue can be associated with a supervisor who can silently monitor, coach, barge in or to take over calls that their assigned agents are currently handling.\n\nThis operation requires a full, user or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features:  Call Queue"
@@ -52357,7 +52386,7 @@
           }
         },
         "summary": "Assign or Unassign Agents to Supervisor with Customer Assist",
-        "operationId": "Assign or Unassign Agents to Supervisor with Customer Assist",
+        "operationId": "updateCallQueueSupervisorAgents",
         "description": "Assign or unassign agents to the supervisor for an organization.\n\nAgents in a call queue can be associated with a supervisor who can silently monitor, coach, barge in or to take over calls that their assigned agents are currently handling.\n\nThis operation requires a full administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Features:  Call Queue"
@@ -52513,7 +52542,7 @@
           }
         },
         "summary": "List Available Supervisors with Customer Assist",
-        "operationId": "List Available Supervisors with Customer Assist",
+        "operationId": "listAvailableCallQueueSupervisors",
         "description": "Get list of available supervisors for an organization.\n\nAgents in a call queue can be associated with a supervisor who can silently monitor, coach, barge in or to take over calls that their assigned agents are currently handling.\n\nThis operation requires a full, user or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features:  Call Queue"
@@ -52682,7 +52711,7 @@
           }
         },
         "summary": "List Available Agents with Customer Assist",
-        "operationId": "List Available Agents with Customer Assist",
+        "operationId": "listAvailableCallQueueAgents",
         "description": "Get list of available agents for an organization.\n\nAgents in a call queue can be associated with a supervisor who can silently monitor, coach, barge in or to take over calls that their assigned agents are currently handling.\n\nThis operation requires a full, user or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features:  Call Queue"
@@ -52920,7 +52949,7 @@
           }
         },
         "summary": "Read the List of Call Queue Agents with Customer Assist",
-        "operationId": "Read the List of Call Queue Agents with Customer Assist",
+        "operationId": "listCallQueueAgents",
         "description": "List all Call Queues Agents for the organization.\n\nAgents can be users, workplace or virtual lines assigned to a call queue. Calls from the call queue are routed to agents based on configuration. \nAn agent can be assigned to one or more call queues and can be managed by supervisors.\n\nRetrieving this list requires a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.\n\n**Note**: The decoded value of the agent's `id`, and the `type` returned in the response, are always returned as `PEOPLE`, even when the agent is a workspace or virtual line. This will be addressed in a future release.",
         "tags": [
           "Features:  Call Queue"
@@ -52984,7 +53013,7 @@
             "name": "phoneNumber",
             "in": "query",
             "description": "Returns only the list of call queue agents that match the given phone number or extension.",
-            "example": "5558675309",
+            "example": "+15558675309",
             "schema": {
               "type": "string"
             }
@@ -53107,7 +53136,7 @@
           }
         },
         "summary": "Get Details for a Call Queue Agent with Customer Assist",
-        "operationId": "Get Details for a Call Queue Agent with Customer Assist",
+        "operationId": "getCallQueueAgent",
         "description": "Retrieve details of a particular Call queue agent based on the agent ID.\n\nAgents can be users, workplace or virtual lines assigned to a call queue. Calls from the call queue are routed to agents based on configuration. \nAn agent can be assigned to one or more call queues and can be managed by supervisors.\n\nRetrieving a call queue agent's details require a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.\n\n**Note**: The agent's `type` returned in the response and in the decoded value of the agent's `id`, is always of type `PEOPLE`, even if the agent is a workspace or virtual line. This` will be corrected in a future release.",
         "tags": [
           "Features:  Call Queue"
@@ -53219,7 +53248,7 @@
           }
         },
         "summary": "Update an Agent's Settings of One or More Call Queues with Customer Assist",
-        "operationId": "Update an Agent's Settings of One or More Call Queues with Customer Assist",
+        "operationId": "updateAgentCallQueueSettings",
         "description": "Modify an agent's call queue settings for an organization.\n\nCalls from the call queue are routed to agents based on configuration. \nAn agent can be assigned to one or more call queues and can be managed by supervisors.\n\nThis operation requires a full administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Features:  Call Queue"
@@ -53332,8 +53361,8 @@
           }
         },
         "summary": "Switch Mode for Call Forwarding Settings for a Call Queue",
-        "operationId": "Switch Mode for Call Forwarding Settings for a Call Queue",
-        "description": "Switches the current operating mode of the `Call Queue` to the mode as per normal operations.\n\nSwitching operating mode for a `call queue` requires a full, or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "operationId": "switchCallQueueCallForwardingMode",
+        "description": "Switches the current operating mode of the `Call Queue` to the mode as per normal operations.\n\nOperating modes allow call forwarding to be configured based on predefined schedules, enabling different routing behaviors during business hours, after hours, or holidays.\n\nSwitching operating mode for a `call queue` requires a full, or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Features:  Call Queue"
         ],
@@ -56954,7 +56983,7 @@
                       "name": "bram",
                       "locationName": "Brampton",
                       "locationId": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzQwMjgw",
-                      "phoneNumber": "5558675309",
+                      "phoneNumber": "+15558675309",
                       "routingPrefix": "123",
                       "esn": "1239097",
                       "enabled": true
@@ -57011,7 +57040,7 @@
           }
         },
         "summary": "Read the List of Hunt Groups",
-        "operationId": "Read the List of Hunt Groups",
+        "operationId": "listHuntGroups",
         "description": "List all calling Hunt Groups for the organization.\n\nHunt groups can route incoming calls to a group of people or workspaces. You can even configure a pattern to route to a whole group.\n\nRetrieving this list requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features:  Hunt Group"
@@ -57066,7 +57095,7 @@
             "name": "phoneNumber",
             "in": "query",
             "description": "Only return hunt groups with the matching primary phone number or extension.",
-            "example": "5558675309",
+            "example": "+15558675309",
             "schema": {
               "type": "string"
             }
@@ -57147,7 +57176,7 @@
           }
         },
         "summary": "Create a Hunt Group",
-        "operationId": "Create a Hunt Group",
+        "operationId": "createHuntGroup",
         "description": "Create new Hunt Groups for the given location.\n\nHunt groups can route incoming calls to a group of people, workspaces or virtual lines. You can even configure a pattern to route to a whole group.\n\nCreating a hunt group requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Features:  Hunt Group"
@@ -57178,7 +57207,7 @@
             "application/json": {
               "example": {
                 "name": "5714328359",
-                "phoneNumber": "5558675309",
+                "phoneNumber": "+15558675309",
                 "extension": "7781",
                 "firstName": "Hakim",
                 "lastName": "Smith",
@@ -57287,7 +57316,7 @@
           }
         },
         "summary": "Delete a Hunt Group",
-        "operationId": "Delete a Hunt Group",
+        "operationId": "deleteHuntGroup",
         "description": "Delete the designated Hunt Group.\n\nHunt groups can route incoming calls to a group of people or workspaces. You can even configure a pattern to route to a whole group.\n\nDeleting a hunt group requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Features:  Hunt Group"
@@ -57459,7 +57488,7 @@
           }
         },
         "summary": "Get Details for a Hunt Group",
-        "operationId": "Get Details for a Hunt Group",
+        "operationId": "getHuntGroup",
         "description": "Retrieve Hunt Group details.\n\nHunt groups can route incoming calls to a group of people, workspaces or virtual lines. You can even configure a pattern to route to a whole group.\n\nRetrieving hunt group details requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features:  Hunt Group"
@@ -57550,7 +57579,7 @@
           }
         },
         "summary": "Update a Hunt Group",
-        "operationId": "Update a Hunt Group",
+        "operationId": "updateHuntGroup",
         "description": "Update the designated Hunt Group.\n\nHunt groups can route incoming calls to a group of people, workspaces or virtual lines. You can even configure a pattern to route to a whole group.\n\nUpdating a hunt group requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Features:  Hunt Group"
@@ -57591,7 +57620,7 @@
             "application/json": {
               "example": {
                 "name": "5714328359",
-                "phoneNumber": "5558675309",
+                "phoneNumber": "+15558675309",
                 "extension": "7781",
                 "firstName": "Hakim",
                 "lastName": "Smith",
@@ -57703,7 +57732,7 @@
           }
         },
         "summary": "Get Call Forwarding Settings for a Hunt Group",
-        "operationId": "Get Call Forwarding Settings for a Hunt Group",
+        "operationId": "getHuntGroupCallForwardingSettings",
         "description": "Retrieve Call Forwarding settings for the specified Hunt Group including the list of call forwarding rules.\n\nThe call forwarding feature allows you to direct all incoming calls based on specific criteria that you define.\nBelow are the available options for configuring your call forwarding:\n1. Always forward calls to a designated number.\n2. Forward calls to a designated number based on certain criteria.\n3. Forward calls using different modes.\n\nRetrieving call forwarding settings for a hunt group requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features:  Hunt Group"
@@ -57794,7 +57823,7 @@
           }
         },
         "summary": "Update Call Forwarding Settings for a Hunt Group",
-        "operationId": "Update Call Forwarding Settings for a Hunt Group",
+        "operationId": "updateHuntGroupCallForwardingSettings",
         "description": "Update Call Forwarding settings for the specified Hunt Group.\n\nThe call forwarding feature allows you to direct all incoming calls based on specific criteria that you define.\nBelow are the available options for configuring your call forwarding:\n1. Always forward calls to a designated number.\n2. Forward calls to a designated number based on certain criteria.\n3. Forward calls using different modes.\n\nUpdating call forwarding settings for a hunt group requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Features:  Hunt Group"
@@ -57854,17 +57883,20 @@
                       "enabled": false
                     }
                   ],
-                  "modes": [
-                    {
-                      "normalOperationEnabled": true,
-                      "id": "Y2lzY29zcGFyazovL3VzL09QRVJBVElOR19NT0RFL2JiOTc1OTcxLTBjZWYtNDdhNi05Yzc5LTliZWFjY2IwYjg4Mg",
-                      "forwardTo": {
-                        "selection": "FORWARD_TO_SPECIFIED_NUMBER",
-                        "destination": "00000",
-                        "destinationVoicemailEnabled": false
+                  "operatingModes": {
+                    "enabled": true,
+                    "modes": [
+                      {
+                        "normalOperationEnabled": true,
+                        "id": "Y2lzY29zcGFyazovL3VzL09QRVJBVElOR19NT0RFL2JiOTc1OTcxLTBjZWYtNDdhNi05Yzc5LTliZWFjY2IwYjg4Mg",
+                        "forwardTo": {
+                          "selection": "FORWARD_TO_SPECIFIED_NUMBER",
+                          "destination": "00000",
+                          "destinationVoicemailEnabled": false
+                        }
                       }
-                    }
-                  ]
+                    ]
+                  }
                 }
               },
               "schema": {
@@ -57948,7 +57980,7 @@
           }
         },
         "summary": "Create a Selective Call Forwarding Rule for a Hunt Group",
-        "operationId": "Create a Selective Call Forwarding Rule for a Hunt Group",
+        "operationId": "createHuntGroupSelectiveCallForwardingRule",
         "description": "Create a Selective Call Forwarding Rule for the designated Hunt Group.\n\nA selective call forwarding rule for a hunt group allows calls to be forwarded or not forwarded to the designated number, based on the defined criteria.\n\nNote that the list of existing call forward rules is available in the hunt group's call forwarding settings.\n\nCreating a selective call forwarding rule for a hunt group requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write`.\n\n**NOTE**: The Call Forwarding Rule ID will change upon modification of the Call Forwarding Rule name.",
         "tags": [
           "Features:  Hunt Group"
@@ -58005,8 +58037,8 @@
                   "numbers": []
                 },
                 "forwardTo": {
-                  "selection": "FORWARD_TO_DEFAULT_NUMBER",
-                  "phoneNumber": null
+                  "selection": "FORWARD_TO_SPECIFIED_NUMBER",
+                  "phoneNumber": "+12056350001"
                 },
                 "enabled": true
               },
@@ -58102,7 +58134,7 @@
           }
         },
         "summary": "Get Selective Call Forwarding Rule for a Hunt Group",
-        "operationId": "Get Selective Call Forwarding Rule for a Hunt Group",
+        "operationId": "getHuntGroupSelectiveCallForwardingRule",
         "description": "Retrieve a Selective Call Forwarding Rule's settings for the designated Hunt Group.\n\nA selective call forwarding rule for a hunt group allows calls to be forwarded or not forwarded to the designated number, based on the defined criteria.\n\nNote that the list of existing call forward rules is available in the hunt group's call forwarding settings.\n\nRetrieving a selective call forwarding rule's settings for a hunt group requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.\n\n**NOTE**: The Call Forwarding Rule ID will change upon modification of the Call Forwarding Rule name.",
         "tags": [
           "Features:  Hunt Group"
@@ -58221,7 +58253,7 @@
           }
         },
         "summary": "Update a Selective Call Forwarding Rule for a Hunt Group",
-        "operationId": "Update a Selective Call Forwarding Rule for a Hunt Group",
+        "operationId": "updateHuntGroupSelectiveCallForwardingRule",
         "description": "Update a Selective Call Forwarding Rule's settings for the designated Hunt Group.\n\nA selective call forwarding rule for a hunt group allows calls to be forwarded or not forwarded to the designated number, based on the defined criteria.\n\nNote that the list of existing call forward rules is available in the hunt group's call forwarding settings.\n\nUpdating a selective call forwarding rule's settings for a hunt group requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write`.\n\n**NOTE**: The Call Forwarding Rule ID will change upon modification of the Call Forwarding Rule name.",
         "tags": [
           "Features:  Hunt Group"
@@ -58353,7 +58385,7 @@
           }
         },
         "summary": "Delete a Selective Call Forwarding Rule for a Hunt Group",
-        "operationId": "Delete a Selective Call Forwarding Rule for a Hunt Group",
+        "operationId": "deleteHuntGroupSelectiveCallForwardingRule",
         "description": "Delete a Selective Call Forwarding Rule for the designated Hunt Group.\n\nA selective call forwarding rule for a hunt group allows calls to be forwarded or not forwarded to the designated number, based on the defined criteria.\n\nNote that the list of existing call forward rules is available in the hunt group's call forwarding settings.\n\nDeleting a selective call forwarding rule for a hunt group requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write`.\n\n**NOTE**: The Call Forwarding Rule ID will change upon modification of the Call Forwarding Rule name.",
         "tags": [
           "Features:  Hunt Group"
@@ -58490,7 +58522,7 @@
           }
         },
         "summary": "Get Hunt Group Primary Available Phone Numbers",
-        "operationId": "Get Hunt Group Primary Available Phone Numbers",
+        "operationId": "getHuntGroupPrimaryAvailablePhoneNumbers",
         "description": "List the service and standard PSTN numbers that are available to be assigned as the hunt group's primary phone number.\nThese numbers are associated with the location specified in the request URL, can be active or inactive, and are unassigned.\n\nThe available numbers APIs help identify candidate numbers and their owning entities to simplify the assignment or association of these numbers to members or features.\n\nRetrieving this list requires a full, read-only or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features:  Hunt Group"
@@ -58639,7 +58671,7 @@
           }
         },
         "summary": "Get Hunt Group Alternate Available Phone Numbers",
-        "operationId": "Get Hunt Group Alternate Available Phone Numbers",
+        "operationId": "getHuntGroupAlternateAvailablePhoneNumbers",
         "description": "List the service and standard PSTN numbers that are available to be assigned as the hunt group's alternate phone number.\nThese numbers are associated with the location specified in the request URL, can be active or inactive, and are unassigned.\n\nThe available numbers APIs help identify candidate numbers and their owning entities to simplify the assignment or association of these numbers to members or features.\n\nRetrieving this list requires a full, read-only or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features:  Hunt Group"
@@ -58806,7 +58838,7 @@
           }
         },
         "summary": "Get Hunt Group Call Forward Available Phone Numbers",
-        "operationId": "Get Hunt Group Call Forward Available Phone Numbers",
+        "operationId": "getHuntGroupCallForwardAvailablePhoneNumbers",
         "description": "List the service and standard PSTN numbers that are available to be assigned as the hunt group's call forward number.\nThese numbers are associated with the location specified in the request URL, can be active or inactive, and are assigned to an owning entity.\n\nThe available numbers APIs help identify candidate numbers and their owning entities to simplify the assignment or association of these numbers to members or features.\n\nRetrieving this list requires a full, read-only or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features:  Hunt Group"
@@ -58939,8 +58971,8 @@
           }
         },
         "summary": "Switch Mode for Call Forwarding Settings for a Hunt Group",
-        "operationId": "Switch Mode for Call Forwarding Settings for a Hunt Group",
-        "description": "Switches the current operating mode of the `Hunt Group` to the mode as per normal operations.\n\nSwitching operating mode for a `hunt group` requires a full, or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "operationId": "switchHuntGroupCallForwardingMode",
+        "description": "Switches the current operating mode of the `Hunt Group` to the mode as per normal operations.\n\nOperating modes allow call forwarding to be configured based on predefined schedules, enabling different routing behaviors during business hours, after hours, or holidays.\n\nSwitching operating mode for a `hunt group` requires a full, or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Features:  Hunt Group"
         ],
@@ -138992,12 +139024,26 @@
             },
             "description": "Rules for selectively forwarding calls. (Rules which are omitted in the list will not be deleted.)"
           },
-          "modes": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ModesPatch"
-            },
-            "description": "Configuration for forwarding via Operating modes (Schedule Based Routing)."
+          "operatingModes": {
+            "type": "object",
+            "description": "Configuration for forwarding via Operating modes (Schedule Based Routing).",
+            "required": [
+              "enabled",
+              "modes"
+            ],
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "description": "Indicates whether operating modes forwarding is enabled."
+              },
+              "modes": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ModesPatch"
+                },
+                "description": "List of operating mode configurations."
+              }
+            }
           }
         }
       },
@@ -139976,7 +140022,7 @@
           "dialByName": {
             "type": "string",
             "example": "Hakim Smith",
-            "description": "The name to be used for dial by name functions.  Characters of `%`,  `+`, `\\`, `\"` and Unicode characters are not allowed."
+            "description": "The name to be used for dial by name functions. Characters of `%`,  `+`, `\\`, `\"` and Unicode characters are not allowed."
           }
         }
       },
@@ -140351,9 +140397,7 @@
           "forwardTo": {
             "type": "object",
             "required": [
-              "selection",
-              "destination",
-              "destinationVoicemailEnabled"
+              "selection"
             ],
             "properties": {
               "selection": {
@@ -141551,7 +141595,7 @@
         "properties": {
           "phoneNumber": {
             "type": "string",
-            "example": "5558675309",
+            "example": "+15558675309",
             "description": "Only return call queues with matching primary phone number or extension."
           },
           "extension": {
@@ -142453,8 +142497,7 @@
           "forwardTo": {
             "type": "object",
             "required": [
-              "selection",
-              "phoneNumber"
+              "selection"
             ],
             "properties": {
               "selection": {
@@ -142468,8 +142511,8 @@
               },
               "phoneNumber": {
                 "type": "string",
-                "example": "5558675309",
-                "description": "Phone number used if selection is `FORWARD_TO_SPECIFIED_NUMBER`."
+                "example": "+15558675309",
+                "description": "Phone number to forward calls to. Required when selection is `FORWARD_TO_SPECIFIED_NUMBER`."
               }
             },
             "description": "Controls what happens when the rule matches including the destination number for the call forwarding."
@@ -143062,7 +143105,7 @@
               },
               "phoneNumber": {
                 "type": "string",
-                "example": "5558675309",
+                "example": "+15558675309",
                 "description": "Phone number used if selection is `FORWARD_TO_SPECIFIED_NUMBER`."
               }
             },
@@ -143325,12 +143368,26 @@
                 },
                 "description": "Rules for selectively forwarding calls."
               },
-              "modes": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/ModesPatch"
-                },
-                "description": "Configuration for forwarding via Operating modes (Schedule Based Routing)."
+              "operatingModes": {
+                "type": "object",
+                "description": "Configuration for forwarding via Operating modes (Schedule Based Routing).",
+                "required": [
+                  "enabled",
+                  "modes"
+                ],
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "description": "Indicates whether operating modes forwarding is enabled."
+                  },
+                  "modes": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ModesPatch"
+                    },
+                    "description": "List of operating mode configurations."
+                  }
+                }
               }
             },
             "description": "Settings related to `Always`, `Busy`, and `No Answer` call forwarding."
@@ -143707,7 +143764,7 @@
               },
               "phoneNumber": {
                 "type": "string",
-                "example": "5558675309",
+                "example": "+15558675309",
                 "description": "Phone number used if selection is `FORWARD_TO_SPECIFIED_NUMBER`."
               }
             },
@@ -144317,8 +144374,8 @@
             "description": "Routing prefix + extension of a person."
           },
           "agentCount": {
-            "type": "string",
-            "example": "2",
+            "type": "integer",
+            "example": 2,
             "description": "Number of agents managed by supervisor. A supervisor must manage at least one agent."
           }
         }
@@ -144622,7 +144679,7 @@
           },
           "phoneNumber": {
             "type": "string",
-            "example": "5558675309",
+            "example": "+15558675309",
             "description": "Primary phone number of the call queue agent."
           },
           "extension": {
@@ -144881,7 +144938,7 @@
           },
           "phoneNumber": {
             "type": "string",
-            "example": "5558675309",
+            "example": "+15558675309",
             "description": "Primary phone number of the call queue."
           },
           "extension": {
@@ -144972,7 +145029,7 @@
           },
           "phoneNumber": {
             "type": "string",
-            "example": "5558675309",
+            "example": "+15558675309",
             "description": "Primary phone number of the call queue."
           },
           "extension": {
@@ -146560,7 +146617,7 @@
           },
           "phoneNumber": {
             "type": "string",
-            "example": "5558675309",
+            "example": "+15558675309",
             "description": "Primary phone number of the hunt group. Either phone number or extension are required."
           },
           "extension": {
@@ -146764,7 +146821,7 @@
           },
           "phoneNumber": {
             "type": "string",
-            "example": "5558675309",
+            "example": "+15558675309",
             "description": "Primary phone number of the hunt group."
           },
           "extension": {
@@ -146916,7 +146973,7 @@
           },
           "phoneNumber": {
             "type": "string",
-            "example": "5558675309",
+            "example": "+15558675309",
             "description": "Primary phone number of the hunt group."
           },
           "extension": {
@@ -146956,7 +147013,7 @@
           },
           "phoneNumber": {
             "type": "string",
-            "example": "5558675309",
+            "example": "+15558675309",
             "description": "Primary phone number of the hunt group."
           },
           "extension": {

@@ -23,6 +23,9 @@
     {
       "name": "Callbacks",
       "description": "APIs for scheduling and managing callbacks for customers."
+    },
+    {
+      "name": "Tasks"
     }
   ],
   "paths": {
@@ -40524,7 +40527,7 @@
           "Skill"
         ],
         "summary": "List Skill(s)",
-        "description": "Retrieve a list of Skill(s) in a given organization.\n Note: Array fields are removed from List API. If all fields are required please fetch Id's and use get-by-id API.",
+        "description": "Retrieve a list of Skill(s) in a given organization.\n Note: Returning array fields in the List (Get All) API response is deprecated. To retrieve the complete resource with all fields, please use the Get-by-ID API instead.",
         "operationId": "getAllConfig_2",
         "parameters": [
           {
@@ -40599,25 +40602,9 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/SkillDTOList"
+                    "$ref": "#/components/schemas/SkillDTO"
                   }
-                },
-                "example": [
-                  {
-                    "organizationId": "f53c8b54-46ca-43f6-ba05-08426a46e23d",
-                    "skillType": "Boolean",
-                    "serviceLevelThreshold": 0,
-                    "enumSkillValues": [],
-                    "name": "German Speaking",
-                    "description": "Skill to speak fluent German.",
-                    "active": true,
-                    "dynamicSkill": false,
-                    "createdTime": 1617536244000,
-                    "lastUpdatedTime": 1617536244000,
-                    "id": "93912f11-6017-404b-bf14-5331890b1797",
-                    "version": 1
-                  }
-                ]
+                }
               }
             }
           },
@@ -40755,7 +40742,7 @@
         ],
         "summary": "Create a new Skill",
         "description": "Create a new Skill in a given organization.",
-        "operationId": "createConfig_4",
+        "operationId": "createConfig_3",
         "parameters": [
           {
             "name": "orgid",
@@ -40766,18 +40753,24 @@
               "type": "string"
             },
             "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba1"
+          },
+          {
+            "name": "payloadDTO",
+            "in": "query",
+            "description": "Skill configuration data",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/SkillDTO"
+            },
+            "example": {
+              "name": "German Speaking",
+              "description": "Skill to speak fluent German",
+              "serviceLevelThreshold": 0,
+              "active": true,
+              "skillType": "Boolean"
+            }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SkillDTO"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "201": {
             "description": "Created",
@@ -40950,7 +40943,7 @@
         ],
         "summary": "Bulk save Skill(s)",
         "description": "Create, Update or delete Skill(s) in bulk in a given organization.",
-        "operationId": "saveAllConfig_4",
+        "operationId": "saveAllConfig_2",
         "parameters": [
           {
             "name": "orgid",
@@ -41136,187 +41129,6 @@
           }
         },
         "deprecated": false
-      }
-    },
-    "/organization/{orgid}/skill/bulk-export": {
-      "get": {
-        "tags": [
-          "Skill"
-        ],
-        "summary": "Bulk export Skill(s)",
-        "description": "Export all Skill(s) in a given organization.",
-        "operationId": "bulkExport_3",
-        "parameters": [
-          {
-            "name": "orgid",
-            "in": "path",
-            "description": "Organization ID to be used for this operation. The specified security token must have permission to interact with the organization.",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba1"
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "description": "Defines the number of displayed page. The page number starts from 0.",
-            "schema": {
-              "type": "integer",
-              "default": 0,
-              "example": 0
-            },
-            "example": 0
-          },
-          {
-            "name": "pageSize",
-            "in": "query",
-            "description": "Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size.",
-            "schema": {
-              "type": "integer",
-              "default": 50,
-              "example": 100
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BulkExportDTOSkillBulkExportDTO"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized Operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                },
-                "example": {
-                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
-                  "error": {
-                    "key": "401",
-                    "reason": "Test reason",
-                    "message": [
-                      {
-                        "description": "Test error",
-                        "code": "401",
-                        "entity": "cc_user",
-                        "references": []
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Operation is forbidden",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                },
-                "example": {
-                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
-                  "error": {
-                    "key": "403",
-                    "reason": "Test reason",
-                    "message": [
-                      {
-                        "description": "Test error",
-                        "code": "403",
-                        "entity": "cc_user",
-                        "references": []
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource not found or URI is invalid",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                },
-                "example": {
-                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
-                  "error": {
-                    "key": "404",
-                    "reason": "Test reason",
-                    "message": [
-                      {
-                        "description": "Test error",
-                        "code": "404",
-                        "entity": "cc_user",
-                        "references": []
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too many requests have been sent in a given amount of time and the request has been rate limited",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                },
-                "example": {
-                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
-                  "error": {
-                    "key": "429",
-                    "reason": "Test reason",
-                    "message": [
-                      {
-                        "description": "Test error",
-                        "code": "429",
-                        "entity": "cc_user",
-                        "references": []
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "An Unexpected Error Occurred",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                },
-                "example": {
-                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
-                  "error": {
-                    "key": "500",
-                    "reason": "Test reason",
-                    "message": [
-                      {
-                        "description": "Test error",
-                        "code": "500",
-                        "entity": "cc_user",
-                        "references": []
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        },
-        "deprecated": true
       }
     },
     "/organization/{orgid}/skill/populate-json-attr/{id}": {
@@ -41508,7 +41320,7 @@
         ],
         "summary": "Purge inactive Skill(s)",
         "description": "Purge inactive Skill(s) older than the configured interval for a given organization.",
-        "operationId": "purgeInactiveConfig_3",
+        "operationId": "purgeInactiveConfig_2",
         "parameters": [
           {
             "name": "orgid",
@@ -41704,7 +41516,7 @@
         ],
         "summary": "Get specific Skill by ID",
         "description": "Retrieve an existing Skill by ID in a given organization.",
-        "operationId": "getConfig_5",
+        "operationId": "getConfig_3",
         "parameters": [
           {
             "name": "orgid",
@@ -41872,7 +41684,7 @@
         ],
         "summary": "Update specific Skill by ID",
         "description": "Update an existing Skill by ID in a given organization.",
-        "operationId": "updateConfig_5",
+        "operationId": "updateConfig_3",
         "parameters": [
           {
             "name": "orgid",
@@ -41893,18 +41705,24 @@
               "type": "string"
             },
             "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba2"
+          },
+          {
+            "name": "payloadDTO",
+            "in": "query",
+            "description": "Skill configuration data for update",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/SkillDTO"
+            },
+            "example": {
+              "name": "German Speaking Updated",
+              "description": "Updated skill to speak fluent German",
+              "serviceLevelThreshold": 5,
+              "active": true,
+              "skillType": "Boolean"
+            }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SkillDTO"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "200": {
             "description": "OK",
@@ -42100,7 +41918,7 @@
         ],
         "summary": "Delete specific Skill by ID",
         "description": "Delete an existing Skill by ID in a given organization.",
-        "operationId": "deleteConfig_4",
+        "operationId": "deleteConfig_3",
         "parameters": [
           {
             "name": "orgid",
@@ -42288,7 +42106,7 @@
         ],
         "summary": "List references for a specific Skill",
         "description": "Retrieve a list of all entities that have reference to an existing Skill by ID in a given organization.",
-        "operationId": "getIncomingReferences_3",
+        "operationId": "getIncomingReferences_2",
         "parameters": [
           {
             "name": "orgid",
@@ -42489,8 +42307,8 @@
           "Skill"
         ],
         "summary": "List Skill(s)",
-        "description": "Retrieve a list of Skill(s) in a given organization.\n Note: Array fields are removed from List API. If all fields are required please fetch Id's and use get-by-id API.",
-        "operationId": "getAllConfigWithMetaData_5",
+        "description": "Retrieve a list of Skill(s) in a given organization.\n Note: Returning array fields in the List (Get All) API response is deprecated. To retrieve the complete resource with all fields, please use the Get-by-ID API instead.",
+        "operationId": "getAllConfigWithMetaData_4",
         "parameters": [
           {
             "name": "orgid",
@@ -42573,29 +42391,6 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ResponseEnvelopeSkillDTO"
-                },
-                "example": {
-                  "data": [
-                    {
-                      "organizationId": "f53c8b54-46ca-43f6-ba05-08426a46e23d",
-                      "skillType": "BOOLEAN",
-                      "serviceLevelThreshold": 0,
-                      "enumSkillValues": "string",
-                      "name": "German Speaking",
-                      "description": "Skill to speak fluent German.",
-                      "active": true,
-                      "dynamicSkill": false,
-                      "createdTime": "string",
-                      "lastUpdatedTime": "string",
-                      "id": "93912f11-6017-404b-bf14-5331890b1797",
-                      "version": 1
-                    }
-                  ],
-                  "meta": {
-                    "additionalProp1": "string",
-                    "additionalProp2": "string",
-                    "additionalProp3": "string"
-                  }
                 }
               }
             }
@@ -42735,7 +42530,7 @@
           "Skill Profile"
         ],
         "summary": "List Skill Profile(s)",
-        "description": "Retrieve a list of Skill Profile(s) in a given organization.\n Note: Array fields are removed from List API. If all fields are required please fetch Id's and use get-by-id API.",
+        "description": "Retrieve a list of Skill Profile(s) in a given organization.\n Note: Returning array fields in the List (Get All) API response is deprecated. To retrieve the complete resource with all fields, please use the Get-by-ID API instead.",
         "operationId": "getAllConfig_3",
         "parameters": [
           {
@@ -42818,8 +42613,8 @@
                     "organizationId": "f53c8b54-46ca-43f6-ba05-08426a46e23d",
                     "name": "German Speaker",
                     "description": "Required for transferring out-dial calls to Queues",
-                    "createdTime": "string",
-                    "lastUpdatedTime": "string",
+                    "createdTime": 123456789,
+                    "lastUpdatedTime": 123456789,
                     "id": "93912f11-6017-404b-bf14-5331890b1797",
                     "version": 1
                   }
@@ -42961,7 +42756,7 @@
         ],
         "summary": "Create a new Skill Profile",
         "description": "Create a new Skill Profile in a given organization.",
-        "operationId": "createConfig_5",
+        "operationId": "createConfig_4",
         "parameters": [
           {
             "name": "orgid",
@@ -42972,18 +42767,28 @@
               "type": "string"
             },
             "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba1"
+          },
+          {
+            "name": "skillProfileDTO",
+            "in": "query",
+            "description": "Skill profile configuration data",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/SkillProfileDTO"
+            },
+            "example": {
+              "name": "German Speaker",
+              "description": "Required for transferring out-dial calls to Queues",
+              "activeSkills": [
+                {
+                  "skillId": "123e4567-e89b-12d3-a456-426614174000",
+                  "proficiencyValue": 5,
+                  "booleanValue": true
+                }
+              ]
+            }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SkillProfileDTO"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "201": {
             "description": "Created",
@@ -43156,7 +42961,7 @@
         ],
         "summary": "Bulk save Skill Profile(s)",
         "description": "Create, Update or delete Skill Profile(s) in bulk in a given organization.",
-        "operationId": "saveAllConfig_5",
+        "operationId": "saveAllConfig_3",
         "parameters": [
           {
             "name": "orgid",
@@ -43344,187 +43149,6 @@
         "deprecated": false
       }
     },
-    "/organization/{orgid}/skill-profile/bulk-export": {
-      "get": {
-        "tags": [
-          "Skill Profile"
-        ],
-        "summary": "Bulk export Skill Profile(s)",
-        "description": "Export all Skill Profile(s) in a given organization.",
-        "operationId": "bulkExport_4",
-        "parameters": [
-          {
-            "name": "orgid",
-            "in": "path",
-            "description": "Organization ID to be used for this operation. The specified security token must have permission to interact with the organization.",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba1"
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "description": "Defines the number of displayed page. The page number starts from 0.",
-            "schema": {
-              "type": "integer",
-              "default": 0,
-              "example": 0
-            },
-            "example": 0
-          },
-          {
-            "name": "pageSize",
-            "in": "query",
-            "description": "Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size.",
-            "schema": {
-              "type": "integer",
-              "default": 50,
-              "example": 100
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BulkExportDTOSkillProfileBulkExportDTO"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized Operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                },
-                "example": {
-                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
-                  "error": {
-                    "key": "401",
-                    "reason": "Test reason",
-                    "message": [
-                      {
-                        "description": "Test error",
-                        "code": "401",
-                        "entity": "cc_user",
-                        "references": []
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Operation is forbidden",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                },
-                "example": {
-                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
-                  "error": {
-                    "key": "403",
-                    "reason": "Test reason",
-                    "message": [
-                      {
-                        "description": "Test error",
-                        "code": "403",
-                        "entity": "cc_user",
-                        "references": []
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource not found or URI is invalid",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                },
-                "example": {
-                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
-                  "error": {
-                    "key": "404",
-                    "reason": "Test reason",
-                    "message": [
-                      {
-                        "description": "Test error",
-                        "code": "404",
-                        "entity": "cc_user",
-                        "references": []
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too many requests have been sent in a given amount of time and the request has been rate limited",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                },
-                "example": {
-                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
-                  "error": {
-                    "key": "429",
-                    "reason": "Test reason",
-                    "message": [
-                      {
-                        "description": "Test error",
-                        "code": "429",
-                        "entity": "cc_user",
-                        "references": []
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "An Unexpected Error Occurred",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                },
-                "example": {
-                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
-                  "error": {
-                    "key": "500",
-                    "reason": "Test reason",
-                    "message": [
-                      {
-                        "description": "Test error",
-                        "code": "500",
-                        "entity": "cc_user",
-                        "references": []
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        },
-        "deprecated": true
-      }
-    },
     "/organization/{orgid}/skill-profile/{id}": {
       "get": {
         "tags": [
@@ -43532,7 +43156,7 @@
         ],
         "summary": "Get specific Skill Profile by ID",
         "description": "Retrieve an existing Skill Profile by ID in a given organization.",
-        "operationId": "getConfig_6",
+        "operationId": "getConfig_4",
         "parameters": [
           {
             "name": "orgid",
@@ -43710,7 +43334,7 @@
         ],
         "summary": "Update specific Skill Profile by ID",
         "description": "Update an existing Skill Profile by ID in a given organization.",
-        "operationId": "updateConfig_6",
+        "operationId": "updateConfig_4",
         "parameters": [
           {
             "name": "orgid",
@@ -43731,18 +43355,28 @@
               "type": "string"
             },
             "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba2"
+          },
+          {
+            "name": "skillProfileDTO",
+            "in": "query",
+            "description": "Skill profile configuration data for update",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/SkillProfileDTO"
+            },
+            "example": {
+              "name": "German Speaker Updated",
+              "description": "Updated skill profile for transferring calls",
+              "activeSkills": [
+                {
+                  "skillId": "123e4567-e89b-12d3-a456-426614174000",
+                  "proficiencyValue": 8,
+                  "booleanValue": true
+                }
+              ]
+            }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SkillProfileDTO"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "200": {
             "description": "OK",
@@ -43938,7 +43572,7 @@
         ],
         "summary": "Delete specific Skill Profile by ID",
         "description": "Delete an existing Skill Profile by ID in a given organization.",
-        "operationId": "deleteConfig_5",
+        "operationId": "deleteConfig_4",
         "parameters": [
           {
             "name": "orgid",
@@ -44126,7 +43760,7 @@
         ],
         "summary": "List references for a specific Skill Profile",
         "description": "Retrieve a list of all entities that have reference to an existing Skill Profile by ID in a given organization.",
-        "operationId": "getIncomingReferences_4",
+        "operationId": "getIncomingReferences_3",
         "parameters": [
           {
             "name": "orgid",
@@ -44327,8 +43961,8 @@
           "Skill Profile"
         ],
         "summary": "List Skill Profile(s)",
-        "description": "Retrieve a list of Skill Profile(s) in a given organization.\n Note: Array fields are removed from List API. If all fields are required please fetch Id's and use get-by-id API.",
-        "operationId": "getAllConfigWithMetaData_6",
+        "description": "Retrieve a list of Skill Profile(s) in a given organization.\n Note: Returning array fields in the List (Get All) API response is deprecated. To retrieve the complete resource with all fields, please use the Get-by-ID API instead.",
+        "operationId": "getAllConfigWithMetaData_5",
         "parameters": [
           {
             "name": "orgid",
@@ -44418,16 +44052,16 @@
                       "organizationId": "f53c8b54-46ca-43f6-ba05-08426a46e23d",
                       "name": "German Speaker",
                       "description": "Required for transferring out-dial calls to Queues",
-                      "createdTime": "string",
-                      "lastUpdatedTime": "string",
+                      "createdTime": 123456789,
+                      "lastUpdatedTime": 123456789,
                       "id": "93912f11-6017-404b-bf14-5331890b1797",
                       "version": 1
                     }
                   ],
                   "meta": {
-                    "additionalProp1": "string",
+                    "additionalProp3": "string",
                     "additionalProp2": "string",
-                    "additionalProp3": "string"
+                    "additionalProp1": "string"
                   }
                 }
               }
@@ -80858,150 +80492,6 @@
           }
         }
       },
-      "SkillDTOList": {
-        "type": "object",
-        "description": "Skill resource used in list operations.",
-        "properties": {
-          "organizationId": {
-            "type": "string",
-            "format": "uuid",
-            "description": "ID of the contact center organization. This field is required for all bulk save operations.",
-            "example": "f53c8b54-46ca-43f6-ba05-08426a46e23d",
-            "maxLength": 36,
-            "minLength": 32,
-            "pattern": "^[0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{12}$"
-          },
-          "id": {
-            "type": "string",
-            "description": "ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource.",
-            "example": "93912f11-6017-404b-bf14-5331890b1797"
-          },
-          "version": {
-            "type": "integer",
-            "format": "int32",
-            "description": "The version of this resource. For a newly created resource, it will be 0 unless specified otherwise.",
-            "example": 1
-          },
-          "name": {
-            "type": "string",
-            "description": "Indicates the name of the skill. Once created, name cannot be modified.",
-            "example": "German Speaking",
-            "maxLength": 80,
-            "minLength": 0,
-            "pattern": "^[a-zA-Z0-9,@_.\\-\\s]*$"
-          },
-          "description": {
-            "type": "string",
-            "description": "Indicates the description of the skill.",
-            "example": "Skill to speak fluent German.",
-            "maxLength": 255,
-            "minLength": 0
-          },
-          "serviceLevelThreshold": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Allows to set the time that a customer request can be in a queue before the system flags it as outside the service level. \n\n If the agent completes a customer service request within this time interval, the system considers it within the service level. \nIt is required only for a create or an update operation.",
-            "example": 0
-          },
-          "enumSkillValues": {
-            "type": "array",
-            "description": "If skillType is enum, the skill can take different sub-values which are defined with this field.",
-            "items": {
-              "$ref": "#/components/schemas/EnumSkillValueDTO"
-            },
-            "uniqueItems": true
-          },
-          "active": {
-            "type": "boolean",
-            "description": "Indicates the status of the skill whether it is active(when true) or not active(when false). It is required only during a create or an update operation.",
-            "example": true
-          },
-          "dynamicSkill": {
-            "type": "boolean",
-            "description": "Indicates whether the skill is a dynamic skill or not. Default value is false.",
-            "example": false
-          },
-          "skillType": {
-            "type": "string",
-            "description": "This can be of the following types\n\nPROFICIENCY: id = 0\n\nBOOLEAN: id = 1\n\nTEXT: id = 2\n\nENUM: id = 3\n\nOnce created, skillType cannot be modified.\n",
-            "enum": [
-              "Proficiency",
-              "Boolean",
-              "Text",
-              "enum"
-            ],
-            "example": "Boolean"
-          },
-          "createdTime": {
-            "type": "integer",
-            "format": "int64",
-            "description": "This is the created time of the entity."
-          },
-          "lastUpdatedTime": {
-            "type": "integer",
-            "format": "int64",
-            "description": "This is the updated time of the entity."
-          }
-        }
-      },
-      "EnumSkillValueDTO": {
-        "type": "object",
-        "properties": {
-          "organizationId": {
-            "type": "string",
-            "format": "uuid",
-            "description": "ID of the contact center organization. This field is required for all bulk save operations.",
-            "example": "f53c8b54-46ca-43f6-ba05-08426a46e23d",
-            "maxLength": 36,
-            "minLength": 32,
-            "pattern": "^[0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{12}$"
-          },
-          "id": {
-            "type": "string",
-            "description": "ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource.",
-            "example": "93912f11-6017-404b-bf14-5331890b1797"
-          },
-          "version": {
-            "type": "integer",
-            "format": "int32",
-            "description": "The version of this resource. For a newly created resource, it will be 0 unless specified otherwise.",
-            "example": 1
-          },
-          "name": {
-            "type": "string",
-            "description": "Indicates the name of the enumSkillValue.",
-            "example": "MacOS support",
-            "maxLength": 80,
-            "minLength": 0,
-            "pattern": "^[a-zA-Z0-9._\\-\\s]*$"
-          },
-          "description": {
-            "type": "string",
-            "description": "Indicates the description of the enumSkillValue.",
-            "example": "Ability to troubleshoot macOS issues.",
-            "maxLength": 255,
-            "minLength": 0
-          },
-          "skillId": {
-            "type": "string",
-            "description": "Represents the skillId of the enumSkillValue.",
-            "example": "93912f11-6017-404b-bf14-5331890b1797"
-          },
-          "createdTime": {
-            "type": "integer",
-            "format": "int64",
-            "description": "This is the created time of the entity."
-          },
-          "lastUpdatedTime": {
-            "type": "integer",
-            "format": "int64",
-            "description": "This is the updated time of the entity."
-          }
-        },
-        "required": [
-          "name"
-        ]
-      },
       "SkillDTO": {
         "type": "object",
         "properties": {
@@ -81078,12 +80568,14 @@
           "createdTime": {
             "type": "integer",
             "format": "int64",
-            "description": "This is the created time of the entity."
+            "description": "This is the created time of the entity.",
+            "example": 123456789
           },
           "lastUpdatedTime": {
             "type": "integer",
             "format": "int64",
-            "description": "This is the updated time of the entity."
+            "description": "This is the updated time of the entity.",
+            "example": 123456789
           }
         },
         "required": [
@@ -81091,6 +80583,66 @@
           "name",
           "serviceLevelThreshold",
           "skillType"
+        ]
+      },
+      "EnumSkillValueDTO": {
+        "type": "object",
+        "properties": {
+          "organizationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID of the contact center organization. This field is required for all bulk save operations.",
+            "example": "f53c8b54-46ca-43f6-ba05-08426a46e23d",
+            "maxLength": 36,
+            "minLength": 32,
+            "pattern": "^[0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{12}$"
+          },
+          "id": {
+            "type": "string",
+            "description": "ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource.",
+            "example": "93912f11-6017-404b-bf14-5331890b1797"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The version of this resource. For a newly created resource, it will be 0 unless specified otherwise.",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "description": "Indicates the name of the enumSkillValue.",
+            "example": "MacOS support",
+            "maxLength": 80,
+            "minLength": 0,
+            "pattern": "^[a-zA-Z0-9._\\-\\s]*$"
+          },
+          "description": {
+            "type": "string",
+            "description": "Indicates the description of the enumSkillValue.",
+            "example": "Ability to troubleshoot macOS issues.",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "skillId": {
+            "type": "string",
+            "description": "Represents the skillId of the enumSkillValue.",
+            "example": "93912f11-6017-404b-bf14-5331890b1797"
+          },
+          "createdTime": {
+            "type": "integer",
+            "format": "int64",
+            "description": "This is the created time of the entity.",
+            "example": 123456789
+          },
+          "lastUpdatedTime": {
+            "type": "integer",
+            "format": "int64",
+            "description": "This is the updated time of the entity.",
+            "example": 123456789
+          }
+        },
+        "required": [
+          "name"
         ]
       },
       "BulkRequestDTOSkillDTO": {
@@ -81116,90 +80668,12 @@
             "example": 10
           },
           "item": {
-            "$ref": "#/components/schemas/SkillDTO",
-            "description": "The Skill resource for this bulk operation item."
+            "$ref": "#/components/schemas/SkillDTO"
           },
           "requestAction": {
             "type": "string",
             "description": "Identifier for action type. Possible values are `SAVE` and `DELETE`.",
             "example": "SAVE"
-          }
-        }
-      },
-      "BulkExportDTOSkillBulkExportDTO": {
-        "type": "object",
-        "description": "Bulk export Dto",
-        "example": {
-          "totalResources": 100,
-          "pageNumber": 0,
-          "pageSize": 50,
-          "rel": "last",
-          "resources": []
-        },
-        "properties": {
-          "totalResources": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Total number of items.",
-            "example": 100
-          },
-          "pageNumber": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Current page number.",
-            "example": 0
-          },
-          "pageSize": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Page size for current data set.",
-            "example": 50
-          },
-          "rel": {
-            "type": "string",
-            "description": "Indicates whether more pages exist. When 'next' there are more pages available, otherwise 'last'.",
-            "example": "last"
-          },
-          "resources": {
-            "type": "array",
-            "description": "Indicate the page resources",
-            "items": {
-              "$ref": "#/components/schemas/SkillBulkExportDTO"
-            }
-          }
-        }
-      },
-      "SkillBulkExportDTO": {
-        "type": "object",
-        "description": "Skill data for bulk export.",
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "Name of the skill."
-          },
-          "description": {
-            "type": "string",
-            "description": "Description of the skill."
-          },
-          "serviceLevelThreshold": {
-            "type": "string",
-            "description": "Service level threshold for the skill."
-          },
-          "skillType": {
-            "type": "string",
-            "description": "Type of the skill."
-          },
-          "enumSkillValues": {
-            "type": "array",
-            "description": "List of enum skill values if the skill type is enum.",
-            "items": {
-              "type": "string"
-            },
-            "uniqueItems": true
-          },
-          "dynamicSkill": {
-            "type": "boolean",
-            "description": "Indicates whether the skill is a dynamic skill."
           }
         }
       },
@@ -81259,12 +80733,14 @@
           "createdTime": {
             "type": "integer",
             "format": "int64",
-            "description": "This is the created time of the entity."
+            "description": "This is the created time of the entity.",
+            "example": 123456789
           },
           "lastUpdatedTime": {
             "type": "integer",
             "format": "int64",
-            "description": "This is the updated time of the entity."
+            "description": "This is the updated time of the entity.",
+            "example": 123456789
           }
         }
       },
@@ -81325,12 +80801,14 @@
           "createdTime": {
             "type": "integer",
             "format": "int64",
-            "description": "This is the created time of the entity."
+            "description": "This is the created time of the entity.",
+            "example": 123456789
           },
           "lastUpdatedTime": {
             "type": "integer",
             "format": "int64",
-            "description": "This is the updated time of the entity."
+            "description": "This is the updated time of the entity.",
+            "example": 123456789
           }
         },
         "required": [
@@ -81391,12 +80869,14 @@
           "createdTime": {
             "type": "integer",
             "format": "int64",
-            "description": "This is the created time of the entity."
+            "description": "This is the created time of the entity.",
+            "example": 123456789
           },
           "lastUpdatedTime": {
             "type": "integer",
             "format": "int64",
-            "description": "This is the updated time of the entity."
+            "description": "This is the updated time of the entity.",
+            "example": 123456789
           },
           "skillName": {
             "type": "string",
@@ -81441,12 +80921,14 @@
           "createdTime": {
             "type": "integer",
             "format": "int64",
-            "description": "This is the created time of the entity."
+            "description": "This is the created time of the entity.",
+            "example": 123456789
           },
           "lastUpdatedTime": {
             "type": "integer",
             "format": "int64",
-            "description": "This is the updated time of the entity."
+            "description": "This is the updated time of the entity.",
+            "example": 123456789
           },
           "enumSkillName": {
             "type": "string",
@@ -81497,100 +80979,6 @@
             "type": "string",
             "description": "Identifier for action type. Possible values are `SAVE` and `DELETE`.",
             "example": "SAVE"
-          }
-        }
-      },
-      "BulkExportDTOSkillProfileBulkExportDTO": {
-        "type": "object",
-        "description": "Bulk export Dto",
-        "example": {
-          "totalResources": 100,
-          "pageNumber": 0,
-          "pageSize": 50,
-          "rel": "last",
-          "resources": []
-        },
-        "properties": {
-          "totalResources": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Total number of items.",
-            "example": 100
-          },
-          "pageNumber": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Current page number.",
-            "example": 0
-          },
-          "pageSize": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Page size for current data set.",
-            "example": 50
-          },
-          "rel": {
-            "type": "string",
-            "description": "Indicates whether more pages exist. When 'next' there are more pages available, otherwise 'last'.",
-            "example": "last"
-          },
-          "resources": {
-            "type": "array",
-            "description": "Indicate the page resources",
-            "items": {
-              "$ref": "#/components/schemas/SkillProfileBulkExportDTO"
-            }
-          }
-        }
-      },
-      "SkillProfileBulkExportDTO": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "activeSkills": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ActiveSkillBulkExportDTO"
-            },
-            "uniqueItems": true
-          },
-          "activeEnumSkills": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ActiveEnumSkillBulkExportDTO"
-            },
-            "uniqueItems": true
-          }
-        }
-      },
-      "ActiveSkillBulkExportDTO": {
-        "type": "object",
-        "properties": {
-          "skillName": {
-            "type": "string"
-          },
-          "skillValue": {
-            "type": "string"
-          }
-        }
-      },
-      "ActiveEnumSkillBulkExportDTO": {
-        "type": "object",
-        "properties": {
-          "skillName": {
-            "type": "string"
-          },
-          "skillValues": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "uniqueItems": true
           }
         }
       },
@@ -86474,7 +85862,7 @@
             "example": "315fbb91-2288-427c-9588-ec764cd46ea4"
           },
           "mediaType": {
-            "description": "The media type for the request. The supported values are ```telephony```, ```chat```, ```social``` and ```email```.",
+            "description": "The media type for the request. The supported values are ```telephony```, ```chat```, ```social```, ```email``` and ```workItem```.",
             "type": "string",
             "example": "telephony"
           },
@@ -86820,7 +86208,7 @@
             "items": {
               "type": "string"
             },
-            "description": "It represents the channelType of the agent which can be set to ```telephony```,```chat```, ```social```, and ```email```.This would be sent for any channel types the agent wants to set the state on. In the event that the agent is setting more than one channel type states at once, it would send multiple state change requests .channelType is a list, and can include one or more channel types in the request.",
+            "description": "It represents the channelType of the agent which can be set to ```telephony```,```chat```, ```social```, ```email```, ```workItem``` and ```custom```. This would be sent for any channel types the agent wants to set the state on. In the event that the agent is setting more than one channel type states at once, it would send multiple state change requests .channelType is a list, and can include one or more channel types in the request.",
             "example": "[telephony, chat]"
           },
           "state": {
@@ -87256,18 +86644,21 @@
         "description": "Response body after successfully requesting a task creation.",
         "type": "object",
         "required": [
-          "orgId",
-          "id"
+          "meta",
+          "data"
         ],
         "properties": {
           "meta": {
             "type": "object",
             "description": "Response metadata.",
+            "required": [
+              "orgId"
+            ],
             "properties": {
               "orgId": {
                 "type": "string",
                 "format": "uuid",
-                "description": "Organization ID inferred from the authorization token.",
+                "description": "UUID of the organization, inferred from the authorization token.",
                 "example": "658d1102-8c11-4850-a809-d7a99cc1c22f"
               }
             }
@@ -87275,11 +86666,14 @@
           "data": {
             "type": "object",
             "description": "Response data.",
+            "required": [
+              "id"
+            ],
             "properties": {
               "id": {
                 "type": "string",
                 "format": "uuid",
-                "description": "ID of the created task. The lifecycle of the task can be tracked with this ID.",
+                "description": "UUID of the created task. Use this ID to monitor and manage the task lifecycle via subsequent API calls.",
                 "example": "768d1102-8c11-4850-a809-d7a99cc1c22e"
               }
             }
@@ -87602,6 +86996,433 @@
             "type": "string",
             "description": "Name of the last queue to which the task was assigned.",
             "example": "Technical Support Queue"
+          }
+        }
+      },
+      "CreateTaskRequestV2": {
+        "description": "Request body for creating a task.",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/WorkItem"
+          },
+          {
+            "$ref": "#/components/schemas/Telephony"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "channelType"
+        }
+      },
+      "Origin": {
+        "type": "object",
+        "description": "Origin of the task. For inbound `workItem` tasks, this represents the customer. For outbound `telephony` tasks, this may be the agent's information or a configured outbound ANI in the organization. Outbound ANI is applicable to `telephony` only.",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Identifier of the task originator. For inbound `workItem` tasks, this is typically the customer's identifier (e.g., email address). For outbound `telephony` tasks, this may be the agent's identifier or a configured outbound ANI in the organization.",
+            "example": "customer@domain.com"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true,
+            "description": "Optional human-readable display name for the originator.",
+            "example": "Customer Name"
+          }
+        }
+      },
+      "Destination": {
+        "type": "object",
+        "description": "Destination for the task. Use `businessAddress` type for `workItem` tasks and `dialNumber` type for `telephony` tasks.",
+        "required": [
+          "id",
+          "type"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Destination identifier. For `workItem` tasks, this is the business address associated with the configured workItem channel entry point. For `telephony` tasks, this is the dial number to call. **Migrating from v1:** Previously the top-level `destination` field (plain string) for telephony.",
+            "example": "customer-support@biz.com"
+          },
+          "type": {
+            "type": "string",
+            "description": "Destination type. Use `businessAddress` for `workItem` tasks and `dialNumber` for `telephony` tasks.",
+            "enum": [
+              "businessAddress",
+              "dialNumber"
+            ],
+            "example": "businessAddress"
+          }
+        }
+      },
+      "FlowSettings": {
+        "type": "object",
+        "description": "Schema-free data map to pass specific data to the externalized flow settings. Supports a maximum of 15 tuples. Each tuple can have a key up to 200 bytes and a value up to 512 bytes.",
+        "additionalProperties": {
+          "type": "string"
+        },
+        "example": {
+          "flow1": "setting1"
+        }
+      },
+      "GlobalVariables": {
+        "type": "object",
+        "description": "Schema-free data map to pass specific data depending on the outbound type. Values are validated against the global variables configured in the organization. Supports a maximum of 30 tuples. Each tuple can have a key up to 200 bytes and a value up to 1024 bytes. **Migrating from v1:** Previously named `attributes`.",
+        "additionalProperties": {
+          "type": "string"
+        },
+        "example": {
+          "var1": "value1"
+        }
+      },
+      "WorkItem": {
+        "type": "object",
+        "description": "Request body to create an inbound `workItem` task via a configured workItem channel. The `channel` must reference an active configured workItem channel in the organization. `workItemData` within `channelParams` carries the structured form payload — up to 50 entries, with keys up to 100 UTF-8 bytes and values up to 1024 UTF-8 bytes.",
+        "required": [
+          "origin",
+          "destination",
+          "channelType",
+          "channel",
+          "channelParams"
+        ],
+        "properties": {
+          "origin": {
+            "title": "Origin",
+            "type": "object",
+            "description": "Origin of the task. For inbound `workItem` tasks, this represents the customer.",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Customer's identifier, such as an email address.",
+                "example": "customer@domain.com"
+              },
+              "name": {
+                "type": "string",
+                "nullable": true,
+                "description": "Optional human-readable display name for the customer.",
+                "example": "Customer Name"
+              }
+            }
+          },
+          "destination": {
+            "title": "Destination",
+            "type": "object",
+            "description": "Destination for the workItem task. The `type` must be `businessAddress`.",
+            "required": [
+              "id",
+              "type"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Business address associated with the configured workItem channel entry point.",
+                "example": "customer-support@biz.com"
+              },
+              "type": {
+                "type": "string",
+                "description": "Must be `businessAddress` for `workItem` tasks.",
+                "enum": [
+                  "businessAddress",
+                  "dialNumber"
+                ],
+                "example": "businessAddress"
+              }
+            }
+          },
+          "channelType": {
+            "type": "string",
+            "enum": [
+              "workItem"
+            ],
+            "description": "Discriminator field. Must be `workItem` for custom channel task creation.",
+            "example": "workItem"
+          },
+          "channel": {
+            "type": "string",
+            "description": "Identifier of the configured workItem channel in the organization. Required for `workItem` requests.",
+            "example": "support-form"
+          },
+          "flowSettings": {
+            "$ref": "#/components/schemas/FlowSettings"
+          },
+          "globalVariables": {
+            "$ref": "#/components/schemas/GlobalVariables"
+          },
+          "channelParams": {
+            "$ref": "#/components/schemas/WorkItemParams"
+          }
+        },
+        "example": {
+          "origin": {
+            "id": "customer@domain.com",
+            "name": "Customer Name"
+          },
+          "destination": {
+            "id": "customer-support@biz.com",
+            "type": "businessAddress"
+          },
+          "channelType": "workItem",
+          "channel": "support-form",
+          "channelParams": {
+            "type": "work-item-form",
+            "message": {
+              "aliasId": "msg-001",
+              "workItemData": {
+                "name": "customer name",
+                "email": "customer@domain.com"
+              },
+              "timestamp": 1732786800000
+            }
+          }
+        }
+      },
+      "WorkItemParams": {
+        "type": "object",
+        "description": "Work item channel parameters.",
+        "required": [
+          "type",
+          "message"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "work-item-form"
+            ],
+            "description": "Must be `work-item-form` for work item channel parameters.",
+            "example": "work-item-form"
+          },
+          "message": {
+            "$ref": "#/components/schemas/WorkItemForm"
+          }
+        }
+      },
+      "WorkItemForm": {
+        "type": "object",
+        "description": "Work item message payload.",
+        "required": [
+          "aliasId",
+          "workItemData",
+          "timestamp"
+        ],
+        "properties": {
+          "aliasId": {
+            "type": "string",
+            "description": "Identifier of the work item message.",
+            "example": "msg-001"
+          },
+          "workItemData": {
+            "type": "object",
+            "description": "Structured key-value payload for the work item form. Maximum 50 entries; keys up to 100 UTF-8 bytes, values up to 1024 UTF-8 bytes.",
+            "maxProperties": 50,
+            "additionalProperties": {
+              "type": "string"
+            },
+            "example": {
+              "name": "customer name",
+              "email": "customer@domain.com"
+            }
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix epoch timestamp in milliseconds representing when the work item was originated.",
+            "example": 1732786800000
+          }
+        }
+      },
+      "Telephony": {
+        "type": "object",
+        "description": "Request body to create an outbound `telephony` task routed through a configured outdial entry point. `outdialEntryPointId` is required. When `callback` is provided, its `type` must be `immediate` and `origin` must be `web`.\n\n**Migrating from v1:** The following fields have been renamed or restructured — `entryPointId` → `channelParams.outdialEntryPointId`; `destination` (string) → `destination.id`; `origin` (string) → `origin.id`; `attributes` → `globalVariables`; `customAttributes` (SIP headers) → `channelParams.sipHeaders`; `mediaType` → `channelType`; `callback.callbackOrigin` → `channelParams.callback.origin`; `callback.callbackType` → `channelParams.callback.type`.",
+        "required": [
+          "origin",
+          "destination",
+          "channelType",
+          "channelParams"
+        ],
+        "properties": {
+          "origin": {
+            "title": "Origin",
+            "type": "object",
+            "description": "Origin of the outbound telephony task. May be the agent's information or a configured outbound ANI in the organization.",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Outbound ANI or agent identifier used for the telephony call.",
+                "example": "+18000000000"
+              },
+              "name": {
+                "type": "string",
+                "nullable": true,
+                "description": "Optional display name. May be omitted or null for telephony tasks.",
+                "example": null
+              }
+            }
+          },
+          "destination": {
+            "title": "Destination",
+            "type": "object",
+            "description": "Destination for the telephony task. The `type` must be `dialNumber`.",
+            "required": [
+              "id",
+              "type"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The dial number to call. **Migrating from v1:** Previously the top-level `destination` field (plain string).",
+                "example": "+19780000000"
+              },
+              "type": {
+                "type": "string",
+                "description": "Must be `dialNumber` for `telephony` tasks.",
+                "enum": [
+                  "businessAddress",
+                  "dialNumber"
+                ],
+                "example": "dialNumber"
+              }
+            }
+          },
+          "channelType": {
+            "type": "string",
+            "enum": [
+              "telephony"
+            ],
+            "description": "Discriminator field. Must be `telephony` for voice task creation. **Migrating from v1:** Previously named `mediaType`.",
+            "example": "telephony"
+          },
+          "channel": {
+            "type": "string",
+            "nullable": true,
+            "description": "Not applicable for telephony tasks. May be omitted or set to `null`.",
+            "example": null
+          },
+          "flowSettings": {
+            "$ref": "#/components/schemas/FlowSettings"
+          },
+          "globalVariables": {
+            "$ref": "#/components/schemas/GlobalVariables"
+          },
+          "channelParams": {
+            "$ref": "#/components/schemas/TelephonyParams"
+          }
+        },
+        "example": {
+          "origin": {
+            "id": "+18000000000",
+            "name": null
+          },
+          "destination": {
+            "id": "+19780000000",
+            "type": "dialNumber"
+          },
+          "channelType": "telephony",
+          "channelParams": {
+            "type": "telephony",
+            "outdialEntryPointId": "aef6455f-ccd6-4261-bb00-e80f845c01b0",
+            "outboundType": "CALLBACK",
+            "callback": {
+              "type": "immediate",
+              "origin": "web",
+              "number": "+19780000000"
+            }
+          }
+        }
+      },
+      "TelephonyParams": {
+        "type": "object",
+        "description": "Telephony channel parameters.",
+        "required": [
+          "type",
+          "outdialEntryPointId",
+          "outboundType"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "telephony"
+            ],
+            "description": "Must be `telephony` for telephony channel parameters.",
+            "example": "telephony"
+          },
+          "outdialEntryPointId": {
+            "type": "string",
+            "description": "UUID of the entry point for the task. For `CALLBACK` and `OUTDIAL`, this must be an outbound entry point. For `EXECUTE_FLOW`, this must be an inbound entry point mapped to the flow to be triggered. **Migrating from v1:** Previously named `entryPointId`.",
+            "example": "aef6455f-ccd6-4261-bb00-e80f845c01b0"
+          },
+          "outboundType": {
+            "type": "string",
+            "description": "The outbound type for the task. Use `OUTDIAL` when the agent needs to make an outbound call to the customer. Use `CALLBACK` when scheduling a callback — `callback` field is required. Use `EXECUTE_FLOW` to trigger a predefined flow through an inbound entry point. Use `RECORD_GREETING` to record a personalized agent greeting.",
+            "enum": [
+              "CALLBACK",
+              "OUTDIAL",
+              "EXECUTE_FLOW",
+              "RECORD_GREETING"
+            ],
+            "example": "CALLBACK"
+          },
+          "callback": {
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CallbackParams"
+              }
+            ],
+            "nullable": true,
+            "description": "Required when `outboundType` is `CALLBACK`. Must be omitted or `null` for `OUTDIAL`, `EXECUTE_FLOW`, and `RECORD_GREETING`. When provided, `type` must be `immediate` and `origin` must be `web`. **Migrating from v1:** Previously a top-level `callback` object with fields `callbackType` and `callbackOrigin`; now nested under `channelParams`."
+          },
+          "sipHeaders": {
+            "type": "object",
+            "nullable": true,
+            "description": "Optional map of SIP headers forwarded to the telephony infrastructure for the call. Supports up to 20 headers (selected alphabetically if more than 20 are provided). Each key is converted to lowercase with hyphens retained. The payload is restricted to 1100 bytes to comply with RFC 3261 (UDP). Header values are not logged to ensure PII protection. **Migrating from v1:** Previously named `customAttributes`.",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "example": {
+              "X-Correlation-Id": "12345"
+            }
+          }
+        }
+      },
+      "CallbackParams": {
+        "type": "object",
+        "description": "Callback parameters for telephony tasks.",
+        "required": [
+          "type",
+          "origin"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Callback execution mode. Currently only `immediate` is supported. **Migrating from v1:** Previously named `callbackType`.",
+            "enum": [
+              "immediate"
+            ],
+            "example": "immediate"
+          },
+          "origin": {
+            "type": "string",
+            "description": "Channel that originated the callback request. The supported value is `web`. **Migrating from v1:** Previously named `callbackOrigin`.",
+            "enum": [
+              "web"
+            ],
+            "example": "web"
+          },
+          "number": {
+            "type": "string",
+            "nullable": true,
+            "description": "Optional callback number. Provided when the callback flow supplies a specific number to dial back.",
+            "example": "+19780000000"
           }
         }
       },
