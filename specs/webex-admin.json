@@ -27834,6 +27834,11 @@
             "description": "Entryuuid of the user.",
             "example": "cb092233-b3e6-48fd-ab42-551f8cb01513"
           },
+          "email": {
+            "type": "string",
+            "description": "Email of the user.",
+            "example": "user@example.com"
+          },
           "roles": {
             "type": "array",
             "description": "The roles assigned to the admin for managing the customer group.",
@@ -32167,7 +32172,7 @@
           },
           "managedBy": {
             "type": "array",
-            "description": "Administrators of customer groups.",
+            "description": "Administrators of customer groups. Either `id` or `email` must be provided.",
             "items": {
               "$ref": "#/components/schemas/ManagedBy"
             }
@@ -32291,6 +32296,105 @@
             "description": "Administrators of customer groups.",
             "items": {
               "$ref": "#/components/schemas/ManagedBy"
+            }
+          }
+        }
+      },
+      "ManagedByResponse": {
+        "type": "object",
+        "properties": {
+          "orgId": {
+            "type": "string",
+            "description": "The admin's organization ID.",
+            "example": "09ebb769-3098-4446-9093-4b39b296602b"
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of administrator.",
+            "enum": [
+              "user"
+            ],
+            "example": "user"
+          },
+          "id": {
+            "type": "string",
+            "description": "Entryuuid of the user.",
+            "example": "cb092233-b3e6-48fd-ab42-551f8cb01513"
+          },
+          "roles": {
+            "type": "array",
+            "description": "The roles assigned to the admin for managing the customer group.",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "CustomerGroupPostPatchResponse": {
+        "type": "object",
+        "required": [
+          "schemas",
+          "id",
+          "meta",
+          "displayName",
+          "memberSize"
+        ],
+        "properties": {
+          "schemas": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "An array of schema URNs.",
+            "example": [
+              "urn:scim:schemas:core:1.0",
+              "urn:scim:schemas:extension:cisco:commonidentity:1.0"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique Customer Group Id.",
+            "example": "230898d8-f528-432f-93db-d138fa7fb20c"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/GroupMeta"
+          },
+          "displayName": {
+            "type": "string",
+            "description": "A human readable name for the Customer Group.",
+            "example": "customerGroup09-101"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the group.",
+            "example": "Customer Group For PA63"
+          },
+          "cisSyncSource": {
+            "type": "string",
+            "description": "Sync Source.",
+            "enum": [
+              "SCIM",
+              "DIRSYNC"
+            ],
+            "example": "SCIM"
+          },
+          "memberSize": {
+            "type": "integer",
+            "description": "Number of members in the group.",
+            "example": 1
+          },
+          "members": {
+            "type": "array",
+            "description": "A list of members of the Group.",
+            "items": {
+              "$ref": "#/components/schemas/MemberResponse"
+            }
+          },
+          "managedBy": {
+            "type": "array",
+            "description": "Administrators of customer groups (email is not returned).",
+            "items": {
+              "$ref": "#/components/schemas/ManagedByResponse"
             }
           }
         }
@@ -32460,7 +32564,7 @@
       "AddManagedBy": {
         "type": "object",
         "additionalProperties": false,
-        "description": "Schema for adding an admin.",
+        "description": "Schema for adding an admin. Either `id` or `email` must be provided.",
         "properties": {
           "orgId": {
             "type": "string",
@@ -32476,6 +32580,10 @@
           "id": {
             "type": "string",
             "description": "Entryuuid of the user."
+          },
+          "email": {
+            "type": "string",
+            "description": "Email of the user."
           },
           "roles": {
             "type": "array",
@@ -32489,7 +32597,6 @@
         },
         "required": [
           "orgId",
-          "id",
           "type",
           "roles"
         ]
@@ -32497,7 +32604,7 @@
       "DeleteManagedBy": {
         "type": "object",
         "additionalProperties": false,
-        "description": "Schema for deleting an admin.",
+        "description": "Schema for deleting an admin. Either `id` or `email` must be provided.",
         "properties": {
           "orgId": {
             "type": "string",
@@ -32513,6 +32620,10 @@
           "id": {
             "type": "string",
             "description": "Entryuuid of the user."
+          },
+          "email": {
+            "type": "string",
+            "description": "Email of the user."
           },
           "roles": {
             "type": "array",
@@ -32534,7 +32645,6 @@
         },
         "required": [
           "orgId",
-          "id",
           "type",
           "roles",
           "operation"
