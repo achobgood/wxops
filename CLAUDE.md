@@ -15,6 +15,10 @@ For every question — capability, configuration, behavior, limits, or anything 
 
 The reference docs and skills are the authoritative source for this project. Training data about Cisco/Webex products is unreliable — product tiers get conflated, feature names change, and capabilities vary by license. If the answer isn't in the docs or skills, say so explicitly rather than filling the gap from training data.
 
+## Architecture Docs Rule
+
+**Before making non-trivial changes, read the relevant architecture doc in `docs/architecture/`.** See `docs/architecture/00-index.md` for the quick-reference table mapping tasks to docs. After making changes that affect the structural map, decisions, behavior, or operations, update the corresponding doc in the same session. Treat these docs as load-bearing — stale architecture docs produce wrong code.
+
 ---
 
 ## Quick Start
@@ -147,6 +151,19 @@ Added 2026-04-15 after an org-cleanup subagent died mid-Phase-2 when its Python 
 | `.claude/skills/cucm-migrate/` | Skill: execute CUCM-to-Webex migration from exported deployment plan |
 | `.claude/skills/query-live/` | Skill: read-only natural language queries against live Webex Calling state |
 
+### Architecture Docs
+
+**These docs are load-bearing.** Before making non-trivial changes, read the relevant architecture doc. After making changes that affect the structural map, decisions, behavior, or operations, update the corresponding doc. The session that makes the change owns the doc update.
+
+| Path | Covers | Read before... |
+|------|--------|----------------|
+| `docs/architecture/00-index.md` | Index, quick-reference table, maintenance protocol | Any architecture doc work |
+| `docs/architecture/01-structural-map.md` | Modules, data flows, abstractions, boundaries | Adding/removing modules, changing data flows |
+| `docs/architecture/02-decisions.md` | 8 ADRs, cross-reference, open questions | Making or revisiting architectural decisions |
+| `docs/architecture/03-behavior.md` | Failure modes, fragility, performance, state, known issues | Debugging, changing error handling, modifying state |
+| `docs/architecture/04-operations-and-evolution.md` | Build, test, deploy, debug, tech debt, roadmap | Changing build/test infra, paying down debt |
+| `docs/architecture/05-purpose.md` | Audience, success criteria, scope, constraints | Scope decisions, onboarding |
+
 ### Skill Disambiguation
 
 When multiple skills could match, use this lookup:
@@ -165,13 +182,13 @@ When multiple skills could match, use this lookup:
 | Delete/clean up resources | `teardown` | `provision-calling` (that's for creation) |
 | Provision users, locations, licenses | `provision-calling` | `teardown` (that's for deletion) |
 
-### Reference Docs — wxc_sdk (Official Cisco SDK)
+### Reference Docs — Webex API Surface
 
 | Path | Purpose |
 |------|---------|
 | `docs/reference/authentication.md` | Auth methods, tokens, scopes, OAuth flows |
 | `docs/reference/provisioning.md` | People, licenses, locations, org setup |
-| `docs/reference/wxc-sdk-patterns.md` | wxc_sdk setup, auth, async patterns, common recipes |
+| `docs/reference/wxc-sdk-patterns.md` | Historical: scopes reference, raw HTTP patterns (built from wxc_sdk source) |
 | `docs/reference/call-features-major.md` | Auto attendants, call queues, hunt groups |
 | `docs/reference/call-features-additional.md` | Paging, call park, pickup, voicemail groups, Customer Assist |
 | `docs/reference/person-call-settings-handling.md` | Call forwarding, DND, call waiting, sim/sequential ring |

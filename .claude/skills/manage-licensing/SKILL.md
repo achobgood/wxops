@@ -348,7 +348,7 @@ for email in user1@example.com user2@example.com user3@example.com; do
 done
 ```
 
-> **Note:** For large batches (20+ users), consider the async Python SDK pattern in `docs/reference/wxc-sdk-patterns.md` for better performance with concurrent requests and automatic 429 retry handling.
+> **Note:** For large batches (50+ users), use the migration engine's async pattern in `src/wxcli/migration/execute/engine.py` for better performance with concurrent requests and automatic 429 retry handling. For smaller batches, shell loops with `sleep 1` suffice.
 
 ## Step 7: Verify results
 
