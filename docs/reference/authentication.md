@@ -253,7 +253,7 @@ The response includes a new `access_token` (and potentially a renewed `refresh_t
 | Token | Lifetime | Renewal |
 |-------|----------|---------|
 | Access token | 14 days | Refresh using refresh token |
-| Refresh token | 90 days | Automatically renewed each time you generate a new access token |
+| Refresh token | 90 days | 90-day expiry clock resets each time you make a refresh call (use the refresh token to generate a new access token). Simply using the access token does NOT reset it. |
 | Client secret | Does not expire | Regenerate via developer portal if compromised |
 
 **For long-lived automations**, Webex recommends a 3-tier pattern:
@@ -902,7 +902,7 @@ The SDK masks `Authorization` headers as `Bearer ***` and redacts `access_token`
 - **call-controls requires user-level OAuth.** Admin tokens and service-app tokens get HTTP 400 "Target user not authorized" on `/telephony/calls` endpoints. Use a calling-licensed user's OAuth token for call control operations.
 - **`spark-admin:` scopes require full org admin.** If the authorizing user is a read-only admin or compliance officer, requests to admin endpoints will return 403 even with the correct scopes listed on the integration.
 - **Personal access tokens carry all scopes silently.** A personal access token for an org admin includes all `spark-admin:` scopes without requesting them, which can mask scope-related bugs that appear only in production integrations.
-- **Service app refresh tokens can expire.** Although the initial refresh token is long-lived, if it is not used within its expiry window the service app must be re-authorized by an org admin.
+- **Service app refresh tokens can expire.** Although the initial refresh token is long-lived, if it is not used **to generate a new access token** within 90 days, it expires and the service app must be re-authorized by an org admin. Simply using the access token does not reset the 90-day clock — only making a refresh call does.
 
 ---
 
