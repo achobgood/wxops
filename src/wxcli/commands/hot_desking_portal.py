@@ -1,7 +1,7 @@
 import json
 import typer
-from wxcli.errors import WebexError, handle_rest_error
 from wxcli.auth import get_api
+from wxcli.errors import WebexError, handle_rest_error
 from wxcli.output import print_table, print_json
 from wxcli.config import get_org_id
 
@@ -25,7 +25,7 @@ def show(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -61,7 +61,7 @@ def update(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -82,7 +82,7 @@ def show_guest(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -118,7 +118,7 @@ def update_guest(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 

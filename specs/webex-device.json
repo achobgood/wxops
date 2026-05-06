@@ -6471,7 +6471,33 @@
               "type": "string"
             }
           }
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file",
+                  "fileName"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "The image file to upload. Must be in `.jpeg` or `.png` format. Maximum file size is 625 KB."
+                  },
+                  "fileName": {
+                    "type": "string",
+                    "description": "The name of the image file being uploaded.",
+                    "example": "CompanyLogoBlue.png"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/telephony/config/people/{personId}/devices/count": {

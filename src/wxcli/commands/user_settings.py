@@ -1,7 +1,7 @@
 import json
 import typer
-from wxcli.errors import WebexError, handle_rest_error
 from wxcli.auth import get_api
+from wxcli.errors import WebexError, handle_rest_error
 from wxcli.output import print_table, print_json
 from wxcli.config import get_org_id
 
@@ -25,7 +25,7 @@ def show(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -79,7 +79,7 @@ def update(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -100,7 +100,7 @@ def show_barge_in(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -139,7 +139,7 @@ def update_barge_in(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -160,7 +160,7 @@ def show_call_forwarding(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -193,7 +193,7 @@ def update_call_forwarding(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -214,7 +214,7 @@ def show_intercept(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -250,7 +250,7 @@ def update_intercept(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -275,7 +275,7 @@ def configure_call_intercept(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     print_json(result)
 
 
@@ -296,7 +296,7 @@ def show_call_recording(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -338,7 +338,7 @@ def update_call_recording(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -359,7 +359,7 @@ def show_call_waiting(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -395,7 +395,7 @@ def update_call_waiting(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -422,9 +422,9 @@ def cmd_list(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("types", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("types", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -488,7 +488,7 @@ def update_caller_id_features(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -509,7 +509,7 @@ def show_calling_behavior(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -548,7 +548,7 @@ def update_calling_behavior(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -569,7 +569,7 @@ def show_do_not_disturb(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -611,7 +611,7 @@ def update_do_not_disturb(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -632,7 +632,7 @@ def show_executive_assistant(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -668,7 +668,7 @@ def update_executive_assistant(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -689,7 +689,7 @@ def show_hoteling(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -725,7 +725,7 @@ def update_hoteling(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -752,9 +752,9 @@ def list_monitoring(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("monitoredElements", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("monitoredElements", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -785,7 +785,7 @@ def update_monitoring(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -806,7 +806,7 @@ def show_incoming_permission(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -851,7 +851,7 @@ def update_incoming_permission(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -878,9 +878,9 @@ def list_outgoing_permission(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("callingPermissions", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("callingPermissions", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -914,7 +914,7 @@ def update_outgoing_permission(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -944,9 +944,9 @@ def list_numbers(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("phoneNumbers", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -976,9 +976,9 @@ def list_privacy(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("monitoringAgents", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("monitoringAgents", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -1018,7 +1018,7 @@ def update_privacy(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -1045,9 +1045,9 @@ def list_push_to_talk(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("members", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("members", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -1084,7 +1084,7 @@ def update_push_to_talk(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -1111,9 +1111,9 @@ def list_reception(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("monitoredMembers", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("monitoredMembers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -1144,7 +1144,7 @@ def update_reception(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -1178,11 +1178,11 @@ def list_schedules(
         if limit > 0:
             result = api.session.rest_get(url, params=params)
             result = result or {}
-            items = result.get("schedules", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+            items = result.get("schedules", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
             items = list(api.session.follow_pagination(url=url, params=params, item_key="schedules"))
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(items)
     else:
@@ -1221,7 +1221,7 @@ def create(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -1251,7 +1251,7 @@ def show_schedules(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -1261,6 +1261,67 @@ def show_schedules(
             print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
         else:
             print_json(result)
+
+
+
+@app.command("update-schedules")
+def update_schedules(
+    person_id: str = typer.Argument(help="personId"),
+    schedule_type: str = typer.Argument(help="scheduleType"),
+    schedule_id: str = typer.Argument(help="scheduleId"),
+    new_name: str = typer.Option(None, "--new-name", help="New name for the schedule."),
+    name: str = typer.Option(None, "--name", help="Name for the schedule."),
+    type_param: str = typer.Option(None, "--type", help="Choices: businessHours, holidays"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update a Schedule\n\nExample --json-body:\n  '{"newName":"...","name":"...","type":"businessHours","events":[{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":"...","recurrence":"..."}]}'."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/people/{person_id}/features/schedules/{schedule_type}/{schedule_id}"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if new_name is not None:
+            body["newName"] = new_name
+        if name is not None:
+            body["name"] = name
+        if type_param is not None:
+            body["type"] = type_param
+    try:
+        result = api.session.rest_put(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("delete")
+def delete(
+    person_id: str = typer.Argument(help="personId"),
+    schedule_type: str = typer.Argument(help="scheduleType"),
+    schedule_id: str = typer.Argument(help="scheduleId"),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Delete a Schedule."""
+    if not force:
+        typer.confirm(f"Delete {schedule_id}?", abort=True)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/people/{person_id}/features/schedules/{schedule_type}/{schedule_id}"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    try:
+        api.session.rest_delete(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    typer.echo(f"Deleted: {schedule_id}")
 
 
 
@@ -1283,7 +1344,7 @@ def show_events(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -1340,13 +1401,13 @@ def update_events(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
 
-@app.command("delete")
-def delete(
+@app.command("delete-events")
+def delete_events(
     person_id: str = typer.Argument(help="personId"),
     schedule_type: str = typer.Argument(help="scheduleType"),
     schedule_id: str = typer.Argument(help="scheduleId"),
@@ -1366,7 +1427,7 @@ def delete(
     try:
         api.session.rest_delete(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Deleted: {event_id}")
 
 
@@ -1416,7 +1477,7 @@ def create_events(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -1444,7 +1505,7 @@ def show_voicemail(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -1480,7 +1541,7 @@ def update_voicemail(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -1505,7 +1566,7 @@ def configure_busy_voicemail(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     print_json(result)
 
 
@@ -1530,7 +1591,7 @@ def configure_no_answer(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     print_json(result)
 
 
@@ -1555,7 +1616,7 @@ def reset_voicemail_pin(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     print_json(result)
 
 
@@ -1581,9 +1642,9 @@ def list_move_location(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -1611,7 +1672,7 @@ def create_move_location(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "response" in result:
@@ -1641,7 +1702,7 @@ def show_move_location(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -1674,7 +1735,7 @@ def pause_the_move(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     print_json(result)
 
 
@@ -1699,7 +1760,7 @@ def resume_the_move(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     print_json(result)
 
 
@@ -1726,9 +1787,9 @@ def list_errors(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -1752,7 +1813,7 @@ def show_music_on_hold(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -1791,7 +1852,7 @@ def update_music_on_hold(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -1818,9 +1879,9 @@ def list_access_codes(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("accessCodes", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("accessCodes", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -1859,7 +1920,7 @@ def create_access_codes(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -1891,7 +1952,7 @@ def update_access_codes(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -1914,7 +1975,7 @@ def delete_access_codes(
     try:
         api.session.rest_delete(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Deleted: {person_id}")
 
 
@@ -1935,7 +1996,7 @@ def show_auto_transfer_numbers(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -1980,7 +2041,7 @@ def update_auto_transfer_numbers(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -2007,9 +2068,9 @@ def list_digit_patterns(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("digitPatterns", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("digitPatterns", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -2054,7 +2115,7 @@ def create_digit_patterns(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -2089,7 +2150,7 @@ def update_digit_patterns_outgoing_permission(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -2112,7 +2173,7 @@ def delete_digit_patterns_outgoing_permission(
     try:
         api.session.rest_delete(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Deleted: {person_id}")
 
 
@@ -2134,7 +2195,7 @@ def show_digit_patterns(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -2180,7 +2241,7 @@ def update_digit_patterns_outgoing_permission_1(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -2204,7 +2265,7 @@ def delete_digit_patterns_outgoing_permission_1(
     try:
         api.session.rest_delete(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Deleted: {digit_pattern_id}")
 
 
@@ -2232,7 +2293,7 @@ def update_numbers(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -2259,9 +2320,9 @@ def list_preferred_answer_endpoint(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("endpoints", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("endpoints", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -2292,7 +2353,7 @@ def update_preferred_answer_endpoint(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -2332,9 +2393,9 @@ def list_available_members_applications(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("members", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("members", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -2362,9 +2423,9 @@ def list_members_applications(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("members", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("members", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -2389,7 +2450,7 @@ def update_members_applications(
     try:
         result = api.session.rest_put(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -2417,7 +2478,7 @@ def update_passcode(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -2433,7 +2494,7 @@ def show_summary(
     try:
         result = api.session.rest_get(url)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -2467,9 +2528,9 @@ def list_voice_messages(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -2491,7 +2552,7 @@ def delete_voice_messages(
     try:
         api.session.rest_delete(url)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Deleted: {message_id}")
 
 
@@ -2518,7 +2579,7 @@ def create_mark_as_read(
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -2552,7 +2613,7 @@ def create_mark_as_unread(
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -2586,9 +2647,9 @@ def list_available_caller_ids(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("availableCallerIds", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("availableCallerIds", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -2608,7 +2669,7 @@ def show_caller_id(
     try:
         result = api.session.rest_get(url)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -2640,7 +2701,7 @@ def update_caller_id_agent(
     try:
         result = api.session.rest_put(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -2661,7 +2722,7 @@ def show_call_bridge(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -2697,7 +2758,7 @@ def update_call_bridge(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -2727,9 +2788,9 @@ def list_available_numbers_secondary(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("phoneNumbers", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -2762,9 +2823,9 @@ def list_available_numbers_fax_message(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("phoneNumbers", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -2803,9 +2864,9 @@ def list_available_numbers_call_forwarding(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("phoneNumbers", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -2843,9 +2904,9 @@ def list_available_numbers_primary(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("phoneNumbers", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -2881,9 +2942,9 @@ def list_available_numbers_emergency_callback_number(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("phoneNumbers", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -2922,9 +2983,9 @@ def list_available_numbers_call_intercept(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("phoneNumbers", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -2954,9 +3015,9 @@ def list_ms_teams(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("settings", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("settings", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -2990,7 +3051,7 @@ def update_ms_teams(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -3011,7 +3072,7 @@ def show_personal_assistant(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -3028,7 +3089,7 @@ def show_personal_assistant(
 def update_personal_assistant(
     person_id: str = typer.Argument(help="personId"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Toggles feature."),
-    presence: str = typer.Option(None, "--presence", help="Person's availability.  * `NONE` - User is available.  * `BU (use --help for choices)"),
+    presence: str = typer.Option(None, "--presence", help="Choices: NONE, BUSINESS_TRIP, GONE_FOR_THE_DAY, LUNCH, MEETING, OUT_OF_OFFICE, TEMPORARILY_OUT, TRAINING, UNAVAILABLE, VACATION"),
     until_date_time: str = typer.Option(None, "--until-date-time", help="The date until which the personal assistant is active."),
     transfer_enabled: bool = typer.Option(None, "--transfer-enabled/--no-transfer-enabled", help="If `true`, allows transfer and forwarding for the call type."),
     transfer_number: str = typer.Option(None, "--transfer-number", help="Number to transfer to."),
@@ -3065,7 +3126,7 @@ def update_personal_assistant(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -3104,9 +3165,9 @@ def list_available_features(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("features", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("features", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -3136,9 +3197,9 @@ def list_mode_management(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("features", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("features", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -3166,7 +3227,7 @@ def update_mode_management(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -3193,9 +3254,9 @@ def list_selective_accept(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("criteria", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("criteria", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -3226,7 +3287,7 @@ def update_selective_accept(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -3277,7 +3338,7 @@ def create_criteria_selective_accept(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -3306,7 +3367,7 @@ def show_criteria_selective_accept(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -3361,7 +3422,7 @@ def update_criteria_selective_accept(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -3385,7 +3446,7 @@ def delete_criteria_selective_accept(
     try:
         api.session.rest_delete(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Deleted: {id}")
 
 
@@ -3412,9 +3473,9 @@ def list_selective_reject(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("criteria", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("criteria", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -3445,7 +3506,7 @@ def update_selective_reject(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -3496,7 +3557,7 @@ def create_criteria_selective_reject(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -3525,7 +3586,7 @@ def show_criteria_selective_reject(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -3580,7 +3641,7 @@ def update_criteria_selective_reject(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -3604,7 +3665,7 @@ def delete_criteria_selective_reject(
     try:
         api.session.rest_delete(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Deleted: {id}")
 
 
@@ -3631,9 +3692,9 @@ def list_selective_forward(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("criteria", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("criteria", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -3673,7 +3734,7 @@ def update_selective_forward(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -3730,7 +3791,7 @@ def create_criteria_selective_forward(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -3759,7 +3820,7 @@ def show_criteria_selective_forward(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -3820,7 +3881,7 @@ def update_criteria_selective_forward(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -3844,7 +3905,7 @@ def delete_criteria_selective_forward(
     try:
         api.session.rest_delete(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Deleted: {id}")
 
 
@@ -3883,9 +3944,9 @@ def list_available_members_applications_1(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("members", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("members", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -3921,7 +3982,7 @@ def show_count(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -3953,9 +4014,9 @@ def list_members_applications_1(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("members", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("members", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -3979,7 +4040,7 @@ def update_members_applications_1(
     try:
         result = api.session.rest_put(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -4000,7 +4061,7 @@ def show_call_captions(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -4042,7 +4103,7 @@ def update_call_captions(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -4069,9 +4130,9 @@ def list_call_filtering(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("criteria", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("criteria", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -4105,7 +4166,7 @@ def update_call_filtering(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -4127,7 +4188,7 @@ def show_criteria_call_filtering(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -4182,7 +4243,7 @@ def update_criteria_call_filtering(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -4206,7 +4267,7 @@ def delete_criteria_call_filtering(
     try:
         api.session.rest_delete(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Deleted: {id}")
 
 
@@ -4260,7 +4321,7 @@ def create_criteria_call_filtering(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -4288,7 +4349,7 @@ def show_alert(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -4354,7 +4415,7 @@ def update_alert(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -4381,9 +4442,9 @@ def list_assigned_assistants(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("assistants", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("assistants", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -4411,7 +4472,7 @@ def update_assigned_assistants(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -4444,9 +4505,9 @@ def list_available_assistants(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("assistants", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("assistants", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -4476,9 +4537,9 @@ def list_assistant(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("executives", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("executives", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -4512,7 +4573,7 @@ def update_assistant(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -4533,7 +4594,7 @@ def show_screening(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -4581,7 +4642,7 @@ def update_screening(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -4602,7 +4663,7 @@ def show_people(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -4641,7 +4702,7 @@ def update_people(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -4662,7 +4723,7 @@ def show_countries(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:

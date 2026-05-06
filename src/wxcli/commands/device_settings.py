@@ -1,7 +1,9 @@
 import json
+import os
+from pathlib import Path
 import typer
-from wxcli.errors import WebexError, handle_rest_error
 from wxcli.auth import get_api
+from wxcli.errors import WebexError, handle_rest_error
 from wxcli.output import print_table, print_json
 from wxcli.config import get_org_id
 
@@ -31,9 +33,9 @@ def cmd_list(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("members", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("members", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -61,7 +63,7 @@ def update(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -106,9 +108,9 @@ def list_available_members(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("members", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("members", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -147,7 +149,7 @@ def show(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -196,7 +198,7 @@ def show_count_available_members(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -229,7 +231,7 @@ def apply_changes_for(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     print_json(result)
 
 
@@ -253,7 +255,7 @@ def show_settings_devices(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -292,7 +294,7 @@ def update_settings_devices(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -313,7 +315,7 @@ def show_settings_devices_1(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -342,7 +344,7 @@ def show_devices(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -378,7 +380,7 @@ def update_devices_config(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -405,9 +407,9 @@ def list_devices_people(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("devices", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("devices", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -435,7 +437,7 @@ def update_hoteling(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -462,9 +464,9 @@ def list_devices_workspaces(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("devices", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("devices", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -501,7 +503,7 @@ def update_devices_workspaces(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -521,7 +523,7 @@ def show_settings_devices_2(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -555,9 +557,9 @@ def list_line_key_templates(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("lineKeyTemplates", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("lineKeyTemplates", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -598,7 +600,7 @@ def create(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -626,7 +628,7 @@ def show_line_key_templates(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -662,7 +664,7 @@ def update_line_key_templates(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -685,7 +687,7 @@ def delete(
     try:
         api.session.rest_delete(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Deleted: {template_id}")
 
 
@@ -718,7 +720,7 @@ def preview_apply_line(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     print_json(result)
 
 
@@ -744,9 +746,9 @@ def list_apply_line_key_template(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -787,7 +789,7 @@ def create_apply_line_key_template(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -815,7 +817,7 @@ def show_apply_line_key_template(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -844,7 +846,7 @@ def show_errors(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -879,13 +881,13 @@ def list_supported_devices_dects(
         if limit > 0:
             result = api.session.rest_get(url, params=params)
             result = result or {}
-            items = result.get("devices", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+            items = result.get("devices", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
             if "max" not in params:
                 params["max"] = 1000
             items = list(api.session.follow_pagination(url=url, params=params, item_key="devices"))
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(items)
     else:
@@ -915,13 +917,13 @@ def list_supported_devices_dect_networks(
         if limit > 0:
             result = api.session.rest_get(url, params=params)
             result = result or {}
-            items = result.get("devices", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+            items = result.get("devices", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
             if "max" not in params:
                 params["max"] = 1000
             items = list(api.session.follow_pagination(url=url, params=params, item_key="devices"))
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(items)
     else:
@@ -948,7 +950,7 @@ def validate_a_list(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     print_json(result)
 
 
@@ -975,11 +977,11 @@ def list_call_device_settings(
         if limit > 0:
             result = api.session.rest_get(url, params=params)
             result = result or {}
-            items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+            items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
             items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(items)
     else:
@@ -1013,7 +1015,7 @@ def create_call_device_settings(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -1037,7 +1039,7 @@ def show_call_device_settings(
     try:
         result = api.session.rest_get(url)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -1073,11 +1075,11 @@ def list_errors_call_device_settings(
         if limit > 0:
             result = api.session.rest_get(url, params=params)
             result = result or {}
-            items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+            items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
             items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(items)
     else:
@@ -1107,9 +1109,9 @@ def list_layout(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("lineKeys", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("lineKeys", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -1146,7 +1148,7 @@ def update_layout(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -1172,9 +1174,9 @@ def list_rebuild_phones(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -1209,7 +1211,7 @@ def create_rebuild_phones(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -1237,7 +1239,7 @@ def show_rebuild_phones(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -1272,9 +1274,9 @@ def list_errors_rebuild_phones(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -1298,7 +1300,7 @@ def show_settings_devices_3(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -1334,7 +1336,7 @@ def update_settings_devices_1(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -1355,7 +1357,7 @@ def show_settings_devices_4(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -1391,7 +1393,7 @@ def update_settings_devices_2(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -1417,9 +1419,9 @@ def list_background_images(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("backgroundImages", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("backgroundImages", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -1444,34 +1446,51 @@ def delete_background_images(
     try:
         api.session.rest_delete(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo("Deleted.")
 
 
 
-@app.command("upload-a-device")
-def upload_a_device(
-    device_id: str = typer.Argument(help="deviceId"),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
+@app.command("upload-background-image")
+def upload_background_image(
+    device_id: str = typer.Argument(help="Device ID to upload background image for"),
+    file: str = typer.Option(..., "--file", help="Path to image file (.jpeg or .png, max 625 KB)"),
+    file_name: str = typer.Option(None, "--file-name", help="Name for the image file (defaults to the local filename)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Upload a Device Background Image."""
+    """Upload a device background image (multipart)."""
+    file_path = Path(file).expanduser().resolve()
+    if not file_path.exists():
+        typer.echo(f"Error: File not found: {file_path}", err=True)
+        raise typer.Exit(1)
+    if file_path.stat().st_size > 625 * 1024:
+        typer.echo(f"Error: File exceeds 625 KB limit ({file_path.stat().st_size} bytes)", err=True)
+        raise typer.Exit(1)
+    suffix = file_path.suffix.lower()
+    if suffix not in (".jpeg", ".jpg", ".png"):
+        typer.echo(f"Error: File must be .jpeg or .png (got {suffix})", err=True)
+        raise typer.Exit(1)
+    content_type = "image/png" if suffix == ".png" else "image/jpeg"
+    name = file_name or file_path.name
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/devices/{device_id}/actions/backgroundImageUpload/invoke"
     params = {}
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
-    if json_body:
-        body = json.loads(json_body)
-    else:
-        body = {}
-    try:
-        result = api.session.rest_post(url, json=body, params=params)
-    except WebexError as e:
-            handle_rest_error(e)
-    print_json(result)
-
+    import httpx
+    with open(file_path, "rb") as f:
+        files = {"file": (name, f, content_type)}
+        data = {"fileName": name}
+        headers = dict(api.session._headers) if hasattr(api.session, '_headers') else {}
+        headers["Authorization"] = f"Bearer {api.session.access_token}"
+        try:
+            resp = httpx.post(url, params=params, files=files, data=data, headers=headers, timeout=30)
+            resp.raise_for_status()
+        except httpx.HTTPStatusError as e:
+            typer.echo(f"Error {e.response.status_code}: {e.response.text}", err=True)
+            raise typer.Exit(1)
+    typer.echo(f"Uploaded background image '{name}' to device {device_id}.")
 
 
 @app.command("show-count-devices")
@@ -1490,7 +1509,7 @@ def show_count_devices(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:

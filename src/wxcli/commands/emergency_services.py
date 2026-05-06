@@ -1,7 +1,7 @@
 import json
 import typer
-from wxcli.errors import WebexError, handle_rest_error
 from wxcli.auth import get_api
+from wxcli.errors import WebexError, handle_rest_error
 from wxcli.output import print_table, print_json
 from wxcli.config import get_org_id
 
@@ -46,7 +46,7 @@ def update(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -66,7 +66,7 @@ def show(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -112,7 +112,7 @@ def create(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -139,7 +139,7 @@ def show_status_red_sky(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -174,7 +174,7 @@ def update_status_red_sky(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -203,7 +203,7 @@ def show_compliance_status(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -244,7 +244,7 @@ def login_to_a(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     print_json(result)
 
 
@@ -265,7 +265,7 @@ def show_red_sky(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -294,7 +294,7 @@ def show_status_red_sky_1(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -330,7 +330,7 @@ def update_status_red_sky_1(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -363,7 +363,7 @@ def create_building(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -395,7 +395,7 @@ def update_building(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -415,7 +415,7 @@ def show_emergency_call_notification_config(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -456,7 +456,7 @@ def update_emergency_call_notification_config(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -477,7 +477,7 @@ def show_emergency_call_notification_locations(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -516,7 +516,7 @@ def update_emergency_call_notification_locations(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -537,7 +537,7 @@ def show_dependencies_emergency_callback_number(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -566,7 +566,7 @@ def show_emergency_callback_number_people(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -584,10 +584,12 @@ def update_emergency_callback_number_people(
     person_id: str = typer.Argument(help="personId"),
     selected: str = typer.Option(None, "--selected", help="Choices: DIRECT_LINE, LOCATION_ECBN, LOCATION_MEMBER_NUMBER"),
     location_member_id: str = typer.Option(None, "--location-member-id", help="Member ID of person/workspace/virtual line/hunt group within"),
+    elin_enabled: bool = typer.Option(None, "--elin-enabled/--no-elin-enabled", help="Indicates whether this person is allowed to use an Emergency"),
+    elin_for_webex_app_enabled: bool = typer.Option(None, "--elin-for-webex-app-enabled/--no-elin-for-webex-app-enabled", help="Indicates whether this member is allowed to use an Emergency"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Person's Emergency Callback Number\n\nExample --json-body:\n  '{"selected":"DIRECT_LINE","locationMemberId":"..."}'."""
+    """Update a Person's Emergency Callback Number\n\nExample --json-body:\n  '{"selected":"DIRECT_LINE","locationMemberId":"...","elinEnabled":true,"elinForWebexAppEnabled":true}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/emergencyCallbackNumber"
     params = {}
@@ -602,10 +604,14 @@ def update_emergency_callback_number_people(
             body["selected"] = selected
         if location_member_id is not None:
             body["locationMemberId"] = location_member_id
+        if elin_enabled is not None:
+            body["elinEnabled"] = elin_enabled
+        if elin_for_webex_app_enabled is not None:
+            body["elinForWebexAppEnabled"] = elin_for_webex_app_enabled
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -626,7 +632,7 @@ def show_dependencies_emergency_callback_number_1(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -655,7 +661,7 @@ def show_emergency_callback_number_workspaces(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -673,10 +679,11 @@ def update_emergency_callback_number_workspaces(
     workspace_id: str = typer.Argument(help="workspaceId"),
     selected: str = typer.Option(None, "--selected", help="Choices: DIRECT_LINE, LOCATION_ECBN, LOCATION_MEMBER_NUMBER"),
     location_member_id: str = typer.Option(None, "--location-member-id", help="Member ID of person/workspace/virtual line/hunt group within"),
+    elin_enabled: bool = typer.Option(None, "--elin-enabled/--no-elin-enabled", help="Indicates whether this workspace is allowed to use an Emerge"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Workspace Emergency Callback Number\n\nExample --json-body:\n  '{"selected":"DIRECT_LINE","locationMemberId":"..."}'."""
+    """Update a Workspace Emergency Callback Number\n\nExample --json-body:\n  '{"selected":"DIRECT_LINE","locationMemberId":"...","elinEnabled":true}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/emergencyCallbackNumber"
     params = {}
@@ -691,10 +698,12 @@ def update_emergency_callback_number_workspaces(
             body["selected"] = selected
         if location_member_id is not None:
             body["locationMemberId"] = location_member_id
+        if elin_enabled is not None:
+            body["elinEnabled"] = elin_enabled
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -715,7 +724,7 @@ def show_dependencies_emergency_callback_number_2(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -744,7 +753,7 @@ def show_dependencies_emergency_callback_number_3(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -773,7 +782,7 @@ def show_emergency_callback_number_virtual_lines(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -812,7 +821,7 @@ def update_emergency_callback_number_virtual_lines(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 

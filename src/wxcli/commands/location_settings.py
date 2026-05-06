@@ -1,7 +1,7 @@
 import json
 import typer
-from wxcli.errors import WebexError, handle_rest_error
 from wxcli.auth import get_api
+from wxcli.errors import WebexError, handle_rest_error
 from wxcli.output import print_table, print_json
 from wxcli.config import get_org_id
 
@@ -37,9 +37,9 @@ def cmd_list(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("dialPatterns", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("dialPatterns", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -75,11 +75,11 @@ def list_1(
         if limit > 0:
             result = api.session.rest_get(url, params=params)
             result = result or {}
-            items = result.get("locations", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+            items = result.get("locations", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
             items = list(api.session.follow_pagination(url=url, params=params, item_key="locations"))
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(items)
     else:
@@ -126,7 +126,7 @@ def create(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -154,7 +154,7 @@ def show(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -208,7 +208,7 @@ def update(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -234,9 +234,9 @@ def list_update_routing_prefix(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -260,7 +260,7 @@ def show_update_routing_prefix(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -289,7 +289,7 @@ def show_errors(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -331,7 +331,7 @@ def change_announcement_language(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     print_json(result)
 
 
@@ -352,7 +352,7 @@ def show_emergency_callback_number(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -370,10 +370,11 @@ def update_emergency_callback_number(
     location_id: str = typer.Argument(help="locationId"),
     selected: str = typer.Option(None, "--selected", help="Choices: LOCATION_NUMBER, LOCATION_MEMBER_NUMBER"),
     location_member_id: str = typer.Option(None, "--location-member-id", help="Member ID of user/place/virtual line/hunt group within the l"),
+    elin_expiry_time_minutes: str = typer.Option(None, "--elin-expiry-time-minutes", help="ELIN (Emergency Location Identification Number) provides loc"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Location Emergency callback number\n\nExample --json-body:\n  '{"selected":"LOCATION_NUMBER","locationMemberId":"..."}'."""
+    """Update a Location Emergency callback number\n\nExample --json-body:\n  '{"selected":"LOCATION_NUMBER","locationMemberId":"...","elinExpiryTimeMinutes":0}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/features/emergencyCallbackNumber"
     params = {}
@@ -388,10 +389,12 @@ def update_emergency_callback_number(
             body["selected"] = selected
         if location_member_id is not None:
             body["locationMemberId"] = location_member_id
+        if elin_expiry_time_minutes is not None:
+            body["elinExpiryTimeMinutes"] = elin_expiry_time_minutes
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -415,7 +418,7 @@ def validate_the_list(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     print_json(result)
 
 
@@ -440,7 +443,7 @@ def validate_extensions(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     print_json(result)
 
 
@@ -461,7 +464,7 @@ def show_music_on_hold(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -500,7 +503,7 @@ def update_music_on_hold(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -521,7 +524,7 @@ def show_private_network_connect(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -557,7 +560,7 @@ def update_private_network_connect(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -592,9 +595,9 @@ def list_route_choices(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("routeIdentities", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("routeIdentities", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -633,9 +636,9 @@ def list_available_numbers_external_caller_id(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("phoneNumbers", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -671,9 +674,9 @@ def list_available_numbers_locations(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("phoneNumbers", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -706,9 +709,9 @@ def list_available_numbers_webex_go(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("phoneNumbers", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -744,9 +747,9 @@ def list_available_numbers_emergency_callback_number(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("phoneNumbers", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -785,9 +788,9 @@ def list_available_numbers_call_intercept(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("phoneNumbers", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -817,9 +820,9 @@ def list_directories(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("directories", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("directories", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -855,7 +858,7 @@ def create_directories(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -902,7 +905,7 @@ def show_directories(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -939,7 +942,7 @@ def update_directories(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -963,7 +966,7 @@ def delete(
     try:
         api.session.rest_delete(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Deleted: {directory_id}")
 
 
@@ -996,9 +999,9 @@ def list_available_numbers_charge_number(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("phoneNumbers", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -1027,9 +1030,9 @@ def list_delete_calling_location(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -1070,7 +1073,7 @@ def create_delete_calling_location(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -1102,7 +1105,7 @@ def safe_delete_check(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     print_json(result)
 
 
@@ -1127,7 +1130,7 @@ def pause_a_disable(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     print_json(result)
 
 
@@ -1152,7 +1155,7 @@ def resume_a_paused(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     print_json(result)
 
 
@@ -1179,9 +1182,9 @@ def list_errors(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -1205,7 +1208,7 @@ def show_delete_calling_location(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -1234,7 +1237,7 @@ def show_call_captions(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -1276,7 +1279,7 @@ def update_call_captions(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 

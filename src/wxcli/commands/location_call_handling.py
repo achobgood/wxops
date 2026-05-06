@@ -1,7 +1,7 @@
 import json
 import typer
-from wxcli.errors import WebexError, handle_rest_error
 from wxcli.auth import get_api
+from wxcli.errors import WebexError, handle_rest_error
 from wxcli.output import print_table, print_json
 from wxcli.config import get_org_id
 
@@ -29,7 +29,7 @@ def generate_example_password(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     print_json(result)
 
 
@@ -50,7 +50,7 @@ def show(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -86,7 +86,7 @@ def update(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -107,7 +107,7 @@ def show_intercept(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -143,7 +143,7 @@ def update_intercept(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -170,9 +170,9 @@ def cmd_list(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("callingPermissions", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("callingPermissions", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -200,7 +200,7 @@ def update_outgoing_permission(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -221,7 +221,7 @@ def show_auto_transfer_numbers(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -263,7 +263,7 @@ def update_auto_transfer_numbers(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -284,7 +284,7 @@ def show_access_codes(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -318,7 +318,7 @@ def create(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -350,7 +350,7 @@ def update_access_codes(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -373,7 +373,7 @@ def delete(
     try:
         api.session.rest_delete(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Deleted: {location_id}")
 
 
@@ -400,9 +400,9 @@ def list_digit_patterns(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("digitPatterns", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("digitPatterns", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -447,7 +447,7 @@ def create_digit_patterns(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -477,7 +477,7 @@ def delete_digit_patterns_outgoing_permission(
     try:
         api.session.rest_delete(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Deleted: {location_id}")
 
 
@@ -499,7 +499,7 @@ def show_digit_patterns(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -545,7 +545,7 @@ def update_digit_patterns(
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -569,7 +569,7 @@ def delete_digit_patterns_outgoing_permission_1(
     try:
         api.session.rest_delete(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Deleted: {digit_pattern_id}")
 
 

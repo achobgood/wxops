@@ -1,9 +1,9 @@
 import json
 import typer
-from wxcli.errors import WebexError, handle_rest_error
 from wxcli.auth import get_api
+from wxcli.errors import WebexError, handle_rest_error
 from wxcli.output import print_table, print_json
-from wxcli.config import get_org_id, get_cc_base_url, get_cc_org_id
+from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
 
 
 app = typer.Typer(help="Manage Webex Contact Center cc-skill-profile.")
@@ -44,7 +44,7 @@ def cmd_list(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
@@ -97,7 +97,7 @@ def create(
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -127,7 +127,7 @@ def create_bulk(
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -136,42 +136,6 @@ def create_bulk(
         typer.echo("Created.")
     else:
         print_json(result)
-
-
-
-@app.command("list-bulk-export")
-def list_bulk_export(
-    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
-    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Bulk export Skill Profile(s)."""
-    api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    orgid = get_cc_org_id(api.session)
-    url = f"{cc_base_url}/organization/{orgid}/skill-profile/bulk-export"
-    params = {}
-    if page is not None:
-        params["page"] = page
-    if page_size is not None:
-        params["pageSize"] = page_size
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
-    try:
-        result = api.session.rest_get(url, params=params)
-    except WebexError as e:
-            handle_rest_error(e)
-    result = result or []
-    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -193,7 +157,7 @@ def show(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -245,7 +209,7 @@ def update(
     try:
         result = api.session.rest_put(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -266,7 +230,7 @@ def delete(
     try:
         api.session.rest_delete(url)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Deleted: {id}")
 
 
@@ -301,7 +265,7 @@ def list_incoming_references(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
@@ -349,7 +313,7 @@ def list_skill_profile(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
