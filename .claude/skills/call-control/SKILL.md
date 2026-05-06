@@ -82,9 +82,9 @@ Present this decision matrix if the user is unsure which approach fits their nee
 
 | Need | Approach | Tool |
 |------|----------|------|
-| Control calls from an external app (click-to-dial, hold, transfer) | **Call Control API** | `wxcli call-controls` or wxc_sdk `CallsApi` |
+| Control calls from an external app (click-to-dial, hold, transfer) | **Call Control API** | `wxcli call-controls` or raw HTTP via `WebexSession` |
 | Control calls on behalf of users (admin/service app) | **Members API** | `wxcli call-controls create-dial`, `create-answer-members`, etc. |
-| Get notified when calls start/end/change state (push model) | **Webhooks** | wxc_sdk `WebhookApi` or raw HTTP |
+| Get notified when calls start/end/change state (push model) | **Webhooks** | `wxcli webhooks` or raw HTTP |
 | Real-time event streaming for dashboards, CRM screen pops | **XSI Events** | wxcadm `XSIEvents` (ONLY option) |
 | Programmatic call control via BroadWorks back-end | **XSI Actions** | wxcadm `XSI` / `Call` class |
 | Multi-party conference management | **Conference Controls** | `wxcli conference` |
@@ -361,28 +361,28 @@ wxcli webhooks create \
 wxcli webhooks list --output json
 ```
 
-##### Via wxc_sdk (for programmatic HMAC verification or complex webhook management)
+##### Via raw HTTP (for programmatic HMAC verification or complex webhook management)
 
 ```python
-from wxc_sdk import WebexSimpleApi
-from wxc_sdk.webhook import WebhookResource, WebhookEventType
+from wxcli.auth import get_api
 
-api = WebexSimpleApi(tokens=tokens)
+api = get_api()
+BASE = "https://webexapis.com/v1/webhooks"
 
 # Clean up old webhooks first (avoid duplicate delivery)
-existing = list(api.webhook.list())
+existing = list(api.session.follow_pagination(BASE))
 for wh in existing:
-    if wh.name == "My Call Monitor":
-        api.webhook.webhook_delete(webhook_id=wh.webhook_id)
+    if wh["name"] == "My Call Monitor":
+        api.session.rest_delete(f"{BASE}/{wh['id']}")
 
 # Create webhook for all telephony call events
-webhook = api.webhook.create(
-    name="My Call Monitor",
-    target_url="https://your-server.com/webhooks/calls",
-    resource=WebhookResource.telephony_calls,
-    event=WebhookEventType.all,
-    secret="your-hmac-secret"
-)
+webhook = api.session.rest_post(BASE, json={
+    "name": "My Call Monitor",
+    "targetUrl": "https://your-server.com/webhooks/calls",
+    "resource": "telephony_calls",
+    "event": "all",
+    "secret": "your-hmac-secret"
+})
 ```
 
 #### Webhook event types
@@ -420,16 +420,12 @@ Available filters: `personality`, `state`, `callType`, `personId`.
 #### Parsing webhook event payloads
 
 ```python
-from wxc_sdk.webhook import WebhookEvent
-from wxc_sdk.telephony.calls import TelephonyEventData
-
 def handle_webhook(request_json: dict):
-    event = WebhookEvent.model_validate(request_json)
-    data: TelephonyEventData = event.data
+    data = request_json["data"]
 
-    print(f"Event: {data.event_type}")
-    print(f"Call ID: {data.call_id}")
-    print(f"State: {data.state}")
+    print(f"Event: {data['eventType']}")
+    print(f"Call ID: {data['callId']}")
+    print(f"State: {data['state']}")
     print(f"Remote: {data.remote_party.name} ({data.remote_party.number})")
 ```
 
@@ -471,7 +467,7 @@ wxcli webhooks delete WEBHOOK_ID
 
 ### 6c. XSI real-time events (wxcadm only)
 
-> **XSI is wxcadm's unique capability.** It is NOT available via wxcli, wxc_sdk, or the standard Webex REST APIs. XSI connects directly to the BroadWorks call control back-end that powers Webex Calling.
+> **XSI is wxcadm's unique capability.** It is NOT available via wxcli or the standard Webex REST APIs. XSI connects directly to the BroadWorks call control back-end that powers Webex Calling.
 
 #### When to use XSI vs webhooks
 
@@ -609,10 +605,13 @@ The Call Control API also supports merging two active calls into a conference:
 wxcli call-controls create-transfer --call-id1 CALL_ID_1 --call-id2 CALL_ID_2
 ```
 
-Or via wxc_sdk:
+Or via raw HTTP:
 
 ```python
-api.telephony.calls.conference(call_id1=call_id_1, call_id2=call_id_2)
+from wxcli.auth import get_api
+api = get_api()
+api.session.rest_post("https://webexapis.com/v1/telephony/calls/conference",
+    json={"callId1": call_id_1, "callId2": call_id_2})
 ```
 
 #### Conference via XSI (wxcadm)

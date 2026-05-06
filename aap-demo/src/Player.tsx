@@ -1,14 +1,17 @@
 import React, {useCallback, useRef, useState} from 'react';
 import {Player, PlayerRef} from '@remotion/player';
 import {Main} from './Main';
-import {FPS, WIDTH, HEIGHT, TOTAL_FRAMES, chapters, colors, fonts} from './styles/tokens';
+import {FPS, WIDTH, HEIGHT, TOTAL_FRAMES, acts, colors, fonts} from './styles/tokens';
 
 const CHAPTER_LIST = [
-  {id: 'theCall', label: 'The Call', frame: chapters.theCall.from},
-  {id: 'theStore', label: 'The Store', frame: chapters.theStore.from},
-  {id: 'theHold', label: 'The Hold', frame: chapters.theHold.from},
-  {id: 'theRecall', label: 'The Recall', frame: chapters.theRecall.from},
-  {id: 'theScale', label: 'The Scale', frame: chapters.theScale.from},
+  {id: 'coldOpen', label: 'Cold Open', frame: acts.coldOpen.from},
+  {id: 'theRouting', label: 'The Routing', frame: acts.theRouting.from},
+  {id: 'theStore', label: 'The Store', frame: acts.theStore.from},
+  {id: 'theTransition', label: 'The Transition', frame: acts.theTransition.from},
+  {id: 'theCountdown', label: 'The Countdown', frame: acts.theCountdown.from},
+  {id: 'theSnap', label: 'The Snap', frame: acts.theSnap.from},
+  {id: 'theCatch', label: 'The Catch', frame: acts.theCatch.from},
+  {id: 'theScale', label: 'The Scale', frame: acts.theScale.from},
 ] as const;
 
 export const DemoPlayer: React.FC = () => {

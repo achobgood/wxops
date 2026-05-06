@@ -230,16 +230,7 @@ Filter by display name in the output. Extract the `id` field to use as `WORKSPAC
 wxcli users list --output json
 ```
 
-For small batches, use a shell loop. For large batches (50+ users), consider the async Python SDK pattern as a fallback:
-
-```python
-from wxc_sdk.as_api import AsWebexSimpleApi
-import asyncio
-
-async with AsWebexSimpleApi(tokens='<token>') as api:
-    calling_users = [u for u in await api.people.list(calling_data=True)
-                     if u.location_id]
-```
+For small batches, use a shell loop. For large batches (50+ users), use the migration engine's async pattern (`src/wxcli/migration/execute/engine.py`) which handles concurrency, rate limiting, and retry automatically.
 
 ### Settings Catalog
 
@@ -636,23 +627,19 @@ for ID in PERSON_ID_1 PERSON_ID_2 PERSON_ID_3; do
 done
 ```
 
-#### Async Python SDK for large batches (50+ users)
+#### Bulk operations for large batches (50+ users)
 
-```python
-from wxc_sdk.as_api import AsWebexSimpleApi
-import asyncio
+For large batches, use shell loops with sleep for rate limiting, or reference the migration engine's async pattern (`src/wxcli/migration/execute/engine.py`) for maximum throughput with concurrency control.
 
-async with AsWebexSimpleApi(tokens='<token>', concurrent_requests=40) as api:
-    calling_users = [u for u in await api.people.list(calling_data=True)
-                     if u.location_id]
-
-    # Example: disable call waiting for all users
-    # The SDK's internal semaphore limits concurrency to concurrent_requests
-    await asyncio.gather(*[
-        api.person_settings.call_waiting.configure(
-            entity_id=u.person_id, enabled=False
-        )
-        for u in calling_users
+```bash
+# Example: disable call waiting for all users via shell loop
+for USER_ID in $(wxcli people list --calling-data --output json | python3 -c "
+import sys, json
+for u in json.load(sys.stdin).get('items', []):
+    if u.get('locationId'): print(u['id'])
+"); do
+    wxcli user-settings update-call-waiting "$USER_ID" --enabled false
+    sleep 1
     ])
 ```
 

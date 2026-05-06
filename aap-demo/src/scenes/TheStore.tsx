@@ -1,76 +1,122 @@
 import React from 'react';
-import {AbsoluteFill, useCurrentFrame} from 'remotion';
+import {AbsoluteFill, Loop, OffthreadVideo, staticFile, useCurrentFrame, interpolate, Easing} from 'remotion';
 import {backgroundStyle, colors, fonts, fadeUp} from '../styles/tokens';
-import {Highway} from '../components/Highway';
-import {Car} from '../components/Car';
-import {RoadSign} from '../components/RoadSign';
 import {POSScreen} from '../components/POSScreen';
+import {WaveformBar} from '../components/WaveformBar';
+import {StepBadge} from '../components/StepBadge';
 
 export const TheStore: React.FC = () => {
   const frame = useCurrentFrame();
 
-  const storeLabel = fadeUp(frame, 20, 20, 15);
+  const storeImgOpacity = interpolate(frame, [10, 30], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const storeImgScale = interpolate(frame, [10, 30], [1.05, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+    easing: Easing.out(Easing.cubic),
+  });
+
+  const webhookLabel = fadeUp(frame, 15, 20, 15);
 
   return (
     <AbsoluteFill style={backgroundStyle}>
-      {/* Highway fully drawn */}
-      <Highway progress={1} />
+      <StepBadge step={2} label="The Store" enterFrame={5} />
 
-      {/* Car drives from ~40% to ~60% and stops */}
-      <Car
-        enterFrame={0}
-        startDistance={40}
-        endDistance={58}
-        travelDuration={40}
-      />
+      <Loop durationInFrames={240}>
+        <OffthreadVideo
+          src={staticFile('video/store-counter.mp4')}
+          style={{
+            position: 'absolute',
+            left: 40,
+            top: 120,
+            width: 520,
+            height: 347,
+            objectFit: 'cover',
+            opacity: storeImgOpacity,
+            transform: `scale(${storeImgScale})`,
+            borderRadius: 12,
+            boxShadow: '0 8px 40px rgba(255, 207, 6, 0.15)',
+          }}
+          volume={0}
+        />
+      </Loop>
 
-      {/* Road sign: Bridged Transfer */}
-      <RoadSign label="Bridged Transfer" x={850} y={360} enterFrame={15} variant="emphasis" />
-
-      {/* Store label */}
       <div
         style={{
           position: 'absolute',
-          left: 900,
+          left: 60,
           top: 500,
-          opacity: storeLabel.opacity,
-          transform: storeLabel.transform,
+          opacity: webhookLabel.opacity,
+          transform: webhookLabel.transform,
         }}
       >
-        <div
-          style={{
-            fontFamily: fonts.headline,
-            fontSize: 32,
-            fontWeight: 700,
-            color: colors.white,
-            textTransform: 'uppercase',
-            letterSpacing: '0.02em',
-          }}
-        >
+        <div style={{fontFamily: fonts.headline, fontSize: 28, fontWeight: 700, color: colors.white, textTransform: 'uppercase'}}>
           Store #247
         </div>
-        <div
-          style={{
-            fontFamily: fonts.body,
-            fontSize: 16,
-            color: colors.coolGray,
-            marginTop: 4,
-          }}
-        >
-          Associate answers — webhook fires
+        <div style={{fontFamily: fonts.body, fontSize: 15, color: colors.coolGray, marginTop: 4}}>
+          Associate answers — webhook fires — screen pop
         </div>
       </div>
 
-      {/* POS Screen Pop slides in */}
       <POSScreen
         customerName="John Smith"
         loyaltyTier="Gold — 12,400 pts"
         recentOrder="Duralast Gold DG1625 Brake Pads"
         vehicle="2019 Honda Civic EX"
-        enterFrame={25}
-        x={1350}
-        y={200}
+        enterFrame={30}
+        x={1100}
+        y={140}
       />
+
+      <WaveformBar
+        x={60}
+        y={600}
+        enterFrame={100}
+        activeFrom={100}
+        activeTo={280}
+        color={colors.white}
+        width={180}
+        height={30}
+      />
+
+      <div
+        style={{
+          position: 'absolute',
+          left: 60,
+          top: 638,
+          ...fadeUp(frame, 100, 15, 10),
+        }}
+      >
+        <span style={{fontFamily: fonts.mono, fontSize: 11, color: colors.coolGray, letterSpacing: '0.06em'}}>
+          ASSOCIATE — MIKE
+        </span>
+      </div>
+
+      <WaveformBar
+        x={300}
+        y={600}
+        enterFrame={200}
+        activeFrom={200}
+        activeTo={380}
+        color={colors.yellow}
+        width={180}
+        height={30}
+      />
+
+      <div
+        style={{
+          position: 'absolute',
+          left: 300,
+          top: 638,
+          ...fadeUp(frame, 200, 15, 10),
+        }}
+      >
+        <span style={{fontFamily: fonts.mono, fontSize: 11, color: colors.coolGray, letterSpacing: '0.06em'}}>
+          CUSTOMER — JOHN
+        </span>
+      </div>
     </AbsoluteFill>
   );
 };

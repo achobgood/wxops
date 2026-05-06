@@ -19,24 +19,53 @@ export const colors = {
   white: '#FFFFFF',
   coolGray: '#9CA3AF',
   darkGray: '#1A1A1A',
+  amber: '#F59E0B',
+  gold: '#D4A843',
+  red: '#FF4444',
+  orange: '#FF8C00',
 } as const;
 
 export const FPS = 30;
 export const WIDTH = 1920;
 export const HEIGHT = 1080;
-export const TOTAL_FRAMES = 2700;
+export const TOTAL_FRAMES = 3600;
 
-export const chapters = {
-  theCall: {from: 0, duration: 600},
-  theStore: {from: 600, duration: 450},
-  theHold: {from: 1050, duration: 600},
-  theRecall: {from: 1650, duration: 600},
-  theScale: {from: 2250, duration: 450},
+export const acts = {
+  coldOpen:      {from: 0,    duration: 240},
+  theRouting:    {from: 240,  duration: 360},
+  theStore:      {from: 600,  duration: 480},
+  theTransition: {from: 1080, duration: 120},
+  theCountdown:  {from: 1200, duration: 1050},
+  theSnap:       {from: 2250, duration: 150},
+  theCatch:      {from: 2400, duration: 600},
+  theScale:      {from: 3000, duration: 600},
 } as const;
 
 export const backgroundStyle: React.CSSProperties = {
   backgroundColor: colors.black,
+  background: 'linear-gradient(180deg, #0a0e1a 0%, #000000 60%)',
 };
+
+export function desaturate(
+  frame: number,
+  startFrame: number,
+  endFrame: number,
+): string {
+  const gray = interpolate(frame, [startFrame, endFrame], [0, 100], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  return `grayscale(${gray}%)`;
+}
+
+export function pulseGlow(
+  frame: number,
+  startFrame: number,
+  speed = 1,
+): number {
+  const t = (frame - startFrame) * speed;
+  return 0.5 + 0.5 * Math.sin(t * 0.3);
+}
 
 export function fadeUp(
   frame: number,

@@ -1,30 +1,75 @@
 import React from 'react';
-import {AbsoluteFill, useCurrentFrame, interpolate, Easing} from 'remotion';
+import {AbsoluteFill, Loop, OffthreadVideo, staticFile, useCurrentFrame, interpolate, Easing} from 'remotion';
 import {backgroundStyle, colors, fonts, fadeUp, fadeIn} from '../styles/tokens';
-import {StoreMap} from '../components/StoreMap';
+import {AnimatedCounter} from '../components/AnimatedCounter';
+import {StepBadge} from '../components/StepBadge';
 
 export const TheScale: React.FC = () => {
   const frame = useCurrentFrame();
 
-  const statsAnim1 = fadeUp(frame, 100, 30, 20);
-  const statsAnim2 = fadeUp(frame, 115, 30, 20);
-  const closingRuleWidth = interpolate(
-    frame,
-    [200, 280],
-    [0, 60],
-    {extrapolateLeft: 'clamp', extrapolateRight: 'clamp', easing: Easing.out(Easing.cubic)},
-  );
+  const dotScale = interpolate(frame, [0, 40], [1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+    easing: Easing.in(Easing.cubic),
+  });
+  const dotOpacity = interpolate(frame, [0, 40], [1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
 
-  const mapOpacity = fadeIn(frame, 20, 30);
+  const mapScale = interpolate(frame, [30, 90], [1.4, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+    easing: Easing.out(Easing.cubic),
+  });
+  const mapOpacity = fadeIn(frame, 30, 30);
+
+  const pulseIntensity = interpolate(frame % 45, [0, 22, 45], [0.7, 1, 0.7], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
+  const closingRuleWidth = interpolate(frame, [400, 500], [0, 60], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+    easing: Easing.out(Easing.cubic),
+  });
 
   return (
     <AbsoluteFill style={backgroundStyle}>
-      {/* Network map reveals */}
-      <div style={{opacity: mapOpacity}}>
-        <StoreMap revealStartFrame={30} revealDuration={120} />
-      </div>
+      <div
+        style={{
+          position: 'absolute',
+          left: '50%',
+          top: '50%',
+          width: 10,
+          height: 10,
+          borderRadius: '50%',
+          backgroundColor: colors.yellow,
+          boxShadow: `0 0 20px ${colors.yellow}`,
+          transform: `translate(-50%, -50%) scale(${dotScale})`,
+          opacity: dotOpacity,
+        }}
+      />
 
-      {/* Stats overlay */}
+      <StepBadge step={5} label="The Scale" enterFrame={5} />
+
+      <Loop durationInFrames={240}>
+        <OffthreadVideo
+          src={staticFile('video/us-network.mp4')}
+          style={{
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+            objectFit: 'contain',
+            opacity: mapOpacity * pulseIntensity,
+            transform: `scale(${mapScale})`,
+            filter: `brightness(${0.8 + pulseIntensity * 0.4})`,
+          }}
+          volume={0}
+        />
+      </Loop>
+
       <div
         style={{
           position: 'absolute',
@@ -36,25 +81,10 @@ export const TheScale: React.FC = () => {
           gap: 120,
         }}
       >
-        <div style={{textAlign: 'center', opacity: statsAnim1.opacity, transform: statsAnim1.transform}}>
-          <div style={{fontFamily: fonts.headline, fontSize: 72, fontWeight: 700, color: colors.white, textTransform: 'uppercase'}}>
-            35,000
-          </div>
-          <div style={{fontFamily: fonts.body, fontSize: 20, color: colors.yellow, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.1em'}}>
-            phones
-          </div>
-        </div>
-        <div style={{textAlign: 'center', opacity: statsAnim2.opacity, transform: statsAnim2.transform}}>
-          <div style={{fontFamily: fonts.headline, fontSize: 72, fontWeight: 700, color: colors.white, textTransform: 'uppercase'}}>
-            4,500
-          </div>
-          <div style={{fontFamily: fonts.body, fontSize: 20, color: colors.yellow, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.1em'}}>
-            stores
-          </div>
-        </div>
+        <AnimatedCounter value={35000} label="phones" startFrame={150} duration={50} />
+        <AnimatedCounter value={4500} label="stores" startFrame={170} duration={45} />
       </div>
 
-      {/* Subtitle */}
       <div
         style={{
           position: 'absolute',
@@ -62,15 +92,14 @@ export const TheScale: React.FC = () => {
           right: 0,
           bottom: 220,
           textAlign: 'center',
-          ...fadeUp(frame, 140, 20, 20),
+          ...fadeUp(frame, 280, 20, 20),
         }}
       >
-        <div style={{fontFamily: fonts.body, fontSize: 20, color: colors.coolGray}}>
-          One webhook. Stateless middleware. Horizontal scale.
+        <div style={{fontFamily: fonts.body, fontSize: 22, color: colors.coolGray}}>
+          Every call. Every store. Every time.
         </div>
       </div>
 
-      {/* Closing horizontal rule */}
       <div
         style={{
           position: 'absolute',
@@ -84,7 +113,6 @@ export const TheScale: React.FC = () => {
         }}
       />
 
-      {/* Logo area */}
       <div
         style={{
           position: 'absolute',
@@ -92,7 +120,7 @@ export const TheScale: React.FC = () => {
           right: 0,
           bottom: 60,
           textAlign: 'center',
-          ...fadeUp(frame, 250, 15, 20),
+          ...fadeUp(frame, 480, 15, 20),
         }}
       >
         <span style={{fontFamily: fonts.headline, fontSize: 16, fontWeight: 700, color: colors.coolGray, letterSpacing: '0.12em', textTransform: 'uppercase'}}>

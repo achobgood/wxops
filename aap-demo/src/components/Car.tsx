@@ -1,5 +1,5 @@
 import React from 'react';
-import {useCurrentFrame, interpolate, spring, useVideoConfig, Easing} from 'remotion';
+import {useCurrentFrame, interpolate, spring, useVideoConfig, Easing, Img, staticFile} from 'remotion';
 import {colors} from '../styles/tokens';
 import {ROAD_PATH} from './Highway';
 
@@ -8,9 +8,10 @@ interface CarProps {
   startDistance?: number;
   endDistance?: number;
   travelDuration?: number;
-  color?: string;
   stopped?: boolean;
   reverse?: boolean;
+  hazards?: boolean;
+  turnSignal?: 'left' | 'right' | null;
 }
 
 export const Car: React.FC<CarProps> = ({
@@ -18,9 +19,10 @@ export const Car: React.FC<CarProps> = ({
   startDistance = 0,
   endDistance = 100,
   travelDuration = 60,
-  color = colors.white,
   stopped = false,
   reverse = false,
+  hazards = false,
+  turnSignal = null,
 }) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
@@ -49,6 +51,12 @@ export const Car: React.FC<CarProps> = ({
         },
       );
 
+  const hazardBlink = hazards ? Math.sin(frame * 0.4) > 0 : false;
+  const signalBlink = turnSignal ? Math.sin(frame * 0.5) > 0 : false;
+  const imgSrc = (hazards && hazardBlink)
+    ? staticFile('images/car-topdown-hazards.png')
+    : staticFile('images/car-topdown-night.png');
+
   return (
     <div
       style={{
@@ -59,32 +67,72 @@ export const Car: React.FC<CarProps> = ({
         height: 1080,
       }}
     >
+      {/* Headlight beams */}
       <svg
-        width={40}
-        height={24}
-        viewBox="0 0 40 24"
+        width={200}
+        height={200}
+        viewBox="0 0 200 200"
         style={{
           position: 'absolute',
+          width: 200,
+          height: 200,
+          marginLeft: -100,
+          marginTop: -160,
+          offsetPath: `path("${ROAD_PATH}")`,
+          offsetDistance: `${distance}%`,
+          offsetRotate: 'auto',
+          opacity: enterOpacity * (stopped ? 0.4 : 0.7),
+          pointerEvents: 'none',
+        }}
+      >
+        <defs>
+          <radialGradient id="headlight-beam" cx="50%" cy="100%" r="80%">
+            <stop offset="0%" stopColor={colors.white} stopOpacity="0.5" />
+            <stop offset="40%" stopColor={colors.yellow} stopOpacity="0.2" />
+            <stop offset="100%" stopColor={colors.yellow} stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        <ellipse cx={100} cy={60} rx={50} ry={70} fill="url(#headlight-beam)" />
+      </svg>
+
+      {/* Car image */}
+      <Img
+        src={imgSrc}
+        style={{
+          position: 'absolute',
+          width: 90,
+          height: 90,
+          marginLeft: -45,
+          marginTop: -45,
           offsetPath: `path("${ROAD_PATH}")`,
           offsetDistance: `${distance}%`,
           offsetRotate: 'auto',
           opacity: enterOpacity,
-          transform: `scale(${enterScale}) ${reverse ? 'scaleX(-1)' : ''}`,
+          transform: `scale(${enterScale * 0.9}) ${reverse ? 'scaleX(-1)' : ''}`,
           transformOrigin: 'center center',
+          filter: 'drop-shadow(0 0 12px rgba(255, 207, 6, 0.3))',
         }}
-      >
-        {/* Simple top-down car silhouette */}
-        <rect x={4} y={2} width={32} height={20} rx={6} fill={color} />
-        <rect x={8} y={5} width={10} height={6} rx={2} fill={colors.coolGray} opacity={0.4} />
-        <rect x={22} y={5} width={10} height={6} rx={2} fill={colors.coolGray} opacity={0.4} />
-        <rect x={8} y={13} width={10} height={6} rx={2} fill={colors.coolGray} opacity={0.4} />
-        <rect x={22} y={13} width={10} height={6} rx={2} fill={colors.coolGray} opacity={0.4} />
-        {/* Wheels */}
-        <rect x={6} y={0} width={6} height={4} rx={1} fill={colors.yellow} opacity={0.8} />
-        <rect x={28} y={0} width={6} height={4} rx={1} fill={colors.yellow} opacity={0.8} />
-        <rect x={6} y={20} width={6} height={4} rx={1} fill={colors.yellow} opacity={0.8} />
-        <rect x={28} y={20} width={6} height={4} rx={1} fill={colors.yellow} opacity={0.8} />
-      </svg>
+      />
+
+      {/* Turn signal indicator */}
+      {turnSignal && signalBlink && (
+        <div
+          style={{
+            position: 'absolute',
+            width: 12,
+            height: 12,
+            borderRadius: '50%',
+            backgroundColor: '#FFA500',
+            boxShadow: '0 0 12px 4px rgba(255, 165, 0, 0.6)',
+            offsetPath: `path("${ROAD_PATH}")`,
+            offsetDistance: `${distance}%`,
+            offsetRotate: 'auto',
+            marginLeft: turnSignal === 'left' ? -50 : 38,
+            marginTop: -5,
+            opacity: enterOpacity,
+          }}
+        />
+      )}
     </div>
   );
 };
