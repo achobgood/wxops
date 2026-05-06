@@ -13,7 +13,7 @@ Reference for Webex Contact Center agent management, queue routing, team assignm
 ## API Base and Authentication
 
 - **Base URL:** `https://api.wxcc-{region}.cisco.com` (NOT `webexapis.com`)
-- **Regions:** `us1` (default), `eu1`, `eu2`, `anz1`, `ca1`, `jp1`, `sg1`
+- **Regions:** `us1` (default), `eu1`, `eu2`, `anz1` (confirmed); `ca1`, `jp1`, `sg1` (plausible but not independently confirmed from public Webex developer documentation — verify against your org's actual token cluster value before use)
 - **Set region:** `wxcli set-cc-region us1`
 - **Scopes:** `cjp:config_read` (read operations), `cjp:config_write` (write operations)
 - **orgId:** Auto-injected from saved config into the `{orgid}` path parameter. Do not pass it manually.
@@ -196,7 +196,7 @@ curl -X POST "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/v2/agent-perso
 
 ## 3. Agent Wellbeing (`cc-agent-wellbeing`)
 
-> **Deprecated (April 2026).** The standalone Agent Wellbeing API is deprecated and will be removed in a future release. Use the consolidated `AI Feature` API (`wxcli cc-ai-feature`) instead.
+> **Deprecation status unconfirmed.** Listed as deprecated April 2026 in internal tracking but this is not reflected in public documentation as of May 2026 — the feature appears active in the February 2025 Webex developer newsletter. Verify against the current API changelog before use. A consolidated `AI Feature` API (`wxcli cc-ai-feature`) exists as a potential successor.
 
 Monitor and manage agent burnout detection. Mixes config paths (`/organization/{orgid}/agent-burnout/`) with runtime paths (`/v1/agentburnout/`).
 
@@ -1552,7 +1552,7 @@ For teardown, reverse this order.
 
 1. **Different base URL.** The CC API uses `api.wxcc-{region}.cisco.com`, not `webexapis.com`. Set the region with `wxcli set-cc-region <region>` (defaults to `us1`). Using the wrong base URL produces connection errors.
 
-2. **CC-specific OAuth scopes.** CC endpoints require `cjp:config_read` and `cjp:config_write` scopes, not `spark-admin:*` scopes. A standard Webex admin token without CC scopes gets 403 errors. The CLI detects this and prints a scope tip.
+2. **CC-specific OAuth scopes.** CC endpoints require `cjp:config_read` and `cjp:config_write` scopes, not `spark-admin:*` scopes. A standard Webex admin token without CC scopes gets 403 errors. The CLI detects this and prints a scope tip. Note: `cjp:config` (bare, no suffix) also appears in some webhook and subscription API scope requirements — it may be a distinct scope or a legacy alias. Include it when building CC webhook integrations to avoid unexpected 403s.
 
 3. **orgId is auto-injected.** The `{orgid}` path parameter is resolved from your saved config or authenticated user's org. Do not pass it as a CLI flag -- it will be injected automatically.
 
@@ -1600,7 +1600,7 @@ For teardown, reverse this order.
 
 25. **Flow Designer HTTP Connector handles auth and base URL automatically.** The CC HTTP Connector (created in Control Hub → Contact Center → Integrations → Connectors) stores the regional base URL and auth tokens for you. In the Flow Designer HTTP Request node, provide only the **request path**, not the full URL — e.g., `/organization/{orgid}/cad-variable` for Global Variables or `/search` for the Search API. Toggle "Use Authenticated Endpoint" and select the connector; no manual token management is needed in flows. When creating the connector, choose the access level: Read-Only (GET) or Read-Write (POST/PUT/DELETE).
 
-26. **Derive the CC regional base URL from the access token.** The Webex access token has three underscore-separated parts: `token.split('_')` → `[accessToken, ciCluster, orgId]`. The middle segment (`ciCluster`) maps directly to the regional base URL: `https://api.wxcc-{ciCluster}.cisco.com`. Available regions: `us1`, `eu1`, `eu2`, `anz1`, `ca1`, `jp1`, `sg1`. This is useful for production apps that need to determine the correct CC API endpoint dynamically without hardcoding a region.
+26. **Derive the CC regional base URL from the access token.** The Webex access token has three underscore-separated parts: `token.split('_')` → `[accessToken, ciCluster, orgId]`. The middle segment (`ciCluster`) maps directly to the regional base URL: `https://api.wxcc-{ciCluster}.cisco.com`. Available regions: `us1`, `eu1`, `eu2`, `anz1` (confirmed); `ca1`, `jp1`, `sg1` (plausible but not independently confirmed from public documentation — verify against your org's token cluster value). This is useful for production apps that need to determine the correct CC API endpoint dynamically without hardcoding a region.
 
 ---
 

@@ -1033,6 +1033,8 @@ Returned by actions that initiate a new call.
 
 For **Service Apps** that need to control calls on behalf of users, workspaces, or virtual lines. Uses `spark-admin:calls_read` and `spark-admin:calls_write` scopes.
 
+> **Note:** The `spark-admin:calls_read` and `spark-admin:calls_write` scopes listed above for the Members API cannot be confirmed from any publicly indexed developer.webex.com page. They may be accurate but should be verified against the live API reference or Webex TAC before building production integrations against the Members API.
+
 **Base path:** `POST /v1/telephony/calls/members/{memberId}/{action}`
 
 The Members API mirrors the user-level API but adds `member_id` and `org_id` parameters.
@@ -1048,6 +1050,10 @@ The Members API mirrors the user-level API but adds `member_id` and `org_id` par
 | Hangup | `CallControlsMembersApi.hangup(member_id, call_id, org_id)` | None |
 
 **`member_id`** can be one of: person ID, workspace ID, or virtual line ID.
+
+### Gotchas
+
+- **Members API supports a limited action set.** Only Dial, Answer, Hangup, List Calls, and Get Call Details are available. Hold, Resume, Transfer, Mute, Park, and Barge-in are user-level API operations only and are NOT available on the Members API path. Service App integrations requiring these operations must use user-level OAuth tokens (`spark:calls_write`) acting as the target user.
 
 ---
 

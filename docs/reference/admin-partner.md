@@ -17,6 +17,8 @@ Partner/VAR/MSP multi-tenant management -- customer org management, admin assign
 |-------|---------|
 | `spark-admin:reports_read` | List and retrieve partner reports and templates. |
 | `spark-admin:reports_write` | Create and delete partner reports. |
+| `spark-admin:organizations_read` | Read operations for `partner-admins` and `partner-tags` commands. |
+| `spark-admin:organizations_write` | Write operations for `partner-admins` and `partner-tags` commands. |
 | Partner admin token | Required for `partner-admins` and `partner-tags` commands. These APIs are only accessible to partner-level administrators (VAR/MSP). |
 
 **Token requirement:** A standard org admin token will not work. You must authenticate as a partner administrator with access to the partner organization. Service app tokens scoped to a single customer org will also fail.
@@ -97,6 +99,8 @@ curl -s -X DELETE -H "Authorization: Bearer $TOKEN" \
 ## 2. Partner Tags (`partner-tags`)
 
 Tag customer organizations and subscriptions for categorization (region, tier, vertical, etc.). Tags are free-form strings managed at the partner level.
+
+**Operational limits:** Maximum tag length is **25 characters**. Maximum tags per organization is **5**.
 
 ### API Endpoints
 
@@ -336,7 +340,7 @@ wxcli partner-reports show REPORT_ID
 
 3. **`show-subscriptions-organizations` name is misleading.** Despite the name, this command fetches a single subscription's details (given an org ID and subscription ID), not a list of organizations. The name comes from the URL path structure `/organizations/{orgId}/subscriptions/{subscriptionId}`.
 
-4. **Tag create commands replace, not append.** Both `partner-tags create` and `partner-tags create-assign-tags` replace all existing tags with the provided list. To add a tag, you must first read the current tags, add the new one to the list, and write the full set back.
+4. **Tag create commands replace, not append.** Both `partner-tags create` and `partner-tags create-assign-tags` replace all existing tags with the provided list. To add a tag, you must first read the current tags, add the new one to the list, and write the full set back. Passing an empty array (`[]`) removes all tags from the org. Once a tag is unassigned from its last customer org, it is automatically removed from the API listing.
 
 5. **`partner-reports` vs `reports`.** The `partner-reports` group (at `/v1/partner/reports`) is for partner-level cross-org reporting. The separate `reports` group (at `/v1/reports`) is for single-org reports. They use different API endpoints, different templates, and different scopes. Do not confuse them.
 
@@ -344,7 +348,7 @@ wxcli partner-reports show REPORT_ID
 
 7. **Response key extraction.** The `partner-reports list` command looks for results under the `Report Attributes` key, and `list-templates` looks under `Template Collection`. If the API changes these keys, the table output will appear empty. Use `-o json` to see the raw response.
 
-8. **`--type` parameter on `partner-tags show`.** This parameter is required but the valid values are not enumerated in the OpenAPI spec. The spec provides `ORGANIZATION` (uppercase) as the example value. The endpoint requires partner admin privileges — a standard org admin token gets 403 Forbidden for all values tested (`ORGANIZATION`, `SUBSCRIPTION`, `organization`). Both `ORGANIZATION` and `SUBSCRIPTION` return the same 403 (not a 400 "invalid value"), suggesting both may be valid types, but this cannot be confirmed without a partner admin token. <!-- Partially verified via live API 2026-03-19: all values return 403 with org admin token (partner admin required). No 400 "invalid type" error observed for ORGANIZATION or SUBSCRIPTION. -->
+8. **`--type` parameter on `partner-tags show`.** This parameter is required but the valid values are not enumerated in the OpenAPI spec. The spec provides `ORGANIZATION` (uppercase) as the example value. The endpoint requires partner admin privileges — a standard org admin token gets 403 Forbidden for all values tested (`ORGANIZATION`, `SUBSCRIPTION`, `organization`). Both `ORGANIZATION` and `SUBSCRIPTION` are confirmed valid type values per the live API reference. <!-- Partially verified via live API 2026-03-19: all values return 403 with org admin token (partner admin required). No 400 "invalid type" error observed for ORGANIZATION or SUBSCRIPTION. -->
 
 ---
 

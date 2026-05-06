@@ -394,6 +394,9 @@ Since bot tokens never expire, no refresh logic is needed.
 
 ## Guest Issuer Tokens
 
+> **⚠️ End of Life — December 31, 2025**
+> The Guest Issuer API has been deprecated and reached End of Life on December 31, 2025. New Guest Issuer applications can no longer be created. Existing applications should migrate to **Service Apps** with guest management functionality. The section below is retained for reference only.
+
 Guest Issuer tokens create temporary, anonymous guest users for scenarios like customer-facing meetings or support sessions.
 
 **Key facts:**
@@ -403,7 +406,7 @@ Guest Issuer tokens create temporary, anonymous guest users for scenarios like c
 
 ### Gotchas
 
-- **Guest token lifetime is variable, set by `expiresIn` in the response.** The OpenAPI spec example shows `expiresIn: 64799` (~18 hours), but the actual lifetime is returned per-token at creation time via the `expiresIn` field. The SDK `Guest` model exposes this as `expires_in` and computes `expires_at` from it. There is no single fixed lifetime — it depends on org/service-app configuration.
+- **Guest token lifetime is variable, set by `expiresIn` in the response.** The OpenAPI spec example shows `expiresIn: 64799` (~6 hours), but the actual lifetime is returned per-token at creation time via the `expiresIn` field. The SDK `Guest` model exposes this as `expires_in` and computes `expires_at` from it. There is no single fixed lifetime — it depends on org/service-app configuration.
 
 ---
 
@@ -942,6 +945,8 @@ These features/APIs are **not supported** in FedRAMP deployments:
 - **Service App tokens** (`spark:applications_token` scope): NOT supported in FedRAMP
 - **Bot/Integration creation**: Must use REST API (`POST /applications`), not the developer portal UI
 - **Application webhooks** (`application:webhooks_write/read`): NOT supported
+- **OAuth integration refresh token lifetime:** 60 days in FedRAMP (vs. 90 days in commercial). The 60-day clock resets each time a refresh call is made.
+- **Guest Issuer tokens:** Not supported in FedRAMP (and globally EOL'd December 31, 2025 — see Guest Issuer section).
 
 ### wxcli Usage
 

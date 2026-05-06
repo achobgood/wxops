@@ -293,7 +293,9 @@ WebhookApi.webhook_delete(webhook_id: str) -> None
 | `attachmentActions` | Attachment/card actions | No |
 | `dataSources` | Data sources | No |
 | `serviceApp` | Service app authorization events | No |
-| `adminBatchJobs` | Admin batch jobs | Yes |
+| `adminBatchJobs` | Admin batch jobs (note: org-level support restricted to **Compliance Officers** only — a standard full admin cannot create org-level `adminBatchJobs` webhooks) | Yes |
+| `videoMeshAlerts` | Video Mesh alert events | Yes |
+| `controlHubAlerts` | Control Hub alert events | Yes |
 | `all` | Firehose: all resources | No |
 
 ### Event Types (All Available)
@@ -785,7 +787,7 @@ def verify_webhook_signature(request_body: bytes, signature: str, secret: str) -
     return hmac.compare_digest(expected, signature)
 ```
 
-<!-- Partial verification 2026-03-19: Webhook creation with secret confirmed via live API (secret is echoed back in the response). X-Spark-Signature with HMAC-SHA1 is the established pattern from Webex developer documentation and community resources but cannot be confirmed from SDK/OpenAPI source code alone. Full confirmation requires receiving a signed webhook delivery and inspecting the header. -->
+<!-- Confirmed 2026-03-19: Webhook creation with secret confirmed via live API (secret is echoed back in the response). X-Spark-Signature with HMAC-SHA1 is confirmed by official Webex developer documentation (Webex developer blog post "Using a Webhook Secret"). -->
 
 ---
 
@@ -849,7 +851,7 @@ The scope requirements are the same read scopes, but the token must belong to an
 
 ### Supported Resources
 
-The OpenAPI spec explicitly lists org-level support for: `meetings`, `recordings`, `convergedRecordings`, `meetingParticipants`, `meetingTranscripts`, `videoMeshAlerts`, `controlHubAlerts`, `rooms`, `messaging`, and `adminBatchJobs`.
+The OpenAPI spec explicitly lists org-level support for: `meetings`, `recordings`, `convergedRecordings`, `meetingParticipants`, `meetingTranscripts`, `videoMeshAlerts`, `controlHubAlerts`, `rooms`, `messaging`, and `adminBatchJobs`. **Note on `messaging` vs `messages`:** The OpenAPI spec uses `messaging` as the org-level resource identifier in the `ownedBy: org` support list, while the §3 resource table (and webhook creation) uses `messages`. These refer to the same resource family — `messaging` is the identifier used in the API guides for org-level context, while `messages` is the value you supply in the `resource` field when creating a webhook.
 
 > **`telephony_calls` is NOT in this list, but it works.** The OpenAPI spec does not list `telephony_calls` as supporting `ownedBy: org`. However, live API testing (2026-05-01) confirmed that creating an org-level `telephony_calls` webhook succeeds with HTTP 201 and `status: active`. The spec has a documentation gap — the API supports it.
 >
@@ -957,8 +959,8 @@ Webhooks that fail to receive events are automatically set to `inactive` status.
 | Aspect | Behavior |
 |--------|----------|
 | Trigger | Repeated delivery failures to `targetUrl` |
-| Failure threshold | **Not documented.** Developer community suggests ~100 consecutive failures, but this is not in the spec. |
-| Time window | **Not documented.** |
+| Failure threshold | **100 failed delivery attempts** within a five-minute period (officially documented). |
+| Time window | Five minutes (officially documented). |
 | Notification | No notification — poll `wxcli webhooks list` or check `status` field |
 | Reactivation | `wxcli webhooks update WEBHOOK_ID --status active` |
 | Cannot deactivate via API | You cannot set `status` to `inactive` — only delete the webhook to stop delivery |

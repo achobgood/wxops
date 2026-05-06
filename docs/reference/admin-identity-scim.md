@@ -55,7 +55,7 @@ Use `scim-users` when integrating with an external IdP (Okta, Azure AD, etc.) or
 | Primary use | IdP group sync, directory groups | Webex-native group management |
 | Requires `orgId` arg | Yes | No (uses token's org) |
 | Update methods | PUT + PATCH | PATCH only |
-| Member listing | Via `--include-members` on list/show | Separate `list-members` command |
+| Member listing | Via `--include-members` on list/show, or dedicated `GET /Groups/{groupId}/Members` sub-endpoint (paginated, up to 500/page) | Separate `list-members` command |
 
 ---
 
@@ -219,9 +219,22 @@ SCIM 2.0 group provisioning and management. All commands require an `org-id` pos
 | GET | `/identity/scim/{orgId}/v2/Groups` | `scim-groups list` |
 | POST | `/identity/scim/{orgId}/v2/Groups` | `scim-groups create` |
 | GET | `/identity/scim/{orgId}/v2/Groups/{groupId}` | `scim-groups show` |
+| GET | `/identity/scim/{orgId}/v2/Groups/{groupId}/Members` | *(raw HTTP only — no CLI command)* |
 | PUT | `/identity/scim/{orgId}/v2/Groups/{groupId}` | `scim-groups update` |
 | PATCH | `/identity/scim/{orgId}/v2/Groups/{groupId}` | `scim-groups update-groups` |
 | DELETE | `/identity/scim/{orgId}/v2/Groups/{groupId}` | `scim-groups delete` |
+
+> **Note — `GET /Groups/{groupId}/Members`:** This sub-endpoint returns members of a specific group with pagination support. Query params: `startIndex`, `count`, `memberType` (values: `user`, `machine`, `group`). Returns up to **500 members per page**. Preferred over `--include-members` on `list`/`show` when paginating large groups, since `--include-members` returns all members in a single response and can be slow or truncated for large groups.
+>
+> ```bash
+> # Raw HTTP: get members of a SCIM group (first page)
+> curl -s -H "Authorization: Bearer $TOKEN" \
+>   "https://webexapis.com/identity/scim/YOUR_ORG_ID/v2/Groups/GROUP_ID/Members?count=500&startIndex=1"
+>
+> # Filter by member type
+> curl -s -H "Authorization: Bearer $TOKEN" \
+>   "https://webexapis.com/identity/scim/YOUR_ORG_ID/v2/Groups/GROUP_ID/Members?memberType=user&count=500"
+> ```
 
 ### Command Reference
 
@@ -357,6 +370,7 @@ wxcli scim-schemas show-scim2 "urn:scim:schemas:extension:cisco:webexidentity:2.
 |------------|-------------|
 | `urn:ietf:params:scim:schemas:core:2.0:User` | Core SCIM user attributes |
 | `urn:ietf:params:scim:schemas:core:2.0:Group` | Core SCIM group attributes |
+| `urn:ietf:params:scim:schemas:extension:enterprise:2.0:User` | IETF Enterprise User Extension — carries `costCenter`, `organization`, `division`, `department`, `employeeNumber`, `manager`. Required for provisioning flows that map org-chart attributes from IdPs like Azure AD or Okta; also the source of the `department` attribute used in SCIM search recipes. |
 | `urn:scim:schemas:extension:cisco:webexidentity:2.0:User` | Cisco/Webex extension attributes for users |
 | `urn:scim:schemas:extension:cisco:webexidentity:2.0:Group` | Cisco/Webex extension attributes for groups |
 | `urn:ietf:params:scim:api:messages:2.0:PatchOp` | Schema for PATCH operation payloads |
@@ -490,6 +504,12 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" \
 >   ]
 > }
 > ```
+
+> **Gotcha — 100-Operation Limit Per Bulk Request:**
+> A single bulk request may contain a maximum of **100 operations**. If you need to process more than 100 users or groups, split the work into multiple `scim-bulk create` calls.
+
+> **Warning — Bulk DELETE Is Irreversible:**
+> Bulk DELETE operations on users cannot be undone. There is no recycle bin or undo for SCIM deletes — once a user is deleted, their Webex identity, messages, and associated data are gone. Always verify your target user IDs against a dry-run list before issuing bulk DELETE operations.
 
 ---
 
@@ -742,6 +762,9 @@ curl -s -H "Authorization: Bearer $TOKEN" \
 
 > **Gotcha — People API: update is PUT (Full Replace):**
 > Like the SCIM PUT, `people update` uses HTTP PUT. It replaces the entire person record. The CLI does **not** do a GET-merge-PUT for flag-based options -- it sends only the specified fields in the PUT body, which means unspecified fields may be cleared by the API. Always use `--json-body` with the full person record for safe updates, or use the GET-modify-PUT pattern shown in the SCIM section above.
+
+> **Gotcha — `callingData=true` Caps Results at 100 Per Page:**
+> When `--calling-data true` is specified on `people list`, the API limits results to **100 per page** (down from the normal 1000). If `--location-id` is also specified alongside `--calling-data true`, the cap drops further to **50 per page**. Paginate using `--start-index` (or the `@odata.nextLink` in the raw response) to retrieve the full result set.
 
 ---
 
