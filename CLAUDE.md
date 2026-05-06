@@ -19,6 +19,13 @@ The reference docs and skills are the authoritative source for this project. Tra
 
 **Before making non-trivial changes, read the relevant architecture doc in `docs/architecture/`.** See `docs/architecture/00-index.md` for the quick-reference table mapping tasks to docs. After making changes that affect the structural map, decisions, behavior, or operations, update the corresponding doc in the same session. Treat these docs as load-bearing — stale architecture docs produce wrong code.
 
+## Execution Discipline
+
+- **Verify before claiming done.** Run the command, check the output, confirm the state. Never report success from inference alone. Ask yourself: "Would a staff engineer approve this?"
+- **When a plan breaks, stop and re-plan.** Don't push through a failing approach — re-assess, update the plan, then resume.
+- **Bug fixes: just fix it.** When the reproduction is clear (logs, errors, failing tests), resolve without asking for hand-holding. For ambiguous or architectural bugs, propose first.
+- **Learn from every correction.** After any user correction, save a feedback memory capturing the pattern and why it matters. Write the rule so it prevents the same mistake in future sessions — not just this one.
+
 ---
 
 ## Quick Start
