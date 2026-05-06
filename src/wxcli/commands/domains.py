@@ -1,7 +1,7 @@
 import json
 import typer
-from wxcli.errors import WebexError, handle_rest_error
 from wxcli.auth import get_api
+from wxcli.errors import WebexError, handle_rest_error
 from wxcli.output import print_table, print_json
 from wxcli.config import resolve_org_id
 
@@ -28,7 +28,7 @@ def get_domain_verification(
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     print_json(result)
 
 
@@ -58,7 +58,7 @@ def verify_domain(
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     print_json(result)
 
 
@@ -85,7 +85,7 @@ def claim_domain(
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     print_json(result)
 
 
@@ -112,7 +112,7 @@ def unverify_domain(
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     print_json(result)
 
 
@@ -136,7 +136,7 @@ def unclaim_domain(
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     print_json(result)
 
 

@@ -1,7 +1,7 @@
 import json
 import typer
-from wxcli.errors import WebexError, handle_rest_error
 from wxcli.auth import get_api
+from wxcli.errors import WebexError, handle_rest_error
 from wxcli.output import print_table, print_json
 from wxcli.config import resolve_org_id
 
@@ -55,9 +55,9 @@ def cmd_list(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("Resources", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("Resources", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -92,7 +92,7 @@ def create(
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -121,7 +121,7 @@ def show(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -157,7 +157,7 @@ def update(
     try:
         result = api.session.rest_put(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -179,7 +179,7 @@ def update_groups(
     try:
         result = api.session.rest_patch(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -199,7 +199,46 @@ def delete(
     try:
         api.session.rest_delete(url)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Deleted: {group_id}")
+
+
+
+@app.command("list-members")
+def list_members(
+    group_id: str = typer.Argument(help="groupId"),
+    start_index: str = typer.Option(None, "--start-index", help="The index to start for group pagination."),
+    count: str = typer.Option(None, "--count", help="Non-negative integer that specifies the desired number of se"),
+    member_type: str = typer.Option(None, "--member-type", help="Filter the members by member type. Sample data: `user`, `mac"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Group Members."""
+    api = get_api(debug=debug)
+    org_id = resolve_org_id(api.session)
+    url = f"https://webexapis.com/identity/scim/{org_id}/v2/Groups/{group_id}/Members"
+    params = {}
+    if start_index is not None:
+        params["startIndex"] = start_index
+    if count is not None:
+        params["count"] = count
+    if member_type is not None:
+        params["memberType"] = member_type
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    result = result or []
+    items = result.get("members", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
