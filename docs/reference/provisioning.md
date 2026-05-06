@@ -313,13 +313,13 @@ wxcli people delete <person_id> --force
 The single most common mistake. Without `calling_data=True` on `list()`, `details()`, `create()`, and `update()`, the response will **not include** `location_id`, `extension`, or calling-related `phone_numbers`. Your code will see `None` for these fields and may incorrectly conclude the user is not calling-enabled.
 
 **`location_id` is write-once for calling users.**
-You can set `location_id` when you first assign a calling license to a user. After that, `location_id` **cannot be changed** via the People API update. To move a user to a different location, you would need to remove the calling license, re-add it with the new location.
+You can set `location_id` when you first assign a calling license to a user. After that, `location_id` **cannot be changed** via the People API update. The preferred path for moving a calling user to a different location is the dedicated **Move Users Job API**: `POST /v1/people/{personId}/actions/moveLocation`. This moves the user without removing and re-adding the calling license. See `User Call Settings - Validate or Initiate Move Users Job` in the API docs. As a fallback, you can remove the calling license and re-add it with the new `location_id`, but the Move Users Job API is preferred.
 
 **The People API is a composite of multiple microservices.**
 A create or update call can **partially succeed**. For example, the user may be created but the phone number assignment may fail (especially with invalid numbers). Always verify with a subsequent GET after errors.
 
 **Performance limits with `calling_data=True`.**
-The SDK enforces a soft limit of 10 users per page when fetching with `calling_data=True` (constant `MAX_USERS_WITH_CALLING_DATA = 10`). This is due to backend performance issues. For large orgs, consider the async API with `concurrent_requests` tuning.
+The SDK enforces a soft limit of 10 users per page when fetching with `calling_data=True` (constant `MAX_USERS_WITH_CALLING_DATA = 10`). This is an **SDK internal constant**, not an API enforcement — the live API allows up to **100 results per page** with `callingData=true` (or 50 when `locationId` is also specified). Users of raw HTTP or wxcli are not subject to the SDK's 10-item constant. For large orgs using the SDK, consider the async API with `concurrent_requests` tuning.
 
 **Extension vs. work_extension.**
 - When **writing**: set `person.extension = '1001'` (no routing prefix).
@@ -654,7 +654,7 @@ Creating a location via the Locations API does **not** automatically enable it f
 api.telephony.location.enable_for_calling(location_id='<id>', ...)
 
 # Raw HTTP equivalent:
-api.session.rest_put(
+api.session.rest_post(  # POST — not PUT; URL path should be verified against live API reference
     f"{BASE}/telephony/config/locations/{loc_id}",
     json={"announcementLanguage": "en_us"},  # lowercase required
 )
@@ -716,7 +716,7 @@ api.session.rest_delete(f"{BASE}/locations/{loc_id}")
 body = {
     "announcementLanguage": "en_us",  # MUST be lowercase -- see gotcha #13
 }
-api.session.rest_put(
+api.session.rest_post(  # POST — not PUT; URL path should be verified against live API reference
     f"{BASE}/telephony/config/locations/{loc_id}",
     json=body,
 )
@@ -1160,6 +1160,8 @@ Note: `work_extension` values include the location **routing prefix** prepended 
 - `webex_calling_basic` -- True if name is `"Webex Calling - Basic"`
 - `webex_calling_workspaces` -- True if name is `"Webex Calling - Workspaces"`
 - `cx_essentials` -- True if name is `"Customer Experience - Essential"`
+
+> **Note — "Basic" vs. "Standard" tier naming:** The `"Webex Calling - Basic"` name matched by `lic.webex_calling_basic` may be stale for newer orgs. Cisco's current tier naming uses **Standard** (not Basic). Any code doing exact string matching on `"Webex Calling - Basic"` may miss Standard-tier licenses. The SDK property `lic.webex_calling_basic` is an internal convenience name and may still resolve correctly depending on SDK version, but verify the actual license name string returned by `GET /v1/licenses` in your org before relying on exact string matches.
 
 ### LicenseRequest (for PATCH assignment)
 
