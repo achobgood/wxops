@@ -2438,7 +2438,7 @@
             "example": "yes"
           },
           {
-            "name": "Flow Type",
+            "name": "flowType",
             "in": "query",
             "description": "Either of 'FLOW' or 'SUBFLOW'.",
             "required": false,
@@ -5067,7 +5067,7 @@
             "example": "Version ID: 6679cb15f3398d4d1070a1e6. https://flow-control.intgus1.ciscoccservice.com/flow/<flowId>?orgId=<orgId>&version=<6679cb15f3398d4d1070a1e6>"
           },
           {
-            "name": "Flow Type",
+            "name": "flowType",
             "in": "query",
             "description": "Either of 'FLOW' or 'SUBFLOW'.",
             "required": false,
