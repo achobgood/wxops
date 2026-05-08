@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from tools.generate_commands import generate_tag, merge_tags, should_skip_tag, main, resolve_cli_name_overrides
+from tools.generate_commands import generate_tag, merge_tags, should_skip_tag, main, resolve_cli_name_overrides, resolve_tag_merge
 
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -254,4 +254,36 @@ class TestResolveCliNameOverrides:
 
     def test_none_returns_empty(self):
         result = resolve_cli_name_overrides(None, "any.json")
+        assert result == {}
+
+
+# ── resolve_tag_merge ──────────────────────────────────────────────────────
+
+
+class TestResolveTagMerge:
+    def test_flat_format(self):
+        """Legacy flat dict format still works."""
+        raw = {"User Call Settings": ["User Call Settings (1/2)", "User Call Settings (2/2)"]}
+        result = resolve_tag_merge(raw, "webex-cloud-calling.json")
+        assert result == raw
+
+    def test_per_spec_format(self):
+        """Per-spec dict with _global merges correctly."""
+        raw = {
+            "_global": {"A": ["A1", "A2"]},
+            "webex-flow-store.json": {"Flow": ["Flow APIs"]},
+        }
+        result = resolve_tag_merge(raw, "webex-flow-store.json")
+        assert result == {"A": ["A1", "A2"], "Flow": ["Flow APIs"]}
+
+    def test_per_spec_no_match(self):
+        raw = {
+            "_global": {"A": ["A1"]},
+            "webex-flow-store.json": {"Flow": ["Flow APIs"]},
+        }
+        result = resolve_tag_merge(raw, "webex-admin.json")
+        assert result == {"A": ["A1"]}
+
+    def test_none_returns_empty(self):
+        result = resolve_tag_merge(None, "any.json")
         assert result == {}

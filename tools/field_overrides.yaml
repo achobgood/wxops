@@ -578,26 +578,30 @@ skip_tags:
 
 # Merge split tags into a single CLI group
 tag_merge:
-  "User Call Settings":
-    - "User Call Settings (1/2)"
-    - "User Call Settings (2/2)"
-  "Workspace Call Settings":
-    - "Workspace Call Settings (1/2)"
-    - "Workspace Call Settings (2/2)"
-  "My Call Settings":
-    - "Call Settings For Me"
-    - "Call Settings For Me With UserHub Phase2"
-    - "Call Settings For Me With UserHub Phase3"
-    - "Call Settings For Me Phase 4"
-  # Contact Center: merge Journey sub-folders into one group
-  "CC Journey":
-    - "Journey"
-    - "Journey - Customer Identification API"
-    - "Journey - Data Ingestion API"
-    - "Journey - Profile Creation & Insights API"
-    - "Journey - Subscription API"
-    - "Journey - Trigger Actions API"
-    - "Journey - Workspace management API"
+  _global:
+    "User Call Settings":
+      - "User Call Settings (1/2)"
+      - "User Call Settings (2/2)"
+    "Workspace Call Settings":
+      - "Workspace Call Settings (1/2)"
+      - "Workspace Call Settings (2/2)"
+    "My Call Settings":
+      - "Call Settings For Me"
+      - "Call Settings For Me With UserHub Phase2"
+      - "Call Settings For Me With UserHub Phase3"
+      - "Call Settings For Me Phase 4"
+    # Contact Center: merge Journey sub-folders into one group
+    "CC Journey":
+      - "Journey"
+      - "Journey - Customer Identification API"
+      - "Journey - Data Ingestion API"
+      - "Journey - Profile Creation & Insights API"
+      - "Journey - Subscription API"
+      - "Journey - Trigger Actions API"
+      - "Journey - Workspace management API"
+  webex-flow-store.json:
+    "Flow":
+      - "Flow APIs"
 
 # Human-friendly CLI group names (OpenAPI tag → CLI name)
 cli_name_overrides:
