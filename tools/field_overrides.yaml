@@ -752,6 +752,7 @@ cli_name_overrides:
     "flow-property-controller": "fs-flow-props"
     "flow-version-controller": "fs-flow-versions"
     "project-controller": "fs-projects"
+    "expression-test-controller": "fs-expression-test"
 
 # Per-spec tag-level overrides (command_name_overrides, body_defaults, etc.)
 # Replaces top-level tag blocks that collide across specs (e.g., "Flow").

@@ -640,7 +640,9 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
         params.append(f'    {param}: str = typer.Argument(help="{var}"),')
     qp_defs, qp_build = _render_query_params(ep)
     params.extend(qp_defs)
-    params.append('    force: bool = typer.Option(False, "--force", help="Skip confirmation"),')
+    has_spec_force = any(qp.name == "force" for qp in ep.query_params)
+    if not has_spec_force:
+        params.append('    force: bool = typer.Option(False, "--force", help="Skip confirmation"),')
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
     url_expr = _render_url_expr(ep.url_path, ep.path_vars)

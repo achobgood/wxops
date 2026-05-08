@@ -44,6 +44,7 @@ class Endpoint:
 
 
 def camel_to_kebab(name: str) -> str:
+    name = name.lstrip("$")
     s = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1-\2", name)
     s = re.sub(r"([a-z0-9])([A-Z])", r"\1-\2", s)
     return s.lower().lstrip("-")

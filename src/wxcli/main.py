@@ -507,3 +507,27 @@ from wxcli.commands.broadworks_subscribers import app as broadworks_subscribers_
 app.add_typer(broadworks_subscribers_app, name="broadworks-subscribers")
 from wxcli.commands.broadworks_workspaces import app as broadworks_workspaces_app
 app.add_typer(broadworks_workspaces_app, name="broadworks-workspaces")
+
+# Auto-generated from flow-store spec (specs/webex-flow-store.json)
+from wxcli.commands.fs_flows import app as fs_flows_app
+app.add_typer(fs_flows_app, name="fs-flows")
+from wxcli.commands.fs_resources import app as fs_resources_app
+app.add_typer(fs_resources_app, name="fs-resources")
+from wxcli.commands.fs_templates import app as fs_templates_app
+app.add_typer(fs_templates_app, name="fs-templates")
+from wxcli.commands.fs_tracing import app as fs_tracing_app
+app.add_typer(fs_tracing_app, name="fs-tracing")
+from wxcli.commands.fs_flows_v2 import app as fs_flows_v2_app
+app.add_typer(fs_flows_v2_app, name="fs-flows-v2")
+from wxcli.commands.fs_user_prefs import app as fs_user_prefs_app
+app.add_typer(fs_user_prefs_app, name="fs-user-prefs")
+from wxcli.commands.fs_connectors import app as fs_connectors_app
+app.add_typer(fs_connectors_app, name="fs-connectors")
+from wxcli.commands.fs_expression_test import app as fs_expression_test_app
+app.add_typer(fs_expression_test_app, name="fs-expression-test")
+from wxcli.commands.fs_flow_props import app as fs_flow_props_app
+app.add_typer(fs_flow_props_app, name="fs-flow-props")
+from wxcli.commands.fs_flow_versions import app as fs_flow_versions_app
+app.add_typer(fs_flow_versions_app, name="fs-flow-versions")
+from wxcli.commands.fs_projects import app as fs_projects_app
+app.add_typer(fs_projects_app, name="fs-projects")
