@@ -82,6 +82,24 @@ def resolve_cli_name_overrides(raw: dict | list | None, spec_filename: str) -> d
     return result
 
 
+def resolve_tag_merge(raw: dict | None, spec_filename: str) -> dict:
+    """Merge global tag_merge rules with per-spec rules.
+
+    Same shape as resolve_cli_name_overrides: flat dict (legacy) or
+    dict with _global + per-spec keys.
+    """
+    if raw is None:
+        return {}
+    if not isinstance(raw, dict):
+        raise TypeError(f"tag_merge must be dict, got {type(raw).__name__}")
+    if "_global" not in raw and not any(k.endswith(".json") for k in raw):
+        return dict(raw)
+    result = dict(raw.get("_global", {}) or {})
+    per_spec = raw.get(spec_filename) or {}
+    result.update(per_spec)
+    return result
+
+
 def generate_tag(
     tag_name: str,
     spec: dict,
@@ -205,7 +223,7 @@ def main():
             overrides[f"_tag_ovr:{key}"] = val
 
     # Apply tag merging
-    tag_merge = overrides.get("tag_merge", {})
+    tag_merge = resolve_tag_merge(overrides.get("tag_merge"), Path(args.spec).name)
     if tag_merge:
         merge_tags(spec, tag_merge)
 
