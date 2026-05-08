@@ -398,12 +398,25 @@ def _path_to_raw_path(path: str) -> list[str]:
     """Convert OpenAPI path '/foo/{bar}/baz' to raw_path ['foo', ':bar', 'baz'].
 
     raw_path uses ':param' format for compatibility with _derive_command_name.
+    Colon-action suffixes like '{flowId}:publish' or 'flows:import' are split
+    into separate segments so the action part can be used for command naming.
     """
     segments = path.strip("/").split("/")
     result = []
     for seg in segments:
-        if seg.startswith("{") and seg.endswith("}"):
-            result.append(":" + seg[1:-1])
+        if seg.startswith("{") and "}" in seg:
+            close = seg.index("}")
+            param = seg[1:close]
+            suffix = seg[close + 1:]
+            result.append(":" + param)
+            if suffix.startswith(":") and len(suffix) > 1:
+                result.append(suffix[1:])
+        elif ":" in seg:
+            base, action = seg.split(":", 1)
+            if base:
+                result.append(base)
+            if action:
+                result.append(action)
         else:
             result.append(seg)
     return result

@@ -98,6 +98,35 @@ def save_cc_region(region: str, path: Path = DEFAULT_CONFIG_PATH) -> None:
     profile["cc_region"] = region
     save_config(config, path)
 
+FS_DATACENTERS = {
+    "intgus1": "https://flow-store.intgus1.ciscoccservice.com/flow-store",
+    "us1": "https://flow-store.us1.ciscoccservice.com/flow-store",
+}
+
+def get_fs_base_url(path: Path = DEFAULT_CONFIG_PATH) -> str:
+    config = load_config(path)
+    profile = config.get("profiles", {}).get("default", {})
+    dc = profile.get("fs_datacenter", "intgus1")
+    return FS_DATACENTERS.get(dc, FS_DATACENTERS["intgus1"])
+
+def get_fs_project_id(path: Path = DEFAULT_CONFIG_PATH) -> str:
+    config = load_config(path)
+    profile = config.get("profiles", {}).get("default", {})
+    pid = profile.get("fs_project_id")
+    if pid:
+        return pid
+    raise SystemExit(
+        "Flow Store project ID not configured. Run:\n"
+        "  wxcli fs-projects list   # to find your project ID\n"
+        "  Then set it in ~/.wxcli/config.json under profiles.default.fs_project_id"
+    )
+
+def save_fs_datacenter(datacenter: str, path: Path = DEFAULT_CONFIG_PATH) -> None:
+    config = load_config(path)
+    profile = config.setdefault("profiles", {}).setdefault("default", {})
+    profile["fs_datacenter"] = datacenter
+    save_config(config, path)
+
 def save_org(org_id: str | None, org_name: str | None, path: Path = DEFAULT_CONFIG_PATH) -> None:
     config = load_config(path)
     profile = config.setdefault("profiles", {}).setdefault("default", {})

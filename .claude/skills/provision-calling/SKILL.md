@@ -249,7 +249,7 @@ done
 
 **Note:** If `people create` returns 400, the user may still have been created. Check with `wxcli people list --email <email>` before retrying. If the user exists, skip the create and run only the `licenses-api update` step with the existing person ID.
 
-> **Raw HTTP fallback for bulk operations:** For large batches (20+ users), the async Python SDK pattern provides better performance with concurrent requests and automatic 429 retry handling. See `docs/reference/wxc-sdk-patterns.md` for the `AsWebexSimpleApi` async pattern with `concurrent_requests=10..40`.
+> **Bulk operations (50+ users):** Shell loops with `sleep 1` work for small batches. For large batches, reference the migration engine's async pattern in `src/wxcli/migration/execute/engine.py` which handles concurrency, rate limiting, and retry automatically.
 
 ### Operation F: Teardown / Delete Location
 
@@ -325,7 +325,7 @@ Next steps:
 
 11. **Log all operations** — Print what you're about to do before each CLI command, and print the result after. This creates an audit trail for troubleshooting.
 
-12. **For bulk operations (20+ users), consider the async Python SDK** — wxcli runs one command at a time. For large batches, the `AsWebexSimpleApi` async pattern in `docs/reference/wxc-sdk-patterns.md` is significantly faster.
+12. **For bulk operations (50+ users), use the migration engine's async pattern** — wxcli runs one command at a time. For large batches, the proven pattern in `src/wxcli/migration/execute/engine.py` handles concurrency, rate limiting, and retry. For smaller batches (<50), shell loops with `sleep 1` suffice.
 
 13. **Location-scoped feature deletes require LOCATION_ID as FIRST argument** — `wxcli hunt-group delete --force LOCATION_ID HG_ID`, not `wxcli hunt-group delete --force HG_ID`. The LOCATION_ID comes before the feature ID.
 

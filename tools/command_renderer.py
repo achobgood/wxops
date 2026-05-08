@@ -7,6 +7,7 @@ BASE_URL = "https://webexapis.com/v1"
 BASE_URL_NO_V1 = "https://webexapis.com"
 BASE_URL_ANALYTICS = "https://analytics-calling.webexapis.com/v1"
 BASE_URL_CC = "{cc_base_url}"  # Resolved at runtime from config
+BASE_URL_FS = "{fs_base_url}"  # Resolved at runtime from config
 
 # Path prefixes that use the base URL without /v1
 NO_V1_PREFIXES = ("identity/", "Schemas/")
@@ -44,7 +45,9 @@ def _path_var_to_param(var: str) -> str:
     return camel_to_snake(var)
 
 
-def _render_imports(include_org_id: bool = False, include_org_id_path: bool = False, include_cc_url: bool = False, include_cc_org_id: bool = False) -> str:
+def _render_imports(include_org_id: bool = False, include_org_id_path: bool = False,
+                    include_cc_url: bool = False, include_cc_org_id: bool = False,
+                    include_fs_url: bool = False, include_fs_project_id: bool = False) -> str:
     lines = '''import json
 import typer
 from wxcli.auth import get_api
@@ -60,6 +63,10 @@ from wxcli.output import print_table, print_json
         config_imports.append('get_cc_base_url')
     if include_cc_org_id:
         config_imports.append('get_cc_org_id')
+    if include_fs_url:
+        config_imports.append('get_fs_base_url')
+    if include_fs_project_id:
+        config_imports.append('get_fs_project_id')
     if config_imports:
         lines += f'from wxcli.config import {", ".join(config_imports)}\n'
     return lines
@@ -98,24 +105,24 @@ def _render_auto_inject_params(ep: Endpoint) -> list[str]:
 
 
 def _render_path_inject(ep: Endpoint) -> list[str]:
-    """Return lines to inject auto-inject PATH params from config (before URL line).
-
-    For orgid/orgId, tries saved config first, then resolves from API as fallback.
-    Also injects cc_base_url for Contact Center commands.
-    """
+    """Return lines to inject auto-inject PATH params from config (before URL line)."""
     lines = []
-    # Inject CC base URL if this file uses the CC base URL override
     if _active_base_url_override == BASE_URL_CC:
         lines.append("    cc_base_url = get_cc_base_url()")
+    elif _active_base_url_override == BASE_URL_FS:
+        lines.append("    fs_base_url = get_fs_base_url()")
     for var in getattr(ep, "auto_inject_path_params", []):
         param = _path_var_to_param(var)
-        # orgid/orgId path params resolve from saved org config, fallback to API
-        # CC APIs need the decoded UUID, not the base64 Spark ID
         if var.lower() == "orgid":
             if _active_base_url_override == BASE_URL_CC:
                 lines.append(f"    {param} = get_cc_org_id(api.session)")
+            elif _active_base_url_override == BASE_URL_FS:
+                lines.append(f"    {param} = get_cc_org_id(api.session)")
             else:
                 lines.append(f"    {param} = resolve_org_id(api.session)")
+        elif var.lower() == "projectid":
+            if _active_base_url_override == BASE_URL_FS:
+                lines.append(f"    {param} = get_fs_project_id()")
     return lines
 
 
@@ -633,7 +640,9 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
         params.append(f'    {param}: str = typer.Argument(help="{var}"),')
     qp_defs, qp_build = _render_query_params(ep)
     params.extend(qp_defs)
-    params.append('    force: bool = typer.Option(False, "--force", help="Skip confirmation"),')
+    has_spec_force = any(qp.name == "force" for qp in ep.query_params)
+    if not has_spec_force:
+        params.append('    force: bool = typer.Option(False, "--force", help="Skip confirmation"),')
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
     url_expr = _render_url_expr(ep.url_path, ep.path_vars)
@@ -759,16 +768,25 @@ def render_command_file(
     global _active_base_url_override
     _active_base_url_override = base_url_override
     needs_cc_url = base_url_override == BASE_URL_CC
-    needs_cc_org_id = needs_cc_url and needs_org_id
+    needs_fs_url = base_url_override == BASE_URL_FS
+    needs_fs_project_id = needs_fs_url and any(
+        "projectId" in getattr(ep, "auto_inject_path_params", [])
+        for ep in endpoints
+    )
+    needs_cc_org_id = (needs_cc_url or needs_fs_url) and needs_org_id
     # Detect product area from CLI name prefix
     if cli_name.startswith("cc-"):
         product = "Webex Contact Center"
+    elif cli_name.startswith("fs-"):
+        product = "WxCC Flow Store"
     elif cli_name.startswith("meeting"):
         product = "Webex Meetings"
     else:
         product = "Webex Calling"
     sections = [
-        _render_imports(include_org_id=needs_org_id_query, include_org_id_path=needs_org_id_path, include_cc_url=needs_cc_url, include_cc_org_id=needs_cc_org_id),
+        _render_imports(include_org_id=needs_org_id_query, include_org_id_path=needs_org_id_path,
+                        include_cc_url=needs_cc_url, include_cc_org_id=needs_cc_org_id,
+                        include_fs_url=needs_fs_url, include_fs_project_id=needs_fs_project_id),
         f'app = typer.Typer(help="Manage {product} {cli_name}.")\n',
     ]
 

@@ -102,7 +102,7 @@ Enabled via `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` in `.claude/settings.json`.
 
 All reference docs are grounded in actual source code and official documentation:
 
-- **wxc_sdk v1.30.0** (github.com/jeokrohn/wxc_sdk) — cloned at `../wxc_sdk_reference/`
+- **wxc_sdk v1.30.0** (github.com/jeokrohn/wxc_sdk) — historical source used to build reference docs; cloned at `../wxc_sdk_reference/`
 - **wxcadm v4.6.1** (github.com/kctrey/wxcadm) — cloned at `../wxcadm_reference/`
 - **OpenAPI 3.0 specs** — `specs/webex-cloud-calling.json` (calling), `specs/webex-admin.json` (admin), `specs/webex-device.json` (devices), `specs/webex-messaging.json` (messaging), `specs/webex-meetings.json` (meetings), `specs/webex-contact-center.json` (contact center)
 - **Postman collection** (`../postman-webex-collections/webex_cloud_calling.json`) — legacy reference, 22.5MB, 1,079 endpoints
@@ -117,7 +117,7 @@ Maintainers: update reference docs when you discover new gotchas or API changes.
 
 ## Reference Doc Sync Protocol
 
-This repo contains authoritative reference docs at `docs/reference/` that document every Webex Calling API surface. These docs were built from wxc_sdk and wxcadm source code and serve both the CLI and the playbook agent.
+This repo contains authoritative reference docs at `docs/reference/` that document every Webex Calling API surface. These docs were originally built from wxc_sdk and wxcadm source code and serve both the CLI and the playbook agent.
 
 ### When you learn something new
 
@@ -131,7 +131,7 @@ Whenever you discover a technical detail through implementation — a gotcha, a 
    - Devices: `docs/reference/devices-*.md` (4 files: core, dect, workspaces, platform)
    - Routing: `docs/reference/call-routing.md`
    - Auth: `docs/reference/authentication.md`
-   - SDK patterns: `docs/reference/wxc-sdk-patterns.md`
+   - Scopes / raw HTTP: `docs/reference/authentication.md`
 
 2. **If the reference doc is wrong or incomplete**, update it:
    - Fix incorrect method signatures, scopes, or data models
