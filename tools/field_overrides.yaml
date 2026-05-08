@@ -761,7 +761,7 @@ tag_overrides:
   webex-contact-center.json:
     "Flow":
       command_name_overrides:
-        "list-{flow-id}:export": "export"
+        "list-export": "export"
         "create": "publish"
     "Users":
       command_name_overrides:
