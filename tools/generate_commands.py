@@ -7,7 +7,7 @@ from pathlib import Path
 
 from tools.openapi_parser import load_spec, get_tags, parse_tag
 from tools.postman_parser import load_overrides, apply_endpoint_overrides
-from tools.command_renderer import render_command_file, folder_name_to_module, BASE_URL_CC
+from tools.command_renderer import render_command_file, folder_name_to_module, BASE_URL_CC, BASE_URL_FS
 
 
 DEFAULT_SPEC = Path(__file__).parent.parent / "specs" / "webex-cloud-calling.json"
@@ -112,6 +112,8 @@ def generate_tag(
     """Generate commands for one tag. Returns (module_name, cli_name, command_count)."""
     omit_qp = list(overrides.get("omit_query_params", []))
     auto_inject_qp = set(overrides.get("auto_inject_from_config", ["orgId"]))
+    if base_url_override == BASE_URL_FS:
+        auto_inject_qp.add("projectId")
     folder_ovr = overrides.get(f"_tag_ovr:{tag_name}", {})
     endpoints, skipped_uploads = parse_tag(
         tag_name, spec, omit_query_params=omit_qp,
@@ -193,7 +195,12 @@ def main():
 
     # Detect spec-specific base URL override
     spec_name = Path(args.spec).stem
-    base_url_override = BASE_URL_CC if "contact-center" in spec_name else None
+    if "contact-center" in spec_name:
+        base_url_override = BASE_URL_CC
+    elif "flow-store" in spec_name:
+        base_url_override = BASE_URL_FS
+    else:
+        base_url_override = None
 
     # Resolve per-spec cli_name_overrides
     overrides["_resolved_cli_name_overrides"] = resolve_cli_name_overrides(
