@@ -575,6 +575,12 @@ skip_tags:
   webex-meetings.json:
     - "People"           # canonical: webex-cloud-calling.json
     - "Recording Report" # canonical: webex-cloud-calling.json
+  webex-flow-store.json:
+    - admin-flow-controller    # internal admin endpoints
+    - auth-controller          # OAuth redirect (handled by SDK)
+    - buid-info-controller     # build info endpoint
+    - health-controller        # health check
+    - prometheus-controller    # metrics endpoint
 
 # Merge split tags into a single CLI group
 tag_merge:
@@ -765,3 +771,31 @@ tag_overrides:
   make_optional:
     list:
       - limitToLocationId
+
+# Flow Store table columns
+"fs-flows":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Type", "flowType"]
+      - ["Status", "status"]
+
+"fs-templates":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Type", "flowType"]
+
+"fs-projects":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Name", "name"]
+
+"fs-connectors":
+  list:
+    table_columns:
+      - ["ID", "id"]
+      - ["Name", "name"]
