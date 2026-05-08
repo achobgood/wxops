@@ -306,7 +306,7 @@ wxops/
 **Key design decisions:**
 
 - **Commands are generated, never hand-edited.** Fix bugs in `field_overrides.yaml` and regenerate with `tools/generate_commands.py`.
-- **The CLI uses raw HTTP** via wxc-sdk's REST client, not the SDK's typed methods. This gives 100% API coverage without waiting for SDK updates.
+- **The CLI uses raw HTTP** via its own `WebexSession` client (`src/wxcli/auth.py`) built on `httpx`, not any third-party SDK. This gives 100% API coverage without external dependencies.
 - **Reference docs serve both humans and AI.** Developers can read them directly; the playbook loads them as context for guided configuration.
 
 ## Known Limitations

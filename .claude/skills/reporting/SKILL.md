@@ -1927,7 +1927,7 @@ CDR pulls are slow due to the CDR API rate limit (1 request/minute) and the 12-h
 
 ### Rate limit reality
 
-The CDR Feed API (`analytics-calling.webexapis.com`) enforces **1 request per minute** per user token. The wxc_sdk handles 429 retries transparently, so each pull takes ~60 seconds regardless of data volume. Calculate expected pull time before starting:
+The CDR Feed API (`analytics-calling.webexapis.com`) enforces **1 request per minute** per user token. wxcli's `wxcli cdr pull` respects this limit with built-in sleep between requests, so each pull takes ~60 seconds regardless of data volume. Calculate expected pull time before starting:
 
 | Window | Pulls | Expected Time |
 |--------|-------|---------------|

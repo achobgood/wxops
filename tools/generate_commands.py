@@ -7,7 +7,7 @@ from pathlib import Path
 
 from tools.openapi_parser import load_spec, get_tags, parse_tag
 from tools.postman_parser import load_overrides, apply_endpoint_overrides
-from tools.command_renderer import render_command_file, folder_name_to_module, BASE_URL_CC
+from tools.command_renderer import render_command_file, folder_name_to_module, BASE_URL_CC, BASE_URL_FS
 
 
 DEFAULT_SPEC = Path(__file__).parent.parent / "specs" / "webex-cloud-calling.json"
@@ -62,6 +62,44 @@ def resolve_skip_patterns(raw: list | dict | None, spec_filename: str) -> list[s
     raise TypeError(f"skip_tags must be list or dict, got {type(raw).__name__}")
 
 
+def resolve_cli_name_overrides(raw: dict | list | None, spec_filename: str) -> dict:
+    """Merge global CLI name overrides with per-spec overrides.
+
+    Supports two shapes:
+    1. Flat dict (legacy) — all overrides apply to every spec.
+    2. Dict with optional ``_global`` + per-spec-filename keys — per-spec
+       overrides take precedence over _global for the same tag name.
+    """
+    if raw is None:
+        return {}
+    if not isinstance(raw, dict):
+        raise TypeError(f"cli_name_overrides must be dict, got {type(raw).__name__}")
+    if "_global" not in raw and not any(k.endswith(".json") for k in raw):
+        return dict(raw)
+    result = dict(raw.get("_global", {}) or {})
+    per_spec = raw.get(spec_filename) or {}
+    result.update(per_spec)
+    return result
+
+
+def resolve_tag_merge(raw: dict | None, spec_filename: str) -> dict:
+    """Merge global tag_merge rules with per-spec rules.
+
+    Same shape as resolve_cli_name_overrides: flat dict (legacy) or
+    dict with _global + per-spec keys.
+    """
+    if raw is None:
+        return {}
+    if not isinstance(raw, dict):
+        raise TypeError(f"tag_merge must be dict, got {type(raw).__name__}")
+    if "_global" not in raw and not any(k.endswith(".json") for k in raw):
+        return dict(raw)
+    result = dict(raw.get("_global", {}) or {})
+    per_spec = raw.get(spec_filename) or {}
+    result.update(per_spec)
+    return result
+
+
 def generate_tag(
     tag_name: str,
     spec: dict,
@@ -74,7 +112,9 @@ def generate_tag(
     """Generate commands for one tag. Returns (module_name, cli_name, command_count)."""
     omit_qp = list(overrides.get("omit_query_params", []))
     auto_inject_qp = set(overrides.get("auto_inject_from_config", ["orgId"]))
-    folder_ovr = overrides.get(tag_name, {})
+    if base_url_override == BASE_URL_FS:
+        auto_inject_qp.add("projectId")
+    folder_ovr = overrides.get(f"_tag_ovr:{tag_name}", {})
     endpoints, skipped_uploads = parse_tag(
         tag_name, spec, omit_query_params=omit_qp,
         auto_inject_params=auto_inject_qp, seen_operation_ids=seen_op_ids
@@ -85,7 +125,7 @@ def generate_tag(
         apply_endpoint_overrides(ep, folder_ovr)
 
     # Determine module and cli names
-    cli_name_overrides = overrides.get("cli_name_overrides", {})
+    cli_name_overrides = overrides.get("_resolved_cli_name_overrides", {})
     if tag_name in cli_name_overrides:
         cli_name = cli_name_overrides[tag_name]
         module_name = cli_name.replace("-", "_")
@@ -155,10 +195,42 @@ def main():
 
     # Detect spec-specific base URL override
     spec_name = Path(args.spec).stem
-    base_url_override = BASE_URL_CC if "contact-center" in spec_name else None
+    if "contact-center" in spec_name:
+        base_url_override = BASE_URL_CC
+    elif "flow-store" in spec_name:
+        base_url_override = BASE_URL_FS
+    else:
+        base_url_override = None
+
+    # Resolve per-spec cli_name_overrides
+    overrides["_resolved_cli_name_overrides"] = resolve_cli_name_overrides(
+        overrides.get("cli_name_overrides"), Path(args.spec).name
+    )
+
+    # Resolve per-spec tag-level overrides (command_name_overrides, body_defaults, etc.)
+    raw_tag_ovr = overrides.get("tag_overrides", {})
+    spec_tag_ovr = {}
+    if isinstance(raw_tag_ovr, dict):
+        global_tag_ovr = raw_tag_ovr.get("_global", {})
+        per_spec_tag_ovr = raw_tag_ovr.get(Path(args.spec).name, {})
+        for tag_name in set(list(global_tag_ovr.keys()) + list(per_spec_tag_ovr.keys())):
+            merged = dict(global_tag_ovr.get(tag_name, {}))
+            merged.update(per_spec_tag_ovr.get(tag_name, {}))
+            spec_tag_ovr[tag_name] = merged
+    for tag_name, tag_ovr in spec_tag_ovr.items():
+        overrides[f"_tag_ovr:{tag_name}"] = tag_ovr
+    # Backwards compat: top-level tag blocks that aren't in tag_overrides
+    known_global = {"omit_query_params", "skip_tags", "tag_merge", "cli_name_overrides",
+                    "auto_inject_from_config", "tag_overrides",
+                    "_resolved_cli_name_overrides"}
+    for key, val in list(overrides.items()):
+        if key in known_global or key.startswith("_"):
+            continue
+        if isinstance(val, dict) and f"_tag_ovr:{key}" not in overrides:
+            overrides[f"_tag_ovr:{key}"] = val
 
     # Apply tag merging
-    tag_merge = overrides.get("tag_merge", {})
+    tag_merge = resolve_tag_merge(overrides.get("tag_merge"), Path(args.spec).name)
     if tag_merge:
         merge_tags(spec, tag_merge)
 

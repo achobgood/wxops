@@ -1,9 +1,8 @@
 import json
 import typer
-from wxcli.errors import WebexError, handle_rest_error
 from wxcli.auth import get_api
+from wxcli.errors import WebexError, handle_rest_error
 from wxcli.output import print_table, print_json
-from wxcli.config import get_cc_base_url
 
 
 app = typer.Typer(help="Manage Webex Calling data-sources.")
@@ -23,8 +22,7 @@ def create(
 ):
     """Register a Data Source."""
     api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/dataSources"
+    url = f"https://webexapis.com/v1/dataSources"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -44,7 +42,7 @@ def create(
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -65,8 +63,7 @@ def cmd_list(
 ):
     """Retrieve All Data Sources."""
     api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/dataSources/"
+    url = f"https://webexapis.com/v1/dataSources/"
     params = {}
     if limit > 0:
         params["max"] = limit
@@ -75,7 +72,7 @@ def cmd_list(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
@@ -94,8 +91,7 @@ def list_schemas(
 ):
     """Retrieve Data Source Schemas."""
     api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/dataSources/schemas"
+    url = f"https://webexapis.com/v1/dataSources/schemas"
     params = {}
     if limit > 0:
         params["max"] = limit
@@ -104,7 +100,7 @@ def list_schemas(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
@@ -122,12 +118,11 @@ def show(
 ):
     """Retrieve Details of a Specific Data Source Schema."""
     api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/dataSources/schemas/{schema_id}"
+    url = f"https://webexapis.com/v1/dataSources/schemas/{schema_id}"
     try:
         result = api.session.rest_get(url)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -148,12 +143,11 @@ def show_data_sources(
 ):
     """Retrieve Data Source Details."""
     api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/dataSources/{data_source_id}"
+    url = f"https://webexapis.com/v1/dataSources/{data_source_id}"
     try:
         result = api.session.rest_get(url)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -182,8 +176,7 @@ def update(
 ):
     """Update a Data Source."""
     api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/dataSources/{data_source_id}"
+    url = f"https://webexapis.com/v1/dataSources/{data_source_id}"
     if json_body:
         body = json.loads(json_body)
     else:
@@ -207,7 +200,7 @@ def update(
     try:
         result = api.session.rest_put(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -222,12 +215,11 @@ def delete(
     if not force:
         typer.confirm(f"Delete {data_source_id}?", abort=True)
     api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/dataSources/{data_source_id}"
+    url = f"https://webexapis.com/v1/dataSources/{data_source_id}"
     try:
         api.session.rest_delete(url)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Deleted: {data_source_id}")
 
 

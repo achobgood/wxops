@@ -1,7 +1,7 @@
 import json
 import typer
-from wxcli.errors import WebexError, handle_rest_error
 from wxcli.auth import get_api
+from wxcli.errors import WebexError, handle_rest_error
 from wxcli.output import print_table, print_json
 from wxcli.config import get_org_id
 
@@ -13,6 +13,7 @@ app = typer.Typer(help="Manage Webex Calling call-controls.")
 def create(
     destination: str = typer.Option(None, "--destination", help="(required) The destination to be dialed. The destination can be digits"),
     endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the call. The"),
+    single_number_reach_phone_number: str = typer.Option(None, "--single-number-reach-phone-number", help="The Single Number Reach phone number to use for the call. Mu"),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
@@ -29,6 +30,8 @@ def create(
             body["destination"] = destination
         if endpoint_id is not None:
             body["endpointId"] = endpoint_id
+        if single_number_reach_phone_number is not None:
+            body["singleNumberReachPhoneNumber"] = single_number_reach_phone_number
         if line_owner_id is not None:
             body["lineOwnerId"] = line_owner_id
         _missing = [f for f in ['destination'] if f not in body or body[f] is None]
@@ -38,7 +41,7 @@ def create(
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "callId" in result:
@@ -81,7 +84,7 @@ def create_answer_calls(
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -122,7 +125,7 @@ def create_reject(
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -160,7 +163,7 @@ def create_hangup_calls(
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -198,7 +201,7 @@ def create_hold(
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -236,7 +239,7 @@ def create_resume(
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -274,7 +277,7 @@ def create_mute(
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -312,7 +315,7 @@ def create_unmute(
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -356,7 +359,7 @@ def create_divert(
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -396,7 +399,7 @@ def create_transfer(
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "callId" in result:
@@ -442,7 +445,7 @@ def create_park(
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -458,6 +461,7 @@ def create_park(
 def create_retrieve(
     destination: str = typer.Option(None, "--destination", help="Identifies where the call is parked. The number field from t"),
     endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the retrieval"),
+    single_number_reach_phone_number: str = typer.Option(None, "--single-number-reach-phone-number", help="The Single Number Reach phone number to use for the retrieva"),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
@@ -474,12 +478,14 @@ def create_retrieve(
             body["destination"] = destination
         if endpoint_id is not None:
             body["endpointId"] = endpoint_id
+        if single_number_reach_phone_number is not None:
+            body["singleNumberReachPhoneNumber"] = single_number_reach_phone_number
         if line_owner_id is not None:
             body["lineOwnerId"] = line_owner_id
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "callId" in result:
@@ -515,7 +521,7 @@ def create_start_recording(
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -549,7 +555,7 @@ def create_stop_recording(
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -583,7 +589,7 @@ def create_pause_recording(
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -617,7 +623,7 @@ def create_resume_recording(
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -654,7 +660,7 @@ def create_transmit_dtmf(
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -688,7 +694,7 @@ def create_push(
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -704,6 +710,7 @@ def create_push(
 def create_pickup(
     target: str = typer.Option(None, "--target", help="Identifies the user to pickup an incoming call from. If not"),
     endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the pickup. T"),
+    single_number_reach_phone_number: str = typer.Option(None, "--single-number-reach-phone-number", help="The Single Number Reach phone number to use for the pickup."),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
@@ -720,12 +727,14 @@ def create_pickup(
             body["target"] = target
         if endpoint_id is not None:
             body["endpointId"] = endpoint_id
+        if single_number_reach_phone_number is not None:
+            body["singleNumberReachPhoneNumber"] = single_number_reach_phone_number
         if line_owner_id is not None:
             body["lineOwnerId"] = line_owner_id
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "callId" in result:
@@ -743,6 +752,7 @@ def create_pickup(
 def create_barge_in(
     target: str = typer.Option(None, "--target", help="(required) Identifies the user to barge-in on. The target can be digits"),
     endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the barge-in."),
+    single_number_reach_phone_number: str = typer.Option(None, "--single-number-reach-phone-number", help="The Single Number Reach phone number to use for the barge-in"),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
@@ -759,6 +769,8 @@ def create_barge_in(
             body["target"] = target
         if endpoint_id is not None:
             body["endpointId"] = endpoint_id
+        if single_number_reach_phone_number is not None:
+            body["singleNumberReachPhoneNumber"] = single_number_reach_phone_number
         if line_owner_id is not None:
             body["lineOwnerId"] = line_owner_id
         _missing = [f for f in ['target'] if f not in body or body[f] is None]
@@ -768,7 +780,7 @@ def create_barge_in(
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "callId" in result:
@@ -803,9 +815,9 @@ def cmd_list(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -829,7 +841,7 @@ def show(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -863,9 +875,9 @@ def list_history(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -895,7 +907,7 @@ def create_pull(
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "callId" in result:
@@ -914,6 +926,7 @@ def create_dial(
     member_id: str = typer.Argument(help="memberId"),
     destination: str = typer.Option(None, "--destination", help="(required) The destination to be dialed. The destination can be digits"),
     endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the call. The"),
+    single_number_reach_phone_number: str = typer.Option(None, "--single-number-reach-phone-number", help="The Single Number Reach phone number to use for the call. Mu"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -933,6 +946,8 @@ def create_dial(
             body["destination"] = destination
         if endpoint_id is not None:
             body["endpointId"] = endpoint_id
+        if single_number_reach_phone_number is not None:
+            body["singleNumberReachPhoneNumber"] = single_number_reach_phone_number
         _missing = [f for f in ['destination'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
@@ -940,7 +955,7 @@ def create_dial(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "callId" in result:
@@ -985,7 +1000,7 @@ def create_answer_members(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -1025,7 +1040,7 @@ def create_hangup_members(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -1059,9 +1074,9 @@ def list_calls(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -1086,7 +1101,7 @@ def show_calls(
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:

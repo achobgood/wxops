@@ -253,7 +253,7 @@ The response includes a new `access_token` (and potentially a renewed `refresh_t
 | Token | Lifetime | Renewal |
 |-------|----------|---------|
 | Access token | 14 days | Refresh using refresh token |
-| Refresh token | 90 days | Automatically renewed each time you generate a new access token |
+| Refresh token | 90 days | 90-day expiry clock resets each time you make a refresh call (use the refresh token to generate a new access token). Simply using the access token does NOT reset it. |
 | Client secret | Does not expire | Regenerate via developer portal if compromised |
 
 **For long-lived automations**, Webex recommends a 3-tier pattern:
@@ -394,6 +394,9 @@ Since bot tokens never expire, no refresh logic is needed.
 
 ## Guest Issuer Tokens
 
+> **⚠️ End of Life — December 31, 2025**
+> The Guest Issuer API has been deprecated and reached End of Life on December 31, 2025. New Guest Issuer applications can no longer be created. Existing applications should migrate to **Service Apps** with guest management functionality. The section below is retained for reference only.
+
 Guest Issuer tokens create temporary, anonymous guest users for scenarios like customer-facing meetings or support sessions.
 
 **Key facts:**
@@ -403,7 +406,7 @@ Guest Issuer tokens create temporary, anonymous guest users for scenarios like c
 
 ### Gotchas
 
-- **Guest token lifetime is variable, set by `expiresIn` in the response.** The OpenAPI spec example shows `expiresIn: 64799` (~18 hours), but the actual lifetime is returned per-token at creation time via the `expiresIn` field. The SDK `Guest` model exposes this as `expires_in` and computes `expires_at` from it. There is no single fixed lifetime — it depends on org/service-app configuration.
+- **Guest token lifetime is variable, set by `expiresIn` in the response.** The OpenAPI spec example shows `expiresIn: 64799` (~6 hours), but the actual lifetime is returned per-token at creation time via the `expiresIn` field. The SDK `Guest` model exposes this as `expires_in` and computes `expires_at` from it. There is no single fixed lifetime — it depends on org/service-app configuration.
 
 ---
 
@@ -902,7 +905,7 @@ The SDK masks `Authorization` headers as `Bearer ***` and redacts `access_token`
 - **call-controls requires user-level OAuth.** Admin tokens and service-app tokens get HTTP 400 "Target user not authorized" on `/telephony/calls` endpoints. Use a calling-licensed user's OAuth token for call control operations.
 - **`spark-admin:` scopes require full org admin.** If the authorizing user is a read-only admin or compliance officer, requests to admin endpoints will return 403 even with the correct scopes listed on the integration.
 - **Personal access tokens carry all scopes silently.** A personal access token for an org admin includes all `spark-admin:` scopes without requesting them, which can mask scope-related bugs that appear only in production integrations.
-- **Service app refresh tokens can expire.** Although the initial refresh token is long-lived, if it is not used within its expiry window the service app must be re-authorized by an org admin.
+- **Service app refresh tokens can expire.** Although the initial refresh token is long-lived, if it is not used **to generate a new access token** within 90 days, it expires and the service app must be re-authorized by an org admin. Simply using the access token does not reset the 90-day clock — only making a refresh call does.
 
 ---
 
@@ -942,6 +945,8 @@ These features/APIs are **not supported** in FedRAMP deployments:
 - **Service App tokens** (`spark:applications_token` scope): NOT supported in FedRAMP
 - **Bot/Integration creation**: Must use REST API (`POST /applications`), not the developer portal UI
 - **Application webhooks** (`application:webhooks_write/read`): NOT supported
+- **OAuth integration refresh token lifetime:** 60 days in FedRAMP (vs. 90 days in commercial). The 60-day clock resets each time a refresh call is made.
+- **Guest Issuer tokens:** Not supported in FedRAMP (and globally EOL'd December 31, 2025 — see Guest Issuer section).
 
 ### wxcli Usage
 
