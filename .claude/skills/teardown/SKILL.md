@@ -11,6 +11,15 @@ argument-hint: [scope — e.g. "DP-HQ-Phones", "all GlobalTech locations", "enti
 
 Delete Webex Calling resources in the correct dependency order. Use `wxcli cleanup` for automated batch teardown, or follow the manual procedure below.
 
+## Step 1: Load references
+
+1. Read `.claude/rules/cleanup.md` for all cleanup flags, 13-layer deletion order, and known behaviors
+2. For manual teardown (not using `wxcli cleanup`): Read `docs/reference/call-routing.md` (routing delete semantics) and `docs/reference/devices-core.md` (device delete flow)
+
+**Mandatory --help verification:** Before constructing any manual delete command, run `wxcli <group> --help` to verify the delete subcommand name exists, then `wxcli <group> <subcommand> --help` to verify the exact flags. Do NOT guess delete command names — routing deletes use PLURAL names (`delete-route-groups`, not `delete-route-group`). Feature deletes use `--force LOCATION_ID FEATURE_ID` argument order.
+
+---
+
 **Checkpoint — do NOT proceed until you can answer these:**
 1. What resource type must be deleted BEFORE disable-calling can succeed on a location? (Answer: workspaces)
 2. What is the correct argument order for location-scoped feature deletes? (Answer: `--force LOCATION_ID FEATURE_ID` — location comes FIRST)
