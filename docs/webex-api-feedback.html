@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Webex API Feedback — Cisco Collaboration BU</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=Inter:wght@400;500;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #faf9f7;
+    --surface: #ffffff;
+    --text: #1a1f25;
+    --text-secondary: #4a5056;
+    --text-muted: #7a8086;
+    --border: #d4d1cc;
+    --border-light: #e8e6e2;
+    --accent: #8b4513;
+    --critical-bg: #f8e8e8;
+    --critical-text: #8b1a1a;
+    --critical-border: #d4a0a0;
+    --high-bg: #f5ead6;
+    --high-text: #7a5c1f;
+    --high-border: #d4bc7a;
+    --medium-bg: #e8e8e8;
+    --medium-text: #4a4a4a;
+    --medium-border: #b0b0b0;
+  }
+
+  body {
+    font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    font-size: 17px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page-header {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 80px 40px 0;
+  }
+
+  .page-header h1 {
+    font-size: 38px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+    margin-bottom: 8px;
+  }
+
+  .page-header .subtitle {
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    margin-bottom: 40px;
+  }
+
+  .exec-summary {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 40px 48px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .exec-summary p {
+    color: var(--text-secondary);
+    font-size: 19px;
+    line-height: 1.8;
+    max-width: 680px;
+  }
+
+  .exec-summary p em {
+    font-style: italic;
+    color: var(--text);
+  }
+
+  .stats-bar {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 32px 40px;
+    display: flex;
+    gap: 48px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'Inter', -apple-system, sans-serif;
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .stat-number {
+    font-size: 32px;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .stat-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-top: 6px;
+  }
+
+  .filters {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 24px 40px;
+    display: flex;
+    gap: 10px;
+    font-family: 'Inter', -apple-system, sans-serif;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 10;
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .filter-btn {
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 16px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .filter-btn:hover {
+    border-color: var(--text-secondary);
+    color: var(--text);
+  }
+
+  .filter-btn.active {
+    background: var(--text);
+    color: var(--surface);
+    border-color: var(--text);
+  }
+
+  .content {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 40px 120px;
+  }
+
+  .category {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .category-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 32px 0 16px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .category-header:hover .category-title {
+    color: var(--accent);
+  }
+
+  .category-title {
+    font-size: 15px;
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+    transition: color 0.15s;
+  }
+
+  .category-count {
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .category-toggle {
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 18px;
+    color: var(--text-muted);
+    font-weight: 300;
+    width: 24px;
+    text-align: center;
+    flex-shrink: 0;
+    margin-left: 16px;
+  }
+
+  .category-left {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+
+  .category-body {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.35s ease;
+  }
+
+  .category.open .category-body {
+    max-height: none;
+  }
+
+  .issue {
+    padding: 20px 0;
+    border-top: 1px solid var(--border-light);
+  }
+
+  .issue:first-child {
+    border-top: none;
+  }
+
+  .issue-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .issue-header:hover .issue-title {
+    color: var(--accent);
+  }
+
+  .issue-number {
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    min-width: 24px;
+    padding-top: 3px;
+    flex-shrink: 0;
+  }
+
+  .issue-title {
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.4;
+    flex: 1;
+    transition: color 0.15s;
+  }
+
+  .severity {
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    padding: 3px 10px;
+    flex-shrink: 0;
+    margin-top: 3px;
+  }
+
+  .severity-critical {
+    background: var(--critical-bg);
+    color: var(--critical-text);
+    border: 1px solid var(--critical-border);
+  }
+
+  .severity-high {
+    background: var(--high-bg);
+    color: var(--high-text);
+    border: 1px solid var(--high-border);
+  }
+
+  .severity-medium {
+    background: var(--medium-bg);
+    color: var(--medium-text);
+    border: 1px solid var(--medium-border);
+  }
+
+  .issue-detail {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.3s ease;
+    margin-left: 36px;
+  }
+
+  .issue.open .issue-detail {
+    max-height: none;
+  }
+
+  .issue-detail-inner {
+    padding: 20px 0 8px;
+  }
+
+  .detail-section {
+    margin-bottom: 20px;
+  }
+
+  .detail-section:last-child {
+    margin-bottom: 0;
+  }
+
+  .detail-label {
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .detail-text {
+    font-size: 16px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  .detail-text code {
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 14px;
+    background: #f0eeea;
+    padding: 2px 6px;
+    color: var(--text);
+  }
+
+  .evidence-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0;
+    font-size: 14px;
+    font-family: 'Inter', -apple-system, sans-serif;
+  }
+
+  .evidence-table th {
+    text-align: left;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    padding: 8px 12px;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .evidence-table td {
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--border-light);
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .evidence-table td code {
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 12px;
+    background: #f0eeea;
+    padding: 1px 5px;
+  }
+
+  .suggested-fix {
+    background: #f5f3ef;
+    border-left: 3px solid var(--accent);
+    padding: 14px 18px;
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text-secondary);
+  }
+
+  .closing {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 64px 40px;
+    border-top: 2px solid var(--text);
+  }
+
+  .closing p {
+    font-size: 19px;
+    line-height: 1.8;
+    color: var(--text-secondary);
+    max-width: 680px;
+  }
+
+  .closing p strong {
+    color: var(--text);
+  }
+
+  @media (max-width: 640px) {
+    .page-header { padding: 48px 24px 0; }
+    .page-header h1 { font-size: 28px; }
+    .exec-summary, .content, .closing { padding-left: 24px; padding-right: 24px; }
+    .stats-bar { padding: 24px; gap: 32px; flex-wrap: wrap; }
+    .filters { padding: 16px 24px; flex-wrap: wrap; }
+    .issue-title { font-size: 16px; }
+    .issue-detail { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="subtitle">Prepared by Adam Hobgood &mdash; May 2026</div>
+  <h1>Webex API Surface: 34 Issues That Affect Every Integrator</h1>
+</div>
+
+<div class="exec-summary">
+  <p>
+    The Webex APIs are functionally broad. Most things an admin needs to do can be done programmatically,
+    and the individual endpoints mostly work. The pain is in <em>the seams between them</em>&thinsp;:
+    inconsistent auth models, hidden data, unpredictable response shapes, misleading status codes,
+    no dependency graph, no bulk path, and async operations with no tracking. Every integrator ends up
+    building the same workaround layer independently.
+  </p>
+</div>
+
+<div class="stats-bar">
+  <div class="stat">
+    <div class="stat-number">34</div>
+    <div class="stat-label">Total Issues</div>
+  </div>
+  <div class="stat">
+    <div class="stat-number">4</div>
+    <div class="stat-label">Critical</div>
+  </div>
+  <div class="stat">
+    <div class="stat-number">17</div>
+    <div class="stat-label">High</div>
+  </div>
+  <div class="stat">
+    <div class="stat-number">13</div>
+    <div class="stat-label">Medium</div>
+  </div>
+  <div class="stat">
+    <div class="stat-number">8</div>
+    <div class="stat-label">Categories</div>
+  </div>
+</div>
+
+<div class="filters">
+  <button class="filter-btn active" data-filter="all">All 34</button>
+  <button class="filter-btn" data-filter="critical">Critical</button>
+  <button class="filter-btn" data-filter="high">High</button>
+  <button class="filter-btn" data-filter="medium">Medium</button>
+</div>
+
+<div class="content" id="content"></div>
+
+<div class="closing">
+  <p>
+    <strong>These issues share a common thread: the API's individual endpoints mostly work&thinsp;&mdash;&thinsp;the
+    pain is in the seams between them.</strong> Inconsistent auth models, hidden data, misleading status codes,
+    no dependency graph, no bulk path, no consistent async pattern. Every integrator builds the same
+    workaround layer independently. Pushing that layer into the platform would be the single
+    highest-leverage investment for developer experience.
+  </p>
+</div>
+
+<script>
+const DATA = [
+{
+  name: "Authentication & Authorization Gaps",
+  issues: [
+    {
+      num: 1, severity: "critical",
+      title: "19 person call settings have no admin endpoint",
+      what: "Settings including <code>simultaneousRing</code>, <code>sequentialRing</code>, <code>priorityAlert</code>, <code>callNotify</code>, <code>anonymousCallReject</code>, <code>callBlock</code>, <code>callCaptions</code>, <code>preferredAnswerEndpoint</code>, <code>guestCalling</code>, and <code>modeManagement</code> only exist at <code>/telephony/config/people/me/settings/{feature}</code>. Admin tokens get 404. There is no <code>/telephony/config/people/{personId}/</code> equivalent.",
+      evidence: "Confirmed across all 19 endpoints. Admin tokens (PAT, service app, OAuth with <code>spark-admin:*</code> scopes) all return 404. Only user-level OAuth with <code>spark:people_*</code> scopes works.",
+      impact: "A partner or admin managing hundreds of users cannot programmatically configure these settings. Each user requires their own OAuth token. At scale, this forces admins back to Control Hub click-ops for settings that are trivially scriptable for every other call setting.",
+      fix: "Add admin-path equivalents (<code>/telephony/config/people/{personId}/settings/{feature}</code>) for all 19 endpoints. Every other person call setting has both paths."
+    },
+    {
+      num: 2, severity: "critical",
+      title: "Personal Access Tokens don’t carry Contact Center scopes",
+      what: "A full org admin on a Contact Center-licensed org gets 403 on every <code>cc-*</code> endpoint when using a Personal Access Token. The only path is to create a dedicated OAuth integration with <code>cjp:config_read</code> / <code>cjp:config_write</code> explicitly selected and run a separate auth flow.",
+      evidence: "Tested with full admin PATs on CC-licensed orgs. All CC API calls return 403. Confirmed that a separate OAuth integration with explicit <code>cjp:config_*</code> scopes resolves it.",
+      impact: "This is the only API domain in the entire Webex platform where “full admin” doesn’t actually mean full admin. It creates a two-tier auth experience that confuses every admin who encounters it. The error message (generic 403) doesn’t explain the scope requirement.",
+      fix: "If the org has CC and the user is a full admin, the PAT should carry <code>cjp:config_read</code> at minimum. Alternatively, surface the scope requirement in the 403 error body."
+    },
+    {
+      num: 3, severity: "high",
+      title: "Reports API requires Pro Pack license — error doesn’t say so",
+      what: "The Reports API (templates, scheduled reports) requires a Pro Pack license add-on. The CDR Feed API does not. When you lack Pro Pack, you get a generic 403 with no indication that licensing is the issue.",
+      evidence: "403 on Reports API calls with valid admin tokens on non-Pro-Pack orgs. CDR Feed (<code>/v1/analytics/cdr_feed</code>) works fine with the same token.",
+      impact: "Admins spend time debugging auth/scope issues when the real problem is licensing. The debugging path is completely wrong — you check tokens, scopes, and roles before eventually discovering a product-tier dependency that isn’t documented in the API response.",
+      fix: "Return a 403 with a body that includes <code>\"reason\": \"Pro Pack license required\"</code>. Document the licensing requirement in the OpenAPI spec description for affected endpoints."
+    }
+  ]
+},
+{
+  name: "Data Shape & Response Inconsistency",
+  issues: [
+    {
+      num: 4, severity: "high",
+      title: "Response list keys are unpredictable",
+      what: "There is no convention for the key name in paginated list responses. You cannot predict the key from the endpoint URL, resource type, or any other pattern.",
+      evidence_table: {
+        headers: ["Endpoint", "Expected Key", "Actual Key"],
+        rows: [
+          ["<code>/telephony/config/numbers</code>", "<code>numbers</code>", "<code>phoneNumbers</code>"],
+          ["<code>/workspaces</code>", "<code>workspaces</code>", "<code>items</code>"],
+          ["<code>/telephony/config/jobs/numbers/manageNumbers</code>", "<code>manageNumbers</code>", "<code>items</code>"],
+          ["<code>/telephony/config/paging</code>", "<code>paging</code>", "<code>locationPaging</code>"],
+          ["<code>/telephony/config/outgoingPermission</code>", "<code>outgoingPermission</code>", "<code>callingPermissions</code>"],
+          ["<code>/telephony/config/supportedDevices</code>", "<code>supportedDevices</code>", "<code>devices</code>"],
+          ["<code>/telephony/config/autoAttendants/availableNumbers</code>", "<code>availableNumbers</code>", "<code>phoneNumbers</code>"],
+          ["CC v2 list endpoints", "<code>items</code>", "<code>data</code>"]
+        ]
+      },
+      impact: "Every list endpoint requires trial-and-error to find the correct response key. We maintain a 60+ entry override table just for response keys.",
+      fix: "Standardize on one convention. The simplest: all list endpoints return <code>{\"items\": [...]}</code>. If backward-compatibility prevents that, document the response key in every list endpoint’s OpenAPI response schema."
+    },
+    {
+      num: 5, severity: "high",
+      title: "Member/agent format differs across features",
+      what: "The same concept — “a list of members/agents” — uses three different JSON shapes depending on the feature.",
+      evidence_table: {
+        headers: ["Feature", "Format", "Example"],
+        rows: [
+          ["Hunt Group, Call Queue", "Array of objects", "<code>[{\"id\": \"person_id\"}]</code>"],
+          ["Call Pickup, Paging Group", "Array of plain strings", "<code>[\"person_id\"]</code>"],
+          ["Dial Plan (create)", "Array of plain strings", "<code>[\"+1!\"]</code>"],
+          ["Dial Plan (modify)", "Array of action objects", "<code>[{\"dialPattern\": \"+1!\", \"action\": \"ADD\"}]</code>"]
+        ]
+      },
+      impact: "Every integrator discovers this through 400 errors. Using <code>[{\"id\": ...}]</code> for pickup/paging produces <code>400 \"Invalid field value: agents/targets\"</code>. The dial plan create-vs-modify difference is particularly surprising.",
+      fix: "Standardize member arrays to <code>[{\"id\": \"...\"}]</code> across all features. For dial plan patterns, use the same shape for create and modify."
+    },
+    {
+      num: 6, severity: "medium",
+      title: "Notification type serialization asymmetry",
+      what: "The <code>notification_type</code> field in person voicemail settings returns the string <code>\"None\"</code> on GET but requires JSON <code>null</code> on PUT.",
+      evidence: "GET response contains <code>\"notificationType\": \"None\"</code>. Sending that value back on PUT fails. Must send <code>\"notificationType\": null</code>.",
+      impact: "Breaks any naive read-modify-write pattern. The API returns a value that it won’t accept back.",
+      fix: "Accept both <code>\"None\"</code> (string) and <code>null</code> on write, or return <code>null</code> on read. The API should accept any value it produces."
+    },
+    {
+      num: 7, severity: "medium",
+      title: "Language codes must be lowercase — not documented, no helpful error",
+      what: "The <code>announcementLanguage</code> field rejects standard locale codes like <code>en_US</code> and requires the non-standard lowercase form <code>en_us</code>.",
+      evidence: "<code>PUT /telephony/config/locations/{id}</code> with <code>\"announcementLanguage\": \"en_US\"</code> returns 400. <code>\"en_us\"</code> succeeds.",
+      impact: "Standard locale libraries produce <code>en_US</code>. Every integrator has to add a <code>.lower()</code> call and discover this through failed requests.",
+      fix: "Accept both <code>en_US</code> and <code>en_us</code>. If case-sensitive, document the requirement in the field description and include the expected format in the error message."
+    },
+    {
+      num: 8, severity: "medium",
+      title: "announcementLanguage returns None on read even when set",
+      what: "After successfully setting <code>announcementLanguage</code> via PUT, the subsequent GET response returns <code>null</code> for this field.",
+      evidence: "Confirmed on <code>GET /telephony/config/locations/{id}</code> after setting <code>announcementLanguage</code> to <code>en_us</code>. The field reads back as <code>null</code>.",
+      impact: "Breaks any audit or configuration-drift detection that relies on reading current state. You can’t verify that a language was set correctly because the API won’t tell you what it’s currently set to.",
+      fix: "Return the actual configured value on GET."
+    }
+  ]
+},
+{
+  name: "Path & Naming Inconsistency",
+  issues: [
+    {
+      num: 9, severity: "high",
+      title: "Two parallel path families for person call settings",
+      what: "Person settings are split across two URL path patterns with different command naming. Classic: <code>/people/{id}/features/{setting}</code> for callForwarding, callWaiting, doNotDisturb. Newer: <code>/telephony/config/people/{id}/{setting}</code> for singleNumberReach, selectiveAccept, musicOnHold. Some settings exist in both with different names.",
+      evidence: "At least 6 settings have overlapping paths across both families. Getting the wrong path returns 404 with no redirect or suggestion.",
+      impact: "Integrators must know which path family each setting belongs to. SDK wrappers maintain a per-setting path mapping. The 404 error gives no indication which path is correct.",
+      fix: "Consolidate to one path family. If both must coexist, cross-reference them in error responses: \"This setting is available at /telephony/config/people/{id}/singleNumberReach.\""
+    },
+    {
+      num: 10, severity: "high",
+      title: "Device API has two surfaces with different ID encodings",
+      what: "<code>/v1/devices</code> and <code>/v1/telephony/config/devices</code> are parallel APIs for the same physical devices. They use different ID encodings. Tags use <code>application/json-patch+json</code> content type (unique across the entire API surface). Settings endpoints require a <code>deviceModel</code> query parameter.",
+      evidence: "A device created via <code>/v1/devices</code> has a different ID format than the same device returned by <code>/v1/telephony/config/devices</code>. The tags PATCH endpoint is the only one across all Webex APIs that uses JSON Patch content type.",
+      impact: "Building a complete device management workflow requires using both API surfaces and translating between ID formats. The JSON Patch content type breaks generic API clients.",
+      fix: "Unify the device API surfaces or provide a documented ID translation mechanism. Standardize the content type to <code>application/json</code>."
+    },
+    {
+      num: 11, severity: "high",
+      title: "Contact Center is a separate API universe",
+      what: "CC APIs differ from the rest of Webex in every dimension: base URL, scopes, org ID format, response keys, and path conventions.",
+      evidence_table: {
+        headers: ["Dimension", "Webex APIs", "CC APIs"],
+        rows: [
+          ["Base URL", "<code>webexapis.com</code>", "<code>api.wxcc-{region}.cisco.com</code>"],
+          ["Scopes", "<code>spark-admin:*</code>", "<code>cjp:config_*</code>"],
+          ["Org ID format", "Base64 Spark ID", "Bare UUID"],
+          ["Response key", "<code>items</code>", "<code>data</code>"],
+          ["JDS scopes", "N/A", "<code>cjds:*</code> (separate again)"],
+          ["Path families", "1-2", "5+ within CC alone"]
+        ]
+      },
+      impact: "An integrator who has learned the Webex API conventions has to unlearn all of them for CC. The org ID translation (base64 decode + extract UUID) is particularly error-prone.",
+      fix: "If full consolidation isn't feasible, publish a Webex-to-CC translation guide as a first-class resource. At minimum, accept both ID formats on CC endpoints."
+    },
+    {
+      num: 12, severity: "medium",
+      title: "Three audit/event APIs with overlapping names",
+      what: "<code>audit-events</code>, <code>security-audit</code>, and <code>events</code> are three separate APIs with different scopes, different data, and different pagination patterns. They sound interchangeable but aren't.",
+      evidence: "Each requires different scopes (<code>spark-admin:events_read</code> vs <code>spark-compliance:events_read</code> vs <code>audit:events_read</code>). They return different event types with different schemas.",
+      impact: "An admin looking for \"what happened in my org\" has to know which of three APIs to query. The naming gives no indication of which to choose.",
+      fix: "Publish a decision tree or consolidate into a unified event query endpoint with filters for event category."
+    },
+    {
+      num: 13, severity: "medium",
+      title: "Meeting API endpoint naming collisions",
+      what: "Generic operation names (<code>create</code>, <code>list</code>, <code>show</code>) map to semantically different operations than expected. Meeting \"create\" for participants is actually \"Query by Email\" (a POST search). Video Mesh \"list\" maps to client type distribution. <code>live-monitoring create</code> is semantically a read operation.",
+      evidence: "The POST-as-search pattern appears in at least 4 endpoint groups across meetings and admin APIs.",
+      impact: "<code>operationId</code> values in the spec actively mislead. Code generators produce function names that don't match the operation's semantics.",
+      fix: "Use descriptive <code>operationId</code> values: <code>queryParticipantsByEmail</code>, <code>getClientTypeDistribution</code>. Reserve <code>create</code> for operations that create resources."
+    },
+    {
+      num: 14, severity: "medium",
+      title: "Virtual extension/line ID type mismatch",
+      what: "Virtual extensions use <code>VIRTUAL_EXTENSION</code>-encoded IDs in their endpoint paths, but virtual lines (conceptually the same objects) use <code>VIRTUAL_LINE</code>-encoded IDs. The numbers API returns <code>VIRTUAL_LINE</code> IDs.",
+      evidence: "Using a <code>VIRTUAL_LINE</code> ID against a <code>virtualExtensions/</code> endpoint consistently returns 400. The numbers API is the primary discovery mechanism, making this mismatch unavoidable.",
+      impact: "Any automation that discovers virtual lines via the numbers API and then manages them via the virtual extensions API fails. We use raw REST as a workaround.",
+      fix: "Accept both ID encodings on both endpoint families, or consolidate to one path family."
+    }
+  ]
+},
+{
+  name: "Silent Failures & Misleading Responses",
+  issues: [
+    {
+      num: 15, severity: "critical",
+      title: "Supervisor delete returns 204 but supervisor persists",
+      what: "<code>DELETE /telephony/config/supervisors/{id}</code> returns HTTP 204 (No Content) — the standard success response for deletions. The supervisor is not actually deleted.",
+      evidence: "Confirmed repeatedly. Workaround: use <code>PUT /telephony/config/supervisors/{id}</code> with <code>{\"supervisors\": [{\"id\": \"...\", \"action\": \"DELETE\"}]}</code> on each agent instead.",
+      impact: "A 204 is a contract that the deletion succeeded. Any automation that deletes a supervisor and proceeds based on the 204 will have data integrity issues. This is not a gotcha — it's a bug that violates HTTP semantics.",
+      fix: "Either make the DELETE endpoint actually delete, or return a 4xx/5xx indicating the operation isn't supported via DELETE."
+    },
+    {
+      num: 16, severity: "high",
+      title: "CX Essentials queues hidden in default call queue list",
+      what: "<code>GET /telephony/config/queues</code> silently omits all Customer Assist (CX Essentials) queues unless <code>hasCxEssentials=true</code> is passed as a query parameter.",
+      evidence: "An org with 5 standard queues and 3 CX queues returns only 5 results without the flag. All 8 appear with <code>hasCxEssentials=true</code>.",
+      impact: "An admin listing \"all my queues\" doesn't see all their queues. Any audit, migration, or inventory tool that doesn't know about this flag will silently miss CX resources.",
+      fix: "Default to returning all queues the caller is authorized to see. Add a <code>type</code> filter for narrowing, not for revealing."
+    },
+    {
+      num: 17, severity: "high",
+      title: "HTTP 405 for license-gated workspace settings (should be 403)",
+      what: "Workspace <code>/telephony/config/</code> settings endpoints return HTTP 405 (Method Not Allowed) when the workspace has a Basic Calling license instead of Professional.",
+      evidence: "<code>GET /telephony/config/workspaces/{id}/callForwarding</code> returns 405 for Basic-license workspaces. Same endpoint returns 200 for Professional-license workspaces.",
+      impact: "405 means \"this HTTP method doesn't exist on this endpoint.\" Developers debug the wrong layer — checking methods, URLs, headers — when the answer is \"upgrade the license.\"",
+      fix: "Return 403 with a body indicating <code>\"reason\": \"Professional Calling license required\"</code>."
+    },
+    {
+      num: 18, severity: "high",
+      title: "Read-only fields silently ignored on write",
+      what: "Person call settings include fields like <code>greetingUploaded</code>, <code>systemMaxNumberOfRings</code>, and <code>voiceMessageForwardingEnabled</code> that are returned on GET but silently ignored on PUT.",
+      evidence: "Modifying <code>systemMaxNumberOfRings</code> in a PUT body produces a 200 response but no change. The field is read-only but not documented as such and not rejected.",
+      impact: "Read-modify-write cycles include these fields naturally. When a setting \"doesn't take,\" the developer has no signal that the field is read-only. Debugging requires process-of-elimination testing.",
+      fix: "Either reject requests containing read-only fields with a clear 400 error, or mark fields as <code>readOnly: true</code> in the OpenAPI schema."
+    },
+    {
+      num: 19, severity: "high",
+      title: "DECT handset assignment to Standard license silently disables Webex Calling",
+      what: "Adding a DECT handset to a person with a Standard Calling license silently disables Webex Calling across all their apps. No warning, no error, no confirmation prompt.",
+      evidence: "Confirmed during device provisioning testing. The API returns success, and the user's calling capability is broken.",
+      impact: "This is a destructive side effect of a routine provisioning operation. The API gives no indication that assigning a DECT handset will disable a user's calling. Discovery requires a support case.",
+      fix: "Return a 409 or 422 with a warning about the consequence, or block the operation entirely."
+    },
+    {
+      num: 20, severity: "medium",
+      title: "callingData=true silently caps page size from 500 to 100",
+      what: "Adding <code>callingData=true</code> to the People API (necessary to retrieve any calling-related fields) silently reduces the maximum page size from 500 to 100. Adding <code>locationId</code> further reduces it to 50.",
+      evidence: "<code>GET /people?max=500</code> returns up to 500 results. <code>GET /people?max=500&callingData=true</code> returns at most 100. No warning, no header, no documentation.",
+      impact: "An admin paginating through 2,000 users needs 4 requests without calling data but 20+ with it. The performance cliff is invisible until you notice truncated results.",
+      fix: "Document the cap reduction in the endpoint description. Return a <code>Link</code> header or <code>nextPage</code> field that makes pagination explicit regardless of cap."
+    }
+  ]
+},
+{
+  name: "Missing Capabilities",
+  issues: [
+    {
+      num: 21, severity: "critical",
+      title: "No location dependency discovery endpoint",
+      what: "Deleting a location fails with 409 if any resource is assigned to it. There is no endpoint that returns what's blocking the delete. You must query 13+ resource types individually.",
+      evidence: "Resources that can block location deletion include: users, workspaces, auto attendants, call queues, hunt groups, paging groups, call parks, call pickups, voicemail groups, DECT networks, virtual lines, trunks, route groups, phone numbers, and schedules. Each requires a separate API call scoped to the location.",
+      impact: "Every admin or automation tool that needs to clean up a location has to independently implement the same resource discovery loop. We built a 13-layer dependency resolver to handle this.",
+      fix: "Add <code>GET /telephony/config/locations/{id}/dependencies</code> that returns all resources referencing the location, grouped by type with IDs."
+    },
+    {
+      num: 22, severity: "high",
+      title: "No bulk calling settings API",
+      what: "Configuring calling settings (call forwarding, voicemail, DND, etc.) for multiple users requires individual API calls per user per setting. There is no batch or template-based endpoint.",
+      evidence: "Enabling call forwarding for 200 users requires 200 sequential PUT calls, each subject to rate limiting. SCIM has bulk operations for identity. Calling has nothing equivalent.",
+      impact: "The most common admin workflow — \"apply this configuration to these users\" — takes minutes of API calls and rate-limit management instead of one request.",
+      fix: "Add a batch endpoint: <code>POST /telephony/config/people/bulk/settings</code> accepting an array of <code>{personId, settings}</code> objects. Or a template-based approach with a list of person IDs."
+    },
+    {
+      num: 23, severity: "high",
+      title: "devices list caps at 100 results with no pagination or warning",
+      what: "<code>GET /v1/devices</code> returns at most 100 devices regardless of <code>max</code> parameter. There is no <code>hasMore</code> flag, no <code>Link</code> header, no indication that results are truncated.",
+      evidence: "An org with 300 devices silently receives 100. Combined with the absence of a <code>mac</code> query parameter, finding a specific device requires scoping by person or location and iterating manually.",
+      impact: "Any device inventory or audit tool built on this endpoint silently misses devices. There is no way to know you're getting partial results.",
+      fix: "Implement standard cursor-based pagination. Add a <code>mac</code> filter parameter. At minimum, include a <code>total</code> count in the response so callers know when results are truncated."
+    },
+    {
+      num: 24, severity: "medium",
+      title: "Video Mesh API is read-only — no programmatic provisioning",
+      what: "The Video Mesh API supports monitoring (clusters, nodes, health, utilization, event thresholds) but not provisioning or configuration changes. All setup requires the Control Hub UI.",
+      evidence: "<code>GET</code> endpoints exist for cluster/node inventory and metrics. No <code>POST</code>/<code>PUT</code>/<code>DELETE</code> endpoints for provisioning. <code>event-thresholds update</code> resets thresholds to defaults — it doesn't set custom values.",
+      impact: "Organizations automating their entire Webex deployment hit a manual gap at Video Mesh. The monitoring API's existence creates an expectation that configuration is also programmable.",
+      fix: "Add provisioning endpoints for cluster creation, node registration, and threshold customization."
+    },
+    {
+      num: 25, severity: "medium",
+      title: "Call Queue show-agents requires limit query parameter",
+      what: "<code>GET /telephony/config/queues/{id}/agents</code> — a simple GET-by-ID to retrieve the agent list for a specific queue — requires a <code>limit</code> query parameter. Without it, the endpoint returns 400.",
+      evidence: "<code>GET /telephony/config/queues/{queueId}/agents</code> returns 400. Adding <code>?limit=100</code> returns 200 with the agent list. The error message doesn't indicate that <code>limit</code> is the missing parameter.",
+      impact: "A GET-by-ID endpoint should not require pagination parameters to function at all.",
+      fix: "Default <code>limit</code> to a reasonable value (100 or the total agent count) when not provided."
+    }
+  ]
+},
+{
+  name: "Async Operations & State Management",
+  issues: [
+    {
+      num: 26, severity: "high",
+      title: "No consistent async operation tracking pattern",
+      what: "Async operations across the API use at least four different patterns — or no pattern at all.",
+      evidence_table: {
+        headers: ["Operation", "Returns", "Tracking Method"],
+        rows: [
+          ["Device create (9800-series)", "204, empty body", "None — poll devices list"],
+          ["Location disable calling", "200, immediate", "Job status endpoint (separate)"],
+          ["Activation email", "Job ID", "Poll job status"],
+          ["Number management jobs", "Job ID", "Poll job status"],
+          ["Location delete after disable", "409 for minutes/hours", "Retry and hope"]
+        ]
+      },
+      impact: "Every async operation requires a bespoke polling strategy. Integrators build and maintain separate async handlers per feature.",
+      fix: "Standardize: all async operations return a <code>202 Accepted</code> with a <code>Location</code> header pointing to a status endpoint. Status endpoints return <code>{status: \"pending\"|\"completed\"|\"failed\", result: {...}}</code>. Optionally fire a webhook on completion."
+    },
+    {
+      num: 27, severity: "high",
+      title: "Location delete 409 persists for minutes to hours after all resources removed",
+      what: "After removing every resource from a location and disabling calling, <code>DELETE /locations/{id}</code> continues to return 409 \"is being referenced\" for an indeterminate period. For CCP (Cisco Calling Plan) orgs, this can persist for 1-4 hours.",
+      evidence: "Confirmed in both standard and CCP orgs. <code>safe-delete-check</code> returns <code>UNBLOCKED</code>, yet DELETE still returns 409. No API endpoint indicates when the backend will be ready.",
+      impact: "Automated teardown workflows cannot determine when deletion will succeed. The only option is retry loops with arbitrary backoff. For CI/CD pipelines, this creates unpredictable pipeline durations.",
+      fix: "Add a <code>readyForDeletion</code> field to <code>safe-delete-check</code> or return a <code>Retry-After</code> header on the 409 with an estimated wait time."
+    },
+    {
+      num: 28, severity: "high",
+      title: "Schedule and entity IDs derived from names — rename changes ID",
+      what: "Schedule IDs are base64-encoded from the schedule name. Renaming a schedule changes its ID. The old ID returns 404 (or worse — returns 200 on delete but does nothing). This also affects Call Park, Call Pickup, and selective call forwarding rules.",
+      evidence: "Create schedule \"Business Hours\" → ID = <code>base64(\"Business Hours\")</code>. Rename to \"Office Hours\" → old ID returns 404. Any automation referencing the old ID breaks silently.",
+      impact: "Any system that stores resource IDs (webhooks, integrations, migration tools) has references invalidated by a rename. IDs should be immutable; names should be mutable metadata.",
+      fix: "Generate server-side UUIDs for all resource IDs. Names should be a mutable display field, not an ID-derivation input."
+    },
+    {
+      num: 29, severity: "medium",
+      title: "Webhook auto-deactivation with limited recovery",
+      what: "Webhooks that fail delivery repeatedly are auto-deactivated by the platform. You can reactivate or delete, but you cannot update the resource, event, or filter — only <code>name</code>, <code>targetUrl</code>, <code>secret</code>, and <code>status</code> are mutable after creation.",
+      evidence: "Documented in the webhooks API. Also: org-level <code>telephony_calls</code> webhooks work in practice but are absent from the OpenAPI spec.",
+      impact: "If your event subscription needs change, you must delete and recreate the webhook. Webhooks require external health monitoring that the API itself could provide.",
+      fix: "Allow updating <code>resource</code>, <code>event</code>, and <code>filter</code> on existing webhooks. Add a health/status endpoint for webhook delivery metrics. Document <code>telephony_calls</code> org-level events in the spec."
+    }
+  ]
+},
+{
+  name: "Validation & Input Handling",
+  issues: [
+    {
+      num: 30, severity: "high",
+      title: "PUT replaces entire resource — no PATCH on most endpoints",
+      what: "Most update endpoints use PUT with full-replace semantics. Omitting a field on update effectively deletes it. SCIM PUT is the most aggressive: omitting any attribute removes it from the user record.",
+      evidence: "<code>PUT /v1/scim/{orgId}/Users/{userId}</code> — any attribute not included in the body is deleted. The meetings API offers both PUT and PATCH variants (<code>update-meetings</code> vs <code>update-meetings-1</code>), proving the platform can support both.",
+      impact: "Every update requires a read-modify-write cycle. Any field you don't know about gets silently deleted. This doubles API calls and creates race conditions.",
+      fix: "Add PATCH endpoints alongside PUT. The meetings API already has this pattern — extend it to calling, identity, and device APIs."
+    },
+    {
+      num: 31, severity: "high",
+      title: "Translation pattern replacements reject all wildcards without clear errors",
+      what: "Matching patterns support wildcards (<code>X</code>, <code>[2-9]</code>, <code>!</code>), but replacement patterns reject every wildcard character. The error message says \"invalid pattern\" without specifying that wildcards are the issue.",
+      evidence: "<code>+1919666XXXX</code> fails. <code>+1212!</code> fails. <code>10XX</code> fails. Only fully specified E.164 strings like <code>+19196660000</code> succeed.",
+      impact: "Anyone coming from a CUCM or traditional PBX background expects wildcard replacements (which CUCM supports). The error gives no guidance on what's actually allowed.",
+      fix: "Say so explicitly in the error: \"Replacement patterns must be fully specified digits; wildcards (X, !, []) are only supported in match patterns.\" Document this in the API spec."
+    },
+    {
+      num: 32, severity: "medium",
+      title: "Trunk password character restrictions undocumented",
+      what: "Trunk password fields reject <code>?</code> and <code>!</code> characters with <code>400 \"Invalid characters ? or ! in password\"</code>. The restriction isn't in the OpenAPI spec or docs.",
+      evidence: "Confirmed during trunk provisioning. The error message is actually helpful — it names the invalid characters — but the restriction should be discoverable before runtime.",
+      impact: "Password generation logic has to be tested against live API calls to discover restrictions. The spec should encode these constraints.",
+      fix: "Add a <code>pattern</code> constraint to the password field in the OpenAPI spec. Document allowed characters in the field description."
+    },
+    {
+      num: 33, severity: "medium",
+      title: "Delete access codes uses PUT with deleteCodes array instead of HTTP DELETE",
+      what: "To delete specific location access codes, you send <code>PUT /telephony/config/locations/{id}/accessCodes</code> with a <code>deleteCodes</code> array in the body. There is no HTTP DELETE method for individual access codes.",
+      evidence: "The DELETE method is not available on the access codes endpoint. The PUT-with-deleteCodes pattern is unique across the Webex API surface.",
+      impact: "This violates REST conventions. Integrators using standard REST patterns will look for a DELETE endpoint that doesn't exist.",
+      fix: "Add <code>DELETE /telephony/config/locations/{id}/accessCodes/{codeId}</code> for individual code deletion. Keep the bulk PUT as an alternative."
+    }
+  ]
+},
+{
+  name: "OpenAPI Spec Quality",
+  issues: [
+    {
+      num: 34, severity: "high",
+      title: "OpenAPI specs need investment as a first-class product",
+      what: "The OpenAPI specs are the actual product for anyone building automation — not the docs site, not Control Hub. Current issues compound across four areas: missing/incorrect response schemas, incomplete request schemas, cross-spec inconsistency, and missing documentation in descriptions.",
+      evidence: "List endpoint response keys don't match the schema's predicted key (60+ endpoints affected). Complex nested body parameters are defined structurally but have no examples. 9 specs across 6 domains use different conventions for the same patterns. Read-only fields aren't marked, license requirements aren't documented, character restrictions aren't in field patterns, and async behavior isn't indicated.",
+      impact: "Every integration team building against these specs hits the same set of discrepancies. Code generators produce incorrect client code. The spec is supposed to be the contract — when it's incomplete, every consumer pays the debugging cost independently.",
+      fix: "Treat the specs as the primary deliverable: add inline examples for every endpoint with a request body, mark read-only fields with <code>readOnly: true</code>, use consistent <code>operationId</code> naming, document response keys in response schemas, add licensing/async behavior to descriptions, and publish a cross-spec style guide."
+    }
+  ]
+}
+];
+
+let activeFilter = 'all';
+
+function renderTable(tbl) {
+  let html = '<table class="evidence-table"><thead><tr>';
+  tbl.headers.forEach(h => { html += `<th>${h}</th>`; });
+  html += '</tr></thead><tbody>';
+  tbl.rows.forEach(row => {
+    html += '<tr>';
+    row.forEach(cell => { html += `<td>${cell}</td>`; });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  return html;
+}
+
+function renderIssue(issue) {
+  const sevClass = `severity-${issue.severity}`;
+  const sevLabel = issue.severity.charAt(0).toUpperCase() + issue.severity.slice(1);
+
+  let evidenceHtml = '';
+  if (issue.evidence_table) {
+    evidenceHtml = renderTable(issue.evidence_table);
+    if (issue.evidence) {
+      evidenceHtml += `<p class="detail-text" style="margin-top:10px">${issue.evidence}</p>`;
+    }
+  } else if (issue.evidence) {
+    evidenceHtml = `<p class="detail-text">${issue.evidence}</p>`;
+  }
+
+  return `
+    <div class="issue" data-severity="${issue.severity}">
+      <div class="issue-header" onclick="toggleIssue(this)">
+        <span class="issue-number">${issue.num}</span>
+        <span class="issue-title">${issue.title}</span>
+        <span class="severity ${sevClass}">${sevLabel}</span>
+      </div>
+      <div class="issue-detail">
+        <div class="issue-detail-inner">
+          <div class="detail-section">
+            <div class="detail-label">What happens</div>
+            <p class="detail-text">${issue.what}</p>
+          </div>
+          <div class="detail-section">
+            <div class="detail-label">Evidence</div>
+            ${evidenceHtml}
+          </div>
+          <div class="detail-section">
+            <div class="detail-label">Impact</div>
+            <p class="detail-text">${issue.impact}</p>
+          </div>
+          <div class="detail-section">
+            <div class="detail-label">Suggested fix</div>
+            <div class="suggested-fix">${issue.fix}</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function render() {
+  const container = document.getElementById('content');
+  let html = '';
+
+  DATA.forEach(cat => {
+    const filtered = cat.issues.filter(i =>
+      activeFilter === 'all' || i.severity === activeFilter
+    );
+    if (filtered.length === 0) return;
+
+    const counts = { critical: 0, high: 0, medium: 0 };
+    filtered.forEach(i => { counts[i.severity]++; });
+    const countParts = [];
+    if (counts.critical) countParts.push(`${counts.critical} critical`);
+    if (counts.high) countParts.push(`${counts.high} high`);
+    if (counts.medium) countParts.push(`${counts.medium} medium`);
+
+    html += `
+      <div class="category open">
+        <div class="category-header" onclick="toggleCategory(this)">
+          <div class="category-left">
+            <span class="category-title">${cat.name}</span>
+            <span class="category-count">${filtered.length} issue${filtered.length !== 1 ? 's' : ''} &mdash; ${countParts.join(', ')}</span>
+          </div>
+          <span class="category-toggle">&minus;</span>
+        </div>
+        <div class="category-body">
+          ${filtered.map(renderIssue).join('')}
+        </div>
+      </div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+function toggleCategory(header) {
+  const cat = header.closest('.category');
+  const toggle = cat.querySelector('.category-toggle');
+  cat.classList.toggle('open');
+  toggle.textContent = cat.classList.contains('open') ? '−' : '+';
+}
+
+function toggleIssue(header) {
+  const issue = header.closest('.issue');
+  issue.classList.toggle('open');
+}
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeFilter = btn.dataset.filter;
+    render();
+  });
+});
+
+render();
+</script>
+
+</body>
+</html>
