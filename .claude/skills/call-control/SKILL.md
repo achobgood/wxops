@@ -39,6 +39,8 @@ Load the reference docs needed for the requested operation. Load all three if th
 | `docs/reference/webhooks-events.md` | Webhook setup, telephony event subscriptions |
 | `docs/reference/wxcadm-xsi-realtime.md` | XSI real-time event streaming (wxcadm only) |
 
+**Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags. Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
+
 ---
 
 ## Step 2: Verify authentication

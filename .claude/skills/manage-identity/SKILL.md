@@ -23,6 +23,8 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
 1. Read `docs/reference/admin-identity-scim.md` for SCIM users, groups, bulk, schemas, identity org, and People/Groups API patterns
 2. Read `docs/reference/admin-org-management.md` for domains, org contacts, roles, and org settings
 
+**Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags. Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
+
 ## Step 2: Verify auth token is working
 
 Before any identity operation, confirm the token is valid and has appropriate scopes.
