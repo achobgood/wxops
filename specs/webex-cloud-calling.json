@@ -6211,6 +6211,655 @@
         ]
       }
     },
+    "/telephony/calls/members/me/dial": {
+      "post": {
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "callId",
+                    "callSessionId"
+                  ],
+                  "properties": {
+                    "callId": {
+                      "type": "string",
+                      "example": "Y2lzY29zcGFyazovL3VzL0NBTEwvQkNMRC9jYWxsaGFsZi00ODg6MA",
+                      "description": "A unique identifier for the call which is used in all subsequent commands for the same call."
+                    },
+                    "callSessionId": {
+                      "type": "string",
+                      "example": "MmFmNThiZjktYWE3Ny00NWE5LThiMDEtYzI4NDMxZWYwNzRm",
+                      "description": "A unique identifier for the call session the call belongs to. This can be used to correlate multiple calls that are part of the same call session."
+                    }
+                  },
+                  "example": {
+                    "callId": "string",
+                    "callSessionId": "string"
+                  }
+                },
+                "example": {
+                  "callId": "Y2lzY29zcGFyazovL3VzL0NBTEwvQkNMRC9jYWxsaGFsZi00ODg6MA",
+                  "callSessionId": "MmFmNThiZjktYWE3Ny00NWE5LThiMDEtYzI4NDMxZWYwNzRm"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Dial",
+        "operationId": "dial",
+        "description": "Initiate an outbound call to a specified destination. This is also commonly referred to as Click to Call or Click to Dial. Alerts occur on all the devices belonging to a user unless an optional endpointId is specified in which case only the device or application identified by the endpointId is alerted. When a user answers an alerting device, an outbound call is placed from that device to the destination.",
+        "tags": [
+          "Call Controls"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "destination": "+12223334444",
+                "endpointId": "Y2lzY29z...",
+                "singleNumberReachPhoneNumber": "+12223334444",
+                "lineOwnerId": "Y2lzY29z..."
+              },
+              "schema": {
+                "type": "object",
+                "required": [
+                  "destination"
+                ],
+                "properties": {
+                  "destination": {
+                    "type": "string",
+                    "example": "+12223334444",
+                    "description": "The destination to be dialed. The destination can be digits or a URI. Some examples for destination include: `1234`, `2223334444`, `+12223334444`, `*73`, `tel:+12223334444`, `user@company.domain`, and `sip:user@company.domain`."
+                  },
+                  "endpointId": {
+                    "type": "string",
+                    "example": "Y2lzY29z...",
+                    "description": "The ID of the device or application to use for the call. The `endpointId` must be one of the endpointIds returned by the [Get Preferred Answer Endpoint API](/docs/api/v1/user-call-settings-2-2/get-preferred-answer-endpoint). Mutually exclusive with `singleNumberReachPhoneNumber`."
+                  },
+                  "singleNumberReachPhoneNumber": {
+                    "type": "string",
+                    "example": "+12223334444",
+                    "description": "The Single Number Reach phone number to use for the call. Mutually exclusive with `endpointId`."
+                  },
+                  "lineOwnerId": {
+                    "type": "string",
+                    "example": "Y2lzY29z...",
+                    "description": "The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/telephony/calls/members/me/answer": {
+      "post": {
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {},
+            "content": {}
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Answer",
+        "operationId": "answer",
+        "description": "Answer an incoming call. When no endpointId is specified, the call is answered on the user's primary device. When an endpointId is specified, the call is answered on the device or application identified by the endpointId. The answer API is rejected if the device is not alerting for the call or the device does not support answer via API.",
+        "tags": [
+          "Call Controls"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "callId": "Y2lzY29zcGFyazovL3VzL0NBTEwvQkNMRC9jYWxsaGFsZi00ODg6MA",
+                "endpointId": "Y2lzY29z...",
+                "lineOwnerId": "Y2lzY29z..."
+              },
+              "schema": {
+                "type": "object",
+                "required": [
+                  "callId"
+                ],
+                "properties": {
+                  "callId": {
+                    "type": "string",
+                    "example": "Y2lzY29zcGFyazovL3VzL0NBTEwvQkNMRC9jYWxsaGFsZi00ODg6MA",
+                    "description": "The call identifier of the call to be answered."
+                  },
+                  "endpointId": {
+                    "type": "string",
+                    "example": "Y2lzY29z...",
+                    "description": "The ID of the device or application to answer the call on. The `endpointId` must be one of the endpointIds returned by the [Get Preferred Answer Endpoint API](/docs/api/v1/user-call-settings-2-2/get-preferred-answer-endpoint)."
+                  },
+                  "lineOwnerId": {
+                    "type": "string",
+                    "example": "Y2lzY29z...",
+                    "description": "The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/telephony/calls/members/me/hangup": {
+      "post": {
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {},
+            "content": {}
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Hangup",
+        "operationId": "hangup",
+        "description": "Hangup a call. If used on an unanswered incoming call, the call is rejected and sent to busy.",
+        "tags": [
+          "Call Controls"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "callId": "Y2lzY29zcGFyazovL3VzL0NBTEwvQkNMRC9jYWxsaGFsZi00ODg6MA",
+                "lineOwnerId": "Y2lzY29z..."
+              },
+              "schema": {
+                "type": "object",
+                "required": [
+                  "callId"
+                ],
+                "properties": {
+                  "callId": {
+                    "type": "string",
+                    "example": "Y2lzY29zcGFyazovL3VzL0NBTEwvQkNMRC9jYWxsaGFsZi00ODg6MA",
+                    "description": "The call identifier of the call to hangup."
+                  },
+                  "lineOwnerId": {
+                    "type": "string",
+                    "example": "Y2lzY29z...",
+                    "description": "The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/telephony/calls/members/me/calls": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Call"
+                      }
+                    }
+                  },
+                  "example": {
+                    "items": [
+                      {
+                        "id": "string",
+                        "callSessionId": "string",
+                        "personality": "originator",
+                        "state": "alerting",
+                        "remoteParty": {
+                          "privacyEnabled": false,
+                          "callType": "external"
+                        },
+                        "appearance": 1.23,
+                        "created": "string",
+                        "answered": "string",
+                        "redirections": [
+                          {
+                            "reason": "busy",
+                            "redirectingParty": {
+                              "status": "ok",
+                              "privacyEnabled": false,
+                              "callType": "location"
+                            }
+                          }
+                        ],
+                        "recall": {
+                          "type": "park"
+                        },
+                        "recordingState": "pending",
+                        "muteCapable": true,
+                        "muted": true
+                      }
+                    ]
+                  }
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": "Y2lzY29zcGFyazovL3VzL0NBTEwvQkNMRC9jYWxsaGFsZi00ODg6MA",
+                      "callSessionId": "MmFmNThiZjktYWE3Ny00NWE5LThiMDEtYzI4NDMxZWYwNzRm",
+                      "personality": "originator",
+                      "state": "connecting",
+                      "remoteParty": {
+                        "name": "John Smith",
+                        "number": "+12223334444",
+                        "personId": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9hMTlkODJhMi00ZTY5LTU5YWEtOWYyZi1iY2E2MzEwMTNhNjg=",
+                        "placeId": "Y2lzY29zcGFyazovL3VzL1BMQUNFL2ExOWQ4MmEyLTRlNjktNTlhYS05ZjJmLWJjYTYzMTAxM2E2OA==",
+                        "privacyEnabled": false,
+                        "callType": "location"
+                      },
+                      "appearance": 1,
+                      "created": "2016-04-21T17:00:00.000Z",
+                      "answered": "2016-04-21T17:00:00.000Z",
+                      "redirections": [
+                        {
+                          "reason": "busy",
+                          "redirectingParty": {
+                            "name": "John Smith",
+                            "number": "+12223334444",
+                            "personId": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9hMTlkODJhMi00ZTY5LTU5YWEtOWYyZi1iY2E2MzEwMTNhNjg=",
+                            "placeId": "Y2lzY29zcGFyazovL3VzL1BMQUNFL2ExOWQ4MmEyLTRlNjktNTlhYS05ZjJmLWJjYTYzMTAxM2E2OA==",
+                            "privacyEnabled": false,
+                            "callType": "location"
+                          }
+                        }
+                      ],
+                      "recall": {
+                        "type": "park",
+                        "party": {
+                          "name": "John Smith",
+                          "number": "+12223334444",
+                          "personId": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9hMTlkODJhMi00ZTY5LTU5YWEtOWYyZi1iY2E2MzEwMTNhNjg=",
+                          "placeId": "Y2lzY29zcGFyazovL3VzL1BMQUNFL2ExOWQ4MmEyLTRlNjktNTlhYS05ZjJmLWJjYTYzMTAxM2E2OA==",
+                          "privacyEnabled": false,
+                          "callType": "location"
+                        }
+                      },
+                      "recordingState": "pending",
+                      "muteCapable": false,
+                      "muted": false
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "List Calls",
+        "operationId": "listcalls",
+        "description": "Get the list of details for all active calls associated with the user.",
+        "tags": [
+          "Call Controls"
+        ],
+        "parameters": [
+          {
+            "name": "lineOwnerId",
+            "in": "query",
+            "description": "The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API.",
+            "example": "Y2lzY29z...",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/telephony/calls/members/me/calls/{callId}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Call"
+                    }
+                  ],
+                  "example": {
+                    "id": "string",
+                    "callSessionId": "string",
+                    "personality": "string",
+                    "state": "string",
+                    "remoteParty": "string",
+                    "appearance": 1.23,
+                    "created": "string",
+                    "answered": "string",
+                    "redirections": [
+                      {
+                        "reason": "string",
+                        "redirectingParty": "string"
+                      }
+                    ],
+                    "recall": "string",
+                    "recordingState": "string",
+                    "muteCapable": true,
+                    "muted": true
+                  }
+                },
+                "example": {
+                  "id": "Y2lzY29zcGFyazovL3VzL0NBTEwvQkNMRC9jYWxsaGFsZi00ODg6MA",
+                  "callSessionId": "MmFmNThiZjktYWE3Ny00NWE5LThiMDEtYzI4NDMxZWYwNzRm",
+                  "personality": "originator",
+                  "state": "connecting",
+                  "remoteParty": {
+                    "name": "John Smith",
+                    "number": "+12223334444",
+                    "personId": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9hMTlkODJhMi00ZTY5LTU5YWEtOWYyZi1iY2E2MzEwMTNhNjg=",
+                    "placeId": "Y2lzY29zcGFyazovL3VzL1BMQUNFL2ExOWQ4MmEyLTRlNjktNTlhYS05ZjJmLWJjYTYzMTAxM2E2OA==",
+                    "privacyEnabled": false,
+                    "callType": "location"
+                  },
+                  "appearance": 1,
+                  "created": "2016-04-21T17:00:00.000Z",
+                  "answered": "2016-04-21T17:00:00.000Z",
+                  "redirections": [
+                    {
+                      "reason": "busy",
+                      "redirectingParty": {
+                        "name": "John Smith",
+                        "number": "+12223334444",
+                        "personId": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9hMTlkODJhMi00ZTY5LTU5YWEtOWYyZi1iY2E2MzEwMTNhNjg=",
+                        "placeId": "Y2lzY29zcGFyazovL3VzL1BMQUNFL2ExOWQ4MmEyLTRlNjktNTlhYS05ZjJmLWJjYTYzMTAxM2E2OA==",
+                        "privacyEnabled": false,
+                        "callType": "location"
+                      }
+                    }
+                  ],
+                  "recall": {
+                    "type": "park",
+                    "party": {
+                      "name": "John Smith",
+                      "number": "+12223334444",
+                      "personId": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9hMTlkODJhMi00ZTY5LTU5YWEtOWYyZi1iY2E2MzEwMTNhNjg=",
+                      "placeId": "Y2lzY29zcGFyazovL3VzL1BMQUNFL2ExOWQ4MmEyLTRlNjktNTlhYS05ZjJmLWJjYTYzMTAxM2E2OA==",
+                      "privacyEnabled": false,
+                      "callType": "location"
+                    }
+                  },
+                  "recordingState": "pending",
+                  "muteCapable": false,
+                  "muted": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get Call Details",
+        "operationId": "getcalldetails",
+        "description": "Get the details of the specified active call for the user.",
+        "tags": [
+          "Call Controls"
+        ],
+        "parameters": [
+          {
+            "name": "callId",
+            "in": "path",
+            "description": "The call identifier of the call.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "string"
+          },
+          {
+            "name": "lineOwnerId",
+            "in": "query",
+            "description": "The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API.",
+            "example": "Y2lzY29z...",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/telephony/config/actions/testCallRouting/invoke": {
       "post": {
         "responses": {
@@ -120621,6 +121270,7 @@
           "connected_with_issues",
           "offline_expired",
           "activating",
+          "pending",
           "unknown",
           "offline_deep_sleep"
         ],

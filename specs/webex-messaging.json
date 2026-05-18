@@ -1118,30 +1118,16 @@
                   "$ref": "#/components/schemas/orgDetailsResponse"
                 },
                 "example": {
-                  "items": [
-                    {
-                      "orgId": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8yYzNjOWY5NS03M2Q5LTQ0NjAtYTY2OC0wNDcxNjJmZjFiYWQ",
-                      "orgName": "HDS_Demo",
-                      "orgType": "Single Tenant",
-                      "orgMode": "Production",
-                      "clusters": [
-                        {
-                          "clusterId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJjYWUwZTEwZjpiMzdmNTgzYy1kZGRjLTQyOGItODJlNS1jYmU2ODFkYjQ5NjI",
-                          "clusterName": "cluster-1"
-                        },
-                        {
-                          "clusterId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJjYWUwZTEwZjpiMzdmNTgzYy1kZGRjLTQyOGItODJlNS1jYmU2ODFkYjQ5NJJ",
-                          "clusterName": "cluster-2"
-                        }
-                      ]
-                    }
-                  ]
+                  "orgId": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8yYzNjOWY5NS03M2Q5LTQ0NjAtYTY2OC0wNDcxNjJmZjFiYWQ",
+                  "orgName": "HDS_Demo",
+                  "orgType": "Single Tenant",
+                  "orgMode": "Production"
                 }
               }
             }
           },
           "400": {
-            "description": "Bad Request: The request was invalid or could not be otherwise processed. An accompanying error message will provide more details."
+            "description": "Bad Request: The request was invalid or could not be processed. An accompanying error message will provide more details."
           },
           "401": {
             "description": "Unauthorized: Authentication credentials were missing or incorrect."
@@ -1168,7 +1154,7 @@
             "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present to indicate how many seconds you should wait before attempting the request again."
           },
           "428": {
-            "description": "Precondition Required: The file(s) cannot be scanned for malware and must be force-downloaded."
+            "description": "Precondition Required: The file(s) cannot be scanned for malware and must be force downloaded."
           },
           "429": {
             "description": "Too Many Requests: Too many requests have been sent in a given period of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
@@ -1188,7 +1174,125 @@
         },
         "summary": "Get organization details",
         "operationId": "getHDSOrganizationDetails",
-        "description": "Retrieve details for an HDS organization, such as the organization name, type of organization, and clusters in the organization.\nTo obtain the Organization ID needed for this API, use the [Organizations API](</docs/api/v1/organizations/list-organizations>)",
+        "description": "Retrieve details for an HDS organization, such as the organization name, type of organization.\nTo obtain the Organization ID needed for this API, use the [Organizations API](</docs/api/v1/organizations/list-organizations>)",
+        "tags": [
+          "HDS"
+        ],
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "Unique ID of the HDS organization.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8yYzNjOWY5NS03M2Q5LTQ0NjAtYTY2OC0wNDcxNjJmZjFiYWQ",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/hds/organizations/{organizationId}/clusters": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/orgClustersResponse"
+                },
+                "example": {
+                  "clusters": [
+                    {
+                      "context": {
+                        "orgId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJVGNG"
+                      },
+                      "clusterId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJjYWUwZTEwZjpiMzdmNTgzYy1kZGRjLTQyOGItODJlNS1jYmU2ODFkYjQ5NjI",
+                      "clusterName": "San Jose",
+                      "clusterStatus": "Operational",
+                      "releaseChannel": "beta",
+                      "upgradeSchedule": {
+                        "scheduleDays": [
+                          "sunday"
+                        ],
+                        "scheduleTime": "02:00",
+                        "scheduleTimeZone": "Asia/Kolkata",
+                        "nextUpgradeTime": "2025-07-25T20:30:00Z"
+                      }
+                    },
+                    {
+                      "context": {
+                        "orgId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJVGNG"
+                      },
+                      "clusterId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJjYWUwZTEwZjpiMzdmNTgzYy1kZGRjLTQyOGItODJlNS1jYmU2ODFkYjQ5NjI",
+                      "clusterName": "Bangalore",
+                      "clusterStatus": "Operational",
+                      "releaseChannel": "beta",
+                      "upgradeSchedule": {
+                        "scheduleDays": [
+                          "sunday"
+                        ],
+                        "scheduleTime": "02:00",
+                        "scheduleTimeZone": "Asia/Kolkata",
+                        "nextUpgradeTime": "2025-07-25T20:30:00Z"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was invalid or could not be processed. An accompanying error message will provide more details."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request was understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The requested URI is invalid, or the resource requested (such as a user) does not exist. This response is also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type, or with a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present to indicate how many seconds you should wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: The file(s) cannot be scanned for malware and must be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given period of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, please contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond in time. If your query uses the max parameter, please try reducing its value."
+          }
+        },
+        "summary": "List clusters for an HDS organization",
+        "operationId": "listHDSOrganizationClusters",
+        "description": "Retrieve a list of all clusters for a specific HDS organization, including cluster status, release channel, and upgrade schedule details.\nTo obtain the Organization ID needed for this API, use the [Organizations API](</docs/api/v1/organizations/list-organizations>)",
         "tags": [
           "HDS"
         ],
@@ -1218,43 +1322,27 @@
                   "$ref": "#/components/schemas/clusterDetailsResponse"
                 },
                 "example": {
-                  "items": [
-                    {
-                      "orgId": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8yYzNjOWY5NS03M2Q5LTQ0NjAtYTY2OC0wNDcxNjJmZjFiYWQ",
-                      "clusters": [
-                        {
-                          "clusterId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzJjM2M5Zjk1LTczZDktNDQ2MC1hNjY4LTA0NzE2MmZmMWJhZDpmMWJmMGI1MC0yMDUyLTQ3ZmUtYjg3ZC01MTFjMmZlNzQ3MWI",
-                          "clusterName": "E2E Framework Integration Test",
-                          "nodes": [
-                            {
-                              "nodeId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DT05ORUNUT1IvMmMzYzlmOTUtNzNkOS00NDYwLWE2NjgtMDQ3MTYyZmYxYmFkOjE1NmRmNzg5Yzg1NTRkNTVhMjc1ZGY5OTc4Zjk5MDJk",
-                              "host": "hds-node-1.example.com"
-                            },
-                            {
-                              "nodeId": "Y2lzY43pmHYyazovL3VzL0hZQlJJRF9DT05ORUNUT1IvMmMzYzlmOTUtNzNkOS00NDYwLWE2NjgtMDQ3MTYyZmYxYmFkOjE1NmRmNzg5Yzg1NTRkNTVhMjc1ZGY5OTc4Zjk5MDJ3",
-                              "host": "hds-node-2.example.com"
-                            }
-                          ],
-                          "releaseChannel": "latest",
-                          "upgradeSchedule": {
-                            "scheduleDays": [
-                              "monday"
-                            ],
-                            "scheduleTime": "11:00",
-                            "scheduleTimeZone": "Asia/Kolkata",
-                            "nextUpgradeTime": "2024-04-01 05:30:00.000"
-                          },
-                          "clusterStatus": ""
-                        }
-                      ]
-                    }
-                  ]
+                  "context": {
+                    "orgId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJVGNG"
+                  },
+                  "clusterId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJjYWUwZTEwZjpiMzdmNTgzYy1kZGRjLTQyOGItODJlNS1jYmU2ODFkYjQ5NjI",
+                  "clusterName": "Bangalore",
+                  "clusterStatus": "Operational",
+                  "releaseChannel": "beta",
+                  "upgradeSchedule": {
+                    "scheduleDays": [
+                      "monday"
+                    ],
+                    "scheduleTime": "11:00",
+                    "scheduleTimeZone": "Asia/Kolkata",
+                    "nextUpgradeTime": "2024-04-01 05:30:00.000"
+                  }
                 }
               }
             }
           },
           "400": {
-            "description": "Bad Request: The request was invalid or could not be otherwise processed. An accompanying error message will provide more details."
+            "description": "Bad Request: The request was invalid or could not be processed. An accompanying error message will provide more details."
           },
           "401": {
             "description": "Unauthorized: Authentication credentials were missing or incorrect."
@@ -1281,7 +1369,7 @@
             "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present to indicate how many seconds you should wait before attempting the request again."
           },
           "428": {
-            "description": "Precondition Required: The file(s) cannot be scanned for malware and must be force-downloaded."
+            "description": "Precondition Required: The file(s) cannot be scanned for malware and must be force downloaded."
           },
           "429": {
             "description": "Too Many Requests: Too many requests have been sent in a given period of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
@@ -1319,48 +1407,66 @@
         ]
       }
     },
-    "/hds/nodes/{nodeId}": {
+    "/hds/clusters/{clusterId}/nodes": {
       "get": {
         "responses": {
           "200": {
-            "description": "Ok",
+            "description": "OK",
             "headers": {},
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/nodeDetailsResponse"
+                  "$ref": "#/components/schemas/clusterNodesResponse"
                 },
                 "example": {
-                  "items": [
+                  "nodes": [
                     {
-                      "orgId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJVGNG",
-                      "clusters": [
-                        {
-                          "clusterId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJjYWUwZTEwZjpiMzdmNTgzYy1kZGRjLTQyOGItODJlNS1jYmU2ODFkYjQ5NjI",
-                          "clusterName": "Cluster Name ABC",
-                          "nodes": [
-                            {
-                              "nodeId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzM2ZDg5NGY3LTJiNTctNDNjMS1hY2VlLWQ0N2U2Nzc2MTQxNDo0NjdiNGIxZC1jZWI2LTQwN2EtYWZmOC1mMjIxZmFiNzhjNzI",
-                              "host": "xyz.abc.com",
-                              "availabilityDetails": {
-                                "nodeAvailability": "Online",
-                                "hdsHealthStatus": "Healthy / Unhealthy",
-                                "hdsUnhealthyReasons": [
-                                  "KMS unhealthy",
-                                  "Avalon unhealthy"
-                                ]
-                              },
-                              "releaseVersion": "2025.07.16.7042",
-                              "proxyType": "Explicit",
-                              "proxyStatus": "Enabled",
-                              "maintenanceMode": "On",
-                              "ntpSync": "Active",
-                              "ovaDeploymentType": "Large",
-                              "ovaBuildType": "Dev"
-                            }
-                          ]
-                        }
-                      ]
+                      "context": {
+                        "orgId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJVGNG",
+                        "clusterId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJjYWUwZTEwZjpiMzdmNTgzYy1kZGRjLTQyOGItODJlNS1jYmU2ODFkYjQ5NjI",
+                        "clusterName": "San Jose"
+                      },
+                      "nodeId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzM2ZDg5NGY3LTJiNTctNDNjMS1hY2VlLWQ0N2U2Nzc2MTQxNDo0NjdiNGIxZC1jZWI2LTQwN2EtYWZmOC1mMjIxZmFiNzhjNzI",
+                      "host": "xyz.abc.com",
+                      "availabilityDetails": {
+                        "nodeAvailability": "Online",
+                        "hdsHealthStatus": "Healthy / Unhealthy",
+                        "hdsUnhealthyReasons": [
+                          "kms unhealthy",
+                          "avalon unhealthy"
+                        ]
+                      },
+                      "releaseVersion": "2025.07.16.7042",
+                      "proxyType": "Explicit",
+                      "proxyStatus": "Enabled",
+                      "maintenanceMode": "On",
+                      "ntpSync": "active",
+                      "ovaDeploymentType": "Large",
+                      "ovaBuildType": "Dev"
+                    },
+                    {
+                      "context": {
+                        "orgId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJVGNG",
+                        "clusterId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJjYWUwZTEwZjpiMzdmNTgzYy1kZGRjLTQyOGItODJlNS1jYmU2ODFkYjQ5NjI",
+                        "clusterName": "Bangalore"
+                      },
+                      "nodeId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzM2ZDg5NGY3LTJiNTctNDNjMS1hY2VlLWQ0N2U2Nzc2MTQxNDo0NjdiNGIxZC1jZWI2LTQwN2EtYWZmOC1mMjIxZmFiNzhjNzI",
+                      "host": "xyz2.abc2.com",
+                      "availabilityDetails": {
+                        "nodeAvailability": "Online",
+                        "hdsHealthStatus": "Healthy / Unhealthy",
+                        "hdsUnhealthyReasons": [
+                          "kms unhealthy",
+                          "avalon unhealthy"
+                        ]
+                      },
+                      "releaseVersion": "2025.07.16.7042",
+                      "proxyType": "Explicit",
+                      "proxyStatus": "Enabled",
+                      "maintenanceMode": "On",
+                      "ntpSync": "active",
+                      "ovaDeploymentType": "Large",
+                      "ovaBuildType": "Dev"
                     }
                   ]
                 }
@@ -1368,7 +1474,7 @@
             }
           },
           "400": {
-            "description": "Bad Request: The request was invalid or could not be otherwise processed. An accompanying error message will provide more details."
+            "description": "Bad Request: The request was invalid or could not be processed. An accompanying error message will provide more details."
           },
           "401": {
             "description": "Unauthorized: Authentication credentials were missing or incorrect."
@@ -1395,7 +1501,111 @@
             "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present to indicate how many seconds you should wait before attempting the request again."
           },
           "428": {
-            "description": "Precondition Required: The file(s) cannot be scanned for malware and must be force-downloaded."
+            "description": "Precondition Required: The file(s) cannot be scanned for malware and must be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given period of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, please contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond in time. If your query uses the max parameter, please try reducing its value."
+          }
+        },
+        "summary": "List nodes for an HDS cluster",
+        "operationId": "listHDSClusterNodes",
+        "description": "Retrieve a list of all nodes for a specific HDS cluster, including availability, proxy details, deployment type, and release version.\nTo obtain the Cluster ID needed for this API, use the [List clusters for an HDS organization API](</docs/api/v1/hds/list-hds-organization-clusters>)",
+        "tags": [
+          "HDS"
+        ],
+        "parameters": [
+          {
+            "name": "clusterId",
+            "in": "path",
+            "description": "Unique ID of the HDS cluster.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzJjM2M5Zjk1LTczZDktNDQ2MC1hNjY4LTA0NzE2MmZmMWJhZDpmMWJmMGI1MC0yMDUyLTQ3ZmUtYjg3ZC01MTFjMmZlNzQ3MWI",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/hds/nodes/{nodeId}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Ok",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/nodeDetailsResponse"
+                },
+                "example": {
+                  "context": {
+                    "orgId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJVGNG",
+                    "clusterId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJjYWUwZTEwZjpiMzdmNTgzYy1kZGRjLTQyOGItODJlNS1jYmU2ODFkYjQ5NjI",
+                    "clusterName": "San Jose"
+                  },
+                  "nodeId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzM2ZDg5NGY3LTJiNTctNDNjMS1hY2VlLWQ0N2U2Nzc2MTQxNDo0NjdiNGIxZC1jZWI2LTQwN2EtYWZmOC1mMjIxZmFiNzhjNzI",
+                  "host": "xyz.abc.com",
+                  "availabilityDetails": {
+                    "nodeAvailability": "Online",
+                    "hdsHealthStatus": "Healthy / Unhealthy",
+                    "hdsUnhealthyReasons": [
+                      "kms unhealthy",
+                      "avalon unhealthy"
+                    ]
+                  },
+                  "releaseVersion": "2025.07.16.7042",
+                  "proxyType": "Explicit",
+                  "proxyStatus": "Enabled",
+                  "maintenanceMode": "On",
+                  "ntpSync": "active",
+                  "ovaDeploymentType": "Large",
+                  "ovaBuildType": "Dev"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or could not be processed. An accompanying error message will provide more details."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request was understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The requested URI is invalid, or the resource requested (such as a user) does not exist. This response is also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type, or with a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present to indicate how many seconds you should wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: The file(s) cannot be scanned for malware and must be force downloaded."
           },
           "429": {
             "description": "Too Many Requests: Too many requests have been sent in a given period of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
@@ -1455,7 +1665,7 @@
             }
           },
           "400": {
-            "description": "Bad Request: The request was invalid or could not be otherwise processed. An accompanying error message will provide more details."
+            "description": "Bad Request: The request was invalid or could not be processed. An accompanying error message will provide more details."
           },
           "401": {
             "description": "Unauthorized: Authentication credentials were missing or incorrect."
@@ -1482,7 +1692,7 @@
             "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present to indicate how many seconds you should wait before attempting the request again."
           },
           "428": {
-            "description": "Precondition Required: The file(s) cannot be scanned for malware and must be force-downloaded."
+            "description": "Precondition Required: The file(s) cannot be scanned for malware and must be force downloaded."
           },
           "429": {
             "description": "Too Many Requests: Too many requests have been sent in a given period of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
@@ -1554,7 +1764,7 @@
             }
           },
           "400": {
-            "description": "Bad Request: The request was invalid or could not be otherwise processed. An accompanying error message will provide more details."
+            "description": "Bad Request: The request was invalid or could not be processed. An accompanying error message will provide more details."
           },
           "401": {
             "description": "Unauthorized: Authentication credentials were missing or incorrect."
@@ -1581,7 +1791,7 @@
             "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present to indicate how many seconds you should wait before attempting the request again."
           },
           "428": {
-            "description": "Precondition Required: The file(s) cannot be scanned for malware and must be force-downloaded."
+            "description": "Precondition Required: The file(s) cannot be scanned for malware and must be force downloaded."
           },
           "429": {
             "description": "Too Many Requests: Too many requests have been sent in a given period of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
@@ -1619,7 +1829,7 @@
         ]
       }
     },
-    "/hds/testResults/nodes/{nodeId}/networkTest": {
+    "/hds/nodes/{nodeId}/alarms": {
       "get": {
         "responses": {
           "200": {
@@ -1628,117 +1838,49 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/networkTestsResultsResponse"
+                  "$ref": "#/components/schemas/nodeAlarmsResponse"
                 },
                 "example": {
-                  "orgId": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8yYzNjOWY5NS03M2Q5LTQ0NjAtYTY2OC0wNDcxNjJmZjFiYWQ",
-                  "items": [
+                  "context": {
+                    "orgId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJVGNG",
+                    "clusterId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJjYWUwZTEwZjpiMzdmNTgzYy1kZGRjLTQyOGItODJlNS1jYmU2ODFkYjQ5xxx",
+                    "clusterName": "San Jose",
+                    "nodeId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzM2ZDg5NGY3LTJiNTctNDNjMS1hY2VlLWQ0N2U2Nzc2MTQxNDo0NjdiNGIxZC1jZWI2LTQwN2EtYWZmOC1mMjIxZmFiNzhjyyy",
+                    "host": "10.196.5.82"
+                  },
+                  "alarms": [
                     {
-                      "clusters": {
-                        "clusterId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzJjM2M5Zjk1LTczZDktNDQ2MC1hNjY4LTA0NzE2MmZmMWJhZDpmMWJmMGI1MC0yMDUyLTQ3ZmUtYjg3ZC01MTFjMmZlNzQ3MWI",
-                        "clusterName": "HDS Cluster 1",
-                        "nodes": [
+                      "alarmId": "AUTH_WARN.expiring-60",
+                      "alarmName": "HDS Machine Accounts Expiring in 60 days",
+                      "alarmSeverity": "Warning",
+                      "alarmDetails": "Expiration Details",
+                      "possibleRemediation": "Refresh HDS Machine Accounts using HDS Setup Tool",
+                      "currentStatus": "Active",
+                      "occurrences": {
+                        "total": "4",
+                        "details": [
                           {
-                            "nodeId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DT05ORUNUT1IvMmMzYzlmOTUtNzNkOS00NDYwLWE2NjgtMDQ3MTYyZmYxYmFkOjE1NmRmNzg5Yzg1NTRkNTVhMjc1ZGY5OTc4Zjk5MDJk",
-                            "hostname": "hds-node-1.example.com",
-                            "hostIp": "165.49.25.1",
-                            "testResults": [
-                              {
-                                "triggerType": "Periodic",
-                                "results": [
-                                  {
-                                    "timestamp": "2024-01-15T10:15:30Z",
-                                    "type": "HTTPConnectivityTest",
-                                    "results": [
-                                      {
-                                        "serviceType": "WebexCloud",
-                                        "services": [
-                                          {
-                                            "serviceName": "hercules",
-                                            "testResult": "Success"
-                                          },
-                                          {
-                                            "serviceName": "identity",
-                                            "testResult": "Success"
-                                          },
-                                          {
-                                            "serviceName": "idBroker",
-                                            "testResult": "Success"
-                                          }
-                                        ]
-                                      },
-                                      {
-                                        "serviceType": "ThirdPartyCloud",
-                                        "services": [
-                                          {
-                                            "serviceName": "ecr",
-                                            "testResult": "Success"
-                                          }
-                                        ]
-                                      }
-                                    ]
-                                  },
-                                  {
-                                    "timestamp": "2024-01-15T10:15:30Z",
-                                    "type": "BandwidthTest",
-                                    "results": [
-                                      {
-                                        "serviceType": "ThirdPartyCloud",
-                                        "services": [
-                                          {
-                                            "serviceName": "ecr",
-                                            "testResult": "Success"
-                                          }
-                                        ]
-                                      }
-                                    ]
-                                  },
-                                  {
-                                    "timestamp": "2024-01-15T10:15:30Z",
-                                    "type": "DNSResolutionTest",
-                                    "results": [
-                                      {
-                                        "serviceType": "WebexCloud",
-                                        "services": [
-                                          {
-                                            "serviceName": "identity",
-                                            "testResult": "Success"
-                                          },
-                                          {
-                                            "serviceName": "hercules",
-                                            "testResult": "Success"
-                                          },
-                                          {
-                                            "serviceName": "idBroker",
-                                            "testResult": "Success"
-                                          }
-                                        ]
-                                      },
-                                      {
-                                        "serviceType": "ThirdPartyCloud",
-                                        "services": [
-                                          {
-                                            "serviceName": "ecr",
-                                            "testResult": "Success"
-                                          }
-                                        ]
-                                      }
-                                    ]
-                                  }
-                                ]
-                              }
-                            ]
+                            "raisedAt": "2025-06-14T15:53:00Z",
+                            "clearedAt": "2025-06-15T15:53:00Z"
+                          },
+                          {
+                            "raisedAt": "2025-06-14T16:53:00Z",
+                            "clearedAt": "2025-06-15T17:53:00Z"
                           }
                         ]
                       }
                     }
-                  ]
+                  ],
+                  "timeRange": {
+                    "from": "2025-06-15T15:53:00Z",
+                    "to": "2025-06-16T15:53:00Z"
+                  }
                 }
               }
             }
           },
           "400": {
-            "description": "Bad Request: The request was invalid or could not be otherwise processed. An accompanying error message will provide more details."
+            "description": "Bad Request: The request was invalid or could not be processed. An accompanying error message will provide more details."
           },
           "401": {
             "description": "Unauthorized: Authentication credentials were missing or incorrect."
@@ -1765,7 +1907,212 @@
             "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present to indicate how many seconds you should wait before attempting the request again."
           },
           "428": {
-            "description": "Precondition Required: The file(s) cannot be scanned for malware and must be force-downloaded."
+            "description": "Precondition Required: The file(s) cannot be scanned for malware and must be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given period of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, please contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond in time. If your query uses the max parameter, please try reducing its value."
+          }
+        },
+        "summary": "Get alarms for an HDS node",
+        "operationId": "getHDSNodeAlarms",
+        "description": "Returns the alarm details for a single HDS node for the provided time range (last 24 hours).\nTo obtain the Node ID needed for this API, use the [List nodes for an HDS cluster API](</docs/api/v1/hds/list-hds-cluster-nodes>)",
+        "tags": [
+          "HDS"
+        ],
+        "parameters": [
+          {
+            "name": "nodeId",
+            "in": "path",
+            "description": "Unique ID of the HDS node.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DT05ORUNUT1IvMmMzYzlmOTUtNzNkOS00NDYwLWE2NjgtMDQ3MTYyZmYxYmFkOjE1NmRmNzg5Yzg1NTRkNTVhMjc1ZGY5OTc4Zjk5MDJk",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format.",
+            "required": true,
+            "example": "2025-06-15T15:53:00Z",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "The end date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format.",
+            "required": true,
+            "example": "2025-06-16T15:53:00Z",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/hds/testResults/nodes/{nodeId}/networkTest": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/networkTestsResultsResponse"
+                },
+                "example": {
+                  "context": {
+                    "orgId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJVGNG",
+                    "clusterId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzJjM2M5Zjk1LTczZDktNDQ2MC1hNjY4LTA0NzE2MmZmMWJhZDpmMWJmMGI1MC0yMDUyLTQ3ZmUtYjg3ZC01MTFjMmZlNzQ3MWI=",
+                    "clusterName": "hds_bangalore",
+                    "nodeId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DT05ORUNUT1IvMmMzYzlmOTUtNzNkOS00NDYwLWE2NjgtMDQ3MTYyZmYxYmFkOjE1NmRmNzg5Yzg1NTRkNTVhMjc1ZGY5OTc4Zjk5MDJk",
+                    "hostName": "abc.xyz.com",
+                    "hostIP": "10.196.5.82"
+                  },
+                  "testResults": [
+                    {
+                      "timestamp": "2025-06-15T35:53:00Z",
+                      "triggerType": "OnDemand",
+                      "result": [
+                        {
+                          "type": "DNSResolutionTest",
+                          "results": [
+                            {
+                              "serviceType": "WebexCloud",
+                              "services": [
+                                {
+                                  "serviceName": "idBroker",
+                                  "testResult": "Failed",
+                                  "failureDetails": {
+                                    "possibleFailureReason": [
+                                      "DNS Resolution issue detected in the HDS Node [Error Code: 1302]."
+                                    ],
+                                    "possibleRemediation": [
+                                      "Please ensure that the configured DNS Servers are correct and healthy, and verify the network settings are adhering to the HDS Deployment Guide."
+                                    ]
+                                  }
+                                },
+                                {
+                                  "serviceName": "identity",
+                                  "testResult": "Success"
+                                },
+                                {
+                                  "serviceName": "hercules",
+                                  "testResult": "Success"
+                                }
+                              ]
+                            },
+                            {
+                              "serviceType": "ThirdPartyCloud",
+                              "services": [
+                                {
+                                  "serviceName": "ecr",
+                                  "testResult": "Success"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "HTTPConnectivityTest",
+                          "results": [
+                            {
+                              "serviceType": "WebexCloud",
+                              "services": [
+                                {
+                                  "serviceName": "idBroker",
+                                  "testResult": "Failed",
+                                  "failureDetails": {
+                                    "possibleFailureReason": [
+                                      "Connectivity issue detected between the HDS Node and the Webex Cloud [Error Code: 1106]."
+                                    ],
+                                    "possibleRemediation": [
+                                      "One or more Webex cloud services may not be responding. Retry the test after some time. If the issue persists, please contact Cisco Support."
+                                    ]
+                                  }
+                                },
+                                {
+                                  "serviceName": "identity",
+                                  "testResult": "Success"
+                                },
+                                {
+                                  "serviceName": "hercules",
+                                  "testResult": "Success"
+                                }
+                              ]
+                            },
+                            {
+                              "serviceType": "ThirdPartyCloud",
+                              "testResult": "Success"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "BandwidthTest",
+                          "results": [
+                            {
+                              "serviceType": "ThirdPartyCloud",
+                              "services": [
+                                {
+                                  "serviceName": "ecr",
+                                  "testResult": "Success"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or could not be processed. An accompanying error message will provide more details."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request was understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The requested URI is invalid, or the resource requested (such as a user) does not exist. This response is also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type, or with a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present to indicate how many seconds you should wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: The file(s) cannot be scanned for malware and must be force downloaded."
           },
           "429": {
             "description": "Too Many Requests: Too many requests have been sent in a given period of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
@@ -1818,7 +2165,7 @@
         ]
       }
     },
-    "/hds/clusters/{clusterId}/availability": {
+    "/hds/nodes/{nodeId}/resourceUsage": {
       "get": {
         "responses": {
           "200": {
@@ -1827,44 +2174,72 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/clustersAvailabilityDetailsResponse"
+                  "$ref": "#/components/schemas/nodeResourceUsageResponse"
                 },
                 "example": {
-                  "items": [
+                  "context": {
+                    "orgId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJVGNG",
+                    "clusterId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJjYWUwZTEwZjpiMzdmNTgzYy1kZGRjLTQyOGItODJlNS1jYmU2ODFkYjQ5NjI",
+                    "clusterName": "cluster-1",
+                    "nodeId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJjYWUwZTEwZjpiMzdmNTgzYy1kZGRjLTQyOGItODJlNS1jYmU2ODFkYjQ5NjI",
+                    "host": "xyz.abc.com"
+                  },
+                  "resourceUsage": [
                     {
-                      "orgId": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8yYzNjOWY5NS03M2Q5LTQ0NjAtYTY2OC0wNDcxNjJmZjFiYWQ",
-                      "clusters": [
-                        {
-                          "clusterId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzJjM2M5Zjk1LTczZDktNDQ2MC1hNjY4LTA0NzE2MmZmMWJhZDpmMWJmMGI1MC0yMDUyLTQ3ZmUtYjg3ZC01MTFjMmZlNzQ3MWI",
-                          "clusterName": "HDS Cluster 1",
-                          "availabilitySegments": [
-                            {
-                              "segmentStartTime": "2025-06-15T15:53:00Z",
-                              "segmentEndTime": "2025-06-16T16:53:00Z",
-                              "onlineNodeCount": 1,
-                              "offlineNodeCount": 1,
-                              "totalNodeCount": 2
-                            },
-                            {
-                              "segmentStartTime": "2025-06-16T16:53:00Z",
-                              "segmentEndTime": "2025-06-17T17:53:00Z",
-                              "onlineNodeCount": 2,
-                              "offlineNodeCount": 0,
-                              "totalNodeCount": 2
-                            }
-                          ]
-                        }
-                      ],
-                      "from": "2026-01-01T00:00:00Z",
-                      "to": "2026-01-02T00:00:00Z"
+                      "startTime": "2025-06-15T15:00:00Z",
+                      "endTime": "2025-06-15T15:10:00Z",
+                      "cpuUsage": {
+                        "peakCpuUsagePercent": 30.78,
+                        "averageCpuUsagePercent": 8.9
+                      },
+                      "memoryUsage": {
+                        "totalMemoryUsageInMB": 7454,
+                        "peakMemoryUsageInMB": 6075,
+                        "peakMemoryUsagePercent": 81.5,
+                        "averageMemoryUsageInMB": 6042,
+                        "averageMemoryUsagePercent": 81.06
+                      },
+                      "diskUsage": {
+                        "totalDiskSpaceUsageInMB": 37308,
+                        "peakDiskSpaceUsageInMB": 18874,
+                        "peakDiskUsagePercent": 50.59,
+                        "averageDiskUsage": 18874,
+                        "averageDiskUsagePercent": 50.59
+                      }
+                    },
+                    {
+                      "startTime": "2025-06-15T15:10:00Z",
+                      "endTime": "2025-06-15T15:20:00Z",
+                      "cpuUsage": {
+                        "peakCpuUsagePercent": 30.78,
+                        "averageCpuUsagePercent": 8.9
+                      },
+                      "memoryUsage": {
+                        "totalMemoryUsageInMB": 7454,
+                        "peakMemoryUsageInMB": 6075,
+                        "peakMemoryUsagePercent": 81.5,
+                        "averageMemoryUsageInMB": 6042,
+                        "averageMemoryUsagePercent": 81.06
+                      },
+                      "diskUsage": {
+                        "totalDiskSpaceUsageInMB": 37308,
+                        "peakDiskSpaceUsageInMB": 18874,
+                        "peakDiskUsagePercent": 50.59,
+                        "averageDiskUsage": 18874,
+                        "averageDiskUsagePercent": 50.59
+                      }
                     }
-                  ]
+                  ],
+                  "timeRange": {
+                    "from": "2025-06-15T15:00:00Z",
+                    "to": "2025-06-15T15:20:00Z"
+                  }
                 }
               }
             }
           },
           "400": {
-            "description": "Bad Request: The request was invalid or could not be otherwise processed. An accompanying error message will provide more details."
+            "description": "Bad Request: The request was invalid or could not be processed. An accompanying error message will provide more details."
           },
           "401": {
             "description": "Unauthorized: Authentication credentials were missing or incorrect."
@@ -1891,7 +2266,134 @@
             "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present to indicate how many seconds you should wait before attempting the request again."
           },
           "428": {
-            "description": "Precondition Required: The file(s) cannot be scanned for malware and must be force-downloaded."
+            "description": "Precondition Required: The file(s) cannot be scanned for malware and must be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given period of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, please contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond in time. If your query uses the max parameter, please try reducing its value."
+          }
+        },
+        "summary": "Get resource usage for an HDS node",
+        "operationId": "getHDSNodeResourceUsage",
+        "description": "Retrieve CPU, memory, and disk resource usage details for a specific HDS node over the requested time range.\nTo obtain the Node ID needed for this API, use the [List nodes for an HDS cluster API](</docs/api/v1/hds/list-hds-cluster-nodes>)",
+        "tags": [
+          "HDS"
+        ],
+        "parameters": [
+          {
+            "name": "nodeId",
+            "in": "path",
+            "description": "Unique ID of the HDS node.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzM2ZDg5NGY3LTJiNTctNDNjMS1hY2VlLWQ0N2U2Nzc2MTQxNDo0NjdiNGIxZC1jZWI2LTQwN2EtYWZmOC1mMjIxZmFiNzhjyyy",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format.",
+            "required": true,
+            "example": "2025-06-15T15:53:00Z",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "The end date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format.",
+            "required": true,
+            "example": "2025-06-15T35:53:00Z",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/hds/clusters/{clusterId}/availability": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/clustersAvailabilityDetailsResponse"
+                },
+                "example": {
+                  "context": {
+                    "orgId": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8yYzNjOWY5NS03M2Q5LTQ0NjAtYTY2OC0wNDcxNjJmZjFiYWQ",
+                    "clusterId": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzJjM2M5Zjk1LTczZDktNDQ2MC1hNjY4LTA0NzE2MmZmMWJhZDpiMzdmNTgzYy1kZGRjLTQyOGItODJlNS1jYmU2ODFkYjQ5NjI=",
+                    "clusterName": "San Jose"
+                  },
+                  "availabilitySegments": [
+                    {
+                      "segmentStartTime": "2025-06-15T15:53:00Z",
+                      "segmentEndTime": "2025-06-16T16:53:00Z",
+                      "noOfOnlineNodes": 1,
+                      "noOfOfflineNodes": 1,
+                      "totalNodes": 2
+                    },
+                    {
+                      "segmentStartTime": "2025-06-16T16:53:00Z",
+                      "segmentEndTime": "2025-06-17T17:53:00Z",
+                      "noOfOnlineNodes": 0,
+                      "noOfOfflineNodes": 2,
+                      "totalNodes": 2
+                    }
+                  ],
+                  "timeRange": {
+                    "from": "2025-06-15T15:53:00Z",
+                    "to": "2025-06-17T15:53:00Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or could not be processed. An accompanying error message will provide more details."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request was understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The requested URI is invalid, or the resource requested (such as a user) does not exist. This response is also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type, or with a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present to indicate how many seconds you should wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: The file(s) cannot be scanned for malware and must be force downloaded."
           },
           "429": {
             "description": "Too Many Requests: Too many requests have been sent in a given period of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
@@ -13105,6 +13607,7 @@
           "connected_with_issues",
           "offline_expired",
           "activating",
+          "pending",
           "unknown",
           "offline_deep_sleep"
         ],
@@ -17405,21 +17908,9 @@
       "orgDetailsResponse": {
         "type": "object",
         "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/orgDetailsItems"
-            },
-            "description": "Response for organization details API"
-          }
-        }
-      },
-      "orgDetailsItems": {
-        "type": "object",
-        "properties": {
           "orgId": {
             "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8yYzNjOWY5NS03M2Q5LTQ0NjAtYTY2OC0wNDcxNjJmZjFiYWQ=",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8yYzNjOWY5NS03M2Q5LTQ0NjAtYTY2OC0wNDcxNjJmZjFiYWQ",
             "description": "Unique ID of the organization."
           },
           "orgName": {
@@ -17436,63 +17927,35 @@
             "type": "string",
             "example": "Production",
             "description": "Mode of the organization."
-          },
-          "clusters": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/clusterSummary"
-            },
-            "description": "List of clusters in the organization."
           }
         }
       },
-      "clusterSummary": {
+      "orgClustersResponse": {
         "type": "object",
         "properties": {
-          "clusterId": {
-            "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJjYWUwZTEwZjpiMzdmNTgzYy1kZGRjLTQyOGItODJlNS1jYmU2ODFkYjQ5NjI",
-            "description": "Unique ID of the cluster."
-          },
-          "clusterName": {
-            "type": "string",
-            "example": "cluster-1",
-            "description": "Name of the cluster."
+          "clusters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/clusterDetailsResponse"
+            },
+            "description": "List of clusters in the organization."
           }
         }
       },
       "clusterDetailsResponse": {
         "type": "object",
         "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/clusterDetailsResponseOrgLevel"
+          "context": {
+            "type": "object",
+            "properties": {
+              "orgId": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8yYzNjOWY5NS03M2Q5LTQ0NjAtYTY2OC0wNDcxNjJmZjFiYWQ=",
+                "description": "Unique ID of the organization."
+              }
             },
-            "description": "Response for cluster details API"
-          }
-        }
-      },
-      "clusterDetailsResponseOrgLevel": {
-        "type": "object",
-        "properties": {
-          "orgId": {
-            "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8yYzNjOWY5NS03M2Q5LTQ0NjAtYTY2OC0wNDcxNjJmZjFiYWQ=",
-            "description": "Unique ID of the organization."
+            "description": "Metadata information about the organization for which the cluster details are being retrieved."
           },
-          "clusters": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/clusterDetails"
-            },
-            "description": "List of clusters in the organization."
-          }
-        }
-      },
-      "clusterDetails": {
-        "type": "object",
-        "properties": {
           "clusterId": {
             "type": "string",
             "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzJjM2M5Zjk1LTczZDktNDQ2MC1hNjY4LTA0NzE2MmZmMWJhZDpmMWJmMGI1MC0yMDUyLTQ3ZmUtYjg3ZC01MTFjMmZlNzQ3MWI",
@@ -17500,19 +17963,17 @@
           },
           "clusterName": {
             "type": "string",
-            "example": "E2E Framework Integration Test",
+            "example": "Bangalore",
             "description": "Name of the cluster."
           },
-          "nodes": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/clusterNodeDetails"
-            },
-            "description": "List of nodes in the cluster."
+          "clusterStatus": {
+            "type": "string",
+            "example": "Operational",
+            "description": "Current status of the cluster."
           },
           "releaseChannel": {
             "type": "string",
-            "example": "latest",
+            "example": "beta",
             "description": "Release channel of the cluster."
           },
           "upgradeSchedule": {
@@ -17522,13 +17983,13 @@
                 "type": "array",
                 "items": {
                   "type": "string",
-                  "example": "monday"
+                  "example": "sunday"
                 },
                 "description": "Days of the week when upgrades are scheduled."
               },
               "scheduleTime": {
                 "type": "string",
-                "example": "11:00",
+                "example": "02:00",
                 "description": "Time of the day when upgrades are scheduled."
               },
               "scheduleTimeZone": {
@@ -17538,97 +17999,59 @@
               },
               "nextUpgradeTime": {
                 "type": "string",
-                "example": "2024-04-01 05:30:00.000",
+                "example": "2025-07-25T20:30:00Z",
                 "description": "Next scheduled upgrade time."
               }
             },
             "description": "Upgrade schedule details of the cluster."
-          },
-          "clusterStatus": {
-            "type": "string",
-            "example": "Healthy",
-            "description": "Current status of the cluster."
           }
         }
       },
-      "clusterNodeDetails": {
+      "clusterNodesResponse": {
         "type": "object",
         "properties": {
-          "nodeId": {
-            "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DT05ORUNUT1IvMmMzYzlmOTUtNzNkOS00NDYwLWE2NjgtMDQ3MTYyZmYxYmFkOjE1NmRmNzg5Yzg1NTRkNTVhMjc1ZGY5OTc4Zjk5MDJk",
-            "description": "Unique ID of the connector/node."
-          },
-          "host": {
-            "type": "string",
-            "example": "hds-node-1.example.com",
-            "description": "Host Name or Host IP of the HDS node"
+          "nodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/nodeDetailsResponse"
+            },
+            "description": "List of nodes in the cluster."
           }
         }
       },
       "nodeDetailsResponse": {
         "type": "object",
         "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/nodeDetailsItems"
+          "context": {
+            "type": "object",
+            "properties": {
+              "orgId": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJVGNG",
+                "description": "Unique ID of the organization."
+              },
+              "clusterId": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJjYWUwZTEwZjpiMzdmNTgzYy1kZGRjLTQyOGItODJlNS1jYmU2ODFkYjQ5NjI",
+                "description": "Unique ID of the cluster."
+              },
+              "clusterName": {
+                "type": "string",
+                "example": "San Jose",
+                "description": "Name of the cluster."
+              }
             },
-            "description": "Response for node details API"
-          }
-        }
-      },
-      "nodeDetailsItems": {
-        "type": "object",
-        "properties": {
-          "orgId": {
-            "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8yYzNjOWY5NS03M2Q5LTQ0NjAtYTY2OC0wNDcxNjJmZjFiYWQ=",
-            "description": "Unique ID of the organization."
+            "description": "Metadata information about the cluster to which the node belongs."
           },
-          "clusters": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/nodeDetailsCluster"
-            },
-            "description": "List of clusters in the organization."
-          }
-        }
-      },
-      "nodeDetailsCluster": {
-        "type": "object",
-        "properties": {
-          "clusterId": {
-            "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzJjM2M5Zjk1LTczZDktNDQ2MC1hNjY4LTA0NzE2MmZmMWJhZDpmMWJmMGI1MC0yMDUyLTQ3ZmUtYjg3ZC01MTFjMmZlNzQ3MWI",
-            "description": "Unique ID of the cluster."
-          },
-          "clusterName": {
-            "type": "string",
-            "example": "Cluster Name ABC",
-            "description": "Name of the cluster."
-          },
-          "nodes": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/nodeDetails"
-            },
-            "description": "List of nodes in the cluster."
-          }
-        }
-      },
-      "nodeDetails": {
-        "type": "object",
-        "properties": {
           "nodeId": {
             "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DT05ORUNUT1IvMmMzYzlmOTUtNzNkOS00NDYwLWE2NjgtMDQ3MTYyZmYxYmFkOjE1NmRmNzg5Yzg1NTRkNTVhMjc1ZGY5OTc4Zjk5MDJk",
+            "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzM2ZDg5NGY3LTJiNTctNDNjMS1hY2VlLWQ0N2U2Nzc2MTQxNDo0NjdiNGIxZC1jZWI2LTQwN2EtYWZmOC1mMjIxZmFiNzhjNzI",
             "description": "Unique ID of the connector/node."
           },
           "host": {
             "type": "string",
-            "example": "hds-node-1.example.com",
-            "description": "Host Name or Host IP of the HDS node"
+            "example": "xyz.abc.com",
+            "description": "Host Name or Host IP of the HDS node."
           },
           "availabilityDetails": {
             "type": "object",
@@ -17636,57 +18059,61 @@
               "nodeAvailability": {
                 "type": "string",
                 "example": "Online",
-                "description": "Current availability of the HDS node"
+                "description": "Current availability of the HDS node."
               },
               "hdsHealthStatus": {
                 "type": "string",
                 "example": "Healthy / Unhealthy",
-                "description": "Health status of the HDS node"
+                "description": "Health status of the HDS node."
               },
               "hdsUnhealthyReasons": {
                 "type": "array",
                 "items": {
-                  "type": "string",
-                  "example": "[\"KMS unhealthy\", \"Avalon unhealthy\"]"
+                  "type": "string"
                 },
-                "description": "List of reasons for unhealthy status of the HDS node"
+                "example": [
+                  "kms unhealthy",
+                  "avalon unhealthy"
+                ],
+                "description": "List of reasons for unhealthy status of the HDS node."
               }
-            }
+            },
+            "description": "Availability and health details of the HDS node."
           },
           "releaseVersion": {
             "type": "string",
             "example": "2025.07.16.7042",
-            "description": "The release version of the HDS node"
+            "description": "The release version of the HDS node."
           },
           "proxyType": {
             "type": "string",
             "example": "Explicit",
-            "description": "Proxy type used by the HDS node"
+            "description": "Proxy type used by the HDS node."
           },
           "proxyStatus": {
             "type": "string",
             "example": "Enabled",
-            "description": "Current proxy status of the HDS node"
+            "description": "Current proxy status of the HDS node."
           },
           "maintenanceMode": {
             "type": "string",
-            "example": "Off",
-            "description": "On indicates that the node is in maintenance mode, and Off indicates that the node is not in maintenance mode"
+            "example": "On",
+            "description": "On indicates that the node is in maintenance mode, and Off indicates that the node is not in maintenance mode."
           },
           "ntpSync": {
             "type": "string",
-            "example": "Active",
-            "description": "NTP sync status of the HDS node"
+            "example": "active",
+            "description": "NTP sync status of the HDS node."
           },
           "ovaDeploymentType": {
             "type": "string",
             "example": "Large",
-            "description": "Deployment type of the HDS node"
+            "description": "Deployment type of the HDS node."
           },
           "ovaBuildType": {
             "type": "string",
             "example": "Dev",
-            "description": "Build type of the HDS node"
+            "description": "Build type of the HDS node."
           }
         }
       },
@@ -17747,7 +18174,7 @@
             "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFCGCGCGH",
             "description": "Unique ID of the tenant organization."
           },
-          "tenantName": {
+          "tenantOrgName": {
             "type": "string",
             "example": "abcd",
             "description": "Name of the tenant organization."
@@ -17767,104 +18194,80 @@
       "networkTestsResultsResponse": {
         "type": "object",
         "properties": {
-          "orgId": {
-            "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8yYzNjOWY5NS03M2Q5LTQ0NjAtYTY2OC0wNDcxNjJmZjFiYWQ=",
-            "description": "Unique ID of the organization."
-          },
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/networkTestResultsForCluster"
-            },
-            "description": "List of network test results for clusters."
-          }
-        }
-      },
-      "networkTestResultsForCluster": {
-        "type": "object",
-        "properties": {
-          "clusters": {
+          "context": {
             "type": "object",
             "properties": {
+              "orgId": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJVGNG",
+                "description": "Unique ID of the organization."
+              },
               "clusterId": {
                 "type": "string",
-                "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzJjM2M5Zjk1LTczZDktNDQ2MC1hNjY4LTA0NzE2MmZmMWJhZDpmMWJmMGI1MC0yMDUyLTQ3ZmUtYjg3ZC01MTFjMmZlNzQ3MWI",
+                "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzJjM2M5Zjk1LTczZDktNDQ2MC1hNjY4LTA0NzE2MmZmMWJhZDpmMWJmMGI1MC0yMDUyLTQ3ZmUtYjg3ZC01MTFjMmZlNzQ3MWI=",
                 "description": "Unique ID of the cluster."
               },
               "clusterName": {
                 "type": "string",
-                "example": "HDS Cluster 1",
+                "example": "hds_bangalore",
                 "description": "Name of the cluster."
               },
-              "nodes": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/networkTestResultsForNode"
-                },
-                "description": "List of nodes with network test results."
+              "nodeId": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DT05ORUNUT1IvMmMzYzlmOTUtNzNkOS00NDYwLWE2NjgtMDQ3MTYyZmYxYmFkOjE1NmRmNzg5Yzg1NTRkNTVhMjc1ZGY5OTc4Zjk5MDJk",
+                "description": "Unique ID of the node."
+              },
+              "hostName": {
+                "type": "string",
+                "example": "abc.xyz.com",
+                "description": "Hostname of the HDS node."
+              },
+              "hostIP": {
+                "type": "string",
+                "example": "10.196.5.82",
+                "description": "IP address of the HDS node."
               }
             },
-            "description": "Cluster details with network test results."
-          }
-        }
-      },
-      "networkTestResultsForNode": {
-        "type": "object",
-        "properties": {
-          "nodeId": {
-            "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DT05ORUNUT1IvMmMzYzlmOTUtNzNkOS00NDYwLWE2NjgtMDQ3MTYyZmYxYmFkOjE1NmRmNzg5Yzg1NTRkNTVhMjc1ZGY5OTc4Zjk5MDJk",
-            "description": "Unique ID of the connector/node."
-          },
-          "hostname": {
-            "type": "string",
-            "example": "hds-node-1.example.com",
-            "description": "Hostname of the node."
-          },
-          "hostIp": {
-            "type": "string",
-            "example": "165.49.25.1",
-            "description": "IP address of the node."
+            "description": "Metadata information about the node for which network test results are being retrieved."
           },
           "testResults": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/networkTestResults"
+              "$ref": "#/components/schemas/networkTestResult"
             },
             "description": "List of network test results."
           }
         }
       },
-      "networkTestResults": {
-        "type": "object",
-        "properties": {
-          "triggerType": {
-            "type": "string",
-            "example": "Periodic",
-            "description": "Type of trigger for the test."
-          },
-          "results": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/singleNetworkTestResult"
-            },
-            "description": "List of individual network test results."
-          }
-        }
-      },
-      "singleNetworkTestResult": {
+      "networkTestResult": {
         "type": "object",
         "properties": {
           "timestamp": {
             "type": "string",
             "format": "date-time",
-            "example": "2024-01-15T10:15:30Z",
-            "description": "Timestamp when the test was triggered"
+            "example": "2025-06-15T15:53:00Z",
+            "description": "Timestamp when the test was triggered."
           },
+          "triggerType": {
+            "type": "string",
+            "example": "OnDemand",
+            "description": "Type of trigger for the test."
+          },
+          "result": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/networkTestTypeResult"
+            },
+            "description": "List of results per test type."
+          }
+        }
+      },
+      "networkTestTypeResult": {
+        "type": "object",
+        "properties": {
           "type": {
             "type": "string",
-            "example": "HTTPConnectivityTest",
+            "example": "DNSResolutionTest",
             "description": "Type of network test."
           },
           "results": {
@@ -17872,7 +18275,7 @@
             "items": {
               "$ref": "#/components/schemas/serviceTestResults"
             },
-            "description": "List of service test results."
+            "description": "List of service type test results."
           }
         }
       },
@@ -17898,57 +18301,68 @@
         "properties": {
           "serviceName": {
             "type": "string",
-            "example": "hercules",
+            "example": "idBroker",
             "description": "Name of the service."
           },
           "testResult": {
             "type": "string",
             "example": "Success",
             "description": "Result of the test for the service."
+          },
+          "failureDetails": {
+            "$ref": "#/components/schemas/networkTestFailureDetails"
           }
         }
+      },
+      "networkTestFailureDetails": {
+        "type": "object",
+        "properties": {
+          "possibleFailureReason": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "DNS Resolution issue detected in the HDS Node [Error Code: 1302]."
+            ],
+            "description": "List of possible reasons for the test failure."
+          },
+          "possibleRemediation": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "Please ensure that the configured DNS Servers are correct and healthy, and verify the network settings are adhering to the HDS Deployment Guide."
+            ],
+            "description": "List of suggested remediation steps."
+          }
+        },
+        "description": "Failure details for a failed network test, present only when testResult is Failed."
       },
       "clustersAvailabilityDetailsResponse": {
         "type": "object",
         "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/clustersAvailabilityDetailsItems"
+          "context": {
+            "type": "object",
+            "properties": {
+              "orgId": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8yYzNjOWY5NS03M2Q5LTQ0NjAtYTY2OC0wNDcxNjJmZjFiYWQ",
+                "description": "Unique ID of the organization."
+              },
+              "clusterId": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzJjM2M5Zjk1LTczZDktNDQ2MC1hNjY4LTA0NzE2MmZmMWJhZDpiMzdmNTgzYy1kZGRjLTQyOGItODJlNS1jYmU2ODFkYjQ5NjI=",
+                "description": "Unique ID of the cluster."
+              },
+              "clusterName": {
+                "type": "string",
+                "example": "San Jose",
+                "description": "Name of the cluster."
+              }
             },
-            "description": "Response for clusters availability details API"
-          }
-        }
-      },
-      "clustersAvailabilityDetailsItems": {
-        "type": "object",
-        "properties": {
-          "orgId": {
-            "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8yYzNjOWY5NS03M2Q5LTQ0NjAtYTY2OC0wNDcxNjJmZjFiYWQ=",
-            "description": "Unique ID of the organization."
-          },
-          "clusters": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/clusterDetailsWithAvailabilitySegments"
-            },
-            "description": "List of clusters with their availability details."
-          }
-        }
-      },
-      "clusterDetailsWithAvailabilitySegments": {
-        "type": "object",
-        "properties": {
-          "clusterId": {
-            "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzJjM2M5Zjk1LTczZDktNDQ2MC1hNjY4LTA0NzE2MmZmMWJhZDpmMWJmMGI1MC0yMDUyLTQ3ZmUtYjg3ZC01MTFjMmZlNzQ3MWI",
-            "description": "Unique ID of the cluster."
-          },
-          "clusterName": {
-            "type": "string",
-            "example": "HDS Cluster 1",
-            "description": "Name of the cluster."
+            "description": "Metadata information about the cluster for which availability details are being retrieved."
           },
           "availabilitySegments": {
             "type": "array",
@@ -17956,6 +18370,24 @@
               "$ref": "#/components/schemas/availabilitySegment"
             },
             "description": "List of availability segments for the cluster."
+          },
+          "timeRange": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "format": "date-time",
+                "example": "2025-06-15T15:53:00Z",
+                "description": "Start time of the requested data range."
+              },
+              "to": {
+                "type": "string",
+                "format": "date-time",
+                "example": "2025-06-17T15:53:00Z",
+                "description": "End time of the requested data range."
+              }
+            },
+            "description": "The time range for the availability data."
           }
         }
       },
@@ -17974,20 +18406,307 @@
             "example": "2026-01-02T00:00:00Z",
             "description": "End time of the availability segment."
           },
-          "onlineNodeCount": {
+          "noOfOnlineNodes": {
             "type": "integer",
-            "example": 2,
+            "example": 1,
             "description": "Number of online nodes in the cluster in the segment."
           },
-          "offlineNodeCount": {
+          "noOfOfflineNodes": {
             "type": "integer",
-            "example": 0,
+            "example": 1,
             "description": "Number of offline nodes in the cluster in the segment."
           },
-          "totalNodeCount": {
+          "totalNodes": {
             "type": "integer",
             "example": 2,
             "description": "Total number of nodes in the cluster in the segment."
+          }
+        }
+      },
+      "nodeAlarmsResponse": {
+        "type": "object",
+        "properties": {
+          "context": {
+            "type": "object",
+            "properties": {
+              "orgId": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJVGNG",
+                "description": "Unique ID of the organization."
+              },
+              "clusterId": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJjYWUwZTEwZjpiMzdmNTgzYy1kZGRjLTQyOGItODJlNS1jYmU2ODFkYjQ5xxx",
+                "description": "Unique ID of the cluster."
+              },
+              "clusterName": {
+                "type": "string",
+                "example": "San Jose",
+                "description": "Name of the cluster."
+              },
+              "nodeId": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzM2ZDg5NGY3LTJiNTctNDNjMS1hY2VlLWQ0N2U2Nzc2MTQxNDo0NjdiNGIxZC1jZWI2LTQwN2EtYWZmOC1mMjIxZmFiNzhjyyy",
+                "description": "Unique ID of the node."
+              },
+              "host": {
+                "type": "string",
+                "example": "10.196.5.82",
+                "description": "Host name or IP of the HDS node."
+              }
+            },
+            "description": "Metadata information about the node for which alarms are being retrieved."
+          },
+          "alarms": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/nodeAlarm"
+            },
+            "description": "List of alarms raised for the node."
+          },
+          "timeRange": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "format": "date-time",
+                "example": "2025-06-15T15:53:00Z",
+                "description": "Start time of the requested data range."
+              },
+              "to": {
+                "type": "string",
+                "format": "date-time",
+                "example": "2025-06-16T15:53:00Z",
+                "description": "End time of the requested data range."
+              }
+            },
+            "description": "The time range for the alarms data."
+          }
+        }
+      },
+      "nodeAlarm": {
+        "type": "object",
+        "properties": {
+          "alarmId": {
+            "type": "string",
+            "example": "AUTH_WARN.expiring-60",
+            "description": "Unique identifier of the alarm."
+          },
+          "alarmName": {
+            "type": "string",
+            "example": "HDS Machine Accounts Expiring in 60 days",
+            "description": "Name of the alarm."
+          },
+          "alarmSeverity": {
+            "type": "string",
+            "example": "Warning",
+            "description": "Severity level of the alarm."
+          },
+          "alarmDetails": {
+            "type": "string",
+            "example": "Expiration Details",
+            "description": "Additional details about the alarm."
+          },
+          "possibleRemediation": {
+            "type": "string",
+            "example": "Refresh HDS Machine Accounts using HDS Setup Tool",
+            "description": "Suggested remediation steps for the alarm."
+          },
+          "currentStatus": {
+            "type": "string",
+            "example": "Active",
+            "description": "Current status of the alarm."
+          },
+          "occurrences": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "string",
+                "example": "4",
+                "description": "Total number of occurrences of the alarm."
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/alarmOccurrence"
+                },
+                "description": "List of individual alarm occurrence details."
+              }
+            },
+            "description": "Occurrence details of the alarm."
+          }
+        }
+      },
+      "alarmOccurrence": {
+        "type": "object",
+        "properties": {
+          "raisedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-06-14T15:53:00Z",
+            "description": "Timestamp when the alarm was raised."
+          },
+          "clearedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-06-15T15:53:00Z",
+            "description": "Timestamp when the alarm was cleared."
+          }
+        }
+      },
+      "nodeResourceUsageResponse": {
+        "type": "object",
+        "properties": {
+          "context": {
+            "type": "object",
+            "properties": {
+              "orgId": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJVGNG",
+                "description": "Unique ID of the organization."
+              },
+              "clusterId": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJjYWUwZTEwZjpiMzdmNTgzYy1kZGRjLTQyOGItODJlNS1jYmU2ODFkYjQ5NjI",
+                "description": "Unique ID of the cluster."
+              },
+              "clusterName": {
+                "type": "string",
+                "example": "cluster-1",
+                "description": "Name of the cluster."
+              },
+              "nodeId": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJjYWUwZTEwZjpiMzdmNTgzYy1kZGRjLTQyOGItODJlNS1jYmU2ODFkYjQ5NjI",
+                "description": "Unique ID of the node."
+              },
+              "host": {
+                "type": "string",
+                "example": "xyz.abc.com",
+                "description": "Host name or IP address of the HDS node."
+              }
+            },
+            "description": "Metadata information about the node for which resource usage is being retrieved."
+          },
+          "resourceUsage": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/nodeResourceUsageSegment"
+            },
+            "description": "List of resource usage segments over the requested time range."
+          },
+          "timeRange": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "format": "date-time",
+                "example": "2025-06-15T15:00:00Z",
+                "description": "Start time of the requested data range."
+              },
+              "to": {
+                "type": "string",
+                "format": "date-time",
+                "example": "2025-06-15T15:20:00Z",
+                "description": "End time of the requested data range."
+              }
+            },
+            "description": "The time range for the resource usage data."
+          }
+        }
+      },
+      "nodeResourceUsageSegment": {
+        "type": "object",
+        "properties": {
+          "startTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-06-15T15:00:00Z",
+            "description": "Start time of the resource usage segment."
+          },
+          "endTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-06-15T15:10:00Z",
+            "description": "End time of the resource usage segment."
+          },
+          "cpuUsage": {
+            "type": "object",
+            "properties": {
+              "peakCpuUsagePercent": {
+                "type": "number",
+                "example": 30.78,
+                "description": "Peak CPU usage percentage in the segment."
+              },
+              "averageCpuUsagePercent": {
+                "type": "number",
+                "example": 8.9,
+                "description": "Average CPU usage percentage in the segment."
+              }
+            },
+            "description": "CPU usage details for the segment."
+          },
+          "memoryUsage": {
+            "type": "object",
+            "properties": {
+              "totalMemoryUsageInMB": {
+                "type": "number",
+                "example": 7454,
+                "description": "Total memory available on the node in MB."
+              },
+              "peakMemoryUsageInMB": {
+                "type": "number",
+                "example": 6075,
+                "description": "Peak memory usage in MB in the segment."
+              },
+              "peakMemoryUsagePercent": {
+                "type": "number",
+                "example": 81.5,
+                "description": "Peak memory usage percentage in the segment."
+              },
+              "averageMemoryUsageInMB": {
+                "type": "number",
+                "example": 6042,
+                "description": "Average memory usage in MB in the segment."
+              },
+              "averageMemoryUsagePercent": {
+                "type": "number",
+                "example": 81.06,
+                "description": "Average memory usage percentage in the segment."
+              }
+            },
+            "description": "Memory usage details for the segment."
+          },
+          "diskUsage": {
+            "type": "object",
+            "properties": {
+              "totalDiskSpaceUsageInMB": {
+                "type": "number",
+                "example": 37308,
+                "description": "Total disk space available on the node in MB."
+              },
+              "peakDiskSpaceUsageInMB": {
+                "type": "number",
+                "example": 18874,
+                "description": "Peak disk space usage in MB in the segment."
+              },
+              "peakDiskUsagePercent": {
+                "type": "number",
+                "example": 50.59,
+                "description": "Peak disk usage percentage in the segment."
+              },
+              "averageDiskUsage": {
+                "type": "number",
+                "example": 18874,
+                "description": "Average disk usage in MB in the segment."
+              },
+              "averageDiskUsagePercent": {
+                "type": "number",
+                "example": 50.59,
+                "description": "Average disk usage percentage in the segment."
+              }
+            },
+            "description": "Disk usage details for the segment."
           }
         }
       },

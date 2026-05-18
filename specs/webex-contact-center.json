@@ -66579,6 +66579,7 @@
           "connected_with_issues",
           "offline_expired",
           "activating",
+          "pending",
           "unknown",
           "offline_deep_sleep"
         ],
@@ -85761,6 +85762,209 @@
         },
         "description": "List of all resources, and it's supported versions available to subscribe."
       },
+      "CCUsageReportRequest": {
+        "type": "object",
+        "description": "Request payload to create a usage report for a specific resource type and date range.",
+        "properties": {
+          "resourceType": {
+            "type": "string",
+            "description": "Type of resource this report contains.",
+            "example": "ContactSessionRecord"
+          },
+          "startDate": {
+            "type": "string",
+            "description": "Report start date (inclusive), in yyyy-MM-dd format.",
+            "example": "2025-01-01"
+          },
+          "endDate": {
+            "type": "string",
+            "description": "Report end date (exclusive), in yyyy-MM-dd format.",
+            "example": "2025-01-31"
+          }
+        },
+        "example": {
+          "resourceType": "ContactSessionRecord",
+          "startDate": "2025-01-01",
+          "endDate": "2025-01-31"
+        }
+      },
+      "CreateCCUsageReportResponse": {
+        "type": "object",
+        "description": "Response returned after successfully creating a usage report.",
+        "properties": {
+          "reportId": {
+            "type": "string",
+            "description": "Unique report ID (UUID without hyphens).",
+            "example": "550e8400e29b41d4a716446655440000"
+          },
+          "createdTime": {
+            "type": "string",
+            "description": "Report creation timestamp in ISO 8601 format.",
+            "example": "2026-02-01T09:31:04Z"
+          }
+        },
+        "example": {
+          "reportId": "550e8400e29b41d4a716446655440000",
+          "createdTime": "2026-02-01T09:31:04Z"
+        }
+      },
+      "CCUsageReport": {
+        "type": "object",
+        "properties": {
+          "reportId": {
+            "type": "string",
+            "description": "Unique report ID (UUID without hyphens). A single usage report may contain multiple report files.",
+            "example": "550e8400e29b41d4a716446655440000",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "resourceType": {
+            "type": "string",
+            "description": "Type of resource this usage report contains.",
+            "example": "ContactSessionRecord"
+          },
+          "orgId": {
+            "type": "string",
+            "description": "Organization ID whose data is included in this report file.",
+            "example": "1eb65fdf-9643-417f-9974-ad72cae0e10f"
+          },
+          "status": {
+            "type": "string",
+            "description": "Overall status of the usage report.\n\nThis status represents the aggregated state of all report files\ngenerated under this report. A report may contain multiple files,\neach with its own individual status.\n\nTypical rules:\n- queued：All report files are pending\n- in progress: At least one report file is still being processed\n- completed: All report files have completed successfully\n- failed: All report files failed\n",
+            "enum": [
+              "queued",
+              "in progress",
+              "completed",
+              "failed"
+            ],
+            "example": "completed"
+          },
+          "createdTime": {
+            "type": "string",
+            "description": "Timestamp when the usage report was created, in ISO 8601 format.",
+            "example": "2026-02-01T09:31:04Z"
+          },
+          "completedTime": {
+            "type": "string",
+            "description": "Timestamp when the all usage report files were completed, in ISO 8601 format. ",
+            "example": "2026-02-01T10:15:30Z"
+          },
+          "expiryTime": {
+            "type": "string",
+            "description": "Expiration time of the usage report, in ISO 8601 format.\n\nAfter this timestamp, the entire usage report will be permanently deleted,\nincluding all associated report files. Once expired, the report and its\nfiles can no longer be queried or downloaded.\n\nThe report expiration time is typically 7 days after the report was completed.\n",
+            "example": "2026-02-08T10:15:30Z"
+          },
+          "reportFiles": {
+            "type": "array",
+            "description": "List of report files generated for this usage report.\n\nDepending on the requested date range, the report may contain one or more\nreport files.\n\nWhen the requested date range spans more than 30 days, the overall range\nis automatically split by natural calendar months. Each report file\nrepresents one such time slice within the original requested range.\n\nReport files are processed independently and may have different statuses.\nThe overall report status is derived from the statuses of these files.\n",
+            "example": [
+              {
+                "startDate": "2025-12-23",
+                "endDate": "2025-12-31",
+                "status": "completed",
+                "fileId": "0f49a30b66f9415382ce2251f2ee194d",
+                "fileName": "ContactSessionRecord_550e8400e29b41d4a716446655440000_1eb65fdf-9643-417f-9974-ad72cae0e10f_2025-12-23_2025-12-31.csv",
+                "fileSize": 102400,
+                "checksum": "a1b2c3d4e5f67890",
+                "downloadUrl": "https://api.intgus1.ciscoccservice.com/async-api/v1/reports/0f49a30b66f9415382ce2251f2ee194d/download"
+              }
+            ],
+            "items": {
+              "$ref": "#/components/schemas/CCUsageReportFile"
+            }
+          }
+        }
+      },
+      "CCUsageReportFile": {
+        "type": "object",
+        "properties": {
+          "startDate": {
+            "type": "string",
+            "description": "Report file start date (inclusive), in yyyy-MM-dd format.",
+            "example": "2025-01-01"
+          },
+          "endDate": {
+            "type": "string",
+            "description": "Report file end date (exclusive), in yyyy-MM-dd format.",
+            "example": "2025-01-31"
+          },
+          "status": {
+            "type": "string",
+            "description": "Current status of this report file.\n\nEach report file represents a specific time range within the\noverall usage report. File statuses are independent from\neach other and may differ within the same report.\n\nPossible values:\n- queued: File generation is pending\n- in progress: File is currently being generated\n- completed: File has been generated successfully and is available for download\n- failed: File generation failed\n",
+            "enum": [
+              "queued",
+              "in progress",
+              "completed",
+              "failed"
+            ],
+            "example": "completed"
+          },
+          "fileId": {
+            "type": "string",
+            "description": "Unique file ID (UUID without hyphens).",
+            "example": "0f49a30b66f9415382ce2251f2ee194d",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "fileName": {
+            "type": "string",
+            "description": "Name of the generated CSV file. Format: resourceType_reportId_orgId_startDate_endDate.csv",
+            "example": "ContactSessionRecord_550e8400e29b41d4a716446655440000_1eb65fdf-9643-417f-9974-ad72cae0e10f_2025-01-01_2025-01-31.csv"
+          },
+          "fileSize": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Size of the generated file in bytes. Available only when the file status is completed.",
+            "example": 102400
+          },
+          "checksum": {
+            "type": "string",
+            "description": "MD5 checksum of the generated file for integrity verification. Available only when the file status is completed.",
+            "example": "a1b2c3d4e5f67890"
+          },
+          "downloadUrl": {
+            "type": "string",
+            "description": "Secure download URL for the file. Available only when the file status is completed.",
+            "example": "https://api.intgus1.ciscoccservice.com/v1/usage-reports/0f49a30b66f9415382ce2251f2ee194d/download"
+          }
+        }
+      },
+      "CCUsageReportResourceType": {
+        "type": "object",
+        "description": "Describes a resource type that can be used to generate usage reports.",
+        "properties": {
+          "resourceType": {
+            "type": "string",
+            "description": "Technical identifier for the resource type.",
+            "example": "ContactSessionRecord"
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Human-readable name of the resource type.",
+            "example": "Contact Session Record"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the data contained in this resource type.",
+            "example": "Detailed records of all contact sessions including call details, queue times, and outcomes."
+          },
+          "dataStartDate": {
+            "type": "string",
+            "description": "Earliest date for which data is available.",
+            "example": "2023-01-01"
+          },
+          "dataEndDate": {
+            "type": "string",
+            "description": "Latest date for which data is available.",
+            "example": "2025-01-31"
+          }
+        },
+        "example": {
+          "resourceType": "ContactSessionRecord",
+          "displayName": "Contact Session Record",
+          "description": "Detailed records of all contact sessions including call details, queue times, and outcomes.",
+          "dataStartDate": "2023-01-01",
+          "dataEndDate": "2025-01-31"
+        }
+      },
       "LogInResourceRequest": {
         "properties": {
           "dialNumber": {
@@ -87238,7 +87442,7 @@
       },
       "Telephony": {
         "type": "object",
-        "description": "Request body to create an outbound `telephony` task routed through a configured outdial entry point. `outdialEntryPointId` is required. When `callback` is provided, its `type` must be `immediate` and `origin` must be `web`.\n\n**Migrating from v1:** The following fields have been renamed or restructured — `entryPointId` → `channelParams.outdialEntryPointId`; `destination` (string) → `destination.id`; `origin` (string) → `origin.id`; `attributes` → `globalVariables`; `customAttributes` (SIP headers) → `channelParams.sipHeaders`; `mediaType` → `channelType`; `callback.callbackOrigin` → `channelParams.callback.origin`; `callback.callbackType` → `channelParams.callback.type`.",
+        "description": "Request body to create an outbound `telephony` task routed through a configured entry point. `entryPointId` is required. When `callback` is provided, its `type` must be `immediate` and `origin` must be `web`.\n\n**Migrating from v1:** The following fields have been renamed or restructured — `entryPointId` → `channelParams.entryPointId`; `destination` (string) → `destination.id`; `origin` (string) → `origin.id`; `attributes` → `globalVariables`; `customAttributes` (SIP headers) → `channelParams.sipHeaders`; `mediaType` → `channelType`; `callback.callbackOrigin` → `channelParams.callback.origin`; `callback.callbackType` → `channelParams.callback.type`.",
         "required": [
           "origin",
           "destination",
@@ -87328,7 +87532,7 @@
           "channelType": "telephony",
           "channelParams": {
             "type": "telephony",
-            "outdialEntryPointId": "aef6455f-ccd6-4261-bb00-e80f845c01b0",
+            "entryPointId": "aef6455f-ccd6-4261-bb00-e80f845c01b0",
             "outboundType": "CALLBACK",
             "callback": {
               "type": "immediate",
@@ -87343,7 +87547,7 @@
         "description": "Telephony channel parameters.",
         "required": [
           "type",
-          "outdialEntryPointId",
+          "entryPointId",
           "outboundType"
         ],
         "properties": {
@@ -87355,9 +87559,9 @@
             "description": "Must be `telephony` for telephony channel parameters.",
             "example": "telephony"
           },
-          "outdialEntryPointId": {
+          "entryPointId": {
             "type": "string",
-            "description": "UUID of the entry point for the task. For `CALLBACK` and `OUTDIAL`, this must be an outbound entry point. For `EXECUTE_FLOW`, this must be an inbound entry point mapped to the flow to be triggered. **Migrating from v1:** Previously named `entryPointId`.",
+            "description": "UUID of the entry point for the task. For `CALLBACK` and `OUTDIAL`, this must be an outbound entry point. For `EXECUTE_FLOW`, this must be an inbound entry point mapped to the flow to be triggered. **Migrating from v1:** Previously a top-level field, now nested under `channelParams`.",
             "example": "aef6455f-ccd6-4261-bb00-e80f845c01b0"
           },
           "outboundType": {
