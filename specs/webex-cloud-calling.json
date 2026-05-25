@@ -13,6 +13,9 @@
     {
       "name": "User Call Settings (2/2)",
       "description": "APIs for managing user call settings including music on hold, access codes, transfer numbers, digit patterns, and more."
+    },
+    {
+      "name": "User Call Settings (3/3)"
     }
   ],
   "paths": {
@@ -16421,7 +16424,8 @@
                 "enabled": true,
                 "notifications": {
                   "enabled": true,
-                  "destination": "julie@example.com"
+                  "destination": "julie@example.com",
+                  "smsDestination": "+12025551212"
                 },
                 "sendAllCalls": {
                   "enabled": true
@@ -16487,7 +16491,8 @@
                   },
                   "notifications": {
                     "enabled": true,
-                    "destination": "julie@example.com"
+                    "destination": "julie@example.com",
+                    "smsDestination": "+12025551212"
                   },
                   "transferToNumber": {
                     "enabled": false
@@ -16643,7 +16648,8 @@
                 "enabled": true,
                 "notifications": {
                   "enabled": true,
-                  "destination": "julie@example.com"
+                  "destination": "julie@example.com",
+                  "smsDestination": "+12025551212"
                 },
                 "sendAllCalls": {
                   "enabled": true
@@ -16701,7 +16707,8 @@
                   },
                   "notifications": {
                     "enabled": true,
-                    "destination": "julie@example.com"
+                    "destination": "julie@example.com",
+                    "smsDestination": "+12025551212"
                   },
                   "transferToNumber": {
                     "enabled": false
@@ -85757,7 +85764,8 @@
                   },
                   "notifications": {
                     "enabled": true,
-                    "destination": "julie@example.com"
+                    "destination": "julie@example.com",
+                    "smsDestination": "+12025551212"
                   },
                   "transferToNumber": {
                     "enabled": false
@@ -85940,7 +85948,8 @@
                 "enabled": true,
                 "notifications": {
                   "enabled": true,
-                  "destination": "julie@example.com"
+                  "destination": "julie@example.com",
+                  "smsDestination": "+12025551212"
                 },
                 "sendAllCalls": {
                   "enabled": true
@@ -96783,6 +96792,1302 @@
         ]
       }
     },
+    "/telephony/config/people/{personId}/anonymousCallReject": {
+      "get": {
+        "summary": "Get Anonymous Call Rejection Settings for a Person",
+        "operationId": "getPersonAnonymousCallRejectSettings",
+        "description": "Get Anonymous Call Rejection Settings for a person.\n\nAnonymous Call Rejection allows people to automatically reject incoming calls from callers who have blocked their caller ID information.\n\nViewing requires a full, read-only, user, or location administrator auth token with a scope of `spark-admin:people_read`.",
+        "tags": [
+          "User Call Settings (3/3)"
+        ],
+        "parameters": [
+          {
+            "name": "personId",
+            "in": "path",
+            "description": "Unique identifier for the person.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS81Y2Y1NmJkMS1hMzU4LTQzYWQtODY5Ni0xM2E2NzliNGUyNGY"
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Organization ID. If not specified, uses the organization from the OAuth token.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonAnonymousCallRejectGet"
+                },
+                "example": {
+                  "enabled": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        }
+      },
+      "put": {
+        "summary": "Update Anonymous Call Rejection Settings for a Person",
+        "operationId": "updatePersonAnonymousCallRejectSettings",
+        "description": "Update Anonymous Call Rejection Settings for a person.\n\nConfigure whether to automatically reject incoming calls from anonymous callers. When Anonymous Call Rejection is enabled, calls from callers who have blocked their caller ID will be rejected.\n\nModifying requires a full, user, or location administrator auth token with a scope of `spark-admin:people_write`.",
+        "tags": [
+          "User Call Settings (3/3)"
+        ],
+        "parameters": [
+          {
+            "name": "personId",
+            "in": "path",
+            "description": "Unique identifier for the person.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS81Y2Y1NmJkMS1hMzU4LTQzYWQtODY5Ni0xM2E2NzliNGUyNGY"
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Organization ID. If not specified, uses the organization from the OAuth token.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonAnonymousCallRejectPut"
+              },
+              "example": {
+                "enabled": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        }
+      }
+    },
+    "/telephony/config/people/{personId}/services": {
+      "get": {
+        "summary": "List Enabled Calling Services for a Person",
+        "operationId": "getPersonCallingServices",
+        "description": "Retrieves the list of enabled calling services for a person.\n\nCalling services are designed to improve call handling and ensure that people can manage their communications effectively.\n\nViewing requires a full, read-only, user, or location administrator auth token with a scope of `spark-admin:people_read`.",
+        "tags": [
+          "User Call Settings (3/3)"
+        ],
+        "parameters": [
+          {
+            "name": "personId",
+            "in": "path",
+            "description": "Unique identifier for the person.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS81Y2Y1NmJkMS1hMzU4LTQzYWQtODY5Ni0xM2E2NzliNGUyNGY"
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Organization ID. If not specified, uses the organization from the OAuth token.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonServicesGet"
+                },
+                "example": {
+                  "services": [
+                    "Anonymous Call Rejection",
+                    "Call Forwarding Always"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        }
+      }
+    },
+    "/telephony/config/people/{personId}/simultaneousRing": {
+      "get": {
+        "summary": "Retrieve Simultaneous Ring Settings for a Person",
+        "operationId": "getPersonSimultaneousRingSettings",
+        "description": "Retrieve simultaneous ring settings for a person.\n\nThe Simultaneous Ring feature allows you to configure your office phone and other phones of your choice to ring simultaneously. Schedules can also be set up to ring these phones during certain times of the day or days of the week.\n\nViewing requires a full, read-only, user, or location administrator auth token with a scope of `spark-admin:people_read`.",
+        "tags": [
+          "User Call Settings (3/3)"
+        ],
+        "parameters": [
+          {
+            "name": "personId",
+            "in": "path",
+            "description": "Unique identifier for the person.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS81Y2Y1NmJkMS1hMzU4LTQzYWQtODY5Ni0xM2E2NzliNGUyNGY"
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Organization ID. If not specified, uses the organization from the OAuth token.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonSimultaneousRingGet"
+                },
+                "example": {
+                  "enabled": true,
+                  "doNotRingIfOnCallEnabled": true,
+                  "criteriasEnabled": true,
+                  "phoneNumbers": [
+                    {
+                      "phoneNumber": "+19075552859",
+                      "answerConfirmationEnabled": true
+                    },
+                    {
+                      "phoneNumber": "+19186663950",
+                      "answerConfirmationEnabled": false
+                    }
+                  ],
+                  "criteria": [
+                    {
+                      "id": "Y2lzY29zcGFyazovL3VzL0NSSVRFUklBLzg2NTAxZDFlLTg1MWMtNDgwYi1hZmE2LTA5MTU4NzQ3NzdmZQ",
+                      "scheduleName": "Business Vacation",
+                      "source": "ALL_NUMBERS",
+                      "ringEnabled": true
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        }
+      },
+      "put": {
+        "summary": "Modify Simultaneous Ring Settings for a Person",
+        "operationId": "updatePersonSimultaneousRingSettings",
+        "description": "Modifies simultaneous ring settings for a person.\n\nThe Simultaneous Ring feature allows you to configure your office phone and other phones of your choice to ring simultaneously. Schedules can also be set up to ring these phones during certain times of the day or days of the week.\n\nModifying requires a full, user, or location administrator auth token with a scope of `spark-admin:people_write`.",
+        "tags": [
+          "User Call Settings (3/3)"
+        ],
+        "parameters": [
+          {
+            "name": "personId",
+            "in": "path",
+            "description": "Unique identifier for the person.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS81Y2Y1NmJkMS1hMzU4LTQzYWQtODY5Ni0xM2E2NzliNGUyNGY"
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Organization ID. If not specified, uses the organization from the OAuth token.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonSimultaneousRingPut"
+              },
+              "example": {
+                "enabled": false,
+                "doNotRingIfOnCallEnabled": false,
+                "criteriasEnabled": false,
+                "phoneNumbers": [
+                  {
+                    "phoneNumber": "+19075552859",
+                    "answerConfirmationEnabled": false
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        }
+      }
+    },
+    "/telephony/config/people/{personId}/simultaneousRing/criteria": {
+      "post": {
+        "summary": "Create Simultaneous Ring Criteria for a Person",
+        "operationId": "createPersonSimultaneousRingCriteria",
+        "description": "Create simultaneous ring criteria settings for a person.\n\nThe Simultaneous Ring feature allows you to configure your office phone and other phones of your choice to ring simultaneously. Simultaneous Ring Criteria (Schedules) can also be set up to ring these phones during certain times of the day or days of the week.\n\nModifying requires a full, user, or location administrator auth token with a scope of `spark-admin:people_write`.",
+        "tags": [
+          "User Call Settings (3/3)"
+        ],
+        "parameters": [
+          {
+            "name": "personId",
+            "in": "path",
+            "description": "Unique identifier for the person.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS81Y2Y1NmJkMS1hMzU4LTQzYWQtODY5Ni0xM2E2NzliNGUyNGY"
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Organization ID. If not specified, uses the organization from the OAuth token.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonSimultaneousRingCriteriaPost"
+              },
+              "example": {
+                "scheduleName": "Business Vacation",
+                "scheduleType": "businessHours",
+                "scheduleLevel": "LOCATION",
+                "callsFrom": "SELECT_PHONE_NUMBERS",
+                "anonymousCallersEnabled": true,
+                "unavailableCallersEnabled": true,
+                "phoneNumbers": [
+                  "+19064441748",
+                  "+19186663950"
+                ],
+                "ringEnabled": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonSimultaneousRingCriteriaCreated"
+                },
+                "example": {
+                  "id": "Y2lzY29zcGFyazovL3VzL0NSSVRFUklBLzg2NTAxZDFlLTg1MWMtNDgwYi1hZmE2LTA5MTU4NzQ3NzdmZQ"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        }
+      }
+    },
+    "/telephony/config/people/{personId}/simultaneousRing/criteria/{id}": {
+      "get": {
+        "summary": "Retrieve Simultaneous Ring Criteria for a Person",
+        "operationId": "getPersonSimultaneousRingCriteria",
+        "description": "Retrieve simultaneous ring criteria settings for a person.\n\nThe Simultaneous Ring feature allows you to configure your office phone and other phones of your choice to ring simultaneously. Simultaneous Ring Criteria (Schedules) can also be set up to ring these phones during certain times of the day or days of the week.\n\nViewing requires a full, read-only, user, or location administrator auth token with a scope of `spark-admin:people_read`.",
+        "tags": [
+          "User Call Settings (3/3)"
+        ],
+        "parameters": [
+          {
+            "name": "personId",
+            "in": "path",
+            "description": "Unique identifier for the person.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS81Y2Y1NmJkMS1hMzU4LTQzYWQtODY5Ni0xM2E2NzliNGUyNGY"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Unique identifier for the criteria.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Y2lzY29zcGFyazovL3VzL0NSSVRFUklBLzg2NTAxZDFlLTg1MWMtNDgwYi1hZmE2LTA5MTU4NzQ3NzdmZQ"
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Organization ID. If not specified, uses the organization from the OAuth token.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonSimultaneousRingCriteriaGet"
+                },
+                "example": {
+                  "id": "Y2lzY29zcGFyazovL3VzL0NSSVRFUklBLzg2NTAxZDFlLTg1MWMtNDgwYi1hZmE2LTA5MTU4NzQ3NzdmZQ",
+                  "scheduleName": "Business_1",
+                  "scheduleType": "holidays",
+                  "scheduleLevel": "LOCATION",
+                  "callsFrom": "SELECT_PHONE_NUMBERS",
+                  "anonymousCallersEnabled": true,
+                  "unavailableCallersEnabled": false,
+                  "phoneNumbers": [
+                    "+19867512340",
+                    "+12324556740"
+                  ],
+                  "ringEnabled": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        }
+      },
+      "put": {
+        "summary": "Modify Simultaneous Ring Criteria for a Person",
+        "operationId": "updatePersonSimultaneousRingCriteria",
+        "description": "Modify simultaneous ring criteria settings for a person.\n\nThe Simultaneous Ring feature allows you to configure your office phone and other phones of your choice to ring simultaneously. Simultaneous Ring Criteria (Schedules) can also be set up to ring these phones during certain times of the day or days of the week.\n\nModifying requires a full, user, or location administrator auth token with a scope of `spark-admin:people_write`.",
+        "tags": [
+          "User Call Settings (3/3)"
+        ],
+        "parameters": [
+          {
+            "name": "personId",
+            "in": "path",
+            "description": "Unique identifier for the person.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS81Y2Y1NmJkMS1hMzU4LTQzYWQtODY5Ni0xM2E2NzliNGUyNGY"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Unique identifier for the criteria.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Y2lzY29zcGFyazovL3VzL0NSSVRFUklBLzg2NTAxZDFlLTg1MWMtNDgwYi1hZmE2LTA5MTU4NzQ3NzdmZQ"
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Organization ID. If not specified, uses the organization from the OAuth token.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonSimultaneousRingCriteriaPut"
+              },
+              "example": {
+                "scheduleName": "Business Vacation YearEnd",
+                "scheduleType": "holidays",
+                "scheduleLevel": "LOCATION",
+                "callsFrom": "SELECT_PHONE_NUMBERS",
+                "anonymousCallersEnabled": true,
+                "unavailableCallersEnabled": true,
+                "phoneNumbers": [
+                  "+19064441748",
+                  "+19186663950"
+                ],
+                "ringEnabled": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Simultaneous Ring Criteria for a Person",
+        "operationId": "deletePersonSimultaneousRingCriteria",
+        "description": "Delete simultaneous ring criteria settings for a person.\n\nThe Simultaneous Ring feature allows you to configure your office phone and other phones of your choice to ring simultaneously. Simultaneous Ring Criteria (Schedules) can also be set up to ring these phones during certain times of the day or days of the week.\n\nModifying requires a full, user, or location administrator auth token with a scope of `spark-admin:people_write`.",
+        "tags": [
+          "User Call Settings (3/3)"
+        ],
+        "parameters": [
+          {
+            "name": "personId",
+            "in": "path",
+            "description": "Unique identifier for the person.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS81Y2Y1NmJkMS1hMzU4LTQzYWQtODY5Ni0xM2E2NzliNGUyNGY"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Unique identifier for the criteria.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Y2lzY29zcGFyazovL3VzL0NSSVRFUklBLzg2NTAxZDFlLTg1MWMtNDgwYi1hZmE2LTA5MTU4NzQ3NzdmZQ"
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Organization ID. If not specified, uses the organization from the OAuth token.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        }
+      }
+    },
+    "/telephony/config/people/{personId}/features/hotDesking/availableMembers": {
+      "get": {
+        "summary": "Search Available Hot Desking Members",
+        "operationId": "searchAvailableHotDeskingMembers",
+        "description": "Retrieve members available for assignment to a person's hot desking guest profile.\n\nAvailable members can include people, workspaces, and virtual lines that can be added as shared lines on the hot desking profile.\n\nThis API requires a full, user, device, read-only, or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "tags": [
+          "Features: Hot Desking Members",
+          "User Call Settings (3/3)"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/personId"
+          },
+          {
+            "$ref": "#/components/parameters/orgId"
+          },
+          {
+            "$ref": "#/components/parameters/locationId"
+          },
+          {
+            "$ref": "#/components/parameters/max"
+          },
+          {
+            "$ref": "#/components/parameters/start"
+          },
+          {
+            "$ref": "#/components/parameters/memberName"
+          },
+          {
+            "$ref": "#/components/parameters/phoneNumber"
+          },
+          {
+            "$ref": "#/components/parameters/extension"
+          },
+          {
+            "$ref": "#/components/parameters/order"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "Link": {
+                "description": "Pagination link for the next page of available members, when additional results are available.",
+                "schema": {
+                  "type": "string"
+                },
+                "example": "<https://webexapis.com/v1/telephony/config/people/Y2lzY29zcGFyazovL3VzL1BFT1BMRS8wZTQ5NjAzNC1lNTQ1LTRmMmEtODI4ZC03MjhjYjJlNjNlMWQ/features/hotDesking/availableMembers?start=100&max=100>; rel=\"next\""
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HotDeskingAvailableMembers"
+                },
+                "example": {
+                  "members": [
+                    {
+                      "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
+                      "firstName": "John",
+                      "lastName": "Smith",
+                      "phoneNumber": "+12055552221",
+                      "extension": "2221",
+                      "routingPrefix": "1234",
+                      "esn": "12342221",
+                      "lineType": "SHARED_CALL_APPEARANCE",
+                      "memberType": "PEOPLE",
+                      "location": {
+                        "id": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzJiNDkyZmZkLTRjNGItNGVmNS04YzAzLWE1MDYyYzM4NDA5Mw",
+                        "name": "Main Office"
+                      }
+                    },
+                    {
+                      "id": "Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS83MGY2MzYzMC1mZjlmLTExZWItODU5YS0xZjhiYjRjNzc3OGg",
+                      "firstName": "Support",
+                      "lastName": "Line",
+                      "phoneNumber": "+12055552222",
+                      "extension": "2222",
+                      "routingPrefix": "1234",
+                      "esn": "12342222",
+                      "lineType": "SHARED_CALL_APPEARANCE",
+                      "memberType": "VIRTUAL_LINE",
+                      "location": {
+                        "id": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzJiNDkyZmZkLTRjNGItNGVmNS04YzAzLWE1MDYyYzM4NDA5Mw",
+                        "name": "Main Office"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "410": {
+            "$ref": "#/components/responses/Gone"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "423": {
+            "$ref": "#/components/responses/Locked"
+          },
+          "428": {
+            "$ref": "#/components/responses/PreconditionRequired"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/BadGateway"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          },
+          "504": {
+            "$ref": "#/components/responses/GatewayTimeout"
+          }
+        },
+        "externalDocs": {
+          "description": "Webex Calling API Documentation",
+          "url": "https://developer.webex.com/docs/api/v1/webex-calling"
+        }
+      }
+    },
+    "/telephony/config/people/{personId}/features/hotDesking/members": {
+      "get": {
+        "summary": "Get Hot Desking Members",
+        "operationId": "getHotDeskingMembers",
+        "description": "Retrieve the primary and shared-line members assigned to a person's hot desking guest profile.\n\nThis API requires a full, user, device, read-only, or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "tags": [
+          "Features: Hot Desking Members",
+          "User Call Settings (3/3)"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/personId"
+          },
+          {
+            "$ref": "#/components/parameters/orgId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HotDeskingMembers"
+                },
+                "example": {
+                  "model": "Business Communicator - PC",
+                  "members": [
+                    {
+                      "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS8wZTQ5NjAzNC1lNTQ1LTRmMmEtODI4ZC03MjhjYjJlNjNlMWQ",
+                      "firstName": "Alice",
+                      "lastName": "Gomez",
+                      "phoneNumber": "+12055552220",
+                      "extension": "2220",
+                      "routingPrefix": "1234",
+                      "esn": "12342220",
+                      "primaryOwner": true,
+                      "port": 1,
+                      "lineType": "HOTDESKING_GUEST",
+                      "lineWeight": 1,
+                      "hotlineEnabled": false,
+                      "allowCallDeclineEnabled": true,
+                      "memberType": "PEOPLE",
+                      "location": {
+                        "id": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzJiNDkyZmZkLTRjNGItNGVmNS04YzAzLWE1MDYyYzM4NDA5Mw",
+                        "name": "Main Office"
+                      }
+                    },
+                    {
+                      "id": "Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS83MGY2MzYzMC1mZjlmLTExZWItODU5YS0xZjhiYjRjNzc3OGg",
+                      "firstName": "Support",
+                      "lastName": "Line",
+                      "phoneNumber": "+12055552222",
+                      "extension": "2222",
+                      "routingPrefix": "1234",
+                      "esn": "12342222",
+                      "primaryOwner": false,
+                      "port": 2,
+                      "lineType": "SHARED_CALL_APPEARANCE",
+                      "lineWeight": 1,
+                      "hotlineEnabled": false,
+                      "allowCallDeclineEnabled": true,
+                      "memberType": "VIRTUAL_LINE",
+                      "location": {
+                        "id": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzJiNDkyZmZkLTRjNGItNGVmNS04YzAzLWE1MDYyYzM4NDA5Mw",
+                        "name": "Main Office"
+                      }
+                    }
+                  ],
+                  "maxLineCount": 10
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "410": {
+            "$ref": "#/components/responses/Gone"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "423": {
+            "$ref": "#/components/responses/Locked"
+          },
+          "428": {
+            "$ref": "#/components/responses/PreconditionRequired"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/BadGateway"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          },
+          "504": {
+            "$ref": "#/components/responses/GatewayTimeout"
+          }
+        },
+        "externalDocs": {
+          "description": "Webex Calling API Documentation",
+          "url": "https://developer.webex.com/docs/api/v1/webex-calling"
+        }
+      },
+      "put": {
+        "summary": "Update Hot Desking Members",
+        "operationId": "updateHotDeskingMembers",
+        "description": "Modify the primary and shared-line members assigned to a person's hot desking guest profile.\n\nThe request replaces the hot desking profile member list with the members supplied in the request body.\n\nThis API requires a full, user, device, or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "tags": [
+          "Features: Hot Desking Members",
+          "User Call Settings (3/3)"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/personId"
+          },
+          {
+            "$ref": "#/components/parameters/orgId"
+          }
+        ],
+        "requestBody": {
+          "description": "Members to assign to the person's hot desking guest profile.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HotDeskingMembersPut"
+              },
+              "example": {
+                "members": [
+                  {
+                    "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS8wZTQ5NjAzNC1lNTQ1LTRmMmEtODI4ZC03MjhjYjJlNjNlMWQ",
+                    "port": 1,
+                    "primaryOwner": true,
+                    "lineType": "HOTDESKING_GUEST",
+                    "lineWeight": 1,
+                    "hotlineEnabled": false,
+                    "allowCallDeclineEnabled": true,
+                    "memberType": "USER"
+                  },
+                  {
+                    "id": "Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS83MGY2MzYzMC1mZjlmLTExZWItODU5YS0xZjhiYjRjNzc3OGg",
+                    "port": 2,
+                    "primaryOwner": false,
+                    "lineType": "SHARED_CALL_APPEARANCE",
+                    "lineWeight": 1,
+                    "hotlineEnabled": false,
+                    "allowCallDeclineEnabled": true,
+                    "memberType": "VIRTUAL_PROFILE"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "410": {
+            "$ref": "#/components/responses/Gone"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "423": {
+            "$ref": "#/components/responses/Locked"
+          },
+          "428": {
+            "$ref": "#/components/responses/PreconditionRequired"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/BadGateway"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          },
+          "504": {
+            "$ref": "#/components/responses/GatewayTimeout"
+          }
+        },
+        "externalDocs": {
+          "description": "Webex Calling API Documentation",
+          "url": "https://developer.webex.com/docs/api/v1/webex-calling"
+        }
+      }
+    },
     "/telephony/config/virtualLines": {
       "get": {
         "responses": {
@@ -101100,7 +102405,8 @@
                   },
                   "notifications": {
                     "enabled": true,
-                    "destination": "julie@example.com"
+                    "destination": "julie@example.com",
+                    "smsDestination": "+12025551212"
                   },
                   "transferToNumber": {
                     "enabled": false
@@ -101284,7 +102590,8 @@
                 "enabled": true,
                 "notifications": {
                   "enabled": true,
-                  "destination": "julie@example.com"
+                  "destination": "julie@example.com",
+                  "smsDestination": "+12025551212"
                 },
                 "sendAllCalls": {
                   "enabled": true
@@ -109671,7 +110978,8 @@
                   },
                   "notifications": {
                     "enabled": true,
-                    "destination": "julie@example.com"
+                    "destination": "julie@example.com",
+                    "smsDestination": "+12025551212"
                   },
                   "transferToNumber": {
                     "enabled": false
@@ -109845,7 +111153,8 @@
                 "enabled": true,
                 "notifications": {
                   "enabled": true,
-                  "destination": "julie@example.com"
+                  "destination": "julie@example.com",
+                  "smsDestination": "+12025551212"
                 },
                 "sendAllCalls": {
                   "enabled": true
@@ -121645,26 +122954,26 @@
       },
       "Location": {
         "type": "object",
-        "description": "Details of the location for the assigned assistant.",
-        "example": {
-          "id": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzkzMGMzYTNlLTA3Y2EtNDNmOS1iZjE4LTZlZGM2OGE1Y2Y3Yg",
-          "name": "Bangalore"
-        },
+        "description": "Location associated with the hot desking member.",
         "required": [
-          "name",
-          "id"
+          "id",
+          "name"
         ],
         "properties": {
-          "name": {
-            "type": "string",
-            "example": "Bangalore",
-            "description": "Name of the location."
-          },
           "id": {
             "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzkzMGMzYTNlLTA3Y2EtNDNmOS1iZjE4LTZlZGM2OGE1Y2Y3Yg",
-            "description": "Unique identifier of the location."
+            "description": "Unique identifier for the location.",
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzJiNDkyZmZkLTRjNGItNGVmNS04YzAzLWE1MDYyYzM4NDA5Mw"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the location.",
+            "example": "Main Office"
           }
+        },
+        "example": {
+          "id": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzJiNDkyZmZkLTRjNGItNGVmNS04YzAzLWE1MDYyYzM4NDA5Mw",
+          "name": "Main Office"
         }
       },
       "PutCommonLocationObject": {
@@ -129176,12 +130485,17 @@
               "enabled": {
                 "type": "boolean",
                 "example": true,
-                "description": "Send of unanswered calls to voicemail is enabled or disabled."
+                "description": "Notifications for voicemails will be sent if enabled."
               },
               "destination": {
                 "type": "string",
-                "example": "2025551212@txt.att.net",
-                "description": "Email address to which the notification will be sent. For text messages, use an email to text message gateway like `2025551212@txt.example.net`."
+                "example": "julie@example.com",
+                "description": "Email address for notification delivery. For US/Canada text messages, use the `smsDestination` field rather than providing a SMS gateway address like `12025551212@txt.example.net` here."
+              },
+              "smsDestination": {
+                "type": "string",
+                "example": "+12025551212",
+                "description": "SMS destination for notification delivery. Must be a US or Canada phone number in E.164 format (e.g., +12025551212)."
               }
             },
             "description": "Settings for notifications when there are any new voicemails."
@@ -129349,12 +130663,17 @@
               "enabled": {
                 "type": "boolean",
                 "example": true,
-                "description": "Notifications for voicemails will be sent."
+                "description": "Notifications for voicemails will be sent if enabled. At least one of the destination or smsDestination fields must be configured when enabled."
               },
               "destination": {
                 "type": "string",
-                "example": "2025551212@txt.example.net",
-                "description": "Email address to which the notification will be sent. For text messages, use an email to text message gateway like `2025551212@txt.att.net`."
+                "example": "julie@example.com",
+                "description": "Email address for notification delivery. For US/Canada text messages, use the `smsDestination` field rather than providing a SMS gateway address like `12025551212@txt.example.net` here."
+              },
+              "smsDestination": {
+                "type": "string",
+                "example": "+12025551212",
+                "description": "SMS destination for notification delivery. Must be a US or Canada phone number in E.164 format (e.g., +12025551212)."
               }
             },
             "description": "Settings for notifications when there are any new voicemails."
@@ -159982,6 +161301,818 @@
           }
         }
       },
+      "PersonAnonymousCallRejectGet": {
+        "type": "object",
+        "example": {
+          "enabled": true
+        },
+        "required": [
+          "enabled"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Indicates whether Anonymous Call Rejection is enabled. When true, incoming calls from callers who have blocked their caller ID will be automatically rejected."
+          }
+        }
+      },
+      "PersonAnonymousCallRejectPut": {
+        "type": "object",
+        "required": [
+          "enabled"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Enable or disable Anonymous Call Rejection. When set to true, incoming calls from callers who have blocked their caller ID will be automatically rejected."
+          }
+        }
+      },
+      "PersonServicesGet": {
+        "type": "object",
+        "example": {
+          "services": [
+            "Anonymous Call Rejection",
+            "Call Forwarding Always"
+          ]
+        },
+        "required": [
+          "services"
+        ],
+        "properties": {
+          "services": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Represents a list of services that are assigned to a person.",
+            "example": [
+              "Anonymous Call Rejection",
+              "Call Forwarding Always"
+            ]
+          }
+        }
+      },
+      "PersonSimultaneousRingNumber": {
+        "type": "object",
+        "required": [
+          "phoneNumber",
+          "answerConfirmationEnabled"
+        ],
+        "properties": {
+          "phoneNumber": {
+            "type": "string",
+            "example": "+19075552859",
+            "description": "Phone number set for simultaneous ring."
+          },
+          "answerConfirmationEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "When set to `true`, the called party is required to press 1 on the keypad to confirm answer for the call."
+          }
+        }
+      },
+      "PersonSimultaneousRingNumberPut": {
+        "type": "object",
+        "required": [
+          "phoneNumber",
+          "answerConfirmationEnabled"
+        ],
+        "properties": {
+          "phoneNumber": {
+            "type": "string",
+            "example": "+12324556740",
+            "description": "Phone number set for simultaneous ring."
+          },
+          "answerConfirmationEnabled": {
+            "type": "boolean",
+            "example": false,
+            "description": "When set to `true`, the called party is required to press 1 on the keypad to confirm answer for the call."
+          }
+        }
+      },
+      "PersonSimultaneousRingCriteriaSummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "scheduleName",
+          "source",
+          "ringEnabled"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL0NSSVRFUklBLzg2NTAxZDFlLTg1MWMtNDgwYi1hZmE2LTA5MTU4NzQ3NzdmZQ",
+            "description": "Unique identifier for criteria."
+          },
+          "scheduleName": {
+            "type": "string",
+            "example": "Business Vacation",
+            "description": "Name of the schedule which determines when the simultaneous ring is in effect."
+          },
+          "source": {
+            "$ref": "#/components/schemas/PersonSimultaneousRingSource"
+          },
+          "ringEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "When set to `true` simultaneous ringing is enabled for calls that meet this criteria. Criteria with `ringEnabled` set to `false` take priority."
+          }
+        }
+      },
+      "PersonSimultaneousRingSource": {
+        "type": "string",
+        "enum": [
+          "ALL_NUMBERS",
+          "SPECIFIC_NUMBERS"
+        ],
+        "description": " * `ALL_NUMBERS` - Criteria applies to all incoming numbers.\n * `SPECIFIC_NUMBERS` - Criteria applies only for specific incoming numbers.\n",
+        "example": "ALL_NUMBERS"
+      },
+      "PersonSimultaneousRingGet": {
+        "type": "object",
+        "example": {
+          "enabled": true,
+          "doNotRingIfOnCallEnabled": true,
+          "criteriasEnabled": true,
+          "phoneNumbers": [
+            {
+              "phoneNumber": "+19075552859",
+              "answerConfirmationEnabled": true
+            }
+          ],
+          "criteria": [
+            {
+              "id": "Y2lzY29zcGFyazovL3VzL0NSSVRFUklBLzg2NTAxZDFlLTg1MWMtNDgwYi1hZmE2LTA5MTU4NzQ3NzdmZQ",
+              "scheduleName": "Business Vacation",
+              "source": "ALL_NUMBERS",
+              "ringEnabled": true
+            }
+          ]
+        },
+        "required": [
+          "enabled",
+          "doNotRingIfOnCallEnabled",
+          "criteriasEnabled"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "When set to `true`, simultaneous ring is enabled for this person."
+          },
+          "doNotRingIfOnCallEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "When set to `true`, the configured phone numbers won't ring when you are on a call."
+          },
+          "criteriasEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "When `true`, enables the selected schedule for simultaneous ring."
+          },
+          "phoneNumbers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonSimultaneousRingNumber"
+            },
+            "description": "Enter up to 10 phone numbers to ring simultaneously when you receive an incoming call."
+          },
+          "criteria": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonSimultaneousRingCriteriaSummary"
+            },
+            "description": "A list of criteria specifying conditions when simultaneous ring is in effect."
+          }
+        }
+      },
+      "PersonSimultaneousRingPut": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "When set to `true`, simultaneous ring is enabled for this person."
+          },
+          "doNotRingIfOnCallEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "When set to `true`, the configured phone numbers won't ring when you are on a call."
+          },
+          "criteriasEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "When `true`, enables the selected schedule for simultaneous ring."
+          },
+          "phoneNumbers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonSimultaneousRingNumberPut"
+            },
+            "description": "Enter up to 10 phone numbers to ring simultaneously when you receive an incoming call."
+          }
+        }
+      },
+      "PersonScheduleType": {
+        "type": "string",
+        "enum": [
+          "businessHours",
+          "holidays"
+        ],
+        "description": " * `businessHours` - The Schedule type that specifies the business or working hours during the day.\n * `holidays` - The Schedule type that specifies the day when your organization is not open.\n",
+        "example": "businessHours"
+      },
+      "PersonScheduleLevel": {
+        "type": "string",
+        "enum": [
+          "LOCATION",
+          "PEOPLE"
+        ],
+        "description": " * `LOCATION` - Indicates the schedule is configured at the location level.\n * `PEOPLE` - Indicates the schedule is configured at the person level.\n",
+        "example": "LOCATION"
+      },
+      "PersonCallsFromType": {
+        "type": "string",
+        "enum": [
+          "ANY_PHONE_NUMBER",
+          "SELECT_PHONE_NUMBERS"
+        ],
+        "description": " * `ANY_PHONE_NUMBER` - The Schedule applies to any phone number.\n * `SELECT_PHONE_NUMBERS` - Indicates the schedule applies to select phone number defined in the `phoneNumbers` property.\n",
+        "example": "ANY_PHONE_NUMBER"
+      },
+      "PersonSimultaneousRingCriteriaGet": {
+        "type": "object",
+        "example": {
+          "id": "Y2lzY29zcGFyazovL3VzL0NSSVRFUklBLzg2NTAxZDFlLTg1MWMtNDgwYi1hZmE2LTA5MTU4NzQ3NzdmZQ",
+          "scheduleName": "Business_1",
+          "scheduleType": "businessHours",
+          "scheduleLevel": "LOCATION",
+          "callsFrom": "ANY_PHONE_NUMBER",
+          "anonymousCallersEnabled": true,
+          "unavailableCallersEnabled": false,
+          "phoneNumbers": [
+            "+19075552859"
+          ],
+          "ringEnabled": false
+        },
+        "required": [
+          "id",
+          "callsFrom",
+          "ringEnabled",
+          "anonymousCallersEnabled",
+          "unavailableCallersEnabled"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL0NSSVRFUklBLzg2NTAxZDFlLTg1MWMtNDgwYi1hZmE2LTA5MTU4NzQ3NzdmZQ",
+            "description": "Unique identifier for criteria."
+          },
+          "scheduleName": {
+            "type": "string",
+            "example": "Business_1",
+            "description": "Name of the schedule which determines when the simultaneous ring is in effect."
+          },
+          "scheduleType": {
+            "$ref": "#/components/schemas/PersonScheduleType"
+          },
+          "scheduleLevel": {
+            "$ref": "#/components/schemas/PersonScheduleLevel"
+          },
+          "callsFrom": {
+            "$ref": "#/components/schemas/PersonCallsFromType"
+          },
+          "anonymousCallersEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "When `true`, the criteria applies to calls from anonymous callers."
+          },
+          "unavailableCallersEnabled": {
+            "type": "boolean",
+            "example": false,
+            "description": "When `true`, the criteria applies to calls from unavailable callers."
+          },
+          "phoneNumbers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "example": "+19075552859"
+            },
+            "description": "The list of phone numbers that will be checked against incoming calls for a match."
+          },
+          "ringEnabled": {
+            "type": "boolean",
+            "example": false,
+            "description": "When set to `true` simultaneous ringing is enabled for calls that meet this criteria. Criteria with `ringEnabled` set to `false` take priority."
+          }
+        }
+      },
+      "PersonSimultaneousRingCriteriaPost": {
+        "type": "object",
+        "required": [
+          "callsFrom",
+          "ringEnabled"
+        ],
+        "properties": {
+          "scheduleName": {
+            "type": "string",
+            "example": "Business Vacation",
+            "description": "Name of the schedule which determines when the simultaneous ring is in effect."
+          },
+          "scheduleType": {
+            "$ref": "#/components/schemas/PersonScheduleType"
+          },
+          "scheduleLevel": {
+            "$ref": "#/components/schemas/PersonScheduleLevel"
+          },
+          "callsFrom": {
+            "$ref": "#/components/schemas/PersonCallsFromType"
+          },
+          "anonymousCallersEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "When `true`, the criteria applies to calls from anonymous callers. Value for this attribute is required if `callsFrom` is `SELECT_PHONE_NUMBERS`."
+          },
+          "unavailableCallersEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "When `true`, the criteria applies to calls from unavailable callers. Value for this attribute is required if `callsFrom` is `SELECT_PHONE_NUMBERS`."
+          },
+          "phoneNumbers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "example": "+19064441748"
+            },
+            "description": "The list of phone numbers that will be checked against incoming calls for a match. Value for this attribute is required if `callsFrom` is `SELECT_PHONE_NUMBERS`."
+          },
+          "ringEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "When set to `true` simultaneous ringing is enabled for calls that meet this criteria. Criteria with `ringEnabled` set to `false` take priority."
+          }
+        }
+      },
+      "PersonSimultaneousRingCriteriaPut": {
+        "type": "object",
+        "properties": {
+          "scheduleName": {
+            "type": "string",
+            "example": "Business_1",
+            "description": "Name of the schedule which determines when the simultaneous ring is in effect."
+          },
+          "scheduleType": {
+            "$ref": "#/components/schemas/PersonScheduleType"
+          },
+          "scheduleLevel": {
+            "$ref": "#/components/schemas/PersonScheduleLevel"
+          },
+          "callsFrom": {
+            "$ref": "#/components/schemas/PersonCallsFromType"
+          },
+          "anonymousCallersEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "When `true`, the criteria applies to calls from anonymous callers. Value for this attribute is required if `callsFrom` is `SELECT_PHONE_NUMBERS`."
+          },
+          "unavailableCallersEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "When `true`, the criteria applies to calls from unavailable callers. Value for this attribute is required if `callsFrom` is `SELECT_PHONE_NUMBERS`."
+          },
+          "phoneNumbers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "example": "+19064441748"
+            },
+            "description": "The list of phone numbers that will be checked against incoming calls for a match. Value for this attribute is required if `callsFrom` is `SELECT_PHONE_NUMBERS`."
+          },
+          "ringEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "When set to `true` simultaneous ringing is enabled for calls that meet this criteria. Criteria with `ringEnabled` set to `false` take priority."
+          }
+        }
+      },
+      "PersonSimultaneousRingCriteriaCreated": {
+        "type": "object",
+        "example": {
+          "id": "Y2lzY29zcGFyazovL3VzL0NSSVRFUklBLzg2NTAxZDFlLTg1MWMtNDgwYi1hZmE2LTA5MTU4NzQ3NzdmZQ"
+        },
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL0NSSVRFUklBLzg2NTAxZDFlLTg1MWMtNDgwYi1hZmE2LTA5MTU4NzQ3NzdmZQ",
+            "description": "Unique identifier for the newly created criteria."
+          }
+        }
+      },
+      "HotDeskingAvailableMembers": {
+        "type": "object",
+        "description": "Response containing members that can be assigned to a person's hot desking guest profile.",
+        "required": [
+          "members"
+        ],
+        "properties": {
+          "members": {
+            "type": "array",
+            "description": "List of members that can be assigned to the person's hot desking guest profile.",
+            "items": {
+              "$ref": "#/components/schemas/HotDeskingAvailableMember"
+            },
+            "example": [
+              {
+                "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
+                "firstName": "John",
+                "lastName": "Smith",
+                "phoneNumber": "+12055552221",
+                "extension": "2221",
+                "routingPrefix": "1234",
+                "esn": "12342221",
+                "lineType": "SHARED_CALL_APPEARANCE",
+                "memberType": "PEOPLE",
+                "location": {
+                  "id": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzJiNDkyZmZkLTRjNGItNGVmNS04YzAzLWE1MDYyYzM4NDA5Mw",
+                  "name": "Main Office"
+                }
+              }
+            ]
+          }
+        },
+        "example": {
+          "members": [
+            {
+              "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
+              "firstName": "John",
+              "lastName": "Smith",
+              "phoneNumber": "+12055552221",
+              "extension": "2221",
+              "routingPrefix": "1234",
+              "esn": "12342221",
+              "lineType": "SHARED_CALL_APPEARANCE",
+              "memberType": "PEOPLE",
+              "location": {
+                "id": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzJiNDkyZmZkLTRjNGItNGVmNS04YzAzLWE1MDYyYzM4NDA5Mw",
+                "name": "Main Office"
+              }
+            }
+          ]
+        }
+      },
+      "HotDeskingAvailableMember": {
+        "type": "object",
+        "required": [
+          "id",
+          "lineType",
+          "memberType"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the available member.",
+            "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk"
+          },
+          "firstName": {
+            "type": "string",
+            "description": "First name of the available member.",
+            "example": "John"
+          },
+          "lastName": {
+            "type": "string",
+            "description": "Last name of the available member.",
+            "example": "Smith"
+          },
+          "phoneNumber": {
+            "type": "string",
+            "description": "Phone number of the available member.",
+            "example": "+12055552221"
+          },
+          "extension": {
+            "type": "string",
+            "description": "Extension of the available member.",
+            "example": "2221"
+          },
+          "routingPrefix": {
+            "type": "string",
+            "description": "Routing prefix of the member's location.",
+            "example": "1234"
+          },
+          "esn": {
+            "type": "string",
+            "description": "Enterprise significant number for the available member.",
+            "example": "12342221"
+          },
+          "lineType": {
+            "$ref": "#/components/schemas/HotDeskingLineType"
+          },
+          "memberType": {
+            "$ref": "#/components/schemas/HotDeskingResponseMemberType"
+          },
+          "location": {
+            "$ref": "#/components/schemas/Location"
+          }
+        }
+      },
+      "HotDeskingMembers": {
+        "type": "object",
+        "description": "Response containing the primary and shared-line members assigned to a person's hot desking guest profile.",
+        "required": [
+          "members"
+        ],
+        "properties": {
+          "model": {
+            "type": "string",
+            "description": "Name of the hot desking guest profile endpoint.",
+            "example": "Business Communicator - PC"
+          },
+          "members": {
+            "type": "array",
+            "description": "List of primary and shared-line members assigned to the person's hot desking guest profile.",
+            "items": {
+              "$ref": "#/components/schemas/HotDeskingMember"
+            },
+            "example": [
+              {
+                "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS8wZTQ5NjAzNC1lNTQ1LTRmMmEtODI4ZC03MjhjYjJlNjNlMWQ",
+                "firstName": "Alice",
+                "lastName": "Gomez",
+                "phoneNumber": "+12055552220",
+                "extension": "2220",
+                "primaryOwner": true,
+                "port": 1,
+                "lineType": "HOTDESKING_GUEST",
+                "lineWeight": 1,
+                "allowCallDeclineEnabled": true,
+                "memberType": "PEOPLE"
+              }
+            ]
+          },
+          "maxLineCount": {
+            "type": "integer",
+            "description": "Maximum number of lines that can be configured on the hot desking guest profile endpoint.",
+            "example": 10
+          }
+        },
+        "example": {
+          "model": "Business Communicator - PC",
+          "members": [
+            {
+              "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS8wZTQ5NjAzNC1lNTQ1LTRmMmEtODI4ZC03MjhjYjJlNjNlMWQ",
+              "firstName": "Alice",
+              "lastName": "Gomez",
+              "phoneNumber": "+12055552220",
+              "extension": "2220",
+              "primaryOwner": true,
+              "port": 1,
+              "lineType": "HOTDESKING_GUEST",
+              "lineWeight": 1,
+              "allowCallDeclineEnabled": true,
+              "memberType": "PEOPLE"
+            }
+          ],
+          "maxLineCount": 10
+        }
+      },
+      "HotDeskingMember": {
+        "type": "object",
+        "required": [
+          "id",
+          "primaryOwner",
+          "port",
+          "lineType",
+          "lineWeight",
+          "memberType"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the assigned member.",
+            "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS8wZTQ5NjAzNC1lNTQ1LTRmMmEtODI4ZC03MjhjYjJlNjNlMWQ"
+          },
+          "firstName": {
+            "type": "string",
+            "description": "First name of the assigned member.",
+            "example": "Alice"
+          },
+          "lastName": {
+            "type": "string",
+            "description": "Last name of the assigned member.",
+            "example": "Gomez"
+          },
+          "phoneNumber": {
+            "type": "string",
+            "description": "Phone number of the assigned member.",
+            "example": "+12055552220"
+          },
+          "extension": {
+            "type": "string",
+            "description": "Extension of the assigned member.",
+            "example": "2220"
+          },
+          "routingPrefix": {
+            "type": "string",
+            "description": "Routing prefix of the member's location.",
+            "example": "1234"
+          },
+          "esn": {
+            "type": "string",
+            "description": "Enterprise significant number for the assigned member.",
+            "example": "12342220"
+          },
+          "primaryOwner": {
+            "type": "boolean",
+            "description": "Indicates whether this member is the hot desking guest profile owner.",
+            "example": true
+          },
+          "port": {
+            "type": "integer",
+            "description": "Port assigned to the member.",
+            "example": 1
+          },
+          "t38FaxCompressionEnabled": {
+            "type": "boolean",
+            "description": "T.38 fax compression setting for the member line.",
+            "example": false
+          },
+          "lineType": {
+            "$ref": "#/components/schemas/HotDeskingLineType"
+          },
+          "lineWeight": {
+            "type": "integer",
+            "description": "Number of lines configured for the member on the hot desking guest profile endpoint.",
+            "example": 1
+          },
+          "hostIP": {
+            "type": "string",
+            "description": "Registration home IP address for the line port.",
+            "example": "198.51.100.10"
+          },
+          "remoteIP": {
+            "type": "string",
+            "description": "Registration remote IP address for the line port.",
+            "example": "198.51.100.11"
+          },
+          "hotlineEnabled": {
+            "type": "boolean",
+            "description": "Whether this line automatically calls a predefined number when taken off-hook.",
+            "example": false
+          },
+          "hotlineDestination": {
+            "type": "string",
+            "description": "Preconfigured number for the hotline. Required when `hotlineEnabled` is `true`.",
+            "example": "2222"
+          },
+          "allowCallDeclineEnabled": {
+            "type": "boolean",
+            "description": "When enabled, a call decline request is extended to all endpoints on the line. When disabled, the call is declined only at the current endpoint.",
+            "example": true
+          },
+          "memberType": {
+            "$ref": "#/components/schemas/HotDeskingResponseMemberType"
+          },
+          "location": {
+            "$ref": "#/components/schemas/Location"
+          }
+        }
+      },
+      "HotDeskingMembersPut": {
+        "type": "object",
+        "description": "Request body used to update the members assigned to a person's hot desking guest profile.",
+        "required": [
+          "members"
+        ],
+        "properties": {
+          "members": {
+            "type": "array",
+            "description": "Members to assign to the person's hot desking guest profile.",
+            "items": {
+              "$ref": "#/components/schemas/HotDeskingPutMember"
+            },
+            "example": [
+              {
+                "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS8wZTQ5NjAzNC1lNTQ1LTRmMmEtODI4ZC03MjhjYjJlNjNlMWQ",
+                "port": 1,
+                "primaryOwner": true,
+                "lineType": "HOTDESKING_GUEST",
+                "lineWeight": 1,
+                "hotlineEnabled": false,
+                "allowCallDeclineEnabled": true,
+                "memberType": "USER"
+              }
+            ]
+          }
+        },
+        "example": {
+          "members": [
+            {
+              "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS8wZTQ5NjAzNC1lNTQ1LTRmMmEtODI4ZC03MjhjYjJlNjNlMWQ",
+              "port": 1,
+              "primaryOwner": true,
+              "lineType": "HOTDESKING_GUEST",
+              "lineWeight": 1,
+              "hotlineEnabled": false,
+              "allowCallDeclineEnabled": true,
+              "memberType": "USER"
+            }
+          ]
+        }
+      },
+      "HotDeskingPutMember": {
+        "type": "object",
+        "required": [
+          "id",
+          "port",
+          "primaryOwner",
+          "lineType",
+          "lineWeight"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the member.",
+            "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS8wZTQ5NjAzNC1lNTQ1LTRmMmEtODI4ZC03MjhjYjJlNjNlMWQ"
+          },
+          "port": {
+            "type": "integer",
+            "description": "Port to assign to the member.",
+            "example": 1
+          },
+          "primaryOwner": {
+            "type": "boolean",
+            "description": "Indicates whether this member is the hot desking guest profile owner.",
+            "example": true
+          },
+          "lineType": {
+            "$ref": "#/components/schemas/HotDeskingLineType"
+          },
+          "lineWeight": {
+            "type": "integer",
+            "description": "Number of lines to configure for the member on the hot desking guest profile endpoint.",
+            "example": 1
+          },
+          "t38FaxCompressionEnabled": {
+            "type": "boolean",
+            "description": "T.38 fax compression setting for the member line.",
+            "example": false
+          },
+          "hotlineEnabled": {
+            "type": "boolean",
+            "description": "Whether this line automatically calls a predefined number when taken off-hook.",
+            "example": false
+          },
+          "hotlineDestination": {
+            "type": "string",
+            "description": "Preconfigured number for the hotline. Required when `hotlineEnabled` is `true`.",
+            "example": "2222"
+          },
+          "allowCallDeclineEnabled": {
+            "type": "boolean",
+            "description": "When enabled, a call decline request is extended to all endpoints on the line. When disabled, the call is declined only at the current endpoint.",
+            "example": true
+          },
+          "memberType": {
+            "$ref": "#/components/schemas/HotDeskingPutMemberType"
+          }
+        }
+      },
+      "HotDeskingLineType": {
+        "type": "string",
+        "description": "Line type for the hot desking guest profile member.\n * `HOTDESKING_GUEST` - Primary hot desking guest profile line.\n * `SHARED_CALL_APPEARANCE` - Shared line assigned to the hot desking guest profile.\n * `PRIMARY` - Primary line.\n * `MOBILITY` - Mobility line.",
+        "enum": [
+          "HOTDESKING_GUEST",
+          "SHARED_CALL_APPEARANCE",
+          "PRIMARY",
+          "MOBILITY"
+        ],
+        "example": "HOTDESKING_GUEST"
+      },
+      "HotDeskingResponseMemberType": {
+        "type": "string",
+        "description": "Type of assigned or available member.\n * `PEOPLE` - The member is a person.\n * `PLACE` - The member is a workspace.\n * `VIRTUAL_LINE` - The member is a virtual line.",
+        "enum": [
+          "PEOPLE",
+          "PLACE",
+          "VIRTUAL_LINE"
+        ],
+        "example": "PEOPLE"
+      },
+      "HotDeskingPutMemberType": {
+        "type": "string",
+        "description": "Type of member in the update request. Include this field when the member ID needs an explicit resource type for decoding.\n * `USER` - The member is a person.\n * `PLACE` - The member is a workspace.\n * `VIRTUAL_PROFILE` - The member is a virtual line.",
+        "enum": [
+          "USER",
+          "PLACE",
+          "VIRTUAL_PROFILE"
+        ],
+        "example": "USER"
+      },
       "ListVirtualLineObject": {
         "type": "object",
         "required": [
@@ -164211,8 +166342,173 @@
         "bearerFormat": "JWT"
       }
     },
-    "parameters": {},
-    "responses": {},
+    "parameters": {
+      "personId": {
+        "name": "personId",
+        "in": "path",
+        "description": "Unique identifier for the person.",
+        "required": true,
+        "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS8wZTQ5NjAzNC1lNTQ1LTRmMmEtODI4ZC03MjhjYjJlNjNlMWQ",
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        }
+      },
+      "orgId": {
+        "name": "orgId",
+        "in": "query",
+        "description": "ID of the organization in which the person resides. Only admin users of another organization, such as partners, may use this parameter. If not specified, the organization from the OAuth token is used.",
+        "required": false,
+        "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        }
+      },
+      "locationId": {
+        "name": "locationId",
+        "in": "query",
+        "description": "Return only available members in this location.",
+        "required": false,
+        "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzJiNDkyZmZkLTRjNGItNGVmNS04YzAzLWE1MDYyYzM4NDA5Mw",
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        }
+      },
+      "max": {
+        "name": "max",
+        "in": "query",
+        "description": "Maximum number of records to return.",
+        "required": false,
+        "example": 100,
+        "schema": {
+          "type": "integer",
+          "default": 2000,
+          "minimum": 1,
+          "maximum": 2000
+        }
+      },
+      "start": {
+        "name": "start",
+        "in": "query",
+        "description": "Offset from the first result to fetch.",
+        "required": false,
+        "example": 0,
+        "schema": {
+          "type": "integer",
+          "default": 0,
+          "minimum": 0,
+          "maximum": 100000
+        }
+      },
+      "memberName": {
+        "name": "memberName",
+        "in": "query",
+        "description": "Search for available members by name.",
+        "required": false,
+        "example": "John",
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "phoneNumber": {
+        "name": "phoneNumber",
+        "in": "query",
+        "description": "Search for available members by phone number.",
+        "required": false,
+        "example": "+12055552221",
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50
+        }
+      },
+      "extension": {
+        "name": "extension",
+        "in": "query",
+        "description": "Search for available members by extension.",
+        "required": false,
+        "example": "2221",
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 30
+        }
+      },
+      "order": {
+        "name": "order",
+        "in": "query",
+        "description": "Sort order for the available member list. Multiple order values may be provided.",
+        "required": false,
+        "style": "form",
+        "explode": true,
+        "example": [
+          "lastName-asc"
+        ],
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "example": "lastName-asc"
+          }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+      },
+      "Unauthorized": {
+        "description": "Unauthorized: Authentication credentials were missing or incorrect."
+      },
+      "Forbidden": {
+        "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+      },
+      "NotFound": {
+        "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+      },
+      "MethodNotAllowed": {
+        "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+      },
+      "Conflict": {
+        "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system."
+      },
+      "Gone": {
+        "description": "Gone: The requested resource is no longer available."
+      },
+      "UnsupportedMediaType": {
+        "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+      },
+      "Locked": {
+        "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+      },
+      "PreconditionRequired": {
+        "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+      },
+      "TooManyRequests": {
+        "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+      },
+      "InternalServerError": {
+        "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+      },
+      "BadGateway": {
+        "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+      },
+      "ServiceUnavailable": {
+        "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+      },
+      "GatewayTimeout": {
+        "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+      }
+    },
     "requestBodies": {}
   }
 }

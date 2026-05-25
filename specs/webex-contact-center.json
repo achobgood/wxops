@@ -57109,6 +57109,432 @@
         }
       }
     },
+    "/flow-store/{orgId}/project/{projectId}/flows": {
+      "get": {
+        "tags": [
+          "Flow"
+        ],
+        "summary": "List Flows or Subflows",
+        "description": "Returns a list of flows in response.\n\nScope: `cjp:config_read`. Roles: [`Organizational Full Admin`, `Supervisor`, `Contact Center Service Admin`, `User Admin`]",
+        "operationId": "findFlowsUsingGET",
+        "parameters": [
+          {
+            "name": "flowType",
+            "in": "query",
+            "description": "Either of 'FLOW' or 'SUBFLOW'.",
+            "schema": {
+              "type": "string",
+              "default": "FLOW"
+            },
+            "example": "FLOW"
+          },
+          {
+            "name": "ids",
+            "in": "query",
+            "description": "Filters results based on a comma-separated list of flow IDs. If provided, only flows with those IDs will be fetched in the response.",
+            "style": "form",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "example": "668e4b2d928d471e41da03d1,668e3ee2928d471e41da03cb"
+          },
+          {
+            "name": "orgId",
+            "in": "path",
+            "description": "Organization ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "8eb7da9a-c81c-4d13-b08b-38fdeb7330d8"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Defines the number of the displayed page. The page number starts from 0.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            },
+            "example": 0
+          },
+          {
+            "name": "partialNameSearch",
+            "in": "query",
+            "description": "Performs a partial string match on the name of the flow. If the flow name contains the given string it will be fetched in the response.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "flow1"
+          },
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "Project ID. System generated value which is the same across orgs and environments. Always use: 5e5c9ad6d61f870d6d778c1b.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "5e5c9ad6d61f870d6d778c1b"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            },
+            "example": 10
+          },
+          {
+            "name": "includePagination",
+            "in": "query",
+            "description": "If set to to true then a different paginated response object containing the page metadata (currentPage, totalRecords, pageSize, totalPages) will be returned. The flow objects will be in an array named \"data\".",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "example": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BasicFlowDTO"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {}
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {}
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {}
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {}
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {}
+          }
+        }
+      }
+    },
+    "/flow-store/{orgId}/project/{projectId}/flows/{flowId}:export": {
+      "get": {
+        "tags": [
+          "Flow"
+        ],
+        "summary": "Export a Flow or Subflow",
+        "description": "Returns the exported flow/subflow in response.\n\nScope: `cjp:config_read`. Roles: [`Organizational Full Admin`, `Supervisor`, `Contact Center Service Admin`, `User Admin`]",
+        "operationId": "exportFlowVersionUsingGET",
+        "parameters": [
+          {
+            "name": "flowId",
+            "in": "path",
+            "description": "ID of the flow/subflow to export.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "661c7bc712eaf357de7e4aeb"
+          },
+          {
+            "name": "orgId",
+            "in": "path",
+            "description": "Organization ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "8eb7da9a-c81c-4d13-b08b-38fdeb7330d8"
+          },
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "Project ID. System generated value which is the same across orgs and environments. Always use: 5e5c9ad6d61f870d6d778c1b.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "5e5c9ad6d61f870d6d778c1b"
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "description": "Version ID. Possible values are 'draft', 'latest' or version ID like '64b92c004ccd9f3d1c680709'. Defaulted to 'latest'.",
+            "schema": {
+              "type": "string",
+              "default": "latest"
+            },
+            "example": "Version ID: 6679cb15f3398d4d1070a1e6."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlowVersionRes"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {}
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {}
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {}
+          }
+        }
+      }
+    },
+    "/flow-store/{orgId}/project/{projectId}/flows/{flowId}:publish": {
+      "post": {
+        "tags": [
+          "Flow"
+        ],
+        "summary": "Publish a Flow or Subflow",
+        "description": "Returns the published flow in response.\n\nThe Publish API validates the basic structure of the flows. We recommend manually verifying the published flows before proceeding with live traffic.\n\nScope: `cjp:config_read`. Roles: [`Organizational Full Admin`, `Supervisor`, `Contact Center Service Admin`, `User Admin`]",
+        "operationId": "publishFlowVersionUsingPOST",
+        "parameters": [
+          {
+            "name": "flowId",
+            "in": "path",
+            "description": "ID of the flow/subflow to export.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "661c7bc712eaf357de7e4aeb"
+          },
+          {
+            "name": "orgId",
+            "in": "path",
+            "description": "Organization ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "8eb7da9a-c81c-4d13-b08b-38fdeb7330d8"
+          },
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "Project ID. System generated value which is the same across orgs and environments. Always use: 5e5c9ad6d61f870d6d778c1b.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "5e5c9ad6d61f870d6d778c1b"
+          },
+          {
+            "name": "TrackingId",
+            "in": "header",
+            "description": "ID for tracking.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "491fed1e-de7f-11ef-9cd2-0242ac120002"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishParameters"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlowRes"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {}
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {}
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {}
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {}
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {}
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {}
+          }
+        },
+        "x-codegen-request-body-name": "PublishParameters"
+      }
+    },
+    "/flow-store/{orgId}/project/{projectId}/flows:import": {
+      "post": {
+        "tags": [
+          "Flow"
+        ],
+        "summary": "Import a Flow or Subflow",
+        "description": "Returns the imported flow/subflow in response.\n\nScope: `cjp:config_write`. Roles: [`Organizational Full Admin`, `Supervisor`, `Contact Center Service Admin`, `User Admin`]",
+        "operationId": "importFlowVersionUsingPOST",
+        "parameters": [
+          {
+            "name": "Content-Length",
+            "in": "header",
+            "description": "Content length value in number of bytes.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 10
+          },
+          {
+            "name": "orgId",
+            "in": "path",
+            "description": "Organization ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "8eb7da9a-c81c-4d13-b08b-38fdeb7330d8"
+          },
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "Project ID. System generated value which is the same across orgs and environments. Always use: 5e5c9ad6d61f870d6d778c1b.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "5e5c9ad6d61f870d6d778c1b"
+          },
+          {
+            "name": "overwrite",
+            "in": "query",
+            "description": "Determines whether to overwrite the existing flow or not. Possible values: yes/no.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "yes"
+          },
+          {
+            "name": "flowType",
+            "in": "query",
+            "description": "Either of 'FLOW' or 'SUBFLOW'.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "FLOW"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "file"
+                ],
+                "type": "object",
+                "description": "Upload a file containing a `FlowVersionRes` object.",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Upload a file containing a `FlowVersionRes` object.",
+                    "example": "{\"orgId\":\"8eb7da9a-c81c-4d13-b08b-38fdeb7330d8\",\"version\":4,\"id\":\"61b8fdac5c6e4644796f3fd0\",\"name\":\"GT_oct_28_1\",\"description\":\"\",\"comment\":null,\"variables\":[{\"name\":\"FlowVar1\",\"description\":\"\",\"type\":\"STRING\",\"value\":\"var1\",\"isCAD\":true,\"desktopLabel\":\"FlowVar1\",\"isAgentEditable\":true,\"source\":\"\",\"isReportable\":false,\"overwrite\":false,\"isSecure\":false}],\"process\":{\"activities\":{\"6c9cf7f2-ca5b-40ec-9ef5-58101cbe0747\":{\"id\":\"6c9cf7f2-ca5b-40ec-9ef5-58101cbe0747\",\"name\":\"NewPhoneContact\",\"group\":\"start\",\"properties\":{\"name\":\"NewPhoneContact\",\"event\":\"NewPhoneContact\",\"flowType\":{\"eventSourceId\":\"5f0ed8452c6b937a6789c13a\",\"eventClassificationId\":\"5f0ed85f2c6b937a6789c13b\",\"eventSpecificationId\":\"5f0ed8ea2c6b937a6789c13c\"},\"_renderRequestTimestamp\":1639513486589,\"activityId\":\"start\"}}},\"links\":[{\"id\":\"749cfc4d-2974-4d56-aa49-bded95639c63\",\"sourceActivityId\":\"6c9cf7f2-ca5b-40ec-9ef5-58101cbe0747\",\"targetActivityId\":\"089e8e80-35b3-4717-b537-80812973c82e\",\"conditionExpr\":\"out\",\"properties\":{\"value\":\"out\"}}]},\"diagram\":{\"widgets\":{\"6c9cf7f2-ca5b-40ec-9ef5-58101cbe0747\":{\"id\":\"d16b0689-b69b-4bd6-97e1-de66348397e5\",\"type\":\"start\",\"widgetType\":\"activity\",\"label\":\"NewActivityWidgetinDiagram\",\"point\":{\"x\":180,\"y\":61},\"ports\":[{\"portId\":\"e850f46c-eb3f-4367-b000-0302bca8d95b\",\"isSourcePort\":false,\"linkId\":\"6b69acb7-d825-4fd8-a20d-f6f8eb0285cf\",\"type\":\"arrow\",\"links\":[\"6b69acb7-d825-4fd8-a20d-f6f8eb0285cf\"],\"properties\":{\"x\":347,\"name\":\"out\",\"y\":79,\"label\":\"out\",\"alignment\":\"right\"}}],\"properties\":{\"name\":\"NewPhoneContact\",\"event\":\"NewPhoneContact\",\"flowType\":{\"eventSourceId\":\"5f0ed8452c6b937a6789c13a\",\"eventClassificationId\":\"5f0ed85f2c6b937a6789c13b\",\"eventSpecificationId\":\"5f0ed8ea2c6b937a6789c13c\"},\"_renderRequestTimestamp\":1639513486589,\"activityId\":\"start\"}}},\"properties\":{\"offsetX\":-130,\"offsetY\":28,\"zoom\":100,\"gridSize\":0}},\"flowId\":\"617b6dbdf4ca106768181aad\",\"eventFlows\":{\"eventsMap\":{\"GLOBAL_EVENTS\":{\"id\":\"GLOBAL_EVENTS\",\"name\":\"name\",\"description\":\"description\",\"process\":{\"activities\":{\"53db8111-cf68-4916-9d5a-66b56f252274\":{\"id\":\"53db8111-cf68-4916-9d5a-66b56f252274\",\"name\":\"ContactEnded\",\"group\":\"event\",\"properties\":{\"displayName\":\"PhoneContactEnded\",\"name\":\"ContactEnded\",\"event\":\"PhoneContactEnded\",\"_renderRequestTimestamp\":1639513486589,\"eventClassificationId\":\"5f0ed85f2c6b937a6789c13b\",\"activityId\":\"event\",\"eventSpecificationId\":\"5f0fe0492c6b937a6789c13f\",\"eventSourceId\":\"5f0ed8452c6b937a6789c13a\",\"iconDiagram\":\"icon-handset-muted_16\"}}},\"links\":[]},\"onEvents\":{\"ContactEnded\":\"53db8111-cf68-4916-9d5a-66b56f252274\"},\"diagram\":{\"widgets\":{\"53db8111-cf68-4916-9d5a-66b56f252274\":{\"id\":\"690a3f5a-ed67-4c8a-9979-cf72023689fb\",\"type\":\"event\",\"widgetType\":\"activity\",\"label\":\"NewActivityWidgetinDiagram\",\"point\":{\"x\":100,\"y\":115},\"ports\":[{\"portId\":\"c3d8ec64-c1ee-4bc8-b8fa-3f60c8b47877\",\"isSourcePort\":false,\"linkId\":null,\"type\":\"arrow\",\"links\":[],\"properties\":{\"x\":267,\"name\":\"out\",\"y\":133,\"label\":\"out\",\"alignment\":\"right\"}}],\"properties\":{\"displayName\":\"PhoneContactEnded\",\"name\":\"ContactEnded\",\"event\":\"PhoneContactEnded\",\"_renderRequestTimestamp\":1639513486589,\"eventClassificationId\":\"5f0ed85f2c6b937a6789c13b\",\"activityId\":\"event\",\"eventSpecificationId\":\"5f0fe0492c6b937a6789c13f\",\"eventSourceId\":\"5f0ed8452c6b937a6789c13a\",\"iconDiagram\":\"icon-handset-muted_16\"}}},\"properties\":{}}}},\"properties\":{\"offsetX\":0,\"offsetY\":0,\"zoom\":0,\"gridSize\":0}},\"runtimeVariables\":[{\"name\":\"NewPhoneContact.ANI\",\"type\":\"string\",\"path\":\"\",\"source\":\"Event\",\"activityName\":\"ANI\",\"displayName\":null,\"uiVisible\":true,\"description\":null}],\"validating\":true,\"validationResults\":[],\"createdBy\":\"user@company.com\",\"createdDate\":\"2021-12-14T20:25:16.792\",\"lastModifiedDate\":\"2021-12-14T20:25:16.792\",\"lastModifiedBy\":\"user@company.com\"}"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "CREATED: Flow or Subflow is created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BasicFlowDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "BAD REQUEST: Possible causes - Import file size exceeded the limit. File parse error. Flow name is empty. Invalid flow type. Invalid activity.",
+            "content": {}
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {}
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {}
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {}
+          },
+          "409": {
+            "description": "CONFLICT: A flow/subflow with the same name already exists.",
+            "content": {}
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {}
+          }
+        },
+        "x-codegen-request-body-name": "file"
+      }
+    },
     "/admin/v1/api/person/workspace-id/{workspaceId}/person-id/{personId}": {
       "delete": {
         "tags": [
@@ -60511,432 +60937,6 @@
             "description": "An Unexpected Error Occurred"
           }
         }
-      }
-    },
-    "/flow-store/{orgId}/project/{projectId}/flows": {
-      "get": {
-        "tags": [
-          "Flow"
-        ],
-        "summary": "List Flows or Subflows",
-        "description": "Returns a list of flows in response.\n\nScope: `cjp:config_read`. Roles: [`Organizational Full Admin`, `Supervisor`, `Contact Center Service Admin`, `User Admin`]",
-        "operationId": "findFlowsUsingGET",
-        "parameters": [
-          {
-            "name": "flowType",
-            "in": "query",
-            "description": "Either of 'FLOW' or 'SUBFLOW'.",
-            "schema": {
-              "type": "string",
-              "default": "FLOW"
-            },
-            "example": "FLOW"
-          },
-          {
-            "name": "ids",
-            "in": "query",
-            "description": "Filters results based on a comma-separated list of flow IDs. If provided, only flows with those IDs will be fetched in the response.",
-            "style": "form",
-            "schema": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "example": "668e4b2d928d471e41da03d1,668e3ee2928d471e41da03cb"
-          },
-          {
-            "name": "orgId",
-            "in": "path",
-            "description": "Organization ID.",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "example": "8eb7da9a-c81c-4d13-b08b-38fdeb7330d8"
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "description": "Defines the number of the displayed page. The page number starts from 0.",
-            "schema": {
-              "type": "integer",
-              "format": "int32",
-              "default": 0
-            },
-            "example": 0
-          },
-          {
-            "name": "partialNameSearch",
-            "in": "query",
-            "description": "Performs a partial string match on the name of the flow. If the flow name contains the given string it will be fetched in the response.",
-            "schema": {
-              "type": "string"
-            },
-            "example": "flow1"
-          },
-          {
-            "name": "projectId",
-            "in": "path",
-            "description": "Project ID. System generated value which is the same across orgs and environments. Always use: 5e5c9ad6d61f870d6d778c1b.",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "example": "5e5c9ad6d61f870d6d778c1b"
-          },
-          {
-            "name": "size",
-            "in": "query",
-            "description": "Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size.",
-            "schema": {
-              "type": "integer",
-              "format": "int32",
-              "default": 10
-            },
-            "example": 10
-          },
-          {
-            "name": "includePagination",
-            "in": "query",
-            "description": "If set to to true then a different paginated response object containing the page metadata (currentPage, totalRecords, pageSize, totalPages) will be returned. The flow objects will be in an array named \"data\".",
-            "required": false,
-            "schema": {
-              "type": "boolean",
-              "default": false
-            },
-            "example": false
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/BasicFlowDTO"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {}
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {}
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {}
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {}
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {}
-          }
-        }
-      }
-    },
-    "/flow-store/{orgId}/project/{projectId}/flows/{flowId}:export": {
-      "get": {
-        "tags": [
-          "Flow"
-        ],
-        "summary": "Export a Flow or Subflow",
-        "description": "Returns the exported flow/subflow in response.\n\nScope: `cjp:config_read`. Roles: [`Organizational Full Admin`, `Supervisor`, `Contact Center Service Admin`, `User Admin`]",
-        "operationId": "exportFlowVersionUsingGET",
-        "parameters": [
-          {
-            "name": "flowId",
-            "in": "path",
-            "description": "ID of the flow/subflow to export.",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "example": "661c7bc712eaf357de7e4aeb"
-          },
-          {
-            "name": "orgId",
-            "in": "path",
-            "description": "Organization ID.",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "example": "8eb7da9a-c81c-4d13-b08b-38fdeb7330d8"
-          },
-          {
-            "name": "projectId",
-            "in": "path",
-            "description": "Project ID. System generated value which is the same across orgs and environments. Always use: 5e5c9ad6d61f870d6d778c1b.",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "example": "5e5c9ad6d61f870d6d778c1b"
-          },
-          {
-            "name": "version",
-            "in": "query",
-            "description": "Version ID. Possible values are 'draft', 'latest' or version ID like '64b92c004ccd9f3d1c680709'. Defaulted to 'latest'.",
-            "schema": {
-              "type": "string",
-              "default": "latest"
-            },
-            "example": "Version ID: 6679cb15f3398d4d1070a1e6."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FlowVersionRes"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {}
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {}
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {}
-          }
-        }
-      }
-    },
-    "/flow-store/{orgId}/project/{projectId}/flows/{flowId}:publish": {
-      "post": {
-        "tags": [
-          "Flow"
-        ],
-        "summary": "Publish a Flow or Subflow",
-        "description": "Returns the published flow in response.\n\nThe Publish API validates the basic structure of the flows. We recommend manually verifying the published flows before proceeding with live traffic.\n\nScope: `cjp:config_read`. Roles: [`Organizational Full Admin`, `Supervisor`, `Contact Center Service Admin`, `User Admin`]",
-        "operationId": "publishFlowVersionUsingPOST",
-        "parameters": [
-          {
-            "name": "flowId",
-            "in": "path",
-            "description": "ID of the flow/subflow to export.",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "example": "661c7bc712eaf357de7e4aeb"
-          },
-          {
-            "name": "orgId",
-            "in": "path",
-            "description": "Organization ID.",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "example": "8eb7da9a-c81c-4d13-b08b-38fdeb7330d8"
-          },
-          {
-            "name": "projectId",
-            "in": "path",
-            "description": "Project ID. System generated value which is the same across orgs and environments. Always use: 5e5c9ad6d61f870d6d778c1b.",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "example": "5e5c9ad6d61f870d6d778c1b"
-          },
-          {
-            "name": "TrackingId",
-            "in": "header",
-            "description": "ID for tracking.",
-            "schema": {
-              "type": "string"
-            },
-            "example": "491fed1e-de7f-11ef-9cd2-0242ac120002"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PublishParameters"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FlowRes"
-                }
-              }
-            }
-          },
-          "201": {
-            "description": "Created",
-            "content": {}
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {}
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {}
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {}
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {}
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {}
-          }
-        },
-        "x-codegen-request-body-name": "PublishParameters"
-      }
-    },
-    "/flow-store/{orgId}/project/{projectId}/flows:import": {
-      "post": {
-        "tags": [
-          "Flow"
-        ],
-        "summary": "Import a Flow or Subflow",
-        "description": "Returns the imported flow/subflow in response.\n\nScope: `cjp:config_write`. Roles: [`Organizational Full Admin`, `Supervisor`, `Contact Center Service Admin`, `User Admin`]",
-        "operationId": "importFlowVersionUsingPOST",
-        "parameters": [
-          {
-            "name": "Content-Length",
-            "in": "header",
-            "description": "Content length value in number of bytes.",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            },
-            "example": 10
-          },
-          {
-            "name": "orgId",
-            "in": "path",
-            "description": "Organization ID.",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "example": "8eb7da9a-c81c-4d13-b08b-38fdeb7330d8"
-          },
-          {
-            "name": "projectId",
-            "in": "path",
-            "description": "Project ID. System generated value which is the same across orgs and environments. Always use: 5e5c9ad6d61f870d6d778c1b.",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "example": "5e5c9ad6d61f870d6d778c1b"
-          },
-          {
-            "name": "overwrite",
-            "in": "query",
-            "description": "Determines whether to overwrite the existing flow or not. Possible values: yes/no.",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "example": "yes"
-          },
-          {
-            "name": "flowType",
-            "in": "query",
-            "description": "Either of 'FLOW' or 'SUBFLOW'.",
-            "schema": {
-              "type": "string"
-            },
-            "example": "FLOW"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "required": [
-                  "file"
-                ],
-                "type": "object",
-                "description": "Upload a file containing a `FlowVersionRes` object.",
-                "properties": {
-                  "file": {
-                    "type": "string",
-                    "format": "binary",
-                    "description": "Upload a file containing a `FlowVersionRes` object.",
-                    "example": "{\"orgId\":\"8eb7da9a-c81c-4d13-b08b-38fdeb7330d8\",\"version\":4,\"id\":\"61b8fdac5c6e4644796f3fd0\",\"name\":\"GT_oct_28_1\",\"description\":\"\",\"comment\":null,\"variables\":[{\"name\":\"FlowVar1\",\"description\":\"\",\"type\":\"STRING\",\"value\":\"var1\",\"isCAD\":true,\"desktopLabel\":\"FlowVar1\",\"isAgentEditable\":true,\"source\":\"\",\"isReportable\":false,\"overwrite\":false,\"isSecure\":false}],\"process\":{\"activities\":{\"6c9cf7f2-ca5b-40ec-9ef5-58101cbe0747\":{\"id\":\"6c9cf7f2-ca5b-40ec-9ef5-58101cbe0747\",\"name\":\"NewPhoneContact\",\"group\":\"start\",\"properties\":{\"name\":\"NewPhoneContact\",\"event\":\"NewPhoneContact\",\"flowType\":{\"eventSourceId\":\"5f0ed8452c6b937a6789c13a\",\"eventClassificationId\":\"5f0ed85f2c6b937a6789c13b\",\"eventSpecificationId\":\"5f0ed8ea2c6b937a6789c13c\"},\"_renderRequestTimestamp\":1639513486589,\"activityId\":\"start\"}}},\"links\":[{\"id\":\"749cfc4d-2974-4d56-aa49-bded95639c63\",\"sourceActivityId\":\"6c9cf7f2-ca5b-40ec-9ef5-58101cbe0747\",\"targetActivityId\":\"089e8e80-35b3-4717-b537-80812973c82e\",\"conditionExpr\":\"out\",\"properties\":{\"value\":\"out\"}}]},\"diagram\":{\"widgets\":{\"6c9cf7f2-ca5b-40ec-9ef5-58101cbe0747\":{\"id\":\"d16b0689-b69b-4bd6-97e1-de66348397e5\",\"type\":\"start\",\"widgetType\":\"activity\",\"label\":\"NewActivityWidgetinDiagram\",\"point\":{\"x\":180,\"y\":61},\"ports\":[{\"portId\":\"e850f46c-eb3f-4367-b000-0302bca8d95b\",\"isSourcePort\":false,\"linkId\":\"6b69acb7-d825-4fd8-a20d-f6f8eb0285cf\",\"type\":\"arrow\",\"links\":[\"6b69acb7-d825-4fd8-a20d-f6f8eb0285cf\"],\"properties\":{\"x\":347,\"name\":\"out\",\"y\":79,\"label\":\"out\",\"alignment\":\"right\"}}],\"properties\":{\"name\":\"NewPhoneContact\",\"event\":\"NewPhoneContact\",\"flowType\":{\"eventSourceId\":\"5f0ed8452c6b937a6789c13a\",\"eventClassificationId\":\"5f0ed85f2c6b937a6789c13b\",\"eventSpecificationId\":\"5f0ed8ea2c6b937a6789c13c\"},\"_renderRequestTimestamp\":1639513486589,\"activityId\":\"start\"}}},\"properties\":{\"offsetX\":-130,\"offsetY\":28,\"zoom\":100,\"gridSize\":0}},\"flowId\":\"617b6dbdf4ca106768181aad\",\"eventFlows\":{\"eventsMap\":{\"GLOBAL_EVENTS\":{\"id\":\"GLOBAL_EVENTS\",\"name\":\"name\",\"description\":\"description\",\"process\":{\"activities\":{\"53db8111-cf68-4916-9d5a-66b56f252274\":{\"id\":\"53db8111-cf68-4916-9d5a-66b56f252274\",\"name\":\"ContactEnded\",\"group\":\"event\",\"properties\":{\"displayName\":\"PhoneContactEnded\",\"name\":\"ContactEnded\",\"event\":\"PhoneContactEnded\",\"_renderRequestTimestamp\":1639513486589,\"eventClassificationId\":\"5f0ed85f2c6b937a6789c13b\",\"activityId\":\"event\",\"eventSpecificationId\":\"5f0fe0492c6b937a6789c13f\",\"eventSourceId\":\"5f0ed8452c6b937a6789c13a\",\"iconDiagram\":\"icon-handset-muted_16\"}}},\"links\":[]},\"onEvents\":{\"ContactEnded\":\"53db8111-cf68-4916-9d5a-66b56f252274\"},\"diagram\":{\"widgets\":{\"53db8111-cf68-4916-9d5a-66b56f252274\":{\"id\":\"690a3f5a-ed67-4c8a-9979-cf72023689fb\",\"type\":\"event\",\"widgetType\":\"activity\",\"label\":\"NewActivityWidgetinDiagram\",\"point\":{\"x\":100,\"y\":115},\"ports\":[{\"portId\":\"c3d8ec64-c1ee-4bc8-b8fa-3f60c8b47877\",\"isSourcePort\":false,\"linkId\":null,\"type\":\"arrow\",\"links\":[],\"properties\":{\"x\":267,\"name\":\"out\",\"y\":133,\"label\":\"out\",\"alignment\":\"right\"}}],\"properties\":{\"displayName\":\"PhoneContactEnded\",\"name\":\"ContactEnded\",\"event\":\"PhoneContactEnded\",\"_renderRequestTimestamp\":1639513486589,\"eventClassificationId\":\"5f0ed85f2c6b937a6789c13b\",\"activityId\":\"event\",\"eventSpecificationId\":\"5f0fe0492c6b937a6789c13f\",\"eventSourceId\":\"5f0ed8452c6b937a6789c13a\",\"iconDiagram\":\"icon-handset-muted_16\"}}},\"properties\":{}}}},\"properties\":{\"offsetX\":0,\"offsetY\":0,\"zoom\":0,\"gridSize\":0}},\"runtimeVariables\":[{\"name\":\"NewPhoneContact.ANI\",\"type\":\"string\",\"path\":\"\",\"source\":\"Event\",\"activityName\":\"ANI\",\"displayName\":null,\"uiVisible\":true,\"description\":null}],\"validating\":true,\"validationResults\":[],\"createdBy\":\"user@company.com\",\"createdDate\":\"2021-12-14T20:25:16.792\",\"lastModifiedDate\":\"2021-12-14T20:25:16.792\",\"lastModifiedBy\":\"user@company.com\"}"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "CREATED: Flow or Subflow is created.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BasicFlowDTO"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "BAD REQUEST: Possible causes - Import file size exceeded the limit. File parse error. Flow name is empty. Invalid flow type. Invalid activity.",
-            "content": {}
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {}
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {}
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {}
-          },
-          "409": {
-            "description": "CONFLICT: A flow/subflow with the same name already exists.",
-            "content": {}
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {}
-          }
-        },
-        "x-codegen-request-body-name": "file"
       }
     }
   },
@@ -87630,6 +87630,968 @@
           }
         }
       },
+      "BasicFlowDTO": {
+        "title": "BasicFlowDTO",
+        "type": "object",
+        "properties": {
+          "assignedRS": {
+            "uniqueItems": true,
+            "type": "array",
+            "description": "Assigned Routing Strategy",
+            "example": [
+              "rs-id1"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "Email of the account which created the flow",
+            "example": "user@company.com"
+          },
+          "createdDate": {
+            "type": "string",
+            "description": "Date of creation of the flow",
+            "example": "2024-02-07T14:10:50.663Z",
+            "format": "date-time"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the flow",
+            "example": "This flow is updated with the 'Live' tag"
+          },
+          "flowType": {
+            "type": "string",
+            "description": "Flow Type (FLOW/SUBFLOW). Default value is FLOW",
+            "example": "FLOW"
+          },
+          "id": {
+            "type": "string",
+            "description": "Flow/Subflow ID",
+            "example": "65c28d9db2a2375974066579"
+          },
+          "lastModifiedBy": {
+            "type": "string",
+            "description": "Email of the account which modified the flow last",
+            "example": "user@company.com"
+          },
+          "lastModifiedDate": {
+            "type": "string",
+            "description": "Date the flow object is last modified",
+            "example": "2024-02-07T14:10:50.663Z",
+            "format": "date-time"
+          },
+          "lockedAt": {
+            "type": "string",
+            "description": "Moment at which a user began editing the flow and locked the flow for everyone else",
+            "example": "2024-02-07T14:10:50.663Z",
+            "format": "date-time"
+          },
+          "lockedBy": {
+            "type": "string",
+            "description": "Email of the account which is currently editing the flow",
+            "example": "user@company.com"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the Flow",
+            "example": "TestFlow"
+          },
+          "orgId": {
+            "type": "string",
+            "description": "Organization ID",
+            "example": "8eb7da9a-c81c-4d13-b08b-38fdeb7330d8"
+          },
+          "status": {
+            "type": "string",
+            "description": "Indicates if this flow has ever been published - is one of 'Draft' or 'Published'",
+            "example": "Draft"
+          },
+          "tagHistories": {
+            "type": "object",
+            "description": "Histories of the tags. Tracks how the tags have been assigned to versions chronologically",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/FlowProgressionRes"
+              }
+            },
+            "example": {
+              "Latest": [
+                {
+                  "fvId": "63e3fcb0b57f601a2ad62db4",
+                  "fvName": "HttpTraceTest",
+                  "forkFrom": "63e3fcb0b57f601a2ad62db4"
+                }
+              ]
+            }
+          },
+          "tags": {
+            "type": "array",
+            "description": "Tags used by the flow",
+            "items": {
+              "$ref": "#/components/schemas/FlowTagRes"
+            }
+          },
+          "version": {
+            "type": "integer",
+            "description": "Version Number",
+            "format": "int32",
+            "example": 1
+          }
+        }
+      },
+      "FlowProgressionRes": {
+        "title": "FlowProgressionRes",
+        "type": "object",
+        "properties": {
+          "forkFrom": {
+            "type": "string",
+            "description": "Previous Flow Version holding the tag",
+            "example": "65c28d9db2a2375974066579"
+          },
+          "fvId": {
+            "type": "string",
+            "description": "Flow Version object ID",
+            "example": "65c28d9db2a2375974066579"
+          },
+          "fvName": {
+            "type": "string",
+            "description": "Name of the Flow Version object",
+            "example": "TestFlow"
+          }
+        }
+      },
+      "FlowTagRes": {
+        "title": "FlowTagRes",
+        "type": "object",
+        "description": "Represents a tag",
+        "properties": {
+          "default": {
+            "type": "boolean",
+            "description": "Determines whether the tag is a default tag",
+            "example": false
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Display name of the tag. It is one of 'Live', 'Test', 'Dev', 'Latest'",
+            "example": "Live"
+          },
+          "flowVersionId": {
+            "type": "string",
+            "description": "Flow Version object ID to with which the tag is currently associated.",
+            "example": "65c28d9db2a2375974066579"
+          },
+          "id": {
+            "type": "string",
+            "description": "Identifier of the tag. It is one of 'Live', 'Test', 'Dev', 'Latest",
+            "example": "Live"
+          },
+          "versionNumber": {
+            "type": "integer",
+            "description": "Associated Flow Version object's version number",
+            "format": "int32",
+            "example": 1
+          }
+        }
+      },
+      "FlowVersionRes": {
+        "title": "FlowVersionRes",
+        "type": "object",
+        "properties": {
+          "comment": {
+            "type": "string",
+            "description": "Publish note",
+            "example": "This flow version has the Set-Variable activity"
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "Email of the account which created the flow version",
+            "example": "user@company.com"
+          },
+          "createdDate": {
+            "type": "string",
+            "description": "Date of creation of the version object",
+            "example": "2024-02-07T14:10:50.663Z",
+            "format": "date-time"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the Flow Version",
+            "example": "This flow version has the 'Live' tag"
+          },
+          "diagram": {
+            "$ref": "#/components/schemas/DiagramRes"
+          },
+          "eventFlows": {
+            "$ref": "#/components/schemas/EventDiagramRes"
+          },
+          "flowId": {
+            "type": "string",
+            "description": "Flow/Subflow ID to which the version belongs",
+            "example": "661c7bc712eaf357de7e4aeb"
+          },
+          "flowType": {
+            "type": "string",
+            "description": "Flow Type (FLOW/SUBFLOW). Default value is FLOW",
+            "example": "FLOW"
+          },
+          "id": {
+            "type": "string",
+            "description": "Version object ID",
+            "example": "65c28d9db2a2375974066579"
+          },
+          "lastModifiedBy": {
+            "type": "string",
+            "description": "Email of the account which modified the flow version last",
+            "example": "user@company.com"
+          },
+          "lastModifiedDate": {
+            "type": "string",
+            "description": "Date the version object is last modified",
+            "example": "2024-02-07T14:10:50.663Z",
+            "format": "date-time"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the Flow Version",
+            "example": "TestFlow"
+          },
+          "orgId": {
+            "type": "string",
+            "description": "Organization ID",
+            "example": "8eb7da9a-c81c-4d13-b08b-38fdeb7330d8"
+          },
+          "persist": {
+            "type": "boolean",
+            "description": "Determines whether the version object needs to be persisted in the DB",
+            "example": true
+          },
+          "process": {
+            "$ref": "#/components/schemas/ProcRes"
+          },
+          "runtimeVariables": {
+            "type": "array",
+            "description": "Output variables of the activities configured in the flow",
+            "example": [
+              {
+                "name": "NewPhoneContact.ANI",
+                "type": "string",
+                "path": "",
+                "source": "Event",
+                "activityName": "ANI",
+                "displayName": "",
+                "uiVisible": true,
+                "description": ""
+              }
+            ],
+            "items": {
+              "$ref": "#/components/schemas/UiRuntimeVariableRes"
+            }
+          },
+          "settings": {
+            "type": "array",
+            "description": "Settings for the flow version",
+            "example": [
+              {
+                "name": "showActivityWait",
+                "value": "true"
+              },
+              {
+                "`type`": "BOOLEAN",
+                "group": "activityWait"
+              },
+              {
+                "name": "delayTime",
+                "value": "2000"
+              },
+              {
+                "`type`": "INTEGER",
+                "group": "activityWait"
+              }
+            ],
+            "items": {
+              "$ref": "#/components/schemas/FlowVersionSettingRes"
+            }
+          },
+          "validating": {
+            "type": "boolean",
+            "description": "Determines whether the version object needs to be validated",
+            "example": false
+          },
+          "validationResults": {
+            "type": "array",
+            "description": "Validation errors are stored here",
+            "items": {
+              "$ref": "#/components/schemas/ValidationResultRes"
+            }
+          },
+          "variableOrders": {
+            "type": "object",
+            "description": "Determines the order in which variables appear in the Agent's desktop",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/VariableOrderRes"
+              }
+            },
+            "example": {
+              "pop-over": [
+                {
+                  "name": "ani",
+                  "variableSeq": "0"
+                }
+              ]
+            }
+          },
+          "variables": {
+            "type": "array",
+            "description": "Variables in the version object",
+            "items": {
+              "$ref": "#/components/schemas/FlowVariablesRes"
+            }
+          },
+          "version": {
+            "type": "integer",
+            "description": "Version Number",
+            "format": "int32",
+            "example": 1
+          }
+        }
+      },
+      "DiagramRes": {
+        "title": "DiagramRes",
+        "type": "object",
+        "properties": {
+          "properties": {
+            "type": "object",
+            "description": "Additional properties are listed here",
+            "properties": {},
+            "example": {
+              "activityId": "http-request-v2"
+            }
+          },
+          "widgets": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Widget"
+            },
+            "description": "Holds the activities and links",
+            "example": {
+              "493751c9-7b87-4e93-9999-084f89f9e17b": {
+                "id": "6a59e2f5-3d3d-475a-91f7-d24ac25a614b",
+                "type": "start",
+                "widgetType": "activity",
+                "label": "New Activity Widget in Diagram"
+              }
+            }
+          }
+        }
+      },
+      "Widget": {
+        "title": "Widget",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Widget ID of the entity",
+            "example": "6a59e2f5-3d3d-475a-91f7-d24ac25a614b"
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of the widget. One of 'start', 'action', and 'end'",
+            "example": "start"
+          },
+          "label": {
+            "type": "string",
+            "description": "Label of the widget",
+            "example": "New Activity Widget in Diagram"
+          },
+          "widgetType": {
+            "type": "string",
+            "description": "Either 'activity' or 'link'",
+            "example": "activity"
+          }
+        }
+      },
+      "EventDiagramRes": {
+        "title": "EventDiagramRes",
+        "type": "object",
+        "properties": {
+          "eventsMap": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/EventFlowRes"
+            },
+            "description": "Holds global events",
+            "example": {
+              "GLOBAL_EVENTS": {
+                "id": "GLOBAL_EVENTS",
+                "name": "name",
+                "description": "description",
+                "process": {
+                  "activities": {
+                    "13ae6d9e-e607-4e43-aab7-a1af579953a7": {
+                      "id": "13ae6d9e-e607-4e43-aab7-a1af579953a7",
+                      "name": "GlobalErrorHandling",
+                      "group": "event",
+                      "properties": {
+                        "displayName": "OnGlobalError",
+                        "name": "GlobalErrorHandling",
+                        "event": "OnGlobalError"
+                      }
+                    }
+                  },
+                  "links": [
+                    {
+                      "id": "db8170a0-ab4f-4415-8a3b-4561807a5287",
+                      "sourceActivityId": "493751c9-7b87-4e93-9999-084f89f9e17b",
+                      "targetActivityId": "e1e7266d-699b-4420-8ba1-109d5d97f144",
+                      "conditionExpr": "out",
+                      "properties": {
+                        "value": "out"
+                      }
+                    }
+                  ]
+                },
+                "onEvents": {
+                  "GlobalErrorHandling": "13ae6d9e-e607-4e43-aab7-a1af579953a7"
+                },
+                "diagram": {
+                  "widgets": {
+                    "13ae6d9e-e607-4e43-aab7-a1af579953a7": {
+                      "id": "14fd05ea-62f8-4003-8ad4-9599b8434dd7",
+                      "type": "event",
+                      "widgetType": "activity",
+                      "label": "New Activity Widget in Diagram"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "properties": {
+            "type": "object",
+            "properties": {},
+            "description": "Holds information on additional properties",
+            "example": {
+              "offsetX": "0"
+            }
+          }
+        }
+      },
+      "EventFlowRes": {
+        "title": "EventFlowRes",
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Description of the event pane",
+            "example": "description"
+          },
+          "diagram": {
+            "$ref": "#/components/schemas/DiagramRes"
+          },
+          "id": {
+            "type": "string",
+            "description": "Identifier of the event pane",
+            "example": "GLOBAL_EVENTS"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the event pane",
+            "example": "name"
+          },
+          "onEvents": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "Holds event IDs",
+              "example": "13ae6d9e-e607-4e43-aab7-a1af579953a7"
+            },
+            "description": "List of events to which the flow version subscribes",
+            "example": {
+              "GlobalErrorHandling": "13ae6d9e-e607-4e43-aab7-a1af579953a7"
+            }
+          },
+          "process": {
+            "$ref": "#/components/schemas/ProcRes"
+          }
+        }
+      },
+      "ProcRes": {
+        "title": "ProcRes",
+        "type": "object",
+        "properties": {
+          "activities": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ActivityRes"
+            },
+            "description": "Stores list of activities/events",
+            "example": {
+              "493751c9-7b87-4e93-9999-084f89f9e17b": {
+                "id": "493751c9-7b87-4e93-9999-084f89f9e17b",
+                "name": "NewPhoneContact",
+                "group": "start",
+                "properties": {
+                  "name": "NewPhoneContact",
+                  "event": "NewPhoneContact",
+                  "activityId": "start"
+                }
+              }
+            }
+          },
+          "links": {
+            "type": "array",
+            "description": "Stores list of links",
+            "items": {
+              "$ref": "#/components/schemas/LinkRes"
+            }
+          }
+        }
+      },
+      "ActivityRes": {
+        "title": "ActivityRes",
+        "type": "object",
+        "properties": {
+          "group": {
+            "type": "string",
+            "description": "Group of the activity. It is one of 'start', 'action', 'event', and 'end'.",
+            "example": "start"
+          },
+          "id": {
+            "type": "string",
+            "description": "Activity ID",
+            "example": "9813529a-b01a-4eee-a79c-5016f7b0c772"
+          },
+          "name": {
+            "type": "string",
+            "description": "Activity label",
+            "example": "NewPhoneContact"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {},
+            "description": "Additional properties are stored here",
+            "example": {
+              "displayName": "NewPhoneContact"
+            }
+          }
+        }
+      },
+      "LinkRes": {
+        "title": "LinkRes",
+        "type": "object",
+        "properties": {
+          "conditionExpr": {
+            "type": "string",
+            "description": "Condition expression. It is one of 'out', and 'default'",
+            "example": "out"
+          },
+          "id": {
+            "type": "string",
+            "description": "Link ID",
+            "example": "dea7d650-9734-4fa3-bfc9-2c669415c9e3"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {},
+            "description": "Additional properties are stored here",
+            "example": {
+              "value": "out"
+            }
+          },
+          "sourceActivityId": {
+            "type": "string",
+            "description": "Activity from which the link originates",
+            "example": "1330315f-7012-479a-8126-c767258004e6"
+          },
+          "targetActivityId": {
+            "type": "string",
+            "description": "Activity to which the link connects",
+            "example": "22a8930c-0770-4ab9-8e29-3a5ff1000e81"
+          }
+        }
+      },
+      "UiRuntimeVariableRes": {
+        "title": "UiRuntimeVariableRes",
+        "type": "object",
+        "properties": {
+          "activityName": {
+            "type": "string",
+            "description": "Name of the activity",
+            "example": "http-request-v2"
+          },
+          "description": {
+            "type": "string",
+            "description": "Determines whether the variable needs to be visible on the UI",
+            "example": "HTTPRequest_7sz"
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Display name of the activity",
+            "example": "HTTPRequest_7sz"
+          },
+          "isSecure": {
+            "type": "boolean",
+            "description": "Determines whether a variable is marked sensitive",
+            "example": false
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the runtime variable",
+            "example": "NewPhoneContact.ANI"
+          },
+          "path": {
+            "type": "string",
+            "description": "Path of the runtime variable",
+            "example": "HTTPRequest_7sz.httpResponseBody"
+          },
+          "source": {
+            "type": "string",
+            "description": "Source of the runtime variable. Either 'Event' or 'Activity'",
+            "example": "Activity"
+          },
+          "type": {
+            "type": "string",
+            "description": "Data type of the runtime variable",
+            "example": "string"
+          },
+          "uiVisible": {
+            "type": "boolean",
+            "description": "Determines whether the variable needs to be visible on the UI",
+            "example": false
+          }
+        }
+      },
+      "FlowVersionSettingRes": {
+        "title": "FlowVersionSettingRes",
+        "type": "object",
+        "properties": {
+          "group": {
+            "type": "string",
+            "description": "The group the setting belongs to.",
+            "example": "activityWait"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the flow version setting",
+            "example": "delayTime"
+          },
+          "type": {
+            "type": "string",
+            "description": "The setting type.",
+            "example": "INTEGER"
+          },
+          "value": {
+            "type": "string",
+            "description": "The setting value.",
+            "example": "2000"
+          }
+        }
+      },
+      "ValidationResultRes": {
+        "title": "ValidationResultRes",
+        "type": "object",
+        "properties": {
+          "activityId": {
+            "type": "string",
+            "description": "Activity identifier",
+            "example": "e0d7128e-0f80-46c8-9554-9a9ae4dd9e7b"
+          },
+          "activityLabel": {
+            "type": "string",
+            "description": "Activity label",
+            "example": "PlayMessage_ysg"
+          },
+          "code": {
+            "type": "string",
+            "description": "Error code",
+            "example": "FC1015"
+          },
+          "docLink": {
+            "type": "string",
+            "description": "Document link",
+            "example": "https://help.webex.com/en-us/article/n5595zd/Webex-Contact-Center-Setup-and-Administration-Guide"
+          },
+          "message": {
+            "type": "string",
+            "description": "Error message to be displayed on the UI",
+            "example": "Add descriptions for activities"
+          },
+          "severity": {
+            "type": "string",
+            "description": "Severity of the error. Either ERROR or RECOMMENDATION",
+            "example": "ERROR"
+          }
+        }
+      },
+      "VariableOrderRes": {
+        "title": "VariableOrderRes",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the variable in the flow version object",
+            "example": "var1"
+          },
+          "variableSeq": {
+            "type": "string",
+            "description": "Sequence number of the variable",
+            "example": "1"
+          }
+        }
+      },
+      "FlowVariablesRes": {
+        "title": "FlowVariablesRes",
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Description for the variable",
+            "example": "var1 is meant for loop counter"
+          },
+          "desktopLabel": {
+            "type": "string",
+            "description": "Variable name shown on Agent Desktop",
+            "example": "var1"
+          },
+          "id": {
+            "type": "string",
+            "description": "Identifier for the variable",
+            "example": "04b302a9-6d92-4365-8902-9b04bc3bf5f9"
+          },
+          "isAgentEditable": {
+            "type": "boolean",
+            "description": "Determines whether is eligible for desktop agent to edit",
+            "example": false
+          },
+          "isCAD": {
+            "type": "boolean",
+            "description": "Determines whether variable is agent viewable",
+            "example": false
+          },
+          "isReportable": {
+            "type": "boolean",
+            "description": "Determines whether a variable is reportable",
+            "example": false
+          },
+          "isSecure": {
+            "type": "boolean",
+            "description": "Determines whether a variable is marked sensitive",
+            "example": false
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the variable",
+            "example": "var1"
+          },
+          "overwrite": {
+            "type": "boolean",
+            "description": "Determines whether a global variable has been overwritten",
+            "example": false
+          },
+          "source": {
+            "type": "string",
+            "description": "Source of the variable (GLOBAL, SUBFLOW_INPUT, SUBFLOW_OUTPUT, an empty string ). It's left empty for subflow local or flow variables",
+            "example": "GLOBAL"
+          },
+          "type": {
+            "type": "string",
+            "description": "Data type of the variable (STRING, INTEGER, DATETIME, DECIMAL, JSON, BOOLEAN)",
+            "example": "STRING"
+          },
+          "value": {
+            "type": "string",
+            "description": "Value of the variable",
+            "example": "hello world!"
+          }
+        }
+      },
+      "PublishParameters": {
+        "title": "PublishParameters",
+        "type": "object",
+        "description": "Metadata for the published version.",
+        "properties": {
+          "comment": {
+            "type": "string",
+            "description": "A comment to provide context on publishing the flow.",
+            "example": "Publishing the latest version"
+          },
+          "tagIds": {
+            "type": "array",
+            "description": "Tag IDs appropriate to this version. It must be one of 'Live', 'Test', 'Dev', 'Latest.",
+            "example": [
+              "Live"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "FlowRes": {
+        "title": "FlowRes",
+        "type": "object",
+        "properties": {
+          "assignedRS": {
+            "uniqueItems": true,
+            "type": "array",
+            "description": "Assigned Routing Strategy.",
+            "example": [
+              "RS1",
+              "RS2"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "Email of the account which created the flow.",
+            "example": "user@company.com"
+          },
+          "createdDate": {
+            "type": "string",
+            "description": "Date of creation of the flow.",
+            "format": "date-time",
+            "example": "2024-02-07T14:10:50.663Z"
+          },
+          "draftVersion": {
+            "$ref": "#/components/schemas/FlowVersionRes"
+          },
+          "flowType": {
+            "type": "string",
+            "description": "Either of 'FLOW' or 'SUBFLOW.",
+            "example": "FLOW"
+          },
+          "flowVersions": {
+            "type": "array",
+            "description": "Published FlowVersions for this flow.",
+            "example": [
+              "65c28d9db2a2375974066579",
+              "75974065c28d9db3665792a2"
+            ],
+            "items": {
+              "type": "string",
+              "description": "Flow Version object ID to with which the tag is currently associated.",
+              "example": "65c28d9db2a2375974066579"
+            }
+          },
+          "id": {
+            "type": "string",
+            "description": "Flow ID",
+            "example": "65c28d9db2a2375974066579"
+          },
+          "lastModifiedBy": {
+            "type": "string",
+            "description": "Email of the account which modified the flow last.",
+            "example": "user@company.com"
+          },
+          "lastModifiedDate": {
+            "type": "string",
+            "description": "Date the flow object is last modified.",
+            "example": "2024-02-07T14:10:50.663Z",
+            "format": "date-time"
+          },
+          "latestVersion": {
+            "$ref": "#/components/schemas/FlowVersionRes"
+          },
+          "lockedAt": {
+            "type": "string",
+            "description": "Moment at which a user began editing the flow and locked the flow for everyone else.",
+            "format": "date-time",
+            "example": "2024-02-07T14:10:50.663Z"
+          },
+          "lockedBy": {
+            "type": "string",
+            "description": "Email of the account which is currently editing the flow.",
+            "example": "user@company.com"
+          },
+          "orgId": {
+            "type": "string",
+            "description": "Organization ID.",
+            "example": "8eb7da9a-c81c-4d13-b08b-38fdeb7330d8"
+          },
+          "preferences": {
+            "type": "array",
+            "description": "Flow preferences",
+            "items": {
+              "$ref": "#/components/schemas/FlowPreferenceRes"
+            }
+          },
+          "projectId": {
+            "type": "string",
+            "description": "Project ID. System generated value which is the same across orgs and environments. Always use: 5e5c9ad6d61f870d6d778c1b",
+            "example": "5e5c9ad6d61f870d6d778c1b"
+          },
+          "status": {
+            "type": "string",
+            "description": "Indicates if this flow has ever been published - is one of 'Draft' or 'Published'.",
+            "example": "Draft"
+          },
+          "tagHistories": {
+            "type": "object",
+            "description": "Histories of the tags. Tracks how the tags have been assigned to versions chronologically",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/FlowProgressionRes"
+              }
+            },
+            "example": {
+              "Latest": [
+                {
+                  "fvId": "63e3fcb0b57f601a2ad62db4",
+                  "fvName": "HttpTraceTest",
+                  "forkFrom": "63e3fcb0b57f601a2ad62db4"
+                }
+              ]
+            }
+          },
+          "tags": {
+            "type": "array",
+            "description": "Flow tags",
+            "items": {
+              "$ref": "#/components/schemas/FlowTagRes"
+            }
+          },
+          "validating": {
+            "type": "boolean",
+            "description": "Determines whether the version object needs to be validated.",
+            "example": false
+          },
+          "version": {
+            "type": "integer",
+            "description": "Version Number.",
+            "format": "int32",
+            "example": 1
+          }
+        }
+      },
+      "FlowPreferenceRes": {
+        "title": "FlowPreferenceRes",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The flow preference name.",
+            "example": "hideSecureCADWarning"
+          },
+          "type": {
+            "type": "string",
+            "description": "The preference type.",
+            "example": "Boolean"
+          },
+          "value": {
+            "type": "string",
+            "description": "The preference value.",
+            "example": "true"
+          }
+        }
+      },
       "PatchRequest": {
         "type": "array",
         "items": {
@@ -90257,968 +91219,6 @@
             "type": "string",
             "description": "Create time of capture(epoch timestamp)",
             "example": "1617373126000"
-          }
-        }
-      },
-      "BasicFlowDTO": {
-        "title": "BasicFlowDTO",
-        "type": "object",
-        "properties": {
-          "assignedRS": {
-            "uniqueItems": true,
-            "type": "array",
-            "description": "Assigned Routing Strategy",
-            "example": [
-              "rs-id1"
-            ],
-            "items": {
-              "type": "string"
-            }
-          },
-          "createdBy": {
-            "type": "string",
-            "description": "Email of the account which created the flow",
-            "example": "user@company.com"
-          },
-          "createdDate": {
-            "type": "string",
-            "description": "Date of creation of the flow",
-            "example": "2024-02-07T14:10:50.663Z",
-            "format": "date-time"
-          },
-          "description": {
-            "type": "string",
-            "description": "Description of the flow",
-            "example": "This flow is updated with the 'Live' tag"
-          },
-          "flowType": {
-            "type": "string",
-            "description": "Flow Type (FLOW/SUBFLOW). Default value is FLOW",
-            "example": "FLOW"
-          },
-          "id": {
-            "type": "string",
-            "description": "Flow/Subflow ID",
-            "example": "65c28d9db2a2375974066579"
-          },
-          "lastModifiedBy": {
-            "type": "string",
-            "description": "Email of the account which modified the flow last",
-            "example": "user@company.com"
-          },
-          "lastModifiedDate": {
-            "type": "string",
-            "description": "Date the flow object is last modified",
-            "example": "2024-02-07T14:10:50.663Z",
-            "format": "date-time"
-          },
-          "lockedAt": {
-            "type": "string",
-            "description": "Moment at which a user began editing the flow and locked the flow for everyone else",
-            "example": "2024-02-07T14:10:50.663Z",
-            "format": "date-time"
-          },
-          "lockedBy": {
-            "type": "string",
-            "description": "Email of the account which is currently editing the flow",
-            "example": "user@company.com"
-          },
-          "name": {
-            "type": "string",
-            "description": "Name of the Flow",
-            "example": "TestFlow"
-          },
-          "orgId": {
-            "type": "string",
-            "description": "Organization ID",
-            "example": "8eb7da9a-c81c-4d13-b08b-38fdeb7330d8"
-          },
-          "status": {
-            "type": "string",
-            "description": "Indicates if this flow has ever been published - is one of 'Draft' or 'Published'",
-            "example": "Draft"
-          },
-          "tagHistories": {
-            "type": "object",
-            "description": "Histories of the tags. Tracks how the tags have been assigned to versions chronologically",
-            "additionalProperties": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/FlowProgressionRes"
-              }
-            },
-            "example": {
-              "Latest": [
-                {
-                  "fvId": "63e3fcb0b57f601a2ad62db4",
-                  "fvName": "HttpTraceTest",
-                  "forkFrom": "63e3fcb0b57f601a2ad62db4"
-                }
-              ]
-            }
-          },
-          "tags": {
-            "type": "array",
-            "description": "Tags used by the flow",
-            "items": {
-              "$ref": "#/components/schemas/FlowTagRes"
-            }
-          },
-          "version": {
-            "type": "integer",
-            "description": "Version Number",
-            "format": "int32",
-            "example": 1
-          }
-        }
-      },
-      "FlowProgressionRes": {
-        "title": "FlowProgressionRes",
-        "type": "object",
-        "properties": {
-          "forkFrom": {
-            "type": "string",
-            "description": "Previous Flow Version holding the tag",
-            "example": "65c28d9db2a2375974066579"
-          },
-          "fvId": {
-            "type": "string",
-            "description": "Flow Version object ID",
-            "example": "65c28d9db2a2375974066579"
-          },
-          "fvName": {
-            "type": "string",
-            "description": "Name of the Flow Version object",
-            "example": "TestFlow"
-          }
-        }
-      },
-      "FlowTagRes": {
-        "title": "FlowTagRes",
-        "type": "object",
-        "description": "Represents a tag",
-        "properties": {
-          "default": {
-            "type": "boolean",
-            "description": "Determines whether the tag is a default tag",
-            "example": false
-          },
-          "displayName": {
-            "type": "string",
-            "description": "Display name of the tag. It is one of 'Live', 'Test', 'Dev', 'Latest'",
-            "example": "Live"
-          },
-          "flowVersionId": {
-            "type": "string",
-            "description": "Flow Version object ID to with which the tag is currently associated.",
-            "example": "65c28d9db2a2375974066579"
-          },
-          "id": {
-            "type": "string",
-            "description": "Identifier of the tag. It is one of 'Live', 'Test', 'Dev', 'Latest",
-            "example": "Live"
-          },
-          "versionNumber": {
-            "type": "integer",
-            "description": "Associated Flow Version object's version number",
-            "format": "int32",
-            "example": 1
-          }
-        }
-      },
-      "FlowVersionRes": {
-        "title": "FlowVersionRes",
-        "type": "object",
-        "properties": {
-          "comment": {
-            "type": "string",
-            "description": "Publish note",
-            "example": "This flow version has the Set-Variable activity"
-          },
-          "createdBy": {
-            "type": "string",
-            "description": "Email of the account which created the flow version",
-            "example": "user@company.com"
-          },
-          "createdDate": {
-            "type": "string",
-            "description": "Date of creation of the version object",
-            "example": "2024-02-07T14:10:50.663Z",
-            "format": "date-time"
-          },
-          "description": {
-            "type": "string",
-            "description": "Description of the Flow Version",
-            "example": "This flow version has the 'Live' tag"
-          },
-          "diagram": {
-            "$ref": "#/components/schemas/DiagramRes"
-          },
-          "eventFlows": {
-            "$ref": "#/components/schemas/EventDiagramRes"
-          },
-          "flowId": {
-            "type": "string",
-            "description": "Flow/Subflow ID to which the version belongs",
-            "example": "661c7bc712eaf357de7e4aeb"
-          },
-          "flowType": {
-            "type": "string",
-            "description": "Flow Type (FLOW/SUBFLOW). Default value is FLOW",
-            "example": "FLOW"
-          },
-          "id": {
-            "type": "string",
-            "description": "Version object ID",
-            "example": "65c28d9db2a2375974066579"
-          },
-          "lastModifiedBy": {
-            "type": "string",
-            "description": "Email of the account which modified the flow version last",
-            "example": "user@company.com"
-          },
-          "lastModifiedDate": {
-            "type": "string",
-            "description": "Date the version object is last modified",
-            "example": "2024-02-07T14:10:50.663Z",
-            "format": "date-time"
-          },
-          "name": {
-            "type": "string",
-            "description": "Name of the Flow Version",
-            "example": "TestFlow"
-          },
-          "orgId": {
-            "type": "string",
-            "description": "Organization ID",
-            "example": "8eb7da9a-c81c-4d13-b08b-38fdeb7330d8"
-          },
-          "persist": {
-            "type": "boolean",
-            "description": "Determines whether the version object needs to be persisted in the DB",
-            "example": true
-          },
-          "process": {
-            "$ref": "#/components/schemas/ProcRes"
-          },
-          "runtimeVariables": {
-            "type": "array",
-            "description": "Output variables of the activities configured in the flow",
-            "example": [
-              {
-                "name": "NewPhoneContact.ANI",
-                "type": "string",
-                "path": "",
-                "source": "Event",
-                "activityName": "ANI",
-                "displayName": "",
-                "uiVisible": true,
-                "description": ""
-              }
-            ],
-            "items": {
-              "$ref": "#/components/schemas/UiRuntimeVariableRes"
-            }
-          },
-          "settings": {
-            "type": "array",
-            "description": "Settings for the flow version",
-            "example": [
-              {
-                "name": "showActivityWait",
-                "value": "true"
-              },
-              {
-                "`type`": "BOOLEAN",
-                "group": "activityWait"
-              },
-              {
-                "name": "delayTime",
-                "value": "2000"
-              },
-              {
-                "`type`": "INTEGER",
-                "group": "activityWait"
-              }
-            ],
-            "items": {
-              "$ref": "#/components/schemas/FlowVersionSettingRes"
-            }
-          },
-          "validating": {
-            "type": "boolean",
-            "description": "Determines whether the version object needs to be validated",
-            "example": false
-          },
-          "validationResults": {
-            "type": "array",
-            "description": "Validation errors are stored here",
-            "items": {
-              "$ref": "#/components/schemas/ValidationResultRes"
-            }
-          },
-          "variableOrders": {
-            "type": "object",
-            "description": "Determines the order in which variables appear in the Agent's desktop",
-            "additionalProperties": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/VariableOrderRes"
-              }
-            },
-            "example": {
-              "pop-over": [
-                {
-                  "name": "ani",
-                  "variableSeq": "0"
-                }
-              ]
-            }
-          },
-          "variables": {
-            "type": "array",
-            "description": "Variables in the version object",
-            "items": {
-              "$ref": "#/components/schemas/FlowVariablesRes"
-            }
-          },
-          "version": {
-            "type": "integer",
-            "description": "Version Number",
-            "format": "int32",
-            "example": 1
-          }
-        }
-      },
-      "DiagramRes": {
-        "title": "DiagramRes",
-        "type": "object",
-        "properties": {
-          "properties": {
-            "type": "object",
-            "description": "Additional properties are listed here",
-            "properties": {},
-            "example": {
-              "activityId": "http-request-v2"
-            }
-          },
-          "widgets": {
-            "type": "object",
-            "additionalProperties": {
-              "$ref": "#/components/schemas/Widget"
-            },
-            "description": "Holds the activities and links",
-            "example": {
-              "493751c9-7b87-4e93-9999-084f89f9e17b": {
-                "id": "6a59e2f5-3d3d-475a-91f7-d24ac25a614b",
-                "type": "start",
-                "widgetType": "activity",
-                "label": "New Activity Widget in Diagram"
-              }
-            }
-          }
-        }
-      },
-      "Widget": {
-        "title": "Widget",
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Widget ID of the entity",
-            "example": "6a59e2f5-3d3d-475a-91f7-d24ac25a614b"
-          },
-          "type": {
-            "type": "string",
-            "description": "Type of the widget. One of 'start', 'action', and 'end'",
-            "example": "start"
-          },
-          "label": {
-            "type": "string",
-            "description": "Label of the widget",
-            "example": "New Activity Widget in Diagram"
-          },
-          "widgetType": {
-            "type": "string",
-            "description": "Either 'activity' or 'link'",
-            "example": "activity"
-          }
-        }
-      },
-      "EventDiagramRes": {
-        "title": "EventDiagramRes",
-        "type": "object",
-        "properties": {
-          "eventsMap": {
-            "type": "object",
-            "additionalProperties": {
-              "$ref": "#/components/schemas/EventFlowRes"
-            },
-            "description": "Holds global events",
-            "example": {
-              "GLOBAL_EVENTS": {
-                "id": "GLOBAL_EVENTS",
-                "name": "name",
-                "description": "description",
-                "process": {
-                  "activities": {
-                    "13ae6d9e-e607-4e43-aab7-a1af579953a7": {
-                      "id": "13ae6d9e-e607-4e43-aab7-a1af579953a7",
-                      "name": "GlobalErrorHandling",
-                      "group": "event",
-                      "properties": {
-                        "displayName": "OnGlobalError",
-                        "name": "GlobalErrorHandling",
-                        "event": "OnGlobalError"
-                      }
-                    }
-                  },
-                  "links": [
-                    {
-                      "id": "db8170a0-ab4f-4415-8a3b-4561807a5287",
-                      "sourceActivityId": "493751c9-7b87-4e93-9999-084f89f9e17b",
-                      "targetActivityId": "e1e7266d-699b-4420-8ba1-109d5d97f144",
-                      "conditionExpr": "out",
-                      "properties": {
-                        "value": "out"
-                      }
-                    }
-                  ]
-                },
-                "onEvents": {
-                  "GlobalErrorHandling": "13ae6d9e-e607-4e43-aab7-a1af579953a7"
-                },
-                "diagram": {
-                  "widgets": {
-                    "13ae6d9e-e607-4e43-aab7-a1af579953a7": {
-                      "id": "14fd05ea-62f8-4003-8ad4-9599b8434dd7",
-                      "type": "event",
-                      "widgetType": "activity",
-                      "label": "New Activity Widget in Diagram"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "properties": {
-            "type": "object",
-            "properties": {},
-            "description": "Holds information on additional properties",
-            "example": {
-              "offsetX": "0"
-            }
-          }
-        }
-      },
-      "EventFlowRes": {
-        "title": "EventFlowRes",
-        "type": "object",
-        "properties": {
-          "description": {
-            "type": "string",
-            "description": "Description of the event pane",
-            "example": "description"
-          },
-          "diagram": {
-            "$ref": "#/components/schemas/DiagramRes"
-          },
-          "id": {
-            "type": "string",
-            "description": "Identifier of the event pane",
-            "example": "GLOBAL_EVENTS"
-          },
-          "name": {
-            "type": "string",
-            "description": "Name of the event pane",
-            "example": "name"
-          },
-          "onEvents": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string",
-              "description": "Holds event IDs",
-              "example": "13ae6d9e-e607-4e43-aab7-a1af579953a7"
-            },
-            "description": "List of events to which the flow version subscribes",
-            "example": {
-              "GlobalErrorHandling": "13ae6d9e-e607-4e43-aab7-a1af579953a7"
-            }
-          },
-          "process": {
-            "$ref": "#/components/schemas/ProcRes"
-          }
-        }
-      },
-      "ProcRes": {
-        "title": "ProcRes",
-        "type": "object",
-        "properties": {
-          "activities": {
-            "type": "object",
-            "additionalProperties": {
-              "$ref": "#/components/schemas/ActivityRes"
-            },
-            "description": "Stores list of activities/events",
-            "example": {
-              "493751c9-7b87-4e93-9999-084f89f9e17b": {
-                "id": "493751c9-7b87-4e93-9999-084f89f9e17b",
-                "name": "NewPhoneContact",
-                "group": "start",
-                "properties": {
-                  "name": "NewPhoneContact",
-                  "event": "NewPhoneContact",
-                  "activityId": "start"
-                }
-              }
-            }
-          },
-          "links": {
-            "type": "array",
-            "description": "Stores list of links",
-            "items": {
-              "$ref": "#/components/schemas/LinkRes"
-            }
-          }
-        }
-      },
-      "ActivityRes": {
-        "title": "ActivityRes",
-        "type": "object",
-        "properties": {
-          "group": {
-            "type": "string",
-            "description": "Group of the activity. It is one of 'start', 'action', 'event', and 'end'.",
-            "example": "start"
-          },
-          "id": {
-            "type": "string",
-            "description": "Activity ID",
-            "example": "9813529a-b01a-4eee-a79c-5016f7b0c772"
-          },
-          "name": {
-            "type": "string",
-            "description": "Activity label",
-            "example": "NewPhoneContact"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {},
-            "description": "Additional properties are stored here",
-            "example": {
-              "displayName": "NewPhoneContact"
-            }
-          }
-        }
-      },
-      "LinkRes": {
-        "title": "LinkRes",
-        "type": "object",
-        "properties": {
-          "conditionExpr": {
-            "type": "string",
-            "description": "Condition expression. It is one of 'out', and 'default'",
-            "example": "out"
-          },
-          "id": {
-            "type": "string",
-            "description": "Link ID",
-            "example": "dea7d650-9734-4fa3-bfc9-2c669415c9e3"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {},
-            "description": "Additional properties are stored here",
-            "example": {
-              "value": "out"
-            }
-          },
-          "sourceActivityId": {
-            "type": "string",
-            "description": "Activity from which the link originates",
-            "example": "1330315f-7012-479a-8126-c767258004e6"
-          },
-          "targetActivityId": {
-            "type": "string",
-            "description": "Activity to which the link connects",
-            "example": "22a8930c-0770-4ab9-8e29-3a5ff1000e81"
-          }
-        }
-      },
-      "UiRuntimeVariableRes": {
-        "title": "UiRuntimeVariableRes",
-        "type": "object",
-        "properties": {
-          "activityName": {
-            "type": "string",
-            "description": "Name of the activity",
-            "example": "http-request-v2"
-          },
-          "description": {
-            "type": "string",
-            "description": "Determines whether the variable needs to be visible on the UI",
-            "example": "HTTPRequest_7sz"
-          },
-          "displayName": {
-            "type": "string",
-            "description": "Display name of the activity",
-            "example": "HTTPRequest_7sz"
-          },
-          "isSecure": {
-            "type": "boolean",
-            "description": "Determines whether a variable is marked sensitive",
-            "example": false
-          },
-          "name": {
-            "type": "string",
-            "description": "Name of the runtime variable",
-            "example": "NewPhoneContact.ANI"
-          },
-          "path": {
-            "type": "string",
-            "description": "Path of the runtime variable",
-            "example": "HTTPRequest_7sz.httpResponseBody"
-          },
-          "source": {
-            "type": "string",
-            "description": "Source of the runtime variable. Either 'Event' or 'Activity'",
-            "example": "Activity"
-          },
-          "type": {
-            "type": "string",
-            "description": "Data type of the runtime variable",
-            "example": "string"
-          },
-          "uiVisible": {
-            "type": "boolean",
-            "description": "Determines whether the variable needs to be visible on the UI",
-            "example": false
-          }
-        }
-      },
-      "FlowVersionSettingRes": {
-        "title": "FlowVersionSettingRes",
-        "type": "object",
-        "properties": {
-          "group": {
-            "type": "string",
-            "description": "The group the setting belongs to.",
-            "example": "activityWait"
-          },
-          "name": {
-            "type": "string",
-            "description": "The name of the flow version setting",
-            "example": "delayTime"
-          },
-          "type": {
-            "type": "string",
-            "description": "The setting type.",
-            "example": "INTEGER"
-          },
-          "value": {
-            "type": "string",
-            "description": "The setting value.",
-            "example": "2000"
-          }
-        }
-      },
-      "ValidationResultRes": {
-        "title": "ValidationResultRes",
-        "type": "object",
-        "properties": {
-          "activityId": {
-            "type": "string",
-            "description": "Activity identifier",
-            "example": "e0d7128e-0f80-46c8-9554-9a9ae4dd9e7b"
-          },
-          "activityLabel": {
-            "type": "string",
-            "description": "Activity label",
-            "example": "PlayMessage_ysg"
-          },
-          "code": {
-            "type": "string",
-            "description": "Error code",
-            "example": "FC1015"
-          },
-          "docLink": {
-            "type": "string",
-            "description": "Document link",
-            "example": "https://help.webex.com/en-us/article/n5595zd/Webex-Contact-Center-Setup-and-Administration-Guide"
-          },
-          "message": {
-            "type": "string",
-            "description": "Error message to be displayed on the UI",
-            "example": "Add descriptions for activities"
-          },
-          "severity": {
-            "type": "string",
-            "description": "Severity of the error. Either ERROR or RECOMMENDATION",
-            "example": "ERROR"
-          }
-        }
-      },
-      "VariableOrderRes": {
-        "title": "VariableOrderRes",
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "Name of the variable in the flow version object",
-            "example": "var1"
-          },
-          "variableSeq": {
-            "type": "string",
-            "description": "Sequence number of the variable",
-            "example": "1"
-          }
-        }
-      },
-      "FlowVariablesRes": {
-        "title": "FlowVariablesRes",
-        "type": "object",
-        "properties": {
-          "description": {
-            "type": "string",
-            "description": "Description for the variable",
-            "example": "var1 is meant for loop counter"
-          },
-          "desktopLabel": {
-            "type": "string",
-            "description": "Variable name shown on Agent Desktop",
-            "example": "var1"
-          },
-          "id": {
-            "type": "string",
-            "description": "Identifier for the variable",
-            "example": "04b302a9-6d92-4365-8902-9b04bc3bf5f9"
-          },
-          "isAgentEditable": {
-            "type": "boolean",
-            "description": "Determines whether is eligible for desktop agent to edit",
-            "example": false
-          },
-          "isCAD": {
-            "type": "boolean",
-            "description": "Determines whether variable is agent viewable",
-            "example": false
-          },
-          "isReportable": {
-            "type": "boolean",
-            "description": "Determines whether a variable is reportable",
-            "example": false
-          },
-          "isSecure": {
-            "type": "boolean",
-            "description": "Determines whether a variable is marked sensitive",
-            "example": false
-          },
-          "name": {
-            "type": "string",
-            "description": "Name of the variable",
-            "example": "var1"
-          },
-          "overwrite": {
-            "type": "boolean",
-            "description": "Determines whether a global variable has been overwritten",
-            "example": false
-          },
-          "source": {
-            "type": "string",
-            "description": "Source of the variable (GLOBAL, SUBFLOW_INPUT, SUBFLOW_OUTPUT, an empty string ). It's left empty for subflow local or flow variables",
-            "example": "GLOBAL"
-          },
-          "type": {
-            "type": "string",
-            "description": "Data type of the variable (STRING, INTEGER, DATETIME, DECIMAL, JSON, BOOLEAN)",
-            "example": "STRING"
-          },
-          "value": {
-            "type": "string",
-            "description": "Value of the variable",
-            "example": "hello world!"
-          }
-        }
-      },
-      "PublishParameters": {
-        "title": "PublishParameters",
-        "type": "object",
-        "description": "Metadata for the published version.",
-        "properties": {
-          "comment": {
-            "type": "string",
-            "description": "A comment to provide context on publishing the flow.",
-            "example": "Publishing the latest version"
-          },
-          "tagIds": {
-            "type": "array",
-            "description": "Tag IDs appropriate to this version. It must be one of 'Live', 'Test', 'Dev', 'Latest.",
-            "example": [
-              "Live"
-            ],
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
-      "FlowRes": {
-        "title": "FlowRes",
-        "type": "object",
-        "properties": {
-          "assignedRS": {
-            "uniqueItems": true,
-            "type": "array",
-            "description": "Assigned Routing Strategy.",
-            "example": [
-              "RS1",
-              "RS2"
-            ],
-            "items": {
-              "type": "string"
-            }
-          },
-          "createdBy": {
-            "type": "string",
-            "description": "Email of the account which created the flow.",
-            "example": "user@company.com"
-          },
-          "createdDate": {
-            "type": "string",
-            "description": "Date of creation of the flow.",
-            "format": "date-time",
-            "example": "2024-02-07T14:10:50.663Z"
-          },
-          "draftVersion": {
-            "$ref": "#/components/schemas/FlowVersionRes"
-          },
-          "flowType": {
-            "type": "string",
-            "description": "Either of 'FLOW' or 'SUBFLOW.",
-            "example": "FLOW"
-          },
-          "flowVersions": {
-            "type": "array",
-            "description": "Published FlowVersions for this flow.",
-            "example": [
-              "65c28d9db2a2375974066579",
-              "75974065c28d9db3665792a2"
-            ],
-            "items": {
-              "type": "string",
-              "description": "Flow Version object ID to with which the tag is currently associated.",
-              "example": "65c28d9db2a2375974066579"
-            }
-          },
-          "id": {
-            "type": "string",
-            "description": "Flow ID",
-            "example": "65c28d9db2a2375974066579"
-          },
-          "lastModifiedBy": {
-            "type": "string",
-            "description": "Email of the account which modified the flow last.",
-            "example": "user@company.com"
-          },
-          "lastModifiedDate": {
-            "type": "string",
-            "description": "Date the flow object is last modified.",
-            "example": "2024-02-07T14:10:50.663Z",
-            "format": "date-time"
-          },
-          "latestVersion": {
-            "$ref": "#/components/schemas/FlowVersionRes"
-          },
-          "lockedAt": {
-            "type": "string",
-            "description": "Moment at which a user began editing the flow and locked the flow for everyone else.",
-            "format": "date-time",
-            "example": "2024-02-07T14:10:50.663Z"
-          },
-          "lockedBy": {
-            "type": "string",
-            "description": "Email of the account which is currently editing the flow.",
-            "example": "user@company.com"
-          },
-          "orgId": {
-            "type": "string",
-            "description": "Organization ID.",
-            "example": "8eb7da9a-c81c-4d13-b08b-38fdeb7330d8"
-          },
-          "preferences": {
-            "type": "array",
-            "description": "Flow preferences",
-            "items": {
-              "$ref": "#/components/schemas/FlowPreferenceRes"
-            }
-          },
-          "projectId": {
-            "type": "string",
-            "description": "Project ID. System generated value which is the same across orgs and environments. Always use: 5e5c9ad6d61f870d6d778c1b",
-            "example": "5e5c9ad6d61f870d6d778c1b"
-          },
-          "status": {
-            "type": "string",
-            "description": "Indicates if this flow has ever been published - is one of 'Draft' or 'Published'.",
-            "example": "Draft"
-          },
-          "tagHistories": {
-            "type": "object",
-            "description": "Histories of the tags. Tracks how the tags have been assigned to versions chronologically",
-            "additionalProperties": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/FlowProgressionRes"
-              }
-            },
-            "example": {
-              "Latest": [
-                {
-                  "fvId": "63e3fcb0b57f601a2ad62db4",
-                  "fvName": "HttpTraceTest",
-                  "forkFrom": "63e3fcb0b57f601a2ad62db4"
-                }
-              ]
-            }
-          },
-          "tags": {
-            "type": "array",
-            "description": "Flow tags",
-            "items": {
-              "$ref": "#/components/schemas/FlowTagRes"
-            }
-          },
-          "validating": {
-            "type": "boolean",
-            "description": "Determines whether the version object needs to be validated.",
-            "example": false
-          },
-          "version": {
-            "type": "integer",
-            "description": "Version Number.",
-            "format": "int32",
-            "example": 1
-          }
-        }
-      },
-      "FlowPreferenceRes": {
-        "title": "FlowPreferenceRes",
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "The flow preference name.",
-            "example": "hideSecureCADWarning"
-          },
-          "type": {
-            "type": "string",
-            "description": "The preference type.",
-            "example": "Boolean"
-          },
-          "value": {
-            "type": "string",
-            "description": "The preference value.",
-            "example": "true"
           }
         }
       }
