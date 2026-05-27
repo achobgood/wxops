@@ -304,6 +304,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
     else:
         # Non-paginating endpoint: single call (all results in one response)
         fetch_block = [
+            "    result = None",
             "    try:",
             "        result = api.session.rest_get(url, params=params)",
         ]

@@ -28,6 +28,7 @@ def cmd_list(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -103,6 +104,7 @@ def list_available_members(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -402,6 +404,7 @@ def list_devices_people(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -459,6 +462,7 @@ def list_devices_workspaces(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -552,6 +556,7 @@ def list_line_key_templates(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -741,6 +746,7 @@ def list_apply_line_key_template(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -1104,6 +1110,7 @@ def list_layout(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -1169,6 +1176,7 @@ def list_rebuild_phones(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -1269,6 +1277,7 @@ def list_errors_rebuild_phones(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -1414,6 +1423,7 @@ def list_background_images(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:

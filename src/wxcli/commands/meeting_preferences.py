@@ -29,6 +29,7 @@ def cmd_list(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -63,6 +64,7 @@ def list_personal_meeting_room(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -227,6 +229,7 @@ def list_video(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -288,6 +291,7 @@ def list_scheduling_options(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -431,6 +435,7 @@ def list_sites(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:

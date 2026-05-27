@@ -464,6 +464,7 @@ def list_available_numbers_auto_attendants(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -499,6 +500,7 @@ def list_available_numbers_alternate(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -540,6 +542,7 @@ def list_available_numbers_call_forwarding(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -624,6 +627,7 @@ def list_announcements(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:

@@ -23,6 +23,7 @@ def cmd_list(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -52,6 +53,7 @@ def list_available_preferred_answer_endpoints(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -415,6 +417,7 @@ def list_available_caller_ids_settings(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -444,6 +447,7 @@ def list_available_caller_ids_secondary_lines(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -472,6 +476,7 @@ def list_endpoints(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -619,6 +624,7 @@ def list_feature_access_code_settings(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -648,6 +654,7 @@ def list_feature_access_code_secondary_lines(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -676,6 +683,7 @@ def list_assigned_assistants(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -727,6 +735,7 @@ def list_available_assistants(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -755,6 +764,7 @@ def list_assistant(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -809,6 +819,7 @@ def list_services_settings(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -838,6 +849,7 @@ def list_services_secondary_lines(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -866,6 +878,7 @@ def list_single_number_reach(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -1109,6 +1122,7 @@ def list_call_pickup_group_settings(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -1138,6 +1152,7 @@ def list_call_pickup_group_secondary_lines(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -1166,6 +1181,7 @@ def list_call_park_settings(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -1195,6 +1211,7 @@ def list_call_park_secondary_lines(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -1319,6 +1336,7 @@ def list_call_block(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -1426,6 +1444,7 @@ def list_monitoring(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -1454,6 +1473,7 @@ def list_queues_settings(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -1506,6 +1526,7 @@ def list_queues_secondary_lines(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -1582,6 +1603,7 @@ def list_priority_alert(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -1768,6 +1790,7 @@ def list_schedules(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -2075,6 +2098,7 @@ def list_call_notify(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -2264,6 +2288,7 @@ def list_selective_accept(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -2466,6 +2491,7 @@ def list_assigned_numbers(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -2641,6 +2667,7 @@ def list_selective_forward(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -2701,6 +2728,7 @@ def list_selective_reject(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -2985,6 +3013,7 @@ def list_sequential_ring(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -3187,6 +3216,7 @@ def list_simultaneous_ring(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -3383,6 +3413,7 @@ def list_numbers(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:

@@ -139,6 +139,7 @@ def cmd_list(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -280,6 +281,7 @@ def list_numbers(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -378,6 +380,7 @@ def list_outgoing_permission(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -441,6 +444,7 @@ def list_access_codes(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -771,6 +775,7 @@ def list_digit_patterns(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -1088,6 +1093,7 @@ def list_available_numbers_workspaces(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -1126,6 +1132,7 @@ def list_available_numbers_emergency_callback_number(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -1167,6 +1174,7 @@ def list_available_numbers_call_forwarding(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -1208,6 +1216,7 @@ def list_available_numbers_call_intercept(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -1474,6 +1483,7 @@ def list_push_to_talk(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -1540,6 +1550,7 @@ def list_privacy(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -1960,6 +1971,7 @@ def list_sequential_ring(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -2032,6 +2044,7 @@ def list_simultaneous_ring(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -2257,6 +2270,7 @@ def list_selective_reject(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -2504,6 +2518,7 @@ def list_selective_accept(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -2723,6 +2738,7 @@ def list_priority_alert(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -2942,6 +2958,7 @@ def list_selective_forward(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -3185,6 +3202,7 @@ def list_available_numbers_fax_message(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -3220,6 +3238,7 @@ def list_available_numbers_secondary(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:

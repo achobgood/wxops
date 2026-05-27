@@ -249,6 +249,7 @@ def list_resources(
                 all_items.extend(items)
             except WebexError as e:
                 logger.warning("Failed to list %s in location %s: %s", rt.name, loc_id, e)
+                console.print(f"[yellow]⚠ Failed to list {rt.name} in location {loc_id}: {e} — inventory may be incomplete[/yellow]")
         return all_items
 
     if scope_filter and location_ids and rt.server_side_location_filter:
@@ -265,6 +266,7 @@ def list_resources(
                 all_items.extend(items)
             except WebexError as e:
                 logger.warning("Failed to list %s in location %s: %s", rt.name, loc_id, e)
+                console.print(f"[yellow]⚠ Failed to list {rt.name} in location {loc_id}: {e} — inventory may be incomplete[/yellow]")
         return all_items
 
     # Org-scoped list
@@ -275,6 +277,7 @@ def list_resources(
         ))
     except WebexError as e:
         logger.warning("Failed to list %s: %s", rt.name, e)
+        console.print(f"[yellow]⚠ Failed to list {rt.name}: {e} — inventory may be incomplete[/yellow]")
         return []
 
     # Filter by location scope if requested and items have locationId

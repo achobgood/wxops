@@ -49,6 +49,7 @@ def cmd_list(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -103,6 +104,7 @@ def list_nodes(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -182,6 +184,7 @@ def list_tenants(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -217,6 +220,7 @@ def list_alarms(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -249,6 +253,7 @@ def list_network_test(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -284,6 +289,7 @@ def list_resource_usage(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -319,6 +325,7 @@ def list_availability(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:

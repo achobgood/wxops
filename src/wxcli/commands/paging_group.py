@@ -242,6 +242,7 @@ def list_available_numbers(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
