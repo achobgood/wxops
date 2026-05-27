@@ -56,58 +56,25 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is require"),
-    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
-    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
-    name: str = typer.Option(None, "--name", help="(required) Indicates the name of the skill. Once created, name cannot b"),
-    description: str = typer.Option(None, "--description", help="Indicates the description of the skill."),
-    service_level_threshold: str = typer.Option(None, "--service-level-threshold", help="(required) Allows to set the time that a customer request can be in a q"),
-    active: bool = typer.Option(None, "--active/--no-active", help="(required) Indicates the status of the skill whether it is active(when"),
-    dynamic_skill: bool = typer.Option(None, "--dynamic-skill/--no-dynamic-skill", help="Indicates whether the skill is a dynamic skill or not. Defau"),
-    skill_type: str = typer.Option(None, "--skill-type", help="(required) Choices: Proficiency, Boolean, Text, enum"),
-    created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
-    last_updated_time: str = typer.Option(None, "--last-updated-time", help="This is the updated time of the entity."),
+    payload_dto: str = typer.Option(..., "--payload-dto", help="Skill configuration data"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Skill\n\nExample --json-body:\n  '{"name":"...","serviceLevelThreshold":0,"active":true,"skillType":"Proficiency","organizationId":"...","id":"...","version":0,"description":"..."}'."""
+    """Create a new Skill."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/skill"
+    params = {}
+    if payload_dto is not None:
+        params["payloadDTO"] = payload_dto
     if json_body:
         body = json.loads(json_body)
     else:
         body = {}
-        if organization_id is not None:
-            body["organizationId"] = organization_id
-        if id_param is not None:
-            body["id"] = id_param
-        if version is not None:
-            body["version"] = version
-        if name is not None:
-            body["name"] = name
-        if description is not None:
-            body["description"] = description
-        if service_level_threshold is not None:
-            body["serviceLevelThreshold"] = service_level_threshold
-        if active is not None:
-            body["active"] = active
-        if dynamic_skill is not None:
-            body["dynamicSkill"] = dynamic_skill
-        if skill_type is not None:
-            body["skillType"] = skill_type
-        if created_time is not None:
-            body["createdTime"] = created_time
-        if last_updated_time is not None:
-            body["lastUpdatedTime"] = last_updated_time
-        _missing = [f for f in ['name', 'serviceLevelThreshold', 'active', 'skillType'] if f not in body or body[f] is None]
-        if _missing:
-            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
-            raise typer.Exit(1)
     try:
-        result = api.session.rest_post(url, json=body)
+        result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
     if output == "json":
@@ -246,53 +213,24 @@ def show(
 @app.command("update")
 def update(
     id: str = typer.Argument(help="id"),
-    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is require"),
-    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
-    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
-    name: str = typer.Option(None, "--name", help="Indicates the name of the skill. Once created, name cannot b"),
-    description: str = typer.Option(None, "--description", help="Indicates the description of the skill."),
-    service_level_threshold: str = typer.Option(None, "--service-level-threshold", help="Allows to set the time that a customer request can be in a q"),
-    active: bool = typer.Option(None, "--active/--no-active", help="Indicates the status of the skill whether it is active(when"),
-    dynamic_skill: bool = typer.Option(None, "--dynamic-skill/--no-dynamic-skill", help="Indicates whether the skill is a dynamic skill or not. Defau"),
-    skill_type: str = typer.Option(None, "--skill-type", help="Choices: Proficiency, Boolean, Text, enum"),
-    created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
-    last_updated_time: str = typer.Option(None, "--last-updated-time", help="This is the updated time of the entity."),
+    payload_dto: str = typer.Option(..., "--payload-dto", help="Skill configuration data for update"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Skill by ID\n\nExample --json-body:\n  '{"name":"...","serviceLevelThreshold":0,"active":true,"skillType":"Proficiency","organizationId":"...","id":"...","version":0,"description":"..."}'."""
+    """Update specific Skill by ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/skill/{id}"
+    params = {}
+    if payload_dto is not None:
+        params["payloadDTO"] = payload_dto
     if json_body:
         body = json.loads(json_body)
     else:
         body = {}
-        if organization_id is not None:
-            body["organizationId"] = organization_id
-        if id_param is not None:
-            body["id"] = id_param
-        if version is not None:
-            body["version"] = version
-        if name is not None:
-            body["name"] = name
-        if description is not None:
-            body["description"] = description
-        if service_level_threshold is not None:
-            body["serviceLevelThreshold"] = service_level_threshold
-        if active is not None:
-            body["active"] = active
-        if dynamic_skill is not None:
-            body["dynamicSkill"] = dynamic_skill
-        if skill_type is not None:
-            body["skillType"] = skill_type
-        if created_time is not None:
-            body["createdTime"] = created_time
-        if last_updated_time is not None:
-            body["lastUpdatedTime"] = last_updated_time
     try:
-        result = api.session.rest_put(url, json=body)
+        result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
     typer.echo(f"Updated.")
