@@ -431,12 +431,12 @@ The mandatory grounding rule ("Never answer any question about Webex Calling fro
 
 ## Open Questions
 
-These gaps remain where rationale is genuinely unclear and should be confirmed with the original author:
-
 1. **Why Typer over Click directly?** The codebase uses Typer (which wraps Click). The generator produces Typer commands. But Click would work equally well and is more widely known. Was Typer chosen for its auto-help generation, type annotation support, or another reason? *Inferred: likely the type annotation support — generated commands use typed function signatures that Typer converts to CLI options automatically.*
 
-2. **Why Python 3.14 minimum?** `pyproject.toml` requires Python >= 3.14 (beta as of May 2026). The codebase uses `str | None` union syntax (available since 3.10) and possibly `type` statement syntax. Was 3.14 chosen for a specific language feature, or is it simply "latest stable at development time"? *This is a significant constraint that limits adoption.*
+### Resolved Questions
 
-3. **Why default concurrency of 20 for migration vs. 5 for cleanup?** The migration engine defaults to 20 concurrent API calls, while `cleanup.py` uses ThreadPoolExecutor with a lower concurrency. Was 20 determined empirically against Webex rate limits, or is it arbitrary? *The 429 retry logic suggests it was tuned to push rate limits and back off dynamically rather than staying conservatively below them.*
+2. **~~Why Python 3.14 minimum?~~** Resolved 2026-05-27. No 3.14-specific features were used — the constraint was simply "latest stable at development time." Relaxed to `>=3.11` in `pyproject.toml`.
 
-4. **Why no shared HTTP infrastructure between CLI and migration?** The "two independent HTTP stacks" seam is documented but the rationale is inferred ("breaking change in one doesn't affect the other"). Was this an intentional decoupling decision from the start, or did it emerge organically as the migration engine's requirements diverged from CLI commands? *Git history suggests the migration engine was built after the CLI was stable, using aiohttp because async was needed — not as a deliberate architectural choice to avoid the existing stack.*
+3. **~~Why default concurrency of 20 for migration vs. 5 for cleanup?~~** Resolved 2026-05-27. Intentional: the migration engine uses async `aiohttp` with a semaphore, so 20 concurrent calls are cheap and the 429 retry logic handles backoff dynamically. Cleanup uses a synchronous `ThreadPoolExecutor` where 5 threads is the practical ceiling. Different execution models justify different defaults.
+
+4. **~~Why no shared HTTP infrastructure between CLI and migration?~~** Resolved 2026-05-27. Intentional divergence driven by requirements: CLI commands are sequential user-facing operations (sync `httpx` is sufficient), while the migration engine runs hundreds of concurrent API calls (async `aiohttp` with cooperative rate limiting is necessary). The migration engine was built after the CLI was stable, and sharing HTTP infrastructure would have forced unnecessary async complexity into the CLI or unnecessary sync constraints into the migration engine. Isolation is a feature — a breaking change in one doesn't affect the other.

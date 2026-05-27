@@ -41,7 +41,7 @@ How the system behaves at runtime: failure modes, fragility points, performance 
 
 | Failure | Code Path | Impact |
 |---------|-----------|--------|
-| API listing returns error during cleanup | `cleanup.py:250-278` | Returns empty list — operator proceeds with incomplete inventory, thinks org is clean |
+| API listing returns error during cleanup | `cleanup.py:250-280` | Returns empty list but now prints visible warning ("inventory may be incomplete") — operator can see failures. Fixed 2026-05-27: added console warnings on all 3 listing error paths. |
 | Empty response body on success | `auth.py:25, 31, 37, 43` | Returns `{}` — downstream code treats missing fields as None |
 | Config file missing | `config.py:8-9` | Returns `{"profiles": {}}` — no warning |
 | Token expiry not parseable | `main.py:64` | `except ValueError: pass` — expiry check silently skipped |
@@ -299,7 +299,7 @@ How the system behaves at runtime: failure modes, fragility points, performance 
 
 | Issue | Code Path | Impact | Workaround |
 |-------|-----------|--------|-----------|
-| Generated command `result` undefined after exception | `command_renderer.py:336-338` | If `handle_rest_error(e)` doesn't exit (impossible today since it always calls `typer.Exit(1)`), code crashes with `NameError` | Currently unexploitable because `handle_rest_error` always exits — but fragile if error handler ever changed to non-exit |
+| ~~Generated command `result` undefined after exception~~ | `command_renderer.py:306` | Fixed 2026-05-27: `result = None` initialized before try block. Previously would crash with `NameError` if error handler didn't exit. | Resolved |
 | `follow_pagination` resets params to None | `auth.py:59` | After first page, query params are cleared — second page URL must be fully qualified | Works because Webex includes full URL in Link header, but would break if any API returns relative Links |
 | Empty dict `{}` returned for no-content 204 responses | `auth.py:25, 31, 37, 43` | `response.json() if response.content else {}` — but 204 has no content, so all 204 responses look like empty success | Downstream code must check status code separately if it needs to distinguish "success with no body" from "empty object returned" |
 
@@ -325,7 +325,7 @@ How the system behaves at runtime: failure modes, fragility points, performance 
 | Activation code `code` field fallback | `engine.py:218` | `/devices/activationCode` returns `{"code": ...}` not `{"id": ...}` — engine checks both |
 | `phones_using == 0` skip in line_key_template | `planner.py` | Templates that no phone references are dead — skip instead of creating orphans |
 | Response list key chain (`items` → `data` → raw) | Generated commands | CC API uses `data`, Calling uses `items` — single code path handles both |
-| `handle_rest_error` always exits | `errors.py:68` | Ensures no code after error handler executes — masks the `result` undefined bug in generated commands |
+| `handle_rest_error` always exits | `errors.py:68` | Ensures no code after error handler executes — the `result` undefined bug this masked was fixed 2026-05-27 |
 
 ### Known Unknowns (Requires Testing)
 
