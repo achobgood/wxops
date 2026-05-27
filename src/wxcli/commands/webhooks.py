@@ -1,7 +1,7 @@
 import json
 import typer
-from wxcli.errors import WebexError, handle_rest_error
 from wxcli.auth import get_api
+from wxcli.errors import WebexError, handle_rest_error
 from wxcli.output import print_table, print_json
 
 
@@ -30,11 +30,11 @@ def cmd_list(
         if limit > 0:
             result = api.session.rest_get(url, params=params)
             result = result or {}
-            items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+            items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
             items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(items)
     else:
@@ -47,7 +47,7 @@ def create(
     name: str = typer.Option(None, "--name", help="(required) A user-friendly name for the webhook."),
     target_url: str = typer.Option(None, "--target-url", help="(required) URL that receives POST requests for each event."),
     resource: str = typer.Option(None, "--resource", help="(required) Resource type for the webhook. Creating a webhook requires ' (use --help for choices)"),
-    event: str = typer.Option(None, "--event", help="(required) Event type for the webhook.  * `created` - An object is crea (use --help for choices)"),
+    event: str = typer.Option(None, "--event", help="(required) Choices: created, updated, deleted, started, ended, joined, left, migrated, authorized, deauthorized, statusChanged"),
     filter_param: str = typer.Option(None, "--filter", help="Filter that defines the webhook scope. See [Filtering Webhoo"),
     secret: str = typer.Option(None, "--secret", help="Secret used to generate payload signature."),
     owned_by: str = typer.Option(None, "--owned-by", help="Specify `org` when creating an org/admin level webhook. Supp"),
@@ -83,7 +83,7 @@ def create(
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -107,7 +107,7 @@ def show(
     try:
         result = api.session.rest_get(url)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -151,7 +151,7 @@ def update(
     try:
         result = api.session.rest_put(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -170,7 +170,7 @@ def delete(
     try:
         api.session.rest_delete(url)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Deleted: {webhook_id}")
 
 

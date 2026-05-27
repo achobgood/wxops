@@ -56,46 +56,25 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is require"),
-    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
-    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
-    name: str = typer.Option(None, "--name", help="(required) Indicates the name of the skill Profile. It is required only"),
-    description: str = typer.Option(None, "--description", help="A short description of the skill profile."),
-    created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
-    last_updated_time: str = typer.Option(None, "--last-updated-time", help="This is the updated time of the entity."),
+    skill_profile_dto: str = typer.Option(..., "--skill-profile-dto", help="Skill profile configuration data"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Skill Profile\n\nExample --json-body:\n  '{"name":"...","activeSkills":[{"booleanValue":"...","skillId":"...","organizationId":"...","id":"...","version":"...","textValue":"...","proficiencyValue":"...","createdTime":"..."}],"organizationId":"...","id":"...","version":0,"description":"...","activeEnumSkills":[{"enumSkillValueId":"...","organizationId":"...","id":"...","version":"...","createdTime":"...","lastUpdatedTime":"...","enumSkillName":"...","enumSkillValue":"..."}],"createdTime":0}'."""
+    """Create a new Skill Profile."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/skill-profile"
+    params = {}
+    if skill_profile_dto is not None:
+        params["skillProfileDTO"] = skill_profile_dto
     if json_body:
         body = json.loads(json_body)
     else:
         body = {}
-        if organization_id is not None:
-            body["organizationId"] = organization_id
-        if id_param is not None:
-            body["id"] = id_param
-        if version is not None:
-            body["version"] = version
-        if name is not None:
-            body["name"] = name
-        if description is not None:
-            body["description"] = description
-        if created_time is not None:
-            body["createdTime"] = created_time
-        if last_updated_time is not None:
-            body["lastUpdatedTime"] = last_updated_time
-        _missing = [f for f in ['name'] if f not in body or body[f] is None]
-        if _missing:
-            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
-            raise typer.Exit(1)
     try:
-        result = api.session.rest_post(url, json=body)
+        result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
     if output == "json":
@@ -173,41 +152,24 @@ def show(
 @app.command("update")
 def update(
     id: str = typer.Argument(help="id"),
-    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is require"),
-    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
-    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
-    name: str = typer.Option(None, "--name", help="Indicates the name of the skill Profile. It is required only"),
-    description: str = typer.Option(None, "--description", help="A short description of the skill profile."),
-    created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
-    last_updated_time: str = typer.Option(None, "--last-updated-time", help="This is the updated time of the entity."),
+    skill_profile_dto: str = typer.Option(..., "--skill-profile-dto", help="Skill profile configuration data for update"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Skill Profile by ID\n\nExample --json-body:\n  '{"name":"...","activeSkills":[{"booleanValue":"...","skillId":"...","organizationId":"...","id":"...","version":"...","textValue":"...","proficiencyValue":"...","createdTime":"..."}],"organizationId":"...","id":"...","version":0,"description":"...","activeEnumSkills":[{"enumSkillValueId":"...","organizationId":"...","id":"...","version":"...","createdTime":"...","lastUpdatedTime":"...","enumSkillName":"...","enumSkillValue":"..."}],"createdTime":0}'."""
+    """Update specific Skill Profile by ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/skill-profile/{id}"
+    params = {}
+    if skill_profile_dto is not None:
+        params["skillProfileDTO"] = skill_profile_dto
     if json_body:
         body = json.loads(json_body)
     else:
         body = {}
-        if organization_id is not None:
-            body["organizationId"] = organization_id
-        if id_param is not None:
-            body["id"] = id_param
-        if version is not None:
-            body["version"] = version
-        if name is not None:
-            body["name"] = name
-        if description is not None:
-            body["description"] = description
-        if created_time is not None:
-            body["createdTime"] = created_time
-        if last_updated_time is not None:
-            body["lastUpdatedTime"] = last_updated_time
     try:
-        result = api.session.rest_put(url, json=body)
+        result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
     typer.echo(f"Updated.")

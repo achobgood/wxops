@@ -69,6 +69,67 @@ def cmd_list(
 
 
 
+@app.command("create")
+def create(
+    max: str = typer.Option(None, "--max", help="Maximum number of recordings to return in a single page. `ma"),
+    from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for recordings to return,"),
+    to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for query recordings to ret"),
+    meeting_id: str = typer.Option(None, "--meeting-id", help="Unique identifier for the parent meeting series, scheduled m"),
+    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site from which the API lists recordings. I"),
+    integration_tag: str = typer.Option(None, "--integration-tag", help="External key of the parent meeting created by an integration"),
+    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This property is only us"),
+    topic: str = typer.Option(None, "--topic", help="Recording's topic. If specified, the API filters recordings"),
+    format_param: str = typer.Option(None, "--format", help="Choices: MP4, ARF"),
+    service_type: str = typer.Option(None, "--service-type", help="Choices: MeetingCenter, EventCenter, SupportCenter, TrainingCenter"),
+    status: str = typer.Option(None, "--status", help="Choices: available, deleted, purged"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Query Recordings."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/recordings/query"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if max is not None:
+            body["max"] = max
+        if from_param is not None:
+            body["from"] = from_param
+        if to is not None:
+            body["to"] = to
+        if meeting_id is not None:
+            body["meetingId"] = meeting_id
+        if site_url is not None:
+            body["siteUrl"] = site_url
+        if integration_tag is not None:
+            body["integrationTag"] = integration_tag
+        if host_email is not None:
+            body["hostEmail"] = host_email
+        if topic is not None:
+            body["topic"] = topic
+        if format_param is not None:
+            body["format"] = format_param
+        if service_type is not None:
+            body["serviceType"] = service_type
+        if status is not None:
+            body["status"] = status
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif not result or result == {}:
+        typer.echo("Created.")
+    else:
+        print_json(result)
+
+
+
 @app.command("list-recordings-admin")
 def list_recordings_admin(
     from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for recordings to return,"),
@@ -124,6 +185,67 @@ def list_recordings_admin(
         print_json(items)
     else:
         print_table(items, columns=[('ID', 'id'), ('Topic', 'topic'), ('Format', 'format'), ('Created', 'timeRecorded')], limit=limit)
+
+
+
+@app.command("create-query")
+def create_query(
+    max: str = typer.Option(None, "--max", help="Maximum number of recordings to return in a single page. `ma"),
+    from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for recordings to return,"),
+    to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for query recordings to ret"),
+    meeting_id: str = typer.Option(None, "--meeting-id", help="Unique identifier for the parent meeting series, scheduled m"),
+    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site which the API lists recordings from. I"),
+    integration_tag: str = typer.Option(None, "--integration-tag", help="External key of the parent meeting created by an integration"),
+    topic: str = typer.Option(None, "--topic", help="Recording topic. If specified, the API filters recordings by"),
+    format_param: str = typer.Option(None, "--format", help="Choices: MP4, ARF"),
+    service_type: str = typer.Option(None, "--service-type", help="Choices: MeetingCenter, EventCenter, SupportCenter, TrainingCenter"),
+    status: str = typer.Option(None, "--status", help="Choices: available, deleted, purged"),
+    timezone: str = typer.Option(None, "--timezone", help="Optional timezone override for the request (if not provided,"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Query Recordings For an Admin or Compliance Officer."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/admin/recordings/query"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if max is not None:
+            body["max"] = max
+        if from_param is not None:
+            body["from"] = from_param
+        if to is not None:
+            body["to"] = to
+        if meeting_id is not None:
+            body["meetingId"] = meeting_id
+        if site_url is not None:
+            body["siteUrl"] = site_url
+        if integration_tag is not None:
+            body["integrationTag"] = integration_tag
+        if topic is not None:
+            body["topic"] = topic
+        if format_param is not None:
+            body["format"] = format_param
+        if service_type is not None:
+            body["serviceType"] = service_type
+        if status is not None:
+            body["status"] = status
+        if timezone is not None:
+            body["timezone"] = timezone
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif not result or result == {}:
+        typer.echo("Created.")
+    else:
+        print_json(result)
 
 
 
@@ -198,8 +320,8 @@ def delete_recordings(
 
 
 
-@app.command("create")
-def create(
+@app.command("create-soft-delete")
+def create_soft_delete(
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. Only used if the user or"),
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site from which the API deletes recordings."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -388,7 +510,6 @@ def list_recordings_group(
     to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for List recordings to retu"),
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site which the API lists recordings from. I"),
     integration_tag: str = typer.Option(None, "--integration-tag", help="External key of the parent meeting created by an integration"),
-    topic: str = typer.Option(None, "--topic", help="Recording topic. If specified, the API filters recordings by"),
     format_param: str = typer.Option(None, "--format", help="Choices: MP4, ARF"),
     service_type: str = typer.Option(None, "--service-type", help="Choices: MeetingCenter, EventCenter, SupportCenter, TrainingCenter"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
@@ -410,8 +531,6 @@ def list_recordings_group(
         params["siteUrl"] = site_url
     if integration_tag is not None:
         params["integrationTag"] = integration_tag
-    if topic is not None:
-        params["topic"] = topic
     if format_param is not None:
         params["format"] = format_param
     if service_type is not None:

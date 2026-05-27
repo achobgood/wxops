@@ -921,8 +921,8 @@ def create_pull(
 
 
 
-@app.command("create-dial")
-def create_dial(
+@app.command("create-dial-members")
+def create_dial_members(
     member_id: str = typer.Argument(help="memberId"),
     destination: str = typer.Option(None, "--destination", help="(required) The destination to be dialed. The destination can be digits"),
     endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the call. The"),
@@ -1052,8 +1052,8 @@ def create_hangup_members(
 
 
 
-@app.command("list-calls")
-def list_calls(
+@app.command("list-calls-members")
+def list_calls_members(
     member_id: str = typer.Argument(help="memberId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
@@ -1080,12 +1080,12 @@ def list_calls(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('Call ID', 'id'), ('Personality', 'personality'), ('State', 'state')], limit=limit)
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
-@app.command("show-calls")
-def show_calls(
+@app.command("show-calls-members")
+def show_calls_members(
     member_id: str = typer.Argument(help="memberId"),
     call_id: str = typer.Argument(help="callId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
@@ -1098,6 +1098,191 @@ def show_calls(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    if output == "json":
+        print_json(result)
+    else:
+        if isinstance(result, dict):
+            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
+        elif isinstance(result, list):
+            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
+        else:
+            print_json(result)
+
+
+
+@app.command("create-dial-me")
+def create_dial_me(
+    destination: str = typer.Option(None, "--destination", help="(required) The destination to be dialed. The destination can be digits"),
+    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the call. The"),
+    single_number_reach_phone_number: str = typer.Option(None, "--single-number-reach-phone-number", help="The Single Number Reach phone number to use for the call. Mu"),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Dial."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/me/dial"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if destination is not None:
+            body["destination"] = destination
+        if endpoint_id is not None:
+            body["endpointId"] = endpoint_id
+        if single_number_reach_phone_number is not None:
+            body["singleNumberReachPhoneNumber"] = single_number_reach_phone_number
+        if line_owner_id is not None:
+            body["lineOwnerId"] = line_owner_id
+        _missing = [f for f in ['destination'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "callId" in result:
+        typer.echo(f"Created: {result['callId']}")
+    elif isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif not result or result == {}:
+        typer.echo("Created.")
+    else:
+        print_json(result)
+
+
+
+@app.command("create-answer-me")
+def create_answer_me(
+    call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to be answered."),
+    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to answer the call on. T"),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Answer."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/me/answer"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if call_id is not None:
+            body["callId"] = call_id
+        if endpoint_id is not None:
+            body["endpointId"] = endpoint_id
+        if line_owner_id is not None:
+            body["lineOwnerId"] = line_owner_id
+        _missing = [f for f in ['callId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif not result or result == {}:
+        typer.echo("Created.")
+    else:
+        print_json(result)
+
+
+
+@app.command("create-hangup-me")
+def create_hangup_me(
+    call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to hangup."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Hangup."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/me/hangup"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if call_id is not None:
+            body["callId"] = call_id
+        if line_owner_id is not None:
+            body["lineOwnerId"] = line_owner_id
+        _missing = [f for f in ['callId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif not result or result == {}:
+        typer.echo("Created.")
+    else:
+        print_json(result)
+
+
+
+@app.command("list-calls-me")
+def list_calls_me(
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """List Calls."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/me/calls"
+    params = {}
+    if line_owner_id is not None:
+        params["lineOwnerId"] = line_owner_id
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    result = result or []
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+
+
+
+@app.command("show-calls-me")
+def show_calls_me(
+    call_id: str = typer.Argument(help="callId"),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Call Details."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/me/calls/{call_id}"
+    params = {}
+    if line_owner_id is not None:
+        params["lineOwnerId"] = line_owner_id
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:

@@ -1,6 +1,4 @@
 import json
-import os
-from pathlib import Path
 import typer
 from wxcli.auth import get_api
 from wxcli.errors import WebexError, handle_rest_error
@@ -1449,48 +1447,6 @@ def delete_background_images(
         handle_rest_error(e)
     typer.echo("Deleted.")
 
-
-
-@app.command("upload-background-image")
-def upload_background_image(
-    device_id: str = typer.Argument(help="Device ID to upload background image for"),
-    file: str = typer.Option(..., "--file", help="Path to image file (.jpeg or .png, max 625 KB)"),
-    file_name: str = typer.Option(None, "--file-name", help="Name for the image file (defaults to the local filename)"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Upload a device background image (multipart)."""
-    file_path = Path(file).expanduser().resolve()
-    if not file_path.exists():
-        typer.echo(f"Error: File not found: {file_path}", err=True)
-        raise typer.Exit(1)
-    if file_path.stat().st_size > 625 * 1024:
-        typer.echo(f"Error: File exceeds 625 KB limit ({file_path.stat().st_size} bytes)", err=True)
-        raise typer.Exit(1)
-    suffix = file_path.suffix.lower()
-    if suffix not in (".jpeg", ".jpg", ".png"):
-        typer.echo(f"Error: File must be .jpeg or .png (got {suffix})", err=True)
-        raise typer.Exit(1)
-    content_type = "image/png" if suffix == ".png" else "image/jpeg"
-    name = file_name or file_path.name
-    api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/telephony/config/devices/{device_id}/actions/backgroundImageUpload/invoke"
-    params = {}
-    org_id = get_org_id()
-    if org_id is not None:
-        params["orgId"] = org_id
-    import httpx
-    with open(file_path, "rb") as f:
-        files = {"file": (name, f, content_type)}
-        data = {"fileName": name}
-        headers = dict(api.session._headers) if hasattr(api.session, '_headers') else {}
-        headers["Authorization"] = f"Bearer {api.session.access_token}"
-        try:
-            resp = httpx.post(url, params=params, files=files, data=data, headers=headers, timeout=30)
-            resp.raise_for_status()
-        except httpx.HTTPStatusError as e:
-            typer.echo(f"Error {e.response.status_code}: {e.response.text}", err=True)
-            raise typer.Exit(1)
-    typer.echo(f"Uploaded background image '{name}' to device {device_id}.")
 
 
 @app.command("show-count-devices")
