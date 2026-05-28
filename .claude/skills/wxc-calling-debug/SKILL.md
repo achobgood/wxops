@@ -4,6 +4,8 @@ description: |
   Debug a failing Webex Calling API call or configuration. Use when an API
   returns an error, a configuration doesn't apply, a resource is missing,
   or a wxcli command fails. Walks through systematic diagnosis.
+  NOT for: building/configuring resources (use the appropriate config skill) or
+  querying current state without errors (use query-live skill).
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [symptom-or-error-message]
 ---

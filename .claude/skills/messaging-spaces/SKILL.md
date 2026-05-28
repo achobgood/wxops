@@ -1,8 +1,11 @@
 ---
 name: messaging-spaces
 description: |
-  Manage Webex spaces, teams, memberships, messages, and enterprise content (ECM/HDS)
-  using wxcli CLI commands. Guides the user from prerequisites through execution and verification.
+  Manage Webex messaging spaces, teams (collaboration groupings), memberships, messages,
+  and enterprise content management (ECM folder linking, HDS monitoring) using wxcli CLI commands.
+  Guides the user from prerequisites through execution and verification.
+  NOT for: Contact Center teams (use contact-center skill — CC teams group agents for routing,
+  not collaboration spaces) or bot/webhook development (use messaging-bots skill).
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [operation-type]
 ---

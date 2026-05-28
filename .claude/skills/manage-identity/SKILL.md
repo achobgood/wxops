@@ -1,9 +1,12 @@
 ---
 name: manage-identity
 description: |
-  Manage Webex identity and directory: SCIM user/group sync, bulk provisioning,
-  domain verification, org contacts, group membership, and directory cleanup.
+  Manage Webex identity and directory: SCIM user/group sync, SCIM bulk operations,
+  domain verification (DNS TXT records), org contact import, directory entries,
+  group membership, and directory cleanup.
   Guides from prerequisites through execution and verification.
+  NOT for: Webex Calling user provisioning (use provision-calling skill) or
+  license assignment (use manage-licensing skill).
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [operation — e.g. "sync users", "verify domain", "bulk import", "cleanup directory"]
 ---

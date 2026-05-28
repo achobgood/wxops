@@ -1,10 +1,12 @@
 ---
 name: call-control
 description: |
-  Real-time Webex Calling call control, webhook event monitoring, conference controls, and XSI
-  real-time event streaming. Covers the Call Control API (user-level and Service App), telephony
-  webhook subscriptions and event parsing, conference controls, and wxcadm XSI for real-time
-  call monitoring and programmatic call control via BroadWorks.
+  Real-time Webex Calling call control, telephony webhook/event monitoring, conference controls,
+  and XSI real-time event streaming. Covers the Call Control API (user-level and Service App),
+  telephony webhook subscriptions and event parsing, conference controls, and wxcadm XSI for
+  real-time call monitoring and programmatic call control via BroadWorks.
+  NOT for: messaging webhooks/bot events (use messaging-bots skill), call settings/forwarding
+  configuration (use manage-call-settings skill), or CDR/call history queries (use reporting skill).
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [call-control | webhooks | xsi-events | conference]
 ---

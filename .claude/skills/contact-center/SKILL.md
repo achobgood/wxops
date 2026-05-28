@@ -3,9 +3,12 @@ name: contact-center
 description: |
   Provision and manage Webex Contact Center resources using wxcli CLI commands:
   agents, queues, entry points, teams, skills, flows, campaigns, dial plans,
-  desktop profiles, and monitoring. Guides the user from prerequisites through
+  dial numbers (DN-to-entry-point mapping), desktop profiles, CC sites, CC business hours,
+  CC holiday lists, and monitoring. Guides the user from prerequisites through
   execution and verification.
   Use for: create, update, delete, list, configure, or troubleshoot any CC resource.
+  NOT for: Webex Calling queues/hunt groups (use configure-features), Calling dial plans
+  (use configure-routing), or Calling schedules (use configure-features).
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [cc-operation]
 ---

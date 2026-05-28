@@ -4,6 +4,8 @@ description: |
   Tear down Webex Calling resources in dependency-safe order. Covers single-location
   teardown, multi-location bulk cleanup, migration test cleanup, and org reset.
   Use for: delete, remove, clean up, tear down, reset, decommission.
+  NOT for: creating/provisioning resources (use provision-calling skill) or
+  license reclamation without resource deletion (use manage-licensing skill).
 argument-hint: [scope — e.g. "DP-HQ-Phones", "all GlobalTech locations", "entire org"]
 ---
 

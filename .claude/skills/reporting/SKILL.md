@@ -3,10 +3,10 @@ name: reporting
 description: |
   Query and analyze Webex Calling reporting and analytics: Detailed Call History (CDR),
   Call Queue statistics, Auto Attendant statistics, call quality, report templates,
-  and converged recordings. 75 CDR recipes + query composition guide for answering
-  any natural-language question about a calling environment.
-  For Contact Center analytics, use the reporting-cc skill.
-  For meetings/workspace analytics, use the reporting-meetings skill.
+  converged recording download/export, and call volume trends. 75 CDR recipes + query
+  composition guide for answering any natural-language question about a calling environment.
+  NOT for: Contact Center analytics (use reporting-cc skill), meetings/workspace analytics
+  (use reporting-meetings skill), or per-user recording toggle (use manage-call-settings skill).
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [report-type]
 ---

@@ -1,9 +1,12 @@
 ---
 name: customer-assist
 description: |
-  Configure Webex Calling Customer Assist using wxcli CLI commands: screen pop,
+  Configure Webex Calling Customer Assist (CX Essentials) using wxcli CLI commands: screen pop,
   wrap-up reasons, queue call recording, supervisors, and available agents.
   Guides the user from prerequisites through configuration and verification.
+  NOT for: standard call queues/hunt groups (use configure-features) or
+  full Contact Center queues/agents (use contact-center skill — CX Essentials is
+  a Calling add-on, not WxCC).
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [feature-type]
 ---

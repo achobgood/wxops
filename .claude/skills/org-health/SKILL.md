@@ -5,6 +5,8 @@ description: |
   wxcli commands, runs 18 deterministic Python checks across 4 categories, and
   generates an Authority Minimal HTML report. Three phases: collect → analyze → report.
   Use when the user wants to audit their org, run a health check, or see what needs attention.
+  NOT for: security/compliance audit logs (use audit-compliance skill), CDR/call analytics
+  (use reporting skill), or license auditing (use manage-licensing skill).
 ---
 
 # Org Health Assessment

@@ -137,7 +137,7 @@ Added 2026-04-15 after an org-cleanup subagent died mid-Phase-2 when its Python 
 | `.claude/skills/teardown/` | Skill: dependency-safe teardown, `wxcli cleanup`, manual deletion procedure |
 | `.claude/skills/configure-features/` | Skill: set up call features (AA, CQ, HG, etc.; Customer Assist → see customer-assist skill) |
 | `.claude/skills/customer-assist/`      | Skill: configure Customer Assist (screen pop, wrap-up, recording, supervisors) |
-| `.claude/skills/manage-call-settings/` | Skill: configure person/workspace call settings |
+| `.claude/skills/manage-call-settings/` | Skill: configure person/workspace call settings, phone number add/remove/reassign |
 | `.claude/skills/configure-routing/` | Skill: configure routing (trunks, dial plans, PSTN) |
 | `.claude/skills/manage-devices/` | Skill: manage devices (phones, DECT, workspaces) |
 | `.claude/skills/device-platform/` | Skill: manage PhoneOS/RoomOS device configs, workspace personalization, xAPI; 9800-series phones (9811/9821/9841/9851/9861/9871) use PhoneOS (not RoomOS) |
@@ -153,7 +153,7 @@ Added 2026-04-15 after an org-cleanup subagent died mid-Phase-2 when its Python 
 | `.claude/skills/messaging-bots/` | Skill: build bots, adaptive cards, webhooks, cross-domain integrations |
 | `.claude/skills/manage-meetings/` | Skill: schedule, manage, query meetings + content |
 | `.claude/skills/video-mesh/` | Skill: Video Mesh monitoring and threshold configuration |
-| `.claude/skills/contact-center/` | Skill: CC provisioning (agents, queues, flows, campaigns) |
+| `.claude/skills/contact-center/` | Skill: CC provisioning (agents, queues, entry points, dial numbers, flows, campaigns) |
 | `.claude/skills/org-health/` | Skill: org health assessment — collect, analyze 18 checks, HTML report |
 | `.claude/skills/cucm-migrate/` | Skill: execute CUCM-to-Webex migration from exported deployment plan |
 | `.claude/skills/query-live/` | Skill: read-only natural language queries against live Webex Calling state |
@@ -180,6 +180,8 @@ When multiple skills could match, use this lookup:
 | Configure Customer Assist (screen pop, wrap-up, supervisors) | `customer-assist` | `configure-features` (CX queues are a separate skill) |
 | Create a call queue, hunt group, or auto attendant | `configure-features` | `customer-assist` (only for CX Essentials features) |
 | Set person call forwarding, DND, voicemail, caller ID | `manage-call-settings` | `configure-features` (person settings ≠ call features) |
+| Add/remove phone numbers on a user, number reassignment | `manage-call-settings` | `provision-calling` (that's for initial user/license creation) |
+| Update user profile fields (alternate numbers, display name) | `provision-calling` | `manage-call-settings` (profile fields are People API, not telephony config) |
 | Configure voicemail groups (shared location mailbox) | `configure-features` | `manage-call-settings` (voicemail groups are a location feature) |
 | Provision MPP phones, DECT, activation codes | `manage-devices` | `device-platform` (that's for config keys, not provisioning) |
 | Set 9800-series PhoneOS config keys, xAPI commands | `device-platform` | `manage-devices` (that's for provisioning, not config) |
@@ -188,20 +190,62 @@ When multiple skills could match, use this lookup:
 | Query meeting quality, workspace utilization | `reporting-meetings` | `reporting` (different API domain) |
 | Delete/clean up resources | `teardown` | `provision-calling` (that's for creation) |
 | Provision users, locations, licenses | `provision-calling` | `teardown` (that's for deletion) |
+| Map numbers to CC entry points, CC dial numbers | `contact-center` | `configure-routing` (that's Calling routing, not CC routing) |
+| CC entry points, teams, skills, agents, queues, flows | `contact-center` | `configure-features` (that's Calling features, not CC) |
+| **Calling vs CC terminology — when the same word means different things:** | | |
+| "Create a queue" (Calling call queue) | `configure-features` | `contact-center` (that's CC queues — different API, different entity) |
+| "Create a queue" (Contact Center queue) | `contact-center` | `configure-features` (that's Calling queues — no skill-based routing) |
+| "Set up a dial plan" (Calling outbound routing) | `configure-routing` | `contact-center` (CC dial plans map DNs to entry points, different API) |
+| "Set up a dial plan" (CC DN-to-entry-point mapping) | `contact-center` | `configure-routing` (that's Calling outbound routing) |
+| "Create a team" (Messaging spaces) | `messaging-spaces` | `contact-center` (CC teams group agents for routing) |
+| "Create a team" (CC agent grouping) | `contact-center` | `messaging-spaces` (that's collaboration spaces) |
+| "Set up recording" (per-user call recording) | `manage-call-settings` | `customer-assist` (that's CC queue recording) |
+| "Set up recording" (CC queue recording) | `customer-assist` | `manage-call-settings` (that's per-user Calling recording) |
+| "Download/export recordings" (converged recordings) | `reporting` | `manage-call-settings` (that's the per-user toggle, not retrieval) |
+| "Configure the site" (Calling location) | `provision-calling` | `contact-center` (CC sites are logical agent groupings, not locations) |
+| "Configure the site" (CC site for agent teams) | `contact-center` | `provision-calling` (Calling locations have addresses and PSTN) |
+| "Create a workspace" (Calling device workspace) | `manage-devices` | `contact-center` (CC JDS workspaces are journey data containers) |
+| "Set up business hours / holidays" (Calling schedule) | `configure-features` | `contact-center` (CC business hours are a separate entity type) |
+| "Set up business hours / holidays" (CC schedule) | `contact-center` | `configure-features` (Calling schedules attach to AA/CQ/HG) |
+| **Undocumented capabilities — user asks, table must route:** | | |
+| Set up executive-assistant delegation | `manage-call-settings` | `configure-features` (delegation is a person setting, not a call feature) |
+| Configure line keys, BLF, speed dials on phones | `manage-devices` | `manage-call-settings` (line key templates are device config, not call settings) |
+| Digit manipulation (strip digits, add country code) | `configure-routing` (translation patterns) | `manage-call-settings` (that's per-person settings, not digit transforms) |
+| Bulk import users from CSV | `provision-calling` | `manage-identity` (SCIM is directory sync, not bulk user provisioning) |
+| How many licenses are unused / license audit | `manage-licensing` | `reporting` (reporting is CDR/call data, not license inventory) |
+| Verify domain for SCIM / DNS setup | `manage-identity` | `provision-calling` (domain verification is identity, not calling provisioning) |
+| Enable hoteling on a workspace | `manage-call-settings` | `manage-devices` (hoteling is a workspace calling setting, not device provisioning) |
+| Import org contacts / directory entries | `manage-identity` | `provision-calling` (org contacts are directory, not calling users) |
+| Reclaim licenses from inactive users | `manage-licensing` | `teardown` (license reclamation ≠ resource deletion) |
+
+### Multi-Skill Workflows
+
+Common admin goals that span multiple skills. When the user states one of these end goals, orchestrate the skills in sequence — don't pick just one.
+
+| User goal | Skills needed (in order) | Why it's multi-skill |
+|-----------|------------------------|---------------------|
+| Offboard a user | `manage-call-settings` → `manage-devices` → `manage-licensing` → `teardown` → `manage-identity` | Must remove settings, release device, reclaim license, delete user, sync directory |
+| Set up call recording for a team | `manage-call-settings` (per-person toggle) + `configure-features` (location recording policy) + `customer-assist` (if CX queue recording) | Recording config lives at person, location, AND queue level |
+| E911 compliance for a location | `provision-calling` (emergency address on location) + `manage-call-settings` (per-person ECBN) | Address is location-level, ECBN callback number is per-person |
+| Shared line on physical phones | `manage-call-settings` (shared line appearance / exec-assistant) + `manage-devices` (line key assignment on devices) | Pairing is a call setting, line key layout is device config |
+| Port numbers and assign to users | `provision-calling` (location number inventory) → `manage-call-settings` (assign to users) → `configure-routing` (update dial plan if needed) | Numbers flow through location inventory before user assignment |
+| Convert workspace to licensed user | `teardown` (decommission workspace) → `provision-calling` (create user, assign license) → `manage-call-settings` (voicemail, forwarding) → `manage-devices` (reassign device) | Workspace-to-user is a lifecycle change spanning 4 domains |
+| CC overflow to Calling hunt group | `contact-center` (CC queue/entry point config) + `configure-features` (hunt group) + `configure-routing` (dial plan to connect them) | CC and Calling are separate routing worlds joined by PSTN/dial plan |
+| Hot desking on conference phones | `manage-devices` (enable hot desking, manage members) + `device-platform` (PhoneOS config keys for hot desk behavior) + `manage-call-settings` (workspace hoteling settings) | Device provisioning, firmware config, and calling settings are three layers |
 
 ### Reference Docs — Webex API Surface
 
 | Path | Purpose |
 |------|---------|
 | `docs/reference/authentication.md` | Auth methods, tokens, scopes, OAuth flows |
-| `docs/reference/provisioning.md` | People, licenses, locations, org setup |
+| `docs/reference/provisioning.md` | People (profile fields, phoneNumbers array incl. alternate1/alternate2), licenses, locations, org setup |
 | `docs/reference/wxc-sdk-patterns.md` | Historical: scopes reference, raw HTTP patterns (built from wxc_sdk source) |
 | `docs/reference/call-features-major.md` | Auto attendants, call queues, hunt groups |
 | `docs/reference/call-features-additional.md` | Paging, call park, pickup, voicemail groups, Customer Assist |
 | `docs/reference/person-call-settings-handling.md` | Call forwarding, DND, call waiting, sim/sequential ring |
 | `docs/reference/person-call-settings-media.md` | Voicemail, caller ID, privacy, barge, recording, intercept |
 | `docs/reference/person-call-settings-permissions.md` | Incoming/outgoing permissions, feature access, executive/assistant |
-| `docs/reference/person-call-settings-behavior.md` | Calling behavior, app services, hoteling, receptionist, numbers, ECBN |
+| `docs/reference/person-call-settings-behavior.md` | Calling behavior, app services, hoteling, receptionist, phone number add/remove/reassign, ECBN |
 | `docs/reference/self-service-call-settings.md` | User self-service call settings (/people/me/ endpoints) |
 | `docs/reference/location-calling-core.md` | Location enablement, internal dialing, voicemail policies, voice portal |
 | `docs/reference/location-calling-media.md` | Announcements, playlists, schedules, access codes |
@@ -263,7 +307,7 @@ When multiple skills could match, use this lookup:
 | Path | Purpose |
 |------|---------|
 | `docs/reference/contact-center-core.md` | CC agents, queues, entry points, teams, skills, desktop, configuration |
-| `docs/reference/contact-center-routing.md` | CC dial plans, campaigns, flows, audio, contacts, outdial |
+| `docs/reference/contact-center-routing.md` | CC dial plans, dial number-to-entry-point mapping, campaigns, flows, audio, contacts, outdial |
 | `docs/reference/contact-center-analytics.md` | CC AI, monitoring, subscriptions, tasks, search |
 | `docs/reference/contact-center-journey.md` | JDS: workspaces, persons, identity, profile views, events, WXCC subscription |
 

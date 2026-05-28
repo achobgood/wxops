@@ -2,8 +2,11 @@
 name: manage-meetings
 description: |
   Schedule, manage, and query Webex meetings, registrants, interpreters,
-  breakout sessions, transcripts, recordings, and polls using wxcli CLI commands.
-  Guides the user from prerequisites through execution and verification.
+  breakout sessions, transcripts, recordings, polls, Q&A, and meeting preferences
+  using wxcli CLI commands. Guides the user from prerequisites through execution
+  and verification.
+  NOT for: meeting quality/usage analytics (use reporting-meetings skill) or
+  converged call recordings (use reporting skill).
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [meeting-operation]
 ---
