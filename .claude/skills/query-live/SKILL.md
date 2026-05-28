@@ -6,6 +6,8 @@ description: |
   Use when the user asks "who", "what", "which", "how many", "does", "is", "show me", or "check" questions
   about their current Webex Calling configuration. Invoked by the wxc-calling-builder agent on query intent,
   or directly via /query-live.
+  NOT for: making changes (use the appropriate config skill), historical CDR analysis
+  (use reporting skill), or Contact Center queries (use reporting-cc skill).
 allowed-tools: Read, Grep, Glob, Bash, Skill
 argument-hint: [question]
 ---

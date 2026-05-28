@@ -2,9 +2,11 @@
 name: configure-routing
 description: |
   Create, modify, or delete Webex Calling routing infrastructure using wxcli CLI commands: Trunks, Route Groups,
-  Route Lists, Dial Plans, Translation Patterns, and PSTN Connection settings.
-  Guides the user from prerequisites through the full dependency chain and verification.
-  Use for: create, update, delete, remove, list, or troubleshoot any routing component.
+  Route Lists, Dial Plans, Translation Patterns (digit manipulation, strip/add digits, country codes),
+  and PSTN Connection settings. Guides the user from prerequisites through the full dependency chain
+  and verification.
+  Use for: create, update, delete, remove, list, or troubleshoot any Calling routing component.
+  NOT for: Contact Center dial plans or DN-to-entry-point mapping (use contact-center skill).
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [routing-component]
 ---

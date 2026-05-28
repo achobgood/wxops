@@ -3,8 +3,8 @@ name: reporting-meetings
 description: |
   Query and analyze Webex meetings quality, usage reports, workspace utilization,
   historical platform analytics, and live meeting monitoring.
-  For Webex Calling CDR and reports, use the reporting skill.
-  For Contact Center analytics, use the reporting-cc skill.
+  NOT for: Webex Calling CDR/queue stats (use reporting skill), Contact Center analytics
+  (use reporting-cc skill), or scheduling/managing meetings (use manage-meetings skill).
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [meetings-report-type]
 ---

@@ -2,8 +2,10 @@
 name: manage-licensing
 description: |
   Audit, assign, and reclaim Webex licenses across the organization.
-  Covers license inventory, usage analysis, bulk assignment, and license
-  reclamation workflows.
+  Covers license inventory, usage analysis, unused license reports, capacity checks,
+  bulk assignment, and license reclamation from inactive users.
+  NOT for: initial user provisioning with licenses (use provision-calling) or
+  resource deletion (use teardown).
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [operation — e.g. "audit usage", "assign licenses", "reclaim unused", "check capacity"]
 ---

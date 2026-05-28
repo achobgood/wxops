@@ -4,6 +4,8 @@ description: |
   Pull and analyze Webex audit logs, security events, and compliance data.
   Covers admin audit trail, security audit events, authorization review,
   and service app credential management. Guides from query design through export.
+  NOT for: org health assessment (use org-health skill), CDR/call analytics (use reporting skill),
+  or license auditing (use manage-licensing skill).
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [audit-type -- e.g. "admin audit", "security events", "compliance review", "authorization check"]
 ---

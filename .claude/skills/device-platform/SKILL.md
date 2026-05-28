@@ -1,11 +1,12 @@
 ---
 name: device-platform
 description: |
-  Manage RoomOS device configurations, workspace personalization, and xAPI device control
+  Manage PhoneOS/RoomOS device configurations, workspace personalization, and xAPI device control
   using wxcli CLI commands. Covers device software configuration templates, user-to-workspace
   personalization, and programmatic device command execution and status queries.
-  Also covers 9800-series phones (9811, 9821, 9841, 9851, 9861, 9871) which use RoomOS config keys, not telephony device settings.
+  Also covers 9800-series phones (9811, 9821, 9841, 9851, 9861, 9871) which use PhoneOS config keys.
   Guides the user from prerequisites through execution and verification.
+  NOT for: device provisioning, activation codes, DECT, or line key templates (use manage-devices skill).
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [device-platform-operation]
 ---

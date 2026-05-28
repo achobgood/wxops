@@ -251,6 +251,8 @@ Get the objective in the user's own words. Listen for the domain:
 - **Video Mesh**: monitoring Video Mesh clusters, nodes, availability, utilization, reachability, event thresholds
 - **Contact Center**: CC agents, queues, entry points, teams, skills, flows, campaigns, dial plans, desktop profiles, monitoring, AI features
 
+**Multi-skill workflows:** If the user's goal spans multiple domains (e.g., "offboard a user", "set up call recording for a team", "move a number from a user to a CC entry point"), check the **Multi-Skill Workflows** section in `CLAUDE.md` for the skill sequence. Load and execute skills in the order listed there rather than picking just one.
+
 ### Question 2: Scope
 
 > "At what scope? Org-wide, specific location(s), or specific user(s)?"

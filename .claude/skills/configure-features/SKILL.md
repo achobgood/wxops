@@ -2,9 +2,12 @@
 name: configure-features
 description: |
   Create, modify, or delete Webex Calling call features using wxcli CLI commands: Auto Attendants, Call Queues,
-  Hunt Groups, Paging Groups, Call Park, Call Pickup, Voicemail Groups, and Customer Assist.
-  Guides the user from prerequisites through creation, modification, deletion, and verification.
-  Use for: create, update, delete, remove, list, or troubleshoot any call feature.
+  Hunt Groups, Paging Groups, Call Park, Call Pickup, Voicemail Groups, and Calling schedules
+  (business hours, holidays). Guides the user from prerequisites through creation, modification,
+  deletion, and verification.
+  Use for: create, update, delete, remove, list, or troubleshoot any Calling call feature.
+  NOT for: Contact Center queues/teams/flows (use contact-center skill), Customer Assist/CX Essentials
+  (use customer-assist skill), or per-person call settings (use manage-call-settings skill).
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [feature-type]
 ---

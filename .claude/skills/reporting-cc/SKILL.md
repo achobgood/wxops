@@ -1,10 +1,11 @@
 ---
 name: reporting-cc
 description: |
-  Query and analyze Webex Contact Center analytics: queue statistics, agent statistics,
-  estimated wait time, agent summaries, task search, and real-time monitoring.
-  Requires CC-scoped OAuth (cjp:config_read). For Webex Calling CDR and reports,
-  use the reporting skill instead.
+  Query and analyze Webex Contact Center analytics: CC queue statistics, CC agent statistics,
+  estimated wait time, agent summaries, task search, and real-time CC monitoring.
+  Requires CC-scoped OAuth (cjp:config_read).
+  NOT for: Webex Calling CDR/queue/AA stats (use reporting skill) or
+  meetings/workspace analytics (use reporting-meetings skill).
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [cc-report-type]
 ---

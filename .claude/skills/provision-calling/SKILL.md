@@ -2,9 +2,11 @@
 name: provision-calling
 description: |
   Provision Webex Calling users, locations, and licenses via the wxcli CLI.
-  Guides through auth verification, prerequisite checks, deployment planning, execution,
-  and result verification for any provisioning operation.
-  Use for: create, enable, assign, bulk provision.
+  Also covers People API profile updates (alternate phone numbers, display name,
+  phoneNumbers array including alternate1/alternate2), number inventory management,
+  and bulk CSV import. Guides through auth verification, prerequisite checks,
+  deployment planning, execution, and result verification for any provisioning operation.
+  Use for: create, enable, assign, bulk provision, update user profile fields.
   For teardown/delete/cleanup operations, use the teardown skill instead.
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [operation — e.g. "create location", "enable user", "assign license", "bulk provision"]

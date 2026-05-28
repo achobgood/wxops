@@ -3,8 +3,11 @@ name: manage-call-settings
 description: |
   Configure person-level and workspace-level call settings in Webex Calling.
   Covers 39+ settings organized into categories: call handling, voicemail & media,
-  permissions, and behavior & devices. Use when the user wants to read, change,
-  or audit call settings for one or more users/workspaces.
+  permissions, and behavior & devices. Includes phone number add/remove/reassign,
+  executive-assistant delegation, hoteling, shared line appearance, simultaneous ring,
+  sequential ring, single number reach, receptionist client, and workspace hoteling.
+  Use when the user wants to read, change, or audit call settings for one or more
+  users/workspaces.
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [person-email-or-workspace-name]
 ---
