@@ -60,6 +60,7 @@ Webex Calling/
 
 # Local one-off tools (not part of the CLI)
 tools/build_oncall_deck.py
+tools/reassign_dids_to_cc.py
 
 # README backup
 README.md.bak
