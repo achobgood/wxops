@@ -55243,6 +55243,201 @@
         }
       }
     },
+    "/v2/agents/login": {
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "summary": "Login",
+        "description": "Allows the user to login to their desktop. It does not allow a duplicate login and sends an error message over websocket, if an active session already exists. Requires 'cjp:user' scope for authorization. For a list of possible response messages, see the [Call Control API Guide](/documentation/guides/contact-control-apis).",
+        "operationId": "LoginRoute",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "The bearer token would be sent to validate the active users.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Bearer <AuthToken>"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogInResourceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "The login request was accepted for processing"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized, Token is Invalid"
+          },
+          "403": {
+            "description": "Forbidden Request"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v2/agents/logout": {
+      "put": {
+        "tags": [
+          "Agents"
+        ],
+        "summary": "Logout",
+        "description": "Allows the user to logout from their Desktop. This API needs to be called once the WSS session has been successfully established. Requires 'cjp:user','id_full_admin','id_readonly_admin','atlas-portal.partner.salesadmin','cjp.admin','cjp.supervisor','atlas-portal.partner.provision_admin' scope for authorization. For a list of possible response messages, see the [Call Control API Guide](/documentation/guides/contact-control-apis).",
+        "operationId": "LogoutRoute",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "The bearer token would be sent to validate the active users.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Bearer <AuthToken>"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogOutResourceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "The logout request was accepted for processing"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized, Token is Invalid"
+          },
+          "403": {
+            "description": "Forbidden Request"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v2/agents/session/state": {
+      "put": {
+        "tags": [
+          "Agents"
+        ],
+        "summary": "State Change",
+        "description": "Allows the user to toggle between the Idle and Available states. An Administrator within the organization having an Agent license can perform a self state change when they have an active agent session. Supervisors can perform a self state change as well as state changes for agents and admin users within their authorized teams when 'Change Agent States' module is enabled. Requires 'cjp:user' scope for authorization.For a list of possible response messages, see the [Call Control API Guide](/documentation/guides/contact-control-apis).",
+        "operationId": "StateRoute",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "The bearer token would be sent to validate the active users.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Bearer <AuthToken>"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentChannelStateChangeResourceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "The state change request was accepted for processing"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized, Token is Invalid"
+          },
+          "403": {
+            "description": "Forbidden Request"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v2/agents/reload": {
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "summary": "Reload",
+        "description": "Allows the user to receive all the contact assigned to particular agent and state. Requires 'cjp:user' scope for authorization.",
+        "operationId": "ReloadRoute",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "The bearer token would be sent to validate the active users.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Bearer <AuthToken>"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "The reload request was accepted for processing"
+          },
+          "401": {
+            "description": "Unauthorized, Token is Invalid"
+          },
+          "403": {
+            "description": "Forbidden Request"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
     "/v1/monitor": {
       "post": {
         "tags": [
