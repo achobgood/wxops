@@ -11,6 +11,10 @@
       "description": "Operations related to external voicemail Message Waiting Indicator (MWI) status."
     },
     {
+      "name": "Features: Call Recording",
+      "description": "Webex Calling Call Recording settings, including organization- and location-level vendor configuration, terms of service, compliance announcements, and custom call recording announcements."
+    },
+    {
       "name": "User Call Settings (2/2)",
       "description": "APIs for managing user call settings including music on hold, access codes, transfer numbers, digit patterns, and more."
     },
@@ -54318,7 +54322,7 @@
           }
         },
         "summary": "Get Call Recording Settings",
-        "operationId": "Get Call Recording Settings",
+        "operationId": "getCallRecordingSettings",
         "description": "Retrieve call recording settings for the organization.\n\nThe Call Recording feature enables authorized agents to record any active call that Webex Contact Center manages.\n\nRetrieving call recording settings requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features: Call Recording"
@@ -54389,7 +54393,7 @@
           }
         },
         "summary": "Update Call Recording Settings",
-        "operationId": "Update Call Recording Settings",
+        "operationId": "updateCallRecordingSettings",
         "description": "Update call recording settings for the organization.\n\nThe Call Recording feature enables authorized agents to record any active call that Webex Contact Center manages.\n\nUpdating call recording settings requires a full administrator auth token with a scope of `spark-admin:telephony_config_write`.\n\n**NOTE**: This API is for Cisco partners only.",
         "tags": [
           "Features: Call Recording"
@@ -54486,7 +54490,7 @@
           }
         },
         "summary": "Get Call Recording Terms Of Service Settings",
-        "operationId": "Get Call Recording Terms Of Service Settings",
+        "operationId": "getCallRecordingTermsOfServiceSettings",
         "description": "Retrieve call recording terms of service settings for the organization.\n\nThe Call Recording feature enables authorized agents to record any active call that Webex Contact Center manages.\n\nRetrieving call recording terms of service settings requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features: Call Recording"
@@ -54567,7 +54571,7 @@
           }
         },
         "summary": "Update Call Recording Terms Of Service Settings",
-        "operationId": "Update Call Recording Terms Of Service Settings",
+        "operationId": "updateCallRecordingTermsOfServiceSettings",
         "description": "Update call recording terms of service settings for the given vendor.\n\nThe Call Recording feature enables authorized agents to record any active call that Webex Contact Center manages.\n\nUpdating call recording terms of service settings requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Features: Call Recording"
@@ -54622,7 +54626,15 @@
                   "inboundPSTNCallsEnabled": true,
                   "outboundPSTNCallsEnabled": false,
                   "outboundPSTNCallsDelayEnabled": false,
-                  "delayInSeconds": 10
+                  "delayInSeconds": 10,
+                  "useCustomAnnouncementEnabled": true,
+                  "audioAnnouncementFile": {
+                    "id": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC82YTcwZWQ4MS1hZGM5LTQ4OWEtODhjOC0zMWI3ODllODQ1ODU",
+                    "fileName": "SampleAnnouncement",
+                    "mediaFileType": "WAV",
+                    "level": "ORGANIZATION",
+                    "isTextToSpeech": true
+                  }
                 }
               }
             }
@@ -54674,7 +54686,7 @@
           }
         },
         "summary": "Get details for the organization Compliance Announcement Setting",
-        "operationId": "Get details for the organization Compliance Announcement Setting",
+        "operationId": "getDetailsForTheOrganizationComplianceAnnouncementSetting",
         "description": "Retrieve the organization compliance announcement settings.\n\nThe Compliance Announcement feature interacts with the Call Recording feature, specifically with the playback of the start/stop announcement. When the compliance announcement is played to the PSTN party, and the PSTN party is connected to a party with call recording enabled, then the start/stop announcement is inhibited.\n\nRetrieving organization compliance announcement setting requires a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features: Call Recording"
@@ -54745,7 +54757,7 @@
           }
         },
         "summary": "Update the organization Compliance Announcement",
-        "operationId": "Update the organization Compliance Announcement",
+        "operationId": "updateTheOrganizationComplianceAnnouncement",
         "description": "Update the organization compliance announcement.\n\nThe Compliance Announcement feature interacts with the Call Recording feature, specifically with the playback of the start/stop announcement. When the compliance announcement is played to the PSTN party, and the PSTN party is connected to a party with call recording enabled, then the start/stop announcement is inhibited.\n\nUpdating the organization compliance announcement requires a full administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Features: Call Recording"
@@ -54768,7 +54780,9 @@
                 "inboundPSTNCallsEnabled": false,
                 "outboundPSTNCallsEnabled": false,
                 "outboundPSTNCallsDelayEnabled": false,
-                "delayInSeconds": 10
+                "delayInSeconds": 10,
+                "useCustomAnnouncementEnabled": true,
+                "audioAnnouncementFileId": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC82YTcwZWQ4MS1hZGM5LTQ4OWEtODhjOC0zMWI3ODllODQ1ODU"
               },
               "schema": {
                 "$ref": "#/components/schemas/ModifyOrgComplianceAnnouncementObject"
@@ -54794,7 +54808,18 @@
                   "useOrgSettingsEnabled": true,
                   "outboundPSTNCallsEnabled": false,
                   "outboundPSTNCallsDelayEnabled": false,
-                  "delayInSeconds": 10
+                  "delayInSeconds": 10,
+                  "useOrgLevelAnnouncementEnabled": false,
+                  "customComplianceAnnouncement": {
+                    "type": "CUSTOM",
+                    "audioAnnouncementFile": {
+                      "id": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC82YTcwZWQ4MS1hZGM5LTQ4OWEtODhjOC0zMWI3ODllODQ1ODU",
+                      "fileName": "SampleAnnouncement",
+                      "mediaFileType": "WAV",
+                      "level": "ORGANIZATION",
+                      "isTextToSpeech": true
+                    }
+                  }
                 }
               }
             }
@@ -54846,7 +54871,7 @@
           }
         },
         "summary": "Get details for the Location Compliance Announcement Setting",
-        "operationId": "Get details for the Location Compliance Announcement Setting",
+        "operationId": "getDetailsOfCallRecordingComplianceAnnouncementForTheLocation",
         "description": "Retrieve the location compliance announcement settings.\n\nThe Compliance Announcement feature interacts with the Call Recording feature, specifically with the playback of the start/stop announcement. When the compliance announcement is played to the PSTN party, and the PSTN party is connected to a party with call recording enabled, then the start/stop announcement is inhibited.\n\nRetrieving location compliance announcement setting requires a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features: Call Recording"
@@ -54927,7 +54952,7 @@
           }
         },
         "summary": "Update the Location Compliance Announcement",
-        "operationId": "Update the Location Compliance Announcement",
+        "operationId": "updateCallRecordingComplianceAnnouncementForTheLocation",
         "description": "Update the location compliance announcement.\n\nThe Compliance Announcement feature interacts with the Call Recording feature, specifically with the playback of the start/stop announcement. When the compliance announcement is played to the PSTN party, and the PSTN party is connected to a party with call recording enabled, then the start/stop announcement is inhibited.\n\nUpdating the location compliance announcement requires a full administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Features: Call Recording"
@@ -54961,7 +54986,12 @@
                 "useOrgSettingsEnabled": true,
                 "outboundPSTNCallsEnabled": false,
                 "outboundPSTNCallsDelayEnabled": false,
-                "delayInSeconds": 10
+                "delayInSeconds": 10,
+                "useOrgLevelAnnouncementEnabled": false,
+                "customComplianceAnnouncement": {
+                  "type": "CUSTOM",
+                  "audioAnnouncementFileId": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC82YTcwZWQ4MS1hZGM5LTQ4OWEtODhjOC0zMWI3ODllODQ1ODU"
+                }
               },
               "schema": {
                 "$ref": "#/components/schemas/ModifyComplianceAnnouncementObject"
@@ -55046,7 +55076,7 @@
           }
         },
         "summary": "Get Call Recording Regions",
-        "operationId": "Get Call Recording Regions",
+        "operationId": "getCallRecordingRegions",
         "description": "Retrieve all the call recording regions that are available for an organization.\n\nThe Call Recording feature supports multiple third-party call recording providers, or vendors, to capture and manage call recordings. An organization is configured with an overall provider, but locations can be configured to use a different vendor than the overall organization default.\n\nRequires a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features: Call Recording"
@@ -55144,7 +55174,7 @@
           }
         },
         "summary": "Get Call Recording Vendor Users",
-        "operationId": "Get Call Recording Vendor Users",
+        "operationId": "getCallRecordingVendorUsers",
         "description": "Retrieve call recording vendor users of an organization. This API is used to get the list of users who are assigned to the default call-recording vendor of the organization.\n\nThe Call Recording feature supports multiple third-party call recording providers, or vendors, to capture and manage call recordings. An organization is configured with an overall provider, but locations can be configured to use a different vendor than the overall organization default.\n\nRequires a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features: Call Recording"
@@ -55163,7 +55193,7 @@
             "name": "max",
             "in": "query",
             "description": "Limit the number of vendor users returned to this maximum count. The default is 2000.",
-            "example": "10",
+            "example": 10,
             "schema": {
               "type": "number"
             }
@@ -55172,16 +55202,16 @@
             "name": "start",
             "in": "query",
             "description": "Start at the zero-based offset in the list of matching objects. The default is 0.",
-            "example": "0",
             "schema": {
               "type": "number"
-            }
+            },
+            "example": 1
           },
           {
             "name": "standardUserOnly",
             "in": "query",
             "description": "If true, results only include Webex Calling standard users.",
-            "example": "true",
+            "example": true,
             "schema": {
               "type": "boolean"
             }
@@ -55258,7 +55288,7 @@
           }
         },
         "summary": "Set Call Recording Vendor for a Location",
-        "operationId": "Set Call Recording Vendor for a Location",
+        "operationId": "setCallRecordingVendorForALocation",
         "description": "Assign a call recording vendor to a location of an organization. Response will be `204` if the changes can be applied immediatley otherwise `200` with a job ID is returned.\n\nThe Call Recording feature supports multiple third-party call recording providers, or vendors, to capture and manage call recordings. An organization is configured with an overall provider, but locations can be configured to use a different vendor than the overall organization default.\n\nRequires a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Features: Call Recording"
@@ -55387,7 +55417,7 @@
           }
         },
         "summary": "Get Location Call Recording Vendors",
-        "operationId": "Get Location Call Recording Vendors",
+        "operationId": "getLocationCallRecordingVendors",
         "description": "Retrieve details of the call recording vendor that the location is assigned and also a list of vendors.\n\nThe Call Recording feature supports multiple third-party call recording providers, or vendors, to capture and manage call recordings. An organization is configured with an overall provider, but locations can be configured to use a different vendor than the overall organization default.\n\nRequires a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features: Call Recording"
@@ -55495,7 +55525,7 @@
           }
         },
         "summary": "Get Call Recording Vendor Users for a Location",
-        "operationId": "Get Call Recording Vendor Users for a Location",
+        "operationId": "getCallRecordingVendorUsersForALocation",
         "description": "Retrieve call recording vendor users of a location. This API is used to get the list of users assigned to the call recording vendor of the location.\n\nThe Call Recording feature supports multiple third-party call recording providers, or vendors, to capture and manage call recordings. An organization is configured with an overall provider, but locations can be configured to use a different vendor than the overall organization default.\n\nRequires a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features: Call Recording"
@@ -55524,7 +55554,7 @@
             "name": "max",
             "in": "query",
             "description": "Limit the number of vendor users returned to this maximum count. The default is 2000.",
-            "example": "10",
+            "example": 10,
             "schema": {
               "type": "number"
             }
@@ -55533,16 +55563,16 @@
             "name": "start",
             "in": "query",
             "description": "Start at the zero-based offset in the list of matching objects. The default is 0.",
-            "example": "0",
             "schema": {
               "type": "number"
-            }
+            },
+            "example": 1
           },
           {
             "name": "standardUserOnly",
             "in": "query",
             "description": "If true, results only include Webex Calling standard users.",
-            "example": "true",
+            "example": true,
             "schema": {
               "type": "boolean"
             }
@@ -55666,7 +55696,7 @@
           }
         },
         "summary": "List Call Recording Jobs",
-        "operationId": "List Call Recording Jobs",
+        "operationId": "listCallRecordingJobs",
         "description": "Get the list of all call recording jobs in an organization.\n\nThe Call Recording feature supports multiple third-party call recording providers, or vendors, to capture and manage call recordings. An organization is configured with an overall provider, but locations can be configured to use a different vendor than the overall organization default.\n\nRequires a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features: Call Recording"
@@ -55685,7 +55715,7 @@
             "name": "max",
             "in": "query",
             "description": "Limit the number of jobs returned to this maximum count. The default is 50.",
-            "example": "10",
+            "example": 10,
             "schema": {
               "type": "number"
             }
@@ -55694,10 +55724,10 @@
             "name": "start",
             "in": "query",
             "description": "Start at the zero-based offset in the list of matching objects. The default is 0.",
-            "example": "0",
             "schema": {
               "type": "number"
-            }
+            },
+            "example": 1
           }
         ]
       }
@@ -55815,7 +55845,7 @@
           }
         },
         "summary": "Get the Job Status of a Call Recording Job",
-        "operationId": "Get the Job Status of a Call Recording Job",
+        "operationId": "getTheJobStatusOfACallRecordingJob",
         "description": "Get the details of a call recording job by its job ID.\n\nThe Call Recording feature supports multiple third-party call recording providers, or vendors, to capture and manage call recordings. An organization is configured with an overall provider, but locations can be configured to use a different vendor than the overall organization default.\n\nRequires a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features: Call Recording"
@@ -55864,8 +55894,8 @@
                         "message": [
                           {
                             "description": "POST failed: HTTP/1.1 404 Not Found",
-                            "code": null,
-                            "locationId": null
+                            "code": "404",
+                            "locationId": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzlmZTFmZDllLTlkM2QtNDUxZi04MDEwLTMwY2U1ZjRlNTYyNQ"
                           }
                         ]
                       },
@@ -55923,7 +55953,7 @@
           }
         },
         "summary": "Get Job Errors for a Call Recording Job",
-        "operationId": "Get Job Errors for a Call Recording Job",
+        "operationId": "getJobErrorsForACallRecordingJob",
         "description": "Get errors for a call recording job in an organization.\n\nThe Call Recording feature supports multiple third-party call recording providers, or vendors, to capture and manage call recordings. An organization is configured with an overall provider, but locations can be configured to use a different vendor than the overall organization default.\n\nRequires a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features: Call Recording"
@@ -55952,7 +55982,7 @@
             "name": "max",
             "in": "query",
             "description": "Limit the number of errors returned to this maximum count. The default is 50.",
-            "example": "10",
+            "example": 10,
             "schema": {
               "type": "number"
             }
@@ -55974,24 +56004,26 @@
                 "example": {
                   "vendorId": "Y2lzY29zcGFyazovL3VzL1JFQ09SRElOR19WRU5ET1IvMGE0MjY3NTQtYTQ3MC00YzJkLThiYTAtZmJjNjc3M2E4YTdj",
                   "vendorName": "Webex",
-                  "vendors": [
-                    {
-                      "id": "Y2lzY29zcGFyazovL3VzL1JFQ09SRElOR19WRU5ET1IvNTNkYzRjODctODQwOC00ODgyLTk1NzAtZGNhMmJjZGI5Mjgw",
-                      "name": "Dubber",
-                      "description": "Dubber Call Recording Provider",
-                      "migrateUserCreationEnabled": true,
-                      "loginUrl": "https://wxc-sandbox.dubber.net/login?sso=webex",
-                      "termsOfServiceUrl": "https://www.dubber.net/terms"
-                    },
-                    {
-                      "id": "Y2lzY29zcGFyazovL3VzL1JFQ09SRElOR19WRU5ET1IvMGE0MjY3NTQtYTQ3MC00YzJkLThiYTAtZmJjNjc3M2E4YTdj",
-                      "name": "Webex",
-                      "description": "Webex CRP",
-                      "migrateUserCreationEnabled": false,
-                      "loginUrl": "",
-                      "termsOfServiceUrl": ""
-                    }
-                  ],
+                  "vendors": {
+                    "items": [
+                      {
+                        "id": "Y2lzY29zcGFyazovL3VzL1JFQ09SRElOR19WRU5ET1IvNTNkYzRjODctODQwOC00ODgyLTk1NzAtZGNhMmJjZGI5Mjgw",
+                        "name": "Dubber",
+                        "description": "Dubber Call Recording Provider",
+                        "migrateUserCreationEnabled": true,
+                        "loginUrl": "https://wxc-sandbox.dubber.net/login?sso=webex",
+                        "termsOfServiceUrl": "https://www.dubber.net/terms"
+                      },
+                      {
+                        "id": "Y2lzY29zcGFyazovL3VzL1JFQ09SRElOR19WRU5ET1IvMGE0MjY3NTQtYTQ3MC00YzJkLThiYTAtZmJjNjc3M2E4YTdj",
+                        "name": "Webex",
+                        "description": "Webex CRP",
+                        "migrateUserCreationEnabled": false,
+                        "loginUrl": "",
+                        "termsOfServiceUrl": ""
+                      }
+                    ]
+                  },
                   "storageRegion": "US",
                   "failureBehavior": "PROCEED_WITH_CALL_NO_ANNOUNCEMENT"
                 }
@@ -56045,7 +56077,7 @@
           }
         },
         "summary": "Get Organization Call Recording Vendors",
-        "operationId": "Get Organization Call Recording Vendors",
+        "operationId": "getOrganizationCallRecordingVendors",
         "description": "Returns what the current vendor is as well as a list of all the available vendors.\n\nThe Call Recording feature supports multiple third-party call recording providers, or vendors, to capture and manage call recordings. An organization is configured with an overall provider, but locations can be configured to use a different vendor than the overall organization default.\n\nRequires a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features: Call Recording"
@@ -56127,7 +56159,7 @@
           }
         },
         "summary": "Set Organization Call Recording Vendor",
-        "operationId": "Set Organization Call Recording Vendor",
+        "operationId": "setOrganizationCallRecordingVendor",
         "description": "Returns a Job ID that you can use to get the status of the job.\n\nThe Call Recording feature supports multiple third-party call recording providers, or vendors, to capture and manage call recordings. An organization is configured with an overall provider, but locations can be configured to use a different vendor than the overall organization default.\n\nRequires a full administrator auth token with a scope of `spark-admin:telephony_config_write`, `spark-admin:telephony_config_read`, and `spark-admin:people_write`.",
         "tags": [
           "Features: Call Recording"
@@ -56153,6 +56185,522 @@
               },
               "schema": {
                 "$ref": "#/components/schemas/CallRecordingVendorPatch"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/telephony/config/callRecording/announcements": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetOrgCallRecordingAnnouncementObject"
+                },
+                "example": {
+                  "start": {
+                    "type": "CUSTOM",
+                    "audioAnnouncementFile": {
+                      "id": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC9iOTg2MWI3MS1hN2MxLTQxZmUtYjNmZC1lZDNkOTdjYTFjMzQ=",
+                      "fileName": "SampleAnnouncement",
+                      "mediaFileType": "WAV",
+                      "level": "ORGANIZATION",
+                      "isTextToSpeech": true
+                    }
+                  },
+                  "stop": {
+                    "type": "CUSTOM",
+                    "audioAnnouncementFile": {
+                      "id": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC82ZjU0Y2NhNS05ZWY5LTQ3N2EtYThkNi0wY2EyNzU4MTAxM2Y=",
+                      "fileName": "SampleAnnouncement",
+                      "mediaFileType": "WAV",
+                      "level": "ORGANIZATION",
+                      "isTextToSpeech": true
+                    }
+                  },
+                  "pause": {
+                    "type": "CUSTOM",
+                    "audioAnnouncementFile": {
+                      "id": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC82M2NiYTMwOS05NjQ2LTQzMjUtOTZlNC02N2ZmYWVlZjNiOWI=",
+                      "fileName": "SampleAnnouncement",
+                      "mediaFileType": "WAV",
+                      "level": "ORGANIZATION",
+                      "isTextToSpeech": true
+                    }
+                  },
+                  "resume": {
+                    "type": "CUSTOM",
+                    "audioAnnouncementFile": {
+                      "id": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC8xM2NlNzBkYS00NDkwLTQ2OWItOTg4YS1mYjA0MzExNmQ3ZTU=",
+                      "fileName": "SampleAnnouncement",
+                      "mediaFileType": "WAV",
+                      "level": "ORGANIZATION",
+                      "isTextToSpeech": true
+                    }
+                  },
+                  "failureEndWithCall": {
+                    "type": "CUSTOM",
+                    "audioAnnouncementFile": {
+                      "id": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC9mZTU4YTE1ZS1kNzMwLTQ4ZGYtYWU4Ny1jNjc5YjM3YmQ4Mzk=",
+                      "fileName": "SampleAnnouncement",
+                      "mediaFileType": "WAV",
+                      "level": "ORGANIZATION",
+                      "isTextToSpeech": true
+                    }
+                  },
+                  "failureProceedWithCall": {
+                    "type": "CUSTOM",
+                    "audioAnnouncementFile": {
+                      "id": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC80ZjU0Y2NhNS05ZWY5LTQ3N2EtYThkNi0wY2EyNzU4MTAxM2Y=",
+                      "fileName": "SampleAnnouncement",
+                      "mediaFileType": "WAV",
+                      "level": "ORGANIZATION",
+                      "isTextToSpeech": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get Organization Call Recording Announcement Settings",
+        "operationId": "getOrganizationCallRecordingAnnouncementSettings",
+        "description": "Retrieve the organization call recording announcements setting.\n\nThe call recording Announcement feature interacts with the Call Recording feature, specifically with the playback of the start/stop announcement. When the compliance announcement is played to the PSTN party, and the PSTN party is connected to a party with call recording enabled, then the start/stop announcement is inhibited.\n\nRetrieving organization compliance announcement setting requires a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "tags": [
+          "Features: Call Recording"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Retrieve call recording announcements setting from this organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "put": {
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {},
+            "content": {}
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Update Organization Call Recording Announcement Settings",
+        "operationId": "updateOrganizationCallRecordingAnnouncementSettings",
+        "description": "Update Organization Call Recording Announcement Settings.\n\nThe Compliance Announcement feature interacts with the Call Recording feature, specifically with the playback of the start/stop announcement. When the compliance announcement is played to the PSTN party, and the PSTN party is connected to a party with call recording enabled, then the start/stop announcement is inhibited.\n\nUpdating the organization compliance announcement requires a full administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "tags": [
+          "Features: Call Recording"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Update the call recording announcements setting from this organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "start": {
+                  "type": "CUSTOM",
+                  "audioAnnouncementFileId": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC9iOTg2MWI3MS1hN2MxLTQxZmUtYjNmZC1lZDNkOTdjYTFjMzQ="
+                },
+                "stop": {
+                  "type": "CUSTOM",
+                  "audioAnnouncementFileId": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC82ZjU0Y2NhNS05ZWY5LTQ3N2EtYThkNi0wY2EyNzU4MTAxM2Y="
+                },
+                "pause": {
+                  "type": "CUSTOM",
+                  "audioAnnouncementFileId": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC82M2NiYTMwOS05NjQ2LTQzMjUtOTZlNC02N2ZmYWVlZjNiOWI="
+                },
+                "resume": {
+                  "type": "CUSTOM",
+                  "audioAnnouncementFileId": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC8xM2NlNzBkYS00NDkwLTQ2OWItOTg4YS1mYjA0MzExNmQ3ZTU="
+                },
+                "failureEndWithCall": {
+                  "type": "CUSTOM",
+                  "audioAnnouncementFileId": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC9mZTU4YTE1ZS1kNzMwLTQ4ZGYtYWU4Ny1jNjc5YjM3YmQ4Mzk="
+                },
+                "failureProceedWithCall": {
+                  "type": "CUSTOM",
+                  "audioAnnouncementFileId": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC80ZjU0Y2NhNS05ZWY5LTQ3N2EtYThkNi0wY2EyNzU4MTAxM2Y="
+                }
+              },
+              "schema": {
+                "$ref": "#/components/schemas/ModifyOrgCallRecordingAnnouncementObject"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/telephony/config/locations/{locationId}/callRecording/announcements": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetLocationCallRecordingAnnouncementObject"
+                },
+                "example": {
+                  "useOrgLevelAnnouncementEnabled": false,
+                  "start": {
+                    "type": "CUSTOM",
+                    "audioAnnouncementFile": {
+                      "id": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC9iOTg2MWI3MS1hN2MxLTQxZmUtYjNmZC1lZDNkOTdjYTFjMzQ=",
+                      "fileName": "SampleAnnouncement",
+                      "mediaFileType": "WAV",
+                      "level": "ORGANIZATION",
+                      "isTextToSpeech": true
+                    }
+                  },
+                  "stop": {
+                    "type": "CUSTOM",
+                    "audioAnnouncementFile": {
+                      "id": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC82ZjU0Y2NhNS05ZWY5LTQ3N2EtYThkNi0wY2EyNzU4MTAxM2Y=",
+                      "fileName": "SampleAnnouncement",
+                      "mediaFileType": "WAV",
+                      "level": "ORGANIZATION",
+                      "isTextToSpeech": true
+                    }
+                  },
+                  "pause": {
+                    "type": "CUSTOM",
+                    "audioAnnouncementFile": {
+                      "id": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC82M2NiYTMwOS05NjQ2LTQzMjUtOTZlNC02N2ZmYWVlZjNiOWI=",
+                      "fileName": "SampleAnnouncement",
+                      "mediaFileType": "WAV",
+                      "level": "ORGANIZATION",
+                      "isTextToSpeech": true
+                    }
+                  },
+                  "resume": {
+                    "type": "CUSTOM",
+                    "audioAnnouncementFile": {
+                      "id": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC8xM2NlNzBkYS00NDkwLTQ2OWItOTg4YS1mYjA0MzExNmQ3ZTU=",
+                      "fileName": "SampleAnnouncement",
+                      "mediaFileType": "WAV",
+                      "level": "ORGANIZATION",
+                      "isTextToSpeech": true
+                    }
+                  },
+                  "failureEndWithCall": {
+                    "type": "CUSTOM",
+                    "audioAnnouncementFile": {
+                      "id": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC9mZTU4YTE1ZS1kNzMwLTQ4ZGYtYWU4Ny1jNjc5YjM3YmQ4Mzk=",
+                      "fileName": "SampleAnnouncement",
+                      "mediaFileType": "WAV",
+                      "level": "ORGANIZATION",
+                      "isTextToSpeech": true
+                    }
+                  },
+                  "failureProceedWithCall": {
+                    "type": "CUSTOM",
+                    "audioAnnouncementFile": {
+                      "id": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC80ZjU0Y2NhNS05ZWY5LTQ3N2EtYThkNi0wY2EyNzU4MTAxM2Y=",
+                      "fileName": "SampleAnnouncement",
+                      "mediaFileType": "WAV",
+                      "level": "ORGANIZATION",
+                      "isTextToSpeech": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get Location Call Recording Announcement Settings",
+        "operationId": "getLocationCallRecordingAnnouncementSettings",
+        "description": "Retrieve the location call recording announcements setting.\n\nThe Compliance Announcement feature interacts with the Call Recording feature, specifically with the playback of the start/stop announcement. When the compliance announcement is played to the PSTN party, and the PSTN party is connected to a party with call recording enabled, then the start/stop announcement is inhibited.\n\nRetrieving location compliance announcement setting requires a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "tags": [
+          "Features: Call Recording"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "description": "Retrieve compliance announcement settings for this location.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzEyMzQ1",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Retrieve compliance announcement setting from this organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "put": {
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {},
+            "content": {}
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Update Location Call Recording Announcement Settings",
+        "operationId": "updateLocationCallRecordingAnnouncementSettings",
+        "description": "Update Location Call Recording Announcement Settings.\n\nThe Compliance Announcement feature interacts with the Call Recording feature, specifically with the playback of the start/stop announcement. When the compliance announcement is played to the PSTN party, and the PSTN party is connected to a party with call recording enabled, then the start/stop announcement is inhibited.\n\nUpdating the location compliance announcement requires a full administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "tags": [
+          "Features: Call Recording"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "description": "Update the call recording announcements setting for this location.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzEyMzQ1",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Update the call recording announcements setting from this organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "useOrgLevelAnnouncementEnabled": false,
+                "start": {
+                  "type": "CUSTOM",
+                  "audioAnnouncementFileId": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC9iOTg2MWI3MS1hN2MxLTQxZmUtYjNmZC1lZDNkOTdjYTFjMzQ="
+                },
+                "stop": {
+                  "type": "CUSTOM",
+                  "audioAnnouncementFileId": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC82ZjU0Y2NhNS05ZWY5LTQ3N2EtYThkNi0wY2EyNzU4MTAxM2Y="
+                },
+                "pause": {
+                  "type": "CUSTOM",
+                  "audioAnnouncementFileId": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC82M2NiYTMwOS05NjQ2LTQzMjUtOTZlNC02N2ZmYWVlZjNiOWI="
+                },
+                "resume": {
+                  "type": "CUSTOM",
+                  "audioAnnouncementFileId": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC8xM2NlNzBkYS00NDkwLTQ2OWItOTg4YS1mYjA0MzExNmQ3ZTU="
+                },
+                "failureEndWithCall": {
+                  "type": "CUSTOM",
+                  "audioAnnouncementFileId": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC9mZTU4YTE1ZS1kNzMwLTQ4ZGYtYWU4Ny1jNjc5YjM3YmQ4Mzk="
+                },
+                "failureProceedWithCall": {
+                  "type": "CUSTOM",
+                  "audioAnnouncementFileId": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC80ZjU0Y2NhNS05ZWY5LTQ3N2EtYThkNi0wY2EyNzU4MTAxM2Y="
+                }
+              },
+              "schema": {
+                "$ref": "#/components/schemas/ModifyLocationCallRecordingAnnouncementObject"
               }
             }
           }
@@ -147776,6 +148324,946 @@
           }
         }
       },
+      "BulkDeleteDnisRequest": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 99,
+            "example": [
+              "Y2lzY29zcGFyazovL3VzL0ROSVMvZTQ0NTE5OWEtNzlkYS00NWE1LTkyY2EtNDI1YzRmMzA0ZDk5"
+            ],
+            "description": "Array of DNIS IDs to be deleted."
+          }
+        }
+      },
+      "AvailableNumbersResponse": {
+        "type": "object",
+        "example": {
+          "phoneNumbers": [
+            {
+              "phoneNumber": "+12134567895",
+              "state": "ACTIVE",
+              "isMainNumber": false,
+              "telephonyType": "PSTN_NUMBER",
+              "tollFreeNumber": false,
+              "isServiceNumber": false
+            }
+          ]
+        },
+        "properties": {
+          "phoneNumbers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailablePhoneNumber"
+            },
+            "description": "List of available phone numbers.",
+            "example": [
+              {
+                "phoneNumber": "+12134567895",
+                "state": "ACTIVE",
+                "isMainNumber": false,
+                "telephonyType": "PSTN_NUMBER",
+                "tollFreeNumber": false,
+                "isServiceNumber": false
+              }
+            ]
+          }
+        }
+      },
+      "AvailablePhoneNumber": {
+        "type": "object",
+        "properties": {
+          "phoneNumber": {
+            "type": "string",
+            "example": "+12134567895",
+            "description": "The phone number."
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE"
+            ],
+            "example": "ACTIVE",
+            "description": "Defines whether the number is active or not."
+          },
+          "isMainNumber": {
+            "type": "boolean",
+            "example": false,
+            "description": "Flag to indicate if the number is used as location main number."
+          },
+          "telephonyType": {
+            "type": "string",
+            "example": "PSTN_NUMBER",
+            "description": "Define type of number. Currently API supports only PSTN_NUMBER."
+          },
+          "tollFreeNumber": {
+            "type": "boolean",
+            "example": false,
+            "description": "Flag to indicate if the number is toll free."
+          },
+          "isServiceNumber": {
+            "type": "boolean",
+            "example": false,
+            "description": "Flag to indicate if the number is a Service Number."
+          }
+        }
+      },
+      "DnisObject": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "ringPattern",
+          "customDnisAnnouncementSettingsEnabled"
+        ],
+        "example": {
+          "id": "Y2lzY29zcGFyazovL3VzL0ROSVMvZTQ0NTE5OWEtNzlkYS00NWE1LTkyY2EtNDI1YzRmMzA0ZDk5",
+          "name": "Support Line",
+          "phoneNumber": "+15551234567",
+          "extension": "1000",
+          "routingPrefix": "8501",
+          "esn": "85011000",
+          "ringPattern": "NORMAL",
+          "customDnisAnnouncementSettingsEnabled": false
+        },
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL0ROSVMvZTQ0NTE5OWEtNzlkYS00NWE1LTkyY2EtNDI1YzRmMzA0ZDk5",
+            "description": "Unique identifier for the DNIS."
+          },
+          "name": {
+            "type": "string",
+            "example": "Support Line",
+            "description": "Name of the DNIS."
+          },
+          "phoneNumber": {
+            "type": "string",
+            "example": "+15551234567",
+            "description": "Phone number of the DNIS."
+          },
+          "extension": {
+            "type": "string",
+            "example": "1000",
+            "description": "Extension of the DNIS."
+          },
+          "routingPrefix": {
+            "type": "string",
+            "example": "8501",
+            "description": "Routing prefix (location dialing code) of the DNIS."
+          },
+          "esn": {
+            "type": "string",
+            "example": "85011000",
+            "description": "Enterprise Significant Number (ESN) of the DNIS."
+          },
+          "ringPattern": {
+            "type": "string",
+            "enum": [
+              "NORMAL",
+              "LONG_LONG",
+              "SHORT_SHORT_LONG",
+              "SHORT_LONG_SHORT"
+            ],
+            "example": "NORMAL",
+            "description": "Ring pattern of the DNIS."
+          },
+          "customDnisAnnouncementSettingsEnabled": {
+            "type": "boolean",
+            "example": false,
+            "description": "Use custom announcement settings for the DNIS. Enable custom announcement settings using Modify DNIS API. Modify custom announcement settings using Modify DNIS announcements API."
+          }
+        }
+      },
+      "CreateDnisRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "ringPattern"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40,
+            "example": "Support Line",
+            "description": "Name of the DNIS. Must be unique across the call queue."
+          },
+          "phoneNumber": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 23,
+            "example": "+15551234567",
+            "description": "Phone number of the DNIS. Must be a valid phone number from the same location. Either phoneNumber or extension is required."
+          },
+          "extension": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 20,
+            "example": "1000",
+            "description": "Extension of the DNIS. Either phoneNumber or extension is required."
+          },
+          "ringPattern": {
+            "type": "string",
+            "enum": [
+              "NORMAL",
+              "LONG_LONG",
+              "SHORT_SHORT_LONG",
+              "SHORT_LONG_SHORT"
+            ],
+            "example": "NORMAL",
+            "description": "Ring pattern of the DNIS."
+          }
+        }
+      },
+      "ModifyDnisRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40,
+            "example": "Support Line",
+            "description": "Name of the DNIS. Must be unique across the call queue."
+          },
+          "phoneNumber": {
+            "type": "string",
+            "maxLength": 23,
+            "nullable": true,
+            "example": "+15551234567",
+            "description": "Phone number of the DNIS. Set to `null` to remove the phone number."
+          },
+          "extension": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 20,
+            "nullable": true,
+            "example": "1000",
+            "description": "Extension of the DNIS. Set to `null` to remove the extension."
+          },
+          "ringPattern": {
+            "type": "string",
+            "enum": [
+              "NORMAL",
+              "LONG_LONG",
+              "SHORT_SHORT_LONG",
+              "SHORT_LONG_SHORT"
+            ],
+            "example": "NORMAL",
+            "description": "Ring pattern of the DNIS."
+          },
+          "customDnisAnnouncementSettingsEnabled": {
+            "type": "boolean",
+            "example": false,
+            "description": "Use custom announcement settings for the DNIS."
+          }
+        }
+      },
+      "DnisSettings": {
+        "type": "object",
+        "required": [
+          "distinctiveRingingEnabled",
+          "displayDnisNameAndNumberEnabled"
+        ],
+        "example": {
+          "distinctiveRingingEnabled": true,
+          "displayDnisNameAndNumberEnabled": true
+        },
+        "properties": {
+          "distinctiveRingingEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Whether distinctive ringing is enabled for the queue."
+          },
+          "displayDnisNameAndNumberEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Whether the DNIS name and number is displayed to agents."
+          }
+        }
+      },
+      "ModifyDnisSettings": {
+        "type": "object",
+        "properties": {
+          "distinctiveRingingEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Whether distinctive ringing is enabled for the queue."
+          },
+          "displayDnisNameAndNumberEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Whether the DNIS name and number is displayed to agents."
+          }
+        }
+      },
+      "AudioAnnouncementFile": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC9jZWRkODcwYS1lMTkzLTQxNmQtYmM3OS1mNzkyYmUyMzlhOGI",
+            "description": "Announcement file ID."
+          },
+          "fileName": {
+            "type": "string",
+            "example": "AUDIO_FILE.wav",
+            "description": "Name of the announcement file."
+          },
+          "mediaFileType": {
+            "type": "string",
+            "enum": [
+              "WAV"
+            ],
+            "example": "WAV",
+            "description": "Media file type of the announcement."
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "ORGANIZATION",
+              "LOCATION",
+              "ENTITY"
+            ],
+            "example": "ORGANIZATION",
+            "description": "Level at which the announcement is defined."
+          },
+          "isTextToSpeech": {
+            "type": "boolean",
+            "example": false,
+            "description": "Whether the file is a text-to-speech file."
+          }
+        }
+      },
+      "MohMessageSource": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Whether the source is enabled."
+          },
+          "greeting": {
+            "type": "string",
+            "enum": [
+              "DEFAULT",
+              "CUSTOM",
+              "PLAYLIST"
+            ],
+            "example": "DEFAULT",
+            "description": "The greeting type."
+          },
+          "audioAnnouncementFiles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AudioAnnouncementFile"
+            },
+            "description": "List of audio announcement files.",
+            "example": [
+              {
+                "id": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC9jZWRkODcwYS1lMTkzLTQxNmQtYmM3OS1mNzkyYmUyMzlhOGI",
+                "fileName": "AUDIO_FILE.wav",
+                "mediaFileType": "WAV",
+                "level": "ORGANIZATION",
+                "isTextToSpeech": false
+              }
+            ]
+          },
+          "audioPlaylistId": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL1BMQVlMSVNULzEyMzQ1Njc4OTBhYmNkZWY",
+            "description": "Audio playlist ID."
+          },
+          "audioPlaylistName": {
+            "type": "string",
+            "example": "Default Playlist",
+            "description": "Audio playlist name."
+          }
+        }
+      },
+      "AudioAnnouncementFileModify": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC9jZWRkODcwYS1lMTkzLTQxNmQtYmM3OS1mNzkyYmUyMzlhOGI",
+            "description": "Announcement file ID."
+          },
+          "fileName": {
+            "type": "string",
+            "example": "AUDIO_FILE.wav",
+            "description": "Name of the announcement file."
+          },
+          "mediaFileType": {
+            "type": "string",
+            "enum": [
+              "WAV"
+            ],
+            "example": "WAV",
+            "description": "Media file type of the announcement."
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "ORGANIZATION",
+              "LOCATION",
+              "ENTITY"
+            ],
+            "example": "ORGANIZATION",
+            "description": "Level at which the announcement is defined."
+          }
+        }
+      },
+      "MohMessageSourceModify": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Whether the source is enabled."
+          },
+          "greeting": {
+            "type": "string",
+            "enum": [
+              "DEFAULT",
+              "CUSTOM"
+            ],
+            "example": "DEFAULT",
+            "description": "The greeting type."
+          },
+          "audioAnnouncementFiles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AudioAnnouncementFileModify"
+            },
+            "description": "List of audio announcement files.",
+            "example": [
+              {
+                "id": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC9jZWRkODcwYS1lMTkzLTQxNmQtYmM3OS1mNzkyYmUyMzlhOGI",
+                "fileName": "AUDIO_FILE.wav",
+                "mediaFileType": "WAV",
+                "level": "ORGANIZATION"
+              }
+            ]
+          },
+          "audioPlaylistId": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL1BMQVlMSVNULzEyMzQ1Njc4OTBhYmNkZWY",
+            "description": "Audio playlist ID."
+          }
+        }
+      },
+      "DnisAnnouncementsGet": {
+        "type": "object",
+        "example": {
+          "customDnisAnnouncementSettingsEnabled": true,
+          "welcomeMessage": {
+            "enabled": true,
+            "alwaysEnabled": false,
+            "greeting": "DEFAULT"
+          },
+          "comfortMessage": {
+            "enabled": true,
+            "timeBetweenMessages": 30,
+            "greeting": "DEFAULT"
+          },
+          "comfortMessageBypass": {
+            "enabled": false,
+            "callWaitingAgeThreshold": 30,
+            "greeting": "DEFAULT"
+          },
+          "mohMessage": {
+            "normalSource": {
+              "enabled": true,
+              "greeting": "DEFAULT"
+            },
+            "alternateSource": {
+              "enabled": false,
+              "greeting": "DEFAULT"
+            }
+          },
+          "waitMessage": {
+            "enabled": false,
+            "waitMode": "TIME",
+            "handlingTime": 100,
+            "defaultHandlingTime": 5,
+            "queuePosition": 100,
+            "highVolumeMessageEnabled": false,
+            "estimatedWaitingTime": 10,
+            "callbackOptionEnabled": false,
+            "minimumEstimatedCallbackTime": 30,
+            "internationalCallbackEnabled": false,
+            "playUpdatedEstimatedWaitMessage": false
+          },
+          "whisperMessage": {
+            "enabled": false,
+            "greeting": "DEFAULT"
+          }
+        },
+        "properties": {
+          "customDnisAnnouncementSettingsEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Whether custom DNIS announcement settings are enabled for this DNIS."
+          },
+          "welcomeMessage": {
+            "type": "object",
+            "example": {
+              "enabled": true,
+              "alwaysEnabled": false,
+              "greeting": "DEFAULT"
+            },
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "description": "Whether the welcome message is enabled."
+              },
+              "alwaysEnabled": {
+                "type": "boolean",
+                "description": "Whether to always play the welcome message."
+              },
+              "greeting": {
+                "type": "string",
+                "enum": [
+                  "DEFAULT",
+                  "CUSTOM"
+                ],
+                "description": "The greeting type."
+              },
+              "audioAnnouncementFiles": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AudioAnnouncementFile"
+                },
+                "description": "List of audio announcement files."
+              }
+            },
+            "description": "Welcome message settings."
+          },
+          "comfortMessage": {
+            "type": "object",
+            "example": {
+              "enabled": true,
+              "timeBetweenMessages": 30,
+              "greeting": "DEFAULT"
+            },
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "description": "Whether the comfort message is enabled."
+              },
+              "timeBetweenMessages": {
+                "type": "integer",
+                "description": "Time between comfort messages in seconds."
+              },
+              "greeting": {
+                "type": "string",
+                "enum": [
+                  "DEFAULT",
+                  "CUSTOM"
+                ],
+                "description": "The greeting type."
+              },
+              "audioAnnouncementFiles": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AudioAnnouncementFile"
+                },
+                "description": "List of audio announcement files."
+              }
+            },
+            "description": "Comfort message settings."
+          },
+          "comfortMessageBypass": {
+            "type": "object",
+            "example": {
+              "enabled": false,
+              "callWaitingAgeThreshold": 30,
+              "greeting": "DEFAULT"
+            },
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "description": "Whether the comfort message bypass is enabled."
+              },
+              "callWaitingAgeThreshold": {
+                "type": "integer",
+                "description": "Call waiting age threshold in seconds."
+              },
+              "greeting": {
+                "type": "string",
+                "enum": [
+                  "DEFAULT",
+                  "CUSTOM"
+                ],
+                "description": "The greeting type."
+              },
+              "audioAnnouncementFiles": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AudioAnnouncementFile"
+                },
+                "description": "List of audio announcement files."
+              }
+            },
+            "description": "Comfort message bypass settings."
+          },
+          "mohMessage": {
+            "type": "object",
+            "description": "Music on hold message settings.",
+            "example": {
+              "normalSource": {
+                "enabled": true,
+                "greeting": "DEFAULT"
+              },
+              "alternateSource": {
+                "enabled": false,
+                "greeting": "DEFAULT"
+              }
+            },
+            "properties": {
+              "normalSource": {
+                "$ref": "#/components/schemas/MohMessageSource"
+              },
+              "alternateSource": {
+                "$ref": "#/components/schemas/MohMessageSource"
+              }
+            }
+          },
+          "waitMessage": {
+            "type": "object",
+            "description": "Wait message settings.",
+            "example": {
+              "enabled": false,
+              "waitMode": "TIME"
+            },
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "description": "Whether the wait message is enabled."
+              },
+              "waitMode": {
+                "type": "string",
+                "enum": [
+                  "TIME",
+                  "POSITION"
+                ],
+                "description": "Wait mode for the message."
+              },
+              "handlingTime": {
+                "type": "integer",
+                "description": "Maximum waiting time in minutes."
+              },
+              "defaultHandlingTime": {
+                "type": "integer",
+                "description": "Default handling time in minutes."
+              },
+              "queuePosition": {
+                "type": "integer",
+                "description": "Maximum queue position."
+              },
+              "highVolumeMessageEnabled": {
+                "type": "boolean",
+                "description": "Whether high volume message is enabled."
+              },
+              "estimatedWaitingTime": {
+                "type": "integer",
+                "description": "Time between estimated wait message updates in seconds."
+              },
+              "callbackOptionEnabled": {
+                "type": "boolean",
+                "description": "Whether callback option is enabled."
+              },
+              "minimumEstimatedCallbackTime": {
+                "type": "integer",
+                "description": "Minimum estimated callback time in minutes."
+              },
+              "internationalCallbackEnabled": {
+                "type": "boolean",
+                "description": "Whether international callback is enabled."
+              },
+              "playUpdatedEstimatedWaitMessage": {
+                "type": "boolean",
+                "description": "Whether to play updated estimated wait message."
+              }
+            }
+          },
+          "whisperMessage": {
+            "type": "object",
+            "description": "Whisper message settings.",
+            "example": {
+              "enabled": false,
+              "greeting": "DEFAULT"
+            },
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "description": "Whether the whisper message is enabled."
+              },
+              "greeting": {
+                "type": "string",
+                "enum": [
+                  "DEFAULT",
+                  "CUSTOM"
+                ],
+                "description": "The greeting type."
+              },
+              "audioAnnouncementFiles": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AudioAnnouncementFile"
+                },
+                "description": "List of audio announcement files."
+              }
+            }
+          }
+        }
+      },
+      "DnisAnnouncementsModify": {
+        "type": "object",
+        "description": "Request body for modifying DNIS announcement settings. All fields are optional.",
+        "example": {
+          "customDnisAnnouncementSettingsEnabled": true,
+          "welcomeMessage": {
+            "enabled": true,
+            "greeting": "DEFAULT"
+          },
+          "comfortMessage": {
+            "enabled": true,
+            "timeBetweenMessages": 30,
+            "greeting": "DEFAULT"
+          }
+        },
+        "properties": {
+          "customDnisAnnouncementSettingsEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Whether custom DNIS announcement settings are enabled for this DNIS."
+          },
+          "welcomeMessage": {
+            "type": "object",
+            "example": {
+              "enabled": true,
+              "greeting": "DEFAULT"
+            },
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "description": "Whether the welcome message is enabled."
+              },
+              "alwaysEnabled": {
+                "type": "boolean",
+                "description": "Whether to always play the welcome message."
+              },
+              "greeting": {
+                "type": "string",
+                "enum": [
+                  "DEFAULT",
+                  "CUSTOM"
+                ],
+                "description": "The greeting type."
+              },
+              "audioAnnouncementFiles": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AudioAnnouncementFileModify"
+                },
+                "description": "List of audio announcement files."
+              }
+            },
+            "description": "Welcome message settings."
+          },
+          "comfortMessage": {
+            "type": "object",
+            "example": {
+              "enabled": true,
+              "timeBetweenMessages": 30,
+              "greeting": "DEFAULT"
+            },
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "description": "Whether the comfort message is enabled."
+              },
+              "timeBetweenMessages": {
+                "type": "integer",
+                "minimum": 10,
+                "maximum": 600,
+                "description": "Time between comfort messages in seconds."
+              },
+              "greeting": {
+                "type": "string",
+                "enum": [
+                  "DEFAULT",
+                  "CUSTOM"
+                ],
+                "description": "The greeting type."
+              },
+              "audioAnnouncementFiles": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AudioAnnouncementFileModify"
+                },
+                "description": "List of audio announcement files."
+              }
+            },
+            "description": "Comfort message settings."
+          },
+          "comfortMessageBypass": {
+            "type": "object",
+            "example": {
+              "enabled": false,
+              "callWaitingAgeThreshold": 30,
+              "greeting": "DEFAULT"
+            },
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "description": "Whether the comfort message bypass is enabled."
+              },
+              "callWaitingAgeThreshold": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 120,
+                "description": "Minimum call waiting age in seconds before bypass plays."
+              },
+              "greeting": {
+                "type": "string",
+                "enum": [
+                  "DEFAULT",
+                  "CUSTOM"
+                ],
+                "description": "The greeting type."
+              },
+              "audioAnnouncementFiles": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AudioAnnouncementFileModify"
+                },
+                "description": "List of audio announcement files."
+              }
+            },
+            "description": "Comfort message bypass settings."
+          },
+          "mohMessage": {
+            "type": "object",
+            "description": "Music on hold message settings.",
+            "example": {
+              "normalSource": {
+                "enabled": true,
+                "greeting": "DEFAULT"
+              },
+              "alternateSource": {
+                "enabled": false,
+                "greeting": "DEFAULT"
+              }
+            },
+            "properties": {
+              "normalSource": {
+                "$ref": "#/components/schemas/MohMessageSourceModify"
+              },
+              "alternateSource": {
+                "$ref": "#/components/schemas/MohMessageSourceModify"
+              }
+            }
+          },
+          "waitMessage": {
+            "type": "object",
+            "description": "Wait message settings.",
+            "example": {
+              "enabled": false,
+              "waitMode": "TIME"
+            },
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "description": "Whether the wait message is enabled."
+              },
+              "waitMode": {
+                "type": "string",
+                "enum": [
+                  "TIME",
+                  "POSITION"
+                ],
+                "description": "Wait mode for the message."
+              },
+              "handlingTime": {
+                "type": "integer",
+                "description": "Maximum waiting time in minutes."
+              },
+              "defaultHandlingTime": {
+                "type": "integer",
+                "description": "Default handling time in minutes."
+              },
+              "queuePosition": {
+                "type": "integer",
+                "description": "Maximum queue position."
+              },
+              "highVolumeMessageEnabled": {
+                "type": "boolean",
+                "description": "Whether high volume message is enabled."
+              },
+              "estimatedWaitingTime": {
+                "type": "integer",
+                "description": "Time between estimated wait message updates in seconds."
+              },
+              "callbackOptionEnabled": {
+                "type": "boolean",
+                "description": "Whether callback option is enabled."
+              },
+              "minimumEstimatedCallbackTime": {
+                "type": "integer",
+                "description": "Minimum estimated callback time in minutes."
+              },
+              "internationalCallbackEnabled": {
+                "type": "boolean",
+                "description": "Whether international callback is enabled."
+              },
+              "playUpdatedEstimatedWaitMessage": {
+                "type": "boolean",
+                "description": "Whether to play updated estimated wait message."
+              }
+            }
+          },
+          "whisperMessage": {
+            "type": "object",
+            "description": "Whisper message settings.",
+            "example": {
+              "enabled": false,
+              "greeting": "DEFAULT"
+            },
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "description": "Whether the whisper message is enabled."
+              },
+              "greeting": {
+                "type": "string",
+                "enum": [
+                  "DEFAULT",
+                  "CUSTOM"
+                ],
+                "description": "The greeting type."
+              },
+              "audioAnnouncementFiles": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AudioAnnouncementFileModify"
+                },
+                "description": "List of audio announcement files."
+              }
+            }
+          }
+        }
+      },
       "GetCallRecordingObject": {
         "type": "object",
         "required": [
@@ -147866,7 +149354,9 @@
           "useOrgSettingsEnabled",
           "outboundPSTNCallsEnabled",
           "outboundPSTNCallsDelayEnabled",
-          "delayInSeconds"
+          "delayInSeconds",
+          "useOrgLevelAnnouncementEnabled",
+          "customComplianceAnnouncement"
         ],
         "properties": {
           "inboundPSTNCallsEnabled": {
@@ -147891,6 +149381,63 @@
             "type": "number",
             "example": 10,
             "description": "Number of seconds to wait before playing the compliance announcement."
+          },
+          "useOrgLevelAnnouncementEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Flag to indicate whether to use the organization level custom compliance announcement. If this flag is set to true, takes the organization's announcement setting. If this flag is set to false, takes the location's custom announcement."
+          },
+          "customComplianceAnnouncement": {
+            "type": "object",
+            "description": "Custom compliance announcement settings.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "CUSTOM",
+                  "DEFAULT"
+                ],
+                "example": "CUSTOM",
+                "description": "Type of compliance announcement to be played. Type is an enum with supported values CUSTOM | DEFAULT. CUSTOM is used to play a custom announcement file. DEFAULT is used to play the default system announcement file."
+              },
+              "audioAnnouncementFile": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC82YTcwZWQ4MS1hZGM5LTQ4OWEtODhjOC0zMWI3ODllODQ1ODU",
+                    "description": "Unique identifier for the custom audio announcement file."
+                  },
+                  "fileName": {
+                    "type": "string",
+                    "example": "SampleAnnouncement",
+                    "description": "The original file name of the uploaded custom audio announcement."
+                  },
+                  "mediaFileType": {
+                    "type": "string",
+                    "enum": [
+                      "WAV"
+                    ],
+                    "example": "WAV",
+                    "description": "Type of the announcement file. Type is an enum with supported values WAV"
+                  },
+                  "level": {
+                    "type": "string",
+                    "enum": [
+                      "ORGANIZATION",
+                      "LOCATION"
+                    ],
+                    "description": "Announcement audio file level.",
+                    "example": "ORGANIZATION"
+                  },
+                  "isTextToSpeech": {
+                    "type": "boolean",
+                    "example": true,
+                    "description": "Indicates if the announcement is created by TTS."
+                  }
+                }
+              }
+            }
           }
         }
       },
@@ -147900,7 +149447,9 @@
           "inboundPSTNCallsEnabled",
           "outboundPSTNCallsEnabled",
           "outboundPSTNCallsDelayEnabled",
-          "delayInSeconds"
+          "delayInSeconds",
+          "useCustomAnnouncementEnabled",
+          "audioAnnouncementFile"
         ],
         "properties": {
           "inboundPSTNCallsEnabled": {
@@ -147920,6 +149469,49 @@
             "type": "number",
             "example": 10,
             "description": "Number of seconds to wait before playing the compliance announcement."
+          },
+          "useCustomAnnouncementEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Flag to indicate whether to use the custom compliance announcement. If true it uses the organization's custom compliance announcement file, and if false default compliance announcement used."
+          },
+          "audioAnnouncementFile": {
+            "type": "object",
+            "description": "The custom audio announcement file to be played.",
+            "properties": {
+              "id": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC82YTcwZWQ4MS1hZGM5LTQ4OWEtODhjOC0zMWI3ODllODQ1ODU",
+                "description": "Unique identifier for the custom audio announcement file."
+              },
+              "fileName": {
+                "type": "string",
+                "example": "SampleAnnouncement",
+                "description": "The original file name of the uploaded custom audio announcement."
+              },
+              "mediaFileType": {
+                "type": "string",
+                "enum": [
+                  "WAV"
+                ],
+                "example": "WAV",
+                "description": "Type of the announcement file. Type is an enum with supported values WAV"
+              },
+              "level": {
+                "type": "string",
+                "enum": [
+                  "ORGANIZATION",
+                  "LOCATION"
+                ],
+                "description": "Announcement audio file level.",
+                "example": "ORGANIZATION"
+              },
+              "isTextToSpeech": {
+                "type": "boolean",
+                "example": true,
+                "description": "Indicates if the announcement is created by TTS."
+              }
+            }
           }
         }
       },
@@ -147974,6 +149566,31 @@
             "type": "number",
             "example": 10,
             "description": "Number of seconds to wait before playing the compliance announcement."
+          },
+          "useOrgLevelAnnouncementEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Flag to indicate whether to use the organization level custom compliance announcement. If this flag is set to true, takes the organization's announcement setting. If this flag is set to false, takes the location's custom announcement."
+          },
+          "customComplianceAnnouncement": {
+            "type": "object",
+            "description": "Custom compliance announcement settings.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "CUSTOM",
+                  "DEFAULT"
+                ],
+                "example": "CUSTOM",
+                "description": "Type of compliance announcement to be played. Type is an enum with supported values CUSTOM | DEFAULT. CUSTOM is used to play a custom announcement file. DEFAULT is used to play the default system announcement file."
+              },
+              "audioAnnouncementFileId": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC82YTcwZWQ4MS1hZGM5LTQ4OWEtODhjOC0zMWI3ODllODQ1ODU",
+                "description": "Unique identifier for the custom audio announcement file."
+              }
+            }
           }
         }
       },
@@ -147997,6 +149614,16 @@
             "type": "number",
             "example": 10,
             "description": "Number of seconds to wait before playing the compliance announcement."
+          },
+          "useCustomAnnouncementEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Flag to indicate whether to use the custom compliance announcement. If true it uses the organization's custom compliance announcement file, and if false default compliance announcement used."
+          },
+          "audioAnnouncementFileId": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC82YTcwZWQ4MS1hZGM5LTQ4OWEtODhjOC0zMWI3ODllODQ1ODU",
+            "description": "Unique identifier for the custom audio announcement file."
           }
         }
       },
@@ -148034,8 +149661,8 @@
             "description": "Name of the region."
           },
           "defaultEnabled": {
-            "type": "string",
-            "example": "false",
+            "type": "boolean",
+            "example": false,
             "description": "Enabled by default."
           }
         }
@@ -148085,12 +149712,20 @@
             "description": "First name of the member."
           },
           "type": {
-            "$ref": "#/components/schemas/MemberType",
-            "description": "Type of member."
+            "description": "Type of member.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MemberType"
+              }
+            ]
           },
           "licenseType": {
-            "$ref": "#/components/schemas/UserLicenseType",
-            "description": "License type of the member."
+            "description": "License type of the member.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserLicenseType"
+              }
+            ]
           }
         }
       },
@@ -148129,8 +149764,12 @@
             "description": "Region-based call recording storage is enabled."
           },
           "failureBehavior": {
-            "$ref": "#/components/schemas/FailureBehavior",
-            "description": "Type of failure behavior."
+            "description": "Type of failure behavior.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FailureBehavior"
+              }
+            ]
           },
           "orgFailureBehaviorEnabled": {
             "type": "boolean",
@@ -148226,12 +149865,20 @@
             "description": "Failure behavior is enabled."
           },
           "orgFailureBehavior": {
-            "$ref": "#/components/schemas/FailureBehavior",
-            "description": "Type of org-level failure behavior."
+            "description": "Type of org-level failure behavior.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FailureBehavior"
+              }
+            ]
           },
           "failureBehavior": {
-            "$ref": "#/components/schemas/FailureBehavior",
-            "description": "Type of location level failure behavior."
+            "description": "Type of location level failure behavior.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FailureBehavior"
+              }
+            ]
           }
         }
       },
@@ -148350,8 +149997,12 @@
             "description": "Displays the most recent step's execution status. Contains execution statuses of all the steps involved in the execution of the job."
           },
           "latestExecutionStatus": {
-            "$ref": "#/components/schemas/LatestExecutionStatus",
-            "description": "Most recent status of the job at the time of invocation."
+            "description": "Most recent status of the job at the time of invocation.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LatestExecutionStatus"
+              }
+            ]
           },
           "locationId": {
             "type": "string",
@@ -148364,8 +150015,12 @@
             "description": "Unique identifier of a vendor."
           },
           "counts": {
-            "$ref": "#/components/schemas/CountObject",
-            "description": "Job statistics."
+            "description": "Job statistics.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CountObject"
+              }
+            ]
           }
         }
       },
@@ -148387,16 +150042,24 @@
             "description": "Name of the vendor."
           },
           "vendors": {
-            "$ref": "#/components/schemas/CallRecordingVendors",
-            "description": "List of call recording vendors"
+            "description": "List of call recording vendors",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CallRecordingVendors"
+              }
+            ]
           },
           "storageRegion": {
             "type": "string",
             "description": "Call recording storage region. Only applicable for Webex as a vendor and isn't used for other vendors."
           },
           "failureBehavior": {
-            "$ref": "#/components/schemas/FailureBehavior",
-            "description": "Call recording failure behavior."
+            "description": "Call recording failure behavior.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FailureBehavior"
+              }
+            ]
           }
         }
       },
@@ -148467,8 +150130,911 @@
             "description": "Call recording storage region. Only applicable for Webex as a vendor and isn't used for other vendors."
           },
           "failureBehavior": {
-            "$ref": "#/components/schemas/FailureBehavior",
-            "description": "Call recording failure behavior."
+            "description": "Call recording failure behavior.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FailureBehavior"
+              }
+            ]
+          }
+        }
+      },
+      "GetOrgCallRecordingAnnouncementObject": {
+        "type": "object",
+        "required": [
+          "start",
+          "stop",
+          "pause",
+          "resume",
+          "failureEndWithCall",
+          "failureProceedWithCall"
+        ],
+        "properties": {
+          "start": {
+            "type": "object",
+            "description": "The start announcement settings for this organization.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "CUSTOM",
+                  "DEFAULT"
+                ],
+                "description": "Type of announcement file to be played.\n * `CUSTOM` - Custom announcement file.\n * `DEFAULT` - Default announcement file.\n"
+              },
+              "audioAnnouncementFile": {
+                "type": "object",
+                "description": "The custom audio announcement file to be played.",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC9iOTg2MWI3MS1hN2MxLTQxZmUtYjNmZC1lZDNkOTdjYTFjMzQ=",
+                    "description": "Unique identifier for the custom audio announcement file."
+                  },
+                  "fileName": {
+                    "type": "string",
+                    "example": "SampleAnnouncement",
+                    "description": "The original file name of the uploaded custom audio announcement."
+                  },
+                  "mediaFileType": {
+                    "type": "string",
+                    "enum": [
+                      "WAV"
+                    ],
+                    "example": "WAV",
+                    "description": "Type of the announcement file. Type is an enum with supported values WAV"
+                  },
+                  "level": {
+                    "type": "string",
+                    "enum": [
+                      "ORGANIZATION",
+                      "LOCATION"
+                    ],
+                    "description": "Announcement audio file level.",
+                    "example": "ORGANIZATION"
+                  },
+                  "isTextToSpeech": {
+                    "type": "boolean",
+                    "example": true,
+                    "description": "Indicates if the announcement is created by TTS."
+                  }
+                }
+              }
+            }
+          },
+          "stop": {
+            "type": "object",
+            "description": "The stop announcement settings for this organization.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "CUSTOM",
+                  "DEFAULT"
+                ],
+                "description": "Type of announcement file to be played.\n * `CUSTOM` - Custom announcement file.\n * `DEFAULT` - Default announcement file.\n"
+              },
+              "audioAnnouncementFile": {
+                "type": "object",
+                "description": "The custom audio announcement file to be played.",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC82ZjU0Y2NhNS05ZWY5LTQ3N2EtYThkNi0wY2EyNzU4MTAxM2Y=",
+                    "description": "Unique identifier for the custom audio announcement file."
+                  },
+                  "fileName": {
+                    "type": "string",
+                    "example": "SampleAnnouncement",
+                    "description": "The original file name of the uploaded custom audio announcement."
+                  },
+                  "mediaFileType": {
+                    "type": "string",
+                    "enum": [
+                      "WAV"
+                    ],
+                    "example": "WAV",
+                    "description": "Type of the announcement file. Type is an enum with supported values WAV"
+                  },
+                  "level": {
+                    "type": "string",
+                    "enum": [
+                      "ORGANIZATION",
+                      "LOCATION"
+                    ],
+                    "description": "Announcement audio file level.",
+                    "example": "ORGANIZATION"
+                  },
+                  "isTextToSpeech": {
+                    "type": "boolean",
+                    "example": true,
+                    "description": "Indicates if the announcement is created by TTS."
+                  }
+                }
+              }
+            }
+          },
+          "pause": {
+            "type": "object",
+            "description": "The pause announcement settings for this organization.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "CUSTOM",
+                  "DEFAULT"
+                ],
+                "description": "Type of announcement file to be played.\n * `CUSTOM` - Custom announcement file.\n * `DEFAULT` - Default announcement file.\n"
+              },
+              "audioAnnouncementFile": {
+                "type": "object",
+                "description": "The custom audio announcement file to be played.",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC82M2NiYTMwOS05NjQ2LTQzMjUtOTZlNC02N2ZmYWVlZjNiOWI=",
+                    "description": "Unique identifier for the custom audio announcement file."
+                  },
+                  "fileName": {
+                    "type": "string",
+                    "example": "SampleAnnouncement",
+                    "description": "The original file name of the uploaded custom audio announcement."
+                  },
+                  "mediaFileType": {
+                    "type": "string",
+                    "enum": [
+                      "WAV"
+                    ],
+                    "example": "WAV",
+                    "description": "Type of the announcement file. Type is an enum with supported values WAV"
+                  },
+                  "level": {
+                    "type": "string",
+                    "enum": [
+                      "ORGANIZATION",
+                      "LOCATION"
+                    ],
+                    "description": "Announcement audio file level.",
+                    "example": "ORGANIZATION"
+                  },
+                  "isTextToSpeech": {
+                    "type": "boolean",
+                    "example": true,
+                    "description": "Indicates if the announcement is created by TTS."
+                  }
+                }
+              }
+            }
+          },
+          "resume": {
+            "type": "object",
+            "description": "The resume announcement settings for this organization.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "CUSTOM",
+                  "DEFAULT"
+                ],
+                "description": "Type of announcement file to be played.\n * `CUSTOM` - Custom announcement file.\n * `DEFAULT` - Default announcement file.\n"
+              },
+              "audioAnnouncementFile": {
+                "type": "object",
+                "description": "The custom audio announcement file to be played.",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC8xM2NlNzBkYS00NDkwLTQ2OWItOTg4YS1mYjA0MzExNmQ3ZTU=",
+                    "description": "Unique identifier for the custom audio announcement file."
+                  },
+                  "fileName": {
+                    "type": "string",
+                    "example": "SampleAnnouncement",
+                    "description": "The original file name of the uploaded custom audio announcement."
+                  },
+                  "mediaFileType": {
+                    "type": "string",
+                    "enum": [
+                      "WAV"
+                    ],
+                    "example": "WAV",
+                    "description": "Type of the announcement file. Type is an enum with supported values WAV"
+                  },
+                  "level": {
+                    "type": "string",
+                    "enum": [
+                      "ORGANIZATION",
+                      "LOCATION"
+                    ],
+                    "description": "Announcement audio file level.",
+                    "example": "ORGANIZATION"
+                  },
+                  "isTextToSpeech": {
+                    "type": "boolean",
+                    "example": true,
+                    "description": "Indicates if the announcement is created by TTS."
+                  }
+                }
+              }
+            }
+          },
+          "failureProceedWithCall": {
+            "type": "object",
+            "description": "The failure proceed with call announcement settings for this organization.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "CUSTOM",
+                  "DEFAULT"
+                ],
+                "description": "Type of announcement file to be played.\n * `CUSTOM` - Custom announcement file.\n * `DEFAULT` - Default announcement file.\n"
+              },
+              "audioAnnouncementFile": {
+                "type": "object",
+                "description": "The custom audio announcement file to be played.",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC80ZjU0Y2NhNS05ZWY5LTQ3N2EtYThkNi0wY2EyNzU4MTAxM2Y=",
+                    "description": "Unique identifier for the custom audio announcement file."
+                  },
+                  "fileName": {
+                    "type": "string",
+                    "example": "SampleAnnouncement",
+                    "description": "The original file name of the uploaded custom audio announcement."
+                  },
+                  "mediaFileType": {
+                    "type": "string",
+                    "enum": [
+                      "WAV"
+                    ],
+                    "example": "WAV",
+                    "description": "Type of the announcement file. Type is an enum with supported values WAV"
+                  },
+                  "level": {
+                    "type": "string",
+                    "enum": [
+                      "ORGANIZATION",
+                      "LOCATION"
+                    ],
+                    "description": "Announcement audio file level.",
+                    "example": "ORGANIZATION"
+                  },
+                  "isTextToSpeech": {
+                    "type": "boolean",
+                    "example": true,
+                    "description": "Indicates if the announcement is created by TTS."
+                  }
+                }
+              }
+            }
+          },
+          "failureEndWithCall": {
+            "type": "object",
+            "description": "The failure end with call announcement settings for this organization.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "CUSTOM",
+                  "DEFAULT"
+                ],
+                "description": "Type of announcement file to be played.\n * `CUSTOM` - Custom announcement file.\n * `DEFAULT` - Default announcement file.\n"
+              },
+              "audioAnnouncementFile": {
+                "type": "object",
+                "description": "The custom audio announcement file to be played.",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC9mZTU4YTE1ZS1kNzMwLTQ4ZGYtYWU4Ny1jNjc5YjM3YmQ4Mzk=",
+                    "description": "Unique identifier for the custom audio announcement file."
+                  },
+                  "fileName": {
+                    "type": "string",
+                    "example": "SampleAnnouncement",
+                    "description": "The original file name of the uploaded custom audio announcement."
+                  },
+                  "mediaFileType": {
+                    "type": "string",
+                    "enum": [
+                      "WAV"
+                    ],
+                    "example": "WAV",
+                    "description": "Type of the announcement file. Type is an enum with supported values WAV"
+                  },
+                  "level": {
+                    "type": "string",
+                    "enum": [
+                      "ORGANIZATION",
+                      "LOCATION"
+                    ],
+                    "description": "Announcement audio file level.",
+                    "example": "ORGANIZATION"
+                  },
+                  "isTextToSpeech": {
+                    "type": "boolean",
+                    "example": true,
+                    "description": "Indicates if the announcement is created by TTS."
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "ModifyOrgCallRecordingAnnouncementObject": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "object",
+            "description": "The start announcement settings for this organization.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "CUSTOM",
+                  "DEFAULT"
+                ],
+                "description": "Type of announcement file to be played.\n * `CUSTOM` - Custom announcement file.\n * `DEFAULT` - Default announcement file.\n"
+              },
+              "audioAnnouncementFileId": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC82YTcwZWQ4MS1hZGM5LTQ4OWEtODhjOC0zMWI3ODllODQ1ODU",
+                "description": "Unique identifier for the custom audio announcement file."
+              }
+            }
+          },
+          "stop": {
+            "type": "object",
+            "description": "The stop announcement settings for this organization.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "CUSTOM",
+                  "DEFAULT"
+                ],
+                "description": "Type of announcement file to be played.\n * `CUSTOM` - Custom announcement file.\n * `DEFAULT` - Default announcement file.\n"
+              },
+              "audioAnnouncementFileId": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC82YTcwZWQ4MS1hZGM5LTQ4OWEtODhjOC0zMWI3ODllODQ1ODU",
+                "description": "Unique identifier for the custom audio announcement file."
+              }
+            }
+          },
+          "pause": {
+            "type": "object",
+            "description": "The pause announcement settings for this organization.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "CUSTOM",
+                  "DEFAULT"
+                ],
+                "description": "Type of announcement file to be played.\n * `CUSTOM` - Custom announcement file.\n * `DEFAULT` - Default announcement file.\n"
+              },
+              "audioAnnouncementFileId": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC82YTcwZWQ4MS1hZGM5LTQ4OWEtODhjOC0zMWI3ODllODQ1ODU",
+                "description": "Unique identifier for the custom audio announcement file."
+              }
+            }
+          },
+          "resume": {
+            "type": "object",
+            "description": "The resume announcement settings for this organization.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "CUSTOM",
+                  "DEFAULT"
+                ],
+                "description": "Type of announcement file to be played.\n * `CUSTOM` - Custom announcement file.\n * `DEFAULT` - Default announcement file.\n"
+              },
+              "audioAnnouncementFileId": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC82YTcwZWQ4MS1hZGM5LTQ4OWEtODhjOC0zMWI3ODllODQ1ODU",
+                "description": "Unique identifier for the custom audio announcement file."
+              }
+            }
+          },
+          "failureEndWithCall": {
+            "type": "object",
+            "description": "The failure end with call announcement settings for this organization.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "CUSTOM",
+                  "DEFAULT"
+                ],
+                "description": "Type of announcement file to be played.\n * `CUSTOM` - Custom announcement file.\n * `DEFAULT` - Default announcement file.\n"
+              },
+              "audioAnnouncementFileId": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC82YTcwZWQ4MS1hZGM5LTQ4OWEtODhjOC0zMWI3ODllODQ1ODU",
+                "description": "Unique identifier for the custom audio announcement file."
+              }
+            }
+          },
+          "failureProceedWithCall": {
+            "type": "object",
+            "description": "The failure proceed with call announcement settings for this organization.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "CUSTOM",
+                  "DEFAULT"
+                ],
+                "description": "Type of announcement file to be played.\n * `CUSTOM` - Custom announcement file.\n * `DEFAULT` - Default announcement file.\n"
+              },
+              "audioAnnouncementFileId": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC82YTcwZWQ4MS1hZGM5LTQ4OWEtODhjOC0zMWI3ODllODQ1ODU",
+                "description": "Unique identifier for the custom audio announcement file."
+              }
+            }
+          }
+        }
+      },
+      "GetLocationCallRecordingAnnouncementObject": {
+        "type": "object",
+        "required": [
+          "useOrgLevelAnnouncementEnabled",
+          "start",
+          "stop",
+          "pause",
+          "resume",
+          "failureEndWithCall",
+          "failureProceedWithCall"
+        ],
+        "properties": {
+          "useOrgLevelAnnouncementEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Flag to indicate whether to use the organization level call recording announcement settings. If the flag is set to true, indicates that the callRecordingAnnouncementSelection setting is inherited from the organization-level configuration. If the flag is set to false, indicates that the callRecordingAnnouncementSelection setting is customized at the location level."
+          },
+          "start": {
+            "type": "object",
+            "description": "The start announcement settings for this location.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "CUSTOM",
+                  "DEFAULT"
+                ],
+                "description": "Type of announcement file to be played.\n * `CUSTOM` - Custom announcement file.\n * `DEFAULT` - Default announcement file.\n"
+              },
+              "audioAnnouncementFile": {
+                "type": "object",
+                "description": "The custom audio announcement file to be played.",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC9iOTg2MWI3MS1hN2MxLTQxZmUtYjNmZC1lZDNkOTdjYTFjMzQ=",
+                    "description": "Unique identifier for the custom audio announcement file."
+                  },
+                  "fileName": {
+                    "type": "string",
+                    "example": "SampleAnnouncement",
+                    "description": "The original file name of the uploaded custom audio announcement."
+                  },
+                  "mediaFileType": {
+                    "type": "string",
+                    "enum": [
+                      "WAV"
+                    ],
+                    "example": "WAV",
+                    "description": "Type of the announcement file. Type is an enum with supported values WAV"
+                  },
+                  "level": {
+                    "type": "string",
+                    "enum": [
+                      "ORGANIZATION",
+                      "LOCATION"
+                    ],
+                    "description": "Announcement audio file level.",
+                    "example": "ORGANIZATION"
+                  },
+                  "isTextToSpeech": {
+                    "type": "boolean",
+                    "example": true,
+                    "description": "Indicates if the announcement is created by TTS."
+                  }
+                }
+              }
+            }
+          },
+          "stop": {
+            "type": "object",
+            "description": "The stop announcement settings for this location.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "CUSTOM",
+                  "DEFAULT"
+                ],
+                "description": "Type of announcement file to be played.\n * `CUSTOM` - Custom announcement file.\n * `DEFAULT` - Default announcement file.\n"
+              },
+              "audioAnnouncementFile": {
+                "type": "object",
+                "description": "The custom audio announcement file to be played.",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC82ZjU0Y2NhNS05ZWY5LTQ3N2EtYThkNi0wY2EyNzU4MTAxM2Y=",
+                    "description": "Unique identifier for the custom audio announcement file."
+                  },
+                  "fileName": {
+                    "type": "string",
+                    "example": "SampleAnnouncement",
+                    "description": "The original file name of the uploaded custom audio announcement."
+                  },
+                  "mediaFileType": {
+                    "type": "string",
+                    "enum": [
+                      "WAV"
+                    ],
+                    "example": "WAV",
+                    "description": "Type of the announcement file. Type is an enum with supported values WAV"
+                  },
+                  "level": {
+                    "type": "string",
+                    "enum": [
+                      "ORGANIZATION",
+                      "LOCATION"
+                    ],
+                    "description": "Announcement audio file level.",
+                    "example": "ORGANIZATION"
+                  },
+                  "isTextToSpeech": {
+                    "type": "boolean",
+                    "example": true,
+                    "description": "Indicates if the announcement is created by TTS."
+                  }
+                }
+              }
+            }
+          },
+          "pause": {
+            "type": "object",
+            "description": "The pause announcement settings for this location.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "CUSTOM",
+                  "DEFAULT"
+                ],
+                "description": "Type of announcement file to be played.\n * `CUSTOM` - Custom announcement file.\n * `DEFAULT` - Default announcement file.\n"
+              },
+              "audioAnnouncementFile": {
+                "type": "object",
+                "description": "The custom audio announcement file to be played.",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC82M2NiYTMwOS05NjQ2LTQzMjUtOTZlNC02N2ZmYWVlZjNiOWI=",
+                    "description": "Unique identifier for the custom audio announcement file."
+                  },
+                  "fileName": {
+                    "type": "string",
+                    "example": "SampleAnnouncement",
+                    "description": "The original file name of the uploaded custom audio announcement."
+                  },
+                  "mediaFileType": {
+                    "type": "string",
+                    "enum": [
+                      "WAV"
+                    ],
+                    "example": "WAV",
+                    "description": "Type of the announcement file. Type is an enum with supported values WAV"
+                  },
+                  "level": {
+                    "type": "string",
+                    "enum": [
+                      "ORGANIZATION",
+                      "LOCATION"
+                    ],
+                    "description": "Announcement audio file level.",
+                    "example": "ORGANIZATION"
+                  },
+                  "isTextToSpeech": {
+                    "type": "boolean",
+                    "example": true,
+                    "description": "Indicates if the announcement is created by TTS."
+                  }
+                }
+              }
+            }
+          },
+          "resume": {
+            "type": "object",
+            "description": "The resume announcement settings for this location.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "CUSTOM",
+                  "DEFAULT"
+                ],
+                "description": "Type of announcement file to be played.\n * `CUSTOM` - Custom announcement file.\n * `DEFAULT` - Default announcement file.\n"
+              },
+              "audioAnnouncementFile": {
+                "type": "object",
+                "description": "The custom audio announcement file to be played.",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC8xM2NlNzBkYS00NDkwLTQ2OWItOTg4YS1mYjA0MzExNmQ3ZTU=",
+                    "description": "Unique identifier for the custom audio announcement file."
+                  },
+                  "fileName": {
+                    "type": "string",
+                    "example": "SampleAnnouncement",
+                    "description": "The original file name of the uploaded custom audio announcement."
+                  },
+                  "mediaFileType": {
+                    "type": "string",
+                    "enum": [
+                      "WAV"
+                    ],
+                    "example": "WAV",
+                    "description": "Type of the announcement file. Type is an enum with supported values WAV"
+                  },
+                  "level": {
+                    "type": "string",
+                    "enum": [
+                      "ORGANIZATION",
+                      "LOCATION"
+                    ],
+                    "description": "Announcement audio file level.",
+                    "example": "ORGANIZATION"
+                  },
+                  "isTextToSpeech": {
+                    "type": "boolean",
+                    "example": true,
+                    "description": "Indicates if the announcement is created by TTS."
+                  }
+                }
+              }
+            }
+          },
+          "failureProceedWithCall": {
+            "type": "object",
+            "description": "The failure proceed with call announcement settings for this location.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "CUSTOM",
+                  "DEFAULT"
+                ],
+                "description": "Type of announcement file to be played.\n * `CUSTOM` - Custom announcement file.\n * `DEFAULT` - Default announcement file.\n"
+              },
+              "audioAnnouncementFile": {
+                "type": "object",
+                "description": "The custom audio announcement file to be played.",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC80ZjU0Y2NhNS05ZWY5LTQ3N2EtYThkNi0wY2EyNzU4MTAxM2Y=",
+                    "description": "Unique identifier for the custom audio announcement file."
+                  },
+                  "fileName": {
+                    "type": "string",
+                    "example": "SampleAnnouncement",
+                    "description": "The original file name of the uploaded custom audio announcement."
+                  },
+                  "mediaFileType": {
+                    "type": "string",
+                    "enum": [
+                      "WAV"
+                    ],
+                    "example": "WAV",
+                    "description": "Type of the announcement file. Type is an enum with supported values WAV"
+                  },
+                  "level": {
+                    "type": "string",
+                    "enum": [
+                      "ORGANIZATION",
+                      "LOCATION"
+                    ],
+                    "description": "Announcement audio file level.",
+                    "example": "ORGANIZATION"
+                  },
+                  "isTextToSpeech": {
+                    "type": "boolean",
+                    "example": true,
+                    "description": "Indicates if the announcement is created by TTS."
+                  }
+                }
+              }
+            }
+          },
+          "failureEndWithCall": {
+            "type": "object",
+            "description": "The failure end with call announcement settings for this location.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "CUSTOM",
+                  "DEFAULT"
+                ],
+                "description": "Type of announcement file to be played.\n * `CUSTOM` - Custom announcement file.\n * `DEFAULT` - Default announcement file.\n"
+              },
+              "audioAnnouncementFile": {
+                "type": "object",
+                "description": "The custom audio announcement file to be played.",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC9mZTU4YTE1ZS1kNzMwLTQ4ZGYtYWU4Ny1jNjc5YjM3YmQ4Mzk=",
+                    "description": "Unique identifier for the custom audio announcement file."
+                  },
+                  "fileName": {
+                    "type": "string",
+                    "example": "SampleAnnouncement",
+                    "description": "The original file name of the uploaded custom audio announcement."
+                  },
+                  "mediaFileType": {
+                    "type": "string",
+                    "enum": [
+                      "WAV"
+                    ],
+                    "example": "WAV",
+                    "description": "Type of the announcement file. Type is an enum with supported values WAV"
+                  },
+                  "level": {
+                    "type": "string",
+                    "enum": [
+                      "ORGANIZATION",
+                      "LOCATION"
+                    ],
+                    "description": "Announcement audio file level.",
+                    "example": "ORGANIZATION"
+                  },
+                  "isTextToSpeech": {
+                    "type": "boolean",
+                    "example": true,
+                    "description": "Indicates if the announcement is created by TTS."
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "ModifyLocationCallRecordingAnnouncementObject": {
+        "type": "object",
+        "properties": {
+          "useOrgLevelAnnouncementEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Flag to indicate whether to use the organization level call recording announcement settings. If the flag is set to true, indicates that the callRecordingAnnouncementSelection setting is inherited from the organization-level configuration. If the flag is set to false, indicates that the callRecordingAnnouncementSelection setting is customized at the location level."
+          },
+          "start": {
+            "type": "object",
+            "description": "The start announcement settings for this location.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "CUSTOM",
+                  "DEFAULT"
+                ],
+                "description": "Type of announcement file to be played.\n * `CUSTOM` - Custom announcement file.\n * `DEFAULT` - Default announcement file.\n"
+              },
+              "audioAnnouncementFileId": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC9iOTg2MWI3MS1hN2MxLTQxZmUtYjNmZC1lZDNkOTdjYTFjMzQ=",
+                "description": "Unique identifier for the custom audio announcement file."
+              }
+            }
+          },
+          "stop": {
+            "type": "object",
+            "description": "The stop announcement settings for this location.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "CUSTOM",
+                  "DEFAULT"
+                ],
+                "description": "Type of announcement file to be played.\n * `CUSTOM` - Custom announcement file.\n * `DEFAULT` - Default announcement file.\n"
+              },
+              "audioAnnouncementFileId": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC82ZjU0Y2NhNS05ZWY5LTQ3N2EtYThkNi0wY2EyNzU4MTAxM2Y=",
+                "description": "Unique identifier for the custom audio announcement file."
+              }
+            }
+          },
+          "pause": {
+            "type": "object",
+            "description": "The pause announcement settings for this location.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "CUSTOM",
+                  "DEFAULT"
+                ],
+                "description": "Type of announcement file to be played.\n * `CUSTOM` - Custom announcement file.\n * `DEFAULT` - Default announcement file.\n"
+              },
+              "audioAnnouncementFileId": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC82M2NiYTMwOS05NjQ2LTQzMjUtOTZlNC02N2ZmYWVlZjNiOWI=",
+                "description": "Unique identifier for the custom audio announcement file."
+              }
+            }
+          },
+          "resume": {
+            "type": "object",
+            "description": "The resume announcement settings for this location.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "CUSTOM",
+                  "DEFAULT"
+                ],
+                "description": "Type of announcement file to be played.\n * `CUSTOM` - Custom announcement file.\n * `DEFAULT` - Default announcement file.\n"
+              },
+              "audioAnnouncementFileId": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC8xM2NlNzBkYS00NDkwLTQ2OWItOTg4YS1mYjA0MzExNmQ3ZTU=",
+                "description": "Unique identifier for the custom audio announcement file."
+              }
+            }
+          },
+          "failureEndWithCall": {
+            "type": "object",
+            "description": "The failure end with call announcement settings for this location.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "CUSTOM",
+                  "DEFAULT"
+                ],
+                "description": "Type of announcement file to be played.\n * `CUSTOM` - Custom announcement file.\n * `DEFAULT` - Default announcement file.\n"
+              },
+              "audioAnnouncementFileId": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC9mZTU4YTE1ZS1kNzMwLTQ4ZGYtYWU4Ny1jNjc5YjM3YmQ4Mzk=",
+                "description": "Unique identifier for the custom audio announcement file."
+              }
+            }
+          },
+          "failureProceedWithCall": {
+            "type": "object",
+            "description": "The failure proceed with call announcement settings for this location.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "CUSTOM",
+                  "DEFAULT"
+                ],
+                "description": "Type of announcement file to be played.\n * `CUSTOM` - Custom announcement file.\n * `DEFAULT` - Default announcement file.\n"
+              },
+              "audioAnnouncementFileId": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC80ZjU0Y2NhNS05ZWY5LTQ3N2EtYThkNi0wY2EyNzU4MTAxM2Y=",
+                "description": "Unique identifier for the custom audio announcement file."
+              }
+            }
           }
         }
       },
