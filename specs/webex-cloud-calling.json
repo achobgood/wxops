@@ -17233,7 +17233,7 @@
         },
         "summary": "Get My Monitoring Settings",
         "operationId": "getMyMonitoringSettings",
-        "description": "Retrieves the monitoring settings of the logged in person, which shows specified people, places, virtual lines or call park extensions that are being monitored.\n\nMonitors the line status which indicates if a person, place or virtual line is on a call and if a call has been parked on that extension.\n\nThis API requires a user auth token with a scope of `spark:telephony_config_read`.",
+        "description": "Retrieves the monitoring settings for the authenticated person, which shows specified people, places, virtual lines or call park extensions that are being monitored.\n\nMonitors the line status which indicates if a person, place or virtual line is on a call and if a call has been parked on that extension.\n\nThis API requires a user auth token with a scope of `spark:telephony_config_read`.",
         "tags": [
           "Call Settings For Me"
         ],
@@ -26159,6 +26159,488 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         }
+      }
+    },
+    "/telephony/config/people/me/settings/speedDials": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpeedDialsGetResponse"
+                },
+                "example": {
+                  "speedDials": [
+                    {
+                      "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS85M2JjZWQ2Mi1lYWRmLTQ0MGItYThiYi03ZWQ5ZWEwNzExMTg",
+                      "lastName": "Nelson",
+                      "firstName": "John",
+                      "displayName": "John Nelson",
+                      "type": "PEOPLE",
+                      "phoneNumber": "+15594015482",
+                      "extension": "50003",
+                      "routingPrefix": "8327",
+                      "locationName": "San Francisco",
+                      "locationId": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzFiNDIzN2U4LWE2MDYtNGM5Ni1iMDZmLTYzMmU5N2FjZmQxNg",
+                      "lineKeyLabel": "Manager"
+                    }
+                  ],
+                  "availableEntriesCount": 3
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get Speed Dials",
+        "operationId": "getSpeedDials",
+        "description": "Get the Speed Dials settings for the authenticated user. This API returns all configured speed dials (no pagination).\n\nSpeed Dials allow Webex Calling users to quickly dial frequently contacted people, places, or virtual lines by assigning them to dedicated keys on their desk phones or soft clients.\n\nThis API requires a user auth token with a scope of `spark:telephony_config_read`.",
+        "tags": [
+          "Call Settings For Me"
+        ],
+        "parameters": []
+      },
+      "put": {
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Modify Speed Dials",
+        "operationId": "modifySpeedDials",
+        "description": "Modify the Speed Dials settings for the authenticated user. This is a replacement list for speed dials.\n\nSpeed Dials allow Webex Calling users to quickly dial frequently contacted people, places, or virtual lines by assigning them to dedicated keys on their desk phones or soft clients.\n\nThis API requires a user auth token with a scope of `spark:telephony_config_write`.",
+        "tags": [
+          "Call Settings For Me"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpeedDialsPutRequest"
+              },
+              "example": {
+                "speedDials": [
+                  {
+                    "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS85M2JjZWQ2Mi1lYWRmLTQ0MGItYThiYi03ZWQ5ZWEwNzExMTg",
+                    "lineKeyLabel": "Manager"
+                  },
+                  {
+                    "phoneNumber": "+15594015482",
+                    "lineKeyLabel": "Support"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/telephony/config/people/me/settings/speedDials/availableMembers": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpeedDialAvailableMembersResponse"
+                },
+                "example": {
+                  "members": [
+                    {
+                      "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS85M2JjZWQ2Mi1lYWRmLTQ0MGItYThiYi03ZWQ5ZWEwNzExMTg",
+                      "lastName": "Nelson",
+                      "firstName": "John",
+                      "displayName": "John Nelson",
+                      "phoneNumber": "+15594015482",
+                      "extension": "50003",
+                      "type": "PEOPLE",
+                      "locationId": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzFiNDIzN2U4LWE2MDYtNGM5Ni1iMDZmLTYzMmU5N2FjZmQxNg",
+                      "locationName": "San Francisco"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get Speed Dial Available Members",
+        "operationId": "getSpeedDialAvailableMembers",
+        "description": "Get the available members which can be configured as Speed Dials for the authenticated user.\n\nSpeed Dials allow Webex Calling users to quickly dial frequently contacted people, places, or virtual lines by assigning them to dedicated keys on their desk phones or soft clients.\n\nThis API requires a user auth token with a scope of `spark:telephony_config_read`.",
+        "tags": [
+          "Call Settings For Me"
+        ],
+        "parameters": [
+          {
+            "name": "max",
+            "in": "query",
+            "description": "Limit the number of objects returned to this maximum count.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 2000
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "description": "Start at the zero-based offset in the list of matching objects.",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "locationId",
+            "in": "query",
+            "description": "Return the members list available in this location.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "description": "Search (Contains) based on first name and last name.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 255
+              }
+            }
+          },
+          {
+            "name": "phoneNumber",
+            "in": "query",
+            "description": "Search (Contains) based on number and extension.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 20
+              }
+            }
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "description": "Sort by first name (`firstName`) or last name (`lastName`). Sort directions asc or desc.\n * `asc` - Sort in ascending order.\n * `desc` - Sort in descending order.\n",
+            "required": false,
+            "example": "firstName|lastName|firstName-desc|lastName-desc",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/telephony/config/people/me/organization/locations": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationLocationsGetResponse"
+                },
+                "example": {
+                  "locations": [
+                    {
+                      "id": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzgzMTA2ZDE0LTRjNzQtNGQ1Zi04YTllLTk3ZTIxNGVmNGE1Yg",
+                      "name": "Bangalore",
+                      "routingPrefix": "2345"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get Location List for My Organization",
+        "operationId": "getMyOrganizationLocations",
+        "description": "Get the list of locations for the authenticated person's organization.\n\nLocations are used to organize Webex Calling resources such as people, workspaces, and features within an organization. Each location can have its own settings and configurations for calling services.\n\nThis API requires a user auth token with a scope of `spark:telephony_config_read`.",
+        "tags": [
+          "Call Settings For Me"
+        ],
+        "parameters": [
+          {
+            "name": "max",
+            "in": "query",
+            "description": "Number of records per page.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 2000,
+              "minimum": 1,
+              "maximum": 2000
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "description": "Start at the zero-based offset in the list of matching objects.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "description": "Search (Contains) based on location name. Multiple values are logically OR-ed.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              }
+            }
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "description": "Sort by location name (`name`). Sort directions asc or desc.\n * `asc` - Sort in ascending order.\n * `desc` - Sort in descending order.\n",
+            "required": false,
+            "example": "name|name-asc|name-desc",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/telephony/config/people/me/organization/largeOrgStatus": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LargeOrgStatusGetResponse"
+                },
+                "example": {
+                  "isLargeOrg": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          }
+        },
+        "summary": "Get Large Organization Status",
+        "operationId": "getMyOrganizationLargeOrgStatus",
+        "description": "Get whether the authenticated person's organization is considered as a large organization.\n\nLarge organization status is used to determine how certain Webex Calling features behave, such as pagination limits and search capabilities, to optimize performance for organizations with many people.\n\nThis API requires a user auth token with a scope of `spark:telephony_config_read`.",
+        "tags": [
+          "Call Settings For Me"
+        ],
+        "parameters": []
       }
     },
     "/telephony/config/announcementLanguages": {
@@ -54251,6 +54733,1345 @@
         }
       }
     },
+    "/telephony/config/locations/{locationId}/queues/{queueId}/dnis": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "dnisList"
+                  ],
+                  "example": {
+                    "dnisList": [
+                      {
+                        "id": "Y2lzY29zcGFyazovL3VzL0ROSVMvZTQ0NTE5OWEtNzlkYS00NWE1LTkyY2EtNDI1YzRmMzA0ZDk5",
+                        "name": "Support Line",
+                        "phoneNumber": "+15551234567",
+                        "extension": "100",
+                        "routingPrefix": "8501",
+                        "esn": "8501100",
+                        "ringPattern": "NORMAL",
+                        "customDnisAnnouncementSettingsEnabled": false
+                      }
+                    ]
+                  },
+                  "properties": {
+                    "dnisList": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/DnisObject"
+                      },
+                      "description": "List of DNIS. Will return empty array when there is no DNIS in the queue. Item order is preserved exactly as returned, sorted by DNIS name (ascending)."
+                    }
+                  }
+                },
+                "example": {
+                  "dnisList": [
+                    {
+                      "id": "Y2lzY29zcGFyazovL3VzL0ROSVMvZTQ0NTE5OWEtNzlkYS00NWE1LTkyY2EtNDI1YzRmMzA0ZDk5",
+                      "name": "Support Line",
+                      "phoneNumber": "+15551234567",
+                      "extension": "100",
+                      "routingPrefix": "8501",
+                      "esn": "8501100",
+                      "ringPattern": "NORMAL",
+                      "customDnisAnnouncementSettingsEnabled": false
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get List of DNIS for a Call Queue",
+        "operationId": "getListOfDnisForACallQueue",
+        "description": "Get the list of DNIS (Dialed Number Identification Service) entries for a call queue.\n\nDNIS allows call queues to distinguish between primary and alternate numbers when delivering calls to agents. Each DNIS entry can have its own name, phone number, extension, ring pattern, and custom announcement settings.\n\nThe maximum number of DNIS entries per call queue is 100.\n\nRetrieving this list requires a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "tags": [
+          "Features:  Call Queue"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "description": "The location ID where the call queue exists.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzMxMTYx",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "queueId",
+            "in": "path",
+            "description": "The call queue ID.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0NBTExfUVVFVUUvNTg0Y2Y0Y2QtZWVhNy00YzhjLTgzZWUtNjdkODhmYzZlYWE1",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "The organization ID of the customer.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ]
+      },
+      "post": {
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id"
+                  ],
+                  "example": {
+                    "id": "Y2lzY29zcGFyazovL3VzL0ROSVMvZTQ0NTE5OWEtNzlkYS00NWE1LTkyY2EtNDI1YzRmMzA0ZDk5"
+                  },
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "example": "Y2lzY29zcGFyazovL3VzL0ROSVMvZTQ0NTE5OWEtNzlkYS00NWE1LTkyY2EtNDI1YzRmMzA0ZDk5",
+                      "description": "Unique identifier for the DNIS."
+                    }
+                  }
+                },
+                "example": {
+                  "id": "Y2lzY29zcGFyazovL3VzL0ROSVMvZTQ0NTE5OWEtNzlkYS00NWE1LTkyY2EtNDI1YzRmMzA0ZDk5"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Create a DNIS for a Call Queue",
+        "operationId": "createADnisForACallQueue",
+        "description": "Create a new DNIS (Dialed Number Identification Service) entry for a call queue.\n\nDNIS allows call queues to distinguish between primary and alternate numbers when delivering calls to agents.\n\nThe maximum number of DNIS entries per call queue is 100. Either `phoneNumber` or `extension` is required.\n\nCreating a DNIS requires a full administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "tags": [
+          "Features:  Call Queue"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "description": "The location ID where the call queue exists.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzMxMTYx",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "queueId",
+            "in": "path",
+            "description": "The call queue ID.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0NBTExfUVVFVUUvNTg0Y2Y0Y2QtZWVhNy00YzhjLTgzZWUtNjdkODhmYzZlYWE1",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "The organization ID of the customer.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDnisRequest"
+              },
+              "example": {
+                "name": "Support Line",
+                "phoneNumber": "+15551234567",
+                "extension": "100",
+                "ringPattern": "NORMAL"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Bulk Delete DNIS for a Call Queue",
+        "operationId": "bulkDeleteDnisForACallQueue",
+        "description": "Bulk delete a list of DNIS (Dialed Number Identification Service) entries for a call queue.\n\nA maximum of 99 DNIS entries can be deleted in a single request.\n\nDeleting DNIS entries requires a full administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "tags": [
+          "Features:  Call Queue"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "description": "The location ID where the call queue exists.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzMxMTYx",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "queueId",
+            "in": "path",
+            "description": "The call queue ID.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0NBTExfUVVFVUUvNTg0Y2Y0Y2QtZWVhNy00YzhjLTgzZWUtNjdkODhmYzZlYWE1",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "The organization ID of the customer.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkDeleteDnisRequest"
+              },
+              "example": {
+                "items": [
+                  "Y2lzY29zcGFyazovL3VzL0ROSVMvZTQ0NTE5OWEtNzlkYS00NWE1LTkyY2EtNDI1YzRmMzA0ZDk5",
+                  "Y2lzY29zcGFyazovL3VzL0ROSVMvYWJjZGVmMTItMzQ1Ni03ODkwLWFiY2QtZWYxMjM0NTY3ODkw"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/telephony/config/locations/{locationId}/queues/{queueId}/dnis/{dnisId}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DnisObject"
+                },
+                "example": {
+                  "id": "Y2lzY29zcGFyazovL3VzL0ROSVMvZTQ0NTE5OWEtNzlkYS00NWE1LTkyY2EtNDI1YzRmMzA0ZDk5",
+                  "name": "Support Line",
+                  "phoneNumber": "+15551234567",
+                  "extension": "1000",
+                  "routingPrefix": "8501",
+                  "esn": "85011000",
+                  "ringPattern": "NORMAL",
+                  "customDnisAnnouncementSettingsEnabled": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get a DNIS for a Call Queue",
+        "operationId": "getADnisForACallQueue",
+        "description": "Get details of a specific DNIS (Dialed Number Identification Service) entry for a call queue.\n\nRetrieving DNIS details requires a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "tags": [
+          "Features:  Call Queue"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "description": "The location ID where the call queue exists.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzMxMTYx",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "queueId",
+            "in": "path",
+            "description": "The call queue ID.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0NBTExfUVVFVUUvNTg0Y2Y0Y2QtZWVhNy00YzhjLTgzZWUtNjdkODhmYzZlYWE1",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "dnisId",
+            "in": "path",
+            "description": "The DNIS ID.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0ROSVMvZTQ0NTE5OWEtNzlkYS00NWE1LTkyY2EtNDI1YzRmMzA0ZDk5",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "The organization ID of the customer.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ]
+      },
+      "put": {
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Modify a DNIS for a Call Queue",
+        "operationId": "modifyADnisForACallQueue",
+        "description": "Modify a DNIS (Dialed Number Identification Service) entry for a call queue.\n\nTo remove a phone number or extension from the DNIS, set the field to `null`.\n\nModifying a DNIS requires a full administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "tags": [
+          "Features:  Call Queue"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "description": "The location ID where the call queue exists.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzMxMTYx",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "queueId",
+            "in": "path",
+            "description": "The call queue ID.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0NBTExfUVVFVUUvNTg0Y2Y0Y2QtZWVhNy00YzhjLTgzZWUtNjdkODhmYzZlYWE1",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "dnisId",
+            "in": "path",
+            "description": "The DNIS ID.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0ROSVMvZTQ0NTE5OWEtNzlkYS00NWE1LTkyY2EtNDI1YzRmMzA0ZDk5",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "The organization ID of the customer.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifyDnisRequest"
+              },
+              "example": {
+                "name": "Support Line",
+                "phoneNumber": "+15551234567",
+                "extension": "100",
+                "ringPattern": "NORMAL",
+                "customDnisAnnouncementSettingsEnabled": true
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Delete a DNIS for a Call Queue",
+        "operationId": "deleteADnisForACallQueue",
+        "description": "Delete a DNIS (Dialed Number Identification Service) entry for a call queue.\n\nDeleting a DNIS requires a full administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "tags": [
+          "Features:  Call Queue"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "description": "The location ID where the call queue exists.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzMxMTYx",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "queueId",
+            "in": "path",
+            "description": "The call queue ID.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0NBTExfUVVFVUUvNTg0Y2Y0Y2QtZWVhNy00YzhjLTgzZWUtNjdkODhmYzZlYWE1",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "dnisId",
+            "in": "path",
+            "description": "The DNIS ID.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0ROSVMvZTQ0NTE5OWEtNzlkYS00NWE1LTkyY2EtNDI1YzRmMzA0ZDk5",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "The organization ID of the customer.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ]
+      }
+    },
+    "/telephony/config/locations/{locationId}/queues/{queueId}/dnis/settings": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DnisSettings"
+                },
+                "example": {
+                  "distinctiveRingingEnabled": true,
+                  "displayDnisNameAndNumberEnabled": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get DNIS Settings for a Call Queue",
+        "operationId": "getDnisSettingsForACallQueue",
+        "description": "Get DNIS (Dialed Number Identification Service) settings for a call queue.\n\nRetrieving DNIS settings requires a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "tags": [
+          "Features:  Call Queue"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "description": "The location ID where the call queue exists.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzMxMTYx",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "queueId",
+            "in": "path",
+            "description": "The call queue ID.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0NBTExfUVVFVUUvNTg0Y2Y0Y2QtZWVhNy00YzhjLTgzZWUtNjdkODhmYzZlYWE1",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "The organization ID of the customer.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ]
+      },
+      "put": {
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Modify DNIS Settings for a Call Queue",
+        "operationId": "modifyDnisSettingsForACallQueue",
+        "description": "Modify DNIS (Dialed Number Identification Service) settings for a call queue.\n\nModifying DNIS settings requires a full administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "tags": [
+          "Features:  Call Queue"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "description": "The location ID where the call queue exists.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzMxMTYx",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "queueId",
+            "in": "path",
+            "description": "The call queue ID.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0NBTExfUVVFVUUvNTg0Y2Y0Y2QtZWVhNy00YzhjLTgzZWUtNjdkODhmYzZlYWE1",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "The organization ID of the customer.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifyDnisSettings"
+              },
+              "example": {
+                "distinctiveRingingEnabled": true,
+                "displayDnisNameAndNumberEnabled": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/telephony/config/locations/{locationId}/queues/{queueId}/dnis/{dnisId}/announcements": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DnisAnnouncementsGet"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get DNIS Announcements for a Call Queue",
+        "operationId": "getDnisAnnouncementsForACallQueue",
+        "description": "Get the announcement settings for a specific DNIS (Dialed Number Identification Service) entry in a call queue.\n\nThis includes welcome message, comfort message, music on hold, wait message, and whisper message settings.\n\nRetrieving DNIS announcements requires a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "tags": [
+          "Features:  Call Queue"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "description": "The location ID where the call queue exists.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzMxMTYx",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "queueId",
+            "in": "path",
+            "description": "The call queue ID.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0NBTExfUVVFVUUvNTg0Y2Y0Y2QtZWVhNy00YzhjLTgzZWUtNjdkODhmYzZlYWE1",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "dnisId",
+            "in": "path",
+            "description": "The DNIS ID.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0ROSVMvZTQ0NTE5OWEtNzlkYS00NWE1LTkyY2EtNDI1YzRmMzA0ZDk5",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "The organization ID of the customer.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ]
+      },
+      "put": {
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Modify DNIS Announcements for a Call Queue",
+        "operationId": "modifyDnisAnnouncementsForACallQueue",
+        "description": "Modify the announcement settings for a specific DNIS (Dialed Number Identification Service) entry in a call queue.\n\nThis includes welcome message, comfort message, music on hold, wait message, and whisper message settings.\n\nModifying DNIS announcements requires a full administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "tags": [
+          "Features:  Call Queue"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "description": "The location ID where the call queue exists.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzMxMTYx",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "queueId",
+            "in": "path",
+            "description": "The call queue ID.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0NBTExfUVVFVUUvNTg0Y2Y0Y2QtZWVhNy00YzhjLTgzZWUtNjdkODhmYzZlYWE1",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "dnisId",
+            "in": "path",
+            "description": "The DNIS ID.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0ROSVMvZTQ0NTE5OWEtNzlkYS00NWE1LTkyY2EtNDI1YzRmMzA0ZDk5",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "The organization ID of the customer.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DnisAnnouncementsModify"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/telephony/config/locations/{locationId}/queues/dnis/availableNumbers": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailableNumbersResponse"
+                },
+                "example": {
+                  "phoneNumbers": [
+                    {
+                      "phoneNumber": "+12134567895",
+                      "state": "ACTIVE",
+                      "isMainNumber": false,
+                      "telephonyType": "PSTN_NUMBER",
+                      "tollFreeNumber": false,
+                      "isServiceNumber": false
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get Available Phone Numbers for DNIS",
+        "operationId": "getAvailablePhoneNumbersForDnis",
+        "description": "Get the list of available phone numbers that can be assigned to a DNIS for call queues at a location.\n\nRetrieving available numbers requires a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "tags": [
+          "Features:  Call Queue"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "description": "The location ID.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzMxMTYx",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "The organization ID of the customer.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "max",
+            "in": "query",
+            "description": "Limit the number of records returned per page.",
+            "example": 10,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "description": "Offset for pagination.",
+            "example": 0,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000
+            }
+          },
+          {
+            "name": "phoneNumber",
+            "in": "query",
+            "description": "Filter by phone number.",
+            "example": "+12134567895",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20
+            }
+          }
+        ]
+      }
+    },
     "/telephony/config/callRecording": {
       "get": {
         "responses": {
@@ -81635,7 +83456,7 @@
           }
         },
         "summary": "Modify a person's Application Services Settings",
-        "operationId": "Modify a person's Application Services Settings",
+        "operationId": "Modify Application Services Settings of a person",
         "description": "Application services let you determine the ringing behavior for calls made to users in certain scenarios. You can also specify which devices users can download the Webex Calling app on.\n\nThis API requires a full or user administrator or location administrator auth token with the spark-admin:people_write scope.",
         "tags": [
           "User Call Settings (1/2)"
@@ -83093,7 +84914,7 @@
           }
         },
         "summary": "Read Person's Calling Behavior",
-        "operationId": "Read Person's Calling Behavior",
+        "operationId": "Read Calling Behavior for a Person",
         "description": "Retrieves the calling behavior and UC Manager Profile settings for the person which includes overall calling behavior and calling UC Manager Profile ID.\n\nWebex Calling Behavior controls which Webex telephony application and which UC Manager Profile is to be used for a person.\n\nAn organization has an organization-wide default Calling Behavior that may be overridden for individual persons.\n\nUC Manager Profiles are applicable if your organization uses Jabber in Team Messaging mode or Calling in Webex (Unified CM).\n\nThe UC Manager Profile also has an organization-wide default and may be overridden for individual persons.\n\nThis API requires a full, user, or read-only administrator auth token with a scope of `spark-admin:people_read`.",
         "tags": [
           "User Call Settings (1/2)"
@@ -83174,7 +84995,7 @@
           }
         },
         "summary": "Configure a person's Calling Behavior",
-        "operationId": "Configure a person's Calling Behavior",
+        "operationId": "Configure Calling Behavior for a person",
         "description": "Modifies the calling behavior settings for the person which includes calling behavior and UC Manager Profile ID.\n\nWebex Calling Behavior controls which Webex telephony application and which UC Manager Profile is to be used for a person.\n\nAn organization has an organization-wide default Calling Behavior that may be overridden for individual persons.\n\nUC Manager Profiles are applicable if your organization uses Jabber in Team Messaging mode or Calling in Webex (Unified CM).\n\nThe UC Manager Profile also has an organization-wide default and may be overridden for individual persons.\n\nThis API requires a full or user administrator auth token with the `spark-admin:people_write` scope.",
         "tags": [
           "User Call Settings (1/2)"
@@ -83802,10 +85623,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MonitoringSettings"
+                  "$ref": "#/components/schemas/MonitoringSettingsGet"
                 },
                 "example": {
                   "callParkNotificationEnabled": true,
+                  "availableEntriesCount": 5,
                   "monitoredElements": [
                     {
                       "member": {
@@ -83817,10 +85639,10 @@
                         "email": "john.nelson@gmail.com",
                         "numbers": [
                           {
-                            "external": "+1-9728138888",
-                            "extension": "1234",
+                            "external": "+19728138888",
+                            "extension": "34496",
                             "routingPrefix": "1234",
-                            "esn": "12341234",
+                            "esn": "123434496",
                             "primary": true
                           }
                         ],
@@ -83834,27 +85656,46 @@
                         "lastName": "Smith",
                         "firstName": "Alice",
                         "displayName": "AliceSmith",
-                        "type": "VIRTUAL_LINE",
+                        "type": "PEOPLE",
                         "numbers": [
                           {
                             "external": "+19075552859",
                             "extension": "8086",
                             "routingPrefix": "1234",
-                            "esn": "12341234",
-                            "primary": "true"
+                            "esn": "12348086",
+                            "primary": true
                           }
                         ],
                         "location": "Dallas",
-                        "locationId": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzhmZjMwMjg5LWVhMzMtNDc1Ny1iMTBmLWQ2MWIyNzFhMDVlZg",
-                        "callparkextension": {
-                          "id": "Y2lzY29zcGFyazovL3VzL0NBTExfUEFSS19FWFRFTlNJT04vZTdlZDdiMDEtN2E4Ni00NDEwLWFlODMtOWJmODMzZGEzNzQy",
-                          "name": "Dallas-Test",
-                          "extension": "4001",
-                          "routingPrefix": "1234",
-                          "esn": "12344001",
-                          "location": "Dallas",
-                          "locationId": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzhmZjMwMjg5LWVhMzMtNDc1Ny1iMTBmLWQ2MWIyNzFhMDVlZg"
-                        }
+                        "locationId": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzhmZjMwMjg5LWVhMzMtNDc1Ny1iMTBmLWQ2MWIyNzFhMDVlZg"
+                      }
+                    },
+                    {
+                      "callparkextension": {
+                        "id": "Y2lzY29zcGFyazovL3VzL0NBTExfUEFSS19FWFRFTlNJT04vZTdlZDdiMDEtN2E4Ni00NDEwLWFlODMtOWJmODMzZGEzNzQy",
+                        "name": "Dallas-Test",
+                        "extension": "4001",
+                        "routingPrefix": "1234",
+                        "esn": "12344001",
+                        "location": "Dallas",
+                        "locationId": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzhmZjMwMjg5LWVhMzMtNDc1Ny1iMTBmLWQ2MWIyNzFhMDVlZg"
+                      }
+                    },
+                    {
+                      "speedDial": {
+                        "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS80NzQzNTI1Yi02ZjgxLTQ0NTktYTYxNC0yN2E0ZDIyZTZhYzI",
+                        "displayName": "Jack Hughes",
+                        "type": "PEOPLE",
+                        "lineKeyLabel": "Manager",
+                        "phoneNumber": "+19075552859",
+                        "location": "Richardson",
+                        "locationId": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OL2M2MDliOGE1LTAxNmQtNDAwNy1hN2E0LTJhMThiZmZjY2FmNg"
+                      }
+                    },
+                    {
+                      "speedDial": {
+                        "lineKeyLabel": "Sr Manager",
+                        "phoneNumber": "+19075552859"
                       }
                     }
                   ]
@@ -83908,11 +85749,11 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Retrieve a person's Monitoring Settings",
-        "operationId": "Retrieve a person's Monitoring Settings",
-        "description": "Retrieves the monitoring settings of the person, which shows specified people, places, virtual lines or call park extenions that are being monitored.\nMonitors the line status which indicates if a person, place or virtual line is on a call and if a call has been parked on that extension.\n\nThis API requires a full, user, or read-only administrator or location administrator auth token with a scope of `spark-admin:people_read`.",
+        "summary": "Retrieve a Person's Monitoring Settings",
+        "operationId": "getMonitoringSettingsPerson",
+        "description": "Retrieve the monitoring settings for a person, which show specified people, places, virtual lines, or call park extensions that are being monitored.\nMonitors the line status, indicating if a person, place, or virtual line is on a call and if a call has been parked on that extension.\n\nThis API requires a full, user, or read-only administrator or location administrator auth token with a scope of `spark-admin:people_read`.",
         "tags": [
-          "User Call Settings (1/2)"
+          "Person Call Settings"
         ],
         "parameters": [
           {
@@ -83928,7 +85769,7 @@
           {
             "name": "orgId",
             "in": "query",
-            "description": "ID of the organization in which the person resides. Only admin users of another organization (such as partners) may use this parameter as the default is the same organization as the token used to access API.",
+            "description": "ID of the organization in which the person resides. Only admin users of another organization (such as partners) may use this parameter, as the default is the same organization as the token used to access the API.",
             "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
             "schema": {
               "type": "string"
@@ -83989,11 +85830,11 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Modify a person's Monitoring Settings",
-        "operationId": "Modify a person's Monitoring Settings",
-        "description": "Modifies the monitoring settings of the person.\nMonitors the line status of specified people, places, virtual lines or call park extension. The line status indicates if a person, place or virtual line is on a call and if a call has been parked on that extension.\n\nThe number of monitored elements is limited to 50.\n\nThis API requires a full or user administrator or location administrator auth token with the `spark-admin:people_write` scope.",
+        "summary": "Modify Monitoring Settings for a Person",
+        "operationId": "modifyMonitoringSettingsPerson",
+        "description": "Modifies the monitoring settings of the person.\nMonitors the line status of specified people, places, virtual lines or call park extension. The line status indicates if a person, place or virtual line is on a call and if a call has been parked on that extension. Maximum 50 monitored elements.\n\nThis API requires a full or user administrator or location administrator auth token with the `spark-admin:people_write` scope.",
         "tags": [
-          "User Call Settings (1/2)"
+          "Person Call Settings"
         ],
         "parameters": [
           {
@@ -84009,7 +85850,7 @@
           {
             "name": "orgId",
             "in": "query",
-            "description": "ID of the organization in which the person resides. Only admin users of another organization (such as partners) may use this parameter as the default is the same organization as the token used to access API.",
+            "description": "ID of the organization in which the person resides. Only admin users of another organization (such as partners) may use this parameter, as the default is the same organization as the token used to access the API.",
             "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
             "schema": {
               "type": "string"
@@ -84022,17 +85863,458 @@
               "example": {
                 "enableCallParkNotification": true,
                 "monitoredElements": [
-                  "Y2lzY29zcGFyazovL3VzL1BFT1BMRS85OWNlZjRmYS03YTM5LTQ1ZDItOTNmNi1jNjA5YTRiMjgzODY",
-                  "Y2lzY29zcGFyazovL3VzL0NBTExfUEFSS19FWFRFTlNJT04vZTdlZDdiMDEtN2E4Ni00NDEwLWFlODMtOWJmODMzZGEzNzQy",
-                  "Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS9mNzc4ZTc4NS02MGZhLTQ1YjUtYTViZi04ODNkOWIyNTdlNGQ="
+                  {
+                    "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xYjhkYjA4YS0wY2JlLTRlZDctOThmMy05ZThlZjBhOGI2N2E",
+                    "type": "MEMBER"
+                  },
+                  {
+                    "id": "Y2lzY29zcGFyazovL3VzL0NBTExfUEFSS19FWFRFTlNJT04vZmJjNzlkNzAtMjM5Zi00YjIyLWE2YTAtZjAwNWFmOGNlMjA0",
+                    "type": "CALL_PARK_EXTENSION"
+                  },
+                  {
+                    "id": "Y2lzY29zcGFyazovL3VzL0NBTExfUEFSS19FWFRFTlNJT04vZmJjNzlkNzAtMjM5Zi00YjIyLWE2YTAtZjAwNWFmOGNlMjA0",
+                    "type": "SPEED_DIAL"
+                  },
+                  {
+                    "lineKeyLabel": "Sr Manager",
+                    "phoneNumber": "+19075552859"
+                  }
                 ]
               },
               "schema": {
-                "$ref": "#/components/schemas/MonitoringSettingsPut"
+                "$ref": "#/components/schemas/UserMonitoringPatch"
               }
             }
           }
         }
+      }
+    },
+    "/telephony/config/people/{personId}/monitoring/speedDials/availableMembers": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAvailableMembersForMonitoringResponse"
+                },
+                "example": {
+                  "members": [
+                    {
+                      "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS85ODhiYTQyOC0zMjMyLTRmNjItYjUyNy1hZGEyNTRlMTk0MjE",
+                      "firstName": "John",
+                      "lastName": "Doe",
+                      "displayName": "John Doe",
+                      "phoneNumber": "+14085551234",
+                      "extension": "1234",
+                      "type": "PEOPLE",
+                      "location": {
+                        "id": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzEyMzQ1Njc4OTAxMjM0NTY3ODkw",
+                        "name": "San Jose"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "description": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "trackingId": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "message": "Bad Gateway.",
+                  "errors": [
+                    {
+                      "description": "Bad Gateway."
+                    }
+                  ],
+                  "trackingId": "NA_5154a8eb-41a7-4647-b89f-79aedae6e2e2"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get Available Speed Dials for Person Monitoring",
+        "operationId": "getAvailableSpeedDialsForPersonMonitoring",
+        "description": "Get available speed dials for Person monitoring configuration. This API allows administrators to retrieve a list of members that can be added as speed dials for monitoring a specific person.\n\nSpeed dials allow quick access to frequently contacted members. When configured for monitoring, speed dials enable users to quickly call or monitor the status of specific members within the organization.\n\nThis API requires a full, user, or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "tags": [
+          "User Call Settings"
+        ],
+        "parameters": [
+          {
+            "name": "personId",
+            "in": "path",
+            "description": "Unique identifier for the person.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS85ODhiYTQyOC0zMjMyLTRmNjItYjUyNy1hZGEyNTRlMTk0MjE"
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "ID of the organization within which the person resides. Only admin users of another organization (such as partners) may use this parameter as the default is the same organization as the token used to access the API.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE"
+          },
+          {
+            "name": "locationId",
+            "in": "query",
+            "description": "Search for the available speed dials in the location ID.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzEyMzQ1Njc4OTAxMjM0NTY3ODkw"
+          },
+          {
+            "name": "memberName",
+            "in": "query",
+            "description": "Search for available members by name.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "John"
+          },
+          {
+            "name": "phoneNumber",
+            "in": "query",
+            "description": "Search for available members by number or extension.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "1234"
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "description": "Sort response based on `firstName` or `lastName` with sort direction `asc` or `desc`. Example: `lastName-asc` or `firstName-desc`. Default sort is ascending order.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "example": [
+              "lastName-asc"
+            ]
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "description": "Number of records to skip for pagination.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "example": 0
+          },
+          {
+            "name": "max",
+            "in": "query",
+            "description": "Number of records per page for pagination. Default: 2000. Maximum: 2000.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2000,
+              "default": 2000
+            },
+            "example": 100
+          }
+        ]
+      }
+    },
+    "/telephony/config/people/{personId}/monitoring/availableMembers": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAvailableMembersForMonitoringResponse"
+                },
+                "example": {
+                  "members": [
+                    {
+                      "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS85ODhiYTQyOC0zMjMyLTRmNjItYjUyNy1hZGEyNTRlMTk0MjE",
+                      "firstName": "John",
+                      "lastName": "Doe",
+                      "displayName": "John Doe",
+                      "phoneNumber": "+14085551234",
+                      "extension": "1234",
+                      "type": "PEOPLE",
+                      "location": {
+                        "id": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzEyMzQ1Njc4OTAxMjM0NTY3ODkw",
+                        "name": "San Jose"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "description": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "trackingId": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "message": "Bad Gateway.",
+                  "errors": [
+                    {
+                      "description": "Bad Gateway."
+                    }
+                  ],
+                  "trackingId": "NA_5154a8eb-41a7-4647-b89f-79aedae6e2e2"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get Available Members for Person Monitoring",
+        "operationId": "getAvailableMembersForPersonMonitoring",
+        "description": "Get available members for person monitoring. This API allows administrators to retrieve a list of members that can be added to the monitoring list for a specific person.\n\nWebex Calling monitoring allows a person to watch the line status of selected people, workspaces, and virtual lines. Configuring a monitoring list helps the person quickly see whether monitored members are on a call.\n\nThis API requires a full, user, or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "tags": [
+          "User Call Settings"
+        ],
+        "parameters": [
+          {
+            "name": "personId",
+            "in": "path",
+            "description": "Unique identifier for the person.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS85ODhiYTQyOC0zMjMyLTRmNjItYjUyNy1hZGEyNTRlMTk0MjE"
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "ID of the organization within which the person resides. Only admin users of another organization (such as partners) may use this parameter as the default is the same organization as the token used to access the API.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE"
+          },
+          {
+            "name": "locationId",
+            "in": "query",
+            "description": "Search for the available members in the location ID.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzEyMzQ1Njc4OTAxMjM0NTY3ODkw"
+          },
+          {
+            "name": "memberName",
+            "in": "query",
+            "description": "Search for available members by name.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "John"
+          },
+          {
+            "name": "phoneNumber",
+            "in": "query",
+            "description": "Search for available members by number or extension.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "1234"
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "description": "Sort response based on `firstName` or `lastName` with sort direction `asc` or `desc`. Example: `lastName-asc` or `firstName-desc`. Default sort is ascending order.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "example": [
+              "lastName-asc"
+            ]
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "description": "Number of records to skip for pagination.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "example": 0
+          },
+          {
+            "name": "max",
+            "in": "query",
+            "description": "Number of records per page for pagination. Default: 2000. Maximum: 2000.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2000,
+              "default": 2000
+            },
+            "example": 100
+          }
+        ]
       }
     },
     "/people/{personId}/features/incomingPermission": {
@@ -84353,7 +86635,7 @@
           }
         },
         "summary": "Retrieve a person's Outgoing Calling Permissions Settings",
-        "operationId": "Retrieve a person's Outgoing Calling Permissions Settings",
+        "operationId": "Retrieve Outgoing Calling Permissions Settings for a Person",
         "description": "Retrieve a person's Outgoing Calling Permissions settings.\n\nOutgoing calling permissions regulate behavior for calls placed to various destinations and default to the local level settings. You can change the outgoing calling permissions for a person if you want them to be different from your organization's default.\n\nThis API requires a full, user, or read-only administrator or location administrator auth token with a scope of `spark-admin:people_read`.",
         "tags": [
           "User Call Settings (1/2)"
@@ -84434,7 +86716,7 @@
           }
         },
         "summary": "Modify a person's Outgoing Calling Permissions Settings",
-        "operationId": "Modify a person's Outgoing Calling Permissions Settings",
+        "operationId": "Modify Outgoing Calling Permissions Settings for a Person",
         "description": "Modify a person's Outgoing Calling Permissions settings.\n\nOutgoing calling permissions regulate behavior for calls placed to various destinations and default to the local level settings. You can change the outgoing calling permissions for a person if you want them to be different from your organization's default.\n\nThis API requires a full or user administrator or location administrator auth token with the `spark-admin:people_write` scope.",
         "tags": [
           "User Call Settings (1/2)"
@@ -84679,7 +86961,7 @@
           }
         },
         "summary": "Get a person's Privacy Settings",
-        "operationId": "Get a person's Privacy Settings",
+        "operationId": "Get Privacy Settings for a Person",
         "description": "Get a person's privacy settings for the specified person ID.\n\nThe privacy feature enables the person's line to be monitored by others and determine if they can be reached by Auto Attendant services.\n\nThis API requires a full, user, or read-only administrator or location administrator auth token with a scope of spark-admin:people_read.",
         "tags": [
           "User Call Settings (1/2)"
@@ -84760,7 +87042,7 @@
           }
         },
         "summary": "Configure a person's Privacy Settings",
-        "operationId": "Configure a person's Privacy Settings",
+        "operationId": "Configure Privacy Settings for a Person",
         "description": "Configure a person's privacy settings for the specified person ID.\n\nThe privacy feature enables the person's line to be monitored by others and determine if they can be reached by Auto Attendant services.\n\nThis API requires a full or user administrator or location administrator auth token with the spark-admin:people_write scope.",
         "tags": [
           "User Call Settings (1/2)"
@@ -86027,7 +88309,7 @@
           }
         },
         "summary": "Fetch Event for a person's Schedule",
-        "operationId": "Fetch Event for a person's Schedule",
+        "operationId": "Fetch Event for Person Schedule",
         "description": "People can use shared location schedules or define personal schedules containing events.\n\n`businessHours` schedules allow you to apply specific call settings at different times of the day or week by defining one or more events. `holidays` schedules define exceptions to normal business hours by defining one or more events.\n\nThis API requires a full, user, or read-only administrator auth token with a scope of `spark-admin:people_read`.",
         "tags": [
           "User Call Settings (1/2)"
@@ -86146,7 +88428,7 @@
           }
         },
         "summary": "Update an Event for a person's Schedule",
-        "operationId": "Update an Event for a person's Schedule",
+        "operationId": "Update an Event for Person Schedule",
         "description": "People can use shared location schedules or define personal schedules containing events.\n\n`businessHours` schedules allow you to apply specific call settings at different times of the day or week by defining one or more events. `holidays` schedules define exceptions to normal business hours by defining one or more events.\n\nThis API requires a full or user administrator auth token with the `spark-admin:people_write` scope.",
         "tags": [
           "User Call Settings (1/2)"
@@ -86292,7 +88574,7 @@
           }
         },
         "summary": "Delete an Event for a person's Schedule",
-        "operationId": "Delete an Event for a person's Schedule",
+        "operationId": "Delete an Event for Person Schedule",
         "description": "People can use shared location schedules or define personal schedules containing events.\n\n`businessHours` schedules allow you to apply specific call settings at different times of the day or week by defining one or more events. `holidays` schedules define exceptions to normal business hours by defining one or more events.\n\nThis API requires a full or user administrator auth token with the `spark-admin:people_write` scope.",
         "tags": [
           "User Call Settings (1/2)"
@@ -86413,7 +88695,7 @@
           }
         },
         "summary": "Add a New Event for Person's Schedule",
-        "operationId": "Add a New Event for Person's Schedule",
+        "operationId": "Add a New Event for Person Schedule",
         "description": "People can use shared location schedules or define personal schedules containing events.\n\n`businessHours` schedules allow you to apply specific call settings at different times of the day or week by defining one or more events. `holidays` schedules define exceptions to normal business hours by defining one or more events.\n\nThis API requires a full or user administrator auth token with the `spark-admin:people_write` scope.",
         "tags": [
           "User Call Settings (1/2)"
@@ -106891,6 +109173,7 @@
                 },
                 "example": {
                   "callParkNotificationEnabled": false,
+                  "availableEntriesCount": 10,
                   "monitoredElements": [
                     {
                       "member": {
@@ -106902,9 +109185,9 @@
                         "email": "jhughes@example.com",
                         "numbers": [
                           {
-                            "extension": "587",
+                            "extension": "34496",
                             "routingPrefix": "1234",
-                            "esn": "1234587",
+                            "esn": "123434496",
                             "primary": true
                           }
                         ],
@@ -106918,9 +109201,26 @@
                         "name": "patch postman test",
                         "extension": "4594",
                         "routingPrefix": "1234",
-                        "esn": "1234587",
+                        "esn": "12344594",
                         "location": "Banglore",
                         "locationId": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OL2E4Mjg5NzIyLTFiODAtNDFiNy05Njc4LTBlNzdhZThjMTA5OA"
+                      }
+                    },
+                    {
+                      "speedDial": {
+                        "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS80NzQzNTI1Yi02ZjgxLTQ0NTktYTYxNC0yN2E0ZDIyZTZhYzI",
+                        "displayName": "Jack Hughes",
+                        "type": "PEOPLE",
+                        "lineKeyLabel": "Manager",
+                        "phoneNumber": "+19075552859",
+                        "location": "Richardson",
+                        "locationId": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OL2M2MDliOGE1LTAxNmQtNDAwNy1hN2E0LTJhMThiZmZjY2FmNg"
+                      }
+                    },
+                    {
+                      "speedDial": {
+                        "lineKeyLabel": "Sr Manager",
+                        "phoneNumber": "+19075552859"
                       }
                     }
                   ]
@@ -106975,10 +109275,10 @@
           }
         },
         "summary": "Retrieve Monitoring Settings for a Workspace",
-        "operationId": "Retrieve Monitoring Settings for a Workspace",
-        "description": "Retrieves Monitoring settings for a Workspace.\n\nAllow workspaces to monitor the line status of specified agents, workspaces, or call park extensions. The line status indicates if a monitored agent or a workspace is on a call, or if a call has been parked on the monitored call park extension.\n\nThis API requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:workspaces_read` or a user auth token with `spark:workspaces_read` scope can be used to read workspace settings.",
+        "operationId": "getMonitoringSettingsWorkspace",
+        "description": "Retrieve the monitoring settings for a workspace, which show specified people, places, virtual lines, or call park extensions that are being monitored.\nMonitors the line status, indicating if a person, place, or virtual line is on a call and if a call has been parked on that extension.\n\nThis API requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:workspaces_read` or a user auth token with `spark:workspaces_read` scope can be used to read workspace settings.",
         "tags": [
-          "Workspace Call Settings (1/2)"
+          "Workspace Call Settings"
         ],
         "parameters": [
           {
@@ -107056,10 +109356,10 @@
           }
         },
         "summary": "Modify Monitoring Settings for a Workspace",
-        "operationId": "Modify Monitoring Settings for a Workspace",
-        "description": "Modify Monitoring settings for a Workspace.\n\nAllow workspaces to monitor the line status of specified agents, workspaces, or call park extensions. The line status indicates if a monitored agent or a workspace is on a call, or if a call has been parked on the monitored call park extension.\n\nThe number of monitored elements is limited to 50.\n\nThis API requires a full or user administrator or location administrator auth token with the `spark-admin:workspaces_write` scope or a user auth token with `spark:workspaces_write` scope can be used to update workspace settings.",
+        "operationId": "modifyMonitoringSettingsWorkspace",
+        "description": "Modifies the monitoring settings of the workspace.\nMonitors the line status of specified people, places, virtual lines or call park extension. The line status indicates if a person, place or virtual line is on a call and if a call has been parked on that extension. Maximum 50 monitored elements.\n\nThis API requires a full or user administrator or location administrator auth token with the `spark-admin:workspaces_write` scope or a user auth token with `spark:workspaces_write` scope can be used to update workspace settings.",
         "tags": [
-          "Workspace Call Settings (1/2)"
+          "Workspace Call Settings"
         ],
         "parameters": [
           {
@@ -107088,16 +109388,386 @@
               "example": {
                 "enableCallParkNotification": true,
                 "monitoredElements": [
-                  "Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xYjhkYjA4YS0wY2JlLTRlZDctOThmMy05ZThlZjBhOGI2N2E",
-                  "Y2lzY29zcGFyazovL3VzL0NBTExfUEFSS19FWFRFTlNJT04vZmJjNzlkNzAtMjM5Zi00YjIyLWE2YTAtZjAwNWFmOGNlMjA0"
+                  {
+                    "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xYjhkYjA4YS0wY2JlLTRlZDctOThmMy05ZThlZjBhOGI2N2E",
+                    "type": "MEMBER"
+                  },
+                  {
+                    "id": "Y2lzY29zcGFyazovL3VzL0NBTExfUEFSS19FWFRFTlNJT04vZmJjNzlkNzAtMjM5Zi00YjIyLWE2YTAtZjAwNWFmOGNlMjA0",
+                    "type": "CALL_PARK_EXTENSION"
+                  },
+                  {
+                    "id": "Y2lzY29zcGFyazovL3VzL0NBTExfUEFSS19FWFRFTlNJT04vZmJjNzlkNzAtMjM5Zi00YjIyLWE2YTAtZjAwNWFmOGNlMjA0",
+                    "type": "SPEED_DIAL"
+                  },
+                  {
+                    "lineKeyLabel": "Sr Manager",
+                    "phoneNumber": "+19075552859"
+                  }
                 ]
               },
               "schema": {
-                "$ref": "#/components/schemas/UserMonitoringPatch"
+                "$ref": "#/components/schemas/WorkspaceMonitoringPatch"
               }
             }
           }
         }
+      }
+    },
+    "/telephony/config/workspaces/{workspaceId}/monitoring/speedDials/availableMembers": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAvailableMembersForMonitoringResponse"
+                },
+                "example": {
+                  "members": [
+                    {
+                      "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS85ODhiYTQyOC0zMjMyLTRmNjItYjUyNy1hZGEyNTRlMTk0MjE",
+                      "firstName": "John",
+                      "lastName": "Doe",
+                      "displayName": "John Doe",
+                      "phoneNumber": "+14085551234",
+                      "extension": "1234",
+                      "type": "PEOPLE",
+                      "location": {
+                        "id": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzEyMzQ1Njc4OTAxMjM0NTY3ODkw",
+                        "name": "San Jose"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get Available Speed Dials for Workspace Monitoring",
+        "operationId": "getAvailableSpeedDialsForWorkspaceMonitoring",
+        "description": "Get available speed dials for Workspace monitoring configuration. This API allows administrators to retrieve a list of members that can be added as speed dials for monitoring a specific workspace.\n\nThis API requires a full, user, or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "tags": [
+          "Workspace Call Settings"
+        ],
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "in": "path",
+            "description": "Unique identifier for the workspace.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "example": "Y2lzY29zcGFyazovL3VybjpURUFNOnVzLWVhc3QtMV9pbnQxMy9QTEFDRS8xNzdmNTNlZC1hNzY2LTRkYTAtOGQ3OC03MjE0MjhjMmFjZTQ="
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "ID of the organization within which the workspace resides. Only admin users of another organization (such as partners) may use this parameter as the default is the same organization as the token used to access the API.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE"
+          },
+          {
+            "name": "locationId",
+            "in": "query",
+            "description": "Search for the available speed dials in the location ID.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzEyMzQ1Njc4OTAxMjM0NTY3ODkw"
+          },
+          {
+            "name": "memberName",
+            "in": "query",
+            "description": "Search for available members by name.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "John"
+          },
+          {
+            "name": "phoneNumber",
+            "in": "query",
+            "description": "Search for available members by number or extension.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "1234"
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "description": "Sort response based on `firstName` or `lastName` with sort direction `asc` or `desc`.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "example": [
+              "lastName-asc"
+            ]
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "description": "Number of records to skip for pagination.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "example": 0
+          },
+          {
+            "name": "max",
+            "in": "query",
+            "description": "Number of records per page for pagination. Default: 2000. Maximum: 2000.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2000,
+              "default": 2000
+            },
+            "example": 100
+          }
+        ]
+      }
+    },
+    "/telephony/config/workspaces/{workspaceId}/monitoring/availableMembers": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAvailableMembersForMonitoringResponse"
+                },
+                "example": {
+                  "members": [
+                    {
+                      "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS85ODhiYTQyOC0zMjMyLTRmNjItYjUyNy1hZGEyNTRlMTk0MjE",
+                      "firstName": "John",
+                      "lastName": "Doe",
+                      "displayName": "John Doe",
+                      "phoneNumber": "+14085551234",
+                      "extension": "1234",
+                      "type": "PEOPLE",
+                      "location": {
+                        "id": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzEyMzQ1Njc4OTAxMjM0NTY3ODkw",
+                        "name": "San Jose"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get Available Members for Workspace Monitoring",
+        "operationId": "getAvailableMembersForWorkspaceMonitoring",
+        "description": "Get available members for workspace monitoring. This API allows administrators to retrieve a list of members that can be added to the monitoring list for a specific workspace.\n\nThis API requires a full, user, or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "tags": [
+          "Workspace Call Settings"
+        ],
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "in": "path",
+            "description": "Unique identifier for the workspace.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "example": "Y2lzY29zcGFyazovL3VybjpURUFNOnVzLWVhc3QtMV9pbnQxMy9QTEFDRS8xNzdmNTNlZC1hNzY2LTRkYTAtOGQ3OC03MjE0MjhjMmFjZTQ="
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "ID of the organization within which the workspace resides. Only admin users of another organization (such as partners) may use this parameter as the default is the same organization as the token used to access the API.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE"
+          },
+          {
+            "name": "locationId",
+            "in": "query",
+            "description": "Search for the available members in the location ID.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzEyMzQ1Njc4OTAxMjM0NTY3ODkw"
+          },
+          {
+            "name": "memberName",
+            "in": "query",
+            "description": "Search for available members by name.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "John"
+          },
+          {
+            "name": "phoneNumber",
+            "in": "query",
+            "description": "Search for available members by number or extension.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "1234"
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "description": "Sort response based on `firstName` or `lastName` with sort direction `asc` or `desc`.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "example": [
+              "lastName-asc"
+            ]
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "description": "Number of records to skip for pagination.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "example": 0
+          },
+          {
+            "name": "max",
+            "in": "query",
+            "description": "Number of records per page for pagination. Default: 2000. Maximum: 2000.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2000,
+              "default": 2000
+            },
+            "example": 100
+          }
+        ]
       }
     },
     "/workspaces/{workspaceId}/features/numbers": {
@@ -131039,6 +133709,10 @@
           "member": {
             "$ref": "#/components/schemas/MonitoredElementUser",
             "description": "Monitored member for this workspace."
+          },
+          "speedDial": {
+            "$ref": "#/components/schemas/MonitoredElementSpeedDial",
+            "description": "Monitored Speed Dial."
           }
         }
       },
@@ -133044,20 +135718,16 @@
       },
       "LocationObject": {
         "type": "object",
-        "required": [
-          "id",
-          "name"
-        ],
         "properties": {
           "id": {
             "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzkzZmQ1ZDMyLTRmYmItNGNjMS04ZTYxLTE0YTA1ZDhhMTIzMw",
-            "description": "Unique identifier of the location."
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzEyMzQ1Njc4OTAxMjM0NTY3ODkw",
+            "description": "The ID of the location."
           },
           "name": {
             "type": "string",
-            "example": "RCDN",
-            "description": "Name of the location."
+            "example": "San Jose",
+            "description": "The name of the location."
           }
         }
       },
@@ -134331,6 +137001,7 @@
       },
       "DoNotDisturbPut": {
         "type": "object",
+        "description": "Request body for configuring Do Not Disturb settings for a person.",
         "required": [
           "webexGoOverrideEnabled"
         ],
@@ -138793,6 +141464,270 @@
           "transferNumber": "+14126525012",
           "alerting": "ALERT_ME_FIRST",
           "alertMeFirstNumberOfRings": 3
+        }
+      },
+      "SpeedDialsGetResponse": {
+        "type": "object",
+        "description": "Response object containing the speed dial settings for the authenticated person.",
+        "required": [
+          "speedDials",
+          "availableEntriesCount"
+        ],
+        "properties": {
+          "speedDials": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpeedDialItem"
+            },
+            "description": "List of speed dial entries configured for the person."
+          },
+          "availableEntriesCount": {
+            "type": "integer",
+            "example": 3,
+            "description": "This is the number of additional entries that can be stored (more than the number of entries listed)."
+          }
+        }
+      },
+      "SpeedDialsPutRequest": {
+        "type": "object",
+        "description": "Request object for modifying speed dial settings. This list is a replacement list for speed dials.",
+        "required": [
+          "speedDials"
+        ],
+        "properties": {
+          "speedDials": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpeedDialPutItem"
+            },
+            "description": "List of speed dial entries to be configured for the person. This is a replacement list."
+          }
+        }
+      },
+      "SpeedDialPutItem": {
+        "type": "object",
+        "description": "Details of a speed dial entry for modification.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS85M2JjZWQ2Mi1lYWRmLTQ0MGItYThiYi03ZWQ5ZWEwNzExMTg",
+            "description": "The identifier of the person (PEOPLE), place (PLACE), or virtual line (VIRTUAL_LINE) to add as a speed dial. Use this field when adding a speed dial for an existing member in the organization. Either `id` or `phoneNumber` must be provided."
+          },
+          "phoneNumber": {
+            "type": "string",
+            "example": "+15594015482",
+            "minLength": 3,
+            "maxLength": 31,
+            "description": "The phone number to add as a speed dial. Use this field when adding a speed dial for an external contact or custom number. Either `id` or `phoneNumber` must be provided."
+          },
+          "lineKeyLabel": {
+            "type": "string",
+            "example": "Manager",
+            "minLength": 1,
+            "maxLength": 63,
+            "description": "This is a custom label configured for the speed dial on the device."
+          }
+        }
+      },
+      "SpeedDialItem": {
+        "type": "object",
+        "description": "Details of a speed dial entry.",
+        "required": [
+          "phoneNumber"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS85M2JjZWQ2Mi1lYWRmLTQ0MGItYThiYi03ZWQ5ZWEwNzExMTg",
+            "description": "The identifier of the person, place or virtual line. See type for the resource type (PEOPLE, PLACE, or VIRTUAL_LINE). Only present for org speed dials."
+          },
+          "lastName": {
+            "type": "string",
+            "example": "Nelson",
+            "description": "The last name of the person or virtual line."
+          },
+          "firstName": {
+            "type": "string",
+            "example": "John",
+            "description": "The first name of the person or virtual line."
+          },
+          "displayName": {
+            "type": "string",
+            "example": "John Nelson",
+            "description": "The display name of the person, place or virtual line."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "PEOPLE",
+              "PLACE",
+              "VIRTUAL_LINE"
+            ],
+            "example": "PEOPLE",
+            "description": "Indicates whether the type is `PEOPLE`, `PLACE` or `VIRTUAL_LINE`. Only present for org speed dials.\n * `PEOPLE` - The speed dial is a person.\n * `PLACE` - The speed dial is a workspace.\n * `VIRTUAL_LINE` - The speed dial is a virtual line.\n"
+          },
+          "phoneNumber": {
+            "type": "string",
+            "example": "+15594015482",
+            "description": "The phone number of the person, place or virtual line."
+          },
+          "extension": {
+            "type": "string",
+            "example": "50003",
+            "description": "The extension number for the person, place or virtual line."
+          },
+          "routingPrefix": {
+            "type": "string",
+            "example": "8327",
+            "description": "Routing prefix of location."
+          },
+          "locationName": {
+            "type": "string",
+            "example": "San Francisco",
+            "description": "The location name where the speed dial is. Only present for org speed dials."
+          },
+          "locationId": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzFiNDIzN2U4LWE2MDYtNGM5Ni1iMDZmLTYzMmU5N2FjZmQxNg",
+            "description": "The ID for the location. Only present for org speed dials."
+          },
+          "lineKeyLabel": {
+            "type": "string",
+            "example": "Manager",
+            "description": "This is a custom label configured for the speed dial on the device."
+          }
+        }
+      },
+      "SpeedDialAvailableMembersResponse": {
+        "type": "object",
+        "description": "Response object containing the list of available members which can be configured as Speed Dials.",
+        "required": [
+          "members"
+        ],
+        "properties": {
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpeedDialAvailableMember"
+            },
+            "description": "List of available members which can be configured as Speed Dials."
+          }
+        }
+      },
+      "SpeedDialAvailableMember": {
+        "type": "object",
+        "description": "Details of an available member which can be configured as a Speed Dial.",
+        "required": [
+          "id",
+          "phoneNumber",
+          "type"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS85M2JjZWQ2Mi1lYWRmLTQ0MGItYThiYi03ZWQ5ZWEwNzExMTg",
+            "description": "The identifier of the person, place or virtual line. See type for the resource type."
+          },
+          "lastName": {
+            "type": "string",
+            "example": "Nelson",
+            "description": "The last name of the person or virtual line."
+          },
+          "firstName": {
+            "type": "string",
+            "example": "John",
+            "description": "The first name of the person or virtual line."
+          },
+          "displayName": {
+            "type": "string",
+            "example": "John Nelson",
+            "description": "The display name of the person, place or virtual line."
+          },
+          "phoneNumber": {
+            "type": "string",
+            "example": "+15594015482",
+            "description": "The phone number of the person, place or virtual line."
+          },
+          "extension": {
+            "type": "string",
+            "example": "50003",
+            "description": "The extension number for the person, place or virtual line."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "PEOPLE",
+              "PLACE",
+              "VIRTUAL_LINE"
+            ],
+            "example": "PEOPLE",
+            "description": "Indicates whether the type is `PEOPLE`, `VIRTUAL_LINE` or `PLACE`.\n * `PEOPLE` - The member is a person.\n * `VIRTUAL_LINE` - The member is a virtual line.\n * `PLACE` - The member is a workspace.\n"
+          },
+          "locationId": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzFiNDIzN2U4LWE2MDYtNGM5Ni1iMDZmLTYzMmU5N2FjZmQxNg",
+            "description": "The ID for the location."
+          },
+          "locationName": {
+            "type": "string",
+            "example": "San Francisco",
+            "description": "The location name where the member is."
+          }
+        }
+      },
+      "OrganizationLocationsGetResponse": {
+        "type": "object",
+        "description": "Response object containing the list of locations for the authenticated person's organization.",
+        "required": [
+          "locations"
+        ],
+        "properties": {
+          "locations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganizationLocation"
+            },
+            "description": "Array of locations. Results are paginated; use max and start query parameters."
+          }
+        }
+      },
+      "OrganizationLocation": {
+        "type": "object",
+        "description": "A location in the authenticated person's organization.",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzgzMTA2ZDE0LTRjNzQtNGQ1Zi04YTllLTk3ZTIxNGVmNGE1Yg",
+            "description": "Unique identifier for the location."
+          },
+          "name": {
+            "type": "string",
+            "example": "Bangalore",
+            "description": "Name of the location."
+          },
+          "routingPrefix": {
+            "type": "string",
+            "example": "245",
+            "description": "Location's routing prefix."
+          }
+        }
+      },
+      "LargeOrgStatusGetResponse": {
+        "type": "object",
+        "description": "Response object indicating whether the authenticated person's organization is categorized as large organization based on the threshold percentage.",
+        "required": [
+          "isLargeOrg"
+        ],
+        "properties": {
+          "isLargeOrg": {
+            "type": "boolean",
+            "example": true,
+            "description": "Indicates whether the caller's organization exceeds the large organization threshold percentage."
+          }
         }
       },
       "GetVoicemailRulesObject": {
@@ -159091,6 +162026,7 @@
       },
       "ApplicationsSettingPut": {
         "type": "object",
+        "description": "Request body for modifying application services settings for a person.",
         "properties": {
           "ringDevicesForClickToDialCallsEnabled": {
             "type": "boolean",
@@ -159739,6 +162675,7 @@
       },
       "DoNotDisturbInfo": {
         "type": "object",
+        "description": "Do Not Disturb settings for a person.",
         "required": [
           "enabled",
           "ringSplashEnabled",
@@ -159762,6 +162699,7 @@
       },
       "EventLongDetails": {
         "type": "object",
+        "description": "Detailed event information for a schedule.",
         "required": [
           "name",
           "startDate",
@@ -159881,6 +162819,7 @@
       },
       "EventPutResponseWithId": {
         "type": "object",
+        "description": "Response body for updating an event, containing the event identifier.",
         "required": [
           "id"
         ],
@@ -159894,6 +162833,7 @@
       },
       "EventResponseWithId": {
         "type": "object",
+        "description": "Response body for creating an event, containing the event identifier.",
         "required": [
           "id"
         ],
@@ -159907,6 +162847,7 @@
       },
       "GetCallingBehaviorObject": {
         "type": "object",
+        "description": "Calling behavior settings for a person.",
         "required": [
           "behaviorType",
           "effectiveBehaviorType",
@@ -159945,6 +162886,7 @@
       },
       "GetEvent": {
         "type": "object",
+        "description": "Event details for a schedule, including event identifier.",
         "required": [
           "id",
           "name",
@@ -160070,14 +163012,13 @@
       },
       "GetMonitoredElementsObject": {
         "type": "object",
+        "description": "Monitored element details, which can be a member, call park extension, or speed dial.",
         "properties": {
           "member": {
             "type": "object",
+            "description": "Monitored person, workspace, or virtual line.",
             "required": [
               "id",
-              "lastName",
-              "firstName",
-              "displayName",
               "numbers",
               "location",
               "locationId"
@@ -160086,26 +163027,31 @@
               "id": {
                 "type": "string",
                 "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS85OWNlZjRmYS03YTM5LTQ1ZDItOTNmNi1jNjA5YTRiMjgzODY",
-                "description": "The identifier of the monitored person, workspace or virtual line."
+                "description": "The identifier of the monitored person, workspace, or virtual line."
               },
               "lastName": {
                 "type": "string",
                 "example": "Nelson",
-                "description": "The last name of the monitored person, workspace or virtual line."
+                "description": "Last name of the monitored member (Virtual Line or User). For Workspace, this field is not applicable."
               },
               "firstName": {
                 "type": "string",
                 "example": "John",
-                "description": "The first name of the monitored person, workspace or virtual line."
+                "description": "First name of the monitored member (Virtual Line or User). For Workspace, this field is not applicable."
               },
               "displayName": {
                 "type": "string",
                 "example": "John Nelson",
-                "description": "The display name of the monitored person, workspace or virtual line."
+                "description": "The display name of the monitored person, workspace, or virtual line."
+              },
+              "lineKeyLabel": {
+                "type": "string",
+                "example": "Manager",
+                "description": "This is a custom line key label configured for the Member."
               },
               "type": {
                 "$ref": "#/components/schemas/PeopleOrPlaceOrVirtualLineType",
-                "description": "Indicates whether the type is `PEOPLE`, `PLACE` or `VIRTUAL_LINE`."
+                "description": "Indicates whether the monitored element is a person, workspace, or virtual line."
               },
               "email": {
                 "type": "string",
@@ -160117,7 +163063,7 @@
                 "items": {
                   "$ref": "#/components/schemas/MonitoredNumberObject"
                 },
-                "description": "The list of phone numbers containing only the primary number for the monitored person, workspace, or virtual line."
+                "description": "The list of phone numbers containing only the primary number for the monitored person, workspace or virtual line."
               },
               "location": {
                 "type": "string",
@@ -160127,12 +163073,13 @@
               "locationId": {
                 "type": "string",
                 "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzZhZjk4ZGViLWVlZGItNGFmYi1hMDAzLTEzNzgyYjdjODAxYw",
-                "description": "The ID for the location."
+                "description": "The ID of the location."
               }
             }
           },
           "callparkextension": {
             "type": "object",
+            "description": "Monitored call park extension.",
             "required": [
               "id",
               "location",
@@ -160149,6 +163096,11 @@
                 "example": "Dallas-Test",
                 "description": "The name used to describe the call park extension."
               },
+              "lineKeyLabel": {
+                "type": "string",
+                "example": "Manager",
+                "description": "This is a custom line key label configured for the Call Park Extension."
+              },
               "extension": {
                 "type": "string",
                 "example": "4001",
@@ -160157,12 +163109,12 @@
               "routingPrefix": {
                 "type": "string",
                 "example": "1234",
-                "description": "Routing prefix of location."
+                "description": "Routing prefix of the location."
               },
               "esn": {
                 "type": "string",
                 "example": "12344001",
-                "description": "Routing prefix + extension of the call park extension."
+                "description": "Routing prefix plus extension of the Call Park Extension. If routing prefix is not configured for the location, esn will be same as extension."
               },
               "location": {
                 "type": "string",
@@ -160172,14 +163124,19 @@
               "locationId": {
                 "type": "string",
                 "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzZhZjk4ZGViLWVlZGItNGFmYi1hMDAzLTEzNzgyYjdjODAxYw",
-                "description": "The ID for the location."
+                "description": "The ID of the location."
               }
             }
+          },
+          "speedDial": {
+            "$ref": "#/components/schemas/MonitoredElementSpeedDial",
+            "description": "Speed dial configured as a monitored element."
           }
         }
       },
       "GetNumbers": {
         "type": "object",
+        "description": "Phone numbers and alternate numbers for a person.",
         "required": [
           "phoneNumbers"
         ],
@@ -160193,6 +163150,7 @@
             "type": "array",
             "items": {
               "type": "object",
+              "description": "Phone number details.",
               "properties": {
                 "primary": {
                   "type": "boolean",
@@ -160237,6 +163195,7 @@
       },
       "HotelingInfo": {
         "type": "object",
+        "description": "Hoteling settings for a person.",
         "required": [
           "enabled"
         ],
@@ -160284,6 +163243,7 @@
       },
       "MonitoredMemberObject": {
         "type": "object",
+        "description": "Details of a monitored person, workspace, or virtual line.",
         "required": [
           "id",
           "lastName",
@@ -160332,6 +163292,7 @@
       },
       "MonitoredNumberObject": {
         "type": "object",
+        "description": "Phone number details of a monitored person, workspace, or virtual line.",
         "properties": {
           "external": {
             "type": "string",
@@ -160403,6 +163364,7 @@
       },
       "MonitoringSettings": {
         "type": "object",
+        "description": "Monitoring settings for a person including monitored elements.",
         "required": [
           "callParkNotificationEnabled",
           "monitoredElements"
@@ -160424,6 +163386,7 @@
       },
       "MonitoringSettingsPut": {
         "type": "object",
+        "description": "Request body for modifying monitoring settings for a person.",
         "required": [
           "enableCallParkNotification",
           "monitoredElements"
@@ -160579,6 +163542,7 @@
       },
       "PatchCallingBehaviorObject": {
         "type": "object",
+        "description": "Request body for configuring calling behavior for a person.",
         "properties": {
           "behaviorType": {
             "type": "string",
@@ -160744,6 +163708,7 @@
       },
       "PutEvent": {
         "type": "object",
+        "description": "Request body for updating an event in a schedule.",
         "required": [
           "newName",
           "name",
@@ -160869,6 +163834,7 @@
       },
       "ReceptionInfo": {
         "type": "object",
+        "description": "Receptionist Client settings for a person.",
         "required": [
           "receptionEnabled"
         ],
@@ -160889,6 +163855,7 @@
       },
       "ReceptionPut": {
         "type": "object",
+        "description": "Request body for configuring Receptionist Client settings for a person.",
         "required": [
           "receptionEnabled"
         ],
@@ -160910,6 +163877,7 @@
       },
       "ScheduleCollectionRequest": {
         "type": "object",
+        "description": "Request body for creating a schedule for a person.",
         "required": [
           "name",
           "type"
@@ -160935,6 +163903,7 @@
       },
       "ScheduleCollectionResponse": {
         "type": "object",
+        "description": "Response body containing a list of schedules for a person.",
         "required": [
           "schedules"
         ],
@@ -160950,6 +163919,7 @@
       },
       "ScheduleLongDetails": {
         "type": "object",
+        "description": "Detailed schedule information including events.",
         "required": [
           "id",
           "name",
@@ -160981,6 +163951,7 @@
       },
       "SchedulePutResponseWithId": {
         "type": "object",
+        "description": "Response body for updating a schedule, containing the schedule identifier.",
         "required": [
           "id"
         ],
@@ -160994,6 +163965,7 @@
       },
       "ScheduleResponseWithId": {
         "type": "object",
+        "description": "Response body for creating a schedule, containing the schedule identifier.",
         "required": [
           "id"
         ],
@@ -161007,6 +163979,7 @@
       },
       "ScheduleShortDetails": {
         "type": "object",
+        "description": "Summary schedule information.",
         "required": [
           "id",
           "name",
@@ -161035,6 +164008,7 @@
       },
       "ScheduleUpdateRequest": {
         "type": "object",
+        "description": "Request body for updating a schedule for a person.",
         "required": [
           "newName",
           "name",
@@ -161088,6 +164062,185 @@
           "DISPLAY_NAME"
         ],
         "description": " * `DISPLAY_NAME` - When this option is selected, `displayName` is to be shown for this virtual line.\n * `FIRSTNAME_LASTNAME` - When this option is selected, `firstName` and `lastName` are to be shown for this virtual line.\n * `LASTNAME_FIRSTNAME` - When this option is selected, `lastName` and `firstName` are to be shown for this virtual line.\n * `CUSTOM_NAME` - When this option is selected, `customName` is to be shown for this virtual line."
+      },
+      "MonitoredElementSpeedDial": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS80NDVkMzMzMC1mNjE3LTExZWItOWQyZS01NzViODE3ZGE2NmE",
+            "description": "The identifier of the speed dial."
+          },
+          "displayName": {
+            "type": "string",
+            "example": "John Brown",
+            "description": "The display name of the speed dial."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "PEOPLE",
+              "PLACE",
+              "VIRTUAL_LINE"
+            ],
+            "description": "The type of the speed dial.\n * `PEOPLE` - Object is a user.\n * `PLACE` - Object is a workspace.\n * `VIRTUAL_LINE` - Object is a virtual line.\n"
+          },
+          "lineKeyLabel": {
+            "type": "string",
+            "example": "Manager",
+            "description": "Customizable line key label for speed dial."
+          },
+          "phoneNumber": {
+            "type": "string",
+            "example": "+19075552859",
+            "description": "The phone number of the speed dial."
+          },
+          "location": {
+            "type": "string",
+            "example": "Richardson",
+            "description": "The location name where the speed dial is."
+          },
+          "locationId": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzEyMzQ1",
+            "description": "The ID for the location."
+          }
+        }
+      },
+      "MonitoringSettingsGet": {
+        "type": "object",
+        "description": "Monitoring settings for a person including available entries count.",
+        "required": [
+          "callParkNotificationEnabled",
+          "availableEntriesCount",
+          "monitoredElements"
+        ],
+        "properties": {
+          "callParkNotificationEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Indicates whether call park notification is enabled."
+          },
+          "availableEntriesCount": {
+            "type": "integer",
+            "example": 5,
+            "description": "Indicates additional number of entries that can be stored (more than the number of entries listed)."
+          },
+          "monitoredElements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GetMonitoredElementsObject"
+            },
+            "description": "Settings of monitored elements, which can be a person, place, virtual line, or call park extension."
+          }
+        }
+      },
+      "GetAvailableMembersForMonitoringResponse": {
+        "type": "object",
+        "properties": {
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailableMemberObject"
+            },
+            "description": "List of available members."
+          }
+        }
+      },
+      "AvailableMemberObject": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS85ODhiYTQyOC0zMjMyLTRmNjItYjUyNy1hZGEyNTRlMTk0MjE",
+            "description": "The identifier of the available member."
+          },
+          "firstName": {
+            "type": "string",
+            "example": "John",
+            "description": "The first name of the available member."
+          },
+          "lastName": {
+            "type": "string",
+            "example": "Doe",
+            "description": "The last name of the available member."
+          },
+          "displayName": {
+            "type": "string",
+            "example": "John Doe",
+            "description": "The display name of the available member."
+          },
+          "phoneNumber": {
+            "type": "string",
+            "example": "+14085551234",
+            "description": "The phone number of the available member."
+          },
+          "extension": {
+            "type": "string",
+            "example": "1234",
+            "description": "The extension of the available member."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "PEOPLE",
+              "PLACE",
+              "VIRTUAL_LINE"
+            ],
+            "description": "The type of the available member.\n * `PEOPLE` - Object is a user.\n * `PLACE` - Object is a workspace.\n * `VIRTUAL_LINE` - Object is a virtual line.\n"
+          },
+          "location": {
+            "$ref": "#/components/schemas/LocationObject",
+            "description": "The location of the available member."
+          }
+        }
+      },
+      "UserMonitoringPatch": {
+        "type": "object",
+        "properties": {
+          "enableCallParkNotification": {
+            "type": "boolean",
+            "example": true,
+            "description": "Call park notification is enabled or disabled."
+          },
+          "monitoredElements": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of ID strings of monitored elements. Maximum 50 elements."
+          }
+        }
+      },
+      "MonitoredElementItemPatch": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS80NDVkMzMzMC1mNjE3LTExZWItOWQyZS01NzViODE3ZGE2NmE",
+            "description": "The identifier of the monitored element."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "MEMBER",
+              "CALL_PARK_EXTENSION",
+              "SPEED_DIAL"
+            ],
+            "description": "The type of the monitored element.\n * `MEMBER` - Monitored element is a person, place, or virtual line.\n * `CALL_PARK_EXTENSION` - Monitored element is a call park extension.\n * `SPEED_DIAL` - Monitored element is a speed dial.\n"
+          },
+          "lineKeyLabel": {
+            "type": "string",
+            "example": "Sr Manager",
+            "description": "Customizable line key label for speed dial."
+          },
+          "phoneNumber": {
+            "type": "string",
+            "example": "+19075552859",
+            "description": "Phone number for the speed dial."
+          }
+        }
       },
       "GetPersonDetailsObject": {
         "type": "object",
@@ -163666,6 +166819,10 @@
           "voicemailDownload": {
             "$ref": "#/components/schemas/AccessLevel",
             "description": "Set whether end users have access to download voicemail via User Hub, or other clients (Webex, etc.)."
+          },
+          "speedDial": {
+            "$ref": "#/components/schemas/AccessLevel",
+            "description": "Set whether end users have access to make changes to their `Speed Dial` feature via User Hub, or other clients (Webex, IP phone, etc.)."
           }
         }
       },
@@ -163771,6 +166928,10 @@
           "voicemailDownload": {
             "$ref": "#/components/schemas/AccessLevel",
             "description": "Set whether end users have access to download voicemail via User Hub, or other clients (Webex, etc.)."
+          },
+          "speedDial": {
+            "$ref": "#/components/schemas/AccessLevel",
+            "description": "Set whether end users have access to make changes to their `Speed Dial` feature via User Hub, or other clients (Webex, IP phone, etc.)."
           }
         }
       },
@@ -163888,6 +167049,10 @@
           "voicemailDownload": {
             "$ref": "#/components/schemas/AccessLevel",
             "description": "Set whether end users have access to download voicemail via User Hub, or other clients (Webex, etc.)."
+          },
+          "speedDial": {
+            "$ref": "#/components/schemas/AccessLevel",
+            "description": "Set whether end users have access to make changes to their `Speed Dial` feature via User Hub, or other clients (Webex, IP phone, etc.)."
           }
         }
       },
@@ -166904,42 +170069,36 @@
             "type": "string",
             "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzEyMzQ1",
             "description": "ID of location for call park extension."
+          },
+          "lineKeyLabel": {
+            "type": "string",
+            "example": "CPE Label",
+            "description": "Customizable line key label for monitored call park extension."
           }
         }
       },
       "MonitoredElementUser": {
         "type": "object",
-        "required": [
-          "id",
-          "firstName",
-          "lastName",
-          "displayName",
-          "type",
-          "email",
-          "numbers",
-          "location",
-          "locationId"
-        ],
         "properties": {
           "id": {
             "type": "string",
             "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS80NDVkMzMzMC1mNjE3LTExZWItOWQyZS01NzViODE3ZGE2NmE",
-            "description": "ID of person or workspace."
+            "description": "The identifier of the monitored person or workspace."
           },
           "firstName": {
             "type": "string",
             "example": "John",
-            "description": "First name of person or workspace."
+            "description": "The first name of the monitored person, place, or virtual line."
           },
           "lastName": {
             "type": "string",
             "example": "Brown",
-            "description": "Last name of person or workspace."
+            "description": "The last name of the monitored person, place, or virtual line."
           },
           "displayName": {
             "type": "string",
             "example": "John Brown",
-            "description": "Display name of person or workspace."
+            "description": "The display name of the monitored person, place, or virtual line."
           },
           "type": {
             "type": "string",
@@ -166947,29 +170106,34 @@
               "PEOPLE",
               "PLACE"
             ],
-            "description": "Type of the person or workspace.\n * `PEOPLE` - Object is a user.\n * `PLACE` - Object is a workspace.\n"
+            "description": "The type of the monitored person, place, or virtual line.\n * `PEOPLE` - Object is a user.\n * `PLACE` - Object is a workspace.\n"
           },
           "email": {
             "type": "string",
             "example": "john.brown@gmail.com",
-            "description": "Email of the person or workspace."
+            "description": "The email address of the monitored person, place, or virtual line."
           },
           "numbers": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/UserNumberItem"
             },
-            "description": "The list of phone numbers containing only the primary number for the monitored person, workspace."
+            "description": "The list of phone numbers of the monitored person, place, or virtual line."
           },
           "location": {
             "type": "string",
             "example": "Alaska",
-            "description": "Name of location for call park."
+            "description": "The location name where the line is."
           },
           "locationId": {
             "type": "string",
             "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzEyMzQ1",
-            "description": "ID of the location for call park."
+            "description": "The ID for the location."
+          },
+          "lineKeyLabel": {
+            "type": "string",
+            "example": "Member Label",
+            "description": "Customizable line key label for monitored member."
           }
         }
       },
@@ -167160,27 +170324,17 @@
             "example": true,
             "description": "Call park notification enabled or disabled."
           },
-          "monitoredElements": {
-            "$ref": "#/components/schemas/MonitoredElementItem",
-            "description": "Monitored element items."
-          }
-        }
-      },
-      "UserMonitoringPatch": {
-        "type": "object",
-        "properties": {
-          "enableCallParkNotification": {
-            "type": "boolean",
-            "example": true,
-            "description": "Call park notification is enabled or disabled."
+          "availableEntriesCount": {
+            "type": "integer",
+            "example": 5,
+            "description": "Number of available entries for monitoring."
           },
           "monitoredElements": {
             "type": "array",
-            "maxItems": 50,
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/MonitoredElementItem"
             },
-            "description": "Array of ID strings of monitored elements. Maximum 50 elements."
+            "description": "Monitored element items."
           }
         }
       },
@@ -167287,6 +170441,24 @@
               "$ref": "#/components/schemas/PhoneNumber"
             },
             "description": "List of phone numbers that are assigned to a person."
+          }
+        }
+      },
+      "WorkspaceMonitoringPatch": {
+        "type": "object",
+        "properties": {
+          "enableCallParkNotification": {
+            "type": "boolean",
+            "example": true,
+            "description": "Call park notification is enabled or disabled."
+          },
+          "monitoredElements": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/MonitoredElementItemPatch"
+            },
+            "description": "Array of monitored elements. Maximum 50 elements."
           }
         }
       },

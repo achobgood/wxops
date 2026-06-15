@@ -55097,7 +55097,8 @@
                   "email",
                   "chat",
                   "telephony",
-                  "social"
+                  "social",
+                  "customMessaging"
                 ]
               }
             }
@@ -56331,7 +56332,8 @@
                   "email",
                   "chat",
                   "telephony",
-                  "social"
+                  "social",
+                  "customMessaging"
                 ]
               }
             }
@@ -57453,6 +57455,296 @@
           },
           "503": {
             "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v2/tasks": {
+      "post": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Create Task",
+        "description": "This feature is currently in Beta. Contact your Cisco team if you want access to this feature.\n\nCreates a new contact center task using the v2 task contract. The request body must include a `channelType` discriminator to select the task variant — `workItem` for structured form tasks, `customMessaging` for conversational messaging tasks, or `telephony` for voice tasks.\n\nOn success, returns a `201` response containing the task ID, which can be used to track the task lifecycle.\n\nRequires `cjp:task_write` OAuth scope. For partner-initiated inbound tasks (`workItem`, `customMessaging`), the `cjp:task_write` scope must be present in the partner application's access token. When an authenticated agent initiates an outdial (`telephony`) task, ensure the `cjp:task_write` scope is included in the agent's access token.",
+        "operationId": "createTaskRouteV2",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "Bearer token used to authorize the request.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Bearer <AuthToken>"
+          }
+        ],
+        "requestBody": {
+          "description": "Request body to create a v2 task.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTaskRequestV2"
+              },
+              "examples": {
+                "workItem": {
+                  "summary": "Create a workItem task",
+                  "value": {
+                    "origin": {
+                      "id": "customer@domain.com",
+                      "name": "Customer Name"
+                    },
+                    "destination": {
+                      "id": "customer-support@biz.com",
+                      "type": "businessAddress"
+                    },
+                    "channelType": "workItem",
+                    "channel": "support-form",
+                    "channelParams": {
+                      "type": "work-item-form",
+                      "message": {
+                        "aliasId": "msg-001",
+                        "workItemData": {
+                          "name": "customer name",
+                          "email": "customer@domain.com"
+                        },
+                        "timestamp": 1732786800000
+                      }
+                    }
+                  }
+                },
+                "telephony": {
+                  "summary": "Create a telephony (callback) task",
+                  "value": {
+                    "origin": {
+                      "id": "+18000000000",
+                      "name": null
+                    },
+                    "destination": {
+                      "id": "+19780000000",
+                      "type": "dialNumber"
+                    },
+                    "channelType": "telephony",
+                    "channelParams": {
+                      "type": "telephony",
+                      "entryPointId": "aef6455f-ccd6-4261-bb00-e80f845c01b0",
+                      "outboundType": "CALLBACK",
+                      "callback": {
+                        "type": "immediate",
+                        "origin": "web",
+                        "number": "+19780000000"
+                      }
+                    }
+                  }
+                },
+                "customMessagingText": {
+                  "summary": "Create a customMessaging task (text only)",
+                  "value": {
+                    "origin": {
+                      "id": "customer@example.com",
+                      "name": "Customer Name"
+                    },
+                    "destination": {
+                      "id": "support@channel.biz",
+                      "type": "businessAddress"
+                    },
+                    "channelType": "customMessaging",
+                    "channel": "my-custom-channel",
+                    "channelParams": {
+                      "type": "text",
+                      "message": {
+                        "aliasId": "123e4567-e89b-12d3-a456-426614174000",
+                        "text": "Hello, I need help with my order.",
+                        "timestamp": 1732786800000
+                      }
+                    }
+                  }
+                },
+                "customMessagingWithAttachments": {
+                  "summary": "Create a customMessaging task (text with attachments)",
+                  "value": {
+                    "origin": {
+                      "id": "customer@example.com",
+                      "name": "Customer Name"
+                    },
+                    "destination": {
+                      "id": "support@channel.biz",
+                      "type": "businessAddress"
+                    },
+                    "channelType": "customMessaging",
+                    "channel": "my-custom-channel",
+                    "channelParams": {
+                      "type": "text-with-attachments",
+                      "message": {
+                        "aliasId": "123e4567-e89b-12d3-a456-426614174001",
+                        "text": "Please see the attached screenshot.",
+                        "attachments": [
+                          {
+                            "fileName": "screenshot.png",
+                            "mimeType": "image/png",
+                            "fileUrl": "https://cdn.example.com/files/screenshot.png"
+                          }
+                        ],
+                        "timestamp": 1732786800000
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "The new task was successfully requested for creation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateTaskResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized, Token is Invalid"
+          },
+          "403": {
+            "description": "Forbidden Request"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v2/tasks/{taskId}/messages": {
+      "post": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Append Task Message",
+        "description": "This feature is currently in Beta. Contact your Cisco team if you want access to this feature.\n\nAppends an inbound message to an existing `workItem` or `customMessaging` task. Use this API after the initial task has been created through Create Task. Requires `cjp:task_write` OAuth scope. For partner-initiated inbound message appends, the `cjp:task_write` scope must be present in the partner application's access token.\n\nOn success, returns a `202` response containing the append event identifier as `data.id`. Partners can use this identifier to correlate subsequent webhook delivery for the appended message.",
+        "operationId": "appendTaskMessageV2",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "Bearer token used to authorize the request.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Bearer <AuthToken>"
+          },
+          {
+            "name": "taskId",
+            "in": "path",
+            "description": "UUID of the existing task to which the message will be appended.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "044ea619-a0ad-41a3-9ed9-c2563a9bd6b7"
+          }
+        ],
+        "requestBody": {
+          "description": "Request body to append a message to an existing `workItem` or `customMessaging` task.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskMessageRequest"
+              },
+              "examples": {
+                "workItem": {
+                  "summary": "Append a workItem message",
+                  "value": {
+                    "mediaType": "workItem",
+                    "channelParams": {
+                      "type": "work-item-form",
+                      "message": {
+                        "aliasId": "alias-wi-001",
+                        "workItemData": {
+                          "name": "customer name",
+                          "email": "customer@domain.com"
+                        },
+                        "timestamp": 1732786800000
+                      }
+                    }
+                  }
+                },
+                "customMessagingText": {
+                  "summary": "Append a customMessaging text message",
+                  "value": {
+                    "mediaType": "customMessaging",
+                    "channelParams": {
+                      "type": "text",
+                      "message": {
+                        "aliasId": "123e4567-e89b-12d3-a456-426614174000",
+                        "text": "I have additional details to share.",
+                        "timestamp": 1732786800000
+                      }
+                    }
+                  }
+                },
+                "customMessagingWithAttachments": {
+                  "summary": "Append a customMessaging message with attachments",
+                  "value": {
+                    "mediaType": "customMessaging",
+                    "channelParams": {
+                      "type": "text-with-attachments",
+                      "message": {
+                        "aliasId": "123e4567-e89b-12d3-a456-426614174001",
+                        "text": "Please review the attached files.",
+                        "attachments": [
+                          {
+                            "fileName": "details.pdf",
+                            "mimeType": "application/pdf",
+                            "fileUrl": "https://cdn.example.com/files/details.pdf"
+                          }
+                        ],
+                        "timestamp": 1732786800000
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted. The response returns the append event identifier in `data.id`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskMessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized, Token is Invalid"
+          },
+          "403": {
+            "description": "Forbidden Request"
+          },
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "description": "Internal Server Error"
           }
         }
       }
@@ -61123,13 +61415,88 @@
             }
           },
           "400": {
-            "description": "Incorrect fields in request"
+            "description": "Bad Request"
           },
           "401": {
-            "description": "Invalid or absent Authorization header"
+            "description": "Unauthorized, Token is Invalid"
           },
           "403": {
-            "description": "Invalid OAuth 2.0 Bearer Token"
+            "description": "Forbidden Request"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/organization/{orgId}/getValidCampaignTimes": {
+      "get": {
+        "tags": [
+          "Campaign Manager"
+        ],
+        "summary": "Get Valid Campaign Times",
+        "description": "Gets valid campaign times for a campaign and agent. This request is accepted for asynchronous processing. Requires 'cjp:user','cjp.config_write' scope and one of the following roles: 'cjp.admin','id_full_admin','atlas-portal.partner.salesadmin','atlas-portal.partner.provision_admin' for authorization.",
+        "operationId": "getValidCampaignTimesRoute",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "description": "The organization ID for which valid campaign times are being requested.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          {
+            "name": "campaignId",
+            "in": "query",
+            "description": "The campaign ID for which valid campaign times are being requested.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "SalesCampaign_Prog"
+          },
+          {
+            "name": "agentId",
+            "in": "query",
+            "description": "The agent ID for whom valid campaign times are being requested.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "123e4567-e89b-12d3-a456-426614174001"
+          },
+          {
+            "name": "trackingId",
+            "in": "query",
+            "description": "Optional tracking identifier for request tracing.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "123e4567-e89b-12d3-a456-426614174002"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The valid campaign times request was accepted for processing."
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized, Token is Invalid"
+          },
+          "403": {
+            "description": "Forbidden Request"
           },
           "500": {
             "description": "Internal Server Error"
@@ -61181,13 +61548,13 @@
             "description": "The campaign was updated successfully"
           },
           "400": {
-            "description": "Incorrect fields in request"
+            "description": "Bad Request"
           },
           "401": {
-            "description": "Invalid or absent Authorization header"
+            "description": "Unauthorized, Token is Invalid"
           },
           "403": {
-            "description": "Invalid OAuth 2.0 Bearer Token"
+            "description": "Forbidden Request"
           },
           "500": {
             "description": "Internal Server Error"
@@ -61221,13 +61588,13 @@
             "description": "The campaign was stopped."
           },
           "400": {
-            "description": "Incorrect fields in request"
+            "description": "Bad Request"
           },
           "401": {
-            "description": "Invalid or absent Authorization header"
+            "description": "Unauthorized, Token is Invalid"
           },
           "403": {
-            "description": "Invalid OAuth 2.0 Bearer Token"
+            "description": "Forbidden Request"
           },
           "500": {
             "description": "Internal Server Error"
@@ -61244,7 +61611,7 @@
           "Captures"
         ],
         "summary": "List Captures",
-        "description": "Retrieve a list of Captures given a set of task IDs",
+        "description": "Retrieve a list of Captures given a set of task IDs.\n\n### Captures Availability\n\nNot all tasks will have captures by default and they will be available based on the organization's configurations and retention policy. Querying closed tasks is recommended, as open tasks may return incomplete data.\n\nTranscripts retrieved through this API are post-interaction artifacts.\n- For voice, to access real-time transcripts for a task, use the [Serving API](/docs/virtual-agent-transcripts-and-call-summary). Transcripts are available when at least one transcript based configuration is enabled such as Auto CSAT, Agent Well Being, Call Drop Summary, Virtual Agent Transfer Summary, Near Real Time Topics Analytics, Real Time Transcription etc.\n\n- For digital channels such as Chat, Email, Social, Work Item, and Custom Messaging, transcripts are generated from the conversation messages. Please refer [guide for digital transcripts](/docs/guide-for-digital-transcripts) for more details\n\n### URL Expiry\n\nThe maximum duration of validity of pre signed URL or default value when no value is passed for urlExpiration is 60 minutes.\n\n### Authentication & Authorization\n\nThis API requires a valid bearer token. The caller must satisfy the scope and role requirements for one of the following:\n\n#### Service App\n- **Required Scope:** `cjp:config_read`\n- The `orgId` must be provided in the request body and must match the token's org.\n- For service app setup, refer to [Contact Center Service Apps](/docs/contact-center-service-apps).\n\n#### Org Admin\n- **Required Scopes:** `Identity:SCIM` and `Identity:Organization`\n- **Required Role (one of):** `id_full_admin`, `id_readonly_admin`, `cjp.admin`, or `atlas-portal.partner.provision_admin`\n- The user must belong to the organization being queried. If `orgId` is provided in the request body, it must match the token's org. If `orgId` is omitted, it is inferred from the token.\n\n#### Partner Admin\n- **Required Scope:** `Identity:SCIM` for the managed org\n- **Required Role:** `atlas-portal.partner.salesadmin`\n- The org ID must be included in the managed org list. This is accomplished by adding the org to the `Managed customer orgs` list in control hub.\n\n#### Supervisor\n- **Required Role:** `cjp.supervisor`\n- The user must belong to the organization being queried. If `orgId` is provided in the request body, it must match the token's org. If `orgId` is omitted, it is inferred from the token.\n\n**Note:** Please refer to the contact center setup documentation for the configuration details.\n\n",
         "operationId": "downloadMultiRecordingPath",
         "requestBody": {
           "content": {
@@ -85298,7 +85665,7 @@
             "example": "315fbb91-2288-427c-9588-ec764cd46ea4"
           },
           "mediaType": {
-            "description": "The media type for the request. The supported values are ```telephony```, ```chat```, ```social```, ```email``` and ```workItem```.",
+            "description": "The media type for the request. The supported values are ```telephony```, ```chat```, ```social```, ```email```, ```workItem``` and ```customMessaging```.",
             "type": "string",
             "example": "telephony"
           },
@@ -85644,7 +86011,7 @@
             "items": {
               "type": "string"
             },
-            "description": "It represents the channelType of the agent which can be set to ```telephony```,```chat```, ```social```, ```email```, ```workItem``` and ```custom```. This would be sent for any channel types the agent wants to set the state on. In the event that the agent is setting more than one channel type states at once, it would send multiple state change requests .channelType is a list, and can include one or more channel types in the request.",
+            "description": "It represents the channelType of the agent which can be set to ```telephony```,```chat```, ```social```, ```email```, ```workItem``` and ```customMessaging```. This would be sent for any channel types the agent wants to set the state on. In the event that the agent is setting more than one channel type states at once, it would send multiple state change requests .channelType is a list, and can include one or more channel types in the request. Note: `customMessaging` requires the `wxcc_digital_byoc` feature flag to be enabled for the organization.",
             "example": "[telephony, chat]"
           },
           "state": {
@@ -86079,6 +86446,14 @@
       "CreateTaskResponse": {
         "description": "Response body after successfully requesting a task creation.",
         "type": "object",
+        "example": {
+          "meta": {
+            "orgId": "658d1102-8c11-4850-a809-d7a99cc1c22f"
+          },
+          "data": {
+            "id": "768d1102-8c11-4850-a809-d7a99cc1c22e"
+          }
+        },
         "required": [
           "meta",
           "data"
@@ -86442,6 +86817,9 @@
             "$ref": "#/components/schemas/WorkItem"
           },
           {
+            "$ref": "#/components/schemas/CustomMessaging"
+          },
+          {
             "$ref": "#/components/schemas/Telephony"
           }
         ],
@@ -86451,14 +86829,14 @@
       },
       "Origin": {
         "type": "object",
-        "description": "Origin of the task. For inbound `workItem` tasks, this represents the customer. For outbound `telephony` tasks, this may be the agent's information or a configured outbound ANI in the organization. Outbound ANI is applicable to `telephony` only.",
+        "description": "Origin of the task. For inbound `workItem` and `customMessaging` tasks, this represents the customer. For outbound `telephony` tasks, this may be the agent's information or a configured outbound ANI in the organization. Outbound ANI is applicable to `telephony` only.",
         "required": [
           "id"
         ],
         "properties": {
           "id": {
             "type": "string",
-            "description": "Identifier of the task originator. For inbound `workItem` tasks, this is typically the customer's identifier (e.g., email address). For outbound `telephony` tasks, this may be the agent's identifier or a configured outbound ANI in the organization.",
+            "description": "Identifier of the task originator. For inbound `workItem` and `customMessaging` tasks, this is typically the customer's identifier (e.g., email address). For outbound `telephony` tasks, this may be the agent's identifier or a configured outbound ANI in the organization.",
             "example": "customer@domain.com"
           },
           "name": {
@@ -86471,7 +86849,7 @@
       },
       "Destination": {
         "type": "object",
-        "description": "Destination for the task. Use `businessAddress` type for `workItem` tasks and `dialNumber` type for `telephony` tasks.",
+        "description": "Destination for the task. Use `businessAddress` type for `workItem` and `customMessaging` tasks and `dialNumber` type for `telephony` tasks.",
         "required": [
           "id",
           "type"
@@ -86479,12 +86857,12 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "Destination identifier. For `workItem` tasks, this is the business address associated with the configured workItem channel entry point. For `telephony` tasks, this is the dial number to call. **Migrating from v1:** Previously the top-level `destination` field (plain string) for telephony.",
+            "description": "Destination identifier. For `workItem` and `customMessaging` tasks, this is the business address associated with the configured channel entry point. For `telephony` tasks, this is the dial number to call. **Migrating from v1:** Previously the top-level `destination` field (plain string) for telephony.",
             "example": "customer-support@biz.com"
           },
           "type": {
             "type": "string",
-            "description": "Destination type. Use `businessAddress` for `workItem` tasks and `dialNumber` for `telephony` tasks.",
+            "description": "Destination type. Use `businessAddress` for `workItem` and `customMessaging` tasks and `dialNumber` for `telephony` tasks.",
             "enum": [
               "businessAddress",
               "dialNumber"
@@ -86669,6 +87047,256 @@
             "format": "int64",
             "description": "Unix epoch timestamp in milliseconds representing when the work item was originated.",
             "example": 1732786800000
+          }
+        }
+      },
+      "CustomMessaging": {
+        "type": "object",
+        "description": "Request body to create an inbound `customMessaging` task via a configured custom messaging channel. The `channel` must reference an active configured custom messaging channel in the organization. Requires the `wxcc_digital_byoc` feature flag enabled for the organization — returns `403` if not enabled. Only one message (text or text with attachments) is allowed per task creation request.",
+        "required": [
+          "origin",
+          "destination",
+          "channelType",
+          "channel",
+          "channelParams"
+        ],
+        "properties": {
+          "origin": {
+            "title": "Origin",
+            "type": "object",
+            "description": "Origin of the task. For inbound `customMessaging` tasks, this represents the customer.",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Customer's identifier, such as an email address or user ID.",
+                "example": "customer@example.com"
+              },
+              "name": {
+                "type": "string",
+                "nullable": true,
+                "description": "Optional human-readable display name for the customer.",
+                "example": "Customer Name"
+              }
+            },
+            "example": {
+              "id": "customer@example.com",
+              "name": "Customer Name"
+            }
+          },
+          "destination": {
+            "title": "Destination",
+            "type": "object",
+            "description": "Destination for the customMessaging task. The `type` must be `businessAddress`.",
+            "required": [
+              "id",
+              "type"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Business address associated with the configured custom messaging channel entry point.",
+                "example": "support@channel.biz"
+              },
+              "type": {
+                "type": "string",
+                "description": "Must be `businessAddress` for `customMessaging` tasks.",
+                "enum": [
+                  "businessAddress"
+                ],
+                "example": "businessAddress"
+              }
+            },
+            "example": {
+              "id": "support@channel.biz",
+              "type": "businessAddress"
+            }
+          },
+          "channelType": {
+            "type": "string",
+            "enum": [
+              "customMessaging"
+            ],
+            "description": "Channel type for this request.",
+            "example": "customMessaging"
+          },
+          "channel": {
+            "type": "string",
+            "description": "Identifier of the configured custom messaging channel in the organization. Required for `customMessaging` requests.",
+            "example": "my-custom-channel"
+          },
+          "flowSettings": {
+            "$ref": "#/components/schemas/FlowSettings"
+          },
+          "globalVariables": {
+            "$ref": "#/components/schemas/GlobalVariables"
+          },
+          "channelParams": {
+            "$ref": "#/components/schemas/CustomMessagingParams"
+          }
+        },
+        "example": {
+          "origin": {
+            "id": "customer@example.com",
+            "name": "Customer Name"
+          },
+          "destination": {
+            "id": "support@channel.biz",
+            "type": "businessAddress"
+          },
+          "channelType": "customMessaging",
+          "channel": "my-custom-channel",
+          "channelParams": {
+            "type": "text",
+            "message": {
+              "aliasId": "123e4567-e89b-12d3-a456-426614174000",
+              "text": "Hello, I need help with my order.",
+              "timestamp": 1732786800000
+            }
+          }
+        }
+      },
+      "CustomMessagingParams": {
+        "type": "object",
+        "description": "Custom messaging channel parameters. The `type` field is a discriminator that determines the shape of `message`. Use `text` for a plain text message, or `text-with-attachments` for a message with one or more file attachments.",
+        "required": [
+          "type",
+          "message"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "text",
+              "text-with-attachments"
+            ],
+            "description": "Discriminator for the custom messaging type. Must be `text` when the message contains only text, or `text-with-attachments` when the message includes file attachments. The value must match the shape of the `message` field — sending `attachments` with `type: \"text\"` or omitting `attachments` with `type: \"text-with-attachments\"` returns a `400`.",
+            "example": "text-with-attachments"
+          },
+          "message": {
+            "description": "The message payload. Must match the shape indicated by `type`: a `TextMessage` when `type` is `text`, or a `TextWithAttachment` when `type` is `text-with-attachments`.",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TextMessage"
+              },
+              {
+                "$ref": "#/components/schemas/TextWithAttachment"
+              }
+            ],
+            "example": {
+              "aliasId": "123e4567-e89b-12d3-a456-426614174000",
+              "text": "Hello, I need help with my order.",
+              "timestamp": 1732786800000
+            }
+          }
+        },
+        "example": {
+          "type": "text",
+          "message": {
+            "aliasId": "123e4567-e89b-12d3-a456-426614174000",
+            "text": "Hello, I need help with my order.",
+            "timestamp": 1732786800000
+          }
+        }
+      },
+      "TextMessage": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Text-only message payload for `customMessaging` tasks. Used when `channelParams.type` is `text`. The `attachments` field is not supported for this type — sending `attachments` returns a `400`.",
+        "required": [
+          "aliasId",
+          "text",
+          "timestamp"
+        ],
+        "properties": {
+          "aliasId": {
+            "type": "string",
+            "description": "Partner-assigned unique identifier for this message. A UUID is strongly recommended — a valid UUID `aliasId` is reused as the event ID, enabling idempotent retries.",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "text": {
+            "type": "string",
+            "description": "Message text content. Must be non-empty. Maximum 20,000 characters.",
+            "maxLength": 20000,
+            "example": "Hello, I need help with my order."
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix epoch timestamp representing when the message was originated. Accepts milliseconds (preferred) or seconds — values below 10,000,000,000 are treated as seconds and auto-converted to milliseconds.",
+            "example": 1732786800000
+          }
+        }
+      },
+      "TextWithAttachment": {
+        "type": "object",
+        "description": "Message payload with optional text and one or more file attachments for `customMessaging` tasks. Used when `channelParams.type` is `text-with-attachments`. Either `text` must be non-empty or at least one item in `attachments` must be provided.",
+        "required": [
+          "aliasId",
+          "attachments",
+          "timestamp"
+        ],
+        "properties": {
+          "aliasId": {
+            "type": "string",
+            "description": "Partner-assigned unique identifier for this message. A UUID is strongly recommended — a valid UUID `aliasId` is reused as the event ID, enabling idempotent retries.",
+            "example": "123e4567-e89b-12d3-a456-426614174001"
+          },
+          "text": {
+            "type": "string",
+            "description": "Optional message text content. Required when `attachments` is empty. Maximum 20,000 characters.",
+            "maxLength": 20000,
+            "example": "Please see the attached screenshot."
+          },
+          "attachments": {
+            "type": "array",
+            "description": "List of file attachments. Maximum 5 items. Must always be present; can be `[]` when `text` is non-empty, but must contain at least one item when `text` is empty.",
+            "maxItems": 5,
+            "items": {
+              "$ref": "#/components/schemas/Attachment"
+            },
+            "example": [
+              {
+                "fileName": "screenshot.png",
+                "mimeType": "image/png",
+                "fileUrl": "https://example.com/files/screenshot.png"
+              }
+            ]
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix epoch timestamp representing when the message was originated. Accepts milliseconds (preferred) or seconds — values below 10,000,000,000 are treated as seconds and auto-converted to milliseconds.",
+            "example": 1732786800000
+          }
+        }
+      },
+      "Attachment": {
+        "type": "object",
+        "description": "File attachment for a `customMessaging` message.",
+        "required": [
+          "fileName",
+          "mimeType",
+          "fileUrl"
+        ],
+        "properties": {
+          "fileName": {
+            "type": "string",
+            "description": "Name of the file, including its extension.",
+            "example": "screenshot.png"
+          },
+          "mimeType": {
+            "type": "string",
+            "description": "MIME type of the file in `type/subtype` format (e.g. `image/png`, `application/pdf`).",
+            "example": "image/png"
+          },
+          "fileUrl": {
+            "type": "string",
+            "description": "HTTPS URL of the file, accessible to Webex Contact Center for retrieval. Must use HTTPS. Maximum 2,000 characters. Note: per-file size limits and allowed MIME types are configured per channel in Control Hub — violations are not returned as API errors but surface asynchronously as `task:failed` webhook events.",
+            "maxLength": 2000,
+            "example": "https://cdn.example.com/files/screenshot.png"
           }
         }
       },
@@ -86859,6 +87487,116 @@
             "nullable": true,
             "description": "Optional callback number. Provided when the callback flow supplies a specific number to dial back.",
             "example": "+19780000000"
+          }
+        }
+      },
+      "TaskMessageRequest": {
+        "description": "Request body to append an inbound message to an existing `workItem` or `customMessaging` task.",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/WorkItemAppendTaskRequest"
+          },
+          {
+            "$ref": "#/components/schemas/CustomMessageAppendTaskRequest"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "mediaType",
+          "mapping": {
+            "workItem": "#/components/schemas/WorkItemAppendTaskRequest",
+            "customMessaging": "#/components/schemas/CustomMessageAppendTaskRequest"
+          }
+        }
+      },
+      "TaskMessageResponse": {
+        "description": "Response body after successfully requesting a task message append.",
+        "type": "object",
+        "example": {
+          "meta": {
+            "orgId": "658d1102-8c11-4850-a809-d7a99cc1c22f"
+          },
+          "data": {
+            "id": "123e4567-e89b-12d3-a456-426614174000"
+          }
+        },
+        "required": [
+          "meta",
+          "data"
+        ],
+        "properties": {
+          "meta": {
+            "type": "object",
+            "description": "Response metadata.",
+            "required": [
+              "orgId"
+            ],
+            "properties": {
+              "orgId": {
+                "type": "string",
+                "format": "uuid",
+                "description": "UUID of the organization, inferred from the authorization token.",
+                "example": "658d1102-8c11-4850-a809-d7a99cc1c22f"
+              }
+            }
+          },
+          "data": {
+            "type": "object",
+            "description": "Response data.",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Append event identifier for the message. If `aliasId` is a valid UUID, the platform reuses it as the event identifier; otherwise a UUID is generated. Use this ID to correlate downstream webhook delivery for the appended message.",
+                "example": "123e4567-e89b-12d3-a456-426614174000"
+              }
+            }
+          }
+        }
+      },
+      "WorkItemAppendTaskRequest": {
+        "title": "WorkItem",
+        "type": "object",
+        "description": "Request body to append an inbound `workItem` message to an existing task.",
+        "required": [
+          "mediaType",
+          "channelParams"
+        ],
+        "properties": {
+          "mediaType": {
+            "type": "string",
+            "enum": [
+              "workItem"
+            ],
+            "description": "Media type for this request. Must be `workItem`.",
+            "example": "workItem"
+          },
+          "channelParams": {
+            "$ref": "#/components/schemas/WorkItemParams"
+          }
+        }
+      },
+      "CustomMessageAppendTaskRequest": {
+        "title": "CustomMessaging",
+        "type": "object",
+        "description": "Request body to append an inbound `customMessaging` message to an existing task. Custom Messaging must be enabled for the organization. The API returns `403` if the capability is unavailable.",
+        "required": [
+          "mediaType",
+          "channelParams"
+        ],
+        "properties": {
+          "mediaType": {
+            "type": "string",
+            "enum": [
+              "customMessaging"
+            ],
+            "description": "Media type for this request. Must be `customMessaging`.",
+            "example": "customMessaging"
+          },
+          "channelParams": {
+            "$ref": "#/components/schemas/CustomMessagingParams"
           }
         }
       },
@@ -90063,6 +90801,9 @@
             },
             "description": "(Optional) The list of preview actions to be disabled for the agent when a preview campaign record is offered. Can be empty if no action should be disabled, otherwise should be one of \"SKIP\", \"REMOVE\" or both. The default is an empty list",
             "example": "[\"SKIP\", \"REMOVE\"]"
+          },
+          "validCampaignTimes": {
+            "$ref": "#/components/schemas/ValidCampaignTimes"
           }
         }
       },
@@ -90211,7 +90952,204 @@
             },
             "description": "(Optional) The list of preview actions to be disabled for the agent when a preview campaign record is offered. The list can be empty if no action should be disabled, otherwise it can be either \"SKIP\" or \"REMOVE\" or both. The default is an empty list",
             "example": "[\"SKIP\", \"REMOVE\"]"
+          },
+          "validCampaignTimes": {
+            "$ref": "#/components/schemas/ValidCampaignTimes"
           }
+        }
+      },
+      "ShiftTime": {
+        "type": "object",
+        "required": [
+          "start",
+          "end"
+        ],
+        "properties": {
+          "start": {
+            "type": "string",
+            "pattern": "^([0-1][0-9]|2[0-3]):[0-5][0-9]$",
+            "description": "The start time of the shift in 24-hour format (HH:MM). Must be earlier than the end time.",
+            "example": "09:00"
+          },
+          "end": {
+            "type": "string",
+            "pattern": "^([0-1][0-9]|2[0-3]):[0-5][0-9]$",
+            "description": "The end time of the shift in 24-hour format (HH:MM). Must be later than the start time.",
+            "example": "17:00"
+          }
+        }
+      },
+      "DateOverride": {
+        "type": "object",
+        "required": [
+          "date",
+          "shiftTimes"
+        ],
+        "properties": {
+          "date": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "The specific date for which the shift schedule should be overridden, in YYYY-MM-DD format.",
+            "example": "2025-08-15"
+          },
+          "shiftTimes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ShiftTime"
+            },
+            "minItems": 0,
+            "description": "The list of shift times that apply on this specific date, overriding the weekly schedule. An empty array indicates no shifts are scheduled for this date (e.g., holidays, company closures)."
+          }
+        }
+      },
+      "WeeklyShiftSchedule": {
+        "type": "object",
+        "required": [
+          "monday",
+          "tuesday",
+          "wednesday",
+          "thursday",
+          "friday",
+          "saturday",
+          "sunday"
+        ],
+        "properties": {
+          "monday": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ShiftTime"
+            },
+            "description": "List of shift times for Monday. Can be empty if no shifts are scheduled."
+          },
+          "tuesday": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ShiftTime"
+            },
+            "description": "List of shift times for Tuesday. Can be empty if no shifts are scheduled."
+          },
+          "wednesday": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ShiftTime"
+            },
+            "description": "List of shift times for Wednesday. Can be empty if no shifts are scheduled."
+          },
+          "thursday": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ShiftTime"
+            },
+            "description": "List of shift times for Thursday. Can be empty if no shifts are scheduled."
+          },
+          "friday": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ShiftTime"
+            },
+            "description": "List of shift times for Friday. Can be empty if no shifts are scheduled."
+          },
+          "saturday": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ShiftTime"
+            },
+            "description": "List of shift times for Saturday. Can be empty if no shifts are scheduled."
+          },
+          "sunday": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ShiftTime"
+            },
+            "description": "List of shift times for Sunday. Can be empty if no shifts are scheduled."
+          }
+        }
+      },
+      "ValidCampaignTimes": {
+        "type": "object",
+        "description": "(Optional) Defines the valid operating hours for the campaign based on a weekly schedule and optional date-specific overrides. The campaign will only be active during the specified time windows.",
+        "required": [
+          "timeZone",
+          "weeklySchedule"
+        ],
+        "properties": {
+          "timeZone": {
+            "type": "string",
+            "description": "The IANA timezone name (e.g., 'America/New_York') that defines the timezone for all shift times in the schedule. This timezone is used to interpret the start and end times in the weekly schedule and date overrides.",
+            "example": "America/New_York"
+          },
+          "weeklySchedule": {
+            "$ref": "#/components/schemas/WeeklyShiftSchedule",
+            "description": "The recurring weekly schedule that defines when the campaign should be active. Each day of the week can have multiple shift time ranges."
+          },
+          "dateOverrides": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DateOverride"
+            },
+            "description": "Optional list of date-specific schedule overrides that take precedence over the weekly schedule for particular dates (e.g., holidays, special events)."
+          }
+        },
+        "example": {
+          "timeZone": "America/New_York",
+          "weeklySchedule": {
+            "monday": [
+              {
+                "start": "09:00",
+                "end": "13:00"
+              },
+              {
+                "start": "14:00",
+                "end": "18:00"
+              }
+            ],
+            "tuesday": [
+              {
+                "start": "09:00",
+                "end": "17:00"
+              }
+            ],
+            "wednesday": [
+              {
+                "start": "10:00",
+                "end": "14:00"
+              }
+            ],
+            "thursday": [
+              {
+                "start": "09:00",
+                "end": "13:00"
+              },
+              {
+                "start": "14:00",
+                "end": "18:00"
+              }
+            ],
+            "friday": [
+              {
+                "start": "09:00",
+                "end": "12:00"
+              }
+            ],
+            "saturday": [
+              {
+                "start": "10:00",
+                "end": "15:00"
+              }
+            ],
+            "sunday": []
+          },
+          "dateOverrides": [
+            {
+              "date": "2025-08-15",
+              "shiftTimes": [
+                {
+                  "start": "11:00",
+                  "end": "16:00"
+                }
+              ]
+            }
+          ]
         }
       },
       "RecordingBodyParams": {
@@ -90415,7 +91353,7 @@
           "Source": {
             "type": "string",
             "description": "Source of the transcription",
-            "example": "recording|chat|sms etc."
+            "example": "recording|realtime-voice|chat|sms|{{ <WorkItem> channel name }}|{{ <CustomMessaging> channel name }} etc."
           },
           "Provider": {
             "type": "string",
