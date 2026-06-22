@@ -21,7 +21,7 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
 ## Step 1: Load references
 
 1. Read `docs/reference/admin-licensing.md` for license API patterns, PATCH body schema, and error codes
-2. Read `docs/reference/provisioning.md` for how licensing connects to user provisioning
+2. Read `docs/reference/provisioning.md` § "Licenses API" (and § "Provisioning Workflow" for how license assignment ties to user creation) — it has a Table of Contents with section anchors; load only those sections, not the whole doc
 
 **Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags. Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
 
