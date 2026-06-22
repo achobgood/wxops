@@ -20,6 +20,8 @@ description: |
 
 Create the output directory and run each wxcli command. Save results as JSON.
 
+**Mandatory --help verification:** The collection commands below are a fixed list, but if you adapt one or a command errors on an unexpected flag, run `wxcli <group> --help` to verify the subcommand and flags (e.g. `wxcli call-routing --help`, `wxcli call-queue --help`). Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
+
 ### Setup
 
 ```bash

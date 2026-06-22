@@ -29,6 +29,8 @@ If you cannot answer all three, you skipped reading this skill. Go back and read
 3. Read `docs/reference/contact-center-analytics.md` for AI features, monitoring, subscriptions, tasks
 4. Read `docs/reference/contact-center-journey.md` for JDS: workspaces, persons, identity, profile views, events, WXCC subscription
 
+**Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags (e.g. `wxcli cc-queue create --help` — note the `cc-` prefix is what distinguishes Contact Center commands from Calling, so `cc-queue` ≠ `call-queue`; guessing the wrong one builds the wrong entity). Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
+
 ## Step 2: Verify auth token and CC region
 
 Before any API calls, confirm the user has a working auth token and CC region is configured:

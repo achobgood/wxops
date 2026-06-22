@@ -62,6 +62,8 @@ Read the domain module(s) that match the question. Cross-domain queries load mul
 
 Follow the loaded domain module's command recipes, resolution rules, and join patterns exactly. Use `-o json` on all commands for programmatic parsing.
 
+**Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags (e.g. `wxcli people list --help`). Even read-only commands differ by name (`show` vs `list`, singular vs plural — known issue #5), so confirm before running. Do NOT rely on examples in this skill, the domain modules, or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
+
 ### Resource Resolution Protocol
 
 When the user references a resource by name (not ID):

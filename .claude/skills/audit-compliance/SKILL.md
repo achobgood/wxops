@@ -22,6 +22,8 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
 
 1. Read `docs/reference/admin-audit-security.md` for audit event APIs, security audit scopes, event categories, and date parameter conventions
 
+**Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags (e.g. `wxcli audit-events list --help` and `wxcli security-audit --help` — date/range parameter names are spec-generated, not guessable). Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
+
 ## Step 2: Verify auth token
 
 Before any API calls, confirm the user has a working auth token:

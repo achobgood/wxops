@@ -22,6 +22,8 @@ If you cannot answer both, read `docs/reference/contact-center-analytics.md` bef
 
 1. Read `docs/reference/contact-center-analytics.md` for CC analytics API details
 
+**Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags (e.g. `wxcli cc-queue-stats --help` and `wxcli cc-agents --help` — CC analytics groups carry the `cc-` prefix and are distinct from the Calling `reporting` skill's groups). Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
+
 ## Step 2: Verify auth and region
 
 ```bash

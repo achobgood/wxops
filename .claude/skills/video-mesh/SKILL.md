@@ -22,6 +22,8 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
 
 1. Read `docs/reference/meetings-infrastructure.md` for Video Mesh clusters, nodes, availability, utilization, reachability, health monitoring, and event thresholds
 
+**Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags (e.g. `wxcli video-mesh --help` to list subcommands, then drill into the specific one). Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
+
 ---
 
 ## Step 2: Verify auth token

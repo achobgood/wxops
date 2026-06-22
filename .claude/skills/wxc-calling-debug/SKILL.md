@@ -51,6 +51,8 @@ Load the reference docs relevant to the reported symptom. Do NOT load all docs �
 
 Also load `docs/reference/authentication.md` if the user is troubleshooting scope or token issues.
 
+**Mandatory --help verification:** Before reproducing or constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags (e.g. `wxcli call-queue --help`). A wrong command name or flag (`show` vs `list`, singular vs plural — known issue #5) is itself a common cause of the failure you're debugging, so confirm before assuming the API is at fault. Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
+
 ## Step 2: Verify auth token and scopes
 
 Check authentication and scope access BEFORE investigating any other cause. Auth/scope issues account for the vast majority of failures.

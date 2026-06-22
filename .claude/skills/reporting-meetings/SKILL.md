@@ -23,6 +23,8 @@ If you cannot answer both, read `docs/reference/meetings-infrastructure.md` and 
 2. Read `docs/reference/meetings-core.md` for meeting CRUD and reports
 3. Read `docs/reference/reporting-analytics.md` Section 2-3 for report templates
 
+**Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags (e.g. `wxcli meeting-qualities --help` and `wxcli meeting-reports --help`). Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
+
 ## Step 2: Verify auth token
 
 ```bash
