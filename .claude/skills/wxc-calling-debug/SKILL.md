@@ -37,7 +37,7 @@ Load the reference docs relevant to the reported symptom. Do NOT load all docs �
 | Symptom area | Reference docs to load |
 |--------------|----------------------|
 | Auth / token / scope | `docs/reference/authentication.md` |
-| Provisioning (users, locations, licenses) | `docs/reference/provisioning.md` |
+| Provisioning (users, locations, licenses) | `docs/reference/provisioning.md` — has a Table of Contents; load only the relevant § ("Gotchas" for cross-cutting bugs, else the matching API section), not the whole doc |
 | Call features (AA, CQ, HG, paging) | `docs/reference/call-features-major.md`, `docs/reference/call-features-additional.md` |
 | Person call settings | `docs/reference/person-call-settings-*.md` (pick the relevant one: handling, media, permissions, behavior) |
 | Location call settings | `docs/reference/location-calling-core.md`, `location-calling-media.md`, `location-recording-advanced.md` |
@@ -254,7 +254,7 @@ wxcli call-queue show LOCATION_ID QUEUE_ID --output json --debug
 |---------|-------------|-----|
 | Location not showing as calling-enabled | Location not enabled for Webex Calling | Enable calling on the location via `wxcli location-settings` or SDK |
 | Phone number assignment fails | Number not in location inventory | Add number to location first. Check available numbers: `wxcli numbers list` |
-| User shows no calling license | License not assigned | Check licenses: `wxcli licenses list`. Assign via SDK or Control Hub. See provisioning.md. |
+| User shows no calling license | License not assigned | Check licenses: `wxcli licenses list`. Assign via SDK or Control Hub. See provisioning.md § "Licenses API". |
 | Feature creation fails with location error | Location doesn't exist or wrong `location_id` | Verify with `wxcli locations list` -- confirm the ID matches |
 | Hunt group / call queue agent not receiving calls | Agent not assigned to the feature, or not joined | Check agent list: `wxcli call-queue show LOCATION_ID QUEUE_ID --output json`. Verify agent `joinEnabled` is `true`. |
 | Async job timeout | Bulk provisioning job still processing | Check job status via SDK `api.telephony.jobs`. Jobs can take minutes for large orgs. |
