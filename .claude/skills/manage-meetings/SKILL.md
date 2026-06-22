@@ -27,6 +27,8 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
 2. Read `docs/reference/meetings-content.md` for transcripts, captions, chats, summaries, meeting messages
 3. Read `docs/reference/meetings-settings.md` for preferences, session types, tracking codes, site settings, polls, Q&A, reports
 
+**Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags (e.g. `wxcli meetings create --help`). Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
+
 ---
 
 ## Step 2: Verify auth token

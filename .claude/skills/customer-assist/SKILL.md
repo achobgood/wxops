@@ -24,6 +24,8 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
 1. Read `docs/reference/call-features-additional.md` — Customer Assist data models, screen pop, wrap-up reasons, queue recording, available agents
 2. Read `docs/reference/location-recording-advanced.md` — Supervisors data models, API methods, key behaviors
 
+**Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags (e.g. `wxcli customer-assist --help` for CX queue management — and note CX queues require `--has-cx-essentials true` on `call-queue` commands or they vanish from listings, known issue #7). Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
+
 ## Step 2: Verify auth token
 
 Before any API calls, confirm the user has a working auth token:
