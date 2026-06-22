@@ -161945,6 +161945,16 @@
             "type": "string",
             "example": "ELIN Pool",
             "description": "Indicates the source of the number used for an emergency call or emergency callback. The field can contain the following values:\n\nELIN Pool—ELIN obtained from the location's pool.\n\nWorkspace ELIN—Workspace's number obtained through ECBN used as ELIN.\n\nWorkspace ELIN Fallback—Workspace's number obtained through ECBN used as ELIN due to ELIN fallback. This value is present only in originating CDRs.\n\nELIN fallback occurs when ELIN use is allowed and the location has ELINs provisioned, but no ELIN is currently available in the location's pool.\n\nECBN Fallback—ECBN is used due to ELIN fallback. This value is present only in originating CDRs.\n\nECBN—ECBN is used when the location has no ELINs provisioned, ELIN usage is not allowed for the call, or callback is not to an ELIN."
+          },
+          "Transfer type": {
+            "type": "string",
+            "example": "AI Receptionist Deflection By Intent",
+            "description": "Indicates the type of the transfer attempt. Examples:\n\nAI Receptionist Deflection By Intent—Indicates that the call was routed to a specific number mapped to the intent identified during the conversation.\n\nAI Receptionist Deflection By Default—Indicates that the call was routed to the pre-configured default number based on the conversation outcome or call failure."
+          },
+          "Transfer type context": {
+            "type": "string",
+            "example": "for Pediatric Services",
+            "description": "This field provides additional context for the transfer type. For example, Intent Name is the specific intent identified by the AI Receptionist during the conversation, used to route the call to the number mapped to that intent. Example intents include:\n\n- \"for Pediatric Services\"\n\n- \"for Occupational Therapy\""
           }
         }
       },
