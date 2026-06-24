@@ -73,5 +73,6 @@ remotion-video/
 specs/webex-flow-store.json
 src/wxcli/commands/fs_*.py
 
-# Decision-council skill (general, not part of the Webex toolset)
+# General skills (not part of the Webex toolset)
 .claude/skills/seven-advisors/
+.claude/skills/researcher/
