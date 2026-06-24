@@ -11,6 +11,40 @@ A command-line tool and AI-assisted playbook for provisioning, managing, migrati
 - **Partner / multi-org support** — manage multiple customer orgs with a single partner token; 668 commands auto-inject the target `orgId`
 - **Batch cleanup** — dependency-safe teardown of an entire Webex Calling environment (or scoped to specific locations) with `--dry-run` support
 
+## How It Works
+
+Most "AI + API" tools hand a language model an OpenAPI spec and hope. That breaks at scale: across hundreds of endpoints a model malforms request bodies, hallucinates field names and license tiers, and — worst — doesn't know a hunt group needs a calling-enabled location *first*. Specs describe endpoints; they don't describe outcomes.
+
+wxops splits the problem into three layers, each killing one way an LLM fails:
+
+| Layer | What it is | Failure it prevents |
+|-------|-----------|---------------------|
+| **Reference docs** (51) | De-conflated, authoritative API knowledge — data models, enums, license-tier distinctions, gotchas | **Hallucination** — the agent grounds on docs, never on training data |
+| **Skills** (24) | Encoded procedures for outcomes — prerequisites, ordering, intent disambiguation, known landmines | **Wrong sequence / wrong tool** — the agent follows a checklist, not a guess |
+| **CLI** (173 groups) | Tested, self-describing commands generated from 9 OpenAPI specs | **Malformed execution** — the model emits a command string, not hand-rolled HTTP |
+
+The model only does what it's reliably good at — reasoning and orchestration. Facts come from the docs, procedure from the skills, execution from the tested CLI.
+
+**One request, traced** — *"Add a sales hunt group for the Denver office":*
+
+1. The agent routes to the `configure-features` skill — not contact-center, not customer-assist (the disambiguation map handles the overloaded word "queue").
+2. The skill loads `docs/reference/call-features-major.md` for ground truth, then checks prerequisites in order: location exists → calling-enabled → users exist → numbers available.
+3. Before building the command it runs `wxcli hunt-group create --help` — the CLI is the final source of truth for flags, never the docs or memory.
+4. The CLI executes; a verify step reads the result back to confirm.
+
+At every step the agent is forced back to an authoritative source: data model from the doc, flags from `--help`, final state from a read-back. It never operates on memory. That layered grounding *is* the design.
+
+### Why a CLI, not an MCP server?
+
+The natural question for an agent-driven tool: why not expose the API as MCP tools? Because at this surface area — 173 command groups and several hundred individual operations — one tool per endpoint breaks down:
+
+- **MCP tool schemas load eagerly, every turn.** Hundreds of operations means hundreds of JSON tool definitions sitting in the model's context *before it reads your request* — tens of thousands of tokens of overhead on every call. A CLI loads nothing up front; the model pulls a single command's schema on demand with `wxcli <group> <command> --help`. Just-in-time, not all-at-once.
+- **Tool-selection accuracy collapses well before hundreds.** Models reliably pick from a handful of tools, not a sea of near-duplicates — and this surface is full of overloaded names ("queue" means three different things across Calling, Contact Center, and Customer Assist). The skill layer disambiguates intent; a flat tool list just hands the model the ambiguity.
+- **CLI commands compose; MCP tool calls don't.** Pipe to `jq`, filter with `grep`, chain a list of IDs into the next command. Ops work is full of "get these, feed them to that" — the shell makes it trivial.
+- **The CLI runs without an LLM at all.** The same commands work in scripts, in CI, and by hand, backed by thousands of tests. An MCP tool only exists inside an MCP client.
+
+This isn't anti-MCP. MCP is the right *thin boundary* for host integration: to let an agent platform drive wxops, you wrap the CLI behind **one** small MCP surface — a single "run a wxcli command" tool — not several hundred. The CLI stays the execution layer; MCP is just the seam. You get the integration without paying the tool-explosion tax.
+
 ## Install
 
 ```bash
@@ -45,8 +79,8 @@ A guided AI assistant that walks you through Webex Calling configuration end-to-
 ### What's Included
 
 - **1 builder agent** (`/agents` → wxc-calling-builder) — the main entry point that drives the full workflow
-- **25 specialized skills** covering: provisioning & teardown, call features, Customer Assist, routing, devices, device platform, call settings, call control, reporting (calling, meetings, contact center), identity/SCIM, licensing, audit/compliance, messaging spaces, messaging bots, meetings, video mesh, contact center, CUCM migration, org health, live query, and debugging
-- **50 reference docs** in `docs/reference/` documenting every Webex Calling API surface with SDK method signatures, raw HTTP examples, and gotchas
+- **24 domain skills** covering: provisioning & teardown, call features, Customer Assist, routing, devices, device platform, call settings, call control, reporting (calling, meetings, contact center), identity/SCIM, licensing, audit/compliance, messaging spaces, messaging bots, meetings, video mesh, contact center, CUCM migration, org health, live query, and debugging
+- **51 reference docs** in `docs/reference/` documenting every Webex Calling API surface with SDK method signatures, raw HTTP examples, and gotchas
 - **Shared permissions** (`.claude/settings.json`) that pre-approve `wxcli` commands so Claude Code doesn't prompt you for every CLI execution
 
 ### How to Use It
@@ -66,7 +100,7 @@ The AI playbook is optional — everything else works standalone:
 
 - **wxcli** is a regular Python CLI tool. Install it and use it directly.
 - The **50 reference docs** in `docs/reference/` are a comprehensive API knowledge base, useful for any developer working with Webex APIs.
-- The **7 OpenAPI specs** (`specs/webex-*.json`) can be imported into Postman or any API client.
+- The **9 OpenAPI specs** (`specs/webex-*.json`) can be imported into Postman or any API client.
 
 ## CLI Reference
 
