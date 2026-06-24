@@ -53,18 +53,39 @@ cd wxops
 pip install -e .
 ```
 
+Works on macOS, Linux, and Windows. On Windows, first install [Python 3.11+](https://www.python.org/downloads/) (tick **"Add python.exe to PATH"** during setup) and [Git](https://git-scm.com/download/win); the commands above are identical in PowerShell or cmd, and `pip` pulls every dependency automatically — nothing else to install.
+
 ## Authenticate
 
-Get a personal access token from [developer.webex.com](https://developer.webex.com) (valid for 12 hours):
+Get a personal access token from [developer.webex.com](https://developer.webex.com) (valid for 12 hours).
+
+**Option 1 — persistent (recommended).** Run `wxcli configure` and paste the token at the prompt. Identical in macOS/Linux Terminal, Windows PowerShell, and cmd:
+
+```
+wxcli configure
+# prompts: "Webex API token:"  → paste token, press Enter
+```
+
+**Option 2 — environment variable (per session).** Use the form for your shell:
 
 ```bash
-# Option 1: Persistent (recommended)
-echo "YOUR_TOKEN" | wxcli configure
-
-# Option 2: Environment variable (per-session only)
+# macOS / Linux
 export WEBEX_ACCESS_TOKEN="YOUR_TOKEN"
+```
 
-# Verify auth
+```powershell
+# Windows PowerShell
+$env:WEBEX_ACCESS_TOKEN="YOUR_TOKEN"
+```
+
+```bat
+:: Windows cmd
+set WEBEX_ACCESS_TOKEN=YOUR_TOKEN
+```
+
+Verify auth (any shell):
+
+```
 wxcli whoami
 ```
 
@@ -352,7 +373,8 @@ wxops/
 
 ## Requirements
 
-- Python 3.11+
+- Python 3.11+ (includes `pip`)
+- Git — required to clone the repo *and* to build it (the version is derived from git tags at install time)
 - A Webex admin account with access tokens
 
 ### OAuth Scopes
