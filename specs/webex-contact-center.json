@@ -12764,8 +12764,8 @@
           "Agent Personal Greeting Files"
         ],
         "summary": "Create a new Greeting File",
-        "description": "Create a new agent personal greeting File for a given organization.",
-        "operationId": "createConfig_28",
+        "description": "Create a new Greeting File in a given organization.",
+        "operationId": "createConfigAgentPersonalGreeting",
         "parameters": [
           {
             "name": "orgid",
@@ -12988,7 +12988,9 @@
         "tags": [
           "Agent Personal Greeting Files"
         ],
-        "operationId": "deleteReferences_1",
+        "summary": "Delete references of an agent from greeting files",
+        "description": "Removes all references of the specified agent (ciUserId) from greeting files in the given organization. Typically invoked when an agent is deleted or unassigned. in a given organization.",
+        "operationId": "deleteReferencesAgentPersonalGreeting",
         "parameters": [
           {
             "name": "orgid",
@@ -13180,7 +13182,7 @@
         ],
         "summary": "Get specific Greeting File by ID",
         "description": "Retrieve an existing Greeting File by ID in a given organization.",
-        "operationId": "getConfig_28",
+        "operationId": "getConfigAgentPersonalGreeting",
         "parameters": [
           {
             "name": "orgid",
@@ -13205,7 +13207,7 @@
           {
             "name": "includeUrl",
             "in": "query",
-            "description": "Indicates if the URL for downloading Greeting Fileshould be included in the response.",
+            "description": "Indicates whether the URL for downloading the greeting file should be included in the response.",
             "required": false,
             "schema": {
               "type": "boolean"
@@ -13357,8 +13359,8 @@
           "Agent Personal Greeting Files"
         ],
         "summary": "Update specific Greeting File by ID",
-        "description": "Update specific Greeting File by ID in a given organization.",
-        "operationId": "updateConfig_28",
+        "description": "Update an existing Greeting File by ID in a given organization.",
+        "operationId": "updateConfigAgentPersonalGreeting",
         "parameters": [
           {
             "name": "orgid",
@@ -13615,8 +13617,8 @@
           "Agent Personal Greeting Files"
         ],
         "summary": "Delete specific Greeting File by ID",
-        "description": "Delete an existing Greeting File by ID for a given organization.",
-        "operationId": "deleteConfig_24",
+        "description": "Delete an existing Greeting File by ID in a given organization.",
+        "operationId": "deleteConfigAgentPersonalGreeting",
         "parameters": [
           {
             "name": "orgid",
@@ -13802,7 +13804,7 @@
         ],
         "summary": "Partially update Greeting File by ID",
         "description": "Partially update Greeting File by ID in a given organization.",
-        "operationId": "patchConfig_4",
+        "operationId": "patchConfigAgentPersonalGreeting",
         "parameters": [
           {
             "name": "orgid",
@@ -14010,7 +14012,9 @@
         "tags": [
           "Agent Personal Greeting Files"
         ],
-        "operationId": "getAllConfigWithMetaData",
+        "summary": "List Greeting Files",
+        "description": "Retrieve a list of Greeting Files in a given organization.",
+        "operationId": "getAllConfigWithMetaDataAgentPersonalGreeting",
         "parameters": [
           {
             "name": "orgid",
@@ -14025,7 +14029,7 @@
           {
             "name": "filter",
             "in": "query",
-            "description": "Specify a filter based on which the results will be fetched. Supported fields are : firstname, lastname, email, ciUserId and attribute tag \n\nThe examples below show some search queries\n- id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\"\n- id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\"\n- id=in=(\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\",\"a421e0b2-732e-46f3-a057-39160a53afb9\")\n- id=out=(\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\",\"a421e0b2-732e-46f3-a057-39160a53afb9\")\nThis parameter uses the RSQL query syntax, a URI-friendly format for expressing criteria for filtering REST entities. For more information about RSQL in general, see  <a href=\"https://www.here.com/docs/bundle/data-client-library-developer-guide-java-scala/page/client/rsql.html\">this reference</a>. For a list of supported operators, see <a href=\"https://github.com/perplexhub/rsql-jpa-specification#rsql-syntax-reference\">this syntax guide</a>.\n\nNote: values to be used in the filter syntax should not contain spaces. If they do, please enclose them in quotes to apply the filter.\n",
+            "description": "Specify a filter based on which the results will be fetched. Supported fields are: firstName, lastName, email, ciUserId, and attributeTag.\n\nThe examples below show some search queries\n- id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\"\n- id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\"\n- id=in=(\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\",\"a421e0b2-732e-46f3-a057-39160a53afb9\")\n- id=out=(\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\",\"a421e0b2-732e-46f3-a057-39160a53afb9\")\nThis parameter uses the RSQL query syntax, a URI-friendly format for expressing criteria for filtering REST entities. For more information about RSQL in general, see  <a href=\"https://www.here.com/docs/bundle/data-client-library-developer-guide-java-scala/page/client/rsql.html\">this reference</a>. For a list of supported operators, see <a href=\"https://github.com/perplexhub/rsql-jpa-specification#rsql-syntax-reference\">this syntax guide</a>.\n\nNote: values to be used in the filter syntax should not contain spaces. If they do, please enclose them in quotes to apply the filter.\n",
             "required": false,
             "schema": {
               "type": "string"
@@ -14078,7 +14082,7 @@
           {
             "name": "includeAgentDetails",
             "in": "query",
-            "description": "If includeAgentDetails is set to true then projection, filtering, searching, and sorting on agent firstName, lastName and email will be enabled.",
+            "description": "If includeAgentDetails is set to true, projection, filtering, searching, and sorting on the agent's firstName, lastName, and email will be enabled.",
             "schema": {
               "type": "boolean",
               "default": false
@@ -14238,8 +14242,9 @@
         "tags": [
           "Agent Personal Greeting Files"
         ],
-        "summary": "Create a new Greeting File using v2 API",
-        "operationId": "createV2Config",
+        "summary": "Create a new Greeting File",
+        "description": "Create a new Greeting File in a given organization.",
+        "operationId": "createV2ConfigAgentPersonalGreeting",
         "parameters": [
           {
             "name": "orgid",
@@ -14461,9 +14466,9 @@
         "tags": [
           "Agent Personal Greeting Files"
         ],
-        "summary": "Get specific Greeting File by ID using v2 API",
+        "summary": "Get specific Greeting File by ID",
         "description": "Retrieve an existing Greeting File by ID in a given organization.",
-        "operationId": "getV2Config",
+        "operationId": "getV2ConfigAgentPersonalGreeting",
         "parameters": [
           {
             "name": "orgid",
@@ -14488,7 +14493,7 @@
           {
             "name": "includeUrl",
             "in": "query",
-            "description": "Indicates if the URL for downloading Greeting Fileshould be included in the response.",
+            "description": "Indicates whether the URL for downloading the greeting file should be included in the response.",
             "required": false,
             "schema": {
               "type": "boolean"
@@ -14632,16 +14637,15 @@
               }
             }
           }
-        },
-        "deprecated": false
+        }
       },
       "put": {
         "tags": [
           "Agent Personal Greeting Files"
         ],
-        "summary": "Update specific Greeting File by ID using v2 API",
-        "description": "Update specific Greeting File by ID in a given organization.",
-        "operationId": "updateV2Config",
+        "summary": "Update specific Greeting File by ID",
+        "description": "Update an existing Greeting File by ID in a given organization.",
+        "operationId": "updateV2ConfigAgentPersonalGreeting",
         "parameters": [
           {
             "name": "orgid",
@@ -14890,16 +14894,15 @@
               }
             }
           }
-        },
-        "deprecated": false
+        }
       },
       "delete": {
         "tags": [
           "Agent Personal Greeting Files"
         ],
-        "summary": "Delete specific Greeting File by ID using v2 API",
-        "description": "Delete an existing Greeting File by ID for a given organization.",
-        "operationId": "deleteV2Config",
+        "summary": "Delete specific Greeting File by ID",
+        "description": "Delete an existing Greeting File by ID in a given organization.",
+        "operationId": "deleteV2ConfigAgentPersonalGreeting",
         "parameters": [
           {
             "name": "orgid",
@@ -15076,16 +15079,15 @@
               }
             }
           }
-        },
-        "deprecated": false
+        }
       },
       "patch": {
         "tags": [
           "Agent Personal Greeting Files"
         ],
-        "summary": "Partially update Greeting File by ID using v2 API",
+        "summary": "Partially update Greeting File by ID",
         "description": "Partially update Greeting File by ID in a given organization.",
-        "operationId": "patchV2Config",
+        "operationId": "patchV2ConfigAgentPersonalGreeting",
         "parameters": [
           {
             "name": "orgid",
@@ -15284,8 +15286,7 @@
               }
             }
           }
-        },
-        "deprecated": false
+        }
       }
     },
     "/organization/{orgid}/v3/agent-personal-greeting": {
@@ -15293,9 +15294,9 @@
         "tags": [
           "Agent Personal Greeting Files"
         ],
-        "summary": "List Greeting File(s)",
-        "description": "Retrieve a list of Greeting File(s) in a given organization.",
-        "operationId": "getAllV2ConfigWithMetaData",
+        "summary": "List Greeting Files",
+        "description": "Retrieve a list of Greeting Files in a given organization.",
+        "operationId": "getAllV2ConfigWithMetaDataAgentPersonalGreeting",
         "parameters": [
           {
             "name": "orgid",
@@ -15310,7 +15311,7 @@
           {
             "name": "filter",
             "in": "query",
-            "description": "Specify a filter based on which the results will be fetched. Supported fields are : firstname, lastname, email, ciUserId and attribute tag \n\nThe examples below show some search queries\n- id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\"\n- id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\"\n- id=in=(\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\",\"a421e0b2-732e-46f3-a057-39160a53afb9\")\n- id=out=(\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\",\"a421e0b2-732e-46f3-a057-39160a53afb9\")\nThis parameter uses the RSQL query syntax, a URI-friendly format for expressing criteria for filtering REST entities. For more information about RSQL in general, see  <a href=\"https://www.here.com/docs/bundle/data-client-library-developer-guide-java-scala/page/client/rsql.html\">this reference</a>. For a list of supported operators, see <a href=\"https://github.com/perplexhub/rsql-jpa-specification#rsql-syntax-reference\">this syntax guide</a>.\n\nNote: values to be used in the filter syntax should not contain spaces. If they do, please enclose them in quotes to apply the filter.\n",
+            "description": "Specify a filter based on which the results will be fetched. Supported fields are: firstName, lastName, email, ciUserId, and attributeTag.\n\nThe examples below show some search queries\n- id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\"\n- id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\"\n- id=in=(\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\",\"a421e0b2-732e-46f3-a057-39160a53afb9\")\n- id=out=(\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\",\"a421e0b2-732e-46f3-a057-39160a53afb9\")\nThis parameter uses the RSQL query syntax, a URI-friendly format for expressing criteria for filtering REST entities. For more information about RSQL in general, see  <a href=\"https://www.here.com/docs/bundle/data-client-library-developer-guide-java-scala/page/client/rsql.html\">this reference</a>. For a list of supported operators, see <a href=\"https://github.com/perplexhub/rsql-jpa-specification#rsql-syntax-reference\">this syntax guide</a>.\n\nNote: values to be used in the filter syntax should not contain spaces. If they do, please enclose them in quotes to apply the filter.\n",
             "required": false,
             "schema": {
               "type": "string"
@@ -15363,7 +15364,7 @@
           {
             "name": "includeAgentDetails",
             "in": "query",
-            "description": "If includeAgentDetails is set to true then projection, filtering, searching, and sorting on agent firstName, lastName and email will be enabled.",
+            "description": "If includeAgentDetails is set to true, projection, filtering, searching, and sorting on the agent's firstName, lastName, and email will be enabled.",
             "schema": {
               "type": "boolean",
               "default": false
@@ -58367,7 +58368,7 @@
                   },
                   "example": [
                     {
-                      "activityName": "PlayMessage",
+                      "activityName": "play-message",
                       "displayName": "Play Message",
                       "category": "Voice",
                       "group": "action",
@@ -58429,12 +58430,12 @@
           {
             "name": "activityName",
             "in": "path",
-            "description": "Activity type name (e.g., `PlayMessage`, `QueueContact`).",
+            "description": "Activity type name (e.g., `play-message`, `queue-contact`).",
             "required": true,
             "schema": {
               "type": "string"
             },
-            "example": "PlayMessage"
+            "example": "play-message"
           }
         ],
         "responses": {
@@ -58473,7 +58474,7 @@
           "Activities"
         ],
         "summary": "Get Activity Input Choices",
-        "description": "Resolve choices for an activity input. Use this when an activity input requires a value from a predefined or dynamically resolved set (e.g., available queues, audio files, agents).\n\n**Modes:**\n- `list` — Returns the full set of allowed values for a static-choice input.\n- `search` — Returns matches for the supplied `query` string. Use for type-ahead UIs over large choice sets.\n- `validate` — Checks whether a single `value` is allowed and returns its label/metadata if so.\n- `dynamic` — Resolves cascading choices whose allowed values depend on one or more sibling inputs. Pass the relevant sibling values via `parent_inputs` (e.g., a queue list scoped to a previously selected team).\n\nScope: `cjp:config_read`",
+        "description": "Resolve choices for an activity input. Use this when an activity input requires a value from a predefined or dynamically resolved set (e.g., available queues, audio files, agents).\n\nThis endpoint is only valid for inputs that expose choices (an input whose definition includes `allowedValues` or a `choicesEndpoint`, as returned by `describeActivity`). Calling it for an input that does not support choices returns 400.\n\n**Modes:**\n- `list` — Returns the full set of allowed values for a static-choice input.\n- `search` — Returns matches for the supplied `query` string. Use for type-ahead UIs over large choice sets.\n- `validate` — Checks whether a single `value` is allowed and returns its label/metadata if so.\n- `dynamic` — Resolves cascading choices whose allowed values depend on one or more sibling inputs. Pass the relevant sibling values via `parent_inputs` (e.g., a queue list scoped to a previously selected team).\n\nScope: `cjp:config_read`",
         "operationId": "getActivityInputChoices",
         "parameters": [
           {
@@ -58504,17 +58505,17 @@
             "schema": {
               "type": "string"
             },
-            "example": "QueueContact"
+            "example": "queue-contact"
           },
           {
             "name": "inputName",
             "in": "path",
-            "description": "Input field name.",
+            "description": "Input field name. Must be an input that exposes choices (has `allowedValues` or a `choicesEndpoint`).",
             "required": true,
             "schema": {
               "type": "string"
             },
-            "example": "queue"
+            "example": "channelType"
           },
           {
             "name": "mode",
@@ -58861,7 +58862,7 @@
           {
             "name": "flowId",
             "in": "path",
-            "description": "ID of the flow/subflow to export.",
+            "description": "ID of the flow/subflow to publish.",
             "required": true,
             "schema": {
               "type": "string"
@@ -59141,7 +59142,7 @@
           "Flows"
         ],
         "summary": "Validate a Flow",
-        "description": "Dry-run validate a flow definition without persisting it. Use this to check correctness before importing.\n\nScope: `cjp:config_write`",
+        "description": "Dry-run validate a flow definition without persisting it. Use this to check correctness before importing.\n\nNote: validation is more lenient than import. A flow that passes `:validate` can still be rejected by `:import` (for example, a missing start activity), so a successful validation does not guarantee a successful import.\n\nScope: `cjp:config_write`",
         "operationId": "validateFlowV2",
         "parameters": [
           {
@@ -60818,88 +60819,6 @@
           },
           "500": {
             "description": "Export failed.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/{orgId}/functions/options": {
-      "get": {
-        "tags": [
-          "Functions"
-        ],
-        "summary": "List Function Options",
-        "description": "List the supported programming languages, runtimes, and corresponding wrapper code for custom functions. Filter by `language` or `runtime` to narrow the result.\n\nScope: `cjp:config_read`",
-        "operationId": "getFnOptions",
-        "parameters": [
-          {
-            "name": "orgId",
-            "in": "path",
-            "description": "Organization ID.",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "example": "8eb7da9a-c81c-4d13-b08b-38fdeb7330d8"
-          },
-          {
-            "name": "language",
-            "in": "query",
-            "description": "Filter by programming language (for example, `js`, `py`).",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "example": "js"
-          },
-          {
-            "name": "runtime",
-            "in": "query",
-            "description": "Filter by runtime (for example, `nodejs22.x`, `python3.13`).",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "example": "nodejs22.x"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Options retrieved successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FnOptionsResp"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "content": {}
-          },
-          "404": {
-            "description": "No data found matching the supplied filters.",
-            "content": {}
-          },
-          "500": {
-            "description": "Internal Server Error.",
             "content": {
               "application/json": {
                 "schema": {
@@ -71817,6 +71736,11 @@
             "example": "cisco.webex.com",
             "description": "The site to which this report belongs to. This only exists if the report belongs to service `Webex`."
           },
+          "timeZone": {
+            "type": "string",
+            "example": "Asia/Shanghai",
+            "description": "Time zone used for report date and time values. Use an IANA time zone name. The default value is `UTC` when not specified."
+          },
           "created": {
             "type": "string",
             "example": "2020-03-24 17:13:39",
@@ -78194,6 +78118,7 @@
       },
       "AgentPersonalGreetingDTO_AgentPersonalGreetingsWithAttributeTag": {
         "type": "object",
+        "description": "Agent Personal Greeting Agent Personal Greetings With Attribute Tag schema.",
         "properties": {
           "organizationId": {
             "type": "string",
@@ -78287,17 +78212,20 @@
           },
           "audioFile": {
             "type": "string",
-            "format": "binary"
+            "format": "binary",
+            "description": "Audio File."
           },
           "createdTime": {
             "type": "integer",
             "format": "int64",
-            "description": "This is the created time of the entity."
+            "description": "This is the created time of the entity.",
+            "example": 123456789
           },
           "lastUpdatedTime": {
             "type": "integer",
             "format": "int64",
-            "description": "This is the updated time of the entity."
+            "description": "This is the updated time of the entity.",
+            "example": 123456789
           }
         },
         "required": [
@@ -78381,6 +78309,7 @@
       },
       "AgentPersonalGreetingPatchDTO_AgentPersonalGreetingsWithAttributeTag": {
         "type": "object",
+        "description": "Agent Personal Greeting Patch Agent Personal Greetings With Attribute Tag schema.",
         "properties": {
           "attributeTag": {
             "type": "string",
@@ -78396,6 +78325,7 @@
       },
       "AgentPersonalGreetingDTO_AgentPersonalGreetingsWithGreetingPurpose": {
         "type": "object",
+        "description": "Agent Personal Greeting Agent Personal Greetings With Greeting Purpose schema.",
         "properties": {
           "organizationId": {
             "type": "string",
@@ -78491,17 +78421,20 @@
           },
           "audioFile": {
             "type": "string",
-            "format": "binary"
+            "format": "binary",
+            "description": "Audio File."
           },
           "createdTime": {
             "type": "integer",
             "format": "int64",
-            "description": "This is the created time of the entity."
+            "description": "This is the created time of the entity.",
+            "example": 123456789
           },
           "lastUpdatedTime": {
             "type": "integer",
             "format": "int64",
-            "description": "This is the updated time of the entity."
+            "description": "This is the updated time of the entity.",
+            "example": 123456789
           }
         },
         "required": [
@@ -78512,6 +78445,7 @@
       },
       "AgentPersonalGreetingPatchDTO_AgentPersonalGreetingsWithGreetingPurpose": {
         "type": "object",
+        "description": "Agent Personal Greeting Patch Agent Personal Greetings With Greeting Purpose schema.",
         "properties": {
           "attributeTag": {
             "type": "string",
@@ -90807,7 +90741,7 @@
         "description": "Definition of an activity type, including its inputs, outputs, and named output ports.",
         "additionalProperties": true,
         "example": {
-          "activityName": "PlayMessage",
+          "activityName": "play-message",
           "displayName": "Play Message",
           "category": "Voice",
           "group": "action",
@@ -90819,8 +90753,8 @@
         "properties": {
           "activityName": {
             "type": "string",
-            "description": "Stable activity type identifier referenced by `FlowV2Node.activityName`.",
-            "example": "PlayMessage"
+            "description": "Stable activity type identifier referenced by a flow node's `properties.activityName`.",
+            "example": "play-message"
           },
           "displayName": {
             "type": "string",
@@ -92295,27 +92229,91 @@
       "FlowV2Metadata": {
         "title": "FlowV2Metadata",
         "type": "object",
-        "description": "Metadata returned for a flow on import, save draft, patch draft, and publish.",
+        "description": "Result envelope returned for a flow on import, save draft, and patch draft. The persisted flow document is returned under `flow` (the server-assigned flow ID is `flow.id`), alongside any preflight warnings raised during the operation.",
         "additionalProperties": true,
-        "example": {
-          "flowId": "661c7bc712eaf357de7e4aeb",
-          "version": 3,
-          "status": "Draft",
-          "name": "Customer_Support_Main",
-          "createdDate": "2026-01-15T09:12:00.000Z",
-          "lastModifiedDate": "2026-05-20T14:30:00.000Z"
-        },
         "properties": {
-          "flowId": {
+          "flow": {
+            "description": "The persisted flow document, including the server-assigned `id`.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FlowV2Summary"
+              }
+            ]
+          },
+          "preflightWarnings": {
+            "type": "array",
+            "description": "Non-blocking warnings raised while persisting the flow (for example, references that resolve but are flagged for review). Empty when there are none.",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "example": []
+          },
+          "preflightWarningsCount": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Number of entries in `preflightWarnings`.",
+            "example": 0
+          }
+        },
+        "example": {
+          "flow": {
+            "id": "661c7bc712eaf357de7e4aeb",
+            "orgId": "8eb7da9a-c81c-4d13-b08b-38fdeb7330d8",
+            "version": 0,
+            "flowType": "FLOW",
+            "name": "SamplePlayMessageFlow",
+            "description": "Minimal sample flow: greet the caller, then disconnect",
+            "status": "Draft",
+            "createdBy": "user@example.com",
+            "createdDate": "2026-01-15T09:12:00.000Z",
+            "lastModifiedBy": "user@example.com",
+            "lastModifiedDate": "2026-05-20T14:30:00.000Z"
+          },
+          "preflightWarnings": [],
+          "preflightWarningsCount": 0
+        }
+      },
+      "FlowV2Summary": {
+        "title": "FlowV2Summary",
+        "type": "object",
+        "description": "Server-side metadata for a persisted flow document.",
+        "additionalProperties": true,
+        "properties": {
+          "id": {
             "type": "string",
             "description": "Server-assigned flow ID.",
             "example": "661c7bc712eaf357de7e4aeb"
+          },
+          "orgId": {
+            "type": "string",
+            "description": "Organization ID that owns the flow.",
+            "example": "8eb7da9a-c81c-4d13-b08b-38fdeb7330d8"
           },
           "version": {
             "type": "integer",
             "format": "int64",
             "description": "Current version number of the flow document.",
-            "example": 3
+            "example": 0
+          },
+          "flowType": {
+            "type": "string",
+            "description": "Flow type. One of `FLOW` or `SUBFLOW`.",
+            "enum": [
+              "FLOW",
+              "SUBFLOW"
+            ],
+            "example": "FLOW"
+          },
+          "name": {
+            "type": "string",
+            "description": "Flow name.",
+            "example": "SamplePlayMessageFlow"
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable description of the flow.",
+            "example": "Minimal sample flow: greet the caller, then disconnect"
           },
           "status": {
             "type": "string",
@@ -92326,10 +92324,10 @@
             ],
             "example": "Draft"
           },
-          "name": {
+          "createdBy": {
             "type": "string",
-            "description": "Flow name.",
-            "example": "Customer_Support_Main"
+            "description": "User ID that created the flow.",
+            "example": "user@example.com"
           },
           "createdDate": {
             "type": "string",
@@ -92337,12 +92335,30 @@
             "description": "Timestamp the flow was first created.",
             "example": "2026-01-15T09:12:00.000Z"
           },
+          "lastModifiedBy": {
+            "type": "string",
+            "description": "User ID that last modified the flow.",
+            "example": "user@example.com"
+          },
           "lastModifiedDate": {
             "type": "string",
             "format": "date-time",
             "description": "Timestamp the flow was last modified.",
             "example": "2026-05-20T14:30:00.000Z"
           }
+        },
+        "example": {
+          "id": "661c7bc712eaf357de7e4aeb",
+          "orgId": "8eb7da9a-c81c-4d13-b08b-38fdeb7330d8",
+          "version": 0,
+          "flowType": "FLOW",
+          "name": "SamplePlayMessageFlow",
+          "description": "Minimal sample flow: greet the caller, then disconnect",
+          "status": "Draft",
+          "createdBy": "user@example.com",
+          "createdDate": "2026-01-15T09:12:00.000Z",
+          "lastModifiedBy": "user@example.com",
+          "lastModifiedDate": "2026-05-20T14:30:00.000Z"
         }
       },
       "FlowV2Node": {
@@ -92429,7 +92445,7 @@
               "message": "Queue 'Main_Support_Quueue' was not found in the project."
             },
             {
-              "path": "/edges/4/from_port",
+              "path": "/edges/4/condition",
               "code": "INVALID_PORT",
               "message": "Activity 'PlayMessage' does not expose a port named 'onTimeout'."
             }
@@ -92512,7 +92528,7 @@
           },
           "upsert_edges": {
             "type": "array",
-            "description": "Edges to insert or replace, matched by `key`.",
+            "description": "Edges to insert or replace, matched by `id`.",
             "items": {
               "type": "object",
               "additionalProperties": true
@@ -92527,11 +92543,39 @@
           },
           "remove_edge_keys": {
             "type": "array",
-            "description": "Keys of edges to remove.",
+            "description": "Identifiers of edges to remove.",
             "items": {
               "type": "string"
             }
           }
+        },
+        "example": {
+          "upsert_nodes": [
+            {
+              "id": "node-welcome",
+              "name": "WelcomeMessage",
+              "activityType": "action",
+              "properties": {
+                "activityName": "play-message",
+                "prompt": {
+                  "promptType": "text",
+                  "text": "Thanks for calling. Please hold.",
+                  "textType": "text"
+                }
+              }
+            }
+          ],
+          "upsert_edges": [
+            {
+              "id": "edge-1",
+              "from": "NewContact",
+              "to": "WelcomeMessage",
+              "condition": "out",
+              "properties": {}
+            }
+          ],
+          "remove_node_names": [],
+          "remove_edge_keys": []
         }
       },
       "FnInputDef": {
@@ -92567,23 +92611,62 @@
       "FnListResponse": {
         "title": "FnListResponse",
         "type": "object",
-        "description": "Paginated list of custom functions.",
+        "description": "Paginated list of custom functions. Function metadata records are returned under `data`, with pagination details under `pageInfo`.",
         "additionalProperties": true,
         "properties": {
-          "items": {
+          "data": {
             "type": "array",
-            "description": "Page of custom function records.",
+            "description": "Page of custom function metadata records. Each entry carries metadata only; the source code is returned only when fetching a single function.",
             "items": {
-              "$ref": "#/components/schemas/FnDataResp"
+              "$ref": "#/components/schemas/FnMetadata"
             }
           },
-          "page": {
+          "pageInfo": {
+            "$ref": "#/components/schemas/PageInfo"
+          }
+        },
+        "example": {
+          "data": [
+            {
+              "id": "64f1b2c3d4e5f6a7b8c9d0e1",
+              "orgId": "8eb7da9a-c81c-4d13-b08b-38fdeb7330d8",
+              "name": "validateZipCode",
+              "description": "Returns true if the supplied US zip code is in a valid 5-digit format.",
+              "language": "js",
+              "selectedRuntime": "nodejs22.x",
+              "status": "Published",
+              "timeoutInSec": 3,
+              "tagVersionMap": {
+                "Dev": "1",
+                "Latest": "1"
+              },
+              "createdBy": "user@example.com",
+              "createdDate": "2026-05-28T14:23:01Z",
+              "lastModifiedBy": "user@example.com",
+              "lastModifiedDate": "2026-05-28T14:23:01Z"
+            }
+          ],
+          "pageInfo": {
+            "pageNumber": 0,
+            "pageSize": 100,
+            "totalElements": 1,
+            "totalPages": 1
+          }
+        }
+      },
+      "PageInfo": {
+        "title": "PageInfo",
+        "type": "object",
+        "description": "Pagination details for a paged list response.",
+        "additionalProperties": true,
+        "properties": {
+          "pageNumber": {
             "type": "integer",
             "format": "int32",
             "description": "Zero-based index of the returned page.",
             "example": 0
           },
-          "size": {
+          "pageSize": {
             "type": "integer",
             "format": "int32",
             "description": "Page size used by the query.",
@@ -92603,18 +92686,9 @@
           }
         },
         "example": {
-          "items": [
-            {
-              "id": "64f1b2c3d4e5f6a7b8c9d0e1",
-              "name": "validateZipCode",
-              "description": "Validates a US zip code.",
-              "language": "js",
-              "runtime": "nodejs22.x"
-            }
-          ],
-          "page": 0,
-          "size": 100,
-          "totalElements": 1,
+          "pageNumber": 0,
+          "pageSize": 100,
+          "totalElements": 42,
           "totalPages": 1
         }
       },
@@ -92637,7 +92711,7 @@
       "FnCreateReq": {
         "title": "FnCreateReq",
         "type": "object",
-        "description": "Source code and metadata of a custom function. `language` defaults to `js`. `runtime` defaults to the highest supported runtime for the chosen language; the full list of supported runtimes can be retrieved from `getFnOptions`. The `outputs` field is a stringified (escaped) JSON of output variable names mapped to sample values.",
+        "description": "Source code and metadata of a custom function. `language` defaults to `js`. `selectedRuntime` defaults to the highest supported runtime for the chosen language. The `outputs` field is a stringified (escaped) JSON of output variable names mapped to sample values.",
         "additionalProperties": true,
         "properties": {
           "name": {
@@ -92660,15 +92734,21 @@
             "default": "js",
             "example": "js"
           },
-          "runtime": {
+          "selectedRuntime": {
             "type": "string",
             "description": "Runtime identifier (case-sensitive). For example, `nodejs22.x` or `python3.13`. Defaults to the highest supported runtime for the chosen language.",
             "example": "nodejs22.x"
           },
+          "timeoutInSec": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Maximum execution time for the function, in seconds.",
+            "example": 3
+          },
           "sourceCode": {
             "type": "string",
-            "description": "Function source code as an escaped string.",
-            "example": "function handler(input) {\n  return /^\\d{5}$/.test(input.zip);\n}"
+            "description": "Function source code as an escaped string. The handler must be an exported async function `export const handle = async (request, response) => { ... }`. Read inputs from `request.inputs.*`, set the result via `response.data = { ... }`, and `return response`.",
+            "example": "export const handle = async (request, response) => {\n  response.data = { areaCode: String(request.inputs.ani || '').slice(-10).slice(0, 3) };\n  return response;\n}\n"
           },
           "inputs": {
             "type": "array",
@@ -92687,8 +92767,9 @@
           "name": "validateZipCode",
           "description": "Returns true if the supplied US zip code is in a valid 5-digit format.",
           "language": "js",
-          "runtime": "nodejs22.x",
-          "sourceCode": "function handler(input) {\n  return /^\\d{5}$/.test(input.zip);\n}",
+          "selectedRuntime": "nodejs22.x",
+          "timeoutInSec": 3,
+          "sourceCode": "export const handle = async (request, response) => {\n  response.data = { areaCode: String(request.inputs.ani || '').slice(-10).slice(0, 3) };\n  return response;\n}\n",
           "inputs": [
             {
               "name": "zip",
@@ -92699,16 +92780,21 @@
           "outputs": "{\"isValid\":true}"
         }
       },
-      "FnDataResp": {
-        "title": "FnDataResp",
+      "FnMetadata": {
+        "title": "FnMetadata",
         "type": "object",
-        "description": "A custom function record. Includes lifecycle metadata (`status`, `version`, `lockedBy`), declared `inputs`/`outputs`, and (unless `metaDataOnly=true` was supplied) the source code.",
+        "description": "Metadata for a custom function (no source code). Returned in list responses and inside the `fnMetadata` envelope of a single-function response.",
         "additionalProperties": true,
         "properties": {
           "id": {
             "type": "string",
             "description": "Function ID. Hexadecimal ObjectId.",
             "example": "64f1b2c3d4e5f6a7b8c9d0e1"
+          },
+          "orgId": {
+            "type": "string",
+            "description": "Organization ID that owns the function.",
+            "example": "8eb7da9a-c81c-4d13-b08b-38fdeb7330d8"
           },
           "name": {
             "type": "string",
@@ -92729,7 +92815,7 @@
             ],
             "example": "js"
           },
-          "runtime": {
+          "selectedRuntime": {
             "type": "string",
             "description": "Runtime identifier.",
             "example": "nodejs22.x"
@@ -92741,35 +92827,43 @@
               "Draft",
               "Published"
             ],
-            "example": "Draft"
+            "example": "Published"
           },
-          "version": {
+          "timeoutInSec": {
             "type": "integer",
-            "format": "int64",
-            "description": "Monotonically increasing version of the document.",
+            "format": "int32",
+            "description": "Maximum execution time for the function, in seconds.",
             "example": 3
           },
-          "sourceCode": {
-            "type": "string",
-            "description": "Function source code. Omitted when the request used `metaDataOnly=true`.",
-            "example": "function handler(input) {\n  return /^\\d{5}$/.test(input.zip);\n}"
-          },
-          "inputs": {
-            "type": "array",
-            "description": "Declared inputs of the function.",
-            "items": {
-              "$ref": "#/components/schemas/FnInputDef"
+          "tagVersionMap": {
+            "type": "object",
+            "description": "Map of publish tag to the function version it currently points to.",
+            "additionalProperties": true,
+            "example": {
+              "Dev": "1",
+              "Latest": "1"
             }
-          },
-          "outputs": {
-            "type": "string",
-            "description": "Stringified JSON of output variable names mapped to sample values.",
-            "example": "{\"isValid\":true}"
           },
           "lockedBy": {
             "type": "string",
             "description": "User ID currently holding the edit lock, or empty if unlocked.",
-            "example": "user-1234"
+            "example": ""
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "User ID that created the function.",
+            "example": "user@example.com"
+          },
+          "createdDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp the function was created.",
+            "example": "2026-05-28T14:23:01Z"
+          },
+          "lastModifiedBy": {
+            "type": "string",
+            "description": "User ID that last modified the function.",
+            "example": "user@example.com"
           },
           "lastModifiedDate": {
             "type": "string",
@@ -92780,23 +92874,60 @@
         },
         "example": {
           "id": "64f1b2c3d4e5f6a7b8c9d0e1",
+          "orgId": "8eb7da9a-c81c-4d13-b08b-38fdeb7330d8",
           "name": "validateZipCode",
           "description": "Returns true if the supplied US zip code is in a valid 5-digit format.",
           "language": "js",
-          "runtime": "nodejs22.x",
-          "status": "Draft",
-          "version": 3,
-          "sourceCode": "function handler(input) {\n  return /^\\d{5}$/.test(input.zip);\n}",
-          "inputs": [
-            {
-              "name": "zip",
-              "dataType": "string",
-              "value": "94043"
-            }
-          ],
-          "outputs": "{\"isValid\":true}",
+          "selectedRuntime": "nodejs22.x",
+          "status": "Published",
+          "timeoutInSec": 3,
+          "tagVersionMap": {
+            "Dev": "1",
+            "Latest": "1"
+          },
           "lockedBy": "",
+          "createdBy": "user@example.com",
+          "createdDate": "2026-05-28T14:23:01Z",
+          "lastModifiedBy": "user@example.com",
           "lastModifiedDate": "2026-05-28T14:23:01Z"
+        }
+      },
+      "FnDataResp": {
+        "title": "FnDataResp",
+        "type": "object",
+        "description": "A single custom function. The source code is returned under `fnCode`, and all lifecycle metadata under `fnMetadata`.",
+        "additionalProperties": true,
+        "properties": {
+          "fnCode": {
+            "type": "string",
+            "description": "Function source code as an escaped string. The handler is an exported async function `export const handle = async (request, response) => { ... }`.",
+            "example": "export const handle = async (request, response) => {\n  response.data = { areaCode: String(request.inputs.ani || '').slice(-10).slice(0, 3) };\n  return response;\n}\n"
+          },
+          "fnMetadata": {
+            "$ref": "#/components/schemas/FnMetadata"
+          }
+        },
+        "example": {
+          "fnCode": "export const handle = async (request, response) => {\n  response.data = { areaCode: String(request.inputs.ani || '').slice(-10).slice(0, 3) };\n  return response;\n}\n",
+          "fnMetadata": {
+            "id": "64f1b2c3d4e5f6a7b8c9d0e1",
+            "orgId": "8eb7da9a-c81c-4d13-b08b-38fdeb7330d8",
+            "name": "validateZipCode",
+            "description": "Returns true if the supplied US zip code is in a valid 5-digit format.",
+            "language": "js",
+            "selectedRuntime": "nodejs22.x",
+            "status": "Published",
+            "timeoutInSec": 3,
+            "tagVersionMap": {
+              "Dev": "1",
+              "Latest": "1"
+            },
+            "lockedBy": "",
+            "createdBy": "user@example.com",
+            "createdDate": "2026-05-28T14:23:01Z",
+            "lastModifiedBy": "user@example.com",
+            "lastModifiedDate": "2026-05-28T14:23:01Z"
+          }
         }
       },
       "FnTestRequest": {
@@ -92909,57 +93040,6 @@
           "fileName": "validateZipCode.zip",
           "contentType": "application/zip",
           "content": "UEsDBBQAAAAIAA=="
-        }
-      },
-      "FnOptionsResp": {
-        "title": "FnOptionsResp",
-        "type": "object",
-        "description": "Supported languages, runtimes, and wrapper code for custom functions.",
-        "additionalProperties": true,
-        "properties": {
-          "languages": {
-            "type": "array",
-            "description": "List of supported language entries.",
-            "items": {
-              "type": "object",
-              "additionalProperties": true,
-              "properties": {
-                "language": {
-                  "type": "string",
-                  "description": "Language identifier.",
-                  "example": "js"
-                },
-                "runtimes": {
-                  "type": "array",
-                  "description": "Runtimes available for the language.",
-                  "items": {
-                    "type": "string"
-                  },
-                  "example": [
-                    "nodejs22.x",
-                    "nodejs20.x"
-                  ]
-                },
-                "wrapperCode": {
-                  "type": "string",
-                  "description": "Wrapper template that user code is embedded into when the function executes.",
-                  "example": "exports.handler = async (event) => { /* user code */ };"
-                }
-              }
-            }
-          }
-        },
-        "example": {
-          "languages": [
-            {
-              "language": "js",
-              "runtimes": [
-                "nodejs22.x",
-                "nodejs20.x"
-              ],
-              "wrapperCode": "exports.handler = async (event) => { /* user code */ };"
-            }
-          ]
         }
       },
       "FlowTemplate": {

@@ -2370,7 +2370,8 @@
                   "LockoutFailureCount": 5,
                   "LockoutFailureDuration": 5,
                   "RememberMyLoginId": false,
-                  "RememberMyLoginIdDuration": 30
+                  "RememberMyLoginIdDuration": 30,
+                  "mfaEnabled": true
                 }
               }
             }
@@ -2447,7 +2448,8 @@
                   "urn:cisco:codev:identity:idbroker:authnconfig:schemas:1.0"
                 ],
                 "RememberMyLoginId": true,
-                "RememberMyLoginIdDuration": 30
+                "RememberMyLoginIdDuration": 30,
+                "mfaEnabled": true
               },
               "schema": {
                 "$ref": "#/components/schemas/AuthenticationConfigPatchObject"
@@ -12514,6 +12516,7 @@
                       "service": "Teams",
                       "startDate": "2020-03-17",
                       "endDate": "2020-03-18",
+                      "timeZone": "Asia/Shanghai",
                       "siteList": "",
                       "created": "2020-05-27 17:02:43",
                       "createdBy": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9mYzhjMWFhMS00OTM5LTQ2NjEtODAwMy1hYWE0MzFmZWM0ZmE",
@@ -12734,6 +12737,11 @@
                     "type": "string",
                     "example": "cisco.webex.com",
                     "description": "Sites belonging to user's organization. This attribute is needed for site-based templates."
+                  },
+                  "timeZone": {
+                    "type": "string",
+                    "example": "Asia/Shanghai",
+                    "description": "Time zone used for report date and time values. Use an IANA time zone name. This field is optional."
                   }
                 }
               }
@@ -12759,6 +12767,7 @@
                   "service": "Teams",
                   "startDate": "2020-02-23",
                   "endDate": "2020-03-24",
+                  "timeZone": "Asia/Shanghai",
                   "siteList": "cisco.webex.com",
                   "created": "2020-03-24 17:13:39",
                   "createdBy": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9mYzhjMWFhMS00OTM5LTQ2NjEtODAwMy1hYWE0MzFmZWM0ZmE",
@@ -29852,6 +29861,11 @@
             "example": "cisco.webex.com",
             "description": "The site to which this report belongs to. This only exists if the report belongs to service `Webex`."
           },
+          "timeZone": {
+            "type": "string",
+            "example": "Asia/Shanghai",
+            "description": "Time zone used for report date and time values. Use an IANA time zone name. The default value is `UTC` when not specified."
+          },
           "created": {
             "type": "string",
             "example": "2020-03-24 17:13:39",
@@ -33810,11 +33824,28 @@
             "type": "number",
             "example": 30,
             "description": "Specifies the number of days the user's login ID is remembered. Must be between 1 and 120 (inclusive)."
+          },
+          "mfaEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Enable/ Disable multi-factor authentication on an organization."
           }
         }
       },
       "AuthenticationConfigResponse": {
         "type": "object",
+        "example": {
+          "schemas": [
+            "urn:cisco:codev:identity:idbroker:authnconfig:schemas:1.0"
+          ],
+          "LockoutDuration": 1,
+          "LockoutDurationMultiplier": 1,
+          "LockoutFailureCount": 5,
+          "LockoutFailureDuration": 5,
+          "RememberMyLoginId": false,
+          "RememberMyLoginIdDuration": 30,
+          "mfaEnabled": true
+        },
         "properties": {
           "schemas": {
             "type": "array",
@@ -33848,6 +33879,11 @@
             "type": "boolean",
             "example": true,
             "description": "True to remember the user's Login Id."
+          },
+          "mfaEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "True, if multi factor authentication is enabled on an organization."
           },
           "RememberMyLoginIdDuration": {
             "type": "number",
@@ -33921,6 +33957,16 @@
       },
       "PasswordPolicyResponse": {
         "type": "object",
+        "example": {
+          "minimumNumeric": "1",
+          "minimumCapAlpha": "1",
+          "minimumLowAlpha": "1",
+          "minimumSpecial": "1",
+          "minimumLength": "8",
+          "historyCount": "3",
+          "maxPasswordAge": "1825",
+          "notAcceptableStrings": "password,passwd,pass,webex,cisco,xebew,ocsic"
+        },
         "properties": {
           "minimumNumeric": {
             "type": "string",
