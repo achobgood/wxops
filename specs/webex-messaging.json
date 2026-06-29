@@ -1174,15 +1174,15 @@
         },
         "summary": "Get organization details",
         "operationId": "getHDSOrganizationDetails",
-        "description": "Retrieve details for an HDS organization, such as the organization name, type of organization.\nTo obtain the Organization ID needed for this API, use the [Organizations API](</docs/api/v1/organizations/list-organizations>)",
+        "description": "Retrieve details for an Hybrid Data Security organization, such as the organization name, type of organization.\nTo obtain the Organization ID needed for this API, use the [Organizations API](</docs/api/v1/organizations/list-organizations>)",
         "tags": [
-          "HDS"
+          "Hybrid Data Security"
         ],
         "parameters": [
           {
             "name": "organizationId",
             "in": "path",
-            "description": "Unique ID of the HDS organization.",
+            "description": "Unique ID of the Hybrid Data Security organization.",
             "required": true,
             "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8yYzNjOWY5NS03M2Q5LTQ0NjAtYTY2OC0wNDcxNjJmZjFiYWQ",
             "schema": {
@@ -1290,17 +1290,17 @@
             "description": "Gateway Timeout: An upstream server failed to respond in time. If your query uses the max parameter, please try reducing its value."
           }
         },
-        "summary": "List clusters for an HDS organization",
+        "summary": "List clusters for an Hybrid Data Security organization",
         "operationId": "listHDSOrganizationClusters",
-        "description": "Retrieve a list of all clusters for a specific HDS organization, including cluster status, release channel, and upgrade schedule details.\nTo obtain the Organization ID needed for this API, use the [Organizations API](</docs/api/v1/organizations/list-organizations>)",
+        "description": "Retrieve a list of all clusters for a specific Hybrid Data Security organization, including cluster status, release channel, and upgrade schedule details.\nTo obtain the Organization ID needed for this API, use the [Organizations API](</docs/api/v1/organizations/list-organizations>)",
         "tags": [
-          "HDS"
+          "Hybrid Data Security"
         ],
         "parameters": [
           {
             "name": "organizationId",
             "in": "path",
-            "description": "Unique ID of the HDS organization.",
+            "description": "Unique ID of the Hybrid Data Security organization.",
             "required": true,
             "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8yYzNjOWY5NS03M2Q5LTQ0NjAtYTY2OC0wNDcxNjJmZjFiYWQ",
             "schema": {
@@ -1389,15 +1389,15 @@
         },
         "summary": "Get cluster details",
         "operationId": "getHDSClusterDetails",
-        "description": "Retrieve details for a specific HDS cluster, such as the cluster name, cluster status, upgrade schedule, and HDS nodes in the cluster.\nTo obtain the Cluster ID needed for this API, use the [Get organization details API](</docs/api/v1/hds/get-organization-details>)",
+        "description": "Retrieve details for a specific Hybrid Data Security cluster, such as the cluster name, cluster status, upgrade schedule, and Hybrid Data Security nodes in the cluster.\nTo obtain the Cluster ID needed for this API, use the [Get organization details API](</docs/api/v1/hds/get-organization-details>)",
         "tags": [
-          "HDS"
+          "Hybrid Data Security"
         ],
         "parameters": [
           {
             "name": "clusterId",
             "in": "path",
-            "description": "Unique ID of the HDS cluster.",
+            "description": "Unique ID of the Hybrid Data Security cluster.",
             "required": true,
             "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzJjM2M5Zjk1LTczZDktNDQ2MC1hNjY4LTA0NzE2MmZmMWJhZDpmMWJmMGI1MC0yMDUyLTQ3ZmUtYjg3ZC01MTFjMmZlNzQ3MWI",
             "schema": {
@@ -1519,17 +1519,17 @@
             "description": "Gateway Timeout: An upstream server failed to respond in time. If your query uses the max parameter, please try reducing its value."
           }
         },
-        "summary": "List nodes for an HDS cluster",
+        "summary": "List nodes for an Hybrid Data Security cluster",
         "operationId": "listHDSClusterNodes",
-        "description": "Retrieve a list of all nodes for a specific HDS cluster, including availability, proxy details, deployment type, and release version.\nTo obtain the Cluster ID needed for this API, use the [List clusters for an HDS organization API](</docs/api/v1/hds/list-hds-organization-clusters>)",
+        "description": "Retrieve a list of all nodes for a specific Hybrid Data Security cluster, including availability, proxy details, deployment type, and release version.\nTo obtain the Cluster ID needed for this API, use the [List clusters for an Hybrid Data Security organization API](</docs/api/v1/hds/list-hds-organization-clusters>)",
         "tags": [
-          "HDS"
+          "Hybrid Data Security"
         ],
         "parameters": [
           {
             "name": "clusterId",
             "in": "path",
-            "description": "Unique ID of the HDS cluster.",
+            "description": "Unique ID of the Hybrid Data Security cluster.",
             "required": true,
             "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzJjM2M5Zjk1LTczZDktNDQ2MC1hNjY4LTA0NzE2MmZmMWJhZDpmMWJmMGI1MC0yMDUyLTQ3ZmUtYjg3ZC01MTFjMmZlNzQ3MWI",
             "schema": {
@@ -1625,15 +1625,15 @@
         },
         "summary": "Get node details",
         "operationId": "getHDSNodeDetails",
-        "description": "Retrieve details for a specific HDS node, such as host name, release version, proxy details, deployment and build type, availability details, etc.\nTo obtain the Node ID needed for this API, use the [Get cluster details API](</docs/api/v1/hds/get-cluster-details>)",
+        "description": "Retrieve details for a specific Hybrid Data Security node, such as host name, release version, proxy details, deployment and build type, availability details, etc.\nTo obtain the Node ID needed for this API, use the [Get cluster details API](</docs/api/v1/hds/get-cluster-details>)",
         "tags": [
-          "HDS"
+          "Hybrid Data Security"
         ],
         "parameters": [
           {
             "name": "nodeId",
             "in": "path",
-            "description": "Unique ID of the HDS node",
+            "description": "Unique ID of the Hybrid Data Security node",
             "required": true,
             "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DT05ORUNUT1IvMmMzYzlmOTUtNzNkOS00NDYwLWE2NjgtMDQ3MTYyZmYxYmFkOjE1NmRmNzg5Yzg1NTRkNTVhMjc1ZGY5OTc4Zjk5MDJk",
             "schema": {
@@ -1710,17 +1710,17 @@
             "description": "Gateway Timeout: An upstream server failed to respond in time. If your query uses the max parameter, please try reducing its value."
           }
         },
-        "summary": "Get database details for the HDS organization",
+        "summary": "Get database details for the Hybrid Data Security organization",
         "operationId": "getHDSOrganizationDatabaseDetails",
-        "description": "Retrieve details of database information for an HDS organization, such as database type and version used.\nTo obtain the Organization ID needed for this API, use the [Organizations API](</docs/api/v1/organizations/list-organizations>)",
+        "description": "Retrieve details of database information for an Hybrid Data Security organization, such as database type and version used.\nTo obtain the Organization ID needed for this API, use the [Organizations API](</docs/api/v1/organizations/list-organizations>)",
         "tags": [
-          "HDS"
+          "Hybrid Data Security"
         ],
         "parameters": [
           {
             "name": "organizationId",
             "in": "path",
-            "description": "Unique ID of the HDS organization",
+            "description": "Unique ID of the Hybrid Data Security organization",
             "required": true,
             "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8yYzNjOWY5NS03M2Q5LTQ0NjAtYTY2OC0wNDcxNjJmZjFiYWQ",
             "schema": {
@@ -1809,17 +1809,17 @@
             "description": "Gateway Timeout: An upstream server failed to respond in time. If your query uses the max parameter, please try reducing its value."
           }
         },
-        "summary": "Get Multi-Tenant HDS organization details",
+        "summary": "Get Multi-Tenant Hybrid Data Security organization details",
         "operationId": "getHDSMultiTenantOrganizationDetails",
-        "description": "Retrieve details of Multi-Tenant HDS organization such as Organization Name and ID, CMK state and state of Tenants Organizations.\nTo obtain the Organization ID needed for this API, use the [Organizations API](</docs/api/v1/organizations/list-organizations>)",
+        "description": "Retrieve details of Multi-Tenant Hybrid Data Security organization such as Organization Name and ID, CMK state and state of Tenants Organizations.\nTo obtain the Organization ID needed for this API, use the [Organizations API](</docs/api/v1/organizations/list-organizations>)",
         "tags": [
-          "HDS"
+          "Hybrid Data Security"
         ],
         "parameters": [
           {
             "name": "organizationId",
             "in": "path",
-            "description": "Unique ID of the HDS organization.",
+            "description": "Unique ID of the Hybrid Data Security organization.",
             "required": true,
             "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8yYzNjOWY5NS03M2Q5LTQ0NjAtYTY2OC0wNDcxNjJmZjFiYWQ",
             "schema": {
@@ -1851,10 +1851,10 @@
                   "alarms": [
                     {
                       "alarmId": "AUTH_WARN.expiring-60",
-                      "alarmName": "HDS Machine Accounts Expiring in 60 days",
+                      "alarmName": "Hybrid Data Security Machine Accounts Expiring in 60 days",
                       "alarmSeverity": "Warning",
                       "alarmDetails": "Expiration Details",
-                      "possibleRemediation": "Refresh HDS Machine Accounts using HDS Setup Tool",
+                      "possibleRemediation": "Refresh Hybrid Data Security Machine Accounts using Hybrid Data Security Setup Tool",
                       "currentStatus": "Active",
                       "occurrences": {
                         "total": "4",
@@ -1925,17 +1925,17 @@
             "description": "Gateway Timeout: An upstream server failed to respond in time. If your query uses the max parameter, please try reducing its value."
           }
         },
-        "summary": "Get alarms for an HDS node",
+        "summary": "Get alarms for an Hybrid Data Security node",
         "operationId": "getHDSNodeAlarms",
-        "description": "Returns the alarm details for a single HDS node for the provided time range (last 24 hours).\nTo obtain the Node ID needed for this API, use the [List nodes for an HDS cluster API](</docs/api/v1/hds/list-hds-cluster-nodes>)",
+        "description": "Returns the alarm details for a single Hybrid Data Security node for the provided time range (last 24 hours).\nTo obtain the Node ID needed for this API, use the [List nodes for an Hybrid Data Security cluster API](</docs/api/v1/hds/list-hds-cluster-nodes>)",
         "tags": [
-          "HDS"
+          "Hybrid Data Security"
         ],
         "parameters": [
           {
             "name": "nodeId",
             "in": "path",
-            "description": "Unique ID of the HDS node.",
+            "description": "Unique ID of the Hybrid Data Security node.",
             "required": true,
             "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DT05ORUNUT1IvMmMzYzlmOTUtNzNkOS00NDYwLWE2NjgtMDQ3MTYyZmYxYmFkOjE1NmRmNzg5Yzg1NTRkNTVhMjc1ZGY5OTc4Zjk5MDJk",
             "schema": {
@@ -2001,10 +2001,10 @@
                                   "testResult": "Failed",
                                   "failureDetails": {
                                     "possibleFailureReason": [
-                                      "DNS Resolution issue detected in the HDS Node [Error Code: 1302]."
+                                      "DNS Resolution issue detected in the Hybrid Data Security Node [Error Code: 1302]."
                                     ],
                                     "possibleRemediation": [
-                                      "Please ensure that the configured DNS Servers are correct and healthy, and verify the network settings are adhering to the HDS Deployment Guide."
+                                      "Please ensure that the configured DNS Servers are correct and healthy, and verify the network settings are adhering to the Hybrid Data Security Deployment Guide."
                                     ]
                                   }
                                 },
@@ -2040,7 +2040,7 @@
                                   "testResult": "Failed",
                                   "failureDetails": {
                                     "possibleFailureReason": [
-                                      "Connectivity issue detected between the HDS Node and the Webex Cloud [Error Code: 1106]."
+                                      "Connectivity issue detected between the Hybrid Data Security Node and the Webex Cloud [Error Code: 1106]."
                                     ],
                                     "possibleRemediation": [
                                       "One or more Webex cloud services may not be responding. Retry the test after some time. If the issue persists, please contact Cisco Support."
@@ -2130,17 +2130,17 @@
             "description": "Gateway Timeout: An upstream server failed to respond in time. If your query uses the max parameter, please try reducing its value."
           }
         },
-        "summary": "Get test results for HDS node",
+        "summary": "Get test results for Hybrid Data Security node",
         "operationId": "getNetworkTestResultsForHDSNode",
-        "description": "Get the latest results of the network tests triggered for a single HDS node. The test results are generated as part of the Network Test execution on the node. The network tests include the Bandwidth Test, DNS Resolution Test, and HTTPS Connectivity Test.\n The results from the latest test run are provided, covering up to the past 90 days if available.\nTo obtain the Node ID needed for this API, use the [Get cluster details API](</docs/api/v1/hds/get-cluster-details>)",
+        "description": "Get the latest results of the network tests triggered for a single Hybrid Data Security node. The test results are generated as part of the Network Test execution on the node. The network tests include the Bandwidth Test, DNS Resolution Test, and HTTPS Connectivity Test.\n The results from the latest test run are provided, covering up to the past 90 days if available.\nTo obtain the Node ID needed for this API, use the [Get cluster details API](</docs/api/v1/hds/get-cluster-details>)",
         "tags": [
-          "HDS"
+          "Hybrid Data Security"
         ],
         "parameters": [
           {
             "name": "nodeId",
             "in": "path",
-            "description": "Unique ID of the HDS node.",
+            "description": "Unique ID of the Hybrid Data Security node.",
             "required": true,
             "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DT05ORUNUT1IvMmMzYzlmOTUtNzNkOS00NDYwLWE2NjgtMDQ3MTYyZmYxYmFkOjE1NmRmNzg5Yzg1NTRkNTVhMjc1ZGY5OTc4Zjk5MDJk",
             "schema": {
@@ -2284,17 +2284,17 @@
             "description": "Gateway Timeout: An upstream server failed to respond in time. If your query uses the max parameter, please try reducing its value."
           }
         },
-        "summary": "Get resource usage for an HDS node",
+        "summary": "Get resource usage for an Hybrid Data Security node",
         "operationId": "getHDSNodeResourceUsage",
-        "description": "Retrieve CPU, memory, and disk resource usage details for a specific HDS node over the requested time range.\nTo obtain the Node ID needed for this API, use the [List nodes for an HDS cluster API](</docs/api/v1/hds/list-hds-cluster-nodes>)",
+        "description": "Retrieve CPU, memory, and disk resource usage details for a specific Hybrid Data Security node over the requested time range.\nTo obtain the Node ID needed for this API, use the [List nodes for an Hybrid Data Security cluster API](</docs/api/v1/hds/list-hds-cluster-nodes>)",
         "tags": [
-          "HDS"
+          "Hybrid Data Security"
         ],
         "parameters": [
           {
             "name": "nodeId",
             "in": "path",
-            "description": "Unique ID of the HDS node.",
+            "description": "Unique ID of the Hybrid Data Security node.",
             "required": true,
             "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzM2ZDg5NGY3LTJiNTctNDNjMS1hY2VlLWQ0N2U2Nzc2MTQxNDo0NjdiNGIxZC1jZWI2LTQwN2EtYWZmOC1mMjIxZmFiNzhjyyy",
             "schema": {
@@ -2411,17 +2411,17 @@
             "description": "Gateway Timeout: An upstream server failed to respond in time. If your query uses the max parameter, please try reducing its value."
           }
         },
-        "summary": "Get availability details for HDS cluster",
+        "summary": "Get availability details for Hybrid Data Security cluster",
         "operationId": "getHDSClusterAvailabilityDetails",
-        "description": "Get the availability details for an HDS cluster, where each segment specifies the start and end times, as well as the number of online, offline, and total nodes within that segment.\nTo obtain the Cluster ID needed for this API, use the [Get organization details API](</docs/api/v1/hds/get-organization-details>)",
+        "description": "Get the availability details for an Hybrid Data Security cluster, where each segment specifies the start and end times, as well as the number of online, offline, and total nodes within that segment.\nTo obtain the Cluster ID needed for this API, use the [Get organization details API](</docs/api/v1/hds/get-organization-details>)",
         "tags": [
-          "HDS"
+          "Hybrid Data Security"
         ],
         "parameters": [
           {
             "name": "clusterId",
             "in": "path",
-            "description": "Unique ID of the HDS cluster.",
+            "description": "Unique ID of the Hybrid Data Security cluster.",
             "required": true,
             "example": "Y2lzY29zcGFyazovL3VzL0hZQlJJRF9DTFVTVEVSLzJjM2M5Zjk1LTczZDktNDQ2MC1hNjY4LTA0NzE2MmZmMWJhZDpmMWJmMGI1MC0yMDUyLTQ3ZmUtYjg3ZC01MTFjMmZlNzQ3MWI",
             "schema": {
@@ -15013,6 +15013,11 @@
             "example": "cisco.webex.com",
             "description": "The site to which this report belongs to. This only exists if the report belongs to service `Webex`."
           },
+          "timeZone": {
+            "type": "string",
+            "example": "Asia/Shanghai",
+            "description": "Time zone used for report date and time values. Use an IANA time zone name. The default value is `UTC` when not specified."
+          },
           "created": {
             "type": "string",
             "example": "2020-03-24 17:13:39",
@@ -18051,7 +18056,7 @@
           "host": {
             "type": "string",
             "example": "xyz.abc.com",
-            "description": "Host Name or Host IP of the HDS node."
+            "description": "Host Name or Host IP of the Hybrid Data Security node."
           },
           "availabilityDetails": {
             "type": "object",
@@ -18059,12 +18064,12 @@
               "nodeAvailability": {
                 "type": "string",
                 "example": "Online",
-                "description": "Current availability of the HDS node."
+                "description": "Current availability of the Hybrid Data Security node."
               },
               "hdsHealthStatus": {
                 "type": "string",
                 "example": "Healthy / Unhealthy",
-                "description": "Health status of the HDS node."
+                "description": "Health status of the Hybrid Data Security node."
               },
               "hdsUnhealthyReasons": {
                 "type": "array",
@@ -18075,25 +18080,25 @@
                   "kms unhealthy",
                   "avalon unhealthy"
                 ],
-                "description": "List of reasons for unhealthy status of the HDS node."
+                "description": "List of reasons for unhealthy status of the Hybrid Data Security node."
               }
             },
-            "description": "Availability and health details of the HDS node."
+            "description": "Availability and health details of the Hybrid Data Security node."
           },
           "releaseVersion": {
             "type": "string",
             "example": "2025.07.16.7042",
-            "description": "The release version of the HDS node."
+            "description": "The release version of the Hybrid Data Security node."
           },
           "proxyType": {
             "type": "string",
             "example": "Explicit",
-            "description": "Proxy type used by the HDS node."
+            "description": "Proxy type used by the Hybrid Data Security node."
           },
           "proxyStatus": {
             "type": "string",
             "example": "Enabled",
-            "description": "Current proxy status of the HDS node."
+            "description": "Current proxy status of the Hybrid Data Security node."
           },
           "maintenanceMode": {
             "type": "string",
@@ -18103,17 +18108,17 @@
           "ntpSync": {
             "type": "string",
             "example": "active",
-            "description": "NTP sync status of the HDS node."
+            "description": "NTP sync status of the Hybrid Data Security node."
           },
           "ovaDeploymentType": {
             "type": "string",
             "example": "Large",
-            "description": "Deployment type of the HDS node."
+            "description": "Deployment type of the Hybrid Data Security node."
           },
           "ovaBuildType": {
             "type": "string",
             "example": "Dev",
-            "description": "Build type of the HDS node."
+            "description": "Build type of the Hybrid Data Security node."
           }
         }
       },
@@ -18220,12 +18225,12 @@
               "hostName": {
                 "type": "string",
                 "example": "abc.xyz.com",
-                "description": "Hostname of the HDS node."
+                "description": "Hostname of the Hybrid Data Security node."
               },
               "hostIP": {
                 "type": "string",
                 "example": "10.196.5.82",
-                "description": "IP address of the HDS node."
+                "description": "IP address of the Hybrid Data Security node."
               }
             },
             "description": "Metadata information about the node for which network test results are being retrieved."
@@ -18323,7 +18328,7 @@
               "type": "string"
             },
             "example": [
-              "DNS Resolution issue detected in the HDS Node [Error Code: 1302]."
+              "DNS Resolution issue detected in the Hybrid Data Security Node [Error Code: 1302]."
             ],
             "description": "List of possible reasons for the test failure."
           },
@@ -18333,7 +18338,7 @@
               "type": "string"
             },
             "example": [
-              "Please ensure that the configured DNS Servers are correct and healthy, and verify the network settings are adhering to the HDS Deployment Guide."
+              "Please ensure that the configured DNS Servers are correct and healthy, and verify the network settings are adhering to the Hybrid Data Security Deployment Guide."
             ],
             "description": "List of suggested remediation steps."
           }
@@ -18452,7 +18457,7 @@
               "host": {
                 "type": "string",
                 "example": "10.196.5.82",
-                "description": "Host name or IP of the HDS node."
+                "description": "Host name or IP of the Hybrid Data Security node."
               }
             },
             "description": "Metadata information about the node for which alarms are being retrieved."
@@ -18494,7 +18499,7 @@
           },
           "alarmName": {
             "type": "string",
-            "example": "HDS Machine Accounts Expiring in 60 days",
+            "example": "Hybrid Data Security Machine Accounts Expiring in 60 days",
             "description": "Name of the alarm."
           },
           "alarmSeverity": {
@@ -18509,7 +18514,7 @@
           },
           "possibleRemediation": {
             "type": "string",
-            "example": "Refresh HDS Machine Accounts using HDS Setup Tool",
+            "example": "Refresh Hybrid Data Security Machine Accounts using Hybrid Data Security Setup Tool",
             "description": "Suggested remediation steps for the alarm."
           },
           "currentStatus": {
@@ -18583,7 +18588,7 @@
               "host": {
                 "type": "string",
                 "example": "xyz.abc.com",
-                "description": "Host name or IP address of the HDS node."
+                "description": "Host name or IP address of the Hybrid Data Security node."
               }
             },
             "description": "Metadata information about the node for which resource usage is being retrieved."

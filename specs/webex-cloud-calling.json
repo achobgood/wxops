@@ -46041,7 +46041,8 @@
                         "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
                         "type": "PEOPLE",
                         "firstName": "Test",
-                        "lastName": "Person"
+                        "lastName": "Person",
+                        "displayName": "Test Person"
                       }
                     },
                     {
@@ -49952,11 +49953,11 @@
                     "distinctiveRingEnabled": true,
                     "alternateNumbers": [
                       {
-                        "phoneNumber": "9725554726",
+                        "phoneNumber": "+9725554726",
                         "ringPattern": "NORMAL"
                       },
                       {
-                        "phoneNumber": "9725554729",
+                        "phoneNumber": "+9725554729",
                         "ringPattern": "NORMAL"
                       }
                     ]
@@ -52117,7 +52118,8 @@
                       "level": "ORGANIZATION",
                       "isTextToSpeech": false
                     }
-                  ]
+                  ],
+                  "triggerPolicyWhenAllAgentsAreUnreachableEnabled": true
                 }
               }
             }
@@ -52170,7 +52172,7 @@
         },
         "summary": "Get Details for a Call Queue Stranded Calls",
         "operationId": "getCallQueueStrandedCalls",
-        "description": "Allow admin to view default/configured Stranded Calls settings.\n\nStranded-All agents logoff Policy: If the last agent staffing a queue “unjoins” the queue or signs out, then all calls in the queue become stranded.\nStranded-Unavailable Policy: This policy allows for the configuration of the processing of calls that are in a staffed queue when all agents are unavailable.\n\nRetrieving call queue Stranded Calls details requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "description": "Allow admin to view default/configured Stranded Calls settings, including whether the stranded calls queue policy will be triggered when all agents are unreachable.\n\nStranded-All agents logoff Policy: If the last agent staffing a queue “unjoins” the queue or signs out, then all calls in the queue become stranded.\nStranded-Unavailable Policy: This policy allows for the configuration of the processing of calls that are in a staffed queue when all agents are unavailable.\n\nRetrieving call queue Stranded Calls details requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Features:  Call Queue"
         ],
@@ -52261,7 +52263,7 @@
         },
         "summary": "Update a Call Queue Stranded Calls Service",
         "operationId": "updateCallQueueStrandedCalls",
-        "description": "Update the designated Call Stranded Calls Service.\n\nAllow admin to modify configured Stranded Calls settings.\n\nUpdating a call queue stranded calls requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "description": "Update the designated Call Stranded Calls Service.\n\nAllow admin to modify configured Stranded Calls settings, including whether the stranded calls queue policy will be triggered when all agents are unreachable.\n\nUpdating a call queue stranded calls requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Features:  Call Queue"
         ],
@@ -52322,7 +52324,8 @@
                     "mediaFileType": "WAV",
                     "level": "ORGANIZATION"
                   }
-                ]
+                ],
+                "triggerPolicyWhenAllAgentsAreUnreachableEnabled": true
               },
               "schema": {
                 "$ref": "#/components/schemas/ModifyCallQueueStrandedCallsObject"
@@ -52654,7 +52657,8 @@
                         "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
                         "type": "PEOPLE",
                         "firstName": "Test",
-                        "lastName": "Person"
+                        "lastName": "Person",
+                        "displayName": "Test Person"
                       }
                     },
                     {
@@ -61961,7 +61965,8 @@
                         "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
                         "type": "PEOPLE",
                         "firstName": "Test",
-                        "lastName": "Person"
+                        "lastName": "Person",
+                        "displayName": "Test Person"
                       }
                     },
                     {
@@ -63415,7 +63420,8 @@
                         "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
                         "type": "PEOPLE",
                         "firstName": "Test",
-                        "lastName": "Person"
+                        "lastName": "Person",
+                        "displayName": "Test Person"
                       }
                     },
                     {
@@ -68934,7 +68940,8 @@
                         "id": "Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS82MGQxZGJlMC02MmNjLTQxZTEtOWE2MC1mZWQ1YmJkODUxZGQ",
                         "type": "VIRTUAL_LINE",
                         "firstName": "testingssss",
-                        "lastName": "dsdsd"
+                        "lastName": "dsdsd",
+                        "displayName": "testing dispName"
                       }
                     }
                   ]
@@ -69091,7 +69098,8 @@
                         "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
                         "type": "PEOPLE",
                         "firstName": "Test",
-                        "lastName": "Person"
+                        "lastName": "Person",
+                        "displayName": "Test Person"
                       }
                     },
                     {
@@ -69406,7 +69414,8 @@
                         "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
                         "type": "PEOPLE",
                         "firstName": "Test",
-                        "lastName": "Person"
+                        "lastName": "Person",
+                        "displayName": "Test Person"
                       }
                     },
                     {
@@ -69595,7 +69604,8 @@
                         "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
                         "type": "PEOPLE",
                         "firstName": "Test",
-                        "lastName": "Person"
+                        "lastName": "Person",
+                        "displayName": "Test Person"
                       }
                     },
                     {
@@ -82522,6 +82532,7 @@
                       "service": "Teams",
                       "startDate": "2020-03-17",
                       "endDate": "2020-03-18",
+                      "timeZone": "Asia/Shanghai",
                       "siteList": "",
                       "created": "2020-05-27 17:02:43",
                       "createdBy": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9mYzhjMWFhMS00OTM5LTQ2NjEtODAwMy1hYWE0MzFmZWM0ZmE",
@@ -82742,6 +82753,11 @@
                     "type": "string",
                     "example": "cisco.webex.com",
                     "description": "Sites belonging to user's organization. This attribute is needed for site-based templates."
+                  },
+                  "timeZone": {
+                    "type": "string",
+                    "example": "Asia/Shanghai",
+                    "description": "Time zone used for report date and time values. Use an IANA time zone name. This field is optional."
                   }
                 }
               }
@@ -82767,6 +82783,7 @@
                   "service": "Teams",
                   "startDate": "2020-02-23",
                   "endDate": "2020-03-24",
+                  "timeZone": "Asia/Shanghai",
                   "siteList": "cisco.webex.com",
                   "created": "2020-03-24 17:13:39",
                   "createdBy": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9mYzhjMWFhMS00OTM5LTQ2NjEtODAwMy1hYWE0MzFmZWM0ZmE",
@@ -83926,6 +83943,7 @@
                     "voicemailEnabled": false,
                     "announcements": {
                       "greeting": "DEFAULT",
+                      "filename": "audio.wav",
                       "newNumber": {
                         "enabled": false
                       },
@@ -84860,7 +84878,7 @@
                   "$ref": "#/components/schemas/GetCallingBehaviorObject"
                 },
                 "example": {
-                  "behaviorType": null,
+                  "behaviorType": "NATIVE_WEBEX_TEAMS_CALLING",
                   "effectiveBehaviorType": "NATIVE_WEBEX_TEAMS_CALLING",
                   "profileId": "Y2lzY29zcGFyazovL3VzL0NBTExJTkdfUFJPRklMRS9iMzdmMmZiYS0yZTdjLTExZWItYTM2OC1kYmU0Yjc2NzFmZTk"
                 }
@@ -85957,43 +85975,7 @@
             "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
           },
           "502": {
-            "description": "Bad Gateway",
-            "headers": {},
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "errors": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "description": {
-                            "type": "string"
-                          }
-                        }
-                      }
-                    },
-                    "trackingId": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "example": {
-                  "message": "Bad Gateway.",
-                  "errors": [
-                    {
-                      "description": "Bad Gateway."
-                    }
-                  ],
-                  "trackingId": "NA_5154a8eb-41a7-4647-b89f-79aedae6e2e2"
-                }
-              }
-            }
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
           },
           "503": {
             "description": "Service Unavailable: Server is overloaded with requests. Try again later."
@@ -86171,43 +86153,7 @@
             "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
           },
           "502": {
-            "description": "Bad Gateway",
-            "headers": {},
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "errors": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "description": {
-                            "type": "string"
-                          }
-                        }
-                      }
-                    },
-                    "trackingId": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "example": {
-                  "message": "Bad Gateway.",
-                  "errors": [
-                    {
-                      "description": "Bad Gateway."
-                    }
-                  ],
-                  "trackingId": "NA_5154a8eb-41a7-4647-b89f-79aedae6e2e2"
-                }
-              }
-            }
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
           },
           "503": {
             "description": "Service Unavailable: Server is overloaded with requests. Try again later."
@@ -92003,7 +91949,7 @@
                       "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS85ODhiYTQyOC0zMjMyLTRmNjItYjUyNS1iZDUzZmI4Nzc0MWE",
                       "firstName": "John",
                       "lastName": "Doe",
-                      "phoneNumber": "1234567890",
+                      "phoneNumber": "+1234567890",
                       "extension": "0000",
                       "routingPrefix": "1234",
                       "esn": "12340000",
@@ -92192,7 +92138,7 @@
                       "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS85ODhiYTQyOC0zMjMyLTRmNjItYjUyNS1iZDUzZmI4Nzc0MWE",
                       "firstName": "John",
                       "lastName": "Doe",
-                      "phoneNumber": "2056852221",
+                      "phoneNumber": "+2056852221",
                       "extension": "1111",
                       "routingPrefix": "1234",
                       "esn": "12341111",
@@ -93776,7 +93722,8 @@
                         "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
                         "type": "PEOPLE",
                         "firstName": "Test",
-                        "lastName": "Person"
+                        "lastName": "Person",
+                        "displayName": "Test Person"
                       }
                     },
                     {
@@ -94144,7 +94091,8 @@
                         "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
                         "type": "PEOPLE",
                         "firstName": "Test",
-                        "lastName": "Person"
+                        "lastName": "Person",
+                        "displayName": "Test Person"
                       }
                     },
                     {
@@ -94344,7 +94292,8 @@
                         "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
                         "type": "PEOPLE",
                         "firstName": "Test",
-                        "lastName": "Person"
+                        "lastName": "Person",
+                        "displayName": "Test Person"
                       }
                     },
                     {
@@ -94968,14 +94917,14 @@
                       "id": "Y2lzY29zcGFyazovL3VzL0NBTExfUVVFVUUvNWMwZmYzZjctZjY2YS00NGQwLTlhODktZGY5N2U5MThkNjcw",
                       "name": "Test Call Queue",
                       "type": "CALL_QUEUE",
-                      "phoneNumber": "2055552221",
+                      "phoneNumber": "+2055552221",
                       "extension": "0007"
                     },
                     {
                       "id": "Y2lzY29zcGFyazovL3VzL0hVTlRfR1JPVVAvOTExNmRmZDMtZGQ4ZS00YTk5LTg1MmYtMjFiYmMxOGNkNzcy",
                       "name": "Test Hunt Group",
                       "type": "HUNT_GROUP",
-                      "phoneNumber": "2055552221",
+                      "phoneNumber": "+2055552221",
                       "extension": "0023"
                     }
                   ]
@@ -95170,7 +95119,7 @@
                       "id": "Y2lzY29zcGFyazovL3VzL0NBTExfUVVFVUUvNWMwZmYzZjctZjY2YS00NGQwLTlhODktZGY5N2U5MThkNjcw",
                       "name": "Test Call Queue",
                       "type": "CALL_QUEUE",
-                      "phoneNumber": "2055552221",
+                      "phoneNumber": "+2055552221",
                       "extension": "0007",
                       "modeBasedForwardingEnabled": true,
                       "forwardDestination": "+19705550028",
@@ -95186,7 +95135,7 @@
                       "id": "Y2lzY29zcGFyazovL3VzL0hVTlRfR1JPVVAvOTExNmRmZDMtZGQ4ZS00YTk5LTg1MmYtMjFiYmMxOGNkNzcy",
                       "name": "Test Hunt Group",
                       "type": "HUNT_GROUP",
-                      "phoneNumber": "2055552221",
+                      "phoneNumber": "+2055552221",
                       "extension": "0023",
                       "modeBasedForwardingEnabled": true,
                       "forwardDestination": "+19705550028",
@@ -97364,7 +97313,7 @@
                       "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS85ODhiYTQyOC0zMjMyLTRmNjItYjUyNS1iZDUzZmI4Nzc0MWE",
                       "firstName": "John",
                       "lastName": "Doe",
-                      "phoneNumber": "1234567890",
+                      "phoneNumber": "+1234567890",
                       "extension": "0000",
                       "routingPrefix": "1234",
                       "esn": "12348080",
@@ -97678,7 +97627,7 @@
                       "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS85ODhiYTQyOC0zMjMyLTRmNjItYjUyNS1iZDUzZmI4Nzc0MWE",
                       "firstName": "John",
                       "lastName": "Doe",
-                      "phoneNumber": "2056852221",
+                      "phoneNumber": "+2056852221",
                       "extension": "1111",
                       "routingPrefix": "1234",
                       "esn": "12341111",
@@ -107224,7 +107173,8 @@
                         "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
                         "type": "PEOPLE",
                         "firstName": "Test",
-                        "lastName": "Person"
+                        "lastName": "Person",
+                        "displayName": "Test Person"
                       }
                     },
                     {
@@ -107554,7 +107504,8 @@
                         "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
                         "type": "PEOPLE",
                         "firstName": "Test",
-                        "lastName": "Person"
+                        "lastName": "Person",
+                        "displayName": "Test Person"
                       }
                     },
                     {
@@ -107741,7 +107692,8 @@
                         "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
                         "type": "PEOPLE",
                         "firstName": "Test",
-                        "lastName": "Person"
+                        "lastName": "Person",
+                        "displayName": "Test Person"
                       }
                     },
                     {
@@ -112644,7 +112596,8 @@
                         "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
                         "type": "PEOPLE",
                         "firstName": "Test",
-                        "lastName": "Person"
+                        "lastName": "Person",
+                        "displayName": "Test Person"
                       }
                     },
                     {
@@ -112831,7 +112784,8 @@
                         "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
                         "type": "PEOPLE",
                         "firstName": "Test",
-                        "lastName": "Person"
+                        "lastName": "Person",
+                        "displayName": "Test Person"
                       }
                     },
                     {
@@ -113016,7 +112970,8 @@
                         "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
                         "type": "PEOPLE",
                         "firstName": "Test",
-                        "lastName": "Person"
+                        "lastName": "Person",
+                        "displayName": "Test Person"
                       }
                     },
                     {
@@ -127383,6 +127338,11 @@
             "type": "string",
             "example": "cisco.webex.com",
             "description": "The site to which this report belongs to. This only exists if the report belongs to service `Webex`."
+          },
+          "timeZone": {
+            "type": "string",
+            "example": "Asia/Shanghai",
+            "description": "Time zone used for report date and time values. Use an IANA time zone name. The default value is `UTC` when not specified."
           },
           "created": {
             "type": "string",
@@ -145886,7 +145846,7 @@
           "extension": {
             "type": "string",
             "example": "1235",
-            "description": "Extension for a PSTN phone number."
+            "description": "Extension for a number."
           },
           "state": {
             "$ref": "#/components/schemas/STATE",
@@ -145921,26 +145881,26 @@
               "id": {
                 "type": "string",
                 "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
-                "description": "Unique identifier of the owner to which PSTN Phone number is assigned."
+                "description": "Unique identifier of the owner to which the number is assigned."
               },
               "type": {
                 "$ref": "#/components/schemas/NumberOwnerType",
-                "description": "Type of the PSTN phone number's owner."
+                "description": "Type of the number's owner."
               },
               "firstName": {
                 "type": "string",
                 "example": "Test",
-                "description": "First name of the PSTN phone number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "First name of the number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
               },
               "lastName": {
                 "type": "string",
                 "example": "Person",
-                "description": "Last name of the PSTN phone number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "Last name of the number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
               },
               "displayName": {
                 "type": "string",
                 "example": "TestWorkSpace",
-                "description": "Display name of the PSTN phone number's owner. This field will be present except when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "Display name of the number's owner."
               }
             }
           }
@@ -148823,6 +148783,11 @@
               "$ref": "#/components/schemas/AudioAnnouncementFileFeatureGetObject"
             },
             "description": "List of Announcement Audio Files when `audioMessageSelection` is `CUSTOM`."
+          },
+          "triggerPolicyWhenAllAgentsAreUnreachableEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Trigger stranded calls queue policy when all agents are unreachable."
           }
         }
       },
@@ -149496,6 +149461,11 @@
               "$ref": "#/components/schemas/AudioAnnouncementFileFeatureObject"
             },
             "description": "List of pre-configured Announcement Audio Files when `audioMessageSelection` is `CUSTOM`."
+          },
+          "triggerPolicyWhenAllAgentsAreUnreachableEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Trigger stranded calls queue policy when all agents are unreachable."
           }
         }
       },
@@ -149968,7 +149938,7 @@
           "extension": {
             "type": "string",
             "example": "1235",
-            "description": "Extension for a PSTN phone number."
+            "description": "Extension for a number."
           },
           "state": {
             "$ref": "#/components/schemas/STATE",
@@ -150003,26 +149973,26 @@
               "id": {
                 "type": "string",
                 "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
-                "description": "Unique identifier of the owner to which PSTN Phone number is assigned."
+                "description": "Unique identifier of the owner to which the number is assigned."
               },
               "type": {
                 "$ref": "#/components/schemas/NumberOwnerType",
-                "description": "Type of the PSTN phone number's owner."
+                "description": "Type of the number's owner."
               },
               "firstName": {
                 "type": "string",
                 "example": "Test",
-                "description": "First name of the PSTN phone number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "First name of the number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
               },
               "lastName": {
                 "type": "string",
                 "example": "Person",
-                "description": "Last name of the PSTN phone number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "Last name of the number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
               },
               "displayName": {
                 "type": "string",
                 "example": "TestWorkSpace",
-                "description": "Display name of the PSTN phone number's owner. This field will be present except when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "Display name of the number's owner."
               }
             }
           }
@@ -150585,7 +150555,7 @@
               "type": {
                 "type": "string",
                 "example": "PEOPLE",
-                "description": "TIMEhe type of the call queue agent."
+                "description": "The type of the call queue agent."
               }
             }
           },
@@ -155142,7 +155112,7 @@
           "extension": {
             "type": "string",
             "example": "1235",
-            "description": "Extension for a PSTN phone number."
+            "description": "Extension for a number."
           },
           "state": {
             "$ref": "#/components/schemas/STATE",
@@ -155177,26 +155147,26 @@
               "id": {
                 "type": "string",
                 "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
-                "description": "Unique identifier of the owner to which PSTN Phone number is assigned."
+                "description": "Unique identifier of the owner to which the number is assigned."
               },
               "type": {
                 "$ref": "#/components/schemas/NumberOwnerType",
-                "description": "Type of the PSTN phone number's owner."
+                "description": "Type of the number's owner."
               },
               "firstName": {
                 "type": "string",
                 "example": "Test",
-                "description": "First name of the PSTN phone number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "First name of the number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
               },
               "lastName": {
                 "type": "string",
                 "example": "Person",
-                "description": "Last name of the PSTN phone number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "Last name of the number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
               },
               "displayName": {
                 "type": "string",
                 "example": "TestWorkSpace",
-                "description": "Display name of the PSTN phone number's owner. This field will be present except when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "Display name of the number's owner."
               }
             }
           }
@@ -155763,7 +155733,7 @@
           "extension": {
             "type": "string",
             "example": "1235",
-            "description": "Extension for a PSTN phone number."
+            "description": "Extension for a number."
           },
           "state": {
             "$ref": "#/components/schemas/STATE",
@@ -155798,26 +155768,26 @@
               "id": {
                 "type": "string",
                 "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
-                "description": "Unique identifier of the owner to which PSTN Phone number is assigned."
+                "description": "Unique identifier of the owner to which the number is assigned."
               },
               "type": {
                 "$ref": "#/components/schemas/NumberOwnerType",
-                "description": "Type of the PSTN phone number's owner."
+                "description": "Type of the number's owner."
               },
               "firstName": {
                 "type": "string",
                 "example": "Test",
-                "description": "First name of the PSTN phone number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "First name of the number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
               },
               "lastName": {
                 "type": "string",
                 "example": "Person",
-                "description": "Last name of the PSTN phone number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "Last name of the number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
               },
               "displayName": {
                 "type": "string",
                 "example": "TestWorkSpace",
-                "description": "Display name of the PSTN phone number's owner. This field will be present only when the owner `type` is not `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "Display name of the number's owner."
               }
             }
           }
@@ -156905,7 +156875,7 @@
               "displayName": {
                 "type": "string",
                 "example": "TestWorkSpace",
-                "description": "Display name of the PSTN phone number's owner. This field will be present except when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "Display name of the phone number's owner."
               }
             }
           }
@@ -158106,26 +158076,26 @@
               "id": {
                 "type": "string",
                 "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
-                "description": "ID of the owner to which PSTN Phone number is assigned."
+                "description": "ID of the owner to which the number is assigned."
               },
               "type": {
                 "$ref": "#/components/schemas/NumberOwnerType",
-                "description": "Type of the PSTN phone number's owner."
+                "description": "Type of the number's owner."
               },
               "firstName": {
                 "type": "string",
                 "example": "Test",
-                "description": "First name of the PSTN phone number's owner and will only be returned when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "First name of the number's owner and will only be returned when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
               },
               "lastName": {
                 "type": "string",
                 "example": "Person",
-                "description": "Last name of the PSTN phone number's owner and will only be returned when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "Last name of the number's owner and will only be returned when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
               },
               "displayName": {
                 "type": "string",
                 "example": "TestWorkSpace",
-                "description": "Display name of the PSTN phone number's owner. This field will be present except when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "Display name of the number's owner."
               }
             }
           }
@@ -158245,7 +158215,7 @@
               "id": {
                 "type": "string",
                 "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
-                "description": "Unique identifier of the owner to which phone number is assigned."
+                "description": "Unique identifier of the owner to which the number is assigned."
               },
               "type": {
                 "type": "string",
@@ -158255,22 +158225,22 @@
                   "VIRTUAL_LINE",
                   "HUNT_GROUP"
                 ],
-                "description": "Type of the phone number's owner.\n * `PLACE` - PSTN phone number's owner is a workspace.\n * `PEOPLE` - PSTN phone number's owner is a person.\n * `VIRTUAL_LINE` - PSTN phone number's owner is a Virtual Line.\n * `HUNT_GROUP` - PSTN Phone number's owner is a Hunt Group.\n"
+                "description": "Type of the number's owner.\n * `PLACE` - Number's owner is a workspace.\n * `PEOPLE` - Number's owner is a person.\n * `VIRTUAL_LINE` - Number's owner is a Virtual Line.\n * `HUNT_GROUP` - Number's owner is a Hunt Group.\n"
               },
               "firstName": {
                 "type": "string",
                 "example": "Test",
-                "description": "First name of the PSTN phone number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "First name of the number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
               },
               "lastName": {
                 "type": "string",
                 "example": "Person",
-                "description": "Last name of the PSTN phone number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "Last name of the number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
               },
               "displayName": {
                 "type": "string",
                 "example": "TestWorkSpace",
-                "description": "Display name of the PSTN phone number's owner. This field will be present only when the owner `type` is `PLACE` or `HUNT_GROUP`."
+                "description": "Display name of the number's owner."
               }
             }
           }
@@ -158482,26 +158452,26 @@
               "id": {
                 "type": "string",
                 "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
-                "description": "ID of the owner to which PSTN Phone number is assigned."
+                "description": "ID of the owner to which the number is assigned."
               },
               "type": {
                 "$ref": "#/components/schemas/NumberOwnerType",
-                "description": "Type of the phone number's owner."
+                "description": "Type of the number's owner."
               },
               "firstName": {
                 "type": "string",
                 "example": "Test",
-                "description": "First name of the phone number's owner and will only be returned when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "First name of the number's owner and will only be returned when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
               },
               "lastName": {
                 "type": "string",
                 "example": "Person",
-                "description": "Last name of the phone number's owner and will only be returned when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "Last name of the number's owner and will only be returned when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
               },
               "displayName": {
                 "type": "string",
                 "example": "TestWorkSpace",
-                "description": "Display name of the phone number's owner. This field will be present except when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "Display name of the number's owner."
               }
             }
           }
@@ -162608,7 +162578,7 @@
               "LOCATION_NUMBER",
               "CUSTOM"
             ],
-            "description": "Which type of outgoing Caller ID will be used. This setting is for the number portion.\n * `DIRECT_LINE` - Outgoing caller ID will show the caller's direct line number.\n * `LOCATION_NUMBER` - Outgoing caller ID will show the main number for the location.\n * `CUSTOM` - Outgoing caller ID will show the value from the customNumber field.\n"
+            "description": "Specifies which source will be used for the outgoing Caller ID phone number. The allowed values for the current virtual line can be retrieved from the [Read Caller ID Settings for a Virtual Line](/calling/docs/api/v1/virtual-line-call-settings/read-caller-id-settings-for-a-virtual-line) `types` field.\n * `DIRECT_LINE` - Outgoing caller ID will show the caller's direct line number.\n * `LOCATION_NUMBER` - Outgoing caller ID will show the main number for the location.\n * `CUSTOM` - Outgoing caller ID will show the value from the customNumber field.\n"
           },
           "customNumber": {
             "type": "string",
@@ -162859,22 +162829,20 @@
         "type": "object",
         "description": "Calling behavior settings for a person.",
         "required": [
-          "behaviorType",
-          "effectiveBehaviorType",
-          "profileId"
+          "effectiveBehaviorType"
         ],
         "properties": {
           "behaviorType": {
             "type": "string",
+            "nullable": true,
             "enum": [
               "NATIVE_WEBEX_TEAMS_CALLING",
               "CALL_WITH_APP_REGISTERED_FOR_CISCOTEL",
               "CALL_WITH_APP_REGISTERED_FOR_TEL",
               "CALL_WITH_APP_REGISTERED_FOR_WEBEXCALLTEL",
-              "NATIVE_SIP_CALL_TO_UCM",
-              "null"
+              "NATIVE_SIP_CALL_TO_UCM"
             ],
-            "description": "The current Calling Behavior setting for the person. If `null`, the effective Calling Behavior will be the Organization's current default.\n * `NATIVE_WEBEX_TEAMS_CALLING` - Calling in Webex or Hybrid Calling.\n * `CALL_WITH_APP_REGISTERED_FOR_CISCOTEL` - Cisco Jabber app\n * `CALL_WITH_APP_REGISTERED_FOR_TEL` - Third-Party app\n * `CALL_WITH_APP_REGISTERED_FOR_WEBEXCALLTEL` - Webex Calling app\n * `NATIVE_SIP_CALL_TO_UCM` - Calling in Webex (Unified CM)\n * `null` - Using the non-string value of `null` results in the organization-wide default calling behavior being in effect.\n"
+            "description": "The current Calling Behavior setting for the person. If `null`, the effective Calling Behavior will be the Organization's current default.\n * `NATIVE_WEBEX_TEAMS_CALLING` - Calling in Webex or Hybrid Calling.\n * `CALL_WITH_APP_REGISTERED_FOR_CISCOTEL` - Cisco Jabber app\n * `CALL_WITH_APP_REGISTERED_FOR_TEL` - Third-Party app\n * `CALL_WITH_APP_REGISTERED_FOR_WEBEXCALLTEL` - Webex Calling app\n * `NATIVE_SIP_CALL_TO_UCM` - Calling in Webex (Unified CM)\n"
           },
           "effectiveBehaviorType": {
             "type": "string",
@@ -162889,6 +162857,7 @@
           },
           "profileId": {
             "type": "string",
+            "nullable": true,
             "example": "Y2lzY29zcGFyazovL3VzL0NBTExJTkdfUFJPRklMRS9iMzdmMmZiYS0yZTdjLTExZWItYTM2OC1kYmU0Yjc2NzFmZTk",
             "description": "The UC Manager Profile ID."
           }
@@ -163556,15 +163525,15 @@
         "properties": {
           "behaviorType": {
             "type": "string",
+            "nullable": true,
             "enum": [
               "NATIVE_WEBEX_TEAMS_CALLING",
               "CALL_WITH_APP_REGISTERED_FOR_CISCOTEL",
               "CALL_WITH_APP_REGISTERED_FOR_TEL",
               "CALL_WITH_APP_REGISTERED_FOR_WEBEXCALLTEL",
-              "NATIVE_SIP_CALL_TO_UCM",
-              "null"
+              "NATIVE_SIP_CALL_TO_UCM"
             ],
-            "description": "The new Calling Behavior setting for the person (case-insensitive). If `null`, the effective Calling Behavior will be the Organization's current default.\n * `NATIVE_WEBEX_TEAMS_CALLING` - Calling in Webex or Hybrid Calling.\n * `CALL_WITH_APP_REGISTERED_FOR_CISCOTEL` - Cisco Jabber app\n * `CALL_WITH_APP_REGISTERED_FOR_TEL` - Third-Party app\n * `CALL_WITH_APP_REGISTERED_FOR_WEBEXCALLTEL` - Webex Calling app\n * `NATIVE_SIP_CALL_TO_UCM` - Calling in Webex (Unified CM)\n * `null` - The non-string value of `null` results in the organization-wide default calling behavior being in effect.\n"
+            "description": "The new Calling Behavior setting for the person (case-insensitive). If `null`, the effective Calling Behavior will be the Organization's current default.\n * `NATIVE_WEBEX_TEAMS_CALLING` - Calling in Webex or Hybrid Calling.\n * `CALL_WITH_APP_REGISTERED_FOR_CISCOTEL` - Cisco Jabber app\n * `CALL_WITH_APP_REGISTERED_FOR_TEL` - Third-Party app\n * `CALL_WITH_APP_REGISTERED_FOR_WEBEXCALLTEL` - Webex Calling app\n * `NATIVE_SIP_CALL_TO_UCM` - Calling in Webex (Unified CM)\n"
           },
           "profileId": {
             "type": "string",
@@ -165624,26 +165593,26 @@
               "id": {
                 "type": "string",
                 "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
-                "description": "Unique identifier of the owner to which PSTN Phone number is assigned."
+                "description": "Unique identifier of the owner to which the number is assigned."
               },
               "type": {
                 "$ref": "#/components/schemas/NumberOwnerType",
-                "description": "Type of the PSTN phone number's owner."
+                "description": "Type of the number's owner."
               },
               "firstName": {
                 "type": "string",
                 "example": "Test",
-                "description": "First name of the PSTN phone number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "First name of the number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
               },
               "lastName": {
                 "type": "string",
                 "example": "Person",
-                "description": "Last name of the PSTN phone number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "Last name of the number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
               },
               "displayName": {
                 "type": "string",
                 "example": "TestWorkSpace",
-                "description": "Display name of the PSTN phone number's owner. This field will be present except when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "Display name of the number's owner."
               }
             }
           }
@@ -165777,7 +165746,7 @@
               "id": {
                 "type": "string",
                 "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
-                "description": "Unique identifier of the owner to which phone number is assigned."
+                "description": "Unique identifier of the owner to which the number is assigned."
               },
               "type": {
                 "type": "string",
@@ -165787,22 +165756,22 @@
                   "VIRTUAL_LINE",
                   "HUNT_GROUP"
                 ],
-                "description": "Type of the PSTN phone number's owner.\n * `PLACE` - Phone number's owner is a workspace.\n * `PEOPLE` - Phone number's owner is a person.\n * `VIRTUAL_LINE` - Phone number's owner is a Virtual Line.\n * `HUNT_GROUP` - Phone number's owner is a Hunt Group.\n"
+                "description": "Type of the number's owner.\n * `PLACE` - Number's owner is a workspace.\n * `PEOPLE` - Number's owner is a person.\n * `VIRTUAL_LINE` - Number's owner is a Virtual Line.\n * `HUNT_GROUP` - Number's owner is a Hunt Group.\n"
               },
               "firstName": {
                 "type": "string",
                 "example": "Test",
-                "description": "First name of the phone number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "First name of the number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
               },
               "lastName": {
                 "type": "string",
                 "example": "Person",
-                "description": "Last name of the phone number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "Last name of the number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
               },
               "displayName": {
                 "type": "string",
                 "example": "TestWorkSpace",
-                "description": "Display name of the phone number's owner. This field will be present only when the owner `type` is `PLACE` or `HUNT_GROUP`."
+                "description": "Display name of the number's owner."
               }
             }
           }
@@ -165876,26 +165845,26 @@
               "id": {
                 "type": "string",
                 "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
-                "description": "Unique identifier of the owner to which PSTN Phone number is assigned."
+                "description": "Unique identifier of the owner to which the number is assigned."
               },
               "type": {
                 "$ref": "#/components/schemas/NumberOwnerType",
-                "description": "Type of the PSTN phone number's owner."
+                "description": "Type of the number's owner."
               },
               "firstName": {
                 "type": "string",
                 "example": "Test",
-                "description": "First name of the PSTN phone number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "First name of the number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
               },
               "lastName": {
                 "type": "string",
                 "example": "Person",
-                "description": "Last name of the PSTN phone number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "Last name of the number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
               },
               "displayName": {
                 "type": "string",
                 "example": "TestWorkSpace",
-                "description": "Display name of the PSTN phone number's owner. This field will be present except when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "Display name of the number's owner."
               }
             }
           }
@@ -168825,7 +168794,7 @@
           "extension": {
             "type": "string",
             "example": "1235",
-            "description": "Extension for a PSTN phone number."
+            "description": "Extension for a number."
           },
           "state": {
             "$ref": "#/components/schemas/STATE",
@@ -168860,26 +168829,26 @@
               "id": {
                 "type": "string",
                 "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
-                "description": "Unique identifier of the owner to which PSTN Phone number is assigned."
+                "description": "Unique identifier of the owner to which the number is assigned."
               },
               "type": {
                 "$ref": "#/components/schemas/NumberOwnerType",
-                "description": "Type of the PSTN phone number's owner."
+                "description": "Type of the number's owner."
               },
               "firstName": {
                 "type": "string",
                 "example": "Test",
-                "description": "First name of the PSTN phone number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "First name of the number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
               },
               "lastName": {
                 "type": "string",
                 "example": "Person",
-                "description": "Last name of the PSTN phone number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "Last name of the number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
               },
               "displayName": {
                 "type": "string",
                 "example": "TestWorkSpace",
-                "description": "Display name of the PSTN phone number's owner. This field will be present except when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "Display name of the number's owner."
               }
             }
           }
@@ -168999,7 +168968,7 @@
               "id": {
                 "type": "string",
                 "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
-                "description": "Unique identifier of the owner to which phone number is assigned."
+                "description": "Unique identifier of the owner to which the number is assigned."
               },
               "type": {
                 "type": "string",
@@ -169009,22 +168978,22 @@
                   "VIRTUAL_LINE",
                   "HUNT_GROUP"
                 ],
-                "description": "Type of the phone number's owner.\n * `PLACE` - Phone number's owner is a workspace.\n * `PEOPLE` - Phone number's owner is a person.\n * `VIRTUAL_LINE` - Phone number's owner is a Virtual Line.\n * `HUNT_GROUP` - Phone number's owner is a Hunt Group.\n"
+                "description": "Type of the number's owner.\n * `PLACE` - Number's owner is a workspace.\n * `PEOPLE` - Number's owner is a person.\n * `VIRTUAL_LINE` - Number's owner is a Virtual Line.\n * `HUNT_GROUP` - Number's owner is a Hunt Group.\n"
               },
               "firstName": {
                 "type": "string",
                 "example": "Test",
-                "description": "First name of the phone number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "First name of the number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
               },
               "lastName": {
                 "type": "string",
                 "example": "Person",
-                "description": "Last name of the phone number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "Last name of the number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
               },
               "displayName": {
                 "type": "string",
                 "example": "TestWorkSpace",
-                "description": "Display name of the phone number's owner. This field will be present only when the owner `type` is `PLACE` or `HUNT_GROUP`."
+                "description": "Display name of the number's owner."
               }
             }
           }
@@ -169098,26 +169067,26 @@
               "id": {
                 "type": "string",
                 "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
-                "description": "Unique identifier of the owner to which PSTN Phone number is assigned."
+                "description": "Unique identifier of the owner to which the number is assigned."
               },
               "type": {
                 "$ref": "#/components/schemas/NumberOwnerType",
-                "description": "Type of the PSTN phone number's owner."
+                "description": "Type of the number's owner."
               },
               "firstName": {
                 "type": "string",
                 "example": "Test",
-                "description": "First name of the PSTN phone number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "First name of the number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
               },
               "lastName": {
                 "type": "string",
                 "example": "Person",
-                "description": "Last name of the PSTN phone number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "Last name of the number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
               },
               "displayName": {
                 "type": "string",
                 "example": "TestWorkSpace",
-                "description": "Display name of the PSTN phone number's owner. This field will be present except when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "Display name of the number's owner."
               }
             }
           }
@@ -169983,7 +169952,7 @@
               "LOCATION_NUMBER",
               "CUSTOM"
             ],
-            "description": "Which type of outgoing Caller ID will be used. This setting is for the number portion.\n * `DIRECT_LINE` - Outgoing caller ID shows the caller's direct line number.\n * `LOCATION_NUMBER` - Outgoing caller ID shows the main number for the location.\n * `CUSTOM` - Outgoing caller ID shows the value from the customNumber field.\n"
+            "description": "Specifies which source will be used for the outgoing Caller ID phone number. The allowed values for the current workspace can be retrieved from the [Read Caller ID Settings for a Workspace](/calling/docs/api/v1/workspace-call-settings-1-2/read-caller-id-settings-for-a-workspace) `types` field.\n * `DIRECT_LINE` - Outgoing caller ID shows the caller's direct line number.\n * `LOCATION_NUMBER` - Outgoing caller ID shows the main number for the location.\n * `CUSTOM` - Outgoing caller ID shows the value from the customNumber field.\n"
           },
           "customNumber": {
             "type": "string",
@@ -170586,7 +170555,7 @@
               "id": {
                 "type": "string",
                 "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
-                "description": "Unique identifier of the owner to which the phone number is assigned."
+                "description": "Unique identifier of the owner to which the number is assigned."
               },
               "type": {
                 "type": "string",
@@ -170596,22 +170565,22 @@
                   "VIRTUAL_LINE",
                   "HUNT_GROUP"
                 ],
-                "description": "Type of the phone number's owner.\n * `PLACE` - Phone number's owner is a workspace.\n * `PEOPLE` - Phone number's owner is a person.\n * `VIRTUAL_LINE` - Phone number's owner is a Virtual Line.\n * `HUNT_GROUP` - Phone number's owner is a Hunt Group.\n"
+                "description": "Type of the number's owner.\n * `PLACE` - Number's owner is a workspace.\n * `PEOPLE` - Number's owner is a person.\n * `VIRTUAL_LINE` - Number's owner is a Virtual Line.\n * `HUNT_GROUP` - Number's owner is a Hunt Group.\n"
               },
               "firstName": {
                 "type": "string",
                 "example": "Test",
-                "description": "First name of the phone number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "First name of the number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
               },
               "lastName": {
                 "type": "string",
                 "example": "Person",
-                "description": "Last name of the phone number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+                "description": "Last name of the number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
               },
               "displayName": {
                 "type": "string",
                 "example": "TestWorkSpace",
-                "description": "Display name of the phone number's owner. This field will be present only when the owner `type` is `PLACE` or `HUNT_GROUP`."
+                "description": "Display name of the number's owner."
               }
             }
           }
@@ -170651,7 +170620,7 @@
           "extension": {
             "type": "string",
             "example": "1235",
-            "description": "Extension for the PSTN phone number."
+            "description": "Extension for the number."
           },
           "state": {
             "$ref": "#/components/schemas/STATE",
@@ -170692,26 +170661,26 @@
           "id": {
             "type": "string",
             "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
-            "description": "Unique identifier of the owner to which the PSTN Phone number is assigned."
+            "description": "Unique identifier of the owner to which the number is assigned."
           },
           "type": {
             "$ref": "#/components/schemas/NumberOwnerType",
-            "description": "Type of the PSTN phone number's owner."
+            "description": "Type of the number's owner."
           },
           "firstName": {
             "type": "string",
             "example": "Test",
-            "description": "First name of the PSTN phone number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+            "description": "First name of the number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
           },
           "lastName": {
             "type": "string",
             "example": "Person",
-            "description": "Last name of the PSTN phone number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+            "description": "Last name of the number's owner. This field will be present only when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
           },
           "displayName": {
             "type": "string",
             "example": "TestWorkSpace",
-            "description": "Display name of the PSTN phone number's owner. This field will be present except when the owner `type` is `PEOPLE` or `VIRTUAL_LINE`."
+            "description": "Display name of the number's owner."
           }
         }
       },

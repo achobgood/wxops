@@ -34714,6 +34714,11 @@
             "example": "cisco.webex.com",
             "description": "The site to which this report belongs to. This only exists if the report belongs to service `Webex`."
           },
+          "timeZone": {
+            "type": "string",
+            "example": "Asia/Shanghai",
+            "description": "Time zone used for report date and time values. Use an IANA time zone name. The default value is `UTC` when not specified."
+          },
           "created": {
             "type": "string",
             "example": "2020-03-24 17:13:39",
