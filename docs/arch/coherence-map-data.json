@@ -1,0 +1,1707 @@
+{
+ "measured": {
+  "spec_ops_total": 2106,
+  "spec_ops_tracked_specs": 2017,
+  "registered_group_names": 185,
+  "unique_registered_modules": 183,
+  "fresh_clone_groups": 174,
+  "commands_in_registered_modules": 1838,
+  "command_functions_on_disk": 2242,
+  "modules_on_disk": 216,
+  "skills": 24,
+  "reference_docs_tracked_md": 51,
+  "reference_content_docs": 49
+ },
+ "gaps": [
+  {
+   "spec": "webex-admin.json",
+   "tag": "Identity Organization",
+   "class": "STALE-GROUP(identity_org)",
+   "method": "PATCH",
+   "path": "/identity/organizations/{orgId}/authenticationConfig",
+   "summary": "Update Organization Authentication Configuration Settings"
+  },
+  {
+   "spec": "webex-admin.json",
+   "tag": "Identity Organization",
+   "class": "STALE-GROUP(identity_org)",
+   "method": "PATCH",
+   "path": "/identity/organizations/{orgId}/passwordPolicy",
+   "summary": "Update Organization Password Policy"
+  },
+  {
+   "spec": "webex-cloud-calling.json",
+   "tag": "Call Settings For Me Phase 4",
+   "class": "STALE-GROUP(my_call_settings)",
+   "method": "POST",
+   "path": "/telephony/config/people/me/settings/voicemail/actions/busyGreetingUpload/invoke",
+   "summary": "Upload Voicemail Busy Greeting"
+  },
+  {
+   "spec": "webex-cloud-calling.json",
+   "tag": "Call Settings For Me Phase 4",
+   "class": "STALE-GROUP(my_call_settings)",
+   "method": "POST",
+   "path": "/telephony/config/people/me/settings/voicemail/actions/noAnswerGreetingUpload/invoke",
+   "summary": "Upload Voicemail No Answer Greeting"
+  },
+  {
+   "spec": "webex-cloud-calling.json",
+   "tag": "Call Settings For Me",
+   "class": "STALE-GROUP(my_call_settings)",
+   "method": "GET",
+   "path": "/telephony/config/people/me/settings/speedDials",
+   "summary": "Get Speed Dials"
+  },
+  {
+   "spec": "webex-cloud-calling.json",
+   "tag": "Call Settings For Me",
+   "class": "STALE-GROUP(my_call_settings)",
+   "method": "PUT",
+   "path": "/telephony/config/people/me/settings/speedDials",
+   "summary": "Modify Speed Dials"
+  },
+  {
+   "spec": "webex-cloud-calling.json",
+   "tag": "Call Settings For Me",
+   "class": "STALE-GROUP(my_call_settings)",
+   "method": "GET",
+   "path": "/telephony/config/people/me/settings/speedDials/availableMembers",
+   "summary": "Get Speed Dial Available Members"
+  },
+  {
+   "spec": "webex-cloud-calling.json",
+   "tag": "Call Settings For Me",
+   "class": "STALE-GROUP(my_call_settings)",
+   "method": "GET",
+   "path": "/telephony/config/people/me/organization/locations",
+   "summary": "Get Location List for My Organization"
+  },
+  {
+   "spec": "webex-cloud-calling.json",
+   "tag": "Call Settings For Me",
+   "class": "STALE-GROUP(my_call_settings)",
+   "method": "GET",
+   "path": "/telephony/config/people/me/organization/largeOrgStatus",
+   "summary": "Get Large Organization Status"
+  },
+  {
+   "spec": "webex-cloud-calling.json",
+   "tag": "?",
+   "class": "NO-GROUP",
+   "method": "GET",
+   "path": "/telephony/config/people/me/settings/contactCenterExtensions",
+   "summary": "Read the Contact Center Extensions"
+  },
+  {
+   "spec": "webex-cloud-calling.json",
+   "tag": "Device Call Settings",
+   "class": "STALE-GROUP(device_settings)",
+   "method": "POST",
+   "path": "/telephony/config/devices/{deviceId}/actions/backgroundImageUpload/invoke",
+   "summary": "Upload a Device Background Image"
+  },
+  {
+   "spec": "webex-cloud-calling.json",
+   "tag": "Features:  Call Queue",
+   "class": "STALE-GROUP(call_queue)",
+   "method": "GET",
+   "path": "/telephony/config/queues/settings",
+   "summary": "Get Call Queue Settings"
+  },
+  {
+   "spec": "webex-cloud-calling.json",
+   "tag": "Features:  Call Queue",
+   "class": "STALE-GROUP(call_queue)",
+   "method": "PUT",
+   "path": "/telephony/config/queues/settings",
+   "summary": "Update Call Queue Settings"
+  },
+  {
+   "spec": "webex-cloud-calling.json",
+   "tag": "Features:  Call Queue",
+   "class": "STALE-GROUP(call_queue)",
+   "method": "GET",
+   "path": "/telephony/config/locations/{locationId}/queues/{queueId}/dnis",
+   "summary": "Get List of DNIS for a Call Queue"
+  },
+  {
+   "spec": "webex-cloud-calling.json",
+   "tag": "Features:  Call Queue",
+   "class": "STALE-GROUP(call_queue)",
+   "method": "POST",
+   "path": "/telephony/config/locations/{locationId}/queues/{queueId}/dnis",
+   "summary": "Create a DNIS for a Call Queue"
+  },
+  {
+   "spec": "webex-cloud-calling.json",
+   "tag": "Features:  Call Queue",
+   "class": "STALE-GROUP(call_queue)",
+   "method": "DELETE",
+   "path": "/telephony/config/locations/{locationId}/queues/{queueId}/dnis",
+   "summary": "Bulk Delete DNIS for a Call Queue"
+  },
+  {
+   "spec": "webex-cloud-calling.json",
+   "tag": "Features:  Call Queue",
+   "class": "STALE-GROUP(call_queue)",
+   "method": "GET",
+   "path": "/telephony/config/locations/{locationId}/queues/{queueId}/dnis/{dnisId}",
+   "summary": "Get a DNIS for a Call Queue"
+  },
+  {
+   "spec": "webex-cloud-calling.json",
+   "tag": "Features:  Call Queue",
+   "class": "STALE-GROUP(call_queue)",
+   "method": "PUT",
+   "path": "/telephony/config/locations/{locationId}/queues/{queueId}/dnis/{dnisId}",
+   "summary": "Modify a DNIS for a Call Queue"
+  },
+  {
+   "spec": "webex-cloud-calling.json",
+   "tag": "Features:  Call Queue",
+   "class": "STALE-GROUP(call_queue)",
+   "method": "DELETE",
+   "path": "/telephony/config/locations/{locationId}/queues/{queueId}/dnis/{dnisId}",
+   "summary": "Delete a DNIS for a Call Queue"
+  },
+  {
+   "spec": "webex-cloud-calling.json",
+   "tag": "Features:  Call Queue",
+   "class": "STALE-GROUP(call_queue)",
+   "method": "GET",
+   "path": "/telephony/config/locations/{locationId}/queues/{queueId}/dnis/settings",
+   "summary": "Get DNIS Settings for a Call Queue"
+  },
+  {
+   "spec": "webex-cloud-calling.json",
+   "tag": "Features:  Call Queue",
+   "class": "STALE-GROUP(call_queue)",
+   "method": "PUT",
+   "path": "/telephony/config/locations/{locationId}/queues/{queueId}/dnis/settings",
+   "summary": "Modify DNIS Settings for a Call Queue"
+  },
+  {
+   "spec": "webex-cloud-calling.json",
+   "tag": "Features:  Call Queue",
+   "class": "STALE-GROUP(call_queue)",
+   "method": "GET",
+   "path": "/telephony/config/locations/{locationId}/queues/{queueId}/dnis/{dnisId}/announcements",
+   "summary": "Get DNIS Announcements for a Call Queue"
+  },
+  {
+   "spec": "webex-cloud-calling.json",
+   "tag": "Features:  Call Queue",
+   "class": "STALE-GROUP(call_queue)",
+   "method": "PUT",
+   "path": "/telephony/config/locations/{locationId}/queues/{queueId}/dnis/{dnisId}/announcements",
+   "summary": "Modify DNIS Announcements for a Call Queue"
+  },
+  {
+   "spec": "webex-cloud-calling.json",
+   "tag": "Features:  Call Queue",
+   "class": "STALE-GROUP(call_queue)",
+   "method": "GET",
+   "path": "/telephony/config/locations/{locationId}/queues/dnis/availableNumbers",
+   "summary": "Get Available Phone Numbers for DNIS"
+  },
+  {
+   "spec": "webex-cloud-calling.json",
+   "tag": "Features: Call Recording",
+   "class": "STALE-GROUP(call_recording)",
+   "method": "GET",
+   "path": "/telephony/config/callRecording/announcements",
+   "summary": "Get Organization Call Recording Announcement Settings"
+  },
+  {
+   "spec": "webex-cloud-calling.json",
+   "tag": "Features: Call Recording",
+   "class": "STALE-GROUP(call_recording)",
+   "method": "PUT",
+   "path": "/telephony/config/callRecording/announcements",
+   "summary": "Update Organization Call Recording Announcement Settings"
+  },
+  {
+   "spec": "webex-cloud-calling.json",
+   "tag": "Features: Call Recording",
+   "class": "STALE-GROUP(call_recording)",
+   "method": "GET",
+   "path": "/telephony/config/locations/{locationId}/callRecording/announcements",
+   "summary": "Get Location Call Recording Announcement Settings"
+  },
+  {
+   "spec": "webex-cloud-calling.json",
+   "tag": "Features: Call Recording",
+   "class": "STALE-GROUP(call_recording)",
+   "method": "PUT",
+   "path": "/telephony/config/locations/{locationId}/callRecording/announcements",
+   "summary": "Update Location Call Recording Announcement Settings"
+  },
+  {
+   "spec": "webex-cloud-calling.json",
+   "tag": "User Call Settings",
+   "class": "NO-GROUP",
+   "method": "GET",
+   "path": "/telephony/config/people/{personId}/monitoring/speedDials/availableMembers",
+   "summary": "Get Available Speed Dials for Person Monitoring"
+  },
+  {
+   "spec": "webex-cloud-calling.json",
+   "tag": "User Call Settings",
+   "class": "NO-GROUP",
+   "method": "GET",
+   "path": "/telephony/config/people/{personId}/monitoring/availableMembers",
+   "summary": "Get Available Members for Person Monitoring"
+  },
+  {
+   "spec": "webex-cloud-calling.json",
+   "tag": "Workspace Call Settings",
+   "class": "STALE-GROUP(workspace_settings)",
+   "method": "GET",
+   "path": "/telephony/config/workspaces/{workspaceId}/monitoring/speedDials/availableMembers",
+   "summary": "Get Available Speed Dials for Workspace Monitoring"
+  },
+  {
+   "spec": "webex-cloud-calling.json",
+   "tag": "Workspace Call Settings",
+   "class": "STALE-GROUP(workspace_settings)",
+   "method": "GET",
+   "path": "/telephony/config/workspaces/{workspaceId}/monitoring/availableMembers",
+   "summary": "Get Available Members for Workspace Monitoring"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Agent Personal Greeting Files",
+   "class": "STALE-GROUP(cc_agent_greetings)",
+   "method": "POST",
+   "path": "/organization/{orgid}/agent-personal-greeting",
+   "summary": "Create a new Greeting File"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Agent Personal Greeting Files",
+   "class": "STALE-GROUP(cc_agent_greetings)",
+   "method": "PUT",
+   "path": "/organization/{orgid}/agent-personal-greeting/{id}",
+   "summary": "Update specific Greeting File by ID"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Agent Personal Greeting Files",
+   "class": "STALE-GROUP(cc_agent_greetings)",
+   "method": "PATCH",
+   "path": "/organization/{orgid}/agent-personal-greeting/{id}",
+   "summary": "Partially update Greeting File by ID"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Agent Personal Greeting Files",
+   "class": "STALE-GROUP(cc_agent_greetings)",
+   "method": "POST",
+   "path": "/organization/{orgid}/v2/agent-personal-greeting",
+   "summary": "Create a new Greeting File"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Agent Personal Greeting Files",
+   "class": "STALE-GROUP(cc_agent_greetings)",
+   "method": "PUT",
+   "path": "/organization/{orgid}/v2/agent-personal-greeting/{id}",
+   "summary": "Update specific Greeting File by ID"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Agent Personal Greeting Files",
+   "class": "STALE-GROUP(cc_agent_greetings)",
+   "method": "PATCH",
+   "path": "/organization/{orgid}/v2/agent-personal-greeting/{id}",
+   "summary": "Partially update Greeting File by ID"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Audio Files",
+   "class": "STALE-GROUP(cc_audio_files)",
+   "method": "POST",
+   "path": "/organization/{orgid}/audio-file",
+   "summary": "Create a new Audio File"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Audio Files",
+   "class": "STALE-GROUP(cc_audio_files)",
+   "method": "PUT",
+   "path": "/organization/{orgid}/audio-file/{id}",
+   "summary": "Update specific Audio File by ID"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Audio Files",
+   "class": "STALE-GROUP(cc_audio_files)",
+   "method": "PATCH",
+   "path": "/organization/{orgid}/audio-file/{id}",
+   "summary": "Partially update Audio File by ID"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Users",
+   "class": "STALE-GROUP(cc_users)",
+   "method": "GET",
+   "path": "/organization/{orgid}/user/by-call-monitoring-id/{id}",
+   "summary": "List users by call monitoring id"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Users",
+   "class": "STALE-GROUP(cc_users)",
+   "method": "PATCH",
+   "path": "/organization/{orgid}/user/{id}",
+   "summary": "Partially update User by ID"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Agents",
+   "class": "STALE-GROUP(cc_agents)",
+   "method": "POST",
+   "path": "/v2/agents/login",
+   "summary": "Login"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Agents",
+   "class": "STALE-GROUP(cc_agents)",
+   "method": "PUT",
+   "path": "/v2/agents/logout",
+   "summary": "Logout"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Agents",
+   "class": "STALE-GROUP(cc_agents)",
+   "method": "PUT",
+   "path": "/v2/agents/session/state",
+   "summary": "State Change"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Agents",
+   "class": "STALE-GROUP(cc_agents)",
+   "method": "POST",
+   "path": "/v2/agents/reload",
+   "summary": "Reload"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Tasks",
+   "class": "STALE-GROUP(cc_tasks)",
+   "method": "POST",
+   "path": "/v2/tasks",
+   "summary": "Create Task"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Tasks",
+   "class": "STALE-GROUP(cc_tasks)",
+   "method": "POST",
+   "path": "/v2/tasks/{taskId}/messages",
+   "summary": "Append Task Message"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Activities",
+   "class": "NO-GROUP",
+   "method": "GET",
+   "path": "/flow-store/{orgId}/project/{projectId}/v2/activities",
+   "summary": "List Activity Definitions"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Activities",
+   "class": "NO-GROUP",
+   "method": "GET",
+   "path": "/flow-store/{orgId}/project/{projectId}/v2/activities/{activityName}",
+   "summary": "Describe an Activity"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Activities",
+   "class": "NO-GROUP",
+   "method": "GET",
+   "path": "/flow-store/{orgId}/project/{projectId}/v2/activities/{activityName}/inputs/{inputName}/choices",
+   "summary": "Get Activity Input Choices"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Events",
+   "class": "NO-GROUP",
+   "method": "GET",
+   "path": "/flow-store/{orgId}/project/{projectId}/v2/event-specifications",
+   "summary": "List Event Specifications"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Flows",
+   "class": "STALE-GROUP(cc_flow)",
+   "method": "POST",
+   "path": "/flow-store/{orgId}/project/{projectId}/flows/{flowId}:lock",
+   "summary": "Lock a Flow or Subflow"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Flows",
+   "class": "STALE-GROUP(cc_flow)",
+   "method": "POST",
+   "path": "/flow-store/{orgId}/project/{projectId}/flows/{flowId}:unlock",
+   "summary": "Unlock a Flow or Subflow"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Flows",
+   "class": "STALE-GROUP(cc_flow)",
+   "method": "POST",
+   "path": "/flow-store/{orgId}/project/{projectId}/v2/flows:validate",
+   "summary": "Validate a Flow"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Flows",
+   "class": "STALE-GROUP(cc_flow)",
+   "method": "POST",
+   "path": "/flow-store/{orgId}/project/{projectId}/v2/flows:import",
+   "summary": "Import a Flow"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Flows",
+   "class": "STALE-GROUP(cc_flow)",
+   "method": "GET",
+   "path": "/flow-store/{orgId}/project/{projectId}/v2/flows/{flowId}",
+   "summary": "Get a Flow"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Flows",
+   "class": "STALE-GROUP(cc_flow)",
+   "method": "POST",
+   "path": "/flow-store/{orgId}/project/{projectId}/v2/flows/{flowId}",
+   "summary": "Save a Flow Draft"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Flows",
+   "class": "STALE-GROUP(cc_flow)",
+   "method": "PATCH",
+   "path": "/flow-store/{orgId}/project/{projectId}/v2/flows/{flowId}",
+   "summary": "Patch a Flow Draft"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Flows",
+   "class": "STALE-GROUP(cc_flow)",
+   "method": "GET",
+   "path": "/flow-store/{orgId}/project/{projectId}/v2/flows/{flowId}:validate",
+   "summary": "Validate an Existing Flow Draft"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Flows",
+   "class": "STALE-GROUP(cc_flow)",
+   "method": "GET",
+   "path": "/flow-store/{orgId}/project/{projectId}/v2/flows/{flowId}:export",
+   "summary": "Export a Flow"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Functions",
+   "class": "NO-GROUP",
+   "method": "GET",
+   "path": "/v1/{orgId}/functions",
+   "summary": "List Custom Functions"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Functions",
+   "class": "NO-GROUP",
+   "method": "POST",
+   "path": "/v1/{orgId}/functions",
+   "summary": "Create a Custom Function"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Functions",
+   "class": "NO-GROUP",
+   "method": "GET",
+   "path": "/v1/{orgId}/functions/{id}",
+   "summary": "Get a Custom Function"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Functions",
+   "class": "NO-GROUP",
+   "method": "PUT",
+   "path": "/v1/{orgId}/functions/{id}",
+   "summary": "Update a Custom Function"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Functions",
+   "class": "NO-GROUP",
+   "method": "DELETE",
+   "path": "/v1/{orgId}/functions/{id}",
+   "summary": "Delete a Custom Function"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Functions",
+   "class": "NO-GROUP",
+   "method": "POST",
+   "path": "/v1/{orgId}/functions:import",
+   "summary": "Import a Custom Function"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Functions",
+   "class": "NO-GROUP",
+   "method": "POST",
+   "path": "/v1/{orgId}/functions/{id}:unlock",
+   "summary": "Unlock a Custom Function"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Functions",
+   "class": "NO-GROUP",
+   "method": "POST",
+   "path": "/v1/{orgId}/functions/{id}:lock",
+   "summary": "Lock a Custom Function"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Functions",
+   "class": "NO-GROUP",
+   "method": "POST",
+   "path": "/v1/{orgId}/functions/{id}:test",
+   "summary": "Test a Custom Function"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Functions",
+   "class": "NO-GROUP",
+   "method": "POST",
+   "path": "/v1/{orgId}/functions/{id}:publish",
+   "summary": "Publish a Custom Function"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Functions",
+   "class": "NO-GROUP",
+   "method": "POST",
+   "path": "/v1/{orgId}/functions/{id}:export",
+   "summary": "Export a Custom Function"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Legacy Flows",
+   "class": "STALE-GROUP(cc_flow)",
+   "method": "POST",
+   "path": "/flow-store/{orgId}/project/{projectId}/flows:import",
+   "summary": "Import a Flow or Subflow"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Templates",
+   "class": "NO-GROUP",
+   "method": "GET",
+   "path": "/flow-store/{orgId}/project/{projectId}/v2/templates",
+   "summary": "List Flow Templates"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Templates",
+   "class": "NO-GROUP",
+   "method": "GET",
+   "path": "/flow-store/{orgId}/project/{projectId}/v2/templates/{id}",
+   "summary": "Get a Flow Template"
+  },
+  {
+   "spec": "webex-contact-center.json",
+   "tag": "Campaign Manager",
+   "class": "STALE-GROUP(cc_campaign)",
+   "method": "GET",
+   "path": "/v1/organization/{orgId}/getValidCampaignTimes",
+   "summary": "Get Valid Campaign Times"
+  },
+  {
+   "spec": "webex-messaging.json",
+   "tag": "Messages",
+   "class": "NO-GROUP",
+   "method": "GET",
+   "path": "/messages",
+   "summary": "List Messages"
+  },
+  {
+   "spec": "webex-messaging.json",
+   "tag": "Messages",
+   "class": "NO-GROUP",
+   "method": "POST",
+   "path": "/messages",
+   "summary": "Create a Message"
+  },
+  {
+   "spec": "webex-messaging.json",
+   "tag": "Messages",
+   "class": "NO-GROUP",
+   "method": "GET",
+   "path": "/messages/direct",
+   "summary": "List Direct Messages"
+  },
+  {
+   "spec": "webex-messaging.json",
+   "tag": "Messages",
+   "class": "NO-GROUP",
+   "method": "PUT",
+   "path": "/messages/{messageId}",
+   "summary": "Edit a Message"
+  },
+  {
+   "spec": "webex-messaging.json",
+   "tag": "Messages",
+   "class": "NO-GROUP",
+   "method": "GET",
+   "path": "/messages/{messageId}",
+   "summary": "Get Message Details"
+  },
+  {
+   "spec": "webex-messaging.json",
+   "tag": "Messages",
+   "class": "NO-GROUP",
+   "method": "DELETE",
+   "path": "/messages/{messageId}",
+   "summary": "Delete a Message"
+  }
+ ],
+ "cli_without_spec": [
+  {
+   "module": "cc_ai_assistant",
+   "command": "create",
+   "method": "POST",
+   "url": "{cc_base_url}/event"
+  },
+  {
+   "module": "cc_business_hour",
+   "command": "list-bulk-export",
+   "method": "GET",
+   "url": "{cc_base_url}/organization/{orgid}/business-hours/bulk-export"
+  },
+  {
+   "module": "cc_desktop_layout",
+   "command": "list",
+   "method": "GET",
+   "url": "{cc_base_url}/organization/{orgid}/desktop-layout/bulk-export"
+  },
+  {
+   "module": "cc_desktop_profile",
+   "command": "list-bulk-export",
+   "method": "GET",
+   "url": "{cc_base_url}/organization/{orgid}/agent-profile/bulk-export"
+  },
+  {
+   "module": "cc_dial_plan",
+   "command": "list-bulk-export",
+   "method": "GET",
+   "url": "{cc_base_url}/organization/{orgid}/dial-plan/bulk-export"
+  },
+  {
+   "module": "cc_outdial_ani",
+   "command": "list-bulk-export",
+   "method": "GET",
+   "url": "{cc_base_url}/organization/{orgid}/outdial-ani/bulk-export"
+  },
+  {
+   "module": "cc_queue",
+   "command": "create",
+   "method": "POST",
+   "url": "{cc_base_url}/organization/{orgid}/contact-service-queue"
+  },
+  {
+   "module": "cc_queue",
+   "command": "list-bulk-export",
+   "method": "GET",
+   "url": "{cc_base_url}/organization/{orgid}/contact-service-queue/bulk-export"
+  },
+  {
+   "module": "cc_queue",
+   "command": "list-internal-by-skill-profile-id",
+   "method": "GET",
+   "url": "{cc_base_url}/organization/{orgid}/contact-service-queue/by-skill-profile-id/{id}/internal"
+  },
+  {
+   "module": "cc_queue",
+   "command": "list-internal-by-team-id",
+   "method": "GET",
+   "url": "{cc_base_url}/organization/{orgid}/contact-service-queue/by-team-id/{id}/internal"
+  },
+  {
+   "module": "cc_queue",
+   "command": "list-internal-by-user-ci-id",
+   "method": "GET",
+   "url": "{cc_base_url}/organization/{orgid}/contact-service-queue/by-user-ci-id/{ci_user_id}/internal"
+  },
+  {
+   "module": "cc_queue",
+   "command": "list-internal-by-ci-user-id",
+   "method": "GET",
+   "url": "{cc_base_url}/organization/{orgid}/contact-service-queue/skill-based-queues/by-ci-user-id/{id}/internal"
+  },
+  {
+   "module": "cc_queue",
+   "command": "update-contact-service-queue-organization",
+   "method": "PUT",
+   "url": "{cc_base_url}/organization/{orgid}/contact-service-queue/{id}"
+  }
+ ],
+ "skill_dependencies": {
+  "audit-compliance": {
+   "groups": [
+    "audit-events",
+    "authorizations",
+    "configure",
+    "events",
+    "people",
+    "security-audit",
+    "service-apps",
+    "whoami"
+   ],
+   "bad_groups": [],
+   "docs": [
+    "admin-audit-security.md"
+   ]
+  },
+  "call-control": {
+   "groups": [
+    "call-controls",
+    "conference",
+    "configure",
+    "webhooks",
+    "whoami"
+   ],
+   "bad_groups": [],
+   "docs": [
+    "call-control.md",
+    "webhooks-events.md",
+    "wxcadm-xsi-realtime.md"
+   ]
+  },
+  "configure-features": {
+   "groups": [
+    "auto-attendant",
+    "call-park",
+    "call-pickup",
+    "call-queue",
+    "configure",
+    "hunt-group",
+    "licenses",
+    "location-schedules",
+    "location-settings",
+    "location-voicemail",
+    "locations",
+    "numbers",
+    "paging-group",
+    "users",
+    "whoami"
+   ],
+   "bad_groups": [],
+   "docs": [
+    "call-features-additional.md",
+    "call-features-major.md"
+   ]
+  },
+  "configure-routing": {
+   "groups": [
+    "call-routing",
+    "configure",
+    "locations",
+    "pstn",
+    "whoami"
+   ],
+   "bad_groups": [],
+   "docs": [
+    "call-routing.md"
+   ]
+  },
+  "contact-center": {
+   "groups": [
+    "cc-audio-files",
+    "cc-auto-csat",
+    "cc-aux-code",
+    "cc-business-hour",
+    "cc-call-monitoring",
+    "cc-campaign",
+    "cc-contact-list",
+    "cc-desktop-layout",
+    "cc-desktop-profile",
+    "cc-dial-number",
+    "cc-dial-plan",
+    "cc-entry-point",
+    "cc-flow",
+    "cc-global-vars",
+    "cc-holiday-list",
+    "cc-journey",
+    "cc-multimedia-profile",
+    "cc-outdial-ani",
+    "cc-queue",
+    "cc-site",
+    "cc-skill",
+    "cc-skill-profile",
+    "cc-subscriptions",
+    "cc-tasks",
+    "cc-team",
+    "cc-users",
+    "cc-work-types",
+    "configure",
+    "set-cc-region",
+    "whoami"
+   ],
+   "bad_groups": [
+    "cc-"
+   ],
+   "docs": [
+    "contact-center-analytics.md",
+    "contact-center-core.md",
+    "contact-center-journey.md",
+    "contact-center-routing.md"
+   ]
+  },
+  "cucm-migrate": {
+   "groups": [
+    "auto-attendant",
+    "call-park",
+    "call-pickup",
+    "call-queue",
+    "call-routing",
+    "configure",
+    "cucm",
+    "devices",
+    "hunt-group",
+    "licenses",
+    "locations",
+    "numbers",
+    "operating-modes",
+    "paging-group",
+    "people",
+    "users",
+    "virtual-extensions",
+    "whoami",
+    "workspaces"
+   ],
+   "bad_groups": [
+    "location-call-settings-schedules",
+    "request"
+   ],
+   "docs": [
+    "provisioning.md"
+   ]
+  },
+  "customer-assist": {
+   "groups": [
+    "call-queue",
+    "call-recording",
+    "configure",
+    "customer-assist",
+    "locations",
+    "whoami"
+   ],
+   "bad_groups": [],
+   "docs": [
+    "call-features-additional.md",
+    "location-recording-advanced.md"
+   ]
+  },
+  "device-platform": {
+   "groups": [
+    "configure",
+    "device-configurations",
+    "device-settings",
+    "devices",
+    "whoami",
+    "workspace-personalization",
+    "workspaces",
+    "xapi"
+   ],
+   "bad_groups": [],
+   "docs": [
+    "devices-core.md",
+    "devices-dect.md",
+    "devices-platform.md",
+    "devices-workspaces.md"
+   ]
+  },
+  "manage-call-settings": {
+   "groups": [
+    "call-recording",
+    "call-settings-for-me-phase-5",
+    "device-settings",
+    "location-settings",
+    "location-voicemail",
+    "my-call-settings",
+    "people",
+    "single-number-reach",
+    "user-settings",
+    "users",
+    "whoami",
+    "workspace-settings",
+    "workspaces"
+   ],
+   "bad_groups": [
+    "group",
+    "location-call-settings"
+   ],
+   "docs": [
+    "person-call-settings-behavior.md",
+    "person-call-settings-handling.md",
+    "person-call-settings-media.md",
+    "person-call-settings-permissions.md",
+    "self-service-call-settings.md"
+   ]
+  },
+  "manage-devices": {
+   "groups": [
+    "configure",
+    "dect-devices",
+    "device-configurations",
+    "device-settings",
+    "devices",
+    "hot-desk",
+    "hot-desking-portal",
+    "locations",
+    "numbers",
+    "user-settings",
+    "users",
+    "whoami",
+    "workspace-settings",
+    "workspaces"
+   ],
+   "bad_groups": [
+    "user-call-settings"
+   ],
+   "docs": [
+    "devices-core.md",
+    "devices-dect.md",
+    "devices-workspaces.md"
+   ]
+  },
+  "manage-identity": {
+   "groups": [
+    "configure",
+    "domains",
+    "groups",
+    "org-contacts",
+    "organizations",
+    "people",
+    "scim-bulk",
+    "scim-groups",
+    "scim-schemas",
+    "scim-users",
+    "whoami"
+   ],
+   "bad_groups": [],
+   "docs": [
+    "admin-identity-scim.md",
+    "admin-org-management.md"
+   ]
+  },
+  "manage-licensing": {
+   "groups": [
+    "configure",
+    "licenses",
+    "licenses-api",
+    "locations",
+    "people",
+    "users",
+    "whoami"
+   ],
+   "bad_groups": [],
+   "docs": [
+    "admin-licensing.md",
+    "provisioning.md"
+   ]
+  },
+  "manage-meetings": {
+   "groups": [
+    "configure",
+    "meeting-captions",
+    "meeting-chats",
+    "meeting-invitees",
+    "meeting-messages",
+    "meeting-participants",
+    "meeting-polls",
+    "meeting-preferences",
+    "meeting-qa",
+    "meeting-reports",
+    "meeting-session-types",
+    "meeting-site",
+    "meeting-slido",
+    "meeting-summaries",
+    "meeting-tracking-codes",
+    "meeting-transcripts",
+    "meetings",
+    "whoami"
+   ],
+   "bad_groups": [],
+   "docs": [
+    "meetings-content.md",
+    "meetings-core.md",
+    "meetings-settings.md"
+   ]
+  },
+  "messaging-bots": {
+   "groups": [
+    "attachment-actions",
+    "configure",
+    "memberships",
+    "messages",
+    "people",
+    "room-tabs",
+    "rooms",
+    "webhooks",
+    "whoami"
+   ],
+   "bad_groups": [],
+   "docs": [
+    "messaging-bots.md",
+    "webhooks-events.md"
+   ]
+  },
+  "messaging-spaces": {
+   "groups": [
+    "configure",
+    "ecm",
+    "hds",
+    "memberships",
+    "messages",
+    "organizations",
+    "rooms",
+    "team-memberships",
+    "teams",
+    "whoami"
+   ],
+   "bad_groups": [],
+   "docs": [
+    "messaging-spaces.md"
+   ]
+  },
+  "org-health": {
+   "groups": [
+    "auto-attendant",
+    "call-park",
+    "call-queue",
+    "call-routing",
+    "devices",
+    "hunt-group",
+    "location-voicemail",
+    "numbers",
+    "paging-group",
+    "people",
+    "user-settings",
+    "whoami",
+    "workspaces"
+   ],
+   "bad_groups": [],
+   "docs": []
+  },
+  "provision-calling": {
+   "groups": [
+    "cleanup",
+    "configure",
+    "hunt-group",
+    "licenses",
+    "licenses-api",
+    "location-settings",
+    "locations",
+    "numbers",
+    "people",
+    "users",
+    "whoami"
+   ],
+   "bad_groups": [
+    "location-call-settings",
+    "org-domains",
+    "runs"
+   ],
+   "docs": [
+    "provisioning.md"
+   ]
+  },
+  "query-live": {
+   "groups": [
+    "auto-attendant",
+    "call-park",
+    "call-pickup",
+    "call-queue",
+    "call-routing",
+    "configure",
+    "hunt-group",
+    "location-schedules",
+    "locations",
+    "numbers",
+    "paging-group",
+    "people",
+    "pstn",
+    "user-settings",
+    "whoami"
+   ],
+   "bad_groups": [
+    "route-group",
+    "trunk"
+   ],
+   "docs": []
+  },
+  "reporting": {
+   "groups": [
+    "cdr",
+    "configure",
+    "converged-recordings",
+    "partner-reports",
+    "recording-report",
+    "report-templates",
+    "reports",
+    "whoami"
+   ],
+   "bad_groups": [
+    "hook",
+    "token"
+   ],
+   "docs": [
+    "reporting-analytics.md"
+   ]
+  },
+  "reporting-cc": {
+   "groups": [
+    "cc-agent-summaries",
+    "cc-agents",
+    "cc-ewt",
+    "cc-queue-stats",
+    "cc-realtime",
+    "cc-search",
+    "set-cc-region",
+    "whoami"
+   ],
+   "bad_groups": [
+    "get-cc-region"
+   ],
+   "docs": [
+    "contact-center-analytics.md"
+   ]
+  },
+  "reporting-meetings": {
+   "groups": [
+    "analytics",
+    "live-monitoring",
+    "meeting-qualities",
+    "meeting-reports",
+    "meetings",
+    "whoami",
+    "workspace-metrics"
+   ],
+   "bad_groups": [],
+   "docs": [
+    "meetings-core.md",
+    "meetings-infrastructure.md",
+    "reporting-analytics.md"
+   ]
+  },
+  "teardown": {
+   "groups": [
+    "auto-attendant",
+    "call-park",
+    "call-pickup",
+    "call-queue",
+    "call-routing",
+    "cleanup",
+    "hunt-group",
+    "location-schedules",
+    "location-settings",
+    "location-voicemail",
+    "locations",
+    "numbers",
+    "operating-modes",
+    "paging-group",
+    "users",
+    "virtual-extensions",
+    "workspaces"
+   ],
+   "bad_groups": [],
+   "docs": [
+    "call-routing.md",
+    "devices-core.md"
+   ]
+  },
+  "video-mesh": {
+   "groups": [
+    "configure",
+    "video-mesh",
+    "whoami"
+   ],
+   "bad_groups": [],
+   "docs": [
+    "meetings-infrastructure.md"
+   ]
+  },
+  "wxc-calling-debug": {
+   "groups": [
+    "auto-attendant",
+    "call-controls",
+    "call-queue",
+    "configure",
+    "licenses",
+    "location-settings",
+    "locations",
+    "numbers",
+    "users",
+    "whoami"
+   ],
+   "bad_groups": [
+    "does",
+    "handles",
+    "returned",
+    "shows"
+   ],
+   "docs": [
+    "authentication.md",
+    "call-control.md",
+    "call-features-additional.md",
+    "call-features-major.md",
+    "call-routing.md",
+    "devices-core.md",
+    "devices-workspaces.md",
+    "emergency-services.md",
+    "location-calling-core.md",
+    "provisioning.md",
+    "reporting-analytics.md",
+    "webhooks-events.md"
+   ]
+  },
+  "_agent_rules_claudemd": {
+   "groups": [
+    "auto-attendant",
+    "call-controls",
+    "call-park",
+    "call-pickup",
+    "call-queue",
+    "call-routing",
+    "cleanup",
+    "clear-org",
+    "configure",
+    "cucm",
+    "customer-assist",
+    "dect-devices",
+    "device-configurations",
+    "hunt-group",
+    "licenses",
+    "licenses-api",
+    "location-schedules",
+    "location-settings",
+    "locations",
+    "my-call-settings",
+    "numbers",
+    "pstn",
+    "set-cc-region",
+    "switch-org",
+    "user-settings",
+    "users",
+    "virtual-extensions",
+    "whoami"
+   ],
+   "bad_groups": [
+    "does",
+    "doesn",
+    "gate",
+    "has",
+    "locations-api",
+    "outputs",
+    "supports",
+    "within",
+    "work"
+   ],
+   "docs": [
+    "admin-apps-data.md",
+    "admin-audit-security.md",
+    "admin-hybrid.md",
+    "admin-identity-scim.md",
+    "admin-licensing.md",
+    "admin-org-management.md",
+    "admin-partner.md",
+    "authentication.md",
+    "call-control.md",
+    "call-features-additional.md",
+    "call-features-major.md",
+    "call-routing.md",
+    "contact-center-analytics.md",
+    "contact-center-core.md",
+    "contact-center-journey.md",
+    "contact-center-routing.md",
+    "devices-core.md",
+    "devices-dect.md",
+    "devices-platform.md",
+    "devices-workspaces.md",
+    "emergency-services.md",
+    "location-calling-core.md",
+    "location-calling-media.md",
+    "location-recording-advanced.md",
+    "meetings-content.md",
+    "meetings-core.md",
+    "meetings-infrastructure.md",
+    "meetings-settings.md",
+    "messaging-bots.md",
+    "messaging-spaces.md",
+    "migration-spec-template.md",
+    "person-call-settings-behavior.md",
+    "person-call-settings-handling.md",
+    "person-call-settings-media.md",
+    "person-call-settings-permissions.md",
+    "provisioning.md",
+    "reporting-analytics.md",
+    "self-service-call-settings.md",
+    "virtual-lines.md",
+    "webhooks-events.md",
+    "wxc-sdk-patterns.md",
+    "wxcadm-advanced.md",
+    "wxcadm-core.md",
+    "wxcadm-devices-workspaces.md",
+    "wxcadm-features.md",
+    "wxcadm-locations.md",
+    "wxcadm-person.md",
+    "wxcadm-routing.md",
+    "wxcadm-xsi-realtime.md"
+   ]
+  }
+ },
+ "orphan_modules": {
+  "command_counts": {
+   "admin_audit_events": 2,
+   "api_domain_management": 5,
+   "bulk_manage_scim_2_users_and_groups": 1,
+   "call_queue_settings_with_playlist_settings": 1,
+   "caller_reputation_provider": 5,
+   "calling_service_settings": 10,
+   "client_call_settings": 2,
+   "conference_controls": 10,
+   "converged_recordings_export": 2,
+   "cx_essentials": 12,
+   "dect_devices_settings": 23,
+   "ecm_folder_linking": 5,
+   "historical_analytics_apis": 3,
+   "hot_desking_members": 3,
+   "identity_organization": 3,
+   "location_call_settings": 38,
+   "location_call_settings_call_handling": 19,
+   "location_call_settings_schedules": 9,
+   "location_call_settings_voicemail": 13,
+   "meeting_slido": 1,
+   "organization_contacts": 7,
+   "partner_administrators": 5,
+   "reports_detailed_call_history": 2,
+   "scim_2_groups": 6,
+   "scim_2_schemas": 3,
+   "scim_2_users": 7,
+   "security_audit_events": 1,
+   "send_activation_email": 3,
+   "settings": 2,
+   "ucm_profile": 1,
+   "user_call_settings": 9,
+   "virtual_line_call_settings": 63,
+   "wholesale_billing_reports": 4,
+   "wholesale_provisioning": 14,
+   "workspace_call_settings": 96
+  },
+  "supersession": {
+   "fully_superseded": [
+    "admin_audit_events",
+    "api_domain_management",
+    "bulk_manage_scim_2_users_and_groups",
+    "call_queue_settings_with_playlist_settings",
+    "caller_reputation_provider",
+    "calling_service_settings",
+    "client_call_settings",
+    "conference_controls",
+    "cx_essentials",
+    "dect_devices_settings",
+    "ecm_folder_linking",
+    "historical_analytics_apis",
+    "identity_organization",
+    "location_call_settings",
+    "location_call_settings_call_handling",
+    "location_call_settings_schedules",
+    "location_call_settings_voicemail",
+    "meeting_slido",
+    "organization_contacts",
+    "partner_administrators",
+    "reports_detailed_call_history",
+    "scim_2_groups",
+    "scim_2_schemas",
+    "scim_2_users",
+    "security_audit_events",
+    "send_activation_email",
+    "settings",
+    "virtual_line_call_settings",
+    "workspace_call_settings"
+   ],
+   "unique_coverage": {
+    "wholesale_provisioning": 13,
+    "wholesale_billing_reports": 4,
+    "user_call_settings": 9,
+    "hot_desking_members": 3,
+    "ucm_profile": 1
+   }
+  }
+ },
+ "groups_unreferenced_by_skills": [
+  "activation-email",
+  "admin-recordings",
+  "announcement-playlists",
+  "announcements",
+  "archive-users",
+  "broadworks-billing-reports",
+  "broadworks-enterprises",
+  "broadworks-subscribers",
+  "broadworks-workspaces",
+  "caller-reputation",
+  "calling-service",
+  "cc-address-book",
+  "cc-agent-greetings",
+  "cc-agent-wellbeing",
+  "cc-ai-assistant",
+  "cc-ai-feature",
+  "cc-callbacks",
+  "cc-captures",
+  "cc-contact-number",
+  "cc-data-sources",
+  "cc-dnc",
+  "cc-notification",
+  "cc-overrides",
+  "cc-resource-collection",
+  "cc-summaries",
+  "cc-user-profiles",
+  "classifications",
+  "client-settings",
+  "cq-playlists",
+  "cx-essentials",
+  "data-sources",
+  "device-dynamic-settings",
+  "emergency-services",
+  "external-voicemail",
+  "fs-connectors",
+  "fs-expression-test",
+  "fs-flow-props",
+  "fs-flow-versions",
+  "fs-flows",
+  "fs-flows-v2",
+  "fs-projects",
+  "fs-resources",
+  "fs-templates",
+  "fs-tracing",
+  "fs-user-prefs",
+  "guest-management",
+  "hybrid-clusters",
+  "hybrid-connectors",
+  "identity-org",
+  "location-call-handling",
+  "mode-management",
+  "org-settings",
+  "partner-admins",
+  "partner-tags",
+  "recordings",
+  "resource-group-memberships",
+  "resource-groups",
+  "roles",
+  "text-to-speech",
+  "update",
+  "virtual-line-settings",
+  "workspace-locations"
+ ],
+ "registered_groups": [
+  "activation-email",
+  "admin-recordings",
+  "analytics",
+  "announcement-playlists",
+  "announcements",
+  "archive-users",
+  "attachment-actions",
+  "audit-events",
+  "authorizations",
+  "auto-attendant",
+  "broadworks-billing-reports",
+  "broadworks-enterprises",
+  "broadworks-subscribers",
+  "broadworks-workspaces",
+  "call-controls",
+  "call-park",
+  "call-pickup",
+  "call-queue",
+  "call-recording",
+  "call-routing",
+  "call-settings-for-me-phase-5",
+  "caller-reputation",
+  "calling-service",
+  "cc-address-book",
+  "cc-agent-greetings",
+  "cc-agent-summaries",
+  "cc-agent-wellbeing",
+  "cc-agents",
+  "cc-ai-assistant",
+  "cc-ai-feature",
+  "cc-audio-files",
+  "cc-auto-csat",
+  "cc-aux-code",
+  "cc-business-hour",
+  "cc-call-monitoring",
+  "cc-callbacks",
+  "cc-campaign",
+  "cc-captures",
+  "cc-contact-list",
+  "cc-contact-number",
+  "cc-data-sources",
+  "cc-desktop-layout",
+  "cc-desktop-profile",
+  "cc-dial-number",
+  "cc-dial-plan",
+  "cc-dnc",
+  "cc-entry-point",
+  "cc-ewt",
+  "cc-flow",
+  "cc-global-vars",
+  "cc-holiday-list",
+  "cc-journey",
+  "cc-multimedia-profile",
+  "cc-notification",
+  "cc-outdial-ani",
+  "cc-overrides",
+  "cc-queue",
+  "cc-queue-stats",
+  "cc-realtime",
+  "cc-resource-collection",
+  "cc-search",
+  "cc-site",
+  "cc-skill",
+  "cc-skill-profile",
+  "cc-subscriptions",
+  "cc-summaries",
+  "cc-tasks",
+  "cc-team",
+  "cc-user-profiles",
+  "cc-users",
+  "cc-work-types",
+  "cdr",
+  "classifications",
+  "cleanup",
+  "client-settings",
+  "conference",
+  "configure",
+  "converged-recordings",
+  "cq-playlists",
+  "cucm",
+  "customer-assist",
+  "cx-essentials",
+  "data-sources",
+  "dect-devices",
+  "device-configurations",
+  "device-dynamic-settings",
+  "device-settings",
+  "devices",
+  "domains",
+  "ecm",
+  "emergency-services",
+  "events",
+  "external-voicemail",
+  "fs-connectors",
+  "fs-expression-test",
+  "fs-flow-props",
+  "fs-flow-versions",
+  "fs-flows",
+  "fs-flows-v2",
+  "fs-projects",
+  "fs-resources",
+  "fs-templates",
+  "fs-tracing",
+  "fs-user-prefs",
+  "groups",
+  "guest-management",
+  "hds",
+  "hot-desk",
+  "hot-desking-portal",
+  "hunt-group",
+  "hybrid-clusters",
+  "hybrid-connectors",
+  "identity-org",
+  "licenses",
+  "licenses-api",
+  "live-monitoring",
+  "location-call-handling",
+  "location-schedules",
+  "location-settings",
+  "location-voicemail",
+  "locations",
+  "meeting-captions",
+  "meeting-chats",
+  "meeting-invitees",
+  "meeting-messages",
+  "meeting-participants",
+  "meeting-polls",
+  "meeting-preferences",
+  "meeting-qa",
+  "meeting-qualities",
+  "meeting-reports",
+  "meeting-session-types",
+  "meeting-site",
+  "meeting-slido",
+  "meeting-summaries",
+  "meeting-tracking-codes",
+  "meeting-transcripts",
+  "meetings",
+  "memberships",
+  "messages",
+  "mode-management",
+  "my-call-settings",
+  "numbers",
+  "operating-modes",
+  "org-contacts",
+  "org-settings",
+  "organizations",
+  "paging-group",
+  "partner-admins",
+  "partner-reports",
+  "partner-tags",
+  "people",
+  "pstn",
+  "recording-report",
+  "recordings",
+  "report-templates",
+  "reports",
+  "resource-group-memberships",
+  "resource-groups",
+  "roles",
+  "room-tabs",
+  "rooms",
+  "scim-bulk",
+  "scim-groups",
+  "scim-schemas",
+  "scim-users",
+  "security-audit",
+  "service-apps",
+  "single-number-reach",
+  "team-memberships",
+  "teams",
+  "text-to-speech",
+  "update",
+  "user-settings",
+  "users",
+  "video-mesh",
+  "virtual-extensions",
+  "virtual-line-settings",
+  "webhooks",
+  "workspace-locations",
+  "workspace-metrics",
+  "workspace-personalization",
+  "workspace-settings",
+  "workspaces",
+  "xapi"
+ ]
+}
