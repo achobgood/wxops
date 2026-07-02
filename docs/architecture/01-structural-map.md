@@ -5,11 +5,11 @@
 | Module | Purpose | Primary Entry Points |
 |--------|---------|---------------------|
 | `src/wxcli/` (core) | CLI framework: auth, config, output formatting, error handling | `main.py:app` (Typer root), `auth.py:get_api()`, `config.py:load_config()` |
-| `src/wxcli/commands/` | 208 command files — each registers a Typer sub-app for one API tag | Every `*.py` exports an `app = typer.Typer(...)` imported by `main.py` |
+| `src/wxcli/commands/` | 172 generated command modules + 7 hand-written — each exports a Typer sub-app | Generated modules are mounted via the generator-emitted `_registry.py` manifest loop in `main.py`; hand seams, aliases, and the dev-only `fs_*` block stay explicit (ADR-9) |
 | `src/wxcli/migration/` | 11-phase CUCM-to-Webex migration pipeline | `commands/cucm.py` (CLI surface), `transform/pipeline.py:normalize_discovery()`, `transform/engine.py` (mapper execution), `transform/analysis_pipeline.py:AnalysisPipeline.run()`, `execute/planner.py:expand_to_operations()`, `execute/engine.py:execute_all_batches()` |
 | `src/wxcli/org_health/` | Deterministic org health assessment — collect, analyze, report | `analyze.py:run_analysis()` (`python3.14 -m wxcli.org_health.analyze`), `report.py:generate_report()` |
 | `tools/` | Code generation pipeline: OpenAPI spec → Python command files | `generate_commands.py:main()`, `openapi_parser.py:parse_tag()`, `command_renderer.py:render_command_file()` |
-| `specs/` | 9 OpenAPI 3.0 JSON specs — the source of truth for API surface | Read by `tools/openapi_parser.py` and `tools/generate_commands.py` |
+| `specs/` | 10 tracked OpenAPI 3.0 JSON specs (+1 dev-only untracked) — the source of truth for API surface | Synced + regenerated atomically via `tools/spec_sync.py`; read by `tools/openapi_parser.py` and `tools/generate_commands.py` |
 | `tests/` | 226 test files covering core, migration (2778 tests), org health (76 tests) | `pytest tests/ -m "not live"` |
 | `.claude/agents/` | 2 Claude Code agent definitions (builder, migration-advisor) | Invoked via `/agents` in Claude Code |
 | `.claude/skills/` | 26 domain skills for guided Webex operations | Invoked via `Skill` tool or `/skill-name` |
@@ -183,7 +183,8 @@ flowchart LR
     Gen -->|"apply_endpoint_overrides()"| Gen
     Gen -->|"render_command_file()"| Renderer["command_renderer.py<br/>783 lines"]
     Renderer -->|"Python source string"| File["src/wxcli/commands/<module>.py"]
-    File -->|"manual registration"| Main["main.py<br/>app.add_typer(...)"]
+    Gen -->|"update_manifest()"| Registry["src/wxcli/commands/_registry.py<br/>GENERATED_GROUPS"]
+    Registry -->|"manifest loop"| Main["main.py<br/>app.add_typer(...)"]
 ```
 
 **Data shapes:**
@@ -320,7 +321,7 @@ Each Endpoint becomes one `@app.command()` function following a fixed template:
 
 ### Seams Worth Noting
 
-1. **Generated vs hand-coded commands.** 208 files are generated from OpenAPI specs; 8 are hand-coded and registered as Typer sub-apps in `main.py`: `update.py` (self-update via git pull), `configure.py` (auth setup), `locations.py`, `numbers.py`, `licenses.py` (3 legacy files that predate the generator), `cucm.py` (16-command migration CLI surface), `cleanup.py` (1,424-line batch deletion with 13-layer dependency ordering), plus `converged_recordings_export.py` (registers `download`/`export` onto the generated `converged_recordings` group). `cucm_config.py` is a helper imported by `cucm.py`, not directly registered. Hand-coded files drift from generator improvements (they don't get `auto_inject_from_config`, auto-column detection, etc.). The seam is `main.py` where both types are registered identically via `app.add_typer()`.
+1. **Generated vs hand-coded commands.** 172 modules are generated from OpenAPI specs and registered via the generator-emitted `_registry.py` manifest (ADR-9); 7 files are hand-coded: `update.py` (self-update via git pull), `configure.py` (auth setup), `licenses.py` (the one remaining legacy file that predates the generator — `locations.py`/`numbers.py` turned out to be generator-owned on disk, confirmed 2026-07-01 when the spec sync regenerated them byte-identical), `cucm.py` (migration CLI surface), `cleanup.py` (1,424-line batch deletion with 13-layer dependency ordering), plus `converged_recordings_export.py` (mounts `download`/`export` onto the generated `converged-recordings` group via the manifest loop's app dict). `cucm_config.py` is a helper mounted by `cucm.py`. Hand-coded files drift from generator improvements (they don't get `auto_inject_from_config`, auto-column detection, etc.). The seam is `main.py`: manifest loop for generated groups, explicit `app.add_typer()` for hand seams/aliases/dev-only `fs_*`.
 
 2. **Two independent HTTP stacks.** The migration execution engine (`execute/engine.py`) uses **async aiohttp** with semaphore-based rate limiting, 429 retry, and 409 auto-recovery. The CLI commands use **synchronous httpx** via `WebexSession`. These stacks share nothing — a breaking change in one doesn't affect the other. The migration pipeline never calls `get_api()` or uses any generated command file.
 
@@ -378,7 +379,7 @@ These libraries are imported in source but not listed in `pyproject.toml`'s `dep
 
 **Where wxc-sdk is still referenced** (cleanup in progress — see `docs/prompts/remove-wxc-sdk-references.md`):
 - `requirements.txt` — stale pip-compile output
-- `docs/reference/wxc-sdk-patterns.md` — historical SDK patterns doc (scopes table and raw HTTP examples are the valuable parts)
+- `docs/reference/archive/wxc-sdk-patterns.md` — historical SDK patterns doc, archived 2026-07-01 (scopes table and raw HTTP examples are the valuable parts)
 - Several skills contain `from wxc_sdk import ...` code examples that need rewriting
 - `tools/CLAUDE.md` and root `CLAUDE.md` — reframed as historical source (already updated)
 - `docs/reference/CLAUDE.md` — marked as historical (already updated)
