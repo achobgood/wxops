@@ -2,6 +2,7 @@
 import argparse
 import fnmatch
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -100,6 +101,37 @@ def resolve_tag_merge(raw: dict | None, spec_filename: str) -> dict:
     return result
 
 
+MANIFEST_HEADER = '''"""Registration manifest for generated command groups.
+
+Emitted by tools/generate_commands.py — do NOT edit by hand.
+main.py imports GENERATED_GROUPS and mounts each (module, group) pair;
+hand-written seams, aliases, and the dev-only fs_* block stay explicit
+in main.py. A stale entry whose module is missing fails import loudly.
+"""
+
+GENERATED_GROUPS = [
+'''
+
+
+def update_manifest(generated: list[tuple[str, str]], output_dir: Path) -> None:
+    """Upsert (module, cli_name) pairs into _registry.py, sorted by module.
+
+    Upsert (not rewrite): the generator runs per-spec, so a single run only
+    knows its own tags. Entries whose tag was renamed/removed upstream must
+    be deleted in the regen diff review — a stale entry fails import loudly.
+    """
+    manifest_path = output_dir / "_registry.py"
+    entries: dict[str, str] = {}
+    if manifest_path.exists():
+        entries = dict(re.findall(r'\("(\w+)", "([\w-]+)"\)', manifest_path.read_text()))
+    entries.update(generated)
+    lines = [MANIFEST_HEADER]
+    lines += [f'    ("{m}", "{g}"),\n' for m, g in sorted(entries.items())]
+    lines += ["]\n"]
+    manifest_path.write_text("".join(lines))
+    print(f"Manifest: {manifest_path.name} updated ({len(entries)} groups)")
+
+
 def generate_tag(
     tag_name: str,
     spec: dict,
@@ -179,7 +211,17 @@ def main():
     parser.add_argument("--spec", default=str(DEFAULT_SPEC))
     parser.add_argument("--overrides", default=str(DEFAULT_OVERRIDES))
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
+    parser.add_argument(
+        "--dev-only", action="store_true",
+        help="Skip the registration manifest (dev-only specs keep the guarded "
+             "manual block in main.py so fresh clones don't break)",
+    )
     args = parser.parse_args()
+
+    # Flow-store is dev-only/untracked — never let a local regen write its
+    # groups into the tracked manifest
+    if "flow-store" in Path(args.spec).name:
+        args.dev_only = True
 
     # Handle backward-compat aliases
     tag = args.tag or args.tag_alias
@@ -279,13 +321,16 @@ def main():
 
     if not args.dry_run and generated_modules:
         print(f"\nTotal: {len(targets)} tags, {total_cmds} commands")
-        print(f"\n{'='*60}")
-        print("  Registration block for main.py:")
-        print(f"{'='*60}")
-        for module_name, cli_name in generated_modules:
-            var = f"{module_name}_app"
-            print(f"from wxcli.commands.{module_name} import app as {var}")
-            print(f'app.add_typer({var}, name="{cli_name}")')
+        if args.dev_only:
+            print(f"\n{'='*60}")
+            print("  Dev-only spec — manifest NOT updated. Guarded block for main.py:")
+            print(f"{'='*60}")
+            for module_name, cli_name in generated_modules:
+                var = f"{module_name}_app"
+                print(f"from wxcli.commands.{module_name} import app as {var}")
+                print(f'app.add_typer({var}, name="{cli_name}")')
+        else:
+            update_manifest(generated_modules, output_dir)
 
 
 if __name__ == "__main__":

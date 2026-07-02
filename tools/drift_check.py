@@ -114,15 +114,23 @@ def load_spec_ops(skip_tags: dict) -> tuple[dict, dict]:
 # ----------------------------------------------------------------- CLI side
 
 def parse_registrations() -> dict[str, str]:
-    """Parse main.py: registered group name -> module name."""
-    src = MAIN_PY.read_text()
-    var_to_module = dict(re.findall(
-        r"from wxcli\.commands\.(\w+) import app as (\w+)", src))
-    var_to_module = {var: mod for mod, var in var_to_module.items()}
+    """Registered group name -> module name (manifest + explicit main.py)."""
     groups = {}
+    registry = COMMANDS_DIR / "_registry.py"
+    if registry.exists():
+        for mod, grp in re.findall(r'\("(\w+)", "([\w-]+)"\)', registry.read_text()):
+            groups[grp] = mod
+    src = MAIN_PY.read_text()
+    var_to_module = {var: mod for mod, var in re.findall(
+        r"from wxcli\.commands\.(\w+) import app as (\w+)", src)}
     for var, name in re.findall(r"app\.add_typer\((\w+),\s*name=\"([^\"]+)\"", src):
         if var in var_to_module:
             groups[name] = var_to_module[var]
+    # aliases mount a manifest group's app under a second name
+    for base, alias in re.findall(
+            r"app\.add_typer\(_generated_apps\[\"([\w-]+)\"\],\s*name=\"([\w-]+)\"", src):
+        if base in groups:
+            groups[alias] = groups[base]
     return groups
 
 
