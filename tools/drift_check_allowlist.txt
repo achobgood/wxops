@@ -13,3 +13,21 @@ call-controls accessible
 # wxc-calling-builder.md:591 — deliberately fake group used to TEACH the
 # --help verification gate (audit: "harmless as written")
 locations-api
+# wxc-calling-builder.md:772 — deliberate negative example ("users
+# assign-license doesn't exist — use licenses instead")
+users assign-license
+# manage-devices/SKILL.md:31,640 — deliberate negative examples ("Do NOT
+# use user-call-settings — that group does not exist; use user-settings")
+user-call-settings
+# provision-calling/SKILL.md gotcha #6 — deliberate stale-guidance warning
+# ("the older update-location-calling guidance is stale — do not promise it")
+location-settings update-location-calling
+# customer-assist/SKILL.md:235 — deliberate negative example ("show-queue-
+# recording / update-queue-recording do NOT exist — use the CX queue itself")
+customer-assist show-queue-recording
+customer-assist update-queue-recording
+# query-live/domains/routing.md:120 — deliberate negative examples ("Do NOT
+# use wxcli trunk / wxcli route-group — those groups don't exist; use
+# call-routing list-trunks / list-route-groups")
+trunk
+route-group

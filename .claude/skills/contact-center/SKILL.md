@@ -220,17 +220,17 @@ wxcli cc-site create --json-body '{
 
 | Prerequisite | Verification | If missing |
 |-------------|-------------|-----------|
-| Entry point exists | `wxcli cc-entry-point list-entry-point-v2 -o json` | Create entry point first |
+| Entry point exists | `wxcli cc-entry-point list-entry-point -o json` | Create entry point first |
 | Team exists (for team-based routing) | `wxcli cc-team list -o json` | Create team first |
-| Skill profiles (for skill-based routing) | `wxcli cc-skill-profile list-skill-profile-v2 -o json` | Create skills and skill profiles first |
+| Skill profiles (for skill-based routing) | `wxcli cc-skill-profile list-skill-profile -o json` | Create skills and skill profiles first |
 
 #### Teams
 
 | Prerequisite | Verification | If missing |
 |-------------|-------------|-----------|
 | Site exists | `wxcli cc-site list -o json` | Create site first |
-| Multimedia profile exists | `wxcli cc-multimedia-profile list-multimedia-profile-v2 -o json` | Create multimedia profile first |
-| Skill profile (optional) | `wxcli cc-skill-profile list-skill-profile-v2 -o json` | Create if using skill-based routing |
+| Multimedia profile exists | `wxcli cc-multimedia-profile list-multimedia-profile -o json` | Create multimedia profile first |
+| Skill profile (optional) | `wxcli cc-skill-profile list-skill-profile -o json` | Create if using skill-based routing |
 
 #### Campaigns
 
@@ -238,7 +238,7 @@ wxcli cc-site create --json-body '{
 |-------------|-------------|-----------|
 | Contact list uploaded | `wxcli cc-contact-list list -o json` | Upload contact list first |
 | Outdial ANI configured | `wxcli cc-outdial-ani list -o json` | Configure outbound caller ID first |
-| Entry point exists (outbound) | `wxcli cc-entry-point list-entry-point-v2 -o json` | Create outbound entry point |
+| Entry point exists (outbound) | `wxcli cc-entry-point list-entry-point -o json` | Create outbound entry point |
 
 #### Flows
 
@@ -287,7 +287,7 @@ Collect from user:
 **CLI command (v2 — preferred):**
 
 ```bash
-wxcli cc-queue create-contact-service-queue-v2 --json-body '{
+wxcli cc-queue create --json-body '{
   "name": "Support Queue",
   "channelType": "telephony",
   "routingType": "LONGEST_AVAILABLE_AGENT"
@@ -313,25 +313,25 @@ These commands query queues based on skill, team, or user assignments. Useful fo
 **List queues assigned to a specific team:**
 
 ```bash
-wxcli cc-queue list-internal-by-team-id TEAM_ID -o json
+wxcli cc-queue list-team-based-queues TEAM_ID -o json
 ```
 
 **List queues for a CI user:**
 
 ```bash
-wxcli cc-queue list-internal-by-user-ci-id USER_CI_ID -o json
+wxcli cc-queue list-agent-based-queues USER_CI_ID -o json
 ```
 
 **List skill-based queues by CI user:**
 
 ```bash
-wxcli cc-queue list-internal-by-ci-user-id USER_CI_ID -o json
+wxcli cc-queue list-agent-based-queues USER_CI_ID -o json
 ```
 
 **List queues by skill profile:**
 
 ```bash
-wxcli cc-queue list-internal-by-skill-profile-id SKILL_PROFILE_ID -o json
+wxcli cc-queue list-skill-based-queues SKILL_PROFILE_ID -o json
 ```
 
 **Fetch queues by dynamic skill and skill profile (POST):**
@@ -376,7 +376,7 @@ Collect from user:
 **CLI command (v2 — preferred):**
 
 ```bash
-wxcli cc-entry-point create-entry-point --json-body '{
+wxcli cc-entry-point create --json-body '{
   "name": "Main IVR",
   "channelType": "telephony"
 }'
@@ -385,7 +385,7 @@ wxcli cc-entry-point create-entry-point --json-body '{
 **List entry points:**
 
 ```bash
-wxcli cc-entry-point list-entry-point-v2 -o json
+wxcli cc-entry-point list-entry-point -o json
 ```
 
 **Show specific entry point:**
@@ -496,7 +496,7 @@ wxcli cc-skill list-skill -o json
 **Create a skill profile:**
 
 ```bash
-wxcli cc-skill-profile create-skill-profile --json-body '{
+wxcli cc-skill-profile create --json-body '{
   "name": "Bilingual Agent",
   "description": "English + Spanish",
   "skills": [
@@ -508,7 +508,7 @@ wxcli cc-skill-profile create-skill-profile --json-body '{
 **List skill profiles:**
 
 ```bash
-wxcli cc-skill-profile list-skill-profile-v2 -o json
+wxcli cc-skill-profile list-skill-profile -o json
 ```
 
 ---
@@ -518,7 +518,7 @@ wxcli cc-skill-profile list-skill-profile-v2 -o json
 **Create a dial plan:**
 
 ```bash
-wxcli cc-dial-plan create-dial-plan --json-body '{
+wxcli cc-dial-plan create --json-body '{
   "name": "US Dial Plan",
   "description": "US domestic dialing rules"
 }'
@@ -527,7 +527,7 @@ wxcli cc-dial-plan create-dial-plan --json-body '{
 **List dial plans:**
 
 ```bash
-wxcli cc-dial-plan list-dial-plan-v2 -o json
+wxcli cc-dial-plan list-dial-plan -o json
 ```
 
 > **NOTE:** `cc-dial-plan list` is a references endpoint (shows what references a specific dial plan), not a list-all. Always use `list-dial-plan-v2` to list all dial plans.
@@ -601,7 +601,7 @@ wxcli cc-desktop-layout list -o json
 **Create a desktop profile:**
 
 ```bash
-wxcli cc-desktop-profile create-agent-profile --json-body '{
+wxcli cc-desktop-profile create --json-body '{
   "name": "Standard Profile",
   "desktopLayoutId": "LAYOUT_ID"
 }'
@@ -620,7 +620,7 @@ wxcli cc-desktop-profile list-agent-profile -o json
 **Create a multimedia profile:**
 
 ```bash
-wxcli cc-multimedia-profile create-multimedia-profile --json-body '{
+wxcli cc-multimedia-profile create --json-body '{
   "name": "Voice Only",
   "mediaTypes": [
     {"media": "telephony", "maxCount": 1}
@@ -631,7 +631,7 @@ wxcli cc-multimedia-profile create-multimedia-profile --json-body '{
 **List multimedia profiles:**
 
 ```bash
-wxcli cc-multimedia-profile list-multimedia-profile-v2 -o json
+wxcli cc-multimedia-profile list-multimedia-profile -o json
 ```
 
 ---
@@ -651,7 +651,7 @@ wxcli cc-aux-code create --json-body '{
 **List aux codes:**
 
 ```bash
-wxcli cc-aux-code list-auxiliary-code-v2 -o json
+wxcli cc-aux-code list-auxiliary-code -o json
 ```
 
 **Create a work type:**
@@ -879,7 +879,7 @@ wxcli cc-auto-csat list-question -o json
 **Create a monitoring session:**
 
 ```bash
-wxcli cc-call-monitoring create-monitor --json-body '{
+wxcli cc-call-monitoring create --json-body '{
   "taskId": "TASK_ID",
   "agentId": "AGENT_ID"
 }'
@@ -1133,10 +1133,10 @@ Next steps:
 ### Workflow A: Set up a basic inbound voice queue
 
 1. Verify site exists → `wxcli cc-site list -o json`
-2. Create multimedia profile → `wxcli cc-multimedia-profile create-multimedia-profile --json-body '...'`
+2. Create multimedia profile → `wxcli cc-multimedia-profile create --json-body '...'`
 3. Create team → `wxcli cc-team create --json-body '...'`
-4. Create entry point → `wxcli cc-entry-point create-entry-point --json-body '...'`
-5. Create queue → `wxcli cc-queue create-contact-service-queue-v2 --json-body '...'`
+4. Create entry point → `wxcli cc-entry-point create --json-body '...'`
+5. Create queue → `wxcli cc-queue create --json-body '...'`
 6. Map dial number → `wxcli cc-dial-number create --json-body '...'`
 7. Create/assign flow → `wxcli cc-flow publish FLOW_ID PROJECT_ID --comment "..."`
 8. Verify end-to-end → list all resources and confirm IDs are linked
@@ -1144,23 +1144,23 @@ Next steps:
 ### Workflow B: Add skill-based routing
 
 1. Create skill definitions → `wxcli cc-skill create --json-body '...'` (one per skill)
-2. Create skill profiles → `wxcli cc-skill-profile create-skill-profile --json-body '...'`
+2. Create skill profiles → `wxcli cc-skill-profile create --json-body '...'`
 3. Update queue routing type → `wxcli cc-queue update --json-body '{"routingType": "SKILLS_BASED", ...}'`
 4. Assign skill profiles to teams/agents
-5. Verify queue-to-skill mapping → `wxcli cc-queue list-internal-by-skill-profile-id SKILL_PROFILE_ID -o json`
-6. Verify user queue assignments → `wxcli cc-queue list-internal-by-ci-user-id USER_CI_ID -o json`
+5. Verify queue-to-skill mapping → `wxcli cc-queue list-skill-based-queues SKILL_PROFILE_ID -o json`
+6. Verify user queue assignments → `wxcli cc-queue list-agent-based-queues USER_CI_ID -o json`
 
 ### Workflow C: Set up outbound campaign
 
 1. Configure outdial ANI → `wxcli cc-outdial-ani create --json-body '...'`
 2. Upload contact list → `wxcli cc-contact-list create --json-body '...'`
-3. Create outbound entry point → `wxcli cc-entry-point create-entry-point --json-body '...'`
+3. Create outbound entry point → `wxcli cc-entry-point create --json-body '...'`
 4. Start campaign → `wxcli cc-campaign create --json-body '...'`
 
 ### Workflow D: Configure agent monitoring
 
 1. Create event subscription → `wxcli cc-subscriptions create --json-body '...'`
-2. Monitor live calls → `wxcli cc-call-monitoring create-monitor --json-body '...'`
+2. Monitor live calls → `wxcli cc-call-monitoring create --json-body '...'`
 3. Barge in if needed → `wxcli cc-call-monitoring create-barge-in --json-body '...'`
 
 ### Workflow E: Reskill agents
@@ -1169,7 +1169,7 @@ Next steps:
 2. List users by dynamic skill → `wxcli cc-users show-by-dynamic-skill-id SKILL_ID -o json`
 3. Bulk update dynamic skills → `wxcli cc-users update-dynamic-skill --json-body '...'`
 4. Reassign skill profile → `wxcli cc-users update-reskill --json-body '...'`
-5. Verify updated queues → `wxcli cc-queue list-internal-by-ci-user-id USER_CI_ID -o json`
+5. Verify updated queues → `wxcli cc-queue list-agent-based-queues USER_CI_ID -o json`
 
 ---
 

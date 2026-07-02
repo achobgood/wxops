@@ -16,7 +16,7 @@ argument-hint: [meeting-operation]
 # Manage Meetings Workflow
 
 **Checkpoint — do NOT proceed until you can answer these:**
-1. What is the command to list meetings as an admin? (Answer: `wxcli meetings list-meetings-admin` — the non-admin version is `wxcli meetings list-meetings`.)
+1. What is the command to list meetings as an admin? (Answer: `wxcli meetings list` — the non-admin version is `wxcli meetings list-meetings`.)
 2. How do you list meeting transcripts for compliance? (Answer: `wxcli meeting-transcripts list` — the per-meeting version is `wxcli meeting-transcripts list-meeting-transcripts`.)
 
 If you cannot answer both, you skipped reading this skill. Go back and read it.
@@ -108,7 +108,7 @@ wxcli meetings list-meetings --from 2026-04-01T00:00:00Z --to 2026-04-30T23:59:5
 For admin operations across the org:
 
 ```bash
-wxcli meetings list-meetings-admin --from 2026-04-01T00:00:00Z --to 2026-04-30T23:59:59Z --output json
+wxcli meetings list --from 2026-04-01T00:00:00Z --to 2026-04-30T23:59:59Z --output json
 ```
 
 ### 4b. Registrants
@@ -144,7 +144,7 @@ The meeting must have ended and have the relevant content available:
 wxcli meeting-transcripts list-meeting-transcripts --meeting-id MEETING_ID --output json
 
 # List captions
-wxcli meeting-captions list-meeting-closed-captions MEETING_ID --output json
+wxcli meeting-captions list MEETING_ID --output json
 
 # Get AI summary
 wxcli meeting-summaries list-meeting-summaries MEETING_ID --output json
@@ -156,7 +156,7 @@ No prerequisites beyond a valid token:
 
 ```bash
 # Check current preferences
-wxcli meeting-preferences list-meeting-preferences --output json
+wxcli meeting-preferences list --output json
 
 # List available sites
 wxcli meeting-preferences list-sites --output json
@@ -203,14 +203,14 @@ Collect from user:
 
 ```bash
 # Create a meeting
-wxcli meetings create-meetings \
+wxcli meetings create \
   --title "Weekly Standup" \
   --start 2026-04-15T10:00:00Z \
   --end 2026-04-15T10:30:00Z \
   --timezone America/New_York
 
 # Create on behalf of another user (admin)
-wxcli meetings create-meetings \
+wxcli meetings create \
   --title "Department Review" \
   --start 2026-04-15T14:00:00Z \
   --end 2026-04-15T15:00:00Z \
@@ -222,10 +222,10 @@ wxcli meetings update-meetings MEETING_ID \
   --password NewPass123
 
 # Patch a meeting (partial update)
-wxcli meetings update-meetings-1 MEETING_ID --title "Patched Title"
+wxcli meetings update-meetings MEETING_ID --title "Patched Title"
 
 # Delete a meeting
-wxcli meetings delete-meetings MEETING_ID
+wxcli meetings delete MEETING_ID
 
 # End an in-progress meeting
 wxcli meetings create-end MEETING_ID
@@ -375,7 +375,7 @@ wxcli meeting-transcripts update TRANSCRIPT_ID SNIPPET_ID --json-body '{"text": 
 wxcli meeting-transcripts delete TRANSCRIPT_ID
 
 # List captions
-wxcli meeting-captions list-meeting-closed-captions MEETING_ID --output json
+wxcli meeting-captions list MEETING_ID --output json
 
 # List caption snippets
 wxcli meeting-captions list CAPTION_ID --output json
@@ -408,7 +408,7 @@ wxcli meeting-messages delete MESSAGE_ID
 
 ```bash
 # Get full meeting preference details
-wxcli meeting-preferences list-meeting-preferences --output json
+wxcli meeting-preferences list --output json
 
 # Get audio options
 wxcli meeting-preferences show --output json
@@ -432,7 +432,7 @@ wxcli meeting-preferences update-scheduling-options --json-body '{"enabledJoinBe
 wxcli meeting-preferences list-personal-meeting-room --output json
 
 # Update personal meeting room
-wxcli meeting-preferences update-personal-meeting-room --json-body '{"topic": "My Room"}'
+wxcli meeting-preferences update --json-body '{"topic": "My Room"}'
 
 # Batch refresh personal meeting room IDs
 wxcli meeting-preferences create-refresh-id --json-body '{"items": [{"email": "user@example.com"}]}'
@@ -444,7 +444,7 @@ wxcli meeting-preferences list-sites --output json
 wxcli meeting-preferences update-sites --json-body '{"defaultSite": true, "siteUrl": "site.webex.com"}'
 
 # Insert delegate emails
-wxcli meeting-preferences create-insert --json-body '{"emails": ["delegate@example.com"]}'
+wxcli meeting-preferences create --json-body '{"emails": ["delegate@example.com"]}'
 
 # Delete delegate emails
 wxcli meeting-preferences create --json-body '{"emails": ["delegate@example.com"]}'
@@ -498,7 +498,7 @@ wxcli meeting-site update --json-body '{"defaultScheduledType": "meeting"}'
 
 ```bash
 # List polls for a meeting
-wxcli meeting-polls list-polls MEETING_ID --output json
+wxcli meeting-polls list --meeting-id MEETING_ID --output json
 
 # Get poll results
 wxcli meeting-polls list MEETING_ID POLL_ID --output json
@@ -576,7 +576,7 @@ Prerequisites verified:
   ✓ [Meeting exists (if updating/querying)]
 
 Commands to execute:
-  1. wxcli meetings create-meetings --title "..." --start ... --end ...
+  1. wxcli meetings create --title "..." --start ... --end ...
   2. wxcli meeting-invitees create-bulk-insert --json-body '...'
   3. wxcli meetings create-interpreters MEETING_ID --json-body '...'
 
@@ -632,7 +632,7 @@ wxcli meeting-invitees list --meeting-id MEETING_ID --output json
 wxcli meeting-participants list --meeting-id MEETING_ID --output json
 
 # Verify preferences
-wxcli meeting-preferences list-meeting-preferences --output json
+wxcli meeting-preferences list --output json
 
 # Verify tracking codes
 wxcli meeting-tracking-codes list --output json

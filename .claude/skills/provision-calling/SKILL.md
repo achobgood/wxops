@@ -90,9 +90,12 @@ wxcli users show PERSON_ID --output json
 # Ask user: update or abort?
 
 # 4. Verify email domain is provisioned in this org
-wxcli org-domains list
-# The user's email domain must appear here. If it does not, user creation will
-# fail with a domain authorization error. Resolve domain verification before proceeding.
+# No CLI command lists currently-claimed org domains — the `domains` group only
+# supports get-domain-verification / verify-domain / claim-domain / unverify-domain /
+# unclaim-domain (see manage-identity skill for the verification flow). If domain
+# status is unknown, check Control Hub, or attempt user creation and watch for a
+# domain authorization error; resolve via manage-identity's domain verification
+# flow before retrying.
 ```
 
 ### For phone number assignment:
@@ -317,7 +320,7 @@ Next steps:
 
 5. **`announcement_language` returns None from details** — Always set it explicitly before calling `enable_for_calling`, even if it was set during creation.
 
-6. **Do not promise API disable-calling on locations** — the older `wxcli location-call-settings update-location-calling ...` guidance is stale in this repo. For teardown, use CLI/API to remove visible blockers, run `wxcli location-settings safe-delete-check LOCATION_ID`, retry delete, and warn that final removal of a calling-enabled location may still require Control Hub.
+6. **Do not promise API disable-calling on locations** — the older `wxcli location-settings update-location-calling ...` guidance is stale in this repo. For teardown, use CLI/API to remove visible blockers, run `wxcli location-settings safe-delete-check LOCATION_ID`, retry delete, and warn that final removal of a calling-enabled location may still require Control Hub.
 
 7. **Phone numbers must be in location inventory first** — Before assigning a DID to a user, add it via `wxcli numbers create LOCATION_ID`.
 

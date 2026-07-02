@@ -32,10 +32,9 @@ wxcli whoami
 
 CC APIs require CJP scopes (`cjp:config_read` / `cjp:config_write`). Two options: **OAuth Integration** (user-facing apps, interactive login) or **Service App** (production automation, no interactive login needed). If the token lacks CC scopes, the user needs to re-authenticate with one of these.
 
-Verify region is set:
-```bash
-wxcli get-cc-region
-```
+Verify region is set. There is no getter command — region is stored in the wxcli
+config file (`~/.wxcli/config.json`, `cc_region` key), set via `wxcli set-cc-region`.
+Inspect the config file directly, or just call `set-cc-region` to (re)set it:
 
 If not set, configure it:
 ```bash
@@ -248,5 +247,5 @@ print(f'Longest wait: {wait}s in queue {name}')
 
 If context compacts mid-execution:
 1. Read `docs/reference/contact-center-analytics.md` for API details
-2. Verify CC auth with `wxcli whoami` and region with `wxcli get-cc-region`
+2. Verify CC auth with `wxcli whoami` and region — check `cc_region` in `~/.wxcli/config.json` (no getter command; set/reset via `wxcli set-cc-region`)
 3. Resume from the appropriate recipe

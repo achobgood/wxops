@@ -87,7 +87,7 @@ Present this decision matrix if the user is unsure which approach fits their nee
 | Need | Approach | Tool |
 |------|----------|------|
 | Control calls from an external app (click-to-dial, hold, transfer) | **Call Control API** | `wxcli call-controls` or raw HTTP via `WebexSession` |
-| Control calls on behalf of users (admin/service app) | **Members API** | `wxcli call-controls create-dial`, `create-answer-members`, etc. |
+| Control calls on behalf of users (admin/service app) | **Members API** | `wxcli call-controls create-dial-members`, `create-answer-members`, etc. |
 | Get notified when calls start/end/change state (push model) | **Webhooks** | `wxcli webhooks` or raw HTTP |
 | Real-time event streaming for dashboards, CRM screen pops | **XSI Events** | wxcadm `XSIEvents` (ONLY option) |
 | Programmatic call control via BroadWorks back-end | **XSI Actions** | wxcadm `XSI` / `Call` class |
@@ -323,7 +323,7 @@ For Service Apps that control calls on behalf of users:
 
 ```bash
 # Dial on behalf of a member
-wxcli call-controls create-dial MEMBER_ID --destination "+12223334444"
+wxcli call-controls create-dial-members MEMBER_ID --destination "+12223334444"
 
 # Answer on behalf of a member
 wxcli call-controls create-answer-members MEMBER_ID --call-id CALL_ID
@@ -332,10 +332,10 @@ wxcli call-controls create-answer-members MEMBER_ID --call-id CALL_ID
 wxcli call-controls create-hangup-members MEMBER_ID --call-id CALL_ID
 
 # List calls for a member
-wxcli call-controls list-calls MEMBER_ID -o json
+wxcli call-controls list-calls-members MEMBER_ID -o json
 
 # Get call details for a member
-wxcli call-controls show-calls MEMBER_ID CALL_ID -o json
+wxcli call-controls show-calls-members MEMBER_ID CALL_ID -o json
 ```
 
 ### 6b. Webhook setup for telephony events
