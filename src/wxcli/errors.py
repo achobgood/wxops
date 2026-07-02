@@ -4,7 +4,16 @@ import typer
 
 
 class WebexError(Exception):
-    pass
+    """Webex API error. Message-first: WebexError(response.text) remains valid.
+
+    status_code and body (parsed JSON error, when parseable) are optional
+    enrichments so handlers can key off status instead of substring matching.
+    """
+
+    def __init__(self, message: str, status_code: int | None = None, body: dict | None = None):
+        super().__init__(message)
+        self.status_code = status_code
+        self.body = body
 
 
 _ERROR_TIPS = {
