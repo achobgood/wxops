@@ -15,13 +15,13 @@ def cmd_list(
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attri"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
-    single_object_response: str = typer.Option(None, "--single-object-response", help="Specifiy whether to include array fields in the response, Th"),
+    single_object_response: str = typer.Option(None, "--single-object-response", help="Specify whether to include array fields in the response. Thi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Business Hours resource(s)."""
+    """List Business Hours resources."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -63,9 +63,9 @@ def create(
     name: str = typer.Option(None, "--name", help="(required) Enter a name for the agent profile."),
     description: str = typer.Option(None, "--description", help="(Optional) Enter a description of the profile."),
     timezone: str = typer.Option(None, "--timezone", help="(required) The time zone that you provision for your business hour."),
-    holidays_id: str = typer.Option(None, "--holidays-id", help=""),
-    overrides_id: str = typer.Option(None, "--overrides-id", help=""),
-    working_hours_count: str = typer.Option(None, "--working-hours-count", help=""),
+    holidays_id: str = typer.Option(None, "--holidays-id", help="Holidays Id."),
+    overrides_id: str = typer.Option(None, "--overrides-id", help="Overrides Id."),
+    working_hours_count: str = typer.Option(None, "--working-hours-count", help="Working Hours Count."),
     created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
     last_updated_time: str = typer.Option(None, "--last-updated-time", help="This is the updated time of the entity."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -128,7 +128,7 @@ def create_bulk(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Business Hours resource(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
+    """Bulk save Business Hours resources\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -149,43 +149,6 @@ def create_bulk(
         typer.echo("Created.")
     else:
         print_json(result)
-
-
-
-@app.command("list-bulk-export")
-def list_bulk_export(
-    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
-    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Bulk export Business Hours resource(s)."""
-    api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    orgid = get_cc_org_id(api.session)
-    url = f"{cc_base_url}/organization/{orgid}/business-hours/bulk-export"
-    params = {}
-    if page is not None:
-        params["page"] = page
-    if page_size is not None:
-        params["pageSize"] = page_size
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
-    result = None
-    try:
-        result = api.session.rest_get(url, params=params)
-    except WebexError as e:
-        handle_rest_error(e)
-    result = result or []
-    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -225,9 +188,9 @@ def update(
     name: str = typer.Option(None, "--name", help="Enter a name for the agent profile."),
     description: str = typer.Option(None, "--description", help="(Optional) Enter a description of the profile."),
     timezone: str = typer.Option(None, "--timezone", help="The time zone that you provision for your business hour."),
-    holidays_id: str = typer.Option(None, "--holidays-id", help=""),
-    overrides_id: str = typer.Option(None, "--overrides-id", help=""),
-    working_hours_count: str = typer.Option(None, "--working-hours-count", help=""),
+    holidays_id: str = typer.Option(None, "--holidays-id", help="Holidays Id."),
+    overrides_id: str = typer.Option(None, "--overrides-id", help="Overrides Id."),
+    working_hours_count: str = typer.Option(None, "--working-hours-count", help="Working Hours Count."),
     created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
     last_updated_time: str = typer.Option(None, "--last-updated-time", help="This is the updated time of the entity."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -342,14 +305,14 @@ def list_business_hours(
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
     sort: str = typer.Option(None, "--sort", help="Sorting criteria in the format: property(, asc | desc). Defa"),
-    include_count: str = typer.Option(None, "--include-count", help="Enable the flag to get the count of workingHours"),
-    single_object_response: str = typer.Option(None, "--single-object-response", help="Specifiy whether to include array fields in the response, Th"),
+    include_count: str = typer.Option(None, "--include-count", help="Enable this flag to get the count of working hours."),
+    single_object_response: str = typer.Option(None, "--single-object-response", help="Specify whether to include array fields in the response. Thi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Business Hours resource(s)."""
+    """List Business Hours resources."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)

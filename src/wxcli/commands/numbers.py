@@ -21,7 +21,7 @@ def create(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Add Phone Numbers to a location\n\nExample --json-body:\n  '{"phoneNumbers":["..."],"numberType":"TOLLFREE","numberUsageType":"NONE","state":"ACTIVE","subscriptionId":"...","carrierId":"..."}'."""
+    """Add Phone Numbers to a Location\n\nExample --json-body:\n  '{"phoneNumbers":["..."],"numberType":"TOLLFREE","numberUsageType":"NONE","state":"ACTIVE","subscriptionId":"...","carrierId":"..."}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/numbers"
     params = {}
@@ -64,7 +64,7 @@ def update(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Manage Number State in a location\n\nExample --json-body:\n  '{"phoneNumbers":["..."],"action":"ACTIVATE"}'."""
+    """Manage Number State in a Location\n\nExample --json-body:\n  '{"phoneNumbers":["..."],"action":"ACTIVATE"}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/numbers"
     params = {}
@@ -91,7 +91,7 @@ def delete(
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Remove phone numbers from a location."""
+    """Remove Phone Numbers from a Location."""
     if not force:
         typer.confirm(f"Delete {location_id}?", abort=True)
     api = get_api(debug=debug)
@@ -113,7 +113,7 @@ def validate_phone_numbers(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Validate phone numbers\n\nExample --json-body:\n  '{"phoneNumbers":["..."]}'."""
+    """Validate Phone Numbers\n\nExample --json-body:\n  '{"phoneNumbers":["..."]}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/actions/validateNumbers/invoke"
     params = {}
@@ -150,6 +150,7 @@ def cmd_list(
     restricted_non_geo_numbers: str = typer.Option(None, "--restricted-non-geo-numbers", help="Returns the list of restricted non-geographical numbers."),
     included_telephony_types: str = typer.Option(None, "--included-telephony-types", help="Returns the list of phone numbers that are of given `include"),
     service_number: str = typer.Option(None, "--service-number", help="Returns the list of service phone numbers."),
+    reserved_number: str = typer.Option(None, "--reserved-number", help="Filters reserved phone numbers. When set to `true`, returns"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -191,6 +192,8 @@ def cmd_list(
         params["includedTelephonyTypes"] = included_telephony_types
     if service_number is not None:
         params["serviceNumber"] = service_number
+    if reserved_number is not None:
+        params["reservedNumber"] = reserved_number
     if limit > 0:
         params["max"] = limit
     if offset > 0:
@@ -256,6 +259,10 @@ def create_manage_numbers(
     """Initiate Number Jobs\n\nExample --json-body:\n  '{"operation":"...","numberList":[{"locationId":"...","numbers":"..."}],"targetLocationId":"...","numberUsageType":"..."}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/jobs/numbers/manageNumbers"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     if json_body:
         body = json.loads(json_body)
     else:
@@ -271,7 +278,7 @@ def create_manage_numbers(
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
             raise typer.Exit(1)
     try:
-        result = api.session.rest_post(url, json=body)
+        result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
     if output == "json":
@@ -294,8 +301,12 @@ def show(
     """Get Manage Numbers Job Status."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/jobs/numbers/manageNumbers/{job_id}"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     if output == "json":
@@ -368,7 +379,7 @@ def list_errors(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Manage Numbers Job errors."""
+    """List Manage Numbers Job Errors."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/jobs/numbers/manageNumbers/{job_id}/errors"
     params = {}

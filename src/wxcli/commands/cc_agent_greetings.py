@@ -15,7 +15,7 @@ def create(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """deleteReferences_1\n\nExample --json-body:\n  '{"references":{}}'."""
+    """Delete references of an agent from greeting files\n\nExample --json-body:\n  '{"references":{}}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -42,7 +42,7 @@ def create(
 @app.command("show")
 def show(
     id: str = typer.Argument(help="id"),
-    include_url: str = typer.Option(None, "--include-url", help="Indicates if the URL for downloading Greeting Fileshould be"),
+    include_url: str = typer.Option(None, "--include-url", help="Indicates whether the URL for downloading the greeting file"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -98,13 +98,13 @@ def cmd_list(
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attri"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
-    include_agent_details: str = typer.Option(None, "--include-agent-details", help="If includeAgentDetails is set to true then projection, filte"),
+    include_agent_details: str = typer.Option(None, "--include-agent-details", help="If includeAgentDetails is set to true, projection, filtering"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """getAllConfigWithMetaData."""
+    """List Greeting Files."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -143,11 +143,11 @@ def cmd_list(
 @app.command("show-agent-personal-greeting")
 def show_agent_personal_greeting(
     id: str = typer.Argument(help="id"),
-    include_url: str = typer.Option(None, "--include-url", help="Indicates if the URL for downloading Greeting Fileshould be"),
+    include_url: str = typer.Option(None, "--include-url", help="Indicates whether the URL for downloading the greeting file"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific Greeting File by ID using v2 API."""
+    """Get specific Greeting File by ID."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -177,7 +177,7 @@ def delete_agent_personal_greeting(
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete specific Greeting File by ID using v2 API."""
+    """Delete specific Greeting File by ID."""
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
@@ -199,13 +199,13 @@ def list_agent_personal_greeting(
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attri"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
-    include_agent_details: str = typer.Option(None, "--include-agent-details", help="If includeAgentDetails is set to true then projection, filte"),
+    include_agent_details: str = typer.Option(None, "--include-agent-details", help="If includeAgentDetails is set to true, projection, filtering"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Greeting File(s)."""
+    """List Greeting Files."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)

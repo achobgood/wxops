@@ -5,7 +5,7 @@ Spec operations with no CLI command **on purpose**, per `skip_tags` in
 `tools/field_overrides.yaml`. Anything missing from the CLI and not
 listed here is drift (drift-gate check 1).
 
-**140 skipped operations across 17 spec/tag pairs.**
+**154 skipped operations across 25 spec/tag pairs.**
 
 ## webex-admin.json — Partner Reports/Templates (5 ops)
 Reason: canonical: webex-cloud-calling.json
@@ -38,6 +38,10 @@ Reason: canonical: webex-cloud-calling.json
 - `GET /reports/{}`
 - `POST /reports`
 
+## webex-cloud-calling.json — (untagged) [ungeneratable] (1 ops)
+Reason: untagged operation — the generator iterates tags, so this op cannot generate (upstream spec bug)
+- `GET /telephony/config/people/me/settings/contactCenterExtensions`
+
 ## webex-cloud-calling.json — Beta Call Settings For Me With Userhub Phase1 (16 ops)
 Reason: Beta APIs — unstable contracts, excluded until GA
 - `DELETE /telephony/config/people/me/settings/executive/callFiltering/criteria/{}`
@@ -66,6 +70,15 @@ Reason: Beta APIs — unstable contracts, excluded until GA
 - `GET /telephony/config/people/me/settings/bargeIn`
 - `PUT /telephony/config/people/me/settings/bargeIn`
 
+## webex-cloud-calling.json — Call Settings For Me Phase 4 [multipart upload] (2 ops)
+Reason: multipart file upload — the generator cannot render these (parse_tag skipped_uploads)
+- `POST /telephony/config/people/me/settings/voicemail/actions/busyGreetingUpload/invoke`
+- `POST /telephony/config/people/me/settings/voicemail/actions/noAnswerGreetingUpload/invoke`
+
+## webex-cloud-calling.json — Device Call Settings [multipart upload] (1 ops)
+Reason: multipart file upload — the generator cannot render these (parse_tag skipped_uploads)
+- `POST /telephony/config/devices/{}/actions/backgroundImageUpload/invoke`
+
 ## webex-cloud-calling.json — Devices (6 ops)
 Reason: canonical: webex-device.json
 - `DELETE /devices/{}`
@@ -86,15 +99,30 @@ Reason: canonical: webex-device.json
 
 ## webex-contact-center.json — Activities (3 ops)
 Reason: flow-store surface embedded in the CC spec (/flow-store/... paths);
-- `GET /flow-store/{}/project/{}/v2/activities`
-- `GET /flow-store/{}/project/{}/v2/activities/{}`
-- `GET /flow-store/{}/project/{}/v2/activities/{}/inputs/{}/choices`
+- `GET /{}/project/{}/v2/activities`
+- `GET /{}/project/{}/v2/activities/{}`
+- `GET /{}/project/{}/v2/activities/{}/inputs/{}/choices`
+
+## webex-contact-center.json — Agent Personal Greeting Files [multipart upload] (6 ops)
+Reason: multipart file upload — the generator cannot render these (parse_tag skipped_uploads)
+- `PATCH /organization/{}/agent-personal-greeting/{}`
+- `PATCH /organization/{}/v2/agent-personal-greeting/{}`
+- `POST /organization/{}/agent-personal-greeting`
+- `POST /organization/{}/v2/agent-personal-greeting`
+- `PUT /organization/{}/agent-personal-greeting/{}`
+- `PUT /organization/{}/v2/agent-personal-greeting/{}`
+
+## webex-contact-center.json — Audio Files [multipart upload] (3 ops)
+Reason: multipart file upload — the generator cannot render these (parse_tag skipped_uploads)
+- `PATCH /organization/{}/audio-file/{}`
+- `POST /organization/{}/audio-file`
+- `PUT /organization/{}/audio-file/{}`
 
 ## webex-contact-center.json — Events (1 ops)
 Reason: webex-flow-store.json. Deliberate gap in the tracked CLI. 6 ops.
-- `GET /flow-store/{}/project/{}/v2/event-specifications`
+- `GET /{}/project/{}/v2/event-specifications`
 
-## webex-contact-center.json — Functions (11 ops)
+## webex-contact-center.json — Functions (10 ops)
 Reason: colon-action paths (/functions/{id}:publish) — generator cannot
 - `DELETE /{}/functions/{}`
 - `GET /{}/functions`
@@ -105,15 +133,26 @@ Reason: colon-action paths (/functions/{id}:publish) — generator cannot
 - `POST /{}/functions/{}:publish`
 - `POST /{}/functions/{}:test`
 - `POST /{}/functions/{}:unlock`
-- `POST /{}/functions:import`
 - `PUT /{}/functions/{}`
+
+## webex-contact-center.json — Functions [multipart upload] (1 ops)
+Reason: multipart file upload — the generator cannot render these (parse_tag skipped_uploads)
+- `POST /{}/functions:import`
+
+## webex-contact-center.json — Legacy Flows [multipart upload] (1 ops)
+Reason: multipart file upload — the generator cannot render these (parse_tag skipped_uploads)
+- `POST /flow-store/{}/project/{}/flows:import`
 
 ## webex-contact-center.json — Templates (2 ops)
 Reason: covered by the dev-only fs-* groups generated from the untracked
-- `GET /flow-store/{}/project/{}/v2/templates`
-- `GET /flow-store/{}/project/{}/v2/templates/{}`
+- `GET /templates`
+- `GET /templates/{}`
 
-## webex-device.json — Device Call Settings (47 ops)
+## webex-contact-center.json — Users [multipart upload] (1 ops)
+Reason: multipart file upload — the generator cannot render these (parse_tag skipped_uploads)
+- `PATCH /organization/{}/user/{}`
+
+## webex-device.json — Device Call Settings (46 ops)
 Reason: canonical: webex-cloud-calling.json
 - `DELETE /telephony/config/devices/backgroundImages`
 - `DELETE /telephony/config/devices/lineKeyTemplates/{}`
@@ -149,7 +188,6 @@ Reason: canonical: webex-cloud-calling.json
 - `POST /telephony/config/devices/actions/validateMacs/invoke`
 - `POST /telephony/config/devices/lineKeyTemplates`
 - `POST /telephony/config/devices/{}/actions/applyChanges/invoke`
-- `POST /telephony/config/devices/{}/actions/backgroundImageUpload/invoke`
 - `POST /telephony/config/jobs/devices/applyLineKeyTemplate`
 - `POST /telephony/config/jobs/devices/callDeviceSettings`
 - `POST /telephony/config/jobs/devices/rebuildPhones`
@@ -197,3 +235,6 @@ Reason: canonical: webex-admin.json (same 14 /recordings ops in both specs)
 - `POST /recordings/restore`
 - `POST /recordings/softDelete`
 - `POST /recordings/{}/accessList`
+
+## CLI-ahead endpoints kept deliberately (`keep_endpoints`)
+- `POST /event`

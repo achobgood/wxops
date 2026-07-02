@@ -15,13 +15,13 @@ def cmd_list(
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attri"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
-    single_object_response: str = typer.Option(None, "--single-object-response", help="Specifiy whether to include array fields in the response, Th"),
+    single_object_response: str = typer.Option(None, "--single-object-response", help="Specify whether to include array fields in the response. Thi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Holiday List(s)."""
+    """List Holiday Lists."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -62,7 +62,7 @@ def create(
     version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
     name: str = typer.Option(None, "--name", help="(required) Enter a name for the holiday list."),
     description: str = typer.Option(None, "--description", help="(Optional) Enter a description of the holiday list."),
-    holidays_count: str = typer.Option(None, "--holidays-count", help=""),
+    holidays_count: str = typer.Option(None, "--holidays-count", help="Holidays Count."),
     created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
     last_updated_time: str = typer.Option(None, "--last-updated-time", help="This is the updated time of the entity."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -119,7 +119,7 @@ def create_bulk(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Holiday List(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
+    """Bulk save Holiday Lists\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -178,7 +178,7 @@ def update(
     version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
     name: str = typer.Option(None, "--name", help="Enter a name for the holiday list."),
     description: str = typer.Option(None, "--description", help="(Optional) Enter a description of the holiday list."),
-    holidays_count: str = typer.Option(None, "--holidays-count", help=""),
+    holidays_count: str = typer.Option(None, "--holidays-count", help="Holidays Count."),
     created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
     last_updated_time: str = typer.Option(None, "--last-updated-time", help="This is the updated time of the entity."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -287,14 +287,14 @@ def list_holiday_list(
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
     sort: str = typer.Option(None, "--sort", help="Sorting criteria in the format: property(, asc | desc). Defa"),
-    include_count: str = typer.Option(None, "--include-count", help="Enable the flag to get the count of holidays"),
-    single_object_response: str = typer.Option(None, "--single-object-response", help="Specifiy whether to include array fields in the response, Th"),
+    include_count: str = typer.Option(None, "--include-count", help="Enable this flag to get the count of holidays."),
+    single_object_response: str = typer.Option(None, "--single-object-response", help="Specify whether to include array fields in the response. Thi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Holiday List(s)."""
+    """List Holiday Lists."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)

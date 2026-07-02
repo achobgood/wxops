@@ -15,13 +15,13 @@ def cmd_list(
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attri"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
-    single_object_response: str = typer.Option(None, "--single-object-response", help="Specifiy whether to include array fields in the response, Th"),
+    single_object_response: str = typer.Option(None, "--single-object-response", help="Specify whether to include array fields in the response. Thi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List User(s)."""
+    """List Users."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -83,7 +83,7 @@ def update_dynamic_skill(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk update User dynamic skills\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
+    """Bulk partial update Users with dynamic skills\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -103,7 +103,42 @@ def update_dynamic_skill(
 @app.command("show")
 def show(
     id: str = typer.Argument(help="id"),
+    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
+    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """List users by call monitoring id."""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    orgid = get_cc_org_id(api.session)
+    url = f"{cc_base_url}/organization/{orgid}/user/by-call-monitoring-id/{id}"
+    params = {}
+    if page is not None:
+        params["page"] = page
+    if page_size is not None:
+        params["pageSize"] = page_size
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    if output == "json":
+        print_json(result)
+    else:
+        if isinstance(result, dict):
+            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
+        elif isinstance(result, list):
+            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
+        else:
+            print_json(result)
+
+
+
+@app.command("show-by-ci-user-id-organization")
+def show_by_ci_user_id_organization(
+    id: str = typer.Argument(help="id"),
     include_user_profile: str = typer.Option(None, "--include-user-profile", help="Specifiy whether to include user profile data"),
+    include_skill_details: str = typer.Option(None, "--include-skill-details", help="If set to true, the response includes skill information for"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -115,6 +150,8 @@ def show(
     params = {}
     if include_user_profile is not None:
         params["includeUserProfile"] = include_user_profile
+    if include_skill_details is not None:
+        params["includeSkillDetails"] = include_skill_details
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -173,23 +210,11 @@ def create(
     search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search col"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
-    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is require"),
-    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
-    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
-    skill_id: str = typer.Option(None, "--skill-id", help="(required) Skill ID reference"),
-    skill_name: str = typer.Option(None, "--skill-name", help="Indicates the name of the skill. Once created, name cannot b"),
-    skill_type: str = typer.Option(None, "--skill-type", help="This can be of the following types  PROFICIENCY: id = 0  BOO"),
-    condition: str = typer.Option(None, "--condition", help="(required) Indicates a value that represents a skill the agent has."),
-    skill_value: str = typer.Option(None, "--skill-value", help="(required) A short textual description that represents a skill the agen"),
-    weight: str = typer.Option(None, "--weight", help="Weight for proficiency skill requirement"),
-    dynamic_skill: bool = typer.Option(None, "--dynamic-skill/--no-dynamic-skill", help="Indicates whether the skill is a dynamic skill or not. Defau"),
-    created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
-    last_updated_time: str = typer.Option(None, "--last-updated-time", help="This is the updated time of the entity."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get the agents matching skill requirements criteria."""
+    """Get the agents matching skill requirements criteria\n\nExample --json-body:\n  '{"skillRequirements":[{"skillId":"...","condition":"...","skillValue":"...","organizationId":"...","id":"...","version":"...","skillName":"...","skillType":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -205,34 +230,6 @@ def create(
         body = json.loads(json_body)
     else:
         body = {}
-        if organization_id is not None:
-            body["organizationId"] = organization_id
-        if id_param is not None:
-            body["id"] = id_param
-        if version is not None:
-            body["version"] = version
-        if skill_id is not None:
-            body["skillId"] = skill_id
-        if skill_name is not None:
-            body["skillName"] = skill_name
-        if skill_type is not None:
-            body["skillType"] = skill_type
-        if condition is not None:
-            body["condition"] = condition
-        if skill_value is not None:
-            body["skillValue"] = skill_value
-        if weight is not None:
-            body["weight"] = weight
-        if dynamic_skill is not None:
-            body["dynamicSkill"] = dynamic_skill
-        if created_time is not None:
-            body["createdTime"] = created_time
-        if last_updated_time is not None:
-            body["lastUpdatedTime"] = last_updated_time
-        _missing = [f for f in ['skillId', 'condition', 'skillValue'] if f not in body or body[f] is None]
-        if _missing:
-            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
-            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
@@ -258,7 +255,7 @@ def create_fetch_user_details_by_ids(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Fetch User details by IDs\n\nExample --json-body:\n  '{"userIds":[{}],"search":"...","queueId":"..."}'."""
+    """List Users with details\n\nExample --json-body:\n  '{"userIds":[{}],"search":"...","queueId":"..."}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -353,10 +350,12 @@ def show_with_user_profile(
 def show_user(
     id: str = typer.Argument(help="id"),
     include_count: str = typer.Option(None, "--include-count", help="If set to true, the API response will include the count of e"),
-    include_user_profile_type: str = typer.Option(None, "--include-user-profile-type", help="If set to true, the API response will include the user profi"),
+    include_user_profile_type: str = typer.Option(None, "--include-user-profile-type", help="If set to true, the API response includes the User Profile."),
     include_skill_profile_audit: str = typer.Option(None, "--include-skill-profile-audit", help="If set to true gives skill profile modification info."),
     include_reskill_audit_info: str = typer.Option(None, "--include-reskill-audit-info", help="If set to true gives skill profile and dynamic skill modific"),
-    include_skill_details: str = typer.Option(None, "--include-skill-details", help="If set to true,the response includes skill information for e"),
+    include_skill_details: str = typer.Option(None, "--include-skill-details", help="If set to true, the response includes skill information for"),
+    check_if_user_has_dynamic_skill: str = typer.Option(None, "--check-if-user-has-dynamic-skill", help="If set to true, checks if user has the specified dynamic ski"),
+    dynamic_skill_id: str = typer.Option(None, "--dynamic-skill-id", help="Dynamic skill ID to check if user has it assigned (required"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -376,6 +375,10 @@ def show_user(
         params["includeReskillAuditInfo"] = include_reskill_audit_info
     if include_skill_details is not None:
         params["includeSkillDetails"] = include_skill_details
+    if check_if_user_has_dynamic_skill is not None:
+        params["checkIfUserHasDynamicSkill"] = check_if_user_has_dynamic_skill
+    if dynamic_skill_id is not None:
+        params["dynamicSkillId"] = dynamic_skill_id
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -423,6 +426,8 @@ def update_user(
     user_level_auto_csat_inclusion: str = typer.Option(None, "--user-level-auto-csat-inclusion", help="Choices: INCLUDED, EXCLUDED"),
     user_level_wellness_break_reminders: str = typer.Option(None, "--user-level-wellness-break-reminders", help="Choices: DISABLED, ENABLED"),
     user_level_summaries_inclusion: str = typer.Option(None, "--user-level-summaries-inclusion", help="Choices: INCLUDED, EXCLUDED"),
+    supervisor_capabilities_enabled: bool = typer.Option(None, "--supervisor-capabilities-enabled/--no-supervisor-capabilities-enabled", help="Indicates whether supervisor capabilities are enabled for th"),
+    agent_capabilities_enabled: bool = typer.Option(None, "--agent-capabilities-enabled/--no-agent-capabilities-enabled", help="Indicates whether agent capabilities are enabled for the use"),
     created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
     last_updated_time: str = typer.Option(None, "--last-updated-time", help="This is the updated time of the entity."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -493,6 +498,10 @@ def update_user(
             body["userLevelWellnessBreakReminders"] = user_level_wellness_break_reminders
         if user_level_summaries_inclusion is not None:
             body["userLevelSummariesInclusion"] = user_level_summaries_inclusion
+        if supervisor_capabilities_enabled is not None:
+            body["supervisorCapabilitiesEnabled"] = supervisor_capabilities_enabled
+        if agent_capabilities_enabled is not None:
+            body["agentCapabilitiesEnabled"] = agent_capabilities_enabled
         if created_time is not None:
             body["createdTime"] = created_time
         if last_updated_time is not None:
@@ -552,7 +561,7 @@ def update_reskill(
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is require"),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
     version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
-    skill_profile_id: str = typer.Option(None, "--skill-profile-id", help="The identifier of the skill profile to assign to the agent."),
+    skill_profile_id: str = typer.Option(None, "--skill-profile-id", help="The unique identifier of the skill profile to assign to the"),
     created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
     last_updated_time: str = typer.Option(None, "--last-updated-time", help="This is the updated time of the entity."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -595,10 +604,10 @@ def list_user(
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
     supervisor_managed_agents_only: str = typer.Option(None, "--supervisor-managed-agents-only", help="If set to true, the API will return contact center enabled u"),
-    single_object_response: str = typer.Option(None, "--single-object-response", help="Specifiy whether to include array fields in the response, Th"),
+    single_object_response: str = typer.Option(None, "--single-object-response", help="Specify whether to include array fields in the response. Thi"),
     buddy_team_agents_only: str = typer.Option(None, "--buddy-team-agents-only", help="If set to true, returns only users who are part of buddy tea"),
     user_in_queue: str = typer.Option(None, "--user-in-queue", help="Can be either assigned or unassigned. If passed, returns the"),
-    queue_id: str = typer.Option(None, "--queue-id", help="Contact Service Queue Id for which the list of assigned/unas"),
+    queue_id: str = typer.Option(None, "--queue-id", help="Contact Service Queue ID for which the list of assigned or u"),
     include_ai_mapping_count: str = typer.Option(None, "--include-ai-mapping-count", help="If set to true, the API response will include the count of e"),
     include_dynamic_skills_limit_reached: str = typer.Option(None, "--include-dynamic-skills-limit-reached", help="If true, includes whether each user has reached the dynamic"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
@@ -606,7 +615,7 @@ def list_user(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List User(s)."""
+    """List Users."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -654,11 +663,12 @@ def list_user(
 
 
 
-@app.command("show-by-ci-user-id")
-def show_by_ci_user_id(
+@app.command("show-by-ci-user-id-v2")
+def show_by_ci_user_id_v2(
     id: str = typer.Argument(help="id"),
     include_user_profile: str = typer.Option(None, "--include-user-profile", help="Specifiy whether to include user profile data"),
     include_names: str = typer.Option(None, "--include-names", help="Specifiy whether to include resource collection names"),
+    include_skill_details: str = typer.Option(None, "--include-skill-details", help="If set to true, the response includes skill information for"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -672,6 +682,8 @@ def show_by_ci_user_id(
         params["includeUserProfile"] = include_user_profile
     if include_names is not None:
         params["includeNames"] = include_names
+    if include_skill_details is not None:
+        params["includeSkillDetails"] = include_skill_details
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:

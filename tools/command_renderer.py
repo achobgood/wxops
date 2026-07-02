@@ -209,6 +209,20 @@ def _render_query_params(ep: Endpoint) -> tuple[list[str], list[str]]:
     return param_defs, param_build
 
 
+def _used_param_names(ep: Endpoint) -> set[str]:
+    """CLI parameter names already claimed by path vars and query params.
+
+    Body fields colliding with these are not rendered as flags (they would be
+    duplicate function arguments — SyntaxError); --json-body still sets them.
+    Seen first on CC Flows create-import: query param flowType + body field
+    flowType in the same operation.
+    """
+    used = {_path_var_to_param(v) for v in ep.path_vars
+            if not _skip_injected_path_var(v, ep)}
+    used.update(_safe_param_name(qp.python_name) for qp in ep.query_params)
+    return used
+
+
 def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
     func_name = _safe_func_name(ep.command_name)
     folder_overrides = folder_overrides or {}
@@ -463,10 +477,13 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
 
     # All body fields are optional at the CLI level (--json-body bypasses them).
     # Required fields are validated at runtime when --json-body is not used.
+    used_names = _used_param_names(ep)
     required_body_field_names = []
     for bf in ep.body_fields:
         param = _safe_param_name(bf.python_name)
         if bf.field_type == "object" or bf.field_type == "array":
+            continue
+        if param in used_names:
             continue
         help_text = _enum_help(bf)
         if bf.required:
@@ -489,6 +506,8 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
         if bf.field_type in ("object", "array"):
             if bf.default is not None:
                 body_build.append(f"        body.setdefault({bf.name!r}, {bf.default!r})")
+            continue
+        if param in used_names:
             continue
         if bf.field_type == "bool":
             body_build.append(f'        if {param} is not None:\n            body["{bf.name}"] = {param}')
@@ -548,12 +567,13 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
 
     qp_defs, qp_build = _render_query_params(ep)
     params.extend(qp_defs)
+    used_names = _used_param_names(ep)
 
     if is_json_patch:
         # JSON Patch endpoints: --op, --path, --value flags that build a patch array
         for bf in ep.body_fields:
             param = _safe_param_name(bf.python_name)
-            if bf.field_type in ("object", "array"):
+            if bf.field_type in ("object", "array") or param in used_names:
                 continue
             help_text = _enum_help(bf)
             params.append(f'    {param}: str = typer.Option(None, "--{bf.python_name}", help="{help_text}"),')
@@ -561,7 +581,7 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
     else:
         for bf in ep.body_fields:
             param = _safe_param_name(bf.python_name)
-            if bf.field_type in ("object", "array"):
+            if bf.field_type in ("object", "array") or param in used_names:
                 continue
             help_text = _enum_help(bf)
             if bf.field_type == "bool":
@@ -584,7 +604,7 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
         ]
         for bf in ep.body_fields:
             param = _safe_param_name(bf.python_name)
-            if bf.field_type in ("object", "array"):
+            if bf.field_type in ("object", "array") or param in used_names:
                 continue
             body_build.append(f'        if {param} is not None:\n            patch_op["{bf.name}"] = {param}')
         body_build.extend([
@@ -599,7 +619,7 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
         body_build = ["    if json_body:", "        body = json.loads(json_body)", "    else:", "        body = {}"]
         for bf in ep.body_fields:
             param = _safe_param_name(bf.python_name)
-            if bf.field_type in ("object", "array"):
+            if bf.field_type in ("object", "array") or param in used_names:
                 continue
             body_build.append(f'        if {param} is not None:\n            body["{bf.name}"] = {param}')
 
@@ -694,10 +714,11 @@ def _render_action_command(ep: Endpoint, folder_overrides: dict | None = None) -
 
     qp_defs, qp_build = _render_query_params(ep)
     params.extend(qp_defs)
+    used_names = _used_param_names(ep)
 
     for bf in ep.body_fields:
         param = _safe_param_name(bf.python_name)
-        if bf.field_type in ("object", "array"):
+        if bf.field_type in ("object", "array") or param in used_names:
             continue
         help_text = _enum_help(bf)
         params.append(f'    {param}: str = typer.Option(None, "--{bf.python_name}", help="{help_text}"),')
@@ -710,7 +731,7 @@ def _render_action_command(ep: Endpoint, folder_overrides: dict | None = None) -
     body_build = ["    if json_body:", "        body = json.loads(json_body)", "    else:", "        body = {}"]
     for bf in ep.body_fields:
         param = _safe_param_name(bf.python_name)
-        if bf.field_type in ("object", "array"):
+        if bf.field_type in ("object", "array") or param in used_names:
             continue
         body_build.append(f'        if {param} is not None:\n            body["{bf.name}"] = {param}')
 

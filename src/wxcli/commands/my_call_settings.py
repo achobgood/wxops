@@ -3426,3 +3426,152 @@ def list_numbers(
         print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
+
+@app.command("list-speed-dials")
+def list_speed_dials(
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Speed Dials."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/people/me/settings/speedDials"
+    params = {}
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    result = None
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    result = result or []
+    items = result.get("speedDials", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+
+
+
+@app.command("update-speed-dials")
+def update_speed_dials(
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Modify Speed Dials\n\nExample --json-body:\n  '{"speedDials":[{"id":"...","phoneNumber":"...","lineKeyLabel":"..."}]}'."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/people/me/settings/speedDials"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+    try:
+        result = api.session.rest_put(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("list-available-members")
+def list_available_members(
+    location_id: str = typer.Option(None, "--location-id", help="Return the members list available in this location."),
+    name: str = typer.Option(None, "--name", help="Search (Contains) based on first name and last name."),
+    phone_number: str = typer.Option(None, "--phone-number", help="Search (Contains) based on number and extension."),
+    order: str = typer.Option(None, "--order", help="Sort by first name (`firstName`) or last name (`lastName`)."),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Speed Dial Available Members."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/people/me/settings/speedDials/availableMembers"
+    params = {}
+    if location_id is not None:
+        params["locationId"] = location_id
+    if name is not None:
+        params["name"] = name
+    if phone_number is not None:
+        params["phoneNumber"] = phone_number
+    if order is not None:
+        params["order"] = order
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    result = None
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    result = result or []
+    items = result.get("members", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+
+
+
+@app.command("list-organization")
+def list_organization(
+    name: str = typer.Option(None, "--name", help="Search (Contains) based on location name. Multiple values ar"),
+    order: str = typer.Option(None, "--order", help="Sort by location name (`name`). Sort directions asc or desc."),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Location List for My Organization."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/people/me/organization/locations"
+    params = {}
+    if name is not None:
+        params["name"] = name
+    if order is not None:
+        params["order"] = order
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    result = None
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    result = result or []
+    items = result.get("locations", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+
+
+
+@app.command("show-large-org-status")
+def show_large_org_status(
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Large Organization Status."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/people/me/organization/largeOrgStatus"
+    try:
+        result = api.session.rest_get(url)
+    except WebexError as e:
+        handle_rest_error(e)
+    if output == "json":
+        print_json(result)
+    else:
+        if isinstance(result, dict):
+            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
+        elif isinstance(result, list):
+            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
+        else:
+            print_json(result)
+
+

@@ -15,13 +15,13 @@ def cmd_list(
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attri"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
-    single_object_response: str = typer.Option(None, "--single-object-response", help="Specifiy whether to include array fields in the response, Th"),
+    single_object_response: str = typer.Option(None, "--single-object-response", help="Specify whether to include array fields in the response. Thi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Team(s)."""
+    """List Teams."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -95,7 +95,7 @@ def create_bulk(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Team(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
+    """Bulk save Teams\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -126,7 +126,7 @@ def create_purge_inactive_entities(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Purge inactive Team(s)."""
+    """Purge inactive Teams."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -276,15 +276,15 @@ def list_team(
     search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search col"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
-    supervisor_view: str = typer.Option(None, "--supervisor-view", help="If set to true, the API will only return data that user has"),
-    provisioning_view: str = typer.Option(None, "--provisioning-view", help="If set to true, the API will only return data that user has"),
-    single_object_response: str = typer.Option(None, "--single-object-response", help="Specifiy whether to include array fields in the response, Th"),
+    supervisor_view: str = typer.Option(None, "--supervisor-view", help="If set to true, the API will only return data that the user"),
+    provisioning_view: str = typer.Option(None, "--provisioning-view", help="If set to true, the API will only return data that the user"),
+    single_object_response: str = typer.Option(None, "--single-object-response", help="Specify whether to include array fields in the response. Thi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Team(s)."""
+    """List Teams."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)

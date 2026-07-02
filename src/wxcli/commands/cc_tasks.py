@@ -783,3 +783,62 @@ def create_remove(
         print_json(result)
 
 
+
+@app.command("create-tasks")
+def create_tasks(
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Create Task."""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/v2/tasks"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif not result or result == {}:
+        typer.echo("Created.")
+    else:
+        print_json(result)
+
+
+
+@app.command("create-messages")
+def create_messages(
+    task_id: str = typer.Argument(help="taskId"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Append Task Message."""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/v2/tasks/{task_id}/messages"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif not result or result == {}:
+        typer.echo("Created.")
+    else:
+        print_json(result)
+
+

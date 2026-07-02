@@ -155,6 +155,8 @@ def update_compliance_announcement_call_recording(
     outbound_pstn_calls_enabled: bool = typer.Option(None, "--outbound-pstn-calls-enabled/--no-outbound-pstn-calls-enabled", help="Flag to indicate whether the call recording START/STOP annou"),
     outbound_pstn_calls_delay_enabled: bool = typer.Option(None, "--outbound-pstn-calls-delay-enabled/--no-outbound-pstn-calls-delay-enabled", help="Flag to indicate whether compliance announcement is played a"),
     delay_in_seconds: str = typer.Option(None, "--delay-in-seconds", help="Number of seconds to wait before playing the compliance anno"),
+    use_custom_announcement_enabled: bool = typer.Option(None, "--use-custom-announcement-enabled/--no-use-custom-announcement-enabled", help="Flag to indicate whether to use the custom compliance announ"),
+    audio_announcement_file_id: str = typer.Option(None, "--audio-announcement-file-id", help="Unique identifier for the custom audio announcement file."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -177,6 +179,10 @@ def update_compliance_announcement_call_recording(
             body["outboundPSTNCallsDelayEnabled"] = outbound_pstn_calls_delay_enabled
         if delay_in_seconds is not None:
             body["delayInSeconds"] = delay_in_seconds
+        if use_custom_announcement_enabled is not None:
+            body["useCustomAnnouncementEnabled"] = use_custom_announcement_enabled
+        if audio_announcement_file_id is not None:
+            body["audioAnnouncementFileId"] = audio_announcement_file_id
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
@@ -222,10 +228,11 @@ def update_compliance_announcement_call_recording_1(
     outbound_pstn_calls_enabled: bool = typer.Option(None, "--outbound-pstn-calls-enabled/--no-outbound-pstn-calls-enabled", help="Flag to indicate whether the Call Recording START/STOP annou"),
     outbound_pstn_calls_delay_enabled: bool = typer.Option(None, "--outbound-pstn-calls-delay-enabled/--no-outbound-pstn-calls-delay-enabled", help="Flag to indicate whether compliance announcement is played a"),
     delay_in_seconds: str = typer.Option(None, "--delay-in-seconds", help="Number of seconds to wait before playing the compliance anno"),
+    use_org_level_announcement_enabled: bool = typer.Option(None, "--use-org-level-announcement-enabled/--no-use-org-level-announcement-enabled", help="Flag to indicate whether to use the organization level custo"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update the Location Compliance Announcement."""
+    """Update the Location Compliance Announcement\n\nExample --json-body:\n  '{"inboundPSTNCallsEnabled":true,"useOrgSettingsEnabled":true,"outboundPSTNCallsEnabled":true,"outboundPSTNCallsDelayEnabled":true,"delayInSeconds":0,"useOrgLevelAnnouncementEnabled":true,"customComplianceAnnouncement":{"type":"CUSTOM","audioAnnouncementFileId":"..."}}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callRecording/complianceAnnouncement"
     params = {}
@@ -246,6 +253,8 @@ def update_compliance_announcement_call_recording_1(
             body["outboundPSTNCallsDelayEnabled"] = outbound_pstn_calls_delay_enabled
         if delay_in_seconds is not None:
             body["delayInSeconds"] = delay_in_seconds
+        if use_org_level_announcement_enabled is not None:
+            body["useOrgLevelAnnouncementEnabled"] = use_org_level_announcement_enabled
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
@@ -328,12 +337,12 @@ def update_vendor_call_recording(
     org_default_enabled: bool = typer.Option(None, "--org-default-enabled/--no-org-default-enabled", help="Vendor is enabled by default."),
     storage_region: str = typer.Option(None, "--storage-region", help="Regions where call recordings are stored."),
     org_storage_region_enabled: bool = typer.Option(None, "--org-storage-region-enabled/--no-org-storage-region-enabled", help="Region-based call recording storage is enabled."),
-    failure_behavior: str = typer.Option(None, "--failure-behavior", help="Choices: PROCEED_WITH_CALL_NO_ANNOUNCEMENT, PROCEED_CALL_WITH_ANNOUNCEMENT, END_CALL_WITH_ANNOUNCEMENT"),
+    failure_behavior: str = typer.Option(None, "--failure-behavior", help="Type of failure behavior."),
     org_failure_behavior_enabled: bool = typer.Option(None, "--org-failure-behavior-enabled/--no-org-failure-behavior-enabled", help="Failure behavior is enabled."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Set Call Recording Vendor for a Location\n\nExample --json-body:\n  '{"id":"...","orgDefaultEnabled":true,"storageRegion":"...","orgStorageRegionEnabled":true,"failureBehavior":"PROCEED_WITH_CALL_NO_ANNOUNCEMENT","orgFailureBehaviorEnabled":true}'."""
+    """Set Call Recording Vendor for a Location."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callRecording/vendor"
     params = {}
@@ -559,11 +568,11 @@ def show_vendors(
 def update_vendor_call_recording_1(
     vendor_id: str = typer.Option(None, "--vendor-id", help="Unique identifier of the vendor."),
     storage_region: str = typer.Option(None, "--storage-region", help="Call recording storage region. Only applicable for Webex as"),
-    failure_behavior: str = typer.Option(None, "--failure-behavior", help="Choices: PROCEED_WITH_CALL_NO_ANNOUNCEMENT, PROCEED_CALL_WITH_ANNOUNCEMENT, END_CALL_WITH_ANNOUNCEMENT"),
+    failure_behavior: str = typer.Option(None, "--failure-behavior", help="Call recording failure behavior."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Set Organization Call Recording Vendor\n\nExample --json-body:\n  '{"vendorId":"...","storageRegion":"...","failureBehavior":"PROCEED_WITH_CALL_NO_ANNOUNCEMENT"}'."""
+    """Set Organization Call Recording Vendor."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/callRecording/vendor"
     params = {}
@@ -580,6 +589,115 @@ def update_vendor_call_recording_1(
             body["storageRegion"] = storage_region
         if failure_behavior is not None:
             body["failureBehavior"] = failure_behavior
+    try:
+        result = api.session.rest_put(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("show-announcements-call-recording")
+def show_announcements_call_recording(
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Organization Call Recording Announcement Settings."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/callRecording/announcements"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    if output == "json":
+        print_json(result)
+    else:
+        if isinstance(result, dict):
+            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
+        elif isinstance(result, list):
+            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
+        else:
+            print_json(result)
+
+
+
+@app.command("update-announcements-call-recording")
+def update_announcements_call_recording(
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update Organization Call Recording Announcement Settings\n\nExample --json-body:\n  '{"start":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"stop":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"pause":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"resume":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"failureEndWithCall":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"failureProceedWithCall":{"type":"CUSTOM","audioAnnouncementFileId":"..."}}'."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/callRecording/announcements"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+    try:
+        result = api.session.rest_put(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("show-announcements-call-recording-1")
+def show_announcements_call_recording_1(
+    location_id: str = typer.Argument(help="locationId"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Location Call Recording Announcement Settings."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callRecording/announcements"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    if output == "json":
+        print_json(result)
+    else:
+        if isinstance(result, dict):
+            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
+        elif isinstance(result, list):
+            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
+        else:
+            print_json(result)
+
+
+
+@app.command("update-announcements-call-recording-1")
+def update_announcements_call_recording_1(
+    location_id: str = typer.Argument(help="locationId"),
+    use_org_level_announcement_enabled: bool = typer.Option(None, "--use-org-level-announcement-enabled/--no-use-org-level-announcement-enabled", help="Flag to indicate whether to use the organization level call"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update Location Call Recording Announcement Settings\n\nExample --json-body:\n  '{"useOrgLevelAnnouncementEnabled":true,"start":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"stop":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"pause":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"resume":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"failureEndWithCall":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"failureProceedWithCall":{"type":"CUSTOM","audioAnnouncementFileId":"..."}}'."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callRecording/announcements"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if use_org_level_announcement_enabled is not None:
+            body["useOrgLevelAnnouncementEnabled"] = use_org_level_announcement_enabled
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:

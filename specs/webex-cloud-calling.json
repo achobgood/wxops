@@ -49238,7 +49238,8 @@
                       "department": {
                         "id": "Y2lzY29zcGFyazovL3VzL1NDSU1fR1JPVVAvZjA2ZWRiOGMtMjMxNC00ZTcxLWIzNzgtZTdiMmQwNjk3OTliOjk2YWJjMmFhLTNkY2MtMTFlNS1hMTUyLWZlMzQ4MTljZGM5YQ",
                         "name": "HR"
-                      }
+                      },
+                      "digitalInboxEnabled": true
                     },
                     {
                       "id": "Y2lzY29zcGFyazovL3VzL0NBTExfUVVFVUUvNmU1NTVjZDAtNjM0MS00MmI4LWEyMWMtZTc1ZjIxNDQ4Mjc0",
@@ -49247,7 +49248,8 @@
                       "locationName": "Brampton",
                       "locationId": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzQwMjgw",
                       "phoneNumber": "+15558675309",
-                      "enabled": true
+                      "enabled": true,
+                      "digitalInboxEnabled": false
                     }
                   ]
                 }
@@ -49383,6 +49385,15 @@
             "name": "hasCxEssentials",
             "in": "query",
             "description": "Returns only the list of call queues with Customer Assist license when `true`, otherwise returns the list of Customer Experience Basic call queues.",
+            "example": "true",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "digitalInboxEnabled",
+            "in": "query",
+            "description": "Returns only the list of call queues with digital inbox enabled when `true`, or disabled when `false`. This query parameter is only valid when `hasCxEssentials` is `true`.",
             "example": "true",
             "schema": {
               "type": "boolean"
@@ -49827,7 +49838,8 @@
                   "selection": "CUSTOM_NAME",
                   "customName": "Hakim Smith"
                 },
-                "dialByName": "Hakim Smith"
+                "dialByName": "Hakim Smith",
+                "digitalInboxEnabled": true
               },
               "schema": {
                 "$ref": "#/components/schemas/CreateCallQueueEssentialsObject"
@@ -49949,6 +49961,8 @@
                   "firstName": "Hakim",
                   "lastName": "Smith",
                   "timeZone": "Central/Chicago",
+                  "numberUsageType": "SERVICE_NUMBER",
+                  "businessTextingEnabled": true,
                   "alternateNumberSettings": {
                     "distinctiveRingEnabled": true,
                     "alternateNumbers": [
@@ -50030,7 +50044,8 @@
                     "selection": "CUSTOM_NAME",
                     "customName": "Hakim Smith"
                   },
-                  "dialByName": "Hakim Smith"
+                  "dialByName": "Hakim Smith",
+                  "digitalInboxEnabled": true
                 }
               }
             }
@@ -53327,9 +53342,9 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Delete Bulk Supervisors",
+        "summary": "Delete the Call Queue or Customer Assist Supervisors",
         "operationId": "deleteBulkCallQueueSupervisors",
-        "description": "Deletes supervisors in bulk from an organization.\n\nSupervisors are users who manage agents and who perform functions including monitoring, coaching, and more.\n\nRequires a full administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "description": "Delete the Call Queue or Customer Assist supervisors for an organization. Once you remove the supervisor, assigned agents will lose their supervisor assignments.\n\nSupervisors are users who manage agents and who perform functions including monitoring, coaching, and more.\n\nRequires a full administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Features:  Call Queue"
         ],
@@ -53352,6 +53367,7 @@
                   "Y2lzY29zcGFyazovL3VzL1BFT1BMRS80Y2I1M2ZmMy01NWViLTQ2MzYtYTE4ZC05NWVjZmFhM2E4NmY",
                   "Y2lzY29zcGFyazovL3VzL1BFT1BMRS8wNzY2ZDNjNC0xZTg1LTQ4YzgtYTFkZi1mMWUzYTAyMDg1MWE"
                 ],
+                "hasCxEssentials": true,
                 "deleteAll": false
               },
               "schema": {
@@ -149420,6 +149436,10 @@
             "type": "string",
             "example": "Hakim Smith",
             "description": "Sets or clears the name to be used for dial by name functions. To clear the `dialByName`, the attribute must be set to null or empty string. Characters of `%`,  `+`, `\\`, `\"` and Unicode characters are not allowed."
+          },
+          "digitalInboxEnabled": {
+            "type": "boolean",
+            "description": "Digital Inbox enabled for Queue. This field is applicable for queue which has `hasCxEssentials=true`."
           }
         }
       },
@@ -150170,6 +150190,11 @@
             },
             "description": "Array of supervisors IDs to be deleted."
           },
+          "hasCxEssentials": {
+            "type": "boolean",
+            "example": true,
+            "description": "Delete the Customer Assist supervisors, when `true`. Otherwise delete the Call Queue supervisors. The default value is `false`."
+          },
           "deleteAll": {
             "type": "boolean",
             "description": "If present the `supervisorIds` array is ignored, and all supervisors in the context are deleted. **WARNING**: This will remove all supervisors from the organization."
@@ -150708,6 +150733,10 @@
               }
             },
             "description": "The department information."
+          },
+          "digitalInboxEnabled": {
+            "type": "boolean",
+            "description": "Digital Inbox enabled for Queue. This field is applicable for queue which has `hasCxEssentials=true`."
           }
         }
       },
@@ -150773,6 +150802,21 @@
             "type": "string",
             "example": "+15558675309",
             "description": "Primary phone number of the call queue."
+          },
+          "numberUsageType": {
+            "type": "string",
+            "example": "SERVICE_NUMBER",
+            "enum": [
+              "PSTN_NUMBER",
+              "MOBILE_NUMBER",
+              "SERVICE_NUMBER",
+              "ELIN"
+            ],
+            "description": "Number type of primary number assigned to queue.\n * `PSTN_NUMBER` - Public Switched Telephone Network (PSTN) number.\n * `MOBILE_NUMBER` - Mobile number.\n * `SERVICE_NUMBER` - A number used in high-volume service.\n * `ELIN` - Emergency Location Identification Number (ELIN), numbers can be used to place emergency calls from a location.\n"
+          },
+          "businessTextingEnabled": {
+            "type": "boolean",
+            "description": "Indicates whether business texting is enabled for the primary number assigned to the queue. This field is read-only and cannot be modified through the queue APIs."
           },
           "extension": {
             "type": "string",
@@ -150844,6 +150888,10 @@
             "type": "string",
             "example": "Hakim Smith",
             "description": "The name to be used for dial by name functions."
+          },
+          "digitalInboxEnabled": {
+            "type": "boolean",
+            "description": "Digital Inbox enabled for Queue. This field is applicable for queue which has `hasCxEssentials=true`."
           }
         }
       },
@@ -151148,6 +151196,10 @@
             "type": "string",
             "example": "Hakim Smith",
             "description": "The name to be used for dial by name functions. Characters of `%`,  `+`, `\\`, `\"` and Unicode characters are not allowed."
+          },
+          "digitalInboxEnabled": {
+            "type": "boolean",
+            "description": "Digital Inbox enabled for Queue. This field is applicable for queue which has `hasCxEssentials=true`."
           }
         }
       },

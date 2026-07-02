@@ -41,7 +41,7 @@ def cmd_list(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List clusters for an HDS organization."""
+    """List clusters for an Hybrid Data Security organization."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/hds/organizations/{organization_id}/clusters"
     params = {}
@@ -96,7 +96,7 @@ def list_nodes(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List nodes for an HDS cluster."""
+    """List nodes for an Hybrid Data Security cluster."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/hds/clusters/{cluster_id}/nodes"
     params = {}
@@ -149,7 +149,7 @@ def show_database(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get database details for the HDS organization."""
+    """Get database details for the Hybrid Data Security organization."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/hds/organizations/{organization_id}/database"
     try:
@@ -176,7 +176,7 @@ def list_tenants(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Multi-Tenant HDS organization details."""
+    """Get Multi-Tenant Hybrid Data Security organization details."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/hds/organizations/{organization_id}/tenants"
     params = {}
@@ -208,7 +208,7 @@ def list_alarms(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get alarms for an HDS node."""
+    """Get alarms for an Hybrid Data Security node."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/hds/nodes/{node_id}/alarms"
     params = {}
@@ -243,7 +243,7 @@ def list_network_test(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get test results for HDS node."""
+    """Get test results for Hybrid Data Security node."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/hds/testResults/nodes/{node_id}/networkTest"
     params = {}
@@ -277,7 +277,7 @@ def list_resource_usage(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get resource usage for an HDS node."""
+    """Get resource usage for an Hybrid Data Security node."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/hds/nodes/{node_id}/resourceUsage"
     params = {}
@@ -313,7 +313,7 @@ def list_availability(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get availability details for HDS cluster."""
+    """Get availability details for Hybrid Data Security cluster."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/hds/clusters/{cluster_id}/availability"
     params = {}

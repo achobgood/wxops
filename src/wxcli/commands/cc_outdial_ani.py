@@ -15,13 +15,13 @@ def cmd_list(
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attri"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
-    single_object_response: str = typer.Option(None, "--single-object-response", help="Specifiy whether to include array fields in the response, Th"),
+    single_object_response: str = typer.Option(None, "--single-object-response", help="Specify whether to include array fields in the response. Thi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Outdial ANI(s)."""
+    """List Outdial ANIs."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -116,7 +116,7 @@ def create_bulk_outdial_ani(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Outdial ANI(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
+    """Bulk save Outdial ANIs\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -140,43 +140,6 @@ def create_bulk_outdial_ani(
 
 
 
-@app.command("list-bulk-export")
-def list_bulk_export(
-    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
-    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Bulk export Outdial ANI(s)."""
-    api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    orgid = get_cc_org_id(api.session)
-    url = f"{cc_base_url}/organization/{orgid}/outdial-ani/bulk-export"
-    params = {}
-    if page is not None:
-        params["page"] = page
-    if page_size is not None:
-        params["pageSize"] = page_size
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
-    result = None
-    try:
-        result = api.session.rest_get(url, params=params)
-    except WebexError as e:
-        handle_rest_error(e)
-    result = result or []
-    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
-
-
-
 @app.command("list-entry-outdial-ani")
 def list_entry_outdial_ani(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
@@ -189,7 +152,7 @@ def list_entry_outdial_ani(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Outdial ANI Entry(s)."""
+    """List Outdial ANI Entries."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -422,7 +385,7 @@ def create_bulk_entry(
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Outdial ANI Entry(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
+    """Bulk save Outdial ANI Entries\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -551,13 +514,13 @@ def list_outdial_ani(
     search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search col"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
-    single_object_response: str = typer.Option(None, "--single-object-response", help="Specifiy whether to include array fields in the response, Th"),
+    single_object_response: str = typer.Option(None, "--single-object-response", help="Specify whether to include array fields in the response. Thi"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Outdial ANI(s)."""
+    """List Outdial ANIs."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -606,7 +569,7 @@ def list_entry_outdial_ani_1(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Outdial ANI Entry(s)."""
+    """List Outdial ANI Entries."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)

@@ -100,7 +100,12 @@ def tag_is_skipped(tag: str, spec_name: str, skip_tags: dict) -> bool:
 
 
 def load_spec_ops(skip_tags: dict) -> tuple[dict, dict]:
-    """Return ({(method, norm_path): (spec, tag)} non-skipped, same for skipped)."""
+    """Return ({(method, norm_path): (spec, tag)} non-skipped, same for skipped).
+
+    Multipart/form-data operations count as deliberately skipped — the
+    generator cannot render file uploads (parse_tag returns them as
+    skipped_uploads); they are a known limitation, not drift.
+    """
     ops, skipped = {}, {}
     for rel in sorted(tracked_files("specs/*.json")):
         spec_name = Path(rel).name
@@ -111,8 +116,17 @@ def load_spec_ops(skip_tags: dict) -> tuple[dict, dict]:
                     continue
                 tag = (op.get("tags") or ["(untagged)"])[0]
                 key = (method.upper(), normalize_path(path))
-                target = skipped if tag_is_skipped(tag, spec_name, skip_tags) else ops
-                target.setdefault(key, (spec_name, tag))
+                content = op.get("requestBody", {}).get("content", {})
+                if "multipart/form-data" in content:
+                    skipped.setdefault(key, (spec_name, f"{tag} [multipart upload]"))
+                elif tag == "(untagged)":
+                    # generator iterates tags; untagged ops are structurally
+                    # ungeneratable (upstream spec bug) — deliberate gap
+                    skipped.setdefault(key, (spec_name, "(untagged) [ungeneratable]"))
+                elif tag_is_skipped(tag, spec_name, skip_tags):
+                    skipped.setdefault(key, (spec_name, tag))
+                else:
+                    ops.setdefault(key, (spec_name, tag))
     return ops, skipped
 
 
@@ -353,6 +367,10 @@ def write_gaps_doc(skipped_ops: dict, overrides: dict) -> None:
     skip_tags, reasons = overrides["skip_tags"], overrides["skip_reasons"]
 
     def reason_for(spec: str, tag: str) -> str:
+        if tag.endswith("[multipart upload]"):
+            return "multipart file upload — the generator cannot render these (parse_tag skipped_uploads)"
+        if tag.endswith("[ungeneratable]"):
+            return "untagged operation — the generator iterates tags, so this op cannot generate (upstream spec bug)"
         for scope in (spec, "_global"):
             for pat in skip_tags.get(scope, []):
                 if fnmatch.fnmatch(tag, pat):

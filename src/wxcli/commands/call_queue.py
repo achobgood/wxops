@@ -17,6 +17,7 @@ def cmd_list(
     department_id: str = typer.Option(None, "--department-id", help="Returns only call queues matching the given department ID."),
     department_name: str = typer.Option(None, "--department-name", help="Returns only call queues matching the given department name."),
     has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Returns only the list of call queues with Customer Assist li"),
+    digital_inbox_enabled: str = typer.Option(None, "--digital-inbox-enabled", help="Returns only the list of call queues with digital inbox enab"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -38,6 +39,8 @@ def cmd_list(
         params["departmentName"] = department_name
     if has_cx_essentials is not None:
         params["hasCxEssentials"] = has_cx_essentials
+    if digital_inbox_enabled is not None:
+        params["digitalInboxEnabled"] = digital_inbox_enabled
     if limit > 0:
         params["max"] = limit
     if offset > 0:
@@ -57,7 +60,74 @@ def cmd_list(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Extension', 'extension'), ('Enabled', 'enabled')], limit=limit)
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+
+
+
+@app.command("show-org-settings")
+def show_org_settings(
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Call Queue Settings."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/queues/settings"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    if output == "json":
+        print_json(result)
+    else:
+        if isinstance(result, dict):
+            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
+        elif isinstance(result, list):
+            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
+        else:
+            print_json(result)
+
+
+
+@app.command("update-org-settings")
+def update_org_settings(
+    maintain_queue_position_for_sim_ring_enabled: bool = typer.Option(None, "--maintain-queue-position-for-sim-ring-enabled/--no-maintain-queue-position-for-sim-ring-enabled", help="Indicates whether callers keep their queue position when sim"),
+    force_agent_unavailable_on_bounced_enabled: bool = typer.Option(None, "--force-agent-unavailable-on-bounced-enabled/--no-force-agent-unavailable-on-bounced-enabled", help="Indicates whether Customer Assist agents are changed to unav"),
+    play_tone_to_agent_for_barge_in_enabled: bool = typer.Option(None, "--play-tone-to-agent-for-barge-in-enabled/--no-play-tone-to-agent-for-barge-in-enabled", help="Organization-wide default that plays a tone to agents when a"),
+    play_tone_to_agent_for_silent_monitoring_enabled: bool = typer.Option(None, "--play-tone-to-agent-for-silent-monitoring-enabled/--no-play-tone-to-agent-for-silent-monitoring-enabled", help="Organization-wide default that plays a tone to agents when a"),
+    play_tone_to_agent_for_supervisor_coaching_enabled: bool = typer.Option(None, "--play-tone-to-agent-for-supervisor-coaching-enabled/--no-play-tone-to-agent-for-supervisor-coaching-enabled", help="Organization-wide default that plays a tone to agents when a"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update Call Queue Settings."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/queues/settings"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if maintain_queue_position_for_sim_ring_enabled is not None:
+            body["maintainQueuePositionForSimRingEnabled"] = maintain_queue_position_for_sim_ring_enabled
+        if force_agent_unavailable_on_bounced_enabled is not None:
+            body["forceAgentUnavailableOnBouncedEnabled"] = force_agent_unavailable_on_bounced_enabled
+        if play_tone_to_agent_for_barge_in_enabled is not None:
+            body["playToneToAgentForBargeInEnabled"] = play_tone_to_agent_for_barge_in_enabled
+        if play_tone_to_agent_for_silent_monitoring_enabled is not None:
+            body["playToneToAgentForSilentMonitoringEnabled"] = play_tone_to_agent_for_silent_monitoring_enabled
+        if play_tone_to_agent_for_supervisor_coaching_enabled is not None:
+            body["playToneToAgentForSupervisorCoachingEnabled"] = play_tone_to_agent_for_supervisor_coaching_enabled
+    try:
+        result = api.session.rest_put(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    typer.echo(f"Updated.")
 
 
 
@@ -77,6 +147,7 @@ def create(
     allow_agent_join_enabled: bool = typer.Option(None, "--allow-agent-join-enabled/--no-allow-agent-join-enabled", help="Whether or not to allow agents to join or unjoin a queue."),
     phone_number_for_outgoing_calls_enabled: bool = typer.Option(None, "--phone-number-for-outgoing-calls-enabled/--no-phone-number-for-outgoing-calls-enabled", help="When `true`, indicates that the agent's configuration allows"),
     dial_by_name: str = typer.Option(None, "--dial-by-name", help="The name to be used for dial by name functions. Characters o"),
+    digital_inbox_enabled: bool = typer.Option(None, "--digital-inbox-enabled/--no-digital-inbox-enabled", help="Digital Inbox enabled for Queue. This field is applicable fo"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -118,6 +189,8 @@ def create(
             body["phoneNumberForOutgoingCallsEnabled"] = phone_number_for_outgoing_calls_enabled
         if dial_by_name is not None:
             body["dialByName"] = dial_by_name
+        if digital_inbox_enabled is not None:
+            body["digitalInboxEnabled"] = digital_inbox_enabled
         _missing = [f for f in ['name'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
@@ -188,6 +261,7 @@ def update(
     allow_agent_join_enabled: bool = typer.Option(None, "--allow-agent-join-enabled/--no-allow-agent-join-enabled", help="Whether or not to allow agents to join or unjoin a queue."),
     phone_number_for_outgoing_calls_enabled: bool = typer.Option(None, "--phone-number-for-outgoing-calls-enabled/--no-phone-number-for-outgoing-calls-enabled", help="When `true`, indicates that the agent's configuration allows"),
     dial_by_name: str = typer.Option(None, "--dial-by-name", help="Sets or clears the name to be used for dial by name function"),
+    digital_inbox_enabled: bool = typer.Option(None, "--digital-inbox-enabled/--no-digital-inbox-enabled", help="Digital Inbox enabled for Queue. This field is applicable fo"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -230,6 +304,8 @@ def update(
             body["phoneNumberForOutgoingCallsEnabled"] = phone_number_for_outgoing_calls_enabled
         if dial_by_name is not None:
             body["dialByName"] = dial_by_name
+        if digital_inbox_enabled is not None:
+            body["digitalInboxEnabled"] = digital_inbox_enabled
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
@@ -292,7 +368,7 @@ def list_announcements(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Extension', 'extension'), ('Enabled', 'enabled')], limit=limit)
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -552,7 +628,7 @@ def list_holiday_service(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Extension', 'extension'), ('Enabled', 'enabled')], limit=limit)
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -633,7 +709,7 @@ def list_night_service(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Extension', 'extension'), ('Enabled', 'enabled')], limit=limit)
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -723,7 +799,7 @@ def list_forced_forward(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Extension', 'extension'), ('Enabled', 'enabled')], limit=limit)
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -795,7 +871,7 @@ def list_stranded_calls(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Extension', 'extension'), ('Enabled', 'enabled')], limit=limit)
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -806,10 +882,11 @@ def update_stranded_calls(
     action: str = typer.Option(None, "--action", help="Choices: NONE, BUSY, TRANSFER, NIGHT_SERVICE, RINGING, ANNOUNCEMENT"),
     transfer_phone_number: str = typer.Option(None, "--transfer-phone-number", help="Call gets transferred to this number when action is set to `"),
     audio_message_selection: str = typer.Option(None, "--audio-message-selection", help="Choices: DEFAULT, CUSTOM"),
+    trigger_policy_when_all_agents_are_unreachable_enabled: bool = typer.Option(None, "--trigger-policy-when-all-agents-are-unreachable-enabled/--no-trigger-policy-when-all-agents-are-unreachable-enabled", help="Trigger stranded calls queue policy when all agents are unre"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Call Queue Stranded Calls Service\n\nExample --json-body:\n  '{"action":"NONE","audioMessageSelection":"DEFAULT","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"...","level":"..."}]}'."""
+    """Update a Call Queue Stranded Calls Service\n\nExample --json-body:\n  '{"action":"NONE","audioMessageSelection":"DEFAULT","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"...","level":"..."}],"triggerPolicyWhenAllAgentsAreUnreachableEnabled":true}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/strandedCalls"
     params = {}
@@ -826,6 +903,8 @@ def update_stranded_calls(
             body["transferPhoneNumber"] = transfer_phone_number
         if audio_message_selection is not None:
             body["audioMessageSelection"] = audio_message_selection
+        if trigger_policy_when_all_agents_are_unreachable_enabled is not None:
+            body["triggerPolicyWhenAllAgentsAreUnreachableEnabled"] = trigger_policy_when_all_agents_are_unreachable_enabled
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
@@ -866,7 +945,7 @@ def list_available_numbers_queues(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Extension', 'extension'), ('Enabled', 'enabled')], limit=limit)
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -902,7 +981,7 @@ def list_available_numbers_alternate(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Extension', 'extension'), ('Enabled', 'enabled')], limit=limit)
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -944,7 +1023,7 @@ def list_available_numbers_call_forwarding(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Extension', 'extension'), ('Enabled', 'enabled')], limit=limit)
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -988,7 +1067,7 @@ def list_available_agents_queues(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Extension', 'extension'), ('Enabled', 'enabled')], limit=limit)
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -1032,7 +1111,7 @@ def list_supervisors(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Extension', 'extension'), ('Enabled', 'enabled')], limit=limit)
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -1080,18 +1159,15 @@ def create_supervisors(
 
 @app.command("delete-supervisors-config")
 def delete_supervisors_config(
-    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Include Customer Assist supervisors when true."),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete Bulk Supervisors."""
+    """Delete the Call Queue or Customer Assist Supervisors."""
     if not force:
         typer.confirm("Delete this resource?", abort=True)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/supervisors"
     params = {}
-    if has_cx_essentials is not None:
-        params["hasCxEssentials"] = has_cx_essentials
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
@@ -1181,7 +1257,6 @@ def update_supervisors(
 @app.command("delete-supervisors-config-1")
 def delete_supervisors_config_1(
     supervisor_id: str = typer.Argument(help="supervisorId"),
-    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Include Customer Assist supervisors when true."),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1191,8 +1266,6 @@ def delete_supervisors_config_1(
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/supervisors/{supervisor_id}"
     params = {}
-    if has_cx_essentials is not None:
-        params["hasCxEssentials"] = has_cx_essentials
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
@@ -1244,7 +1317,7 @@ def list_available_supervisors(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Extension', 'extension'), ('Enabled', 'enabled')], limit=limit)
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -1288,7 +1361,7 @@ def list_available_agents_supervisors(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Extension', 'extension'), ('Enabled', 'enabled')], limit=limit)
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -1343,7 +1416,7 @@ def list_agents(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'name'), ('Extension', 'extension'), ('Enabled', 'enabled')], limit=limit)
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -1385,8 +1458,8 @@ def show_agents(
 
 
 
-@app.command("update-settings")
-def update_settings(
+@app.command("update-settings-agents")
+def update_settings_agents(
     id: str = typer.Argument(help="id"),
     has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true` to modify an agent that has Customer A"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -1436,5 +1509,370 @@ def switch_mode_for(
     except WebexError as e:
         handle_rest_error(e)
     print_json(result)
+
+
+
+@app.command("list-dnis")
+def list_dnis(
+    location_id: str = typer.Argument(help="locationId"),
+    queue_id: str = typer.Argument(help="queueId"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get List of DNIS for a Call Queue."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/dnis"
+    params = {}
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    result = None
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    result = result or []
+    items = result.get("dnisList", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+
+
+
+@app.command("create-dnis")
+def create_dnis(
+    location_id: str = typer.Argument(help="locationId"),
+    queue_id: str = typer.Argument(help="queueId"),
+    name: str = typer.Option(None, "--name", help="(required) Name of the DNIS. Must be unique across the call queue."),
+    phone_number: str = typer.Option(None, "--phone-number", help="Phone number of the DNIS. Must be a valid phone number from"),
+    extension: str = typer.Option(None, "--extension", help="Extension of the DNIS. Either phoneNumber or extension is re"),
+    ring_pattern: str = typer.Option(None, "--ring-pattern", help="(required) Choices: NORMAL, LONG_LONG, SHORT_SHORT_LONG, SHORT_LONG_SHORT"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Create a DNIS for a Call Queue."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/dnis"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if name is not None:
+            body["name"] = name
+        if phone_number is not None:
+            body["phoneNumber"] = phone_number
+        if extension is not None:
+            body["extension"] = extension
+        if ring_pattern is not None:
+            body["ringPattern"] = ring_pattern
+        _missing = [f for f in ['name', 'ringPattern'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
+    try:
+        result = api.session.rest_post(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif not result or result == {}:
+        typer.echo("Created.")
+    else:
+        print_json(result)
+
+
+
+@app.command("delete-dnis-queues")
+def delete_dnis_queues(
+    location_id: str = typer.Argument(help="locationId"),
+    queue_id: str = typer.Argument(help="queueId"),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Bulk Delete DNIS for a Call Queue."""
+    if not force:
+        typer.confirm(f"Delete {queue_id}?", abort=True)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/dnis"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    try:
+        api.session.rest_delete(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    typer.echo(f"Deleted: {queue_id}")
+
+
+
+@app.command("show-dnis")
+def show_dnis(
+    location_id: str = typer.Argument(help="locationId"),
+    queue_id: str = typer.Argument(help="queueId"),
+    dnis_id: str = typer.Argument(help="dnisId"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get a DNIS for a Call Queue."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/dnis/{dnis_id}"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    if output == "json":
+        print_json(result)
+    else:
+        if isinstance(result, dict):
+            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
+        elif isinstance(result, list):
+            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
+        else:
+            print_json(result)
+
+
+
+@app.command("update-dnis")
+def update_dnis(
+    location_id: str = typer.Argument(help="locationId"),
+    queue_id: str = typer.Argument(help="queueId"),
+    dnis_id: str = typer.Argument(help="dnisId"),
+    name: str = typer.Option(None, "--name", help="Name of the DNIS. Must be unique across the call queue."),
+    phone_number: str = typer.Option(None, "--phone-number", help="Phone number of the DNIS. Set to `null` to remove the phone"),
+    extension: str = typer.Option(None, "--extension", help="Extension of the DNIS. Set to `null` to remove the extension"),
+    ring_pattern: str = typer.Option(None, "--ring-pattern", help="Choices: NORMAL, LONG_LONG, SHORT_SHORT_LONG, SHORT_LONG_SHORT"),
+    custom_dnis_announcement_settings_enabled: bool = typer.Option(None, "--custom-dnis-announcement-settings-enabled/--no-custom-dnis-announcement-settings-enabled", help="Use custom announcement settings for the DNIS."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Modify a DNIS for a Call Queue."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/dnis/{dnis_id}"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if name is not None:
+            body["name"] = name
+        if phone_number is not None:
+            body["phoneNumber"] = phone_number
+        if extension is not None:
+            body["extension"] = extension
+        if ring_pattern is not None:
+            body["ringPattern"] = ring_pattern
+        if custom_dnis_announcement_settings_enabled is not None:
+            body["customDnisAnnouncementSettingsEnabled"] = custom_dnis_announcement_settings_enabled
+    try:
+        result = api.session.rest_put(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("delete-dnis-queues-1")
+def delete_dnis_queues_1(
+    location_id: str = typer.Argument(help="locationId"),
+    queue_id: str = typer.Argument(help="queueId"),
+    dnis_id: str = typer.Argument(help="dnisId"),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Delete a DNIS for a Call Queue."""
+    if not force:
+        typer.confirm(f"Delete {dnis_id}?", abort=True)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/dnis/{dnis_id}"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    try:
+        api.session.rest_delete(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    typer.echo(f"Deleted: {dnis_id}")
+
+
+
+@app.command("show-settings")
+def show_settings(
+    location_id: str = typer.Argument(help="locationId"),
+    queue_id: str = typer.Argument(help="queueId"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get DNIS Settings for a Call Queue."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/dnis/settings"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    if output == "json":
+        print_json(result)
+    else:
+        if isinstance(result, dict):
+            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
+        elif isinstance(result, list):
+            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
+        else:
+            print_json(result)
+
+
+
+@app.command("update-settings-dnis")
+def update_settings_dnis(
+    location_id: str = typer.Argument(help="locationId"),
+    queue_id: str = typer.Argument(help="queueId"),
+    distinctive_ringing_enabled: bool = typer.Option(None, "--distinctive-ringing-enabled/--no-distinctive-ringing-enabled", help="Whether distinctive ringing is enabled for the queue."),
+    display_dnis_name_and_number_enabled: bool = typer.Option(None, "--display-dnis-name-and-number-enabled/--no-display-dnis-name-and-number-enabled", help="Whether the DNIS name and number is displayed to agents."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Modify DNIS Settings for a Call Queue."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/dnis/settings"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if distinctive_ringing_enabled is not None:
+            body["distinctiveRingingEnabled"] = distinctive_ringing_enabled
+        if display_dnis_name_and_number_enabled is not None:
+            body["displayDnisNameAndNumberEnabled"] = display_dnis_name_and_number_enabled
+    try:
+        result = api.session.rest_put(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("show-announcements")
+def show_announcements(
+    location_id: str = typer.Argument(help="locationId"),
+    queue_id: str = typer.Argument(help="queueId"),
+    dnis_id: str = typer.Argument(help="dnisId"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get DNIS Announcements for a Call Queue."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/dnis/{dnis_id}/announcements"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    if output == "json":
+        print_json(result)
+    else:
+        if isinstance(result, dict):
+            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
+        elif isinstance(result, list):
+            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
+        else:
+            print_json(result)
+
+
+
+@app.command("update-announcements")
+def update_announcements(
+    location_id: str = typer.Argument(help="locationId"),
+    queue_id: str = typer.Argument(help="queueId"),
+    dnis_id: str = typer.Argument(help="dnisId"),
+    custom_dnis_announcement_settings_enabled: bool = typer.Option(None, "--custom-dnis-announcement-settings-enabled/--no-custom-dnis-announcement-settings-enabled", help="Whether custom DNIS announcement settings are enabled for th"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Modify DNIS Announcements for a Call Queue\n\nExample --json-body:\n  '{"customDnisAnnouncementSettingsEnabled":true,"welcomeMessage":{"enabled":true,"alwaysEnabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":["..."]},"comfortMessage":{"enabled":true,"timeBetweenMessages":0,"greeting":"DEFAULT","audioAnnouncementFiles":["..."]},"comfortMessageBypass":{"enabled":true,"callWaitingAgeThreshold":0,"greeting":"DEFAULT","audioAnnouncementFiles":["..."]},"mohMessage":{"normalSource":{"enabled":"...","greeting":"...","audioAnnouncementFiles":"...","audioPlaylistId":"..."},"alternateSource":{"enabled":"...","greeting":"...","audioAnnouncementFiles":"...","audioPlaylistId":"..."}},"waitMessage":{"enabled":true,"waitMode":"TIME","handlingTime":0,"defaultHandlingTime":0,"queuePosition":0,"highVolumeMessageEnabled":true,"estimatedWaitingTime":0,"callbackOptionEnabled":true},"whisperMessage":{"enabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":["..."]}}'."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/dnis/{dnis_id}/announcements"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if custom_dnis_announcement_settings_enabled is not None:
+            body["customDnisAnnouncementSettingsEnabled"] = custom_dnis_announcement_settings_enabled
+    try:
+        result = api.session.rest_put(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("list-available-numbers-dnis")
+def list_available_numbers_dnis(
+    location_id: str = typer.Argument(help="locationId"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Filter by phone number."),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Available Phone Numbers for DNIS."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/dnis/availableNumbers"
+    params = {}
+    if phone_number is not None:
+        params["phoneNumber"] = phone_number
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    result = None
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    result = result or []
+    items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
