@@ -475,7 +475,7 @@ wxcli workspace-settings update-call-waiting WORKSPACE_ID --enabled
 wxcli workspace-settings list WORKSPACE_ID --output json
 
 # Monitoring (BLF)
-wxcli workspace-settings show-monitoring WORKSPACE_ID --output json
+wxcli workspace-settings list-monitoring WORKSPACE_ID --output json
 
 # DND
 wxcli workspace-settings show-do-not-disturb WORKSPACE_ID --output json
@@ -610,8 +610,8 @@ wxcli device-settings update-layout DEVICE_ID --json-body '{
 # List org background images
 wxcli device-settings list-background-images --output json
 
-# Upload a background image to a device
-wxcli device-settings upload-a-device DEVICE_ID --file /path/to/image.png
+# Upload a background image to a device — no CLI (multipart upload, generator cannot render)
+# Raw HTTP fallback: POST /telephony/config/devices/{deviceId}/actions/backgroundImageUpload/invoke (multipart/form-data)
 
 # Delete background images
 wxcli device-settings delete-background-images --json-body '{
@@ -637,7 +637,7 @@ When creating a workspace, set `hotdeskingStatus` to `on`. For hot-desk-only wor
 
 **Person side: enable hoteling:**
 
-Use `wxcli device-settings update-hoteling PERSON_ID --json-body '{"hoteling":{"enabled":true}}'` to enable hoteling on a person's profile. **Do NOT use `wxcli user-call-settings`** — that CLI group does not exist (the file exists in source but is not registered).
+Use `wxcli device-settings update-hoteling PERSON_ID --json-body '{"hoteling":{"enabled":true}}'` to enable hoteling on a person's profile. **Do NOT use `wxcli user-call-settings`** — that CLI group does not exist (its orphan source file was deleted at the 2026-07-01 spec sync; the registered group is `user-settings`).
 
 **Hoteling read/write asymmetry:** The update command is `wxcli device-settings update-hoteling`, but the read/verify command is `wxcli user-settings show-hoteling PERSON_ID` — they are in different CLI groups. There is no `show-hoteling` in `device-settings`.
 

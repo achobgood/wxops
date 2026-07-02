@@ -86,7 +86,7 @@ wxcli paging-group list --location-id $LOC -o json 2>&1
 # Call parks and pickups REQUIRE location as positional arg — org-wide list returns EMPTY
 wxcli call-park list $LOC -o json 2>&1
 wxcli call-pickup list $LOC -o json 2>&1
-wxcli location-voicemail list-voicemail-groups $LOC -o json 2>&1
+wxcli location-voicemail list $LOC -o json 2>&1
 
 # Layer 2: Routing (org-wide — filter by location in output)
 wxcli call-routing list -o json 2>&1               # dial plans
@@ -125,10 +125,10 @@ wxcli paging-group delete --force $LOC <PG_ID>
 #### Layer 2: Routing (reverse creation order)
 ```bash
 # Dial plans first, then route lists, then route groups, then trunks
-wxcli call-routing delete-dial-plans --force <DP_ID>
+wxcli call-routing delete --force <DP_ID>
 wxcli call-routing delete-route-lists --force <RL_ID>
 wxcli call-routing delete-route-groups --force <RG_ID>
-wxcli call-routing delete-translation-patterns --force <TP_ID>
+wxcli call-routing delete-translation-patterns-call-routing --force <TP_ID>
 wxcli call-routing delete-trunks --force <TRUNK_ID>
 ```
 

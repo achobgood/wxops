@@ -65,7 +65,7 @@ wxcli call-queue show <QUEUE_ID> -o json > "${OUTPUT_DIR}/call_queue_details/<QU
 
 ```bash
 # For each of the first 50 user IDs from users.json:
-wxcli user-settings show-outgoing-permissions <USER_ID> -o json > "${OUTPUT_DIR}/outgoing_permissions/<USER_ID>.json"
+wxcli user-settings list-outgoing-permission <USER_ID> -o json > "${OUTPUT_DIR}/outgoing_permissions/<USER_ID>.json"
 ```
 
 ### Manifest

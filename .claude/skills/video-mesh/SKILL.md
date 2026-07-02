@@ -122,7 +122,7 @@ Scope: [all clusters / specific cluster / specific node]
 Time Range: [if applicable]
 
 Commands to execute:
-  1. wxcli video-mesh list-availability-clusters --from ... --to ... --output json
+  1. wxcli video-mesh list-availability --from ... --to ... --output json
 
 Proceed? (yes/no)
 ```
@@ -138,7 +138,7 @@ For a comprehensive health check of a cluster:
 wxcli video-mesh show CLUSTER_ID --output json
 
 # 2. Availability
-wxcli video-mesh show-availability-clusters CLUSTER_ID --output json
+wxcli video-mesh show CLUSTER_ID --output json
 
 # 3. Utilization
 wxcli video-mesh list-utilization-clusters CLUSTER_ID --output json
@@ -167,7 +167,7 @@ For a single node:
 
 ```bash
 # Node availability
-wxcli video-mesh show-availability-nodes NODE_ID --output json
+wxcli video-mesh show-availability NODE_ID --output json
 
 # Node reachability
 wxcli video-mesh list-nodes-reachability-test NODE_ID --output json
@@ -188,7 +188,7 @@ wxcli video-mesh list-nodes-network-test NODE_ID --output json
 wxcli video-mesh create NODE_ID
 
 # Trigger test for all nodes in a cluster
-wxcli video-mesh create-clusters CLUSTER_ID
+wxcli video-mesh create CLUSTER_ID
 
 # Check test status
 wxcli video-mesh list-test-status --output json

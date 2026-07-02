@@ -231,31 +231,18 @@ Collect from user:
 |-----------|:--------:|-------|
 | Location ID | Yes | Positional argument |
 | Queue ID | Yes | Positional argument |
-| Enabled | No | `--enabled` / `--no-enabled` |
-| Record mode | No | `--record` — `Always`, `Never`, or `OnDemand` |
-| Notification settings | No | Requires `--json-body` |
 
-CLI commands:
+`wxcli customer-assist show-queue-recording` / `update-queue-recording` do NOT exist — there is no matching API operation in the generated CLI. Use the CX queue itself:
 
 ```bash
-# View current queue recording settings
-wxcli customer-assist show-queue-recording LOCATION_ID QUEUE_ID -o json
+# View the CX queue payload — inspect for recording fields (see note below)
+wxcli call-queue show LOCATION_ID QUEUE_ID --has-cx-essentials true -o json
 
-# Enable always-on recording (simple)
-wxcli customer-assist update-queue-recording LOCATION_ID QUEUE_ID \
-  --enabled --record Always
-
-# Full recording config with notifications (requires --json-body)
-wxcli customer-assist update-queue-recording LOCATION_ID QUEUE_ID --json-body '{
-  "enabled": true,
-  "record": "Always",
-  "notification": {"enabled": true, "type": "Beep"},
-  "repeat": {"enabled": false, "interval": 15},
-  "startStopAnnouncement": {"internalCallsEnabled": false, "pstnCallsEnabled": false}
-}'
+# Apply changes via --json-body, using field names found in the show output
+wxcli call-queue update LOCATION_ID QUEUE_ID --json-body '{...}'
 ```
 
-> **NOTE:** Queue call recording requires `spark-admin:people_read` / `spark-admin:people_write` scopes — different from all other Customer Assist features which use `spark-admin:telephony_config_read/write`. The recording vendor must be configured at the org or location level first (see `wxcli call-recording`).
+> **NOTE:** Whether the CX queue payload carries queue-level recording fields is UNVERIFIED — the test org has zero Customer Assist queues to confirm against. Inspect the `call-queue show ... --has-cx-essentials true -o json` output for a recording-related block. If none is present, call recording is instead configured at the org/location level (`wxcli call-recording show`) or per-agent (see `manage-call-settings` skill).
 
 ---
 
@@ -391,8 +378,8 @@ wxcli customer-assist show REASON_ID -o json
 # Verify wrap-up settings (per-queue)
 wxcli customer-assist list-settings LOCATION_ID QUEUE_ID -o json
 
-# Verify queue recording
-wxcli customer-assist show-queue-recording LOCATION_ID QUEUE_ID -o json
+# Verify queue recording (inspect payload for recording fields — see Queue Call Recording note above)
+wxcli call-queue show LOCATION_ID QUEUE_ID --has-cx-essentials true -o json
 
 # Verify supervisors
 wxcli call-queue list-supervisors --has-cx-essentials true -o json
@@ -439,9 +426,9 @@ Next steps:
 11. **`queryParams` on screen pop requires `--json-body`.** The `--screen-pop-url`, `--enabled`, and `--desktop-label` flags cover the simple case. For query parameters (passing caller data to the CRM URL), use `--json-body`.
 12. **`queues` array on wrap-up reason create requires `--json-body`.** To assign a reason to specific queues on creation, use `--json-body`. Alternatively, create the reason first, then assign queues via `update`.
 13. **Runtime supervisor capabilities are automatic.** Silent monitor, whisper coach, barge in, and take over activate once the supervisor-agent relationship is configured. No additional API setup is needed.
-14. **Recording vendor must be configured first.** Queue call recording depends on an org-level or location-level recording vendor configuration. Check with `wxcli call-recording show-settings -o json` before enabling queue recording.
+14. **Recording vendor must be configured first.** Queue call recording depends on an org-level or location-level recording vendor configuration. Check with `wxcli call-recording show -o json` before enabling queue recording.
 15. **Customer Assist queues are hidden from default `call-queue list`.** You must pass `--has-cx-essentials true` to see them. Without the flag, only regular (non-Customer Assist) queues are returned.
-16. **Queue recording response uses nested objects.** The API returns `notification: {enabled, type}`, `repeat: {enabled, interval}`, and `startStopAnnouncement: {internalCallsEnabled, pstnCallsEnabled}` — not flat fields. Use the nested structure in `--json-body`.
+16. **Queue recording schema is UNVERIFIED.** Earlier versions of this skill asserted nested recording objects (`notification`, `repeat`, `startStopAnnouncement`) in the queue payload — that schema came from a fabricated example tied to commands that never existed (2026-07-01 audit). Inspect a real CX queue payload (`wxcli call-queue show LOCATION_ID QUEUE_ID --has-cx-essentials true -o json`) before building any `--json-body`; if no recording fields appear, recording is org/location-level (`call-recording show`) or per-agent (manage-call-settings skill).
 17. **`create-supervisors` requires `id` in both `--id` flag and `--json-body`.** The `--id` flag is a required CLI option. When using `--json-body`, include `"id"` in the JSON body too, since `--json-body` overrides flag-built body fields.
 18. **To remove a Customer Assist supervisor, remove all their agents first.** The DELETE endpoint (`delete-supervisors-config-1`) returns 204 but the supervisor may persist. Instead, use `update-supervisors` with `action: DELETE` on each agent. When the last agent is removed, the supervisor is automatically deleted.
 19. **Customer Assist queue creation requires `callPolicies`.** Unlike regular queues, CX queues require the `callPolicies` field (e.g., `{"policy":"SIMULTANEOUS"}`). This must be passed via `--json-body` since it's not available as a CLI flag.

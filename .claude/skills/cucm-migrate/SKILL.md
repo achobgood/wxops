@@ -514,7 +514,7 @@ Delete in the order returned (reverse tier: features → devices → users → r
 | auto_attendant | `wxcli auto-attendant delete <location_webex_id> <webex_id> --force` | |
 | call_queue | `wxcli call-queue delete <location_webex_id> <webex_id> --force` | |
 | hunt_group | `wxcli hunt-group delete <location_webex_id> <webex_id> --force` | |
-| schedule | `wxcli location-call-settings-schedules delete <location_webex_id> <schedule_type> <webex_id> --force` | schedule_type from canonical data (businessHours or holidays) |
+| schedule | `wxcli location-schedules delete <location_webex_id> <schedule_type> <webex_id> --force` | schedule_type from canonical data (businessHours or holidays) |
 | operating_mode | `wxcli operating-modes delete <webex_id> --force` | Org-wide |
 | device | `wxcli devices delete <webex_id> --force` | No location needed |
 | workspace | `wxcli workspaces delete <webex_id> --force` | Deletes associated device too |
@@ -652,7 +652,7 @@ Notification email: _______________
 IF operator provides an email:
 
 ```bash
-wxcli request PUT /v1/telephony/config/emergencyCallNotification \
+wxcli emergency-services update-emergency-call-notification-config \
   --json-body '{"emergencyCallNotificationEnabled": true, "allowEmailNotificationAllLocationEnabled": true, "emailAddress": "<provided-email>"}'
 ```
 

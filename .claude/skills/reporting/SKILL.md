@@ -291,7 +291,7 @@ Poll until `status` is `"done"`. The response will include `downloadURL` for the
 #### Download the CSV
 
 ```bash
-curl -H "Authorization: Bearer $(wxcli token)" -o report.zip "DOWNLOAD_URL"
+curl -H "Authorization: Bearer $WEBEX_ACCESS_TOKEN" -o report.zip "DOWNLOAD_URL"
 unzip report.zip
 ```
 
@@ -350,7 +350,7 @@ CDR pulls are slow due to the CDR API rate limit (1 request/minute) and the 12-h
 
 ### Rate limit reality
 
-The CDR Feed API (`analytics-calling.webexapis.com`) enforces **1 request per minute** per user token. wxcli's `wxcli cdr pull` respects this limit with built-in sleep between requests, so each pull takes ~60 seconds regardless of data volume. Calculate expected pull time before starting:
+The CDR Feed API (`analytics-calling.webexapis.com`) enforces **1 request per minute** per user token. wxcli's `wxcli cdr list` respects this limit with built-in sleep between requests, so each pull takes ~60 seconds regardless of data volume. Calculate expected pull time before starting:
 
 | Window | Pulls | Expected Time |
 |--------|-------|---------------|

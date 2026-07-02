@@ -510,7 +510,7 @@ wxcli hds show-nodes NODE_ID --output json
 wxcli hds list ORG_ID --output json
 
 # Get multi-tenant HDS details
-wxcli hds list-multi-tenant ORG_ID --output json
+wxcli hds list-tenants ORG_ID --output json
 
 # Get node network test results
 wxcli hds list-network-test NODE_ID --trigger-type All --output json

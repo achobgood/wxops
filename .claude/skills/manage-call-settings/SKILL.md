@@ -19,11 +19,11 @@ argument-hint: [person-email-or-workspace-name]
 **Checkpoint — do NOT proceed until you can answer these:**
 1. What are the two path families for person call settings, and which is newer? (Answer: `/people/{id}/features/{feature}` is classic; `/telephony/config/people/{id}/{feature}` is newer. Some setting names differ between them.)
 2. What happens when you use `/telephony/config/workspaces/{id}/` settings on a Basic-licensed workspace? (Answer: 405 "Invalid Professional Place" — only `musicOnHold` and `doNotDisturb` work on Basic. Use `/workspaces/{id}/features/` path for Basic workspaces.)
-3. What wxcli command group handles org/location call recording? (Answer: `call-recording`, NOT `location-call-settings`. Run `wxcli call-recording --help` to confirm.)
+3. What wxcli command group handles org/location call recording? (Answer: `call-recording`, NOT `location-settings`. Run `wxcli call-recording --help` to confirm.)
 
 If you cannot answer all three, you skipped reading this skill. Go back and read it.
 
-**MANDATORY: Before including ANY wxcli command in your plan, verify it exists.** Run `wxcli <group> --help` to confirm the command group exists and list its commands. If you cannot run `--help` (e.g., plan-only mode), use ONLY commands listed in the Quick Recipes section below. Do NOT construct command names from reference doc titles or API concepts — the CLI group names often differ from the API concept names (e.g., location recording config uses `wxcli call-recording`, NOT `wxcli location-call-settings`).
+**MANDATORY: Before including ANY wxcli command in your plan, verify it exists.** Run `wxcli <group> --help` to confirm the command group exists and list its commands. If you cannot run `--help` (e.g., plan-only mode), use ONLY commands listed in the Quick Recipes section below. Do NOT construct command names from reference doc titles or API concepts — the CLI group names often differ from the API concept names (e.g., location recording config uses `wxcli call-recording`, NOT `wxcli location-settings`).
 
 ## Quick Recipes — Use These Exact Commands
 
@@ -93,15 +93,22 @@ wxcli user-settings update-reception PERSON_ID --json-body '{"receptionEnabled":
 - `receptionEnabled` must be `true` if `monitoredMembers` is non-empty.
 - Max 50 monitored members. Members can be person or workspace IDs.
 
-### SimRing for persons (USER-ONLY — no admin endpoint, use SNR instead)
+### SimRing for persons (admin-configurable)
+```bash
+wxcli user-settings list-simultaneous-ring PERSON_ID -o json
+wxcli user-settings update-simultaneous-ring PERSON_ID --enabled --json-body '{"enabled":true,"phoneNumbers":[{"phoneNumber":"+15551234567"}]}'
+wxcli user-settings create-criteria-simultaneous-ring PERSON_ID --json-body '{"name":"After hours","phoneNumbers":["+15551234567"]}'
+wxcli user-settings show-criteria-simultaneous-ring PERSON_ID ID -o json
+wxcli user-settings update-criteria-simultaneous-ring PERSON_ID ID --json-body '{"enabled":true}'
+wxcli user-settings delete-criteria-simultaneous-ring PERSON_ID ID
+```
+- Person SimRing now has an admin path via `user-settings` — `list-simultaneous-ring` / `update-simultaneous-ring` configure the base setting (enabled, do-not-ring-if-on-call, numbers); the `criteria-simultaneous-ring` commands manage schedule-based ring criteria.
+- **Workspace SimRing is also admin-configurable:** `wxcli workspace-settings list-simultaneous-ring WORKSPACE_ID` and `update-simultaneous-ring` exist. Use those for workspaces instead of the `user-settings` commands.
+- SNR (`single-number-reach`) remains a valid alternative for the desk + mobile ring-simultaneously use case, but it is no longer the only admin-configurable option for person SimRing:
 ```bash
 wxcli single-number-reach list-single-number-reach PERSON_ID -o json
 wxcli single-number-reach create PERSON_ID --phone-number "+15551234567" --enabled --name "Mobile"
 ```
-- **Why not person SimRing directly:** The `/people/{id}/settings/simultaneousRing` admin path returns 404. Person SimRing exists ONLY at `/people/me/settings/simultaneousRing` (user-level OAuth). No admin can configure it for another person.
-- **Workspace SimRing IS admin-configurable:** `wxcli workspace-settings list-simultaneous-ring WORKSPACE_ID` and `update-simultaneous-ring` exist. If the target is a workspace (not a person), use those instead of SNR.
-- For persons, SNR achieves the same result (desk + mobile ring simultaneously) and is admin-configurable.
-- SNR uses `telephony_config_read/write` scopes (not `people_read/write`).
 
 ### Executive-assistant pairing (3-step process)
 ```bash
@@ -121,8 +128,8 @@ wxcli user-settings list-assigned-assistants EXEC_ID -o json
 ### Command group mapping (do NOT guess — use this table)
 | Setting domain | wxcli group | NOT this group |
 |---------------|-------------|----------------|
-| Org call recording | `call-recording` | ~~location-call-settings~~ |
-| Location voicemail | `location-voicemail` | ~~location-call-settings~~ |
+| Org call recording | `call-recording` | ~~location-settings~~ |
+| Location voicemail | `location-voicemail` | ~~location-settings~~ |
 | Person settings | `user-settings` | — |
 | Workspace settings | `workspace-settings` | — |
 | Workspace hoteling | `device-settings` | ~~workspace-settings~~ |
@@ -142,7 +149,7 @@ Load ONLY the reference docs relevant to the user's specific request. Do NOT loa
 | Hoteling, receptionist, calling behavior, numbers | `docs/reference/person-call-settings-behavior.md` |
 | Self-service settings (user-level OAuth) | `docs/reference/self-service-call-settings.md` |
 
-**For recording + voicemail scenarios:** Load `person-call-settings-media.md` only. The location-level recording commands are in the Quick Recipes above — you do NOT need to load any location-call-settings docs.
+**For recording + voicemail scenarios:** Load `person-call-settings-media.md` only. The location-level recording commands are in the Quick Recipes above — you do NOT need to load any location-settings docs.
 
 ## Step 2: Verify auth token
 
@@ -267,11 +274,12 @@ For small batches, use a shell loop. For large batches (50+ users), use the migr
 
 #### User-only settings (no admin endpoint — 404 guaranteed)
 
-These 6 settings exist ONLY at `/people/me/settings/{feature}`. Admin tokens **always** get 404. With a **user-level OAuth token**, use `wxcli my-call-settings` (120 commands covering all self-service `/people/me/` endpoints including these 6). Without user-level OAuth, the user must configure these via the Webex app.
+These 5 settings exist ONLY at `/people/me/settings/{feature}`. Admin tokens **always** get 404. With a **user-level OAuth token**, use `wxcli my-call-settings` (120 commands covering all self-service `/people/me/` endpoints including these 5). Without user-level OAuth, the user must configure these via the Webex app.
+
+**Simultaneous Ring is no longer in this table** — it now has an admin path via `user-settings list-simultaneous-ring` / `update-simultaneous-ring` (plus `*-criteria-simultaneous-ring` for schedule-based criteria). See the SimRing recipe above.
 
 | Setting | Self-service path | CLI group | Workspace equivalent? |
 |---------|-------------------|-----------|----------------------|
-| Simultaneous Ring | `/me/settings/simultaneousRing` | `my-call-settings` | No |
 | Sequential Ring | `/me/settings/sequentialRing` | `my-call-settings` | No |
 | Priority Alert | `/me/settings/priorityAlert` | `my-call-settings` | No |
 | Call Notify | `/me/settings/callNotify` | `my-call-settings` | No |
@@ -291,7 +299,7 @@ Present the user with the settings categories. Ask which settings they want to r
 | Call Forwarding | `show-call-forwarding` | `update-call-forwarding` | Always, Busy, No-Answer, Business Continuity |
 | Call Waiting | `show-call-waiting` | `update-call-waiting` | Simple on/off toggle |
 | Do Not Disturb | `show-do-not-disturb` | `update-do-not-disturb` | Includes ring splash, Webex Go override |
-| Simultaneous Ring | — | — | **USER-ONLY: No admin endpoint. Requires user-level OAuth via `/me/settings/simultaneousRing`** |
+| Simultaneous Ring | `list-simultaneous-ring` | `update-simultaneous-ring` | Admin-configurable via `user-settings`; `*-criteria-simultaneous-ring` commands manage schedule-based criteria |
 | Sequential Ring | — | — | **USER-ONLY: No admin endpoint. Requires user-level OAuth via `/me/settings/sequentialRing`** |
 | Single Number Reach | `wxcli single-number-reach` group | `wxcli single-number-reach` group | Uses `telephony_config` scopes, not `people` scopes |
 | Selective Accept | — | — | Criteria managed via separate CRUD methods (SDK only) |
@@ -441,7 +449,7 @@ Use the exact commands from the Quick Recipes section. Key prerequisites:
 | Voicemail transcription | `wxcli location-voicemail show LOC_ID -o json` | `wxcli location-voicemail update LOC_ID --json-body '{...}'` |
 | Music on Hold | No wxcli command — use Control Hub or SDK | — |
 
-**Do NOT use `location-call-settings` for recording or voicemail.** That group handles dial patterns only.
+**Do NOT use `location-settings` for recording or voicemail.** That group handles dial patterns only.
 
 ### 4c. Verify scope coverage
 
@@ -732,7 +740,7 @@ Common errors:
 
 ### Settings-specific errors
 
-- **404 on person settings (anonymousCallReject, simultaneousRing, sequentialRing, priorityAlert, callNotify, callPolicies):** These 6 settings have NO admin endpoint. Admin tokens always get 404. See the "User-only settings" table in Step 3. Offer the workspace-level alternative if applicable.
+- **404 on person settings (anonymousCallReject, sequentialRing, priorityAlert, callNotify, callPolicies):** These 5 settings have NO admin endpoint. Admin tokens always get 404. See the "User-only settings" table in Step 3. Offer the workspace-level alternative if applicable. (Simultaneous Ring is no longer in this list — it now has an admin path via `user-settings list-simultaneous-ring` / `update-simultaneous-ring`.)
 - **404 on person settings (all others):** Verify the person has a Webex Calling license. Unlicensed users return 404 on all `/telephony/config/people/{id}/` endpoints.
 - **405 "Invalid Professional Place" on workspace settings:** The workspace has a Basic license. Most `/telephony/config/workspaces/{id}/` settings require Professional. Only `musicOnHold` and `doNotDisturb` work on Basic. Use the `/workspaces/{id}/features/` path family for Basic workspaces (callForwarding, callWaiting, callerId, intercept, monitoring).
 - **403 on Single Number Reach:** SNR uses `spark-admin:telephony_config_read/write` scopes, not `spark-admin:people_read/write`. Check token scopes.
