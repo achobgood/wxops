@@ -28,13 +28,15 @@ The hand-written exceptions exist because they require logic that a template can
 - `cleanup.py` — 13-layer dependency ordering, parallel deletion, retry loops
 - `converged_recordings_export.py` — file streaming, transcript extraction
 - `cucm.py` / `cucm_config.py` — migration pipeline surface
-- `configure.py`, `licenses.py` — config/auth; licenses predates the generator (legacy)
+- `configure.py` — config/auth (no REST)
 - `update.py` — self-update via git pull
 
 (2026-07-01 correction: `locations.py` and `numbers.py` were listed here as legacy
 hand-written, but on-disk they are generator output — the 2026-07-01 spec sync
-regenerated them byte-identical. Only `licenses.py` remains truly hand-written;
-its consolidation is refactor-plan S3.1, pending.)
+regenerated them byte-identical. 2026-07-02: `licenses.py`, the last legacy file,
+was retired per S3.1 — flag-parity was exact and the generated update path was
+live-verified with a reversible license assign/remove round-trip; `licenses` is
+now generated, with a one-release `licenses-api` alias.)
 
 ### Consequences
 
@@ -57,7 +59,7 @@ its consolidation is refactor-plan S3.1, pending.)
 
 ### Status
 
-**Active.** 172 generated modules (all manifest-registered), 7 hand-written files. Generator has been extended incrementally (output formatting, orgId injection, JSON body support, CC specs, registration manifest, name-collision guard) without a rewrite.
+**Active.** 172 generated modules (all manifest-registered), 6 hand-written files (none legacy — every hand file is chartered per A4-style criteria). Generator has been extended incrementally (output formatting, orgId injection, JSON body support, CC specs, registration manifest, name-collision guard) without a rewrite.
 
 ---
 
@@ -82,7 +84,7 @@ wxc_sdk (Cisco's official Python SDK) provides typed methods with Pydantic model
 
 From `docs/reference/wxc-sdk-patterns.md`: "The REST client gives us access to every endpoint from day one. Typed methods lag behind the API by weeks to months." Using raw HTTP means one code path for all commands — generated and hand-written alike. The generated command template constructs URLs, injects parameters, and formats output without any SDK abstraction in between.
 
-The `WebexSession` wrapper provides just four methods: `rest_get()`, `rest_post()`, `rest_put()`, `rest_delete()`, plus `follow_pagination()` for list commands. This thin surface is a stable interface that 208+ command files depend on.
+The `WebexSession` wrapper provides five verbs: `rest_get()`, `rest_post()`, `rest_put()`, `rest_patch()` (added 2026-07-01, with `content_type` support for JSON-Patch), `rest_delete()`, plus `follow_pagination()` for list commands — all sharing one bounded-retry request path. This thin surface is a stable interface every command module depends on.
 
 ### Consequences
 

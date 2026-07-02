@@ -769,7 +769,7 @@ Use wxcli CLI commands for all standard operations. The CLI encodes required fie
 - Singular vs plural: `delete-route-group` (wrong) vs `delete-route-groups` (right)
 - Assuming `-o json` works on all commands (action/POST commands don't support it)
 - Guessing `--json-body` structure instead of reading the example in `--help`
-- Inventing commands like `wxcli users assign-license` (doesn't exist — licenses are assigned via `wxcli licenses-api update`)
+- Inventing commands like `wxcli users assign-license` (doesn't exist — licenses are assigned via `wxcli licenses update`)
 
 **When a skill provides exact command examples, trust the skill.** Skills are verified against live APIs. When operating without a skill (ad-hoc requests), always check `--help` first.
 

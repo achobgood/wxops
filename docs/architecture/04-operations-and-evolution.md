@@ -303,7 +303,7 @@ A sweep of `TODO`, `FIXME`, `HACK`, `WORKAROUND`, and `XXX` across the Python so
 
 ### Structural Debt
 
-**One legacy hand-written command file** (`licenses.py`) predates the generator. (Updated 2026-07-01: `locations.py`/`numbers.py` were also listed here, but on-disk they are generator output — the spec sync regenerated them byte-identical and they now register via the manifest.) `licenses.py` misses generator improvements and coexists with the generated `licenses-api` group; consolidation is refactor-plan S3.1, pending an explicit decision. `tools/CLAUDE.md` warns against creating new hand-written files.
+**Legacy hand-written command files: retired.** (History: `locations.py`/`numbers.py` turned out to be generator output on disk, confirmed 2026-07-01; `licenses.py` — the last one — was consolidated 2026-07-02 per refactor-plan S3.1 after a live-verified license assign/remove round-trip proved the generated twin. `licenses` is now generated; `licenses-api` is a deprecated alias for one release.) `tools/CLAUDE.md` still warns against creating new hand-written files.
 
 **Stale wxc-sdk references.** The `wxc-sdk` dependency was removed from `pyproject.toml` and no source file imports it, but references persist in documentation: `docs/reference/archive/wxc-sdk-patterns.md` (historical SDK patterns, archived 2026-07-01), several skills with `from wxc_sdk import ...` code examples, and `tools/CLAUDE.md`. A cleanup prompt exists at `docs/prompts/remove-wxc-sdk-references.md` but has not been fully executed.
 

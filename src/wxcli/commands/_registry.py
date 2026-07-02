@@ -107,7 +107,7 @@ GENERATED_GROUPS = [
     ("hybrid_clusters", "hybrid-clusters"),
     ("hybrid_connectors", "hybrid-connectors"),
     ("identity_org", "identity-org"),
-    ("licenses_api", "licenses-api"),
+    ("licenses", "licenses"),
     ("live_monitoring", "live-monitoring"),
     ("location_call_handling", "location-call-handling"),
     ("location_schedules", "location-schedules"),

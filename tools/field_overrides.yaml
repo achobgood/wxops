@@ -735,7 +735,10 @@ cli_name_overrides:
     "Bulk Manage SCIM 2 Users and Groups": "scim-bulk"
     "Historical Analytics APIs": "analytics"
     "Identity Organization": "identity-org"
-    "Licenses": "licenses-api"
+    # 2026-07-02 S3.1 consolidation: generated group takes the canonical
+    # name (hand-written licenses.py retired after live-verified parity);
+    # main.py keeps a licenses-api alias for one release
+    "Licenses": "licenses"
     "Organization Contacts": "org-contacts"
     "Partner Administrators": "partner-admins"
     "Recordings": "admin-recordings"
