@@ -22,14 +22,19 @@ The Webex API surface spans 9 OpenAPI specs covering calling, admin, device, mes
 
 ### Rationale
 
-A custom generator gives full control over the CLI UX (output formatting, pagination, orgId injection) while keeping the API surface area as a "pull from spec" operation. The generator produces 208 command files — one per OpenAPI tag — following a fixed template. When Cisco updates the spec, re-running the generator updates all commands. The `field_overrides.yaml` layer (ADR-7) handles spec quirks without modifying the generator core.
+A custom generator gives full control over the CLI UX (output formatting, pagination, orgId injection) while keeping the API surface area as a "pull from spec" operation. The generator produces 172 command modules — one per OpenAPI tag — following a fixed template, and emits their registration manifest (`_registry.py`, ADR-9). When Cisco updates the spec, `tools/spec_sync.py` re-runs the whole pipeline. The `field_overrides.yaml` layer (ADR-7) handles spec quirks without modifying the generator core.
 
-The 8 hand-written exceptions exist because they require logic that a template cannot express:
+The hand-written exceptions exist because they require logic that a template cannot express:
 - `cleanup.py` — 13-layer dependency ordering, parallel deletion, retry loops
 - `converged_recordings_export.py` — file streaming, transcript extraction
-- `cucm.py` — 16-command migration pipeline surface
-- `configure.py`, `locations.py`, `numbers.py`, `licenses.py` — predate the generator (legacy)
+- `cucm.py` / `cucm_config.py` — migration pipeline surface
+- `configure.py`, `licenses.py` — config/auth; licenses predates the generator (legacy)
 - `update.py` — self-update via git pull
+
+(2026-07-01 correction: `locations.py` and `numbers.py` were listed here as legacy
+hand-written, but on-disk they are generator output — the 2026-07-01 spec sync
+regenerated them byte-identical. Only `licenses.py` remains truly hand-written;
+its consolidation is refactor-plan S3.1, pending.)
 
 ### Consequences
 
@@ -45,12 +50,14 @@ The 8 hand-written exceptions exist because they require logic that a template c
 - Hand-coded commands drift from generator improvements (no auto-inject, no auto-column detection)
 
 **Gotchas:**
-- Registration is manual: each generated file must be added to `main.py` via `app.add_typer()`
+- ~~Registration is manual~~ Retired 2026-07-01: the generator emits
+  `src/wxcli/commands/_registry.py` and `main.py` mounts it in a loop (ADR-9).
+  A generated-but-unregistered module is structurally impossible.
 - The `Endpoint`/`EndpointField` dataclass contract between parser and renderer is a stable interface that constrains both sides
 
 ### Status
 
-**Active.** 208 generated files, 8 hand-written. Generator has been extended incrementally (output formatting, orgId injection, JSON body support, CC specs) without a rewrite.
+**Active.** 172 generated modules (all manifest-registered), 7 hand-written files. Generator has been extended incrementally (output formatting, orgId injection, JSON body support, CC specs, registration manifest, name-collision guard) without a rewrite.
 
 ---
 
@@ -414,6 +421,35 @@ The mandatory grounding rule ("Never answer any question about Webex Calling fro
 
 ---
 
+## ADR-9: Atomic Spec Sync, Generator-Owned Registration, and the Drift Gate
+
+### Decision
+
+Treat "spec refresh → regeneration → registration → coherence check" as one atomic operation (`tools/spec_sync.py`, landed as a single commit), make the generator own registration end-to-end (`src/wxcli/commands/_registry.py` manifest mounted by a loop in `main.py`), and enforce coherence mechanically via `tools/drift_check.py` (spec↔CLI parity, skill/doc reference existence, published counts, unreferenced-groups-vs-declared-list).
+
+### Context
+
+The 2026-07-01 coherence audit (docs/arch/) found: specs refreshed twice without regeneration (57 stale ops, 13 CLI-ahead commands), 34 orphaned generated modules that were never registered (manual-registration seam), ~45 dead command references across 14 skills, and stale published counts. All four failure modes were process gaps, not code bugs.
+
+### Rationale
+
+- One atomic sync makes "specs updated, regen forgotten" impossible to commit silently.
+- A generator-emitted manifest makes "generated but unregistered" structurally impossible; a stale manifest entry fails import loudly at startup instead of silently at runtime. Explicit literal `(module, group)` lines keep it greppable (adversarial critique R2).
+- Dev-only specs (flow-store) are excluded from the manifest (`--dev-only`, auto-detected) so local regens can't break fresh clones (critique R9a).
+- Deliberate gaps (skip_tags, multipart uploads, untagged ops, keep_endpoints) are emitted to `docs/arch/deliberate-gaps.md` so "no CLI" is always classifiable as deliberate vs drift.
+
+### Consequences
+
+**Enables:** drift is a CI failure, not an archaeology project; the skills layer can be held to "only teach what the built CLI resolves".
+**Forecloses:** hand-editing registration; keeping CLI-ahead commands without a recorded `keep_endpoints` decision (regen rebuilds modules wholesale from the spec).
+**Gotchas:** spec churn can silently rename commands when new ops win name races within a tag — pin operator-facing names with `tag_overrides` `command_name_overrides` (see the call-queue show/update case, 2026-07-01); the reference gate (check 2) validates names, not argument semantics.
+
+### Status
+
+**Active** since 2026-07-01. Gate is report-only; flips to enforcing at refactor-plan S4.5.
+
+---
+
 ## Decision Cross-Reference
 
 | ADR | Interacts With | Nature of Interaction |
@@ -426,6 +462,8 @@ The mandatory grounding rule ("Never answer any question about Webex Calling fro
 | ADR-4 (NetworkX DAG) | ADR-5 (Async engine) | DAG determines execution order; engine executes in that order with concurrency |
 | ADR-6 (Pipeline split) | ADR-8 (Playbook) | Advisory layer produces decisions that the Opus migration-advisor agent expands interactively |
 | ADR-8 (Playbook) | ADR-1 (Generated commands) | Skills reference specific `wxcli` commands — coupling between prompt layer and CLI surface |
+| ADR-9 (Spec sync + drift gate) | ADR-1 (Generated commands) | Retires ADR-1's "registration is manual" gotcha; regen becomes one atomic operation |
+| ADR-9 (Spec sync + drift gate) | ADR-8 (Playbook) | Gate check 2 enforces that skills only cite commands the built CLI resolves |
 
 ---
 

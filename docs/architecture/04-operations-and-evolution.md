@@ -76,38 +76,50 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on push to `main` and on PRs ag
 1. Matrix: Python 3.11 and 3.12 on `ubuntu-latest`
 2. `pip install -e .` + `pip install pytest`
 3. `pytest tests/ -m "not live" -v --tb=short`
+4. `python tools/drift_check.py` — coherence gate (spec↔CLI parity, skill
+   reference existence, published counts, unreferenced groups). Advisory
+   (`continue-on-error`) until refactor-plan S4.5 flips it to `--enforce`.
+   Note: `.github/` is gitignored, so the workflow file is local-only.
 
-That's it. No linting, no type checking, no coverage gates, no deployment step. CI is a correctness gate, not a quality gate. The `live` marker separates tests that hit the real Webex API (require a token, not safe for CI) from pure-logic tests.
+No linting, no type checking, no coverage gates, no deployment step. CI is a correctness + coherence gate, not a quality gate. The `live` marker separates tests that hit the real Webex API (require a token, not safe for CI) from pure-logic tests.
 
 **Smoke testing** (`tests/test_smoke.sh`) is a manual script for verifying a live-connected install: runs `wxcli --version`, `wxcli whoami`, and list commands for locations/users/licenses/numbers with `--limit 5`. Not wired into CI.
 
 ### Manual Operations a Developer Needs to Know
 
-#### Regenerating Commands from OpenAPI Specs
+#### Spec Sync — Regenerating Commands from OpenAPI Specs (ADR-9)
 
-When Cisco updates their API specs, or when the generator pipeline changes:
+When Cisco updates their API specs, or when the generator pipeline changes, run
+the atomic sync — it pulls specs, regenerates every tracked spec, updates the
+registration manifest, and runs the drift gate:
 
 ```bash
-# Pull latest specs from GitHub
-python3.14 tools/update-specs.py          # downloads + reports diffs
-python3.14 tools/update-specs.py --check  # exit 1 if specs are stale
+python3.14 tools/spec_sync.py                 # update + regen all + gate
+python3.14 tools/spec_sync.py --skip-update   # regen from specs on disk
+# then: review the diff (especially src/wxcli/commands/_registry.py),
+# run pytest, and land ONE commit: chore(specs): sync specs + regen (<date>)
 
-# Regenerate all (order matters — CC before admin/meetings due to tag collisions)
-PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-cloud-calling.json --all
-PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-device.json --all
-PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-messaging.json --all
-PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-ucm.json --all
-PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-contact-center.json --all
-PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-admin.json --all
-PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-meetings.json --all
-
-# Regenerate a single tag
+# Regenerate a single tag (manifest upserts automatically)
 PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-cloud-calling.json --tag "Auto Attendant"
+
+# Coherence check any time (report-only; --enforce for CI; --write-gaps
+# refreshes docs/arch/deliberate-gaps.md)
+python3.14 tools/drift_check.py
 ```
 
-**Why order matters:** The Contact Center spec has "Data Sources" and "Meeting Site" tags that collide with admin and meetings specs. CC versions are registered as `cc-data-sources` and `cc-site`. Regenerating admin/meetings *after* CC restores the correct non-prefixed files.
+**Registration is generator-owned:** the generator emits
+`src/wxcli/commands/_registry.py`; `main.py` mounts it in a loop. Never hand-add
+a generated group to `main.py`, and delete stale manifest entries in the regen
+diff review (a stale entry fails import loudly). Historical tag collisions
+(CC Site/Data Sources vs meetings/admin) are resolved by per-spec
+`cli_name_overrides`, so regen order no longer matters — `spec_sync.py` keeps
+the old order anyway.
 
-**After regenerating:** New command files must be manually registered in `main.py` via `app.add_typer()`. The generator does not auto-register.
+**Spec churn can rename commands.** New spec ops can win command-name races
+inside a tag and silently rename operator-facing commands (this happened to
+`call-queue show/update` on 2026-07-01). Pin load-bearing names with
+`tag_overrides` → `command_name_overrides` in `field_overrides.yaml`, and always
+review the regen diff for renamed commands, not just new ones.
 
 **Never hand-edit generated files.** Fix display or naming issues via `tools/field_overrides.yaml` and regenerate. See `tools/CLAUDE.md` for the full generator rule set.
 
@@ -291,9 +303,9 @@ A sweep of `TODO`, `FIXME`, `HACK`, `WORKAROUND`, and `XXX` across the Python so
 
 ### Structural Debt
 
-**Three legacy hand-written command files** (`locations.py`, `numbers.py`, `licenses.py`) predate the generator. They miss generator improvements (auto-column detection, orgId injection pattern, output formatting). Each one is a drift risk — changes to the generator don't propagate to them. `tools/CLAUDE.md` acknowledges this and warns against creating new hand-written files.
+**One legacy hand-written command file** (`licenses.py`) predates the generator. (Updated 2026-07-01: `locations.py`/`numbers.py` were also listed here, but on-disk they are generator output — the spec sync regenerated them byte-identical and they now register via the manifest.) `licenses.py` misses generator improvements and coexists with the generated `licenses-api` group; consolidation is refactor-plan S3.1, pending an explicit decision. `tools/CLAUDE.md` warns against creating new hand-written files.
 
-**Stale wxc-sdk references.** The `wxc-sdk` dependency was removed from `pyproject.toml` and no source file imports it, but references persist in documentation: `docs/reference/wxc-sdk-patterns.md` (historical SDK patterns), several skills with `from wxc_sdk import ...` code examples, and `tools/CLAUDE.md`. A cleanup prompt exists at `docs/prompts/remove-wxc-sdk-references.md` but has not been fully executed.
+**Stale wxc-sdk references.** The `wxc-sdk` dependency was removed from `pyproject.toml` and no source file imports it, but references persist in documentation: `docs/reference/archive/wxc-sdk-patterns.md` (historical SDK patterns, archived 2026-07-01), several skills with `from wxc_sdk import ...` code examples, and `tools/CLAUDE.md`. A cleanup prompt exists at `docs/prompts/remove-wxc-sdk-references.md` but has not been fully executed.
 
 **Python 3.14 version constraint.** `pyproject.toml` declares `>=3.14` but the codebase uses no 3.14-specific features. CI tests on 3.11 and 3.12. All skill and agent invocations hardcode `python3.14`. This limits adoption without providing value — it should either be relaxed to 3.11+ or a 3.14-specific feature should be identified.
 

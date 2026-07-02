@@ -3,7 +3,7 @@
 Build and configure Webex Calling, admin, device, and messaging APIs programmatically with guided Claude Code assistance.
 
 **Execution pattern:** `wxcli` CLI commands (primary) → raw HTTP (fallback).
-The wxcli CLI has 173 command groups covering calling, admin, device, messaging, meetings, and contact center APIs. Raw HTTP docs in `docs/reference/` serve as reference and fallback.
+The wxcli CLI has 179 command groups covering calling, admin, device, messaging, meetings, and contact center APIs. Raw HTTP docs in `docs/reference/` serve as reference and fallback.
 
 ## Mandatory Grounding Rule
 
@@ -217,6 +217,13 @@ When multiple skills could match, use this lookup:
 | Enable hoteling on a workspace | `manage-call-settings` | `manage-devices` (hoteling is a workspace calling setting, not device provisioning) |
 | Import org contacts / directory entries | `manage-identity` | `provision-calling` (org contacts are directory, not calling users) |
 | Reclaim licenses from inactive users | `manage-licensing` | `teardown` (license reclamation ≠ resource deletion) |
+| Manage announcement repository files/playlists (AA/CQ greetings) | `configure-features` (groups: `announcements`, `announcement-playlists`, `cq-playlists`) | `reporting` (that's recordings, not announcements) |
+| Configure E911 emergency services/addresses (`emergency-services` group) | `provision-calling` (location addresses) + `manage-call-settings` (per-person ECBN) | `wxc-calling-debug` |
+| Virtual line call settings (`virtual-line-settings`) | `manage-call-settings` (virtual lines are person-like settings; see `virtual-lines.md`) | `provision-calling` |
+| Operating modes / mode management (`mode-management`, user-token only per Known Issue #3) | `manage-call-settings` | `configure-features` (`operating-modes` location/feature side stays there) |
+| Org/admin recordings retrieval (`admin-recordings`) | `reporting` | `manage-meetings` |
+| Org profile, settings, roles (`identity-org`, `org-settings`, `roles`) | `manage-identity` | `audit-compliance` |
+| Person-level hot-desking members (`hot-desking-members`) | `manage-call-settings` (person settings) | `manage-devices` (workspace/device-level hot-desk stays there) |
 
 ### Multi-Skill Workflows
 
@@ -231,7 +238,18 @@ Common admin goals that span multiple skills. When the user states one of these 
 | Port numbers and assign to users | `provision-calling` (location number inventory) → `manage-call-settings` (assign to users) → `configure-routing` (update dial plan if needed) | Numbers flow through location inventory before user assignment |
 | Convert workspace to licensed user | `teardown` (decommission workspace) → `provision-calling` (create user, assign license) → `manage-call-settings` (voicemail, forwarding) → `manage-devices` (reassign device) | Workspace-to-user is a lifecycle change spanning 4 domains |
 | CC overflow to Calling hunt group | `contact-center` (CC queue/entry point config) + `configure-features` (hunt group) + `configure-routing` (dial plan to connect them) | CC and Calling are separate routing worlds joined by PSTN/dial plan |
-| Hot desking on conference phones | `manage-devices` (enable hot desking, manage members) + `device-platform` (PhoneOS config keys for hot desk behavior) + `manage-call-settings` (workspace hoteling settings) | Device provisioning, firmware config, and calling settings are three layers |
+| Hot desking on conference phones | `manage-devices` (enable hot desking; workspace/device level) + `device-platform` (PhoneOS config keys for hot desk behavior) + `manage-call-settings` (workspace hoteling settings AND person-level hot-desking members via `hot-desking-members`) | Device provisioning, firmware config, and calling settings are three layers; person-level members are person settings |
+
+### Out-of-Skill-Scope Groups (declared)
+
+CLI groups intentionally not fronted by any skill — "unreferenced" here is a decision, not drift. The drift gate (`tools/drift_check.py` check 4) fails any group that is neither skill-referenced nor on this list. Claiming one is a product decision: add skill coverage, then remove it from this list.
+
+- Partner/wholesale surfaces (403 for non-partner tokens): `broadworks-billing-reports`, `broadworks-enterprises`, `broadworks-subscribers`, `broadworks-workspaces`, `wholesale-provisioning`, `wholesale-billing-reports`, `partner-admins`, `partner-tags`
+- Hybrid/infra: `hybrid-clusters`, `hybrid-connectors`, `data-sources`, `resource-groups`, `resource-group-memberships`, `workspace-locations`
+- Admin long tail: `activation-email`, `archive-users`, `classifications`, `guest-management`, `identity-org`, `org-settings`, `roles`, `admin-recordings`
+- Calling long tail (disambiguation rows exist above; skill teaching pending): `announcements`, `announcement-playlists`, `cq-playlists`, `emergency-services`, `virtual-line-settings`, `mode-management`, `hot-desking-members`, `caller-reputation`, `calling-service`, `client-settings`, `device-dynamic-settings`, `external-voicemail`, `location-call-handling`, `person-call-settings`, `text-to-speech`, `ucm-profile`
+- New at 2026-07-01 spec sync, unclaimed pending review: `cc-legacy-flows`, `meeting-slido`
+- Dev-only (untracked): `fs-*`
 
 ### Reference Docs — Webex API Surface
 
@@ -315,7 +333,7 @@ Detailed migration context lives in `.claude/rules/cucm-migration.md` (auto-load
 
 | Path | Purpose |
 |------|---------|
-| `src/wxcli/main.py` | CLI entry point — 173 command groups |
+| `src/wxcli/main.py` | CLI entry point — 179 command groups |
 | `src/wxcli/commands/*.py` | All command implementations (raw HTTP pattern) |
 | `wxcli --help` | Shows all command groups |
 | `wxcli <group> --help` | Shows commands within a group |
@@ -325,7 +343,15 @@ Detailed migration context lives in `.claude/rules/cucm-migration.md` (auto-load
 | `specs/webex-device.json` | OpenAPI 3.0 spec — device management APIs |
 | `specs/webex-messaging.json` | OpenAPI 3.0 spec — messaging/rooms/teams APIs |
 | `specs/webex-meetings.json` | OpenAPI 3.0 spec — meetings/video mesh/transcripts APIs |
-| `specs/webex-contact-center.json` | OpenAPI 3.0 spec — contact center APIs (48 groups, 383 commands) |
+| `specs/webex-contact-center.json` | OpenAPI 3.0 spec — contact center APIs |
+| `specs/webex-ucm.json` | OpenAPI 3.0 spec — UCM calling profiles (1 op) |
+| `specs/webex-broadworks.json` | OpenAPI 3.0 spec — BroadWorks partner APIs |
+| `specs/webex-wholesale.json` | OpenAPI 3.0 spec — wholesale provisioning/billing APIs |
+| `specs/tts-spec.json` | OpenAPI 3.0 spec — text-to-speech APIs |
+| `src/wxcli/commands/_registry.py` | Generator-emitted registration manifest (do not edit by hand) |
+| `tools/spec_sync.py` | Atomic spec sync: update specs → regen all → manifest → drift gate |
+| `tools/drift_check.py` | Coherence gate: spec↔CLI parity, skill refs, counts (report-only until S4.5) |
+| `docs/arch/deliberate-gaps.md` | Generated list of spec ops deliberately without CLI (skip reasons) |
 | `src/wxcli/commands/cleanup.py` | Batch cleanup: inventory + parallel layered deletion |
 | `src/wxcli/commands/converged_recordings_export.py` | Hand-written download/export for converged recordings (registered into generated group) |
 
@@ -341,7 +367,7 @@ The migration tool is at `src/wxcli/migration/` and wired into the CLI as `wxcli
 
 ## CLI Status & Known Issues
 
-**173 command groups covering calling, admin, device, messaging, meetings, and contact center APIs.** Nearly all generated from 9 OpenAPI 3.0 specs via `tools/generate_commands.py`. The `converged-recordings` group combines generated CRUD commands with hand-written `download` and `export` commands (`converged_recordings_export.py`).
+**179 command groups covering calling, admin, device, messaging, meetings, wholesale, and contact center APIs.** 172 generated modules from 10 tracked OpenAPI 3.0 specs via `tools/generate_commands.py`, registered through the generator-emitted `_registry.py` manifest; spec refresh + regen is one atomic operation (`tools/spec_sync.py`), checked by `tools/drift_check.py`. The `converged-recordings` group combines generated CRUD commands with hand-written `download` and `export` commands (`converged_recordings_export.py`).
 
 ### Partner Multi-Org Support
 
