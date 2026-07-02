@@ -64,10 +64,12 @@ def load_overrides() -> dict:
     keep_endpoints; avoiding a PyYAML dependency keeps this runnable in CI.
     """
     skip_tags: dict[str, list[str]] = {}
+    skip_reasons: dict[tuple[str, str], str] = {}   # (spec, pattern) -> comment
     keep_endpoints: list[str] = []
     section = None      # "skip_tags" | "keep_endpoints" | None
     subkey = None
     for raw in OVERRIDES.read_text().splitlines():
+        comment = raw.split("#", 1)[1].strip() if "#" in raw else ""
         line = raw.split("#", 1)[0].rstrip()
         if not line.strip():
             continue
@@ -82,11 +84,14 @@ def load_overrides() -> dict:
                 subkey = stripped.rstrip(":")
                 skip_tags.setdefault(subkey, [])
             elif stripped.startswith("- ") and subkey:
-                skip_tags[subkey].append(stripped[2:].strip().strip('"').strip("'"))
+                pattern = stripped[2:].strip().strip('"').strip("'")
+                skip_tags[subkey].append(pattern)
+                skip_reasons[(subkey, pattern)] = comment
         elif section == "keep_endpoints":
             if stripped.startswith("- "):
                 keep_endpoints.append(stripped[2:].strip().strip('"').strip("'"))
-    return {"skip_tags": skip_tags, "keep_endpoints": keep_endpoints}
+    return {"skip_tags": skip_tags, "skip_reasons": skip_reasons,
+            "keep_endpoints": keep_endpoints}
 
 
 def tag_is_skipped(tag: str, spec_name: str, skip_tags: dict) -> bool:
@@ -334,6 +339,52 @@ def check_unreferenced(group_refs: dict) -> list:
     )
 
 
+# ---------------------------------------------------------- deliberate gaps
+
+GAPS_DOC = REPO / "docs" / "arch" / "deliberate-gaps.md"
+
+
+def write_gaps_doc(skipped_ops: dict, overrides: dict) -> None:
+    """Emit docs/arch/deliberate-gaps.md so 'no CLI' is classifiable as
+    deliberate vs drift without re-running the coherence audit."""
+    by_spec_tag: dict[tuple[str, str], list[str]] = {}
+    for (method, path), (spec, tag) in sorted(skipped_ops.items()):
+        by_spec_tag.setdefault((spec, tag), []).append(f"`{method} {path}`")
+    skip_tags, reasons = overrides["skip_tags"], overrides["skip_reasons"]
+
+    def reason_for(spec: str, tag: str) -> str:
+        for scope in (spec, "_global"):
+            for pat in skip_tags.get(scope, []):
+                if fnmatch.fnmatch(tag, pat):
+                    return reasons.get((scope, pat)) or "see tools/field_overrides.yaml"
+        return "see tools/field_overrides.yaml"
+
+    lines = [
+        "# Deliberate CLI Gaps (generated)",
+        "",
+        "Emitted by `tools/drift_check.py --write-gaps` — do NOT edit by hand.",
+        "Spec operations with no CLI command **on purpose**, per `skip_tags` in",
+        "`tools/field_overrides.yaml`. Anything missing from the CLI and not",
+        "listed here is drift (drift-gate check 1).",
+        "",
+    ]
+    total = 0
+    for (spec, tag), ops in sorted(by_spec_tag.items()):
+        total += len(ops)
+        lines.append(f"## {spec} — {tag} ({len(ops)} ops)")
+        lines.append(f"Reason: {reason_for(spec, tag)}")
+        lines.extend(f"- {op}" for op in ops)
+        lines.append("")
+    if overrides["keep_endpoints"]:
+        lines.append("## CLI-ahead endpoints kept deliberately (`keep_endpoints`)")
+        lines.extend(f"- `{k}`" for k in overrides["keep_endpoints"])
+        lines.append("")
+    lines.insert(7, f"**{total} skipped operations across {len(by_spec_tag)} spec/tag pairs.**")
+    lines.insert(8, "")
+    GAPS_DOC.write_text("\n".join(lines))
+    print(f"wrote {GAPS_DOC.relative_to(REPO)} ({total} ops)")
+
+
 # --------------------------------------------------------------------- main
 
 def main() -> int:
@@ -341,11 +392,16 @@ def main() -> int:
     parser.add_argument("--enforce", action="store_true",
                         help="exit 1 on any failing check (default: report only)")
     parser.add_argument("--json", action="store_true", help="machine-readable output")
+    parser.add_argument("--write-gaps", action="store_true",
+                        help="emit docs/arch/deliberate-gaps.md from skip_tags")
     args = parser.parse_args()
 
     overrides = load_overrides()
     spec_ops, skipped_ops = load_spec_ops(overrides["skip_tags"])
     surface, top_level = build_cli_surface()
+
+    if args.write_gaps:
+        write_gaps_doc(skipped_ops, overrides)
 
     parity = check_parity(surface, spec_ops, skipped_ops, overrides["keep_endpoints"])
     dead_refs, group_refs = check_references(surface, top_level)

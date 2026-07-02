@@ -557,7 +557,7 @@ auto_inject_from_config: ["orgId", "orgid"]
 #   - Devices, Workspaces      -> webex-device.json
 skip_tags:
   _global:
-    - "Beta *"
+    - "Beta *"           # Beta APIs — unstable contracts, excluded until GA
   webex-cloud-calling.json:
     - "Devices"          # canonical: webex-device.json
     - "Workspaces"       # canonical: webex-device.json
@@ -575,6 +575,14 @@ skip_tags:
   webex-meetings.json:
     - "People"           # canonical: webex-cloud-calling.json
     - "Recording Report" # canonical: webex-cloud-calling.json
+    - "Recordings"       # canonical: webex-admin.json (same 14 /recordings ops in both specs)
+  webex-contact-center.json:
+    - "Functions"        # colon-action paths (/functions/{id}:publish) — generator cannot
+                         # render ':' path segments yet; deliberate gap until colon-path
+                         # support lands (refactor-plan S1.3). 11 ops.
+    - "Activities"       # flow-store surface embedded in the CC spec (/flow-store/... paths);
+    - "Templates"        # covered by the dev-only fs-* groups generated from the untracked
+    - "Events"           # webex-flow-store.json. Deliberate gap in the tracked CLI. 6 ops.
   webex-flow-store.json:
     - admin-flow-controller    # internal admin endpoints
     - auth-controller          # OAuth redirect (handled by SDK)
@@ -632,7 +640,6 @@ cli_name_overrides:
     "Session Types": "meeting-session-types"
     "Closed Captions": "meeting-captions"
     "Slido Secure Premium": "meeting-slido"
-    "Meeting Messages": "meeting-messages"
     "Chats": "meeting-chats"
     "Summaries": "meeting-summaries"
     "Tracking Codes": "meeting-tracking-codes"
@@ -659,7 +666,6 @@ cli_name_overrides:
     "Multimedia Profile": "cc-multimedia-profile"
     "Outdial ANI": "cc-outdial-ani"
     "Overrides": "cc-overrides"
-    "CC Site": "cc-site"
     "Skill": "cc-skill"
     "Skill Profile": "cc-skill-profile"
     "Team": "cc-team"
@@ -687,7 +693,6 @@ cli_name_overrides:
     "CC Journey": "cc-journey"
     "Campaign Manager": "cc-campaign"
     "Captures": "cc-captures"
-    "CC Data Sources": "cc-data-sources"
     "Notification": "cc-notification"
     "Search": "cc-search"
     "Features: Single Number Reach": "single-number-reach"
@@ -710,7 +715,11 @@ cli_name_overrides:
     "Report Templates": "report-templates"
     "Recording Report": "recording-report"
     "Conference Controls": "conference"
-    "Converged Recordings": "recordings"
+    # converged-recordings is canonical: the reporting skill cites it and
+    # converged_recordings_export.py mounts download/export onto it. The
+    # twin "recordings" group (same /convergedRecordings API, older name)
+    # retires at the first spec sync.
+    "Converged Recordings": "converged-recordings"
     "External Voicemail": "external-voicemail"
     "Client Call Settings": "client-settings"
     "Virtual Line Call Settings": "virtual-line-settings"
@@ -739,8 +748,19 @@ cli_name_overrides:
     "Attachment Actions": "attachment-actions"
     "ECM folder linking": "ecm"
     "Team Memberships": "team-memberships"
+  webex-meetings.json:
+    # the meetings spec tag is literally "Messages" — without this override
+    # it collides with the messaging spec's core Messages tag and claims
+    # messages.py (audit finding F5)
+    "Messages": "meeting-messages"
   webex-contact-center.json:
     "Flow": "cc-flow"
+    # CC spec tags are literally "Site"/"Data Sources" — per-spec overrides
+    # resolve the collisions with meetings (Site -> meeting-site) and admin
+    # (Data Sources -> data-sources); retires the manual regen-order hack
+    # (tools/CLAUDE.md known issues #16/#17)
+    "Site": "cc-site"
+    "Data Sources": "cc-data-sources"
   webex-flow-store.json:
     "Flow": "fs-flows"
     "Flow V2": "fs-flows-v2"
@@ -753,6 +773,17 @@ cli_name_overrides:
     "flow-version-controller": "fs-flow-versions"
     "project-controller": "fs-projects"
     "expression-test-controller": "fs-expression-test"
+
+# CLI commands whose endpoints are ahead of the published spec — kept
+# deliberately. Each entry excuses one (method, path) from the drift gate's
+# CLI-ahead-of-spec check. Format: "METHOD /path" (path params in braces,
+# base URL stripped). Only add an entry with a dated reason comment proving
+# the endpoint still works live (known-good private endpoint); otherwise let
+# the regen drop the command. NOTE: regen rebuilds modules from the spec, so
+# a kept command must live in a hand-written extension module mounted onto
+# the generated group (the converged_recordings_export.register() pattern).
+# Decisions for the 13 CLI-ahead CC commands land at the first spec sync.
+keep_endpoints: []
 
 # Per-spec tag-level overrides (command_name_overrides, body_defaults, etc.)
 # Replaces top-level tag blocks that collide across specs (e.g., "Flow").
