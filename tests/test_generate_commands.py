@@ -178,7 +178,22 @@ class TestMainCLI:
         py_files = list(tmp_path.glob("*.py"))
         assert len(py_files) >= 5
         assert "Total:" in captured
-        assert "Registration block" in captured
+        assert "Manifest: _registry.py updated" in captured
+        registry = (tmp_path / "_registry.py").read_text()
+        assert "GENERATED_GROUPS = [" in registry
+        assert '("things", "things"),' in registry
+
+    def test_generate_all_dev_only_skips_manifest(self, monkeypatch, capsys, tmp_path):
+        """--dev-only prints the guarded block and never writes the manifest."""
+        rc = self._run_main(
+            monkeypatch, "--spec", str(FIXTURE_SPEC), "--all",
+            "--output", str(tmp_path), "--dev-only",
+        )
+        assert rc == 0
+        captured = capsys.readouterr().out
+        assert "manifest NOT updated" in captured
+        assert "app.add_typer" in captured
+        assert not (tmp_path / "_registry.py").exists()
 
     def test_folder_alias(self, monkeypatch, capsys, tmp_path):
         """--folder is a backward-compat alias for --tag."""
