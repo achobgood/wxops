@@ -2,7 +2,7 @@
 
 User, license, and location provisioning for Webex Calling via the `wxc_sdk` Python SDK. Each section includes both typed SDK methods and **Raw HTTP** examples using `api.session.rest_*()`.
 
-> **Prerequisite:** All examples assume a configured `WebexSimpleApi` instance. See `authentication.md` for token setup. For the raw HTTP pattern, see `wxc-sdk-patterns.md` section 1.5.
+> **Prerequisite:** All examples assume a configured `WebexSimpleApi` instance. See `authentication.md` for token setup. For the raw HTTP pattern, see `archive/wxc-sdk-patterns.md` section 1.5.
 
 ## Sources
 
@@ -1362,5 +1362,5 @@ Using the wrong format (e.g., `[{"id": ...}]` for pickup) produces 400 "Invalid 
 ## See Also
 
 - **`authentication.md`** — Token setup, OAuth flows, and scope reference.
-- **`wxc-sdk-patterns.md`** — Async bulk provisioning patterns (recipes 5.3, 5.4), workspace provisioning (recipe 5.12).
+- **`archive/wxc-sdk-patterns.md`** — Async bulk provisioning patterns (recipes 5.3, 5.4), workspace provisioning (recipe 5.12). Archived: historical SDK doc.
 - **`location-calling-core.md`** — Location calling enablement and location-level telephony configuration.

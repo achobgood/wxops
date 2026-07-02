@@ -474,7 +474,7 @@ scopes = parse_scopes('https://webexapis.com/v1/authorize?...&scope=spark%3Acall
 
 ## wxc_sdk Auth Setup
 
-> **Note:** The async variant `AsWebexSimpleApi` (from `wxc_sdk.as_api`) accepts identical token arguments and initialization patterns. See `wxc-sdk-patterns.md` section 4 for async usage details.
+> **Note:** The async variant `AsWebexSimpleApi` (from `wxc_sdk.as_api`) accepts identical token arguments and initialization patterns. See `archive/wxc-sdk-patterns.md` section 4 for async usage details.
 
 ### Initialization Patterns
 
@@ -962,4 +962,4 @@ wxcli configure --base-url https://api-usgov.webex.com/v1
 ## See Also
 
 - **`provisioning.md`** — Provisioning-specific scope requirements and end-to-end user/license/location provisioning workflows.
-- **`wxc-sdk-patterns.md`** — SDK code recipes, async auth patterns, and the service app token caching pattern (section 3, Pattern D).
+- **`archive/wxc-sdk-patterns.md`** — SDK code recipes, async auth patterns, and the service app token caching pattern (section 3, Pattern D). Archived: historical SDK doc.
