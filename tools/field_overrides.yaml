@@ -596,6 +596,7 @@ tag_merge:
     "User Call Settings":
       - "User Call Settings (1/2)"
       - "User Call Settings (2/2)"
+      - "User Call Settings (3/3)"  # 2026-06 spec split; carries simultaneousRing
     "Workspace Call Settings":
       - "Workspace Call Settings (1/2)"
       - "Workspace Call Settings (2/2)"
@@ -639,7 +640,7 @@ cli_name_overrides:
     "Meetings Summary Report": "meeting-reports"
     "Session Types": "meeting-session-types"
     "Closed Captions": "meeting-captions"
-    "Slido Secure Premium": "meeting-slido"
+    "slidoSecurePremium": "meeting-slido"  # tag renamed upstream from "Slido Secure Premium"
     "Chats": "meeting-chats"
     "Summaries": "meeting-summaries"
     "Tracking Codes": "meeting-tracking-codes"
@@ -748,13 +749,17 @@ cli_name_overrides:
     "Attachment Actions": "attachment-actions"
     "ECM folder linking": "ecm"
     "Team Memberships": "team-memberships"
+    "Hybrid Data Security": "hds"  # tag renamed upstream; skills cite `wxcli hds`
   webex-meetings.json:
     # the meetings spec tag is literally "Messages" — without this override
     # it collides with the messaging spec's core Messages tag and claims
     # messages.py (audit finding F5)
     "Messages": "meeting-messages"
   webex-contact-center.json:
-    "Flow": "cc-flow"
+    # tag renamed upstream Flow -> Flows; cc-flow name kept for continuity
+    # (contact-center skill cites it)
+    "Flows": "cc-flow"
+    "Legacy Flows": "cc-legacy-flows"
     # CC spec tags are literally "Site"/"Data Sources" — per-spec overrides
     # resolve the collisions with meetings (Site -> meeting-site) and admin
     # (Data Sources -> data-sources); retires the manual regen-order hack
@@ -783,14 +788,33 @@ cli_name_overrides:
 # a kept command must live in a hand-written extension module mounted onto
 # the generated group (the converged_recordings_export.register() pattern).
 # Decisions for the 13 CLI-ahead CC commands land at the first spec sync.
-keep_endpoints: []
+keep_endpoints:
+  # 2026-07-01 operator decision (Adam): keep CLI-ahead commands — the
+  # endpoint may still work server-side even though the AI Assistant tag
+  # was removed from the published CC spec. cc_ai_assistant.py is a stale
+  # generated module kept on disk; it will NOT survive a future regen of a
+  # reintroduced AI Assistant tag (that regen would replace it wholesale).
+  - "POST /event"   # cc-ai-assistant create ({cc_base_url}/event)
 
 # Per-spec tag-level overrides (command_name_overrides, body_defaults, etc.)
 # Replaces top-level tag blocks that collide across specs (e.g., "Flow").
 # Non-colliding top-level tag blocks still work via backwards compat.
 tag_overrides:
+  webex-cloud-calling.json:
+    # 2026-06 spec added org-wide queue-settings ops that claim the bare
+    # show/update names, demoting the per-queue commands to
+    # show-queues/update-queues. Six skills and operator muscle memory rely
+    # on `call-queue show/update LOCATION_ID QUEUE_ID` — pin the per-queue
+    # pair to the bare names; the new org-wide pair gets -org-settings
+    # (plain -settings collides with the per-queue settings GET).
+    "Features:  Call Queue":
+      command_name_overrides:
+        "show": "show-org-settings"
+        "update": "update-org-settings"
+        "show-queues": "show"
+        "update-queues": "update"
   webex-contact-center.json:
-    "Flow":
+    "Flows":   # tag renamed upstream from "Flow"
       command_name_overrides:
         "list-export": "export"
         "create": "publish"

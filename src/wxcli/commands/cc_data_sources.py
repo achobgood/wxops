@@ -1,7 +1,7 @@
 import json
 import typer
-from wxcli.errors import WebexError, handle_rest_error
 from wxcli.auth import get_api
+from wxcli.errors import WebexError, handle_rest_error
 from wxcli.output import print_table, print_json
 from wxcli.config import get_cc_base_url
 
@@ -11,12 +11,12 @@ app = typer.Typer(help="Manage Webex Contact Center cc-data-sources.")
 
 @app.command("create")
 def create(
-    nonce: str = typer.Option(None, "--nonce", help=""),
-    schema_id: str = typer.Option(None, "--schema-id", help=""),
-    url: str = typer.Option(None, "--url", help=""),
-    subject: str = typer.Option(None, "--subject", help=""),
-    token_lifetime_minutes: str = typer.Option(None, "--token-lifetime-minutes", help=""),
-    audience: str = typer.Option(None, "--audience", help=""),
+    audience: str = typer.Option(None, "--audience", help="The audience field in the JWT token. Usually, the DAPs app n"),
+    nonce: str = typer.Option(None, "--nonce", help="Unique nonce used in the encryption of the JWT token."),
+    schema_id: str = typer.Option(None, "--schema-id", help="The schema id used for the data exchange."),
+    subject: str = typer.Option(None, "--subject", help="Rhe subject field in the JWT token. Usually, an indication o"),
+    token_lifetime_minutes: str = typer.Option(None, "--token-lifetime-minutes", help="The validity of the created token in minutes. Before the tok"),
+    url: str = typer.Option(None, "--url", help="The URL of the endpoint where Webex will send the data."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -29,22 +29,22 @@ def create(
         body = json.loads(json_body)
     else:
         body = {}
+        if audience is not None:
+            body["audience"] = audience
         if nonce is not None:
             body["nonce"] = nonce
         if schema_id is not None:
             body["schemaId"] = schema_id
-        if url is not None:
-            body["url"] = url
         if subject is not None:
             body["subject"] = subject
         if token_lifetime_minutes is not None:
             body["tokenLifetimeMinutes"] = token_lifetime_minutes
-        if audience is not None:
-            body["audience"] = audience
+        if url is not None:
+            body["url"] = url
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -72,12 +72,13 @@ def cmd_list(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -101,12 +102,13 @@ def list_schemas(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -127,7 +129,7 @@ def show(
     try:
         result = api.session.rest_get(url)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -153,7 +155,7 @@ def show_data_sources(
     try:
         result = api.session.rest_get(url)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -169,14 +171,14 @@ def show_data_sources(
 @app.command("update")
 def update(
     data_source_id: str = typer.Argument(help="dataSourceId"),
-    error_message: str = typer.Option(None, "--error-message", help=""),
-    nonce: str = typer.Option(None, "--nonce", help=""),
-    schema_id: str = typer.Option(None, "--schema-id", help=""),
-    url: str = typer.Option(None, "--url", help=""),
-    token_lifetime_minutes: str = typer.Option(None, "--token-lifetime-minutes", help=""),
-    subject: str = typer.Option(None, "--subject", help=""),
-    status: str = typer.Option(None, "--status", help=""),
-    audience: str = typer.Option(None, "--audience", help=""),
+    audience: str = typer.Option(None, "--audience", help="The audience field in the JWT token. Usually, the DAPs app n"),
+    error_message: str = typer.Option(None, "--error-message", help="Error Message shown in Control Hub when status is set to `di"),
+    nonce: str = typer.Option(None, "--nonce", help="Unique nonce used in the encryption of the JWT token."),
+    schema_id: str = typer.Option(None, "--schema-id", help="The schema id used for the data exchange."),
+    status: str = typer.Option(None, "--status", help="The status of the Data Source; `active` or `disabled`."),
+    subject: str = typer.Option(None, "--subject", help="The subject field in the JWT token. Usually, an indication o"),
+    token_lifetime_minutes: str = typer.Option(None, "--token-lifetime-minutes", help="The validity of the created token in minutes. Before the tok"),
+    url: str = typer.Option(None, "--url", help="The URL of the endpoint where Webex will send the data."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -188,26 +190,26 @@ def update(
         body = json.loads(json_body)
     else:
         body = {}
+        if audience is not None:
+            body["audience"] = audience
         if error_message is not None:
             body["errorMessage"] = error_message
         if nonce is not None:
             body["nonce"] = nonce
         if schema_id is not None:
             body["schemaId"] = schema_id
-        if url is not None:
-            body["url"] = url
-        if token_lifetime_minutes is not None:
-            body["tokenLifetimeMinutes"] = token_lifetime_minutes
-        if subject is not None:
-            body["subject"] = subject
         if status is not None:
             body["status"] = status
-        if audience is not None:
-            body["audience"] = audience
+        if subject is not None:
+            body["subject"] = subject
+        if token_lifetime_minutes is not None:
+            body["tokenLifetimeMinutes"] = token_lifetime_minutes
+        if url is not None:
+            body["url"] = url
     try:
         result = api.session.rest_put(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -227,7 +229,7 @@ def delete(
     try:
         api.session.rest_delete(url)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Deleted: {data_source_id}")
 
 

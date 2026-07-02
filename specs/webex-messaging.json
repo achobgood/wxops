@@ -3368,7 +3368,7 @@
                     "items": {
                       "$ref": "#/components/schemas/Attachment"
                     },
-                    "description": "Content attachments to attach to the message. Only one card per message is supported. See the [Cards Guide](/docs/api/guides/cards) for more information."
+                    "description": "Content attachments to attach to the message. Only one card per message is supported. See the [Cards Guide](/docs/buttons-and-cards) for more information."
                   }
                 }
               }
@@ -18956,7 +18956,7 @@
             "items": {
               "$ref": "#/components/schemas/Attachment"
             },
-            "description": "Message content attachments attached to the message. See the [Cards Guide](/docs/api/guides/cards) for more information."
+            "description": "Message content attachments attached to the message. See the [Cards Guide](/docs/buttons-and-cards) for more information."
           },
           "created": {
             "type": "string",

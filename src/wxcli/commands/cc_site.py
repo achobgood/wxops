@@ -1,9 +1,9 @@
 import json
 import typer
-from wxcli.errors import WebexError, handle_rest_error
 from wxcli.auth import get_api
+from wxcli.errors import WebexError, handle_rest_error
 from wxcli.output import print_table, print_json
-from wxcli.config import get_cc_base_url, get_cc_org_id
+from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
 
 
 app = typer.Typer(help="Manage Webex Contact Center cc-site.")
@@ -32,12 +32,13 @@ def cmd_list(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -47,14 +48,16 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    name: str = typer.Option(None, "--name", help=""),
-    active: str = typer.Option(None, "--active", help=""),
-    organization_id: str = typer.Option(None, "--organization-id", help=""),
-    multimedia_profile_id: str = typer.Option(None, "--multimedia-profile-id", help=""),
-    system_default: str = typer.Option(None, "--system-default", help=""),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to def"),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
+    name: str = typer.Option(None, "--name", help="(required) Indicates the name of the site. Generally, it is the name of"),
+    active: bool = typer.Option(None, "--active/--no-active", help="(required) Indicates the status of the site whether it is active(when t"),
+    multimedia_profile_id: str = typer.Option(None, "--multimedia-profile-id", help="(required) Indicates the multimedia profile for the site. It is require"),
     description: str = typer.Option(None, "--description", help=""),
-    version: str = typer.Option(None, "--version", help=""),
-    id_param: str = typer.Option(None, "--id", help=""),
+    system_default: bool = typer.Option(None, "--system-default/--no-system-default", help="Indicates whether the created resource is system created or"),
+    created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
+    last_updated_time: str = typer.Option(None, "--last-updated-time", help="Time(in epoch millis) when this resource was last updated."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -68,26 +71,64 @@ def create(
         body = json.loads(json_body)
     else:
         body = {}
+        if organization_id is not None:
+            body["organizationId"] = organization_id
+        if id_param is not None:
+            body["id"] = id_param
+        if version is not None:
+            body["version"] = version
         if name is not None:
             body["name"] = name
         if active is not None:
             body["active"] = active
-        if organization_id is not None:
-            body["organizationId"] = organization_id
         if multimedia_profile_id is not None:
             body["multimediaProfileId"] = multimedia_profile_id
-        if system_default is not None:
-            body["systemDefault"] = system_default
         if description is not None:
             body["description"] = description
-        if version is not None:
-            body["version"] = version
-        if id_param is not None:
-            body["id"] = id_param
+        if system_default is not None:
+            body["systemDefault"] = system_default
+        if created_time is not None:
+            body["createdTime"] = created_time
+        if last_updated_time is not None:
+            body["lastUpdatedTime"] = last_updated_time
+        _missing = [f for f in ['name', 'active', 'multimediaProfileId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif not result or result == {}:
+        typer.echo("Created.")
+    else:
+        print_json(result)
+
+
+
+@app.command("create-bulk")
+def create_bulk(
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Bulk save Site(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    orgid = get_cc_org_id(api.session)
+    url = f"{cc_base_url}/organization/{orgid}/site/bulk"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -122,12 +163,13 @@ def list_bulk_export(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:
@@ -157,7 +199,7 @@ def create_purge_inactive_entities(
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     elif isinstance(result, dict) and "id" in result:
@@ -183,7 +225,7 @@ def show(
     try:
         result = api.session.rest_get(url)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     if output == "json":
         print_json(result)
     else:
@@ -199,14 +241,16 @@ def show(
 @app.command("update")
 def update(
     id: str = typer.Argument(help="id"),
-    name: str = typer.Option(None, "--name", help=""),
-    active: str = typer.Option(None, "--active", help=""),
-    organization_id: str = typer.Option(None, "--organization-id", help=""),
-    multimedia_profile_id: str = typer.Option(None, "--multimedia-profile-id", help=""),
-    system_default: str = typer.Option(None, "--system-default", help=""),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to def"),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
+    name: str = typer.Option(None, "--name", help="Indicates the name of the site. Generally, it is the name of"),
+    active: bool = typer.Option(None, "--active/--no-active", help="Indicates the status of the site whether it is active(when t"),
+    multimedia_profile_id: str = typer.Option(None, "--multimedia-profile-id", help="Indicates the multimedia profile for the site. It is require"),
     description: str = typer.Option(None, "--description", help=""),
-    version: str = typer.Option(None, "--version", help=""),
-    id_param: str = typer.Option(None, "--id", help=""),
+    system_default: bool = typer.Option(None, "--system-default/--no-system-default", help="Indicates whether the created resource is system created or"),
+    created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
+    last_updated_time: str = typer.Option(None, "--last-updated-time", help="Time(in epoch millis) when this resource was last updated."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -219,26 +263,30 @@ def update(
         body = json.loads(json_body)
     else:
         body = {}
+        if organization_id is not None:
+            body["organizationId"] = organization_id
+        if id_param is not None:
+            body["id"] = id_param
+        if version is not None:
+            body["version"] = version
         if name is not None:
             body["name"] = name
         if active is not None:
             body["active"] = active
-        if organization_id is not None:
-            body["organizationId"] = organization_id
         if multimedia_profile_id is not None:
             body["multimediaProfileId"] = multimedia_profile_id
-        if system_default is not None:
-            body["systemDefault"] = system_default
         if description is not None:
             body["description"] = description
-        if version is not None:
-            body["version"] = version
-        if id_param is not None:
-            body["id"] = id_param
+        if system_default is not None:
+            body["systemDefault"] = system_default
+        if created_time is not None:
+            body["createdTime"] = created_time
+        if last_updated_time is not None:
+            body["lastUpdatedTime"] = last_updated_time
     try:
         result = api.session.rest_put(url, json=body)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     typer.echo(f"Updated.")
 
 
@@ -251,7 +299,7 @@ def delete(
 ):
     """Delete specific Site by ID."""
     if not force:
-        typer.confirm(f"Delete {orgid}?", abort=True)
+        typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -259,8 +307,49 @@ def delete(
     try:
         api.session.rest_delete(url)
     except WebexError as e:
-            handle_rest_error(e)
-    typer.echo(f"Deleted: {orgid}")
+        handle_rest_error(e)
+    typer.echo(f"Deleted: {id}")
+
+
+
+@app.command("list-incoming-references")
+def list_incoming_references(
+    id: str = typer.Argument(help="id"),
+    type_param: str = typer.Option(None, "--type", help="Entity type of the other entity that has a reference to this"),
+    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
+    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """List references for a specific Site."""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    orgid = get_cc_org_id(api.session)
+    url = f"{cc_base_url}/organization/{orgid}/site/{id}/incoming-references"
+    params = {}
+    if type_param is not None:
+        params["type"] = type_param
+    if page is not None:
+        params["page"] = page
+    if page_size is not None:
+        params["pageSize"] = page_size
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    result = None
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    result = result or []
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -296,82 +385,13 @@ def list_site(
         params["max"] = limit
     if offset > 0:
         params["start"] = offset
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
-            handle_rest_error(e)
+        handle_rest_error(e)
     result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
-
-
-
-@app.command("create-bulk")
-def create_bulk(
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Bulk save Site(s)\n\nExample --json-body:\n  '{"items":[{"item":"...","itemIdentifier":"...","requestAction":"..."}]}'."""
-    api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    orgid = get_cc_org_id(api.session)
-    url = f"{cc_base_url}/organization/{orgid}/site/bulk"
-    if json_body:
-        body = json.loads(json_body)
-    else:
-        body = {}
-    try:
-        result = api.session.rest_post(url, json=body)
-    except WebexError as e:
-            handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
-    else:
-        print_json(result)
-
-
-
-@app.command("list-incoming-references")
-def list_incoming_references(
-    id: str = typer.Argument(help="id"),
-    type_param: str = typer.Option(None, "--type", help="Entity type of the other entity that has a reference to this"),
-    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
-    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """List references for a specific Site."""
-    api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    orgid = get_cc_org_id(api.session)
-    url = f"{cc_base_url}/organization/{orgid}/site/{id}/incoming-references"
-    params = {}
-    if type_param is not None:
-        params["type"] = type_param
-    if page is not None:
-        params["page"] = page
-    if page_size is not None:
-        params["pageSize"] = page_size
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
-    try:
-        result = api.session.rest_get(url, params=params)
-    except WebexError as e:
-            handle_rest_error(e)
-    result = result or []
-    items = result.get("items", result if isinstance(result, list) else []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:

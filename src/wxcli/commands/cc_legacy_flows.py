@@ -3,28 +3,33 @@ import typer
 from wxcli.auth import get_api
 from wxcli.errors import WebexError, handle_rest_error
 from wxcli.output import print_table, print_json
+from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
 
 
-app = typer.Typer(help="Manage Webex Calling slidosecurepremium.")
+app = typer.Typer(help="Manage Webex Contact Center cc-legacy-flows.")
 
 
 @app.command("list")
 def cmd_list(
-    session_org_id: str = typer.Option(..., "--session-org-id", help="Webex organization UUID."),
-    session_id: str = typer.Option(..., "--session-id", help="Webex meeting instance ID (`{meetingSeriesId}_I_{conferenceI"),
+    flow_id: str = typer.Argument(help="flowId"),
+    project_id: str = typer.Argument(help="projectId"),
+    version: str = typer.Option(None, "--version", help="Version ID. Possible values are 'draft', 'latest' or version"),
+    flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Compliance Events."""
+    """Export a Flow or Subflow."""
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/slido/compliance/events"
+    cc_base_url = get_cc_base_url()
+    org_id = get_cc_org_id(api.session)
+    url = f"{cc_base_url}/flow-store/{org_id}/project/{project_id}/flows/{flow_id}:export"
     params = {}
-    if session_org_id is not None:
-        params["sessionOrgId"] = session_org_id
-    if session_id is not None:
-        params["sessionId"] = session_id
+    if version is not None:
+        params["version"] = version
+    if flow_type is not None:
+        params["flowType"] = flow_type
     if limit > 0:
         params["max"] = limit
     if offset > 0:
@@ -35,7 +40,7 @@ def cmd_list(
     except WebexError as e:
         handle_rest_error(e)
     result = result or []
-    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("associatedChannels", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:

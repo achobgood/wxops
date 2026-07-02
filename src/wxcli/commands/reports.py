@@ -58,6 +58,7 @@ def create(
     start_date: str = typer.Option(None, "--start-date", help="Data in the report will be from this date onwards."),
     end_date: str = typer.Option(None, "--end-date", help="Data in the report will be until this date."),
     site_list: str = typer.Option(None, "--site-list", help="Sites belonging to user's organization. This attribute is ne"),
+    time_zone: str = typer.Option(None, "--time-zone", help="Time zone used for report date and time values. Use an IANA"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -77,6 +78,8 @@ def create(
             body["endDate"] = end_date
         if site_list is not None:
             body["siteList"] = site_list
+        if time_zone is not None:
+            body["timeZone"] = time_zone
         _missing = [f for f in ['templateId'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)

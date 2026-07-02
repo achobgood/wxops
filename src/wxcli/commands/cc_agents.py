@@ -84,8 +84,8 @@ def update(
 
 
 
-@app.command("update-state")
-def update_state(
+@app.command("update-state-session")
+def update_state_session(
     state: str = typer.Option(None, "--state", help="It represents the current state of the user. Can be set to `"),
     aux_code_id: str = typer.Option(None, "--aux-code-id", help="Auxiliary Codes are status codes which an agent can select i"),
     last_state_change_reason: str = typer.Option(None, "--last-state-change-reason", help="It represents the reason of the last state change request, m"),
@@ -117,8 +117,8 @@ def update_state(
 
 
 
-@app.command("create-reload")
-def create_reload(
+@app.command("create-reload-agents")
+def create_reload_agents(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -284,5 +284,142 @@ def list_statistics(
         print_json(items)
     else:
         print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+
+
+
+@app.command("create-login")
+def create_login(
+    dial_number: str = typer.Option(None, "--dial-number", help="(required) A dialNumber field contains the number to dial such as a rou"),
+    team_id: str = typer.Option(None, "--team-id", help="The unique ID representing a team of users. Leaving this fie"),
+    is_extension: bool = typer.Option(None, "--is-extension/--no-is-extension", help="It indicates if the dialNumber field is full number or exten"),
+    device_type: str = typer.Option(None, "--device-type", help="It represents the way to differentiate type of login request"),
+    device_id: str = typer.Option(None, "--device-id", help="It is equal to dialNumber for AGENT_DN & EXTENSION deviceTyp"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Login\n\nExample --json-body:\n  '{"dialNumber":"...","roles":["..."],"teamId":"...","isExtension":true,"deviceType":"...","deviceId":"..."}'."""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/v2/agents/login"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if dial_number is not None:
+            body["dialNumber"] = dial_number
+        if team_id is not None:
+            body["teamId"] = team_id
+        if is_extension is not None:
+            body["isExtension"] = is_extension
+        if device_type is not None:
+            body["deviceType"] = device_type
+        if device_id is not None:
+            body["deviceId"] = device_id
+        _missing = [f for f in ['dialNumber'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif not result or result == {}:
+        typer.echo("Created.")
+    else:
+        print_json(result)
+
+
+
+@app.command("update-logout")
+def update_logout(
+    logout_reason: str = typer.Option(None, "--logout-reason", help="The reason for performing logout operation, maximum length 1"),
+    agent_id: str = typer.Option(None, "--agent-id", help="Unique ID of the user who is being logged out, maximum lengt"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Logout."""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/v2/agents/logout"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if logout_reason is not None:
+            body["logoutReason"] = logout_reason
+        if agent_id is not None:
+            body["agentId"] = agent_id
+    try:
+        result = api.session.rest_put(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("update-state-session-1")
+def update_state_session_1(
+    state: str = typer.Option(None, "--state", help="It represents the current state of the user. Can be set to `"),
+    aux_code_id: str = typer.Option(None, "--aux-code-id", help="Auxiliary Codes are status codes which an agent can select i"),
+    reason: str = typer.Option(None, "--reason", help="It represents the reason of the last agent channel state cha"),
+    agent_id: str = typer.Option(None, "--agent-id", help="User for which agent channel state change is initiated, maxi"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """State Change\n\nExample --json-body:\n  '{"channelType":["..."],"state":"...","auxCodeId":"...","reason":"...","agentId":"..."}'."""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/v2/agents/session/state"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if state is not None:
+            body["state"] = state
+        if aux_code_id is not None:
+            body["auxCodeId"] = aux_code_id
+        if reason is not None:
+            body["reason"] = reason
+        if agent_id is not None:
+            body["agentId"] = agent_id
+    try:
+        result = api.session.rest_put(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    typer.echo(f"Updated.")
+
+
+
+@app.command("create-reload-agents-1")
+def create_reload_agents_1(
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Reload."""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/v2/agents/reload"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    if output == "json":
+        print_json(result)
+    elif isinstance(result, dict) and "id" in result:
+        typer.echo(f"Created: {result['id']}")
+    elif not result or result == {}:
+        typer.echo("Created.")
+    else:
+        print_json(result)
 
 

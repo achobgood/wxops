@@ -205,32 +205,36 @@ def update_caller_id(
 
 
 
-@app.command("show-monitoring")
-def show_monitoring(
+@app.command("list-monitoring")
+def list_monitoring(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Retrieve Monitoring Settings for a Workspace."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/workspaces/{workspace_id}/features/monitoring"
     params = {}
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    result = result or []
+    items = result.get("monitoredElements", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
-        print_json(result)
+        print_json(items)
     else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -241,7 +245,7 @@ def update_monitoring(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Monitoring Settings for a Workspace\n\nExample --json-body:\n  '{"enableCallParkNotification":true,"monitoredElements":["..."]}'."""
+    """Modify Monitoring Settings for a Workspace\n\nExample --json-body:\n  '{"enableCallParkNotification":true,"monitoredElements":[{"id":"...","type":"...","lineKeyLabel":"...","phoneNumber":"..."}]}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/workspaces/{workspace_id}/features/monitoring"
     params = {}
@@ -259,6 +263,96 @@ def update_monitoring(
     except WebexError as e:
         handle_rest_error(e)
     typer.echo(f"Updated.")
+
+
+
+@app.command("list-available-members-speed-dials")
+def list_available_members_speed_dials(
+    workspace_id: str = typer.Argument(help="workspaceId"),
+    location_id: str = typer.Option(None, "--location-id", help="Search for the available speed dials in the location ID."),
+    member_name: str = typer.Option(None, "--member-name", help="Search for available members by name."),
+    phone_number: str = typer.Option(None, "--phone-number", help="Search for available members by number or extension."),
+    order: str = typer.Option(None, "--order", help="Sort response based on `firstName` or `lastName` with sort d"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Available Speed Dials for Workspace Monitoring."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/monitoring/speedDials/availableMembers"
+    params = {}
+    if location_id is not None:
+        params["locationId"] = location_id
+    if member_name is not None:
+        params["memberName"] = member_name
+    if phone_number is not None:
+        params["phoneNumber"] = phone_number
+    if order is not None:
+        params["order"] = order
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    result = None
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    result = result or []
+    items = result.get("members", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+
+
+
+@app.command("list-available-members-monitoring")
+def list_available_members_monitoring(
+    workspace_id: str = typer.Argument(help="workspaceId"),
+    location_id: str = typer.Option(None, "--location-id", help="Search for the available members in the location ID."),
+    member_name: str = typer.Option(None, "--member-name", help="Search for available members by name."),
+    phone_number: str = typer.Option(None, "--phone-number", help="Search for available members by number or extension."),
+    order: str = typer.Option(None, "--order", help="Sort response based on `firstName` or `lastName` with sort d"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Available Members for Workspace Monitoring."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/monitoring/availableMembers"
+    params = {}
+    if location_id is not None:
+        params["locationId"] = location_id
+    if member_name is not None:
+        params["memberName"] = member_name
+    if phone_number is not None:
+        params["phoneNumber"] = phone_number
+    if order is not None:
+        params["order"] = order
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    result = None
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    result = result or []
+    items = result.get("members", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
