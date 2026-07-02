@@ -377,8 +377,8 @@ wxcli supports partner/VAR/MSP admins who manage multiple customer orgs with a s
 - **`wxcli switch-org`** — change the active target org at any time.
 - **`wxcli clear-org`** — remove the saved `orgId` to revert to single-org behavior.
 - **`wxcli whoami`** — shows a "Target:" line when an org is set.
-- **668 of 804 generated commands** auto-inject `orgId` from config on endpoints that accept it. No flag is required — the parameter is injected transparently.
-- **3 hand-coded command files** (licenses, locations, numbers) also inject `orgId` from config. `users` is now an alias for the generated `people` command group.
+- **Most generated commands** auto-inject `orgId` from config on endpoints that accept it (generator `auto_inject_from_config`). No flag is required — the parameter is injected transparently.
+- The former hand-coded trio (licenses, locations, numbers) is retired — all three are generated modules now with the same orgId injection. `users` is an alias for the generated `people` group; `licenses-api` is a deprecated one-release alias for `licenses` (renamed 2026-07-02).
 - The builder agent has a blocking org confirmation step at session start (section 2b) when a partner token is detected.
 
 See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for full details.

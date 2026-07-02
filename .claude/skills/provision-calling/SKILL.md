@@ -198,7 +198,7 @@ wxcli licenses list --output json
 # Find the license where name contains "Calling - Professional"
 
 # Assign the calling license with location and extension
-wxcli licenses-api update --person-id PERSON_ID --json-body '{
+wxcli licenses update --person-id PERSON_ID --json-body '{
   "email": "jsmith@example.com",
   "licenses": [{
     "id": "CALLING_LICENSE_ID",
@@ -237,7 +237,7 @@ for email in user1@example.com user2@example.com user3@example.com; do
   echo "Created: $email → $PERSON_ID"
 
   # Step 2: Assign calling license with location and extension
-  wxcli licenses-api update --person-id "$PERSON_ID" --json-body "{
+  wxcli licenses update --person-id "$PERSON_ID" --json-body "{
     \"email\": \"$email\",
     \"licenses\": [{
       \"id\": \"$LICENSE_ID\",
@@ -254,7 +254,7 @@ for email in user1@example.com user2@example.com user3@example.com; do
 done
 ```
 
-**Note:** If `people create` returns 400, the user may still have been created. Check with `wxcli people list --email <email>` before retrying. If the user exists, skip the create and run only the `licenses-api update` step with the existing person ID.
+**Note:** If `people create` returns 400, the user may still have been created. Check with `wxcli people list --email <email>` before retrying. If the user exists, skip the create and run only the `licenses update` step with the existing person ID.
 
 > **Bulk operations (50+ users):** Shell loops with `sleep 1` work for small batches. For large batches, reference the migration engine's async pattern in `src/wxcli/migration/execute/engine.py` which handles concurrency, rate limiting, and retry automatically.
 
@@ -387,7 +387,7 @@ Provisioning-specific errors:
 
 ## License Lookup Quick Reference
 
-> For bulk license assignment, usage auditing, and reclamation workflows, see the `manage-licensing` skill. The `licenses-api update` command provides CLI-native license assignment.
+> For bulk license assignment, usage auditing, and reclamation workflows, see the `manage-licensing` skill. The `licenses update` command provides CLI-native license assignment (`licenses-api` remains a deprecated alias for one release).
 
 ```bash
 # List all licenses — look for "Webex Calling - Professional" with available capacity
