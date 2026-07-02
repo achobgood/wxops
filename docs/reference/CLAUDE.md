@@ -7,12 +7,12 @@
 - **Person call settings** (5): `person-call-settings-{handling,media,permissions,behavior}.md`, `self-service-call-settings.md`
 - **Location calling** (3): `location-calling-core.md`, `location-calling-media.md`, `location-recording-advanced.md`
 - **Devices** (4): `devices-{core,dect,workspaces,platform}.md`
-- **wxcadm** (8): `wxcadm-{core,person,locations,features,devices-workspaces,xsi-realtime,routing,advanced}.md`
+- **wxcadm** (1): `wxcadm-xsi-realtime.md` (XSI streaming has no wxcli path; used by call-control). The other 7 wxcadm docs + `wxc-sdk-patterns.md` are archived in `archive/` — historical Python SDK object-model docs this repo does not execute.
 - **Admin** (7): `admin-{org-management,identity-scim,licensing,audit-security,hybrid,partner,apps-data}.md`
 - **Meetings** (4): `meetings-{core,content,settings,infrastructure}.md`
 - **Messaging** (2): `messaging-{spaces,bots}.md`
 - **Contact Center** (4): `contact-center-{core,routing,analytics,journey}.md`
-- **Standalone** (11): `authentication.md`, `provisioning.md`, `wxc-sdk-patterns.md` (historical), `call-features-major.md`, `call-features-additional.md`, `call-routing.md`, `call-control.md`, `webhooks-events.md`, `reporting-analytics.md`, `virtual-lines.md`, `emergency-services.md`
+- **Standalone** (10): `authentication.md`, `provisioning.md`, `call-features-major.md`, `call-features-additional.md`, `call-routing.md`, `call-control.md`, `webhooks-events.md`, `reporting-analytics.md`, `virtual-lines.md`, `emergency-services.md`
 
 ## Consumers
 

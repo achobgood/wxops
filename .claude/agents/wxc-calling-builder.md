@@ -320,7 +320,7 @@ Most work uses wxcli. Only prompt for wxcadm when the user's objective involves:
 - XSI real-time call event monitoring
 - RedSky E911 configuration
 - CP-API operations
-- The 10 person-settings methods unique to wxcadm (see `docs/reference/wxcadm-person.md`)
+- The 10 person-settings methods unique to wxcadm (see `docs/reference/archive/wxcadm-person.md`)
 
 For messaging requests, also probe:
 - **Token type**: "Bot token, user token, or admin token?" (explain differences if user is unsure)
@@ -747,9 +747,9 @@ The `wxcli call-controls` group requires a **user-level OAuth token** — admin 
 ### wxcadm Selection
 Only use wxcadm when the operation requires:
 - XSI real-time event streams (`docs/reference/wxcadm-xsi-realtime.md`)
-- RedSky E911 configuration (`docs/reference/wxcadm-advanced.md`)
-- CP-API operations (`docs/reference/wxcadm-advanced.md`)
-- One of the 10 person-settings methods unique to wxcadm (`docs/reference/wxcadm-person.md`)
+- RedSky E911 configuration (`docs/reference/archive/wxcadm-advanced.md`)
+- CP-API operations (`docs/reference/archive/wxcadm-advanced.md`)
+- One of the 10 person-settings methods unique to wxcadm (`docs/reference/archive/wxcadm-person.md`)
 
 Everything else uses wxcli. Do not mix wxcadm and wxcli within a single execution step — they use different auth mechanisms. You may use both in the same deployment plan across different steps.
 
@@ -840,23 +840,23 @@ docs/reference/webhooks-events.md
 ### XSI Real-Time Events (wxcadm only)
 ```
 docs/reference/wxcadm-xsi-realtime.md
-docs/reference/wxcadm-core.md
+docs/reference/archive/wxcadm-core.md
 ```
 
 ### RedSky E911 / CP-API / Advanced wxcadm
 ```
-docs/reference/wxcadm-advanced.md
-docs/reference/wxcadm-core.md
+docs/reference/archive/wxcadm-advanced.md
+docs/reference/archive/wxcadm-core.md
 ```
 
-### wxcadm Reference (XSI, RedSky, CP-API)
+### wxcadm Reference (XSI, RedSky, CP-API — archived; historical SDK object model)
 ```
-docs/reference/wxcadm-core.md                  — Webex/Org classes, object model, auth
-docs/reference/wxcadm-person.md                 — Person class, 34 call settings methods
-docs/reference/wxcadm-locations.md              — Location management, features, schedules
-docs/reference/wxcadm-features.md               — AA, CQ, HG, pickup, announcements, recording
-docs/reference/wxcadm-devices-workspaces.md     — Devices, DECT, workspaces, virtual lines, numbers
-docs/reference/wxcadm-routing.md                — Call routing, PSTN, CDR, reports, jobs, webhooks
+docs/reference/archive/wxcadm-core.md               — Webex/Org classes, object model, auth
+docs/reference/archive/wxcadm-person.md             — Person class, 34 call settings methods
+docs/reference/archive/wxcadm-locations.md          — Location management, features, schedules
+docs/reference/archive/wxcadm-features.md           — AA, CQ, HG, pickup, announcements, recording
+docs/reference/archive/wxcadm-devices-workspaces.md — Devices, DECT, workspaces, virtual lines, numbers
+docs/reference/archive/wxcadm-routing.md            — Call routing, PSTN, CDR, reports, jobs, webhooks
 ```
 
 ### Emergency Services

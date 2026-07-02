@@ -239,7 +239,6 @@ Common admin goals that span multiple skills. When the user states one of these 
 |------|---------|
 | `docs/reference/authentication.md` | Auth methods, tokens, scopes, OAuth flows |
 | `docs/reference/provisioning.md` | People (profile fields, phoneNumbers array incl. alternate1/alternate2), licenses, locations, org setup |
-| `docs/reference/wxc-sdk-patterns.md` | Historical: scopes reference, raw HTTP patterns (built from wxc_sdk source) |
 | `docs/reference/call-features-major.md` | Auto attendants, call queues, hunt groups |
 | `docs/reference/call-features-additional.md` | Paging, call park, pickup, voicemail groups, Customer Assist |
 | `docs/reference/person-call-settings-handling.md` | Call forwarding, DND, call waiting, sim/sequential ring |
@@ -261,18 +260,13 @@ Common admin goals that span multiple skills. When the user states one of these 
 | `docs/reference/virtual-lines.md` | Virtual line/extension settings, voicemail, recording |
 | `docs/reference/emergency-services.md` | E911, emergency addresses, ECBN |
 
-### Reference Docs — Admin APIs (Core Object Model)
+### Reference Docs — XSI Real-Time (wxcadm)
 
 | Path | Purpose |
 |------|---------|
-| `docs/reference/wxcadm-core.md` | Webex/Org classes, object model, auth patterns |
-| `docs/reference/wxcadm-person.md` | Person class (34 call settings methods, 10 unique capabilities) |
-| `docs/reference/wxcadm-locations.md` | Location management, features, schedules |
-| `docs/reference/wxcadm-features.md` | AA, CQ, HG, pickup, announcements, recording |
-| `docs/reference/wxcadm-devices-workspaces.md` | Devices, DECT, workspaces, virtual lines, numbers |
-| `docs/reference/wxcadm-xsi-realtime.md` | XSI events, real-time call monitoring |
-| `docs/reference/wxcadm-routing.md` | Call routing, PSTN, CDR, reports, jobs, webhooks |
-| `docs/reference/wxcadm-advanced.md` | RedSky E911, Meraki integration, CP-API, wholesale, bifrost |
+| `docs/reference/wxcadm-xsi-realtime.md` | XSI events, real-time call monitoring (used by call-control skill) |
+
+Historical SDK object-model docs (wxcadm core/person/locations/features/devices-workspaces/routing/advanced, wxc-sdk-patterns) live in `docs/reference/archive/` — they document Python SDKs this repo does not execute. Resurrect deliberately if a future skill needs RedSky-portal/Meraki/CP-API facts.
 
 ### Reference Docs — Admin & Identity APIs
 

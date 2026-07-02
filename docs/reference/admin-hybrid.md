@@ -385,4 +385,4 @@ pip3.11 install -e . -q
 
 - `docs/reference/reporting-analytics.md` -- CDR feed, report templates, call quality/queue/AA statistics
 - `docs/reference/authentication.md` -- Token types, scopes, OAuth flows
-- `docs/reference/wxcadm-core.md` -- wxcadm org/auth patterns (alternative to raw HTTP)
+- `docs/reference/archive/wxcadm-core.md` -- wxcadm org/auth patterns (alternative to raw HTTP; archived historical SDK doc)
