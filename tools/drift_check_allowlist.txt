@@ -1,0 +1,15 @@
+# drift_check.py check-2 allowlist — verified prose false-positives only.
+# One entry per line: "<group>" ignores the group everywhere,
+# "<group> <command>" ignores that exact pair. Do NOT add real commands
+# here to silence the gate — fix the skill instead.
+
+# "wxcli commands" — English prose inside code spans, not a group
+commands
+# "all wxcli cucm commands" — prose; cucm's real subcommands resolve
+cucm commands
+# call-control/SKILL.md checklist item "wxcli call-controls accessible" —
+# prose inside a fenced checklist template
+call-controls accessible
+# wxc-calling-builder.md:591 — deliberately fake group used to TEACH the
+# --help verification gate (audit: "harmless as written")
+locations-api
