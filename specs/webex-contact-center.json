@@ -25183,7 +25183,7 @@
           "Desktop Profile"
         ],
         "summary": "List Desktop Profiles",
-        "description": "Retrieve a list of Desktop Profiles in a given organization.\n Note: Returning array fields in the List (Get All) API response is deprecated. To retrieve the complete resource with all fields, please use the Get-by-ID API instead.",
+        "description": "Retrieve a list of Desktop Profiles in a given organization.\n Note: Returning array fields in the List (Get All) API response is deprecated. To retrieve the complete resource with all fields, please use the Get-by-ID API instead. Deprecated. Use GET /v2/agent-profile instead.",
         "operationId": "getAllConfigDesktopProfile",
         "parameters": [
           {
@@ -25258,13 +25258,14 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/AgentProfileResponseDTO"
+                    "$ref": "#/components/schemas/AgentProfileResponseDTOList"
                   }
                 },
                 "example": [
                   {
                     "timeoutDesktopInactivityMins": 5,
                     "showUserDetailsMS": true,
+                    "manageChannelAvailability": true,
                     "buddyTeams": [
                       "5_Jan_Testing",
                       "7_Feb_Testing"
@@ -25276,7 +25277,8 @@
                       "WrapUp_Field"
                     ],
                     "description": "This profile allows agent to auto wrap-up time and extend the wrap-up time.",
-                    "agentDNValidation": "SPECIFIC",
+                    "agentDNValidation": "ALL",
+                    "autoAcceptDigitalInteractions": false,
                     "agentDNValidationCriterions": [
                       "DN_5_Sept",
                       "DN_7_Jan"
@@ -25457,7 +25459,8 @@
               }
             }
           }
-        }
+        },
+        "deprecated": true
       },
       "post": {
         "tags": [
@@ -25502,7 +25505,8 @@
                 "accessQueueStats": "ALL",
                 "accessTeamStats": "ALL"
               },
-              "active": true
+              "active": true,
+              "autoAcceptDigitalInteractions": false
             }
           }
         ],
@@ -26280,7 +26284,8 @@
                 "accessQueueStats": "ALL",
                 "accessTeamStats": "ALL"
               },
-              "active": true
+              "active": true,
+              "autoAcceptDigitalInteractions": false
             }
           }
         ],
@@ -26964,7 +26969,7 @@
                     "data": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/AgentProfileResponseDTO"
+                        "$ref": "#/components/schemas/AgentProfileResponseDTOList"
                       }
                     }
                   }
@@ -26974,6 +26979,7 @@
                     {
                       "timeoutDesktopInactivityMins": 5,
                       "showUserDetailsMS": true,
+                      "manageChannelAvailability": true,
                       "buddyTeams": [
                         "5_Jan_Testing",
                         "7_Feb_Testing"
@@ -26985,7 +26991,8 @@
                         "WrapUp_Field"
                       ],
                       "description": "This profile allows agent to auto wrap-up time and extend the wrap-up time.",
-                      "agentDNValidation": "SPECIFIC",
+                      "agentDNValidation": "ALL",
+                      "autoAcceptDigitalInteractions": false,
                       "agentDNValidationCriterions": [
                         "DN_5_Sept",
                         "DN_7_Jan"
@@ -80481,7 +80488,7 @@
           }
         }
       },
-      "AgentProfileResponseDTO": {
+      "AgentProfileResponseDTOList": {
         "type": "object",
         "description": "Agent Profile Response schema.",
         "properties": {
@@ -80647,23 +80654,6 @@
             ],
             "example": "ALL"
           },
-          "queues": {
-            "type": "array",
-            "description": "Specify the queues list that the agents can select from the Queue drop-down list on the Agent Desktop.",
-            "example": [
-              "apim_queue_516789",
-              "apim_queue_6123456"
-            ],
-            "items": {
-              "type": "string",
-              "description": "Specify the queues list that the agents can select from the Queue drop-down list on the Agent Desktop.",
-              "example": [
-                "apim_queue_516789",
-                "apim_queue_6123456"
-              ]
-            },
-            "uniqueItems": true
-          },
           "accessEntryPoint": {
             "type": "string",
             "description": "Specify the entry points that the agents can select from the Entry Point drop-down list on the Agent Desktop.It can take one of these values:\n\nALL — To make all entry points available.\n\nSPECIFIC — To make specific entry points available\n\nNONE — If you do not want to make any entry points available as transfer targets.\n\n",
@@ -80674,23 +80664,6 @@
               "NONE"
             ],
             "example": "ALL"
-          },
-          "entryPoints": {
-            "type": "array",
-            "description": "Specify the entry points list that the agents can select from the Entry Point drop-down list on the Agent Desktop.",
-            "example": [
-              "apim_entry_516789",
-              "apim_entry_6123456"
-            ],
-            "items": {
-              "type": "string",
-              "description": "Specify the entry points list that the agents can select from the Entry Point drop-down list on the Agent Desktop.",
-              "example": [
-                "apim_entry_516789",
-                "apim_entry_6123456"
-              ]
-            },
-            "uniqueItems": true
           },
           "accessBuddyTeam": {
             "type": "string",
@@ -80752,14 +80725,16 @@
           },
           "dialPlans": {
             "type": "array",
-            "description": "This setting appears only if Dial Plan is enabled. select the dial plans that determine the inputs that the system accepts in the Start a new call field. ",
+            "deprecated": true,
+            "description": "**Deprecated** as of 2026.06; will be removed after consumers migrate. This setting appears only if Dial Plan is enabled. select the dial plans that determine the inputs that the system accepts in the Start a new call field. ",
             "example": [
               "US",
               "Any Format"
             ],
             "items": {
               "type": "string",
-              "description": "This setting appears only if Dial Plan is enabled. select the dial plans that determine the inputs that the system accepts in the Start a new call field. ",
+              "deprecated": true,
+              "description": "**Deprecated** as of 2026.06; will be removed after consumers migrate. This setting appears only if Dial Plan is enabled. select the dial plans that determine the inputs that the system accepts in the Start a new call field. ",
               "example": [
                 "US",
                 "Any Format"
@@ -80792,6 +80767,11 @@
             "description": "Specify whether the state synchronization of webex account user enabled or not",
             "example": true
           },
+          "manageChannelAvailability": {
+            "type": "boolean",
+            "description": "Indicates whether the agent can manage channel availability(true) or not(false).",
+            "example": true
+          },
           "timeoutDesktopInactivityMins": {
             "type": "integer",
             "format": "int32",
@@ -80802,18 +80782,19 @@
           },
           "agentDNValidation": {
             "type": "string",
-            "description": "Specify Unrestricted to allow agents to use any DN to log in to the Agent Desktop. \nTo restrict the DN that the agent can enter, select one of the following. \nProvisioned Value restricts the login DN to the default value that you provision for the agent. \nValidation Criteria restricts the login DN to the format specified in the Validation Criteria setting.\n",
+            "description": "Specifies the validation applied when an agent logs in with a DN. \n**Supported values going forward:** `ALL` (Unrestricted — agents may use any DN) and \n`PROVISIONED_VALUE` (login DN restricted to the value provisioned for the agent). \n**Note:** `SPECIFIC` (Validation Criteria) is no longer supported and must not be used \nfor new or updated profiles.\n",
             "enum": [
               "SPECIFIC",
               "ALL",
               "PROVISIONED_VALUE",
               "NONE"
             ],
-            "example": "SPECIFIC"
+            "example": "ALL"
           },
           "agentDNValidationCriteria": {
             "type": "string",
-            "description": "This setting occurs only if you select Validation Criteria in the Validation For Agent DN.",
+            "deprecated": true,
+            "description": "**Deprecated** as of 2026.06; will be removed after consumers migrate. This setting occurs only if you select Validation Criteria in the Validation For Agent DN.",
             "enum": [
               "SPECIFIC",
               "ALL",
@@ -80824,14 +80805,16 @@
           },
           "agentDNValidationCriterions": {
             "type": "array",
-            "description": "This setting specify the list that occurs only if you select Validation Criteria in the Validation For Agent DN.",
+            "deprecated": true,
+            "description": "**Deprecated** as of 2026.06; will be removed after consumers migrate. This setting specify the list that occurs only if you select Validation Criteria in the Validation For Agent DN.",
             "example": [
               "DN_5_Sept",
               "DN_7_Jan"
             ],
             "items": {
               "type": "string",
-              "description": "This setting specify the list that occurs only if you select Validation Criteria in the Validation For Agent DN.",
+              "deprecated": true,
+              "description": "**Deprecated** as of 2026.06; will be removed after consumers migrate. This setting specify the list that occurs only if you select Validation Criteria in the Validation For Agent DN.",
               "example": [
                 "DN_5_Sept",
                 "DN_7_Jan"
@@ -80851,27 +80834,6 @@
                 "BROWSER"
               ],
               "example": "AGENT_DN"
-            },
-            "uniqueItems": true
-          },
-          "viewableStatistics": {
-            "$ref": "#/components/schemas/viewableStatistics",
-            "description": "Viewable Statistics."
-          },
-          "thresholdRules": {
-            "type": "array",
-            "description": "The Agent Thresholds page appears only if your enterprise uses the Threshold Alerts feature.\nIf your enterprise uses the Agent Threshold Alerts feature, the page also provides settings to specify the thresholds associated with the agent.",
-            "example": [
-              "Threshold_monitor_agent",
-              "Threshold_call_data"
-            ],
-            "items": {
-              "type": "string",
-              "description": "The Agent Thresholds page appears only if your enterprise uses the Threshold Alerts feature.\nIf your enterprise uses the Agent Threshold Alerts feature, the page also provides settings to specify the thresholds associated with the agent.",
-              "example": [
-                "Threshold_monitor_agent",
-                "Threshold_call_data"
-              ]
             },
             "uniqueItems": true
           },
@@ -80896,131 +80858,99 @@
             "format": "int64",
             "description": "This is the updated time of the entity.",
             "example": 123456789
-          }
-        },
-        "required": [
-          "accessBuddyTeam",
-          "accessEntryPoint",
-          "accessIdleCode",
-          "accessQueue",
-          "accessWrapUpCode",
-          "active",
-          "agentDNValidation",
-          "name",
-          "parentType"
-        ]
-      },
-      "viewableStatistics": {
-        "type": "object",
-        "description": "Viewable Statistics schema.",
-        "properties": {
-          "organizationId": {
-            "type": "string",
-            "format": "uuid",
-            "description": "ID of the contact center organization. This field is required for all bulk save operations.",
-            "example": "f53c8b54-46ca-43f6-ba05-08426a46e23d",
-            "maxLength": 36,
-            "minLength": 32,
-            "pattern": "^[0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{12}$"
           },
-          "id": {
-            "type": "string",
-            "description": "ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource.",
-            "example": "93912f11-6017-404b-bf14-5331890b1797"
-          },
-          "version": {
-            "type": "integer",
-            "format": "int32",
-            "description": "The version of this resource. For a newly created resource, it will be 0 unless specified otherwise.",
-            "example": 1
-          },
-          "agentStats": {
+          "autoAcceptDigitalInteractions": {
             "type": "boolean",
-            "description": "Indicates whether you want the agents to view their personal statistics in Agent Desktop or not.",
-            "example": true
-          },
-          "accessQueueStats": {
-            "type": "string",
-            "description": "This setting controls whether the agent can view statistics for all or some queues in the Agent Personal Statistics tab.It can take one of these values:\n\nALL —  To enable the agent to display statistics for all queues.\n\nSPECIFIC — Select Queues drop-down list to enable the agent to display statistics for specific queues.\n\nNONE — To prevent the agent from displaying queue statistics.\n\n",
-            "enum": [
-              "SPECIFIC",
-              "ALL",
-              "PROVISIONED_VALUE",
-              "NONE"
-            ],
-            "example": "SPECIFIC"
-          },
-          "contactServiceQueues": {
-            "type": "array",
-            "description": "This setting should be specified when Access Queue Statistics is SPECIFIC.",
-            "example": [
-              "apim_queue_516789",
-              "apim_queue_6123456"
-            ],
-            "items": {
-              "type": "string",
-              "description": "This setting should be specified when Access Queue Statistics is SPECIFIC.",
-              "example": [
-                "apim_queue_516789",
-                "apim_queue_6123456"
-              ]
-            },
-            "uniqueItems": true
-          },
-          "loggedInTeamStats": {
-            "type": "boolean",
-            "description": "Indicates whether the agent can view statistics for the team or not.",
-            "example": true
-          },
-          "accessTeamStats": {
-            "type": "string",
-            "description": "This setting controls whether the agent can view statistics for all or some teams in the Agent Personal Statistics tab.It can take one of these values:\n\nALL —  To enable the agent to display statistics for all teams.\n\nSPECIFIC — Select Teams drop-down list to enable the agent to display statistics for specific teams.\n\nNONE — To prevent the agent from displaying teams statistics.\n\n",
-            "enum": [
-              "SPECIFIC",
-              "ALL",
-              "PROVISIONED_VALUE",
-              "NONE"
-            ],
-            "example": "SPECIFIC"
-          },
-          "teams": {
-            "type": "array",
-            "description": "This setting should be specified when Access Team Statistics is SPECIFIC. ",
-            "example": [
-              "apim_team_516789",
-              "apim_team_6123456"
-            ],
-            "items": {
-              "type": "string",
-              "description": "This setting should be specified when Access Team Statistics is SPECIFIC. ",
-              "example": [
-                "apim_team_516789",
-                "apim_team_6123456"
-              ]
-            },
-            "uniqueItems": true
-          },
-          "createdTime": {
-            "type": "integer",
-            "format": "int64",
-            "description": "This is the created time of the entity.",
-            "example": 123456789
-          },
-          "lastUpdatedTime": {
-            "type": "integer",
-            "format": "int64",
-            "description": "This is the updated time of the entity.",
-            "example": 123456789
+            "description": "Automatically accept digital interactions when agent becomes available",
+            "example": false
           }
-        },
-        "required": [
-          "accessQueueStats",
-          "accessTeamStats"
-        ]
+        }
       },
       "AgentProfileDTO": {
         "type": "object",
         "description": "Agent Profile schema.",
+        "example": {
+          "name": "Agent-Profile(Auto WrapUp)",
+          "description": "This profile allows agent to auto wrap-up time and extend the wrap-up time.",
+          "parentType": "SITE",
+          "siteId": "8e6bb6da-2a78-4768-bef9-7e229f92af22",
+          "screenPopup": true,
+          "lastAgentRouting": true,
+          "scheduleAndManageCallBack": true,
+          "autoWrapUp": true,
+          "agentPersonalGreeting": true,
+          "autoAnswer": true,
+          "autoWrapAfterSeconds": 15,
+          "agentAvailableAfterOutdial": true,
+          "allowAutoWrapUpExtension": true,
+          "accessWrapUpCode": "ALL",
+          "wrapUpCodes": [
+            "WrapUp_Sale",
+            "WrapUp_Field"
+          ],
+          "accessIdleCode": "ALL",
+          "idleCodes": [
+            "aux_code_sale",
+            "aux_code2"
+          ],
+          "accessQueue": "ALL",
+          "queues": [
+            "apim_queue_516789",
+            "apim_queue_6123456"
+          ],
+          "accessEntryPoint": "ALL",
+          "entryPoints": [
+            "apim_entry_516789",
+            "apim_entry_6123456"
+          ],
+          "accessBuddyTeam": "ALL",
+          "buddyTeams": [
+            "5_Jan_Testing",
+            "7_Feb_Testing"
+          ],
+          "consultToQueue": true,
+          "outdialEnabled": true,
+          "outdialEntryPointId": "f53c8b54-46ca-43f6-ba05-08426a46e23d",
+          "outdialANIId": "f53c8b54-46ca-43f6-ba05-08426a46e23d",
+          "addressBookId": "f53c8b54-46ca-43f6-ba05-08426a46e23d",
+          "dialPlanEnabled": true,
+          "dialPlans": [
+            "US",
+            "Any Format"
+          ],
+          "timeoutDesktopInactivityCustomEnabled": true,
+          "showUserDetailsMS": true,
+          "stateSynchronizationMS": true,
+          "showUserDetailsWebex": true,
+          "stateSynchronizationWebex": true,
+          "manageChannelAvailability": true,
+          "timeoutDesktopInactivityMins": 5,
+          "agentDNValidation": "ALL",
+          "agentDNValidationCriteria": "ALL",
+          "agentDNValidationCriterions": [],
+          "loginVoiceOptions": [
+            "AGENT_DN"
+          ],
+          "viewableStatistics": {
+            "agentStats": true,
+            "accessQueueStats": "SPECIFIC",
+            "contactServiceQueues": [
+              "apim_queue_516789",
+              "apim_queue_6123456"
+            ],
+            "loggedInTeamStats": true,
+            "accessTeamStats": "SPECIFIC",
+            "teams": [
+              "apim_team_516789",
+              "apim_team_6123456"
+            ]
+          },
+          "thresholdRules": [
+            "Threshold_monitor_agent",
+            "Threshold_call_data"
+          ],
+          "active": true
+        },
         "properties": {
           "organizationId": {
             "type": "string",
@@ -81289,14 +81219,16 @@
           },
           "dialPlans": {
             "type": "array",
-            "description": "This setting appears only if Dial Plan is enabled. select the dial plans that determine the inputs that the system accepts in the Start a new call field. ",
+            "deprecated": true,
+            "description": "**Deprecated** as of 2026.06; will be removed after consumers migrate. This setting appears only if Dial Plan is enabled. select the dial plans that determine the inputs that the system accepts in the Start a new call field. ",
             "example": [
               "US",
               "Any Format"
             ],
             "items": {
               "type": "string",
-              "description": "This setting appears only if Dial Plan is enabled. select the dial plans that determine the inputs that the system accepts in the Start a new call field. ",
+              "deprecated": true,
+              "description": "**Deprecated** as of 2026.06; will be removed after consumers migrate. This setting appears only if Dial Plan is enabled. select the dial plans that determine the inputs that the system accepts in the Start a new call field. ",
               "example": [
                 "US",
                 "Any Format"
@@ -81306,18 +81238,19 @@
           },
           "agentDNValidation": {
             "type": "string",
-            "description": "Specify Unrestricted to allow agents to use any DN to log in to the Agent Desktop. \nTo restrict the DN that the agent can enter, select one of the following. \nProvisioned Value restricts the login DN to the default value that you provision for the agent. \nValidation Criteria restricts the login DN to the format specified in the Validation Criteria setting.\n",
+            "description": "Specifies the validation applied when an agent logs in with a DN. \n**Supported values going forward:** `ALL` (Unrestricted — agents may use any DN) and \n`PROVISIONED_VALUE` (login DN restricted to the value provisioned for the agent). \n**Note:** `SPECIFIC` (Validation Criteria) is no longer supported and must not be used \nfor new or updated profiles.\n",
             "enum": [
               "SPECIFIC",
               "ALL",
               "PROVISIONED_VALUE",
               "NONE"
             ],
-            "example": "SPECIFIC"
+            "example": "ALL"
           },
           "agentDNValidationCriteria": {
             "type": "string",
-            "description": "This setting occurs only if you select Validation Criteria in the Validation For Agent DN.",
+            "deprecated": true,
+            "description": "**Deprecated** as of 2026.06; will be removed after consumers migrate. This setting occurs only if you select Validation Criteria in the Validation For Agent DN.",
             "enum": [
               "SPECIFIC",
               "ALL",
@@ -81328,14 +81261,16 @@
           },
           "agentDNValidationCriterions": {
             "type": "array",
-            "description": "This setting specify the list that occurs only if you select Validation Criteria in the Validation For Agent DN.",
+            "deprecated": true,
+            "description": "**Deprecated** as of 2026.06; will be removed after consumers migrate. This setting specify the list that occurs only if you select Validation Criteria in the Validation For Agent DN.",
             "example": [
               "DN_5_Sept",
               "DN_7_Jan"
             ],
             "items": {
               "type": "string",
-              "description": "This setting specify the list that occurs only if you select Validation Criteria in the Validation For Agent DN.",
+              "deprecated": true,
+              "description": "**Deprecated** as of 2026.06; will be removed after consumers migrate. This setting specify the list that occurs only if you select Validation Criteria in the Validation For Agent DN.",
               "example": [
                 "DN_5_Sept",
                 "DN_7_Jan"
@@ -81414,6 +81349,11 @@
             "description": "Specify whether the state synchronization of webex account user enabled or not",
             "example": true
           },
+          "manageChannelAvailability": {
+            "type": "boolean",
+            "description": "Indicates whether the agent can manage channel availability(true) or not(false).",
+            "example": true
+          },
           "timeoutDesktopInactivityMins": {
             "type": "integer",
             "format": "int32",
@@ -81438,6 +81378,11 @@
             "format": "int64",
             "description": "This is the updated time of the entity.",
             "example": 123456789
+          },
+          "autoAcceptDigitalInteractions": {
+            "type": "boolean",
+            "description": "Automatically accept digital interactions when agent becomes available",
+            "example": false
           }
         },
         "required": [
@@ -81456,6 +81401,638 @@
       "ViewableStatisticsDTO": {
         "type": "object",
         "description": " Specifies the Statistics that agent of this profile can view.\n ",
+        "properties": {
+          "organizationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID of the contact center organization. This field is required for all bulk save operations.",
+            "example": "f53c8b54-46ca-43f6-ba05-08426a46e23d",
+            "maxLength": 36,
+            "minLength": 32,
+            "pattern": "^[0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{12}$"
+          },
+          "id": {
+            "type": "string",
+            "description": "ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource.",
+            "example": "93912f11-6017-404b-bf14-5331890b1797"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The version of this resource. For a newly created resource, it will be 0 unless specified otherwise.",
+            "example": 1
+          },
+          "agentStats": {
+            "type": "boolean",
+            "description": "Indicates whether you want the agents to view their personal statistics in Agent Desktop or not.",
+            "example": true
+          },
+          "accessQueueStats": {
+            "type": "string",
+            "description": "This setting controls whether the agent can view statistics for all or some queues in the Agent Personal Statistics tab.It can take one of these values:\n\nALL —  To enable the agent to display statistics for all queues.\n\nSPECIFIC — Select Queues drop-down list to enable the agent to display statistics for specific queues.\n\nNONE — To prevent the agent from displaying queue statistics.\n\n",
+            "enum": [
+              "SPECIFIC",
+              "ALL",
+              "PROVISIONED_VALUE",
+              "NONE"
+            ],
+            "example": "SPECIFIC"
+          },
+          "contactServiceQueues": {
+            "type": "array",
+            "description": "This setting should be specified when Access Queue Statistics is SPECIFIC.",
+            "example": [
+              "apim_queue_516789",
+              "apim_queue_6123456"
+            ],
+            "items": {
+              "type": "string",
+              "description": "This setting should be specified when Access Queue Statistics is SPECIFIC.",
+              "example": [
+                "apim_queue_516789",
+                "apim_queue_6123456"
+              ]
+            },
+            "uniqueItems": true
+          },
+          "loggedInTeamStats": {
+            "type": "boolean",
+            "description": "Indicates whether the agent can view statistics for the team or not.",
+            "example": true
+          },
+          "accessTeamStats": {
+            "type": "string",
+            "description": "This setting controls whether the agent can view statistics for all or some teams in the Agent Personal Statistics tab.It can take one of these values:\n\nALL —  To enable the agent to display statistics for all teams.\n\nSPECIFIC — Select Teams drop-down list to enable the agent to display statistics for specific teams.\n\nNONE — To prevent the agent from displaying teams statistics.\n\n",
+            "enum": [
+              "SPECIFIC",
+              "ALL",
+              "PROVISIONED_VALUE",
+              "NONE"
+            ],
+            "example": "SPECIFIC"
+          },
+          "teams": {
+            "type": "array",
+            "description": "This setting should be specified when Access Team Statistics is SPECIFIC. ",
+            "example": [
+              "apim_team_516789",
+              "apim_team_6123456"
+            ],
+            "items": {
+              "type": "string",
+              "description": "This setting should be specified when Access Team Statistics is SPECIFIC. ",
+              "example": [
+                "apim_team_516789",
+                "apim_team_6123456"
+              ]
+            },
+            "uniqueItems": true
+          },
+          "createdTime": {
+            "type": "integer",
+            "format": "int64",
+            "description": "This is the created time of the entity.",
+            "example": 123456789
+          },
+          "lastUpdatedTime": {
+            "type": "integer",
+            "format": "int64",
+            "description": "This is the updated time of the entity.",
+            "example": 123456789
+          }
+        },
+        "required": [
+          "accessQueueStats",
+          "accessTeamStats"
+        ]
+      },
+      "AgentProfileResponseDTO": {
+        "type": "object",
+        "description": "Agent Profile Response schema.",
+        "example": {
+          "accessBuddyTeam": "ALL",
+          "accessEntryPoint": "ALL",
+          "accessIdleCode": "ALL",
+          "accessQueue": "ALL",
+          "accessWrapUpCode": "ALL",
+          "active": true,
+          "addressBookId": "3b20a52a-44c9-4c7f-9ccc-61379f1feb6a",
+          "agentAvailableAfterOutdial": false,
+          "agentDnCheck": true,
+          "agentDNValidation": "ALL",
+          "agentDNValidationCriteria": "ALL",
+          "agentDNValidationCriterions": [],
+          "agentPersonalGreeting": true,
+          "allowAutoWrapUpExtension": false,
+          "autoAnswer": false,
+          "autoWrapAfterSeconds": 0,
+          "autoWrapUp": false,
+          "browserCheck": true,
+          "buddyTeams": [],
+          "consultToQueue": false,
+          "createdTime": 1776695809000,
+          "description": "",
+          "dialPlanEnabled": false,
+          "dialPlans": [
+            "US",
+            "Any Format"
+          ],
+          "entryPoints": [
+            "apim_entry_516789",
+            "apim_entry_6123456"
+          ],
+          "extensionCheck": true,
+          "id": "a270c618-df2f-4ca5-a29b-2e8321f78f94",
+          "idleCodes": [
+            "aux_code_sale",
+            "aux_code2"
+          ],
+          "lastAgentRouting": false,
+          "lastUpdatedTime": 1782305047122,
+          "loginVoiceOptions": [
+            "AGENT_DN",
+            "EXTENSION",
+            "BROWSER"
+          ],
+          "name": "Test New DP",
+          "organizationId": "694f5d79-680a-4dd0-bc92-436908174db9",
+          "outdialANIId": "3ac3657b-cedd-424b-a584-2f9182b8fe47",
+          "outdialEnabled": true,
+          "outdialEntryPointId": "5ca51368-9ed8-4f01-bff2-33ffe56fbb08",
+          "parentType": "ORGANIZATION",
+          "queues": [
+            "apim_queue_516789",
+            "apim_queue_6123456"
+          ],
+          "scheduleAndManageCallBack": true,
+          "screenPopup": false,
+          "showUserDetailsMS": false,
+          "showUserDetailsWebex": true,
+          "stateSynchronizationMS": false,
+          "stateSynchronizationWebex": false,
+          "thresholdRules": [],
+          "timeoutDesktopInactivityCustomEnabled": false,
+          "version": 21,
+          "viewableStatistics": {
+            "accessQueueStats": "NONE",
+            "accessTeamStats": "NONE",
+            "agentStats": false,
+            "contactServiceQueues": [],
+            "id": "c1d343b9-ca59-4134-b576-f306bf23b03d",
+            "loggedInTeamStats": false,
+            "organizationId": "694f5d79-680a-4dd0-bc92-436908174db9",
+            "teams": [],
+            "version": 10
+          },
+          "wrapUpCodes": [
+            "WrapUp_Sale",
+            "WrapUp_Field"
+          ]
+        },
+        "properties": {
+          "organizationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID of the contact center organization. This field is required for all bulk save operations.",
+            "example": "f53c8b54-46ca-43f6-ba05-08426a46e23d",
+            "maxLength": 36,
+            "minLength": 32,
+            "pattern": "^[0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{12}$"
+          },
+          "id": {
+            "type": "string",
+            "description": "ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource.",
+            "example": "93912f11-6017-404b-bf14-5331890b1797"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The version of this resource. For a newly created resource, it will be 0 unless specified otherwise.",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "description": "Enter a name for the agent profile.",
+            "example": "Agent-Profile(Auto WrapUp)",
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9\\._\\s\\-\\(\\)]+$"
+          },
+          "description": {
+            "type": "string",
+            "description": "(Optional) Enter a description of the profile.",
+            "example": "This profile allows agent to auto wrap-up time and extend the wrap-up time.",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "parentType": {
+            "type": "string",
+            "description": "This can be the following\n\nORGANIZATION: The agent profile is available to all sites at your enterprise.\n\nSITE: The agent profile is available to a specific site.",
+            "enum": [
+              "ORGANIZATION",
+              "SITE"
+            ],
+            "example": "SITE"
+          },
+          "siteId": {
+            "type": "string",
+            "description": "Identifier for a site which is a physical contact center location under the control of your enterprise. ",
+            "example": "8e6bb6da-2a78-4768-bef9-7e229f92af22"
+          },
+          "screenPopup": {
+            "type": "boolean",
+            "description": "Indicates whether to allow external pop-up screens(true) or not(false).",
+            "example": true
+          },
+          "lastAgentRouting": {
+            "type": "boolean",
+            "description": "This setting use only if your administrator enables the Last Agent Routing feature for your enterprise. Indicates whether to allow Last Agent Routing check box on the Agent Desktop during wrap-up(true) or not(false).",
+            "example": true
+          },
+          "scheduleAndManageCallBack": {
+            "type": "boolean",
+            "description": "Indicates whether to allow agents to schedule and manage callbacks(true) or not(false).",
+            "example": true
+          },
+          "autoWrapUp": {
+            "type": "boolean",
+            "description": "Indicates whether to allow auto wrap-up(true) or not(false).",
+            "example": true
+          },
+          "agentPersonalGreeting": {
+            "type": "boolean",
+            "description": "Indicates whether an agent can record a personal greeting(true) or not(false) from the agent desktop.",
+            "example": true
+          },
+          "autoAnswer": {
+            "type": "boolean",
+            "description": "Indicates whether incoming calls on the Agent Desktop need to be answered automatically(true) or not(false).",
+            "example": true
+          },
+          "autoWrapAfterSeconds": {
+            "type": "integer",
+            "format": "int32",
+            "description": "This setting allows auto wrap-up after seconds",
+            "example": 15
+          },
+          "agentAvailableAfterOutdial": {
+            "type": "boolean",
+            "description": "Enabled if you want the agent to go into the Available state after completing and wrapping up an outdial call. The agent can also manually select an Idle state from the STATUS NOW drop-down list before selecting a wrap-up code.\n",
+            "example": true
+          },
+          "allowAutoWrapUpExtension": {
+            "type": "boolean",
+            "description": "Indicates whether to allow auto wrap-up extension(true) or not(false).",
+            "example": true
+          },
+          "accessWrapUpCode": {
+            "type": "string",
+            "description": "Specify the wrap-up codes that the agents can select when they wrap up a contact.It can take one of these values:\n\nALL — To make all wrap-up codes available.\n\nSPECIFIC — To make specific codes available.\n\n",
+            "enum": [
+              "SPECIFIC",
+              "ALL",
+              "PROVISIONED_VALUE",
+              "NONE"
+            ],
+            "example": "ALL"
+          },
+          "wrapUpCodes": {
+            "type": "array",
+            "description": "Specify the wrap-up codes list that the agents can select when they wrap up a contact.",
+            "example": [
+              "WrapUp_Sale",
+              "WrapUp_Field"
+            ],
+            "items": {
+              "type": "string",
+              "description": "Specify the wrap-up codes list that the agents can select when they wrap up a contact.",
+              "example": [
+                "WrapUp_Sale",
+                "WrapUp_Field"
+              ]
+            },
+            "uniqueItems": true
+          },
+          "accessIdleCode": {
+            "type": "string",
+            "description": "Specify the Idle codes that the agents can select in Agent Desktop.It can take one of these values:\n\nALL — To make all idle codes available.\n\nSPECIFIC — To make specific codes available.\n\n",
+            "enum": [
+              "SPECIFIC",
+              "ALL",
+              "PROVISIONED_VALUE",
+              "NONE"
+            ],
+            "example": "ALL"
+          },
+          "idleCodes": {
+            "type": "array",
+            "description": "Specify the Idle codes list that the agents can select in Agent Desktop.",
+            "example": [
+              "aux_code_sale",
+              "aux_code2"
+            ],
+            "items": {
+              "type": "string",
+              "description": "Specify the Idle codes list that the agents can select in Agent Desktop.",
+              "example": [
+                "aux_code_sale",
+                "aux_code2"
+              ]
+            },
+            "uniqueItems": true
+          },
+          "accessQueue": {
+            "type": "string",
+            "description": "Specify the queues that the agents can select from the Queue drop-down list on the Agent Desktop.It can take one of these values:\n\nALL — To make all queues available.\n\nSPECIFIC — To make specific queues available\n\nNONE — If you do not want to make any queues available as transfer targets.\n\n",
+            "enum": [
+              "SPECIFIC",
+              "ALL",
+              "PROVISIONED_VALUE",
+              "NONE"
+            ],
+            "example": "ALL"
+          },
+          "queues": {
+            "type": "array",
+            "description": "Specify the queues list that the agents can select from the Queue drop-down list on the Agent Desktop.",
+            "example": [
+              "apim_queue_516789",
+              "apim_queue_6123456"
+            ],
+            "items": {
+              "type": "string",
+              "description": "Specify the queues list that the agents can select from the Queue drop-down list on the Agent Desktop.",
+              "example": [
+                "apim_queue_516789",
+                "apim_queue_6123456"
+              ]
+            },
+            "uniqueItems": true
+          },
+          "accessEntryPoint": {
+            "type": "string",
+            "description": "Specify the entry points that the agents can select from the Entry Point drop-down list on the Agent Desktop.It can take one of these values:\n\nALL — To make all entry points available.\n\nSPECIFIC — To make specific entry points available\n\nNONE — If you do not want to make any entry points available as transfer targets.\n\n",
+            "enum": [
+              "SPECIFIC",
+              "ALL",
+              "PROVISIONED_VALUE",
+              "NONE"
+            ],
+            "example": "ALL"
+          },
+          "entryPoints": {
+            "type": "array",
+            "description": "Specify the entry points list that the agents can select from the Entry Point drop-down list on the Agent Desktop.",
+            "example": [
+              "apim_entry_516789",
+              "apim_entry_6123456"
+            ],
+            "items": {
+              "type": "string",
+              "description": "Specify the entry points list that the agents can select from the Entry Point drop-down list on the Agent Desktop.",
+              "example": [
+                "apim_entry_516789",
+                "apim_entry_6123456"
+              ]
+            },
+            "uniqueItems": true
+          },
+          "accessBuddyTeam": {
+            "type": "string",
+            "description": "Specify the teams that the agents can select from the Agent drop-down list on the Agent Desktop. It can take one of these values:\n\nALL —  To make the agents on all teams available.\n\nSPECIFIC — To make agents on specific teams available, then select teams from the drop-down list\n\nNONE — If you do not want to make any teams available for consultation, conference, or call transfer.\n\n",
+            "enum": [
+              "SPECIFIC",
+              "ALL",
+              "PROVISIONED_VALUE",
+              "NONE"
+            ],
+            "example": "ALL"
+          },
+          "buddyTeams": {
+            "type": "array",
+            "description": "Specify the teams list that the agents can select from the Agent drop-down list on the Agent Desktop.",
+            "example": [
+              "5_Jan_Testing",
+              "7_Feb_Testing"
+            ],
+            "items": {
+              "type": "string",
+              "description": "Specify the teams list that the agents can select from the Agent drop-down list on the Agent Desktop.",
+              "example": [
+                "5_Jan_Testing",
+                "7_Feb_Testing"
+              ]
+            },
+            "uniqueItems": true
+          },
+          "consultToQueue": {
+            "type": "boolean",
+            "description": "Indicates whether you  want the agent to be able to select a queue in the Queue drop-down list as a target for a consultation or not.",
+            "example": true
+          },
+          "outdialEnabled": {
+            "type": "boolean",
+            "description": "Indicates whether you want the agent to be able to make outdial calls(true) or not(false).",
+            "example": true
+          },
+          "outdialEntryPointId": {
+            "type": "string",
+            "description": "If you enabled Outdial, specify the entry point id that the agent can use to make outdial calls.",
+            "example": "f53c8b54-46ca-43f6-ba05-08426a46e23d"
+          },
+          "outdialANIId": {
+            "type": "string",
+            "description": "This setting occurs only if you enabled Outdial. Specify the Outdial ANI id that the agent can use to make outdial calls.",
+            "example": "f53c8b54-46ca-43f6-ba05-08426a46e23d"
+          },
+          "addressBookId": {
+            "type": "string",
+            "description": "Specify the address book id that includes the speed-dial numbers that the agent can select to make outdial and consult calls.",
+            "example": "f53c8b54-46ca-43f6-ba05-08426a46e23d"
+          },
+          "dialPlanEnabled": {
+            "type": "boolean",
+            "description": "Indicates whether you want the agent to be able to make ad-hoc outdial calls(true) or not(false).",
+            "example": true
+          },
+          "dialPlans": {
+            "type": "array",
+            "deprecated": true,
+            "description": "**Deprecated** as of 2026.06; will be removed after consumers migrate. This setting appears only if Dial Plan is enabled. select the dial plans that determine the inputs that the system accepts in the Start a new call field. ",
+            "example": [
+              "US",
+              "Any Format"
+            ],
+            "items": {
+              "type": "string",
+              "deprecated": true,
+              "description": "**Deprecated** as of 2026.06; will be removed after consumers migrate. This setting appears only if Dial Plan is enabled. select the dial plans that determine the inputs that the system accepts in the Start a new call field. ",
+              "example": [
+                "US",
+                "Any Format"
+              ]
+            },
+            "uniqueItems": true
+          },
+          "timeoutDesktopInactivityCustomEnabled": {
+            "type": "boolean",
+            "description": "This setting enabled time out desktop inactivity feature.",
+            "example": true
+          },
+          "showUserDetailsMS": {
+            "type": "boolean",
+            "description": "Specify whether the show user details of microsoft account user enabled or not",
+            "example": true
+          },
+          "stateSynchronizationMS": {
+            "type": "boolean",
+            "description": "Specify whether the state synchronization of microsoft account user enabled or not",
+            "example": true
+          },
+          "showUserDetailsWebex": {
+            "type": "boolean",
+            "description": "Specify whether the show user details of webex account user enabled or not",
+            "example": true
+          },
+          "stateSynchronizationWebex": {
+            "type": "boolean",
+            "description": "Specify whether the state synchronization of webex account user enabled or not",
+            "example": true
+          },
+          "manageChannelAvailability": {
+            "type": "boolean",
+            "description": "Indicates whether the agent can manage channel availability(true) or not(false).",
+            "example": true
+          },
+          "timeoutDesktopInactivityMins": {
+            "type": "integer",
+            "format": "int32",
+            "description": "This setting occurs only if you enabled time out desktop inactivity feature. Specify time in minute(s).",
+            "example": 5,
+            "maximum": 10000,
+            "minimum": 3
+          },
+          "agentDNValidation": {
+            "type": "string",
+            "description": "Specifies the validation applied when an agent logs in with a DN. \n**Supported values going forward:** `ALL` (Unrestricted — agents may use any DN) and \n`PROVISIONED_VALUE` (login DN restricted to the value provisioned for the agent). \n**Note:** `SPECIFIC` (Validation Criteria) is no longer supported and must not be used \nfor new or updated profiles.\n",
+            "enum": [
+              "SPECIFIC",
+              "ALL",
+              "PROVISIONED_VALUE",
+              "NONE"
+            ],
+            "example": "ALL"
+          },
+          "agentDNValidationCriteria": {
+            "type": "string",
+            "deprecated": true,
+            "description": "**Deprecated** as of 2026.06; will be removed after consumers migrate. This setting occurs only if you select Validation Criteria in the Validation For Agent DN.",
+            "enum": [
+              "SPECIFIC",
+              "ALL",
+              "PROVISIONED_VALUE",
+              "NONE"
+            ],
+            "example": "SPECIFIC"
+          },
+          "agentDNValidationCriterions": {
+            "type": "array",
+            "deprecated": true,
+            "description": "**Deprecated** as of 2026.06; will be removed after consumers migrate. This setting specify the list that occurs only if you select Validation Criteria in the Validation For Agent DN.",
+            "example": [
+              "DN_5_Sept",
+              "DN_7_Jan"
+            ],
+            "items": {
+              "type": "string",
+              "deprecated": true,
+              "description": "**Deprecated** as of 2026.06; will be removed after consumers migrate. This setting specify the list that occurs only if you select Validation Criteria in the Validation For Agent DN.",
+              "example": [
+                "DN_5_Sept",
+                "DN_7_Jan"
+              ]
+            },
+            "uniqueItems": true
+          },
+          "loginVoiceOptions": {
+            "type": "array",
+            "description": "List of Login Voice Options.",
+            "items": {
+              "type": "string",
+              "description": "Login voice options.",
+              "enum": [
+                "AGENT_DN",
+                "EXTENSION",
+                "BROWSER"
+              ],
+              "example": "AGENT_DN"
+            },
+            "uniqueItems": true
+          },
+          "viewableStatistics": {
+            "$ref": "#/components/schemas/viewableStatistics",
+            "description": "Viewable Statistics."
+          },
+          "thresholdRules": {
+            "type": "array",
+            "description": "The Agent Thresholds page appears only if your enterprise uses the Threshold Alerts feature.\nIf your enterprise uses the Agent Threshold Alerts feature, the page also provides settings to specify the thresholds associated with the agent.",
+            "example": [
+              "Threshold_monitor_agent",
+              "Threshold_call_data"
+            ],
+            "items": {
+              "type": "string",
+              "description": "The Agent Thresholds page appears only if your enterprise uses the Threshold Alerts feature.\nIf your enterprise uses the Agent Threshold Alerts feature, the page also provides settings to specify the thresholds associated with the agent.",
+              "example": [
+                "Threshold_monitor_agent",
+                "Threshold_call_data"
+              ]
+            },
+            "uniqueItems": true
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Specify whether the agent profile is active or not Active.",
+            "example": true
+          },
+          "systemDefault": {
+            "type": "boolean",
+            "description": "Indicates whether the created resource is system created or not",
+            "example": false
+          },
+          "createdTime": {
+            "type": "integer",
+            "format": "int64",
+            "description": "This is the created time of the entity.",
+            "example": 123456789
+          },
+          "lastUpdatedTime": {
+            "type": "integer",
+            "format": "int64",
+            "description": "This is the updated time of the entity.",
+            "example": 123456789
+          },
+          "autoAcceptDigitalInteractions": {
+            "type": "boolean",
+            "description": "Automatically accept digital interactions when agent becomes available",
+            "example": false
+          }
+        },
+        "required": [
+          "accessBuddyTeam",
+          "accessEntryPoint",
+          "accessIdleCode",
+          "accessQueue",
+          "accessWrapUpCode",
+          "active",
+          "agentDNValidation",
+          "name",
+          "parentType"
+        ]
+      },
+      "viewableStatistics": {
+        "type": "object",
+        "description": "Viewable Statistics schema.",
         "properties": {
           "organizationId": {
             "type": "string",
