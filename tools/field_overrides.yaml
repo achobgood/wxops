@@ -589,6 +589,14 @@ skip_tags:
     - buid-info-controller     # build info endpoint
     - health-controller        # health check
     - prometheus-controller    # metrics endpoint
+  tts-spec.json:
+    - "Features: Announcement Repository"  # canonical: webex-cloud-calling.json — every
+                                            # op in this tag here (11) is a strict subset of
+                                            # cloud-calling's same-named tag (15, adds DELETE +
+                                            # usage GET). Same tag string, same module name
+                                            # ("announcements"); un-skipped, generation order
+                                            # let this spec silently clobber the fuller file.
+                                            # Found 2026-07-06 running spec_sync.py for real.
 
 # Merge split tags into a single CLI group
 tag_merge:

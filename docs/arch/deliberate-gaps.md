@@ -5,7 +5,21 @@ Spec operations with no CLI command **on purpose**, per `skip_tags` in
 `tools/field_overrides.yaml`. Anything missing from the CLI and not
 listed here is drift (drift-gate check 1).
 
-**154 skipped operations across 25 spec/tag pairs.**
+**165 skipped operations across 26 spec/tag pairs.**
+
+## tts-spec.json — Features: Announcement Repository (11 ops)
+Reason: canonical: webex-cloud-calling.json — every
+- `GET /telephony/config/announcements`
+- `GET /telephony/config/announcements/{}`
+- `GET /telephony/config/locations/{}/announcements/{}`
+- `GET /telephony/config/textToSpeech/usage`
+- `GET /telephony/config/textToSpeech/voices`
+- `GET /telephony/config/textToSpeech/{}`
+- `POST /telephony/config/announcements`
+- `POST /telephony/config/locations/{}/announcements`
+- `POST /telephony/config/textToSpeech/actions/generate/invoke`
+- `PUT /telephony/config/announcements/{}`
+- `PUT /telephony/config/locations/{}/announcements/{}`
 
 ## webex-admin.json — Partner Reports/Templates (5 ops)
 Reason: canonical: webex-cloud-calling.json
