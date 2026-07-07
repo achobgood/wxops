@@ -43,9 +43,26 @@ docs/reports/
 docs/team-prompts/
 docs/archive/
 docs/arch/
+docs/webex-api-feedback.html
+docs/webex-api-feedback-for-cisco-collab-bu.md
 
-# Tests (dev-only)
-tests/
+# Tests (dev-only, except the actively-maintained migration/org-health suites)
+tests/*
+!tests/migration/
+!tests/migration/**
+!tests/org_health/
+!tests/org_health/**
+tests/migration/**/__pycache__/
+tests/org_health/**/__pycache__/
+
+# Live CUCM testbed scripts (contain lab host/credentials, never commit)
+tests/migration/cucm/build-testbed.md
+tests/migration/cucm/provision_testbed.py
+tests/migration/cucm/provision_testbed_phase9.py
+tests/migration/cucm/provision_testbed_phase10.py
+tests/migration/cucm/teardown_testbed.py
+tests/migration/cucm/testbed-manifest.json
+tests/migration/cucm/validate_live_cucm.py
 
 # CI (no value without tests)
 .github/
