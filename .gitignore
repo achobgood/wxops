@@ -42,6 +42,7 @@ docs/plans/
 docs/reports/
 docs/team-prompts/
 docs/archive/
+docs/arch/
 
 # Tests (dev-only)
 tests/

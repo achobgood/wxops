@@ -8,7 +8,7 @@ A command-line tool and AI-assisted playbook for provisioning, managing, migrati
 - **AI-guided playbook** — a Claude Code agent that interviews you about what to build, generates a deployment plan, executes commands, and verifies results
 - **CUCM-to-Webex migration** — 11-phase pipeline: discover a CUCM cluster via AXL, normalize, map, analyze, generate decisions, plan, and execute the migration with an async concurrent engine
 - **Org health assessment** — 18 automated checks across security posture, routing hygiene, feature utilization, and device health with a self-contained HTML report
-- **Partner / multi-org support** — manage multiple customer orgs with a single partner token; 668 commands auto-inject the target `orgId`
+- **Partner / multi-org support** — manage multiple customer orgs with a single partner token; 1150 commands auto-inject the target `orgId`
 - **Batch cleanup** — dependency-safe teardown of an entire Webex Calling environment (or scoped to specific locations) with `--dry-run` support
 
 ## How It Works
@@ -303,7 +303,7 @@ wxcli clear-org                   # Revert to single-org behavior
 wxcli whoami                      # Shows "Target:" line when an org is set
 ```
 
-668 of the generated commands auto-inject the selected `orgId` on endpoints that accept it — no extra flag required.
+1149 of the generated commands auto-inject the selected `orgId` on endpoints that accept it — no extra flag required.
 
 ---
 
