@@ -3,7 +3,7 @@
 Build and configure Webex Calling, admin, device, and messaging APIs programmatically with guided Claude Code assistance.
 
 **Execution pattern:** `wxcli` CLI commands (primary) → raw HTTP (fallback).
-The wxcli CLI has 179 command groups covering calling, admin, device, messaging, meetings, and contact center APIs. Raw HTTP docs in `docs/reference/` serve as reference and fallback.
+The wxcli CLI has 178 command groups covering calling, admin, device, messaging, meetings, and contact center APIs. Raw HTTP docs in `docs/reference/` serve as reference and fallback.
 
 ## Mandatory Grounding Rule
 
@@ -217,7 +217,7 @@ When multiple skills could match, use this lookup:
 | Enable hoteling on a workspace | `manage-call-settings` | `manage-devices` (hoteling is a workspace calling setting, not device provisioning) |
 | Import org contacts / directory entries | `manage-identity` | `provision-calling` (org contacts are directory, not calling users) |
 | Reclaim licenses from inactive users | `manage-licensing` | `teardown` (license reclamation ≠ resource deletion) |
-| Manage announcement repository files/playlists (AA/CQ greetings) | `configure-features` (groups: `announcements`, `announcement-playlists`, `cq-playlists`) | `reporting` (that's recordings, not announcements) |
+| Manage announcement repository files/playlists (AA/CQ greetings), or generate text-to-speech prompts | `configure-features` (groups: `announcements` — incl. `tts-generate`/`tts-usage`/`tts-status`/`tts-voices`; `announcement-playlists`, `cq-playlists`) | `reporting` (that's recordings, not announcements) |
 | Configure E911 emergency services/addresses (`emergency-services` group) | `provision-calling` (location addresses) + `manage-call-settings` (per-person ECBN) | `wxc-calling-debug` |
 | Virtual line call settings (`virtual-line-settings`) | `manage-call-settings` (virtual lines are person-like settings; see `virtual-lines.md`) | `provision-calling` |
 | Operating modes / mode management (`mode-management`, user-token only per Known Issue #3) | `manage-call-settings` | `configure-features` (`operating-modes` location/feature side stays there) |
@@ -247,7 +247,7 @@ CLI groups intentionally not fronted by any skill — "unreferenced" here is a d
 - Partner/wholesale surfaces (403 for non-partner tokens): `broadworks-billing-reports`, `broadworks-enterprises`, `broadworks-subscribers`, `broadworks-workspaces`, `wholesale-provisioning`, `wholesale-billing-reports`, `partner-admins`, `partner-tags`
 - Hybrid/infra: `hybrid-clusters`, `hybrid-connectors`, `data-sources`, `resource-groups`, `resource-group-memberships`, `workspace-locations`
 - Admin long tail: `activation-email`, `archive-users`, `classifications`, `guest-management`, `identity-org`, `org-settings`, `roles`, `admin-recordings`
-- Calling long tail (disambiguation rows exist above; skill teaching pending): `announcements`, `announcement-playlists`, `cq-playlists`, `emergency-services`, `virtual-line-settings`, `mode-management`, `hot-desking-members`, `caller-reputation`, `calling-service`, `client-settings`, `device-dynamic-settings`, `external-voicemail`, `location-call-handling`, `person-call-settings`, `text-to-speech`, `ucm-profile`
+- Calling long tail (disambiguation rows exist above; skill teaching pending): `announcements`, `announcement-playlists`, `cq-playlists`, `emergency-services`, `virtual-line-settings`, `mode-management`, `hot-desking-members`, `caller-reputation`, `calling-service`, `client-settings`, `device-dynamic-settings`, `external-voicemail`, `location-call-handling`, `person-call-settings`, `ucm-profile`
 - New at 2026-07-01 spec sync, unclaimed pending review: `cc-legacy-flows`, `meeting-slido`
 - Dev-only (untracked): `fs-*`
 
@@ -333,7 +333,7 @@ Detailed migration context lives in `.claude/rules/cucm-migration.md` (auto-load
 
 | Path | Purpose |
 |------|---------|
-| `src/wxcli/main.py` | CLI entry point — 179 command groups |
+| `src/wxcli/main.py` | CLI entry point — 178 command groups |
 | `src/wxcli/commands/*.py` | All command implementations (raw HTTP pattern) |
 | `wxcli --help` | Shows all command groups |
 | `wxcli <group> --help` | Shows commands within a group |
@@ -347,7 +347,6 @@ Detailed migration context lives in `.claude/rules/cucm-migration.md` (auto-load
 | `specs/webex-ucm.json` | OpenAPI 3.0 spec — UCM calling profiles (1 op) |
 | `specs/webex-broadworks.json` | OpenAPI 3.0 spec — BroadWorks partner APIs |
 | `specs/webex-wholesale.json` | OpenAPI 3.0 spec — wholesale provisioning/billing APIs |
-| `specs/tts-spec.json` | OpenAPI 3.0 spec — text-to-speech APIs |
 | `src/wxcli/commands/_registry.py` | Generator-emitted registration manifest (do not edit by hand) |
 | `tools/spec_sync.py` | Atomic spec sync: update specs → regen all → manifest → drift gate |
 | `tools/drift_check.py` | Coherence gate: spec↔CLI parity, skill refs, counts (report-only until S4.5) |
@@ -367,7 +366,7 @@ The migration tool is at `src/wxcli/migration/` and wired into the CLI as `wxcli
 
 ## CLI Status & Known Issues
 
-**179 command groups covering calling, admin, device, messaging, meetings, wholesale, and contact center APIs.** 172 generated modules from 10 tracked OpenAPI 3.0 specs via `tools/generate_commands.py`, registered through the generator-emitted `_registry.py` manifest; spec refresh + regen is one atomic operation (`tools/spec_sync.py`), checked by `tools/drift_check.py`. The `converged-recordings` group combines generated CRUD commands with hand-written `download` and `export` commands (`converged_recordings_export.py`).
+**178 command groups covering calling, admin, device, messaging, meetings, wholesale, and contact center APIs.** 171 generated modules from 9 tracked OpenAPI 3.0 specs via `tools/generate_commands.py`, registered through the generator-emitted `_registry.py` manifest; spec refresh + regen is one atomic operation (`tools/spec_sync.py`), checked by `tools/drift_check.py`. The `converged-recordings` group combines generated CRUD commands with hand-written `download` and `export` commands (`converged_recordings_export.py`).
 
 ### Partner Multi-Org Support
 

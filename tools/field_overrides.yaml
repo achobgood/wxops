@@ -273,14 +273,20 @@
       - ["Extension", "extension"]
       - ["Phone Number", "phoneNumber"]
 
-"Features: Text To Speech":
+"Features: Announcement Repository":
+  # TTS ops share cloud-calling's "Announcement Repository" tag — no separate
+  # "Text To Speech" tag exists upstream — so they generate into the
+  # announcements module. Give the 4 TTS commands a clean, discoverable
+  # tts-* cluster there. (The standalone text-to-speech group + the
+  # separately-fed specs/tts-spec.json were retired 2026-07-08; cloud-calling
+  # is canonical. Keys below are the announcements-module auto-generated names.)
   command_name_overrides:
-    generate-a-text: "generate"
-    show: "show-usage"
-    show-text-to-speech: "show-status"
-    list: "list-voices"
+    generate-a-text: "tts-generate"
+    show-usage-text-to-speech: "tts-usage"
+    show-text-to-speech: "tts-status"
+    list-voices: "tts-voices"
   table_columns:
-    list-voices:
+    tts-voices:
       - ["ID", "id"]
       - ["Label", "label"]
 
@@ -589,14 +595,6 @@ skip_tags:
     - buid-info-controller     # build info endpoint
     - health-controller        # health check
     - prometheus-controller    # metrics endpoint
-  tts-spec.json:
-    - "Features: Announcement Repository"  # canonical: webex-cloud-calling.json — every
-                                            # op in this tag here (11) is a strict subset of
-                                            # cloud-calling's same-named tag (15, adds DELETE +
-                                            # usage GET). Same tag string, same module name
-                                            # ("announcements"); un-skipped, generation order
-                                            # let this spec silently clobber the fuller file.
-                                            # Found 2026-07-06 running spec_sync.py for real.
 
 # Merge split tags into a single CLI group
 tag_merge:
@@ -638,7 +636,6 @@ cli_name_overrides:
     "Features: Announcement Playlist": "announcement-playlists"
     "Features: Announcement Repository": "announcements"
     "Features: Call Recording": "call-recording"
-    "Features: Text To Speech": "text-to-speech"
     "Features: Customer Experience Essentials": "cx-essentials"
     "Features: Hot Desking Sign-in via Voice Portal": "hot-desking-portal"
     "Features: Operating Modes": "operating-modes"

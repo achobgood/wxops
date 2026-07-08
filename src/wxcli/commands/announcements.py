@@ -396,8 +396,8 @@ def delete_announcements(
 
 
 
-@app.command("generate-a-text")
-def generate_a_text(
+@app.command("tts-generate")
+def tts_generate(
     voice: str = typer.Option(None, "--voice", help="The voice ID used to generate the audio prompt. Use the List"),
     text: str = typer.Option(None, "--text", help="The text to convert to speech."),
     language_code: str = typer.Option(None, "--language-code", help="The language code used to generate the audio prompt. Use the"),
@@ -429,8 +429,8 @@ def generate_a_text(
 
 
 
-@app.command("show-usage-text-to-speech")
-def show_usage_text_to_speech(
+@app.command("tts-usage")
+def tts_usage(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -457,8 +457,8 @@ def show_usage_text_to_speech(
 
 
 
-@app.command("show-text-to-speech")
-def show_text_to_speech(
+@app.command("tts-status")
+def tts_status(
     tts_id: str = typer.Argument(help="ttsId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -486,8 +486,8 @@ def show_text_to_speech(
 
 
 
-@app.command("list-voices")
-def list_voices(
+@app.command("tts-voices")
+def tts_voices(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -514,6 +514,6 @@ def list_voices(
     if output == "json":
         print_json(items)
     else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+        print_table(items, columns=[('ID', 'id'), ('Label', 'label')], limit=limit)
 
 

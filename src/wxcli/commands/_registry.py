@@ -164,7 +164,6 @@ GENERATED_GROUPS = [
     ("single_number_reach", "single-number-reach"),
     ("team_memberships", "team-memberships"),
     ("teams", "teams"),
-    ("text_to_speech", "text-to-speech"),
     ("ucm_profile", "ucm-profile"),
     ("user_settings", "user-settings"),
     ("video_mesh", "video-mesh"),
