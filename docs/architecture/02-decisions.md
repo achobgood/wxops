@@ -452,6 +452,36 @@ The 2026-07-01 coherence audit (docs/arch/) found: specs refreshed twice without
 
 ---
 
+## ADR-10: PyPI Distribution; Git-Pull Update Retired
+
+### Decision
+
+Distribute wxcli as a versioned package on **public PyPI**, built and published by a `release: published`-triggered GitHub Actions workflow using **Trusted Publishing (OIDC)**, with wheel + sdist also attached to each GitHub Release. `wxcli update` checks the PyPI JSON API and upgrades in place via pipx/pip; the git-pull update model is retired for managed installs but retained for source/dev (editable) checkouts. The first real release, **v1.2.0**, doubles as the migration bridge.
+
+### Context
+
+Install was `git clone && pip install -e .`; the working tree **was** the running CLI, and `wxcli update` ran `git pull origin main` → `pip install -e .`. Any edit to a checkout file changed CLI behavior, updating required git literacy and a clean tree, and there was no release artifact — `origin/main` was the shipped state at all times. Unsafe for non-developer end users.
+
+### Rationale
+
+- Public PyPI gives the simplest end-user path (`pipx install wxcli`) and reliable enterprise reach.
+- Trusted Publishing needs no stored secret; a *pending publisher* bootstraps the brand-new name.
+- A PyPI-JSON version check + in-place pipx/pip upgrade removes all git operations from end-user machines.
+- Opt-in `--migrate` makes the cutover explicit and safe; no one is stranded — the old git-pull path keeps working until the user chooses to migrate.
+- The repo clone is retained (not removed) because it delivers the Claude Code playbook; PyPI distribution is CLI-only.
+
+### Consequences
+
+**Enables:** safe distribution to non-developers; in-place upgrades; release notes + artifact + PyPI tied to one `release: published` event.
+**Forecloses:** "the checkout is the product" (edits silently changing behavior); shipping straight off `origin/main` with no artifact.
+**Gotchas:** setuptools-scm needs `fetch-depth: 0` **and** the version guard, or CI publishes a dirty (`.dev`/`+local`) version — the one classic footgun. Enterprise networks blocking PyPI use `WXCLI_UPDATE_INDEX_URL`.
+
+### Status
+
+**Active** since 2026-07-06 (implementation). First bridge release: v1.2.0.
+
+---
+
 ## Decision Cross-Reference
 
 | ADR | Interacts With | Nature of Interaction |
@@ -466,6 +496,8 @@ The 2026-07-01 coherence audit (docs/arch/) found: specs refreshed twice without
 | ADR-8 (Playbook) | ADR-1 (Generated commands) | Skills reference specific `wxcli` commands — coupling between prompt layer and CLI surface |
 | ADR-9 (Spec sync + drift gate) | ADR-1 (Generated commands) | Retires ADR-1's "registration is manual" gotcha; regen becomes one atomic operation |
 | ADR-9 (Spec sync + drift gate) | ADR-8 (Playbook) | Gate check 2 enforces that skills only cite commands the built CLI resolves |
+| ADR-10 (PyPI distribution) | ADR-1 (Generated commands) | setuptools-scm stamps the built wheel; the release workflow's version guard protects that stamp |
+| ADR-10 (PyPI distribution) | ADR-8 (Playbook) | The playbook stays repo-hosted, so the `git clone` source install is retained alongside the PyPI CLI install |
 
 ---
 
