@@ -166,7 +166,7 @@ Added 2026-04-15 after an org-cleanup subagent died mid-Phase-2 when its Python 
 |------|--------|----------------|
 | `docs/architecture/00-index.md` | Index, quick-reference table, maintenance protocol | Any architecture doc work |
 | `docs/architecture/01-structural-map.md` | Modules, data flows, abstractions, boundaries | Adding/removing modules, changing data flows |
-| `docs/architecture/02-decisions.md` | 8 ADRs, cross-reference, open questions | Making or revisiting architectural decisions |
+| `docs/architecture/02-decisions.md` | 10 ADRs, cross-reference, open questions | Making or revisiting architectural decisions |
 | `docs/architecture/03-behavior.md` | Failure modes, fragility, performance, state, known issues | Debugging, changing error handling, modifying state |
 | `docs/architecture/04-operations-and-evolution.md` | Build, test, deploy, debug, tech debt, roadmap | Changing build/test infra, paying down debt |
 | `docs/architecture/05-purpose.md` | Audience, success criteria, scope, constraints | Scope decisions, onboarding |

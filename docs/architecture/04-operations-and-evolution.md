@@ -151,7 +151,11 @@ State is persisted to SQLite in the project directory. Each command is idempoten
 
 ### Distribution
 
-wxcli is a private tool, not published to PyPI or any package registry. Installation is from the git repo via `pip install -e .`. There is no homebrew formula, no Docker image, no binary distribution.
+wxcli is published to **public PyPI** as `wxcli` (`pipx install wxcli` / `pip install wxcli`). Releases are built and shipped by `.github/workflows/release.yml`, which triggers on `release: published`: it checks out full history (`fetch-depth: 0`, required for setuptools-scm version stamping), builds a wheel + sdist, runs a **version guard** (built version must equal the tag with `v` stripped, no `.dev`/`+local` segment), publishes via **Trusted Publishing** (OIDC — no stored token), and attaches the artifacts to the GitHub Release. Release notes are authored in the GitHub web UI *before* publishing, so one action ties notes + artifact + PyPI together.
+
+The repo `git clone` is retained as the **source/dev install** path (`pip install -e .`) because it also delivers the Claude Code playbook (agents/skills/reference docs live in the repo, not the wheel).
+
+`wxcli update` (see README §Updating / `src/wxcli/commands/update.py`) detects its install method and upgrades in place — `pipx upgrade` / `pip install --upgrade` — with no git operations. Source/editable installs are shown migration guidance instead; `wxcli update --migrate` performs an opt-in cutover to a pipx-managed install. `WXCLI_UPDATE_INDEX_URL` overrides the index for TestPyPI E2E and enterprise mirrors. See ADR-10. There is no homebrew formula, no Docker image, no binary distribution.
 
 ### Runtime Requirements
 
