@@ -2,6 +2,8 @@
 
 A command-line tool and AI-assisted playbook for provisioning, managing, migrating, and auditing Webex Calling environments. 178 command groups covering the full Webex Calling, admin, device, messaging, meetings, and contact center API surface.
 
+> **Unofficial community CLI — not affiliated with or endorsed by Cisco.**
+
 ## What It Does
 
 - **178 CLI command groups** — provision locations, users, call features, devices, routing, PSTN, messaging, meetings, and contact center resources from the terminal
@@ -48,12 +50,24 @@ This isn't anti-MCP. MCP is the right *thin boundary* for host integration: to l
 ## Install
 
 ```bash
+pipx install wxcli      # recommended — isolated, always on PATH
+# or:
+pip install wxcli
+```
+
+Works on macOS, Linux, and Windows. On Windows, first install [Python 3.11+](https://www.python.org/downloads/) (tick **"Add python.exe to PATH"** during setup); then `python -m pip install --user pipx && python -m pipx ensurepath` gives you `pipx`. `pipx`/`pip` pull every dependency automatically.
+
+### From source (for development or the Claude Code playbook)
+
+The Claude Code playbook (agents, skills, reference docs) lives in the repo, not the wheel. Clone if you want the playbook or plan to develop wxcli:
+
+```bash
 git clone https://github.com/achobgood/wxops.git
 cd wxops
 pip install -e .
 ```
 
-Works on macOS, Linux, and Windows. On Windows, first install [Python 3.11+](https://www.python.org/downloads/) (tick **"Add python.exe to PATH"** during setup) and [Git](https://git-scm.com/download/win); the commands above are identical in PowerShell or cmd, and `pip` pulls every dependency automatically — nothing else to install.
+On Windows this also needs [Git](https://git-scm.com/download/win). The version is derived from git tags at install time, so a full clone (not a shallow/zip download) is required.
 
 ## Authenticate
 
@@ -89,6 +103,23 @@ Verify auth (any shell):
 wxcli whoami
 ```
 
+## Updating
+
+```bash
+wxcli update           # check PyPI and upgrade in place
+wxcli update --check   # report the latest version without upgrading
+```
+
+`wxcli update` detects how it was installed and upgrades accordingly — `pipx upgrade wxcli` for pipx installs, `pip install --upgrade wxcli` for pip installs — then deep-links the release notes for the new version. No git required.
+
+**If you originally cloned the repo** (a source/dev install), `wxcli update` prints guidance instead of upgrading. To move to a managed install, run:
+
+```bash
+wxcli update --migrate   # installs via pipx, removes the old editable install
+```
+
+Developers who want to keep hacking on the source stay on `git pull`. Behind a firewall that blocks PyPI? Point `WXCLI_UPDATE_INDEX_URL` at an internal mirror, or install fresh with `pipx install wxcli` and abandon the clone.
+
 ## Claude Code Playbook
 
 This repo includes an AI playbook for [Claude Code](https://claude.com/claude-code) that turns your terminal into a guided Webex Calling configuration assistant.
@@ -107,8 +138,8 @@ A guided AI assistant that walks you through Webex Calling configuration end-to-
 ### How to Use It
 
 1. Install [Claude Code](https://claude.com/claude-code)
-2. Clone this repo and `cd` into it
-3. Install the CLI: `pip install -e .`
+2. Clone this repo and `cd` into it — the clone delivers the **playbook** (agents/skills/docs)
+3. Install the CLI: `pip install -e .` (or use a PyPI-installed `wxcli` — the playbook drives whichever `wxcli` is on your PATH)
 4. Run `claude` to start Claude Code
 5. Use `/agents` and select **wxc-calling-builder** to begin
 6. Or use `/wxc-calling-debug` to troubleshoot a specific issue
