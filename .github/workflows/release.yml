@@ -1,0 +1,46 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write      # OIDC for PyPI Trusted Publishing
+      contents: write      # upload assets to the Release
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0    # setuptools-scm needs full history + the tag
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build wheel + sdist
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build
+
+      - name: Version guard (never publish a dirty version)
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          EXPECTED="${TAG#v}"
+          BUILT=$(ls dist/*.whl | sed -E 's#.*/wxcli-([^-]+)-py3-none-any\.whl#\1#')
+          echo "tag=$TAG expected=$EXPECTED built=$BUILT"
+          if [ "$BUILT" != "$EXPECTED" ]; then
+            echo "::error::Built version $BUILT != tag $EXPECTED"; exit 1
+          fi
+          case "$BUILT" in
+            *.dev*|*+*) echo "::error::Dirty version $BUILT"; exit 1;;
+          esac
+
+      - name: Publish to PyPI (Trusted Publishing)
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+      - name: Attach artifacts to the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" dist/*

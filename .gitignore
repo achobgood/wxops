@@ -64,8 +64,11 @@ tests/migration/cucm/teardown_testbed.py
 tests/migration/cucm/testbed-manifest.json
 tests/migration/cucm/validate_live_cucm.py
 
-# CI (no value without tests)
-.github/
+# CI (no value without tests) — except release.yml, which must be tracked to run
+.github/*
+!.github/workflows/
+.github/workflows/*
+!.github/workflows/release.yml
 
 # Coverage
 .coverage
