@@ -96,7 +96,7 @@ After collection, tell the user:
 Run the analyzer:
 
 ```bash
-python3.14 -m wxcli.org_health.analyze \
+wxcli org-health analyze \
   "org-health-output/${TIMESTAMP}/collected" \
   --output "org-health-output/${TIMESTAMP}/results"
 ```
@@ -115,7 +115,7 @@ Ask the user for:
 Generate the report:
 
 ```bash
-python3.14 -m wxcli.org_health.report \
+wxcli org-health report \
   "org-health-output/${TIMESTAMP}/results" \
   --brand "<brand>" \
   --prepared-by "<name>"
