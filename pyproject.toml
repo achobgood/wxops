@@ -40,6 +40,11 @@ wxcli = "wxcli.main:app"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+# Both patterns are required: setuptools' recursive glob does not descend
+# into dot-directories, so "_playbook/**" alone would drop .claude/ from the wheel.
+wxcli = ["_playbook/**", "_playbook/.claude/**"]
+
 [tool.setuptools_scm]
 write_to = "src/wxcli/_version.py"
 
