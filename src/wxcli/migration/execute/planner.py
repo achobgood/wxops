@@ -747,6 +747,8 @@ def _expand_device(
       conversion will auto-register the device against Webex by MAC so that
       no end-user activation step is needed.
     - webex_app / infrastructure / dect / non-Webex models: no ops
+    - MAC-based path (NATIVE_MPP/default, or CONVERTIBLE+mac) without a mac: no ops
+      (logged skip — POST /devices requires a MAC, so there's nothing to create)
 
     Skip decisions handled generically in expand_to_operations.
     (from 05-dependency-graph.md — device:create at tier 3, api_calls=2)
@@ -799,6 +801,21 @@ def _expand_device(
                     depends_on=deps_create, batch=batch),
             ]
         # Fall through to the MAC-based 2-op path below.
+
+    if not obj.get("mac"):
+        report = _current_report()
+        if report is not None:
+            _warn_skip(
+                report,
+                canonical_id=cid,
+                entity_type="device",
+                reason="missing_mac",
+                consequence=(
+                    "device will not be provisioned to Webex "
+                    "(MAC-based create requires a MAC address)"
+                ),
+            )
+        return []
 
     return [
         _op(cid, "create", "device", f"Create device {name}",
