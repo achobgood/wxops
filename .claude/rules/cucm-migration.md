@@ -3,7 +3,6 @@ paths:
   - "src/wxcli/migration/**"
   - "docs/knowledge-base/migration/**"
   - "docs/runbooks/cucm-migration/**"
-  - "docs/reference/migration-spec-template.md"
 ---
 
 # CUCM Migration Context
@@ -46,7 +45,7 @@ Operator-facing reference docs for the CUCM-to-Webex migration tool. Written for
 
 ## CUCM→Webex Migration Tool (All 11 phases complete)
 
-The migration tool is at `src/wxcli/migration/` and wired into the CLI as `wxcli cucm <command>`. **2778 tests passing.** See `src/wxcli/migration/CLAUDE.md` for the full file map, architecture, and pipeline commands. Use `/cucm-migrate` to execute a migration after running the pipeline.
+The migration tool is wired into the CLI as `wxcli cucm <command>`. Use `/cucm-migrate` to execute a migration after running the pipeline.
 
 **To run a migration:** `wxcli cucm init` → `discover` → `normalize` → `map` → `analyze` → `decisions` → `plan` → `preflight` → `export` → then invoke `/cucm-migrate`.
 
@@ -57,7 +56,3 @@ The migration tool is at `src/wxcli/migration/` and wired into the CLI as `wxcli
 **To generate a per-user diff:** `wxcli cucm init` → `discover` → `normalize` → `map` → `analyze` → `user-diff`. Does not require plan/preflight/export.
 
 **To generate a user communication notice:** `wxcli cucm init` → `discover` → `normalize` → `map` → `analyze` → `user-notice --brand "..." --migration-date "..." --helpdesk "..."`. Does not require plan/preflight/export.
-
-## Migration Spec Template
-
-All migration pipeline spec documents must follow the template at `docs/reference/migration-spec-template.md`. This applies whether the spec is written interactively via brainstorming, by an agent swarm, or manually. The template is rigid — all 9 sections are required. Sections can be brief for simple specs but cannot be omitted.

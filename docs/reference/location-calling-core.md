@@ -2020,13 +2020,13 @@ wxcli calling-service show-call-captions
 wxcli calling-service update-call-captions --org-closed-captions-enabled --org-transcripts-enabled
 ```
 
-## CLI Files
+## CLI Groups
 
-| CLI Group | File |
-|-----------|------|
-| `location-call-settings` | `src/wxcli/commands/location_call_settings.py` |
-| `location-call-settings-voicemail` | `src/wxcli/commands/location_call_settings_voicemail.py` |
-| `calling-service` | `src/wxcli/commands/calling_service.py` |
+| CLI Group |
+|-----------|
+| `location-call-settings` |
+| `location-call-settings-voicemail` |
+| `calling-service` |
 
 ---
 

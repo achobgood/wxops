@@ -164,7 +164,7 @@ Historical analytics covering messaging activity, room device usage, and meeting
 
 All three `analytics` commands have a confirmed bug in the generated code: the URL contains `/v1/v1/` instead of `/v1/`. For example, the `show` command hits `https://webexapis.com/v1/v1/analytics/messagingMetrics/dailyTotals` instead of the correct `https://webexapis.com/v1/analytics/messagingMetrics/dailyTotals`. This causes all three commands to fail at runtime with a 404 or routing error.
 
-**Workaround:** Use raw HTTP (curl) until the bug is fixed via `field_overrides.yaml` and regeneration.
+**Workaround:** Use raw HTTP (curl) until a fixed release.
 
 **Affected commands:**
 - `wxcli analytics show` -- path: `/v1/v1/analytics/messagingMetrics/dailyTotals` (should be `/v1/analytics/messagingMetrics/dailyTotals`)
@@ -366,12 +366,7 @@ All three `analytics` commands (`show`, `show-daily-totals`, `show-aggregates`) 
 
 **Impact:** All three commands fail at runtime. Use raw HTTP (curl) as shown in the fallback examples above.
 
-**Fix:** Add URL override entries in `tools/field_overrides.yaml` for the three analytics endpoints to strip the extra `/v1`, then regenerate with:
-
-```bash
-PYTHONPATH=. python3.11 tools/generate_commands.py --spec specs/webex-admin.json --tag "Historical Analytics APIs"
-pip3.11 install -e . -q
-```
+**Fix:** tracked as a generator bug; until a fixed release, use the raw HTTP workaround above
 
 ### Scope troubleshooting
 

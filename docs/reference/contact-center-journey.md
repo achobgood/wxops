@@ -441,7 +441,7 @@ All JDS endpoints. Admin paths require `cjds:admin_org_read`/`cjds:admin_org_wri
 
 10. **Journey streaming endpoints (SSE) are long-lived connections.** The CLI may time out — use `--debug` to see the raw SSE stream or use raw HTTP with an SSE-capable client.
 
-11. **`wxcli cc-journey show-workspace-id-events` had a missing `/v1/` prefix bug.** Fixed in `src/wxcli/commands/cc_journey.py` lines 1138 and 1200. Both commands now correctly hit `/v1/api/events/...`.
+11. **`wxcli cc-journey show-workspace-id-events` had a missing `/v1/` prefix bug.** Fixed in the current CLI. Both commands now correctly hit `/v1/api/events/...`.
 
 12. **Flow Designer HTTP connector requires a full absolute URL.** Relative paths like `/publish/v1/api/event` return HTTP 500 "is not a valid HTTP URL". Always use `https://api.wxcc-{region}.cisco.com/publish/v1/api/event?workspaceId=...`.
 

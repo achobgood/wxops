@@ -15,7 +15,6 @@ Organizations, org settings, contacts, roles, and domain management for Webex ad
 ## Sources
 
 - OpenAPI spec: `specs/webex-admin.json` -- Organizations, Organization Settings, Organization Contacts, Roles, Domain Management tags
-- CLI source: `src/wxcli/commands/organizations.py`, `org_settings.py`, `org_contacts.py`, `roles.py`, `domains.py`
 - [Webex Developer Docs -- Organizations](https://developer.webex.com/docs/api/v1/organizations)
 
 ---

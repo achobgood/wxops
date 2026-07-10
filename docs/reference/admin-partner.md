@@ -7,7 +7,6 @@ Partner/VAR/MSP multi-tenant management -- customer org management, admin assign
 ## Sources
 
 - OpenAPI spec: `specs/webex-admin.json` (tags: Partner Administrators, Partner Tags, Partner Reports Templates)
-- CLI source: `src/wxcli/commands/partner_admins.py`, `partner_tags.py`, `partner_reports.py`
 
 ---
 

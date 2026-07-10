@@ -26,9 +26,8 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
 1. **Verify token before any writes** — always run `wxcli whoami` before attempting create/update/delete operations.
 2. **Never modify without confirmation** — present the diagnostic plan (Step 5) and get user approval before executing fixes.
 3. **Always check auth/scope first** — auth and scope issues cause 80% of failures. Complete Step 2 before investigating anything else.
-4. **Never hand-edit generated files** — if the bug is in a generated CLI command file, fix it via `tools/field_overrides.yaml` and regenerate. See CLAUDE.md generator rules.
-5. **call-controls requires user-level OAuth** — admin tokens and service-app tokens get 400 "Target user not authorized" on `/telephony/calls/*` endpoints. The user must authenticate with a personal or OAuth token for a specific calling-licensed user.
-6. **my-settings requires a calling-licensed user** — all `/people/me/*` endpoints return 404 (error 4008) if the authenticated user does not have a Webex Calling license. Test with a calling user's token, not the admin token.
+4. **call-controls requires user-level OAuth** — admin tokens and service-app tokens get 400 "Target user not authorized" on `/telephony/calls/*` endpoints. The user must authenticate with a personal or OAuth token for a specific calling-licensed user.
+5. **my-settings requires a calling-licensed user** — all `/people/me/*` endpoints return 404 (error 4008) if the authenticated user does not have a Webex Calling license. Test with a calling user's token, not the admin token.
 
 ## Step 1: Load references
 
@@ -220,8 +219,8 @@ Format as a brief numbered plan. Wait for user confirmation before proceeding to
 | **409 Conflict** | Duplicate resource (name, extension, phone number) | Check for existing resources with the same name/extension/number. Use the corresponding `list` command to find conflicts. |
 | **429 Too Many Requests** | Rate limited | SDK auto-retries when `retry_429=True` (default). For bulk work, lower `concurrent_requests` or use async with semaphore. |
 | **400 Bad Request** | Invalid parameters, wrong data types, missing required fields | Run the command with `--debug` to see the full error body. Error code 25008 means a required field is missing. Check required fields in the API reference. Verify enum values. Check that IDs are the correct type (Webex base64 ID, not UUID). |
-| **400 "Target user not authorized"** | Using admin/service-app token on call-controls endpoint | call-controls requires user-level OAuth. See Critical Rules #5. |
-| **404 error 4008 on /people/me/** | Authenticated user lacks Webex Calling license | my-settings endpoints require a calling-licensed user. See Critical Rules #6. |
+| **400 "Target user not authorized"** | Using admin/service-app token on call-controls endpoint | call-controls requires user-level OAuth. See Critical Rules #4. |
+| **404 error 4008 on /people/me/** | Authenticated user lacks Webex Calling license | my-settings endpoints require a calling-licensed user. See Critical Rules #5. |
 | **502/503 Service Error** | Webex platform issue | Retry after a delay. Check [status.webex.com](https://status.webex.com) for outages. |
 
 #### CLI Debugging
@@ -269,7 +268,7 @@ wxcli call-queue show LOCATION_ID QUEUE_ID --output json --debug
 | `RuntimeError: Event loop is closed` | Calling `asyncio.run()` in an already-running loop (Jupyter, etc.) | Use `await main()` directly, or use `nest_asyncio` |
 | `aiohttp.ClientError` / session closed | Session used after `async with` block exited | Keep all API calls inside the `async with aiohttp.ClientSession() as session:` block |
 | Partial failures in `asyncio.gather` | Some calls failed, rest succeeded | Use `return_exceptions=True` and check each result: `isinstance(result, Exception)` |
-| Slow bulk operations | Concurrency too low | Increase semaphore limit in the migration engine pattern (see `src/wxcli/migration/execute/engine.py`) |
+| Slow bulk operations | Concurrency too low | Increase semaphore limit in the migration engine pattern |
 
 ### 6b. Test with targeted CLI commands
 
@@ -437,8 +436,7 @@ If a reference doc was wrong or incomplete, update it per the Reference Doc Sync
 wxcli does NOT auto-retry 429 errors in normal CLI mode — it raises an error. For bulk operations, use the migration engine's async pattern which handles 429 retries with exponential backoff:
 
 ```python
-# For bulk async with controlled concurrency, reference:
-# src/wxcli/migration/execute/engine.py
+# For bulk async with controlled concurrency, use the migration engine's async pattern:
 # It uses aiohttp with a semaphore for concurrency limiting
 # and automatic 429 retry with Retry-After header parsing.
 

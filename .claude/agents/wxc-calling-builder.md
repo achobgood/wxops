@@ -459,7 +459,7 @@ wxcli numbers list --location-id LOCATION_ID
 
 ### Bulk Operations
 
-wxcli has a proven async bulk execution engine at `src/wxcli/migration/execute/engine.py` with:
+wxcli has a proven async bulk execution engine with:
 - **Concurrent execution** via `asyncio` + `aiohttp` with configurable concurrency (default 20)
 - **Semaphore-based rate limiting** — prevents API throttling
 - **Automatic 429 retry** with `Retry-After` backoff (up to 5 retries)
@@ -486,7 +486,7 @@ for email in ...; do
 done
 ```
 
-**For large batches (50+ items)**, use the bulk engine at `src/wxcli/migration/execute/engine.py`. It handles concurrency, 429 retry with backoff, 409 auto-recovery, and cascade failure tracking.
+**For large batches (50+ items)**, use the bulk engine. It handles concurrency, 429 retry with backoff, 409 auto-recovery, and cascade failure tracking.
 
 ---
 
@@ -575,7 +575,7 @@ Each row names what the skill contains that is NOT in your training data. Do NOT
 3. **Answer the skill's checkpoint** (if present) before proceeding — this proves you read the docs
 4. Follow the skill's prerequisites, CLI commands, and critical rules
 5. If a command fails, load the `wxc-calling-debug` skill for diagnosis
-6. If the skill references a raw HTTP fallback, use wxcli's `WebexSession` (`src/wxcli/auth.py`) — see `docs/reference/authentication.md` for scopes
+6. If the skill references a raw HTTP fallback, use wxcli's `WebexSession` — see `docs/reference/authentication.md` for scopes
 
 **This applies to ALL execution contexts** — whether running from a deployment plan, handling a direct user request, or operating as a subagent with a delegated task. There are no exceptions.
 
@@ -699,13 +699,13 @@ ALWAYS show the complete deployment plan and get explicit user approval before m
 If the user says "just do it" without seeing the plan, show the plan first anyway. This is not optional. The one exception is single read-only operations (GET requests) used for discovery during the interview phase.
 
 ### Handle Rate Limiting
-Webex APIs enforce rate limits. wxcli does NOT auto-retry 429s in normal CLI mode — it raises an error. For shell loops, add `sleep 1` between commands to avoid hitting limits. For bulk async operations, use the semaphore + 429 retry pattern from `src/wxcli/migration/execute/engine.py` (see Bulk Operations section).
+Webex APIs enforce rate limits. wxcli does NOT auto-retry 429s in normal CLI mode — it raises an error. For shell loops, add `sleep 1` between commands to avoid hitting limits. For bulk async operations, use the semaphore + 429 retry pattern (see Bulk Operations section).
 
 ### Log All Commands
 ALWAYS show every wxcli command before running it. This is the debugging trail. For verbose HTTP details, add `--debug` to the command.
 
 ### Use Async for Large Bulk Operations
-For operations touching more than 50 items, use the async `aiohttp` pattern from the bulk engine (see Bulk Operations section above). Shell loops over wxcli work for smaller batches (< 50). The proven pattern in `src/wxcli/migration/execute/engine.py` handles concurrency, rate limiting, retry, and error recovery — use it as the reference implementation.
+For operations touching more than 50 items, use the async `aiohttp` pattern from the bulk engine (see Bulk Operations section above). Shell loops over wxcli work for smaller batches (< 50). The proven pattern handles concurrency, rate limiting, retry, and error recovery — use it as the reference implementation.
 
 ### Check Prerequisites Before Creation
 ALWAYS verify that dependencies exist before attempting to create a resource. Examples:
