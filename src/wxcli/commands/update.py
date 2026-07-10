@@ -145,6 +145,30 @@ def _do_migrate() -> None:
     typer.echo(f"Done. The old clone at {REPO_ROOT} is safe to delete.")
 
 
+def refresh_playbook(latest: str, yes: bool, cwd: Path | None = None,
+                     run=subprocess.run) -> None:
+    """Post-upgrade playbook refresh (spec §4.7).
+
+    Exec the freshly-installed `wxcli init --force` in a NEW process — this
+    process still holds the pre-upgrade _playbook/ package data. Windows note:
+    pipx can fail to swap a running console script; the user re-runs
+    `wxcli init --force` manually (documented, not solved).
+    """
+    folder = (cwd or Path.cwd()).resolve()
+    if not (folder / ".claude" / ".wxops-manifest.json").exists():
+        typer.echo(
+            f"To refresh a playbook folder: run 'wxcli init --force' in it "
+            f"(brings it to v{latest})."
+        )
+        return
+    if not yes and not typer.confirm(
+        f"This folder holds a wxops playbook. Refresh it to v{latest}?", default=True
+    ):
+        return
+    if run(["wxcli", "init", "--force", str(folder)]).returncode != 0:
+        typer.echo("Playbook refresh failed — run 'wxcli init --force' manually.", err=True)
+
+
 @app.callback(invoke_without_command=True)
 def update(
     ctx: typer.Context,
@@ -192,3 +216,4 @@ def update(
         typer.echo("Upgrade failed.", err=True)
         raise typer.Exit(1)
     typer.echo(f"Upgraded to {latest}.")
+    refresh_playbook(latest, yes)
