@@ -1,6 +1,6 @@
 # org_health/ — Webex Calling Org Health Assessment
 
-Deterministic health audit for live Webex Calling orgs. **76 tests passing.** Not wired into the wxcli CLI — invoked directly via `python3.14 -m` by the builder agent through the `org-health` skill.
+Deterministic health audit for live Webex Calling orgs. **76 tests passing.** Wired into the wxcli CLI as `wxcli org-health` (`src/wxcli/commands/org_health_cli.py`); the builder agent invokes it through the `org-health` skill. The `python3.14 -m wxcli.org_health.analyze`/`.report` entry points below still work for direct source-tree invocation, but are no longer required — pipx installs can't resolve them (spec §4.5), which is why the CLI group exists.
 
 ## How It Works
 
@@ -17,8 +17,8 @@ The skill orchestrates collection (Phase 1) by running wxcli commands and saving
 | `models.py` | `Finding`, `CategoryScore`, `HealthResult`, `OrgStats` dataclasses with `to_dict()` serialization |
 | `collector.py` | `load_manifest()`, `validate_collection()`, `load_collected_data()` — reads JSON from collected directory |
 | `checks.py` | 18 check functions registered via `@check(category)` decorator into `ALL_CHECKS`. `run_all_checks(data)` runs all and returns `list[Finding]` |
-| `analyze.py` | `run_analysis(collected_dir) → HealthResult`. Also `__main__` for CLI: `python3.14 -m wxcli.org_health.analyze <dir> --output <dir>` |
-| `report.py` | `generate_report(result, brand=, prepared_by=) → str`. Also `__main__` for CLI: `python3.14 -m wxcli.org_health.report <dir> --brand "..." --prepared-by "..."` |
+| `analyze.py` | `run_analysis(collected_dir) → HealthResult`. Wrapped by `wxcli org-health analyze <dir> --output <dir>`; also still runnable directly as `python3.14 -m wxcli.org_health.analyze <dir> --output <dir>` |
+| `report.py` | `generate_report(result, brand=, prepared_by=) → str`. Wrapped by `wxcli org-health report <dir> --brand "..." --prepared-by "..."`; also still runnable directly as `python3.14 -m wxcli.org_health.report <dir> --brand "..." --prepared-by "..."` |
 
 ## Check Categories (18 checks)
 
