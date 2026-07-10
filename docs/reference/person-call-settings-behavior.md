@@ -1488,8 +1488,6 @@ result = api.session.rest_get(url)
 ## 15. Monitoring
 <!-- Updated by playbook session 2026-03-18 -->
 
-**CLI file**: `src/wxcli/commands/user_call_settings.py`
-
 Configures which users, call parks, and shared lines a person monitors (busy lamp field / BLF). Present in the CLI but not yet in the wxc_sdk person_settings docs for this file.
 
 ### Raw HTTP
@@ -1529,8 +1527,6 @@ wxcli user-settings update-monitoring <personId> --json-body '{"enableCallParkNo
 
 ## 16. Push-to-Talk
 <!-- Updated by playbook session 2026-03-18 -->
-
-**CLI file**: `src/wxcli/commands/user_call_settings.py`
 
 Configures push-to-talk (intercom) settings for a person, including connection type, access control, and auto-answer. Present in the CLI but not yet in the wxc_sdk person_settings docs for this file.
 

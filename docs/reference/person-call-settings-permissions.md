@@ -95,7 +95,7 @@ body = {
 api.session.rest_put(f"{BASE}/people/{person_id}/features/incomingPermission", json=body)
 ```
 
-**CLI reference:** `src/wxcli/commands/user_call_settings.py` — `show-incoming-permission`, `update-incoming-permission`
+**CLI commands:** `show-incoming-permission`, `update-incoming-permission`
 
 ### CLI Examples
 
@@ -459,7 +459,7 @@ api.session.rest_post(
 )
 ```
 
-**CLI reference:** `src/wxcli/commands/user_call_settings.py` — `show-outgoing-permission`, `update-outgoing-permission`
+**CLI commands:** `show-outgoing-permission`, `update-outgoing-permission`
 
 ### CLI Examples
 
@@ -1021,8 +1021,8 @@ screening = api.session.rest_get(
 )
 ```
 
-**CLI reference:** `src/wxcli/commands/user_call_settings.py` — `show-executive-assistant`, `update-executive-assistant`
-**CLI reference (self):** `src/wxcli/commands/call_settings_for_me.py` — `list-assigned-assistants`, `update-assigned-assistants`, `list-available-assistants`, `show-assistant`, `update-assistant`
+**CLI commands:** `show-executive-assistant`, `update-executive-assistant`
+**CLI commands (self):** `list-assigned-assistants`, `update-assigned-assistants`, `list-available-assistants`, `show-assistant`, `update-assistant`
 
 ### CLI Examples
 

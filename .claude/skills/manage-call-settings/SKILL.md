@@ -240,7 +240,7 @@ Filter by display name in the output. Extract the `id` field to use as `WORKSPAC
 wxcli users list --output json
 ```
 
-For small batches, use a shell loop. For large batches (50+ users), use the migration engine's async pattern (`src/wxcli/migration/execute/engine.py`) which handles concurrency, rate limiting, and retry automatically.
+For small batches, use a shell loop. For large batches (50+ users), use the migration engine's async pattern which handles concurrency, rate limiting, and retry automatically.
 
 ### Settings Catalog
 
@@ -640,7 +640,7 @@ done
 
 #### Bulk operations for large batches (50+ users)
 
-For large batches, use shell loops with sleep for rate limiting, or reference the migration engine's async pattern (`src/wxcli/migration/execute/engine.py`) for maximum throughput with concurrency control.
+For large batches, use shell loops with sleep for rate limiting, or reference the migration engine's async pattern for maximum throughput with concurrency control.
 
 ```bash
 # Example: disable call waiting for all users via shell loop
