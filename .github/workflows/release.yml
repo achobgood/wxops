@@ -19,6 +19,15 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Playbook bundle freshness guard
+        run: |
+          python wxcli-dist/assemble.py
+          if [ -n "$(git status --porcelain -- src/wxcli/_playbook)" ]; then
+            git status --porcelain -- src/wxcli/_playbook
+            echo "::error::src/wxcli/_playbook is stale — run 'python wxcli-dist/assemble.py', review the diff, commit, re-tag."
+            exit 1
+          fi
+
       - name: Build wheel + sdist
         run: |
           python -m pip install --upgrade pip build
