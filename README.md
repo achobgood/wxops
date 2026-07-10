@@ -68,18 +68,6 @@ cd wxcli-playbook && claude # start Claude Code in the playbook
 
 `wxcli init --uninstall` removes the materialized files again. No clone required.
 
-### From source (for developing wxcli)
-
-Clone only if you plan to hack on wxcli itself:
-
-```bash
-git clone https://github.com/achobgood/wxops.git
-cd wxops
-pip install -e .
-```
-
-On Windows this also needs [Git](https://git-scm.com/download/win). The version is derived from git tags at install time, so a full clone (not a shallow/zip download) is required.
-
 ## Authenticate
 
 Get a personal access token from [developer.webex.com](https://developer.webex.com) (valid for 12 hours).
@@ -121,15 +109,9 @@ wxcli update           # check PyPI and upgrade in place
 wxcli update --check   # report the latest version without upgrading
 ```
 
-`wxcli update` detects how it was installed and upgrades accordingly — `pipx upgrade wxcli` for pipx installs, `pip install --upgrade wxcli` for pip installs — then deep-links the release notes for the new version. No git required.
+`wxcli update` detects how it was installed and upgrades accordingly — `pipx upgrade wxcli` for pipx installs, `pip install --upgrade wxcli` for pip installs — then deep-links the release notes for the new version.
 
-**If you originally cloned the repo** (a source/dev install), `wxcli update` prints guidance instead of upgrading. To move to a managed install, run:
-
-```bash
-wxcli update --migrate   # installs via pipx, removes the old editable install
-```
-
-Developers who want to keep hacking on the source stay on `git pull`. Behind a firewall that blocks PyPI? Point `WXCLI_UPDATE_INDEX_URL` at an internal mirror, or install fresh with `pipx install wxcli` and abandon the clone.
+Behind a firewall that blocks PyPI? Point `WXCLI_UPDATE_INDEX_URL` at an internal mirror, or install fresh with `pipx install wxcli`.
 
 ## Claude Code Playbook
 
@@ -416,7 +398,6 @@ wxops/
 ## Requirements
 
 - Python 3.11+ (includes `pip`)
-- Git — required to clone the repo *and* to build it (the version is derived from git tags at install time)
 - A Webex admin account with access tokens
 
 ### OAuth Scopes
