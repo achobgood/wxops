@@ -159,6 +159,9 @@ app.add_typer(cleanup_app, name="cleanup")
 from wxcli.commands.org_health_cli import app as org_health_app
 app.add_typer(org_health_app, name="org-health")
 
+from wxcli.commands.init_playbook import init as init_command
+app.command(name="init")(init_command)
+
 # Auto-generated groups — registration manifest emitted by tools/generate_commands.py.
 # Explicit registrations above/below this loop are reserved for hand-written
 # seams, aliases, and the guarded dev-only fs_* block.
