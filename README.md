@@ -57,9 +57,20 @@ pip install wxcli
 
 Works on macOS, Linux, and Windows. On Windows, first install [Python 3.11+](https://www.python.org/downloads/) (tick **"Add python.exe to PATH"** during setup); then `python -m pip install --user pipx && python -m pipx ensurepath` gives you `pipx`. `pipx`/`pip` pull every dependency automatically.
 
-### From source (for development or the Claude Code playbook)
+### Get the Claude Code playbook
 
-The Claude Code playbook (agents, skills, reference docs) lives in the repo, not the wheel. Clone if you want the playbook or plan to develop wxcli:
+The Claude Code playbook (agents, skills, reference docs) ships **inside the wheel**. After installing, materialize it into a folder with `wxcli init`:
+
+```bash
+wxcli init                 # writes the playbook into ./wxcli-playbook
+cd wxcli-playbook && claude # start Claude Code in the playbook
+```
+
+`wxcli init --uninstall` removes the materialized files again. No clone required.
+
+### From source (for developing wxcli)
+
+Clone only if you plan to hack on wxcli itself:
 
 ```bash
 git clone https://github.com/achobgood/wxops.git
@@ -138,8 +149,8 @@ A guided AI assistant that walks you through Webex Calling configuration end-to-
 ### How to Use It
 
 1. Install [Claude Code](https://claude.com/claude-code)
-2. Clone this repo and `cd` into it — the clone delivers the **playbook** (agents/skills/docs)
-3. Install the CLI: `pip install -e .` (or use a PyPI-installed `wxcli` — the playbook drives whichever `wxcli` is on your PATH)
+2. Install the CLI: `pipx install wxcli`
+3. Run `wxcli init` and `cd wxcli-playbook` — this delivers the **playbook** (agents/skills/docs) from the wheel
 4. Run `claude` to start Claude Code
 5. Use `/agents` and select **wxc-calling-builder** to begin
 6. Or use `/wxc-calling-debug` to troubleshoot a specific issue
