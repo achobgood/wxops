@@ -151,7 +151,7 @@ The repo includes a `.claude/settings.json` that pre-approves common commands (`
 The AI playbook is optional — everything else works standalone:
 
 - **wxcli** is a regular Python CLI tool. Install it and use it directly.
-- The **50 reference docs** in `docs/reference/` are a comprehensive API knowledge base, useful for any developer working with Webex APIs.
+- The **43 reference docs** in `docs/reference/` are a comprehensive API knowledge base, useful for any developer working with Webex APIs.
 - The **9 OpenAPI specs** (`specs/webex-*.json`) can be imported into Postman or any API client.
 
 ## CLI Reference
@@ -383,7 +383,7 @@ wxops/
 │   └── field_overrides.yaml      # Table columns, display config, bug fixes
 ├── tests/                        # 2535 tests (pytest)
 ├── specs/                        # 9 OpenAPI 3.0 specs (calling, admin, device, messaging, meetings, CC, UCM, BroadWorks, wholesale)
-├── docs/reference/               # 50 API reference docs (SDK + raw HTTP + gotchas)
+├── docs/reference/               # 43 API reference docs (SDK + raw HTTP + gotchas)
 ├── .claude/settings.json         # Shared permissions (pre-approves wxcli commands)
 ├── .claude/agents/               # Claude Code builder + migration advisor agents
 └── .claude/skills/               # 25 Claude Code skills
