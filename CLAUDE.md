@@ -15,10 +15,6 @@ For every question — capability, configuration, behavior, limits, or anything 
 
 The reference docs and skills are the authoritative source for this project. Training data about Cisco/Webex products is unreliable — product tiers get conflated, feature names change, and capabilities vary by license. If the answer isn't in the docs or skills, say so explicitly rather than filling the gap from training data.
 
-## Architecture Docs Rule
-
-**Before making non-trivial changes, read the relevant architecture doc in `docs/architecture/`.** See `docs/architecture/00-index.md` for the quick-reference table mapping tasks to docs. After making changes that affect the structural map, decisions, behavior, or operations, update the corresponding doc in the same session. Treat these docs as load-bearing — stale architecture docs produce wrong code.
-
 ## Execution Discipline
 
 - **Verify before claiming done.** Run the command, check the output, confirm the state. Never report success from inference alone. Ask yourself: "Would a staff engineer approve this?"
@@ -40,8 +36,7 @@ commands directly** — the agent handles the full workflow.
 **To migrate from CUCM:** `/agents` → wxc-calling-builder → "Run a CUCM migration" and provide
 the CUCM host/credentials. The agent runs the full pipeline: discover → normalize → map → analyze
 → resolve addresses → review decisions → plan → execute → verify. See the CUCM migration section
-below for what the pipeline does. Pipeline and tool details in `.claude/rules/cucm-migration.md` (path-scoped). 
-See `src/wxcli/migration/CLAUDE.md` for the full file map and architecture.
+below for what the pipeline does. Pipeline and tool details in `.claude/rules/cucm-migration.md` (path-scoped).
 
 **To debug a failing configuration:** Use `/wxc-calling-debug` (this one is a skill, invoked directly).
 
@@ -158,19 +153,6 @@ Added 2026-04-15 after an org-cleanup subagent died mid-Phase-2 when its Python 
 | `.claude/skills/cucm-migrate/` | Skill: execute CUCM-to-Webex migration from exported deployment plan |
 | `.claude/skills/query-live/` | Skill: read-only natural language queries against live Webex Calling state |
 
-### Architecture Docs
-
-**These docs are load-bearing.** Before making non-trivial changes, read the relevant architecture doc. After making changes that affect the structural map, decisions, behavior, or operations, update the corresponding doc. The session that makes the change owns the doc update.
-
-| Path | Covers | Read before... |
-|------|--------|----------------|
-| `docs/architecture/00-index.md` | Index, quick-reference table, maintenance protocol | Any architecture doc work |
-| `docs/architecture/01-structural-map.md` | Modules, data flows, abstractions, boundaries | Adding/removing modules, changing data flows |
-| `docs/architecture/02-decisions.md` | 10 ADRs, cross-reference, open questions | Making or revisiting architectural decisions |
-| `docs/architecture/03-behavior.md` | Failure modes, fragility, performance, state, known issues | Debugging, changing error handling, modifying state |
-| `docs/architecture/04-operations-and-evolution.md` | Build, test, deploy, debug, tech debt, roadmap | Changing build/test infra, paying down debt |
-| `docs/architecture/05-purpose.md` | Audience, success criteria, scope, constraints | Scope decisions, onboarding |
-
 ### Skill Disambiguation
 
 When multiple skills could match, use this lookup:
@@ -239,17 +221,6 @@ Common admin goals that span multiple skills. When the user states one of these 
 | Convert workspace to licensed user | `teardown` (decommission workspace) → `provision-calling` (create user, assign license) → `manage-call-settings` (voicemail, forwarding) → `manage-devices` (reassign device) | Workspace-to-user is a lifecycle change spanning 4 domains |
 | CC overflow to Calling hunt group | `contact-center` (CC queue/entry point config) + `configure-features` (hunt group) + `configure-routing` (dial plan to connect them) | CC and Calling are separate routing worlds joined by PSTN/dial plan |
 | Hot desking on conference phones | `manage-devices` (enable hot desking; workspace/device level) + `device-platform` (PhoneOS config keys for hot desk behavior) + `manage-call-settings` (workspace hoteling settings AND person-level hot-desking members via `hot-desking-members`) | Device provisioning, firmware config, and calling settings are three layers; person-level members are person settings |
-
-### Out-of-Skill-Scope Groups (declared)
-
-CLI groups intentionally not fronted by any skill — "unreferenced" here is a decision, not drift. The drift gate (`tools/drift_check.py` check 4) fails any group that is neither skill-referenced nor on this list. Claiming one is a product decision: add skill coverage, then remove it from this list.
-
-- Partner/wholesale surfaces (403 for non-partner tokens): `broadworks-billing-reports`, `broadworks-enterprises`, `broadworks-subscribers`, `broadworks-workspaces`, `wholesale-provisioning`, `wholesale-billing-reports`, `partner-admins`, `partner-tags`
-- Hybrid/infra: `hybrid-clusters`, `hybrid-connectors`, `data-sources`, `resource-groups`, `resource-group-memberships`, `workspace-locations`
-- Admin long tail: `activation-email`, `archive-users`, `classifications`, `guest-management`, `identity-org`, `org-settings`, `roles`, `admin-recordings`
-- Calling long tail (disambiguation rows exist above; skill teaching pending): `announcements`, `announcement-playlists`, `cq-playlists`, `emergency-services`, `virtual-line-settings`, `mode-management`, `hot-desking-members`, `caller-reputation`, `calling-service`, `client-settings`, `device-dynamic-settings`, `external-voicemail`, `location-call-handling`, `person-call-settings`, `ucm-profile`
-- New at 2026-07-01 spec sync, unclaimed pending review: `cc-legacy-flows`, `meeting-slido`
-- Dev-only (untracked): `fs-*`
 
 ### Reference Docs — Webex API Surface
 
@@ -323,9 +294,9 @@ Historical SDK object-model docs (wxcadm core/person/locations/features/devices-
 | `docs/reference/contact-center-analytics.md` | CC AI, monitoring, subscriptions, tasks, search |
 | `docs/reference/contact-center-journey.md` | JDS: workspaces, persons, identity, profile views, events, WXCC subscription |
 
-### Migration (KB, Runbooks, Tool, Spec Template)
+### Migration (KB, Runbooks, Tool)
 
-Detailed migration context lives in `.claude/rules/cucm-migration.md` (auto-loaded when touching migration paths). Contains: knowledge base file map (8 KB docs for the Opus advisor), operator runbooks (3 docs for pipeline walkthrough, decision guide, tuning), migration tool pipeline commands, advisory workflow, report/diff/notice generation commands, spec template requirements, and the phase-by-phase agent invocation example.
+Detailed migration context lives in `.claude/rules/cucm-migration.md` (auto-loaded when touching migration paths). Contains: knowledge base file map (8 KB docs for the Opus advisor), operator runbooks (3 docs for pipeline walkthrough, decision guide, tuning), migration tool pipeline commands, advisory workflow, report/diff/notice generation commands, and the phase-by-phase agent invocation example.
 
 **Read the rule when:** handling any CUCM migration question, running `/cucm-migrate`, or working with the migration advisor agent — even if not editing migration source files directly.
 
@@ -333,40 +304,23 @@ Detailed migration context lives in `.claude/rules/cucm-migration.md` (auto-load
 
 | Path | Purpose |
 |------|---------|
-| `src/wxcli/main.py` | CLI entry point — 178 command groups |
-| `src/wxcli/commands/*.py` | All command implementations (raw HTTP pattern) |
 | `wxcli --help` | Shows all command groups |
 | `wxcli <group> --help` | Shows commands within a group |
 | `wxcli <group> <command> --help` | Shows options for a command |
-| `specs/webex-cloud-calling.json` | OpenAPI 3.0 spec — calling APIs |
-| `specs/webex-admin.json` | OpenAPI 3.0 spec — admin/org management APIs |
-| `specs/webex-device.json` | OpenAPI 3.0 spec — device management APIs |
-| `specs/webex-messaging.json` | OpenAPI 3.0 spec — messaging/rooms/teams APIs |
-| `specs/webex-meetings.json` | OpenAPI 3.0 spec — meetings/video mesh/transcripts APIs |
-| `specs/webex-contact-center.json` | OpenAPI 3.0 spec — contact center APIs |
-| `specs/webex-ucm.json` | OpenAPI 3.0 spec — UCM calling profiles (1 op) |
-| `specs/webex-broadworks.json` | OpenAPI 3.0 spec — BroadWorks partner APIs |
-| `specs/webex-wholesale.json` | OpenAPI 3.0 spec — wholesale provisioning/billing APIs |
-| `src/wxcli/commands/_registry.py` | Generator-emitted registration manifest (do not edit by hand) |
-| `tools/spec_sync.py` | Atomic spec sync: update specs → regen all → manifest → drift gate |
-| `tools/drift_check.py` | Coherence gate: spec↔CLI parity, skill refs, counts (report-only until S4.5) |
-| `docs/arch/deliberate-gaps.md` | Generated list of spec ops deliberately without CLI (skip reasons) |
-| `src/wxcli/commands/cleanup.py` | Batch cleanup: inventory + parallel layered deletion |
-| `src/wxcli/commands/converged_recordings_export.py` | Hand-written download/export for converged recordings (registered into generated group) |
 
 ### Org Health Assessment
 
-Detailed context in `.claude/rules/org-health.md` (auto-loaded when touching org health paths). Contains: file map (models, collector, checks, analyze, report), run instructions, and check category breakdown (Security Posture, Routing Hygiene, Feature Utilization, Device Health). **76 tests passing.**
+Detailed context in `.claude/rules/org-health.md` (auto-loaded when touching org health paths). Contains: file map (models, collector, checks, analyze, report), run instructions, and check category breakdown (Security Posture, Routing Hygiene, Feature Utilization, Device Health).
 
 **Read the rule when:** running an org health audit, modifying checks, or working on the report generator.
 
-### CUCM→Webex Migration Tool (All 11 phases complete)
+### CUCM→Webex Migration Tool
 
-The migration tool is at `src/wxcli/migration/` and wired into the CLI as `wxcli cucm <command>`. **2778 tests passing.** See `src/wxcli/migration/CLAUDE.md` for the full file map, architecture, and pipeline commands. Pipeline workflow, report generation, and advisory details are in `.claude/rules/cucm-migration.md`.
+The migration tool is wired into the CLI as `wxcli cucm <command>`. Pipeline workflow, report generation, and advisory details are in `.claude/rules/cucm-migration.md`.
 
 ## CLI Status & Known Issues
 
-**178 command groups covering calling, admin, device, messaging, meetings, wholesale, and contact center APIs.** 171 generated modules from 9 tracked OpenAPI 3.0 specs via `tools/generate_commands.py`, registered through the generator-emitted `_registry.py` manifest; spec refresh + regen is one atomic operation (`tools/spec_sync.py`), checked by `tools/drift_check.py`. The `converged-recordings` group combines generated CRUD commands with hand-written `download` and `export` commands (`converged_recordings_export.py`).
+**178 command groups covering calling, admin, device, messaging, meetings, wholesale, and contact center APIs.** The `converged-recordings` group combines generated CRUD commands with hand-written `download` and `export` commands.
 
 ### Partner Multi-Org Support
 
